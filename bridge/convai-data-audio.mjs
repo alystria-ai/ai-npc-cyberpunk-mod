@@ -16,6 +16,15 @@ const MAX_WIRE_BYTES = 1048576;
 // channel count (an 8 percent error or more) still fails.
 const DURATION_SLACK_SECONDS = 0.03, DURATION_SLACK_FRACTION = 0.01;
 const durationSlack = seconds => DURATION_SLACK_SECONDS + DURATION_SLACK_FRACTION * seconds;
+// The rates audio really arrives at when the packets' own label is wrong, and how close the rate the declared duration gives must be to one of them (0.5 percent: the
+// duration is a rounded millisecond figure).
+const STANDARD_RATES = [44100, 48000], RATE_MATCH = 0.005;
+/** The standard rate the bytes and the declared duration agree on, or null (not one, or the rate the packets already said). */
+function mislabelledRate(bytes, align, declaredSeconds, declaredRate) {
+  if (!(declaredSeconds > 0)) return null;
+  const actual = bytes / (align * declaredSeconds);
+  return STANDARD_RATES.find(rate => rate !== declaredRate && Math.abs(actual - rate) / rate <= RATE_MATCH) ?? null;
+}
 const ownerFields = ['response_id', 'neurosync_turn_id', 'epoch'];
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -123,6 +132,9 @@ export class ConvaiDataAudio {
     this.frames = new Map(); this.facialDiagnostic = null;
     this._owner = null; this.error = null; this.terminal = null; this.stats = null;
     this.sampleRate = null; this.channels = null; this.fps = null;
+    // The rate the packets said. `sampleRate` is the one the clip is written and played at: the same, unless the final statistics showed that the packets were mislabelled
+    // (rateCorrected: {declared, actual}, see validateTotals).
+    this.declaredRate = null; this.rateCorrected = null;
     this.timing = {}; this.sealed = false; this.result = null;
   }
 
@@ -133,8 +145,10 @@ export class ConvaiDataAudio {
     return this.byteCount === this.stats.total_audio_bytes;
   }
 
-  fail(message) {
-    this.error ??= Error(message);
+  // `format`: the fault is in the audio's format (sample rate, channels, sample alignment, size against the declared duration), which a caller whose voice is not Convai's may
+  // survive by dropping the audio (error.formatFault); ownership, ordering and transport faults are never that.
+  fail(message, {format = false} = {}) {
+    this.error ??= Object.assign(Error(message), format ? {formatFault: true} : {});
     this.parts.length = 0; this.frames.clear();
     throw this.error;
   }
@@ -207,15 +221,15 @@ export class ConvaiDataAudio {
   addAudio(data, atMs) {
     const rate = data.sample_rate, channels = data.channels;
     if (!Number.isInteger(rate) || rate < 8000 || rate > 96000 || ![1, 2].includes(channels)
-        || data.includes_wav_header !== false) return this.fail('Unsupported Convai PCM format');
-    if (this.sampleRate !== null && (this.sampleRate !== rate || this.channels !== channels))
-      return this.fail('Convai changed PCM format during the response');
+        || data.includes_wav_header !== false) return this.fail('Unsupported Convai PCM format', {format: true});
+    if (this.declaredRate !== null && (this.declaredRate !== rate || this.channels !== channels))
+      return this.fail('Convai changed PCM format during the response', {format: true});
     const bytes = decodePcm(data.audio);
-    if (!bytes.length || bytes.length % (channels * 2)) return this.fail('Unaligned Convai PCM samples');
+    if (!bytes.length || bytes.length % (channels * 2)) return this.fail('Unaligned Convai PCM samples', {format: true});
     const total = this.byteCount + bytes.length;
     if (total > this.maxBytes || total / (rate * channels * 2) > this.maxSeconds)
       return this.fail('Convai speech exceeded the collection limit');
-    this.sampleRate = rate; this.channels = channels;
+    this.sampleRate = this.declaredRate = rate; this.channels = channels;
     this.parts.push(bytes); this.byteCount = total; this.packetCount++;
     this.timing.firstAudioMs ??= atMs; this.timing.completeAudioMs = atMs;
   }
@@ -275,9 +289,16 @@ export class ConvaiDataAudio {
       const counted = bytes / (align * this.sampleRate);
       const numbers = `${bytes} bytes, ${this.stats.total_audio_duration_ms} ms declared against ${(counted * 1000).toFixed(1)} ms counted, `
         + `${this.sampleRate} Hz, ${this.channels} channel${this.channels === 1 ? '' : 's'}, ${this.packetCount} packets`;
-      if (bytes % align) return this.fail(`Convai PCM size is not a whole number of samples (${numbers})`);
-      if (Math.abs(counted - declaredSeconds) > 1 / this.sampleRate + 0.001 + durationSlack(declaredSeconds))
-        return this.fail(`Convai PCM size does not match its declared duration (${numbers})`);
+      if (bytes % align) return this.fail(`Convai PCM size is not a whole number of samples (${numbers})`, {format: true});
+      if (Math.abs(counted - declaredSeconds) > 1 / this.sampleRate + 0.001 + durationSlack(declaredSeconds)) {
+        // The packets say one rate and the bytes and the declared duration agree on another: the audio is mislabelled (2026-10-21: packets that said 24 kHz carried 44.1 kHz audio,
+        // 5,733 ms declared against 10,535 counted, which is exactly 44100 / 24000, in the reports of the turns with Multilingual on). The clip is taken at the rate the declared duration
+        // gives, when that is a standard rate (within RATE_MATCH of it), and written and played at it. Anything else is still a fault.
+        const actual = mislabelledRate(bytes, align, declaredSeconds, this.declaredRate);
+        if (actual === null) return this.fail(`Convai PCM size does not match its declared duration (${numbers})`, {format: true});
+        this.rateCorrected = {declared: this.declaredRate, actual};
+        this.sampleRate = actual;
+      }
     }
   }
 
@@ -324,6 +345,7 @@ export class ConvaiDataAudio {
     this.result = {...(includeAudio ? {audio} : {}), duration, sampleRate: this.sampleRate, channels: this.channels, bits: 16,
       faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
       timing: {...this.timing}, stats: {...this.stats}, packetCount: this.packetCount,
+      ...(this.rateCorrected ? {sampleRateCorrected: {...this.rateCorrected}} : {}),
       ...(this.facialDiagnostic ? {facialDiagnostic: this.facialDiagnostic} : {})};
     this.sealed = true; this.parts.length = 0; this.frames.clear();
     return this.result;

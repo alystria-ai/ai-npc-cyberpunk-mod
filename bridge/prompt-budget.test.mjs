@@ -421,3 +421,44 @@ test('fitLimit: the context less the room for the reply and the margin', () => {
   assert.equal(fitLimit({contextTokens: 8192}), 8192 - BUDGET.reserveTokens - Math.max(BUDGET.minMargin, 8192 * BUDGET.marginRatio) | 0);
   assert(fitLimit({contextTokens: 9400, reserveTokens: 0}) > fitLimit({contextTokens: 8192}));
 });
+
+// ---- Older exchanges go in blocks: the history starts at the same exchange for several turns --------------------------------------------------------------
+
+// The exchanges of a conversation, numbered from `first` (a different number in each, so a shifted start shows in the messages).
+const numbered = (count, first = 0) => Array.from({length: count}, (_, index) => ({v: `Tell me about job number ${first + index} and what happened that night at the Clouds.`,
+  r: `It was a long night, V, number ${first + index}. Braindance work is mostly waiting, then everything happens at once and you wish it had not.`}));
+const kept = fit => fit.messages.slice(1, -1);   // the exchanges of the history that were sent
+
+test('older exchanges: a conversation at the limit keeps the same first exchange for several turns, so the history is not read again every turn', async () => {
+  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const fits = [];
+  for (const size of [9, 10, 11]) {   // the memory store keeps the start of its window for a few turns while it grows by one exchange a turn
+    fits.push(await fitMessages({args: turn({history: numbered(size), text: 'What next? ' + size}), budget: budget()}));
+  }
+  for (const fit of fits) assert(fit.fits && fit.trimmed.includes('older-exchanges'), 'the history is being cut: ' + fit.trimmed.join(','));
+  // The system message (persona, rules, world blocks) is the same on all three turns.
+  assert.equal(fits[1].messages[0].content, fits[0].messages[0].content);
+  assert.equal(fits[2].messages[0].content, fits[0].messages[0].content);
+  // The history of each turn starts with the exchange the turn before started with, and everything after it is the same exchanges plus the new ones: a byte-identical prefix.
+  for (const [before, after] of [[0, 1], [1, 2]]) {
+    const old = kept(fits[before]), now = kept(fits[after]);
+    assert.deepEqual(now.slice(0, old.length), old, `turn ${after} repeats the history of turn ${before} and only appends`);
+    assert(now.length >= old.length, 'the history only grew');
+  }
+});
+
+test('older exchanges: they go in whole blocks of BUDGET.trimBlock (never below keepExchanges), the prompt only gets shorter, and a prompt that fits is not cut', async () => {
+  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const base = await fitMessages({args: turn({history: numbered(8)}), budget: budget()});
+  const dropped = 8 - kept(base).length / 2;
+  assert.equal(dropped % BUDGET.trimBlock, 0, 'a whole block was dropped (' + dropped + ')');
+  assert(kept(base).length / 2 >= BUDGET.keepExchanges);
+  assert(base.trimmed.includes('older-exchanges'));
+  assert(base.tokens <= base.limit);
+  // The first exchange kept is always one of the conversation's own: a block is cut from the start, the end stays.
+  assert.equal(kept(base).at(-1).content, numbered(8).at(-1).r);
+  // Room to spare: nothing of the history is cut.
+  const roomy = await fitMessages({args: turn({history: numbered(8)}), budget: {contextTokens: 24000, meter: new TokenMeter()}});
+  assert.deepEqual(roomy.trimmed, []);
+  assert.equal(kept(roomy).length, 16);
+});

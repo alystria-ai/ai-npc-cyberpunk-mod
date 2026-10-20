@@ -15,6 +15,12 @@ export const SPILL_LIMITS = Object.freeze({
   slowTokensPerSecond: 12,  // a reply written slower than this (20 or more pieces) is looked at; a card with room writes 35 and more even beside the game
   slowMinPieces: 20,
   checkEveryMs: 180_000,    // at most one reading in this long
+  // Two more moments to look, so a spill is found before a turn is lost to it (2026-10-21: an RTX 3080 10 GB with the Mature good model spilled 0.7 to 1 GB every session and the
+  // first turn waited 60 to 75 s for the stall that was the only thing that read the counters): once after each load, at the first request the model gets (a persona warm-up
+  // or a turn), and when a turn's request has had no answer after noHeadersMs. The second is rate-limited by earlyCheckEveryMs, not by checkEveryMs: a turn that is stuck
+  // must not wait three minutes for its reading.
+  noHeadersMs: 10_000,
+  earlyCheckEveryMs: 20_000,
 });
 
 /** Parses `typeperf ... -sc 1` CSV of Dedicated and Shared Usage counters into {dedicatedMiB, sharedMiB} (summed over the process's adapters), or null. */

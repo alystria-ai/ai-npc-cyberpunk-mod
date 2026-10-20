@@ -447,6 +447,12 @@ budget rebuilds the prompt with less in it instead of cutting a string.
 - **Prefix caching.** The layout (stable first, changing last) is kept, and the cuts are discrete and deterministic: a block is halved once
   and then dropped, never trimmed a little more each turn, so the early part of the prompt changes only when a threshold is crossed and not
   on every turn (hybrid models such as Qwen3.5 and Gemma 4 lose every cache checkpoint after one changed early token).
+  **Older exchanges go in blocks (2026-10-21):** dropped one at a time, a conversation at the limit adds an exchange and drops the oldest every turn, so the
+  history started one exchange later each turn and the server read it all again (an RX 6700 XT re-read about 4,650 tokens with 0 cached on several turns, 22 to 26 s
+  to the first word; the simulation in `bridge/prompt-budget.test.mjs` showed the start of the history moving on every turn). The count dropped is now rounded up to
+  a whole block (`BUDGET.trimBlock`, 3, never below `keepExchanges`), so the history starts at the same exchange for up to three turns while it grows and the
+  prefix (persona, world blocks, kept history) is byte-identical turn to turn apart from the appended exchanges. The log line says `older-exchanges:block` when
+  the block rounding dropped more than the fit needed (at most two exchanges). Not measured live: the check is the `cached` figure of consecutive `[LocalTurn]` lines.
 - **A refusal anyway.** If the server still refuses (`error.overflow`: its `n_prompt_tokens` and `n_ctx`), the count is learned into the
   meter and the same turn is fitted again and sent once more. A second refusal is final.
 - **A server the player runs (LM Studio, Ollama, KoboldCpp) can have less context loaded than it reports.** Its refusal for length is told by its words, not its status:
@@ -931,6 +937,50 @@ with `prompt` small and `cached` large means the machine itself is slow (memory 
 
 Tests: `bridge/local-queue.test.mjs` (the arbitration, the warm-up skip, the host stopping a summary for a turn, the retry, the per-turn line, the history window),
 `bridge/memory-store.test.mjs` (the window, the extraction put off), `bridge/local-turn-diagnostics.test.mjs` (the line).
+
+### 0.2.5 error reports, round 3 (2026-10-21): a step-down race, the first turn after the idle stop, an early look for a spill
+
+- **A step-down race left Local AI on the cloud for the session** (signature `4e68387c`, "model server was stopped"). `#spillAct` stops the model, then awaits the free-memory
+  read and the fit probe. A retried turn that called `ensure()` in that gap found the server stopped and started the same large model; the step then found no fit, and `#stepDown`
+  stopped it again, so the turn's awaited start ended with `LocalAiUnavailable('stopped')`. The route's `failure()` passed that to `noteLocalFailure('stopped')`, and
+  `RETRY_ON_CHOICE` (`bridge/convai-bridge.mjs`) does not list it, so Local stayed broken until the player chose it again. Now: (1) `ensure()` waits for a step that is under way
+  (`#beginStep` / `#endStep`, a gate every step-down, spill action and device-lost step holds); the steps themselves start their next model through `#kick`, not `ensure()`.
+  (2) A start a caller awaited that ends with `stopped` because a newer start took its place is not a failure: the newer one is awaited (as long as the caller's signal is not
+  aborted and the server has not failed). A plain `stop()` with nothing started again still ends the wait with `stopped`. (3) `failure()` does not tell the provider about `stopped`.
+- **The first turn after the idle stop ran out of time before asking** (`22f77797`). The 80 s budget is counted from the start of the turn, a cold reload ate it, and
+  "ran out of time before the model could be asked" (no request sent) was counted as a stall (slow plus no response), which pushes the model toward a step-down even on an RTX 5090.
+  Now: (1) such an error carries `noAttempt` and a record with no request time is never a stall (`noteTurn`); its words are "ran out of the turn's time before the model could be asked
+  (it was loading or busy)". (2) The load starts with the turn (`localRoute.loadPending` / `prepare`, called at the top of `TextProviderHost#reply`, beside the memory recall), bounded
+  by `LOCAL_TURN_HARD_CAP_MS - LOCAL_ATTEMPT_ROOM_MS`; the deadline is then pushed to the moment the model was ready plus `LOCAL_ATTEMPT_ROOM_MS` (15 s), but never past
+  `LOCAL_TURN_HARD_CAP_MS` (86 s: the game gives up on the request 90 s after it wrote it, `mod/init.lua`), so a model that came up at 78 s is asked with 8 s left instead of never.
+  A load that is not done 15 s before that cap is not waited for in the turn's name: it goes on and the turn ends with its own "still loading" words, as before.
+  The idle stop (10 minutes) stays: it gives the card back to the game. The composer opening (`warmTalkTargets` / `warmCustom` -> `prewarm` -> `ensure`) already reloads a stopped model
+  while the player types or holds the talk key, so the first turn normally finds it loaded; a reload on merely looking at or approaching a character was NOT added (a model load is
+  seconds of disk and graphics-card work with nobody talking, which the FPS rule forbids; the nearby warm-up deliberately leaves GPU work out for the same reason).
+- **A dead first turn on 10 GB cards** (install A: RTX 3080 10 GB, Mature good, 0.7 to 1 GB spilled every session; the spill was found only after a 60 to 75 s stall). Two more moments
+  now read the memory counters (one `typeperf`, 0.4 s): once at the first request of each load (`begin()`: the persona warm-up or the turn, `#lookAfterLoad`), and when a turn's
+  request has had no response headers after `SPILL_LIMITS.noHeadersMs` (10 s; `#watchHeaders`, cleared by `noteHeaders()`, which the route calls when headers arrive; rate-limited to
+  `earlyCheckEveryMs`, 20 s). A spill found there takes the existing path (`#spillAct`: the same model fitted to the free memory once, then a step-down). Nothing per frame, nothing on
+  every turn: with healthy counters one reading per load, and none without counters (not Windows) or for a server the player runs. The reserve rule (`SMALL_CARD_MAX_MIB` 8,704 /
+  `SMALL_CARD_GAME_RESERVE_MIB` 3,000) was NOT extended to 10 GB cards: Mature good needs 6,288 MiB by the file-size rule and the standard model 6,480, both inside 10,240 - 3,000, so the
+  3,000 reserve would not change a pick, and a reserve large enough to (about 4,000) would send every 10 GB player to the lite model on one install's evidence, while the measured
+  real use of the 5 GB Gemma is 3.3 GB. The early look is the fix; the trade-off is a decision for the owner (see the captain's log).
+- **Tests:** `bridge/local-llm-server.test.mjs` (the race with a held free-memory read, the superseded start and the plain stop, one look per load, a spill found at the first request,
+  the 10 s wait), `bridge/local-turn-diagnostics.test.mjs` (the first turn after the idle stop with a faked clock, a turn that never reached the model is no stall, `stopped` is no
+  failure, `loadPending` / `prepare`), `bridge/prompt-budget.test.mjs` (older exchanges in blocks).
+
+### Convai audio labelled with the wrong sample rate (2026-10-21)
+
+Reports `14e50b97` (0.2.5) and `0e895ffe` (0.2.2), all with Multilingual on: "Convai PCM size does not match its declared duration" with 5,733 ms declared against 10,535 counted, exactly
+44,100 / 24,000: audio at 44.1 kHz in packets that say 24 kHz. `ConvaiDataAudio.validateTotals` now takes the clip at the standard rate (44,100 or 48,000, within 0.5%) that the byte
+count and the declared duration agree on, when the packets' label does not fit them; the WAV is written and the clip played at it (`result.sampleRateCorrected`, `{declared, actual}`).
+Anything else (another rate, more than 0.5% off, a channel mismatch, a size that is not whole samples) is still a fault, now flagged `error.formatFault`. A turn played live
+(`liveSpeech`) has already sent its packets to the player at the label's rate when the statistics arrive, so such a clip plays slow once instead of failing. In addition, when the
+player's own voice is not Convai's (`audioOptional`: `localChoice(profile).uses`, set in `realtimeConfig`; Convai speaks such a player only for a turn in another language that an
+English-only voice cannot), a format fault of the audio no longer fails the turn: the audio is dropped, the written reply is returned with `audioError`, and the connection is retired
+after the reply (so nothing left of that response can reach another turn). The follow-on "Convai realtime connection closed" (`92f464e9`) came from the connection a failed turn retired;
+`rejectTransport` already ignores the `disconnect` of a connection `close()` retired (`currentConnection()`), and with the rate corrected the fault no longer retires it at all, so no
+separate guard was added. Tests: `bridge/convai-data-audio.test.mjs`, `bridge/realtime-client.test.mjs`.
 
 ### The knowledge status file (EPERM in the bridge log)
 

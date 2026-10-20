@@ -46,7 +46,7 @@ const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI'
  * The message carries `[mistral:<kind>]` so the bridge can classify a failure from its text alone, like convai-quota.mjs.
  */
 export class MistralError extends Error {
-  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false, partial = false, resetAt, reasoning = false, reason, trace, noRetry = false, deadline = false} = {}) {
+  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false, partial = false, resetAt, reasoning = false, reason, trace, noRetry = false, deadline = false, noAttempt = false} = {}) {
     provider = PROVIDER_LABELS[provider] ? provider : 'mistral';
     super(`${PROVIDER_LABELS[provider]} ${redact(detail, apiKey).slice(0, 200)} [${provider}:${kind}]`);
     this.name = 'MistralError';
@@ -58,8 +58,9 @@ export class MistralError extends Error {
     // partial: some of the reply had already been delivered (a retry would say it twice).
     // reason: why a request ended without a reply, from what the stream showed (stallReason): 'no-response', 'no-first-token', 'prefill-stalled',
     //   'thinking-only', 'stalled'. trace: the request's record (what came when; see `newTrace`). noRetry: asking again would only repeat the wait.
-    //   deadline: the attempt was cut short by the turn's time limit (`deadlineAt`), not by its own limits.
+    //   deadline: the attempt was cut short by the turn's time limit (`deadlineAt`), not by its own limits. noAttempt: the turn's time was spent before any attempt was made (no request was sent: it is not a stall of the server).
     Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow, partial, reason, trace, noRetry, deadline});
+    if (noAttempt) this.noAttempt = true;
     // Custom only, and only when set: when a daily allowance ends (epoch ms), and an empty answer whose reply budget went to thinking (`reasoning`; not the same as `reason`).
     if (resetAt !== undefined) this.resetAt = resetAt;
     if (reasoning) this.reasoning = true;
@@ -361,6 +362,8 @@ function plainFailureDetail(error) {
   if (!(error instanceof MistralError) || error.provider !== 'local') return undefined;
   const trace = error.trace, took = trace?.elapsedMs ? seconds(trace.elapsedMs) : null, after = took ? ` after ${took} s` : '';
   const head = error.deadline ? 'ran out of the turn\'s time: ' : '';
+  // No request was sent: the time went on something before it (a model that was loading, a queue), so "no answer from the server" would be untrue.
+  if (error.noAttempt === true) return 'ran out of the turn\'s time before the model could be asked (it was loading or busy)';
   switch (error.reason) {
     case 'no-response': return head + `the model server gave no answer${after}`;
     case 'no-first-token': return head + `no first word from the model${after}`;
@@ -600,7 +603,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     const remaining = hasDeadline ? deadlineAt - began : Infinity;
     if (remaining < minAttemptMs) {
       // The turn's time is spent: the last failure stands, or (no attempt was made) the turn says it ran out before the model could be asked.
-      const error = lastError ?? new MistralError('network', 'ran out of time before the model could be asked', {apiKey, provider, slow: true, deadline: true, noRetry: true, reason: 'no-response', trace: {...newTrace(), elapsedMs: 0}});
+      const error = lastError ?? new MistralError('network', 'ran out of time before the model could be asked', {apiKey, provider, slow: true, deadline: true, noAttempt: true, noRetry: true, reason: 'no-response', trace: {...newTrace(), elapsedMs: 0}});
       error.failed = failed; throw error;
     }
     const capped = remaining < totalMs;

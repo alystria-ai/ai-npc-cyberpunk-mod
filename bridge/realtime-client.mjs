@@ -424,7 +424,12 @@ async function connect(config) {
         queueContinuous(turn);
       }
     }
-    catch (error) { rejectTransport(error.message || 'Invalid Convai speech data'); }
+    catch (error) {
+      // A format fault of the audio on an optional-audio turn (see beginTurn): the audio is dropped, the written reply stands, and the connection is retired once the reply is
+      // returned (collect), so no later packet of this response can reach another turn. Anything else (ownership, a closed transport) still fails the turn.
+      if (turn.audioOptional && !turn.live && error?.formatFault === true) turn.audioLost = error.message || 'Convai audio had an unusable format';
+      else rejectTransport(error.message || 'Invalid Convai speech data');
+    }
   });
   connection.on('error', () => rejectTransport('Convai realtime connection failed'));
   connection.on('disconnect', () => rejectTransport('Convai realtime connection closed'));
@@ -491,6 +496,9 @@ function beginTurn(timing = {}, config = {}) {
   const {ready: _ready, registration: _registration, ...connectionTiming} = timing;
   const current = {before: new Set(client.chatMessages.map(m => m.id)), text: '',
     started: performance.now(), epoch, timing: connectionTiming, ttsEnabled, textComplete: false,
+    // The reply is spoken by a voice that is not Convai's (an English-only local voice, planned for Convai's cloud voice only for a turn in another language): Convai's audio is
+    // a bonus then, and a fault in its format (a sample rate or a size that does not match) must not fail a turn whose text is fine. Never for a turn played live.
+    audioOptional: config.audioOptional === true,
     providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
   current.emotion = new ConvaiEmotion({retiredOwners: retiredExpressionOwners});
   if (ttsEnabled) current.dataAudio = new ConvaiDataAudio({retiredOwners: retiredAudioOwners});
@@ -641,7 +649,7 @@ async function collect(current) {
     await waitFor(() => {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch || turn !== current) throw Error('Conversation cancelled');
-      if (current.dataAudio?.error) throw current.dataAudio.error;
+      if (current.dataAudio?.error && current.audioLost === undefined) throw current.dataAudio.error;
       if (current.microphone && !current.userText && !current.text && !client.state.isThinking
           && performance.now() - started > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
       if (current.live) {
@@ -651,7 +659,7 @@ async function collect(current) {
       // Source bytes can arrive faster than their playback duration. Wait for
       // exact PCM + owned clean terminal + final text, never a browser clock.
       return current.text && current.textComplete && !client.state.isThinking
-        && (!current.ttsEnabled || current.dataAudio.ready);
+        && (!current.ttsEnabled || current.audioLost !== undefined || current.dataAudio.ready);
     }, 60000, COLLECT_TIMEOUT_ERROR);
     const collectedAt = performance.now();
     if (current.epoch !== epoch || turn !== current || current.error) throw Error(current.error || 'Conversation cancelled');
@@ -659,7 +667,7 @@ async function collect(current) {
     // queued append acknowledgements before sealing the collector or EOF.
     if (current.live) await current.live.chain;
     if (current.error || turn !== current || current.epoch !== epoch) throw Error(current.error || 'Conversation cancelled');
-    const collected = current.dataAudio?.finish({includeAudio: !current.live});
+    const collected = current.audioLost === undefined ? current.dataAudio?.finish({includeAudio: !current.live}) : undefined;
     const encodedAt = performance.now();
     if (current.dataAudio?.owner) {
       retiredAudioOwners.push(current.dataAudio.owner);
@@ -682,7 +690,7 @@ async function collect(current) {
       lateEmotion = {token: ++lateEmotionSequence, turn: current, connection: client, at: performance.now(), closed: false,
         emotion: new ConvaiEmotion({retiredOwners: retiredExpressionOwners})};
     }
-    return {...collected, text: current.text, sessionID: client.characterSessionId,
+    const result = {...collected, text: current.text, sessionID: client.characterSessionId,
       ...(current.emotion.snapshot() ? {expressionSignal: current.emotion.snapshot()} : {}),
       ...(lateEmotion?.turn === current ? {lateEmotionToken: lateEmotion.token} : {}),
       ...(current.userText ? {userText: current.userText} : {}),
@@ -691,6 +699,13 @@ async function collect(current) {
         audioEncodeMs: encodedAt - collectedAt,
         ...(collected ? {audioTransport: 'convai-data', audioPacketCount: collected.packetCount} : {})},
       streamed: !!current.live, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
+    // The audio of an optional-audio turn could not be used: the written reply stands. The connection is retired (what is left of this response on the wire must not reach another turn).
+    if (current.audioLost !== undefined) {
+      result.audioError = "Convai's speech could not be used; showing the written reply.";
+      result.timing.audioFormatFault = true;
+      await close('Convai audio could not be used: ' + current.audioLost).catch(() => {});
+    }
+    return result;
   } catch (error) {
     const failure = rendererError(current, error);
     // The close reason stays the bare message; the thrown error also says what had arrived, so a stuck reply can be diagnosed.
