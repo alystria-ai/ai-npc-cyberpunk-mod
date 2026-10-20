@@ -10,7 +10,7 @@
 // names its exact origin as `trustedOrigin`: a server the player runs themselves (bridge/custom-models.mjs, an `endpoint` entry) on the local network
 // or, with the player's explicit "remote": true, anywhere; the key then goes to that origin and to no other.
 import {markStage} from './turn-clock.mjs';
-import {ThinkFilter, reasoningIn, reasoningTokens, afterStrayClose, retryBudget, withNoThink, NO_THINK_MODEL} from './reasoning.mjs';
+import {ThinkFilter, reasoningIn, reasoningTokens, afterStrayClose, retryBudget, withNoThink, NO_THINK_MODEL, NO_THINKING_FIELDS} from './reasoning.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
 // The conversation models, fastest first. The free plan's allowance differs by model and account (measured 11 Oct 2026: Small and
@@ -66,6 +66,10 @@ export class MistralError extends Error {
   }
 }
 
+// Words in an error's text that say what the player's own model server needs (errorCodeFor works from the text alone, like the rest of the markers).
+const STUBBORN_THINKING = /even when asked not to think/;
+const SERVER_CONTEXT = /the model server's context is too small/;
+
 export const MISTRAL_MARKER = /\[(?:mistral|local|custom):(key|limit|model|network|empty|request|credits|daily|reasoning)\]/;
 
 /** The failure kind in an error's text ('key', 'limit', 'model', ...) or null. */
@@ -82,7 +86,9 @@ export function errorCodeFor(error) {
   const provider = /\[(mistral|local|custom):/.exec(text)?.[1] ?? 'mistral';
   // The local AI has no key or limit of its own. A server that could not be started has its own code in the bridge (local-fallback);
   // any other failure of a turn (a refused prompt, no answer, a server that went away) is 'local-failed'.
-  if (provider === 'local') return kind ? 'local-failed' : undefined;
+  // Two of them are about the player's own model server (a server added through manifest.custom.json) and name what to change there: a model that only thinks
+  // even when asked not to (streamChat), and a context too small for the character (bridge/prompt-budget.mjs PromptTooLarge).
+  if (provider === 'local') return !kind ? undefined : kind === 'empty' && STUBBORN_THINKING.test(text) ? 'local-thinking' : kind === 'request' && SERVER_CONTEXT.test(text) ? 'local-context' : 'local-failed';
   // The custom provider: its own seven notices (a failure of any other kind, a refused prompt or an empty answer, is the ordinary "no answer").
   if (provider === 'custom') return kind === 'key' ? 'custom-key' : kind === 'credits' ? 'custom-credits' : kind === 'limit' ? 'custom-limit'
     : kind === 'daily' ? 'custom-daily' : kind === 'reasoning' ? 'custom-reasoning' : kind === 'model' ? 'custom-model' : kind === 'network' ? 'custom-unreachable' : undefined;
@@ -129,7 +135,7 @@ const FIELD_WORDS = /parameter|param\b|field|argument|propert/;
 const NO_SUCH_MODEL = /(?:model|endpoint)s?\b.{0,60}\b(?:not found|does not exist|not a valid|no such|unknown|not available|is not supported)|no endpoints found|invalid model/;
 // The fields that ask a model to think less (bridge/reasoning.mjs). A word of one of them that is not part of a model id ("qwen3-thinking") says the refusal is
 // about them: OpenAI's "reasoning_effort", Ollama's "does not support thinking", OpenRouter's "Reasoning is mandatory for this endpoint and cannot be disabled".
-const REASONING_FIELD = /(?<![\w/:-])(?:reasoning|thinking|enable_thinking|include_reasoning)(?:[_.](?:effort|budget|type|enabled))?(?![\w-])/;
+const REASONING_FIELD = /(?<![\w/:-])(?:reasoning|thinking|think|enable_thinking|include_reasoning|chat_template_kwargs)(?:[_.](?:effort|budget|type|enabled))?(?![\w-])/;
 const MANDATORY = /mandatory|cannot be (?:disabled|turned off|switched off)|can(?:'|’)?t be (?:disabled|turned off)|is required|must (?:reason|think)/;
 
 /**
@@ -151,6 +157,15 @@ export function rejectedParameters(status, text) {
   if (swap) return {names: names.filter(name => name !== 'max_completion_tokens'), swap: true, ...flag};
   if (!names.length) return about ? {names: [], swap: false, reasoning: true} : NO_SUCH_MODEL.test(lower) || !FIELD_WORDS.test(lower) ? null : {names: [], swap: false};
   return {names, swap: false, ...flag};
+}
+
+/**
+ * Which of the fields that ask for no thinking (bridge/reasoning.mjs noThinkingFields) a refusal names; only those are left out of the request sent again
+ * (`adapt.noThinkDropped`). Empty when it names none.
+ */
+export function namedNoThinkFields(text) {
+  const lower = String(text ?? '').toLowerCase();
+  return NO_THINKING_FIELDS.filter(name => new RegExp(String.raw`(?<![\w/:-])${name}(?![\w-])`).test(lower));
 }
 
 // A daily allowance does not clear by waiting a few seconds. OpenRouter's free models answer 429 "Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000
@@ -233,13 +248,39 @@ function mapCustomFailure(status, body, {headers, apiKey, now = Date.now()}) {
     return make('limit', 'is rate limiting requests');
   }
   const rejected = rejectedParameters(status, matching);
-  if (rejected) { const error = make('request', `refused the request: ${text || `HTTP ${status}`}`); error.paramsRejected = rejected; return error; }
+  if (rejected) {
+    const error = make('request', `refused the request: ${text || `HTTP ${status}`}`);
+    const noThink = namedNoThinkFields(matching);
+    error.paramsRejected = noThink.length ? {...rejected, noThink} : rejected;
+    return error;
+  }
   // A 404 that speaks of a model (or OpenRouter's "No endpoints found for <model>") is an unknown model id. A bare "Not Found" (an HTML page, Ollama's
   // "404 page not found") is a wrong address: a path without /v1, Ollama's own /api, a site's web page. The player is sent to the address, not the model.
   if (status === 404 && !/model|no endpoints found/.test(lower)) return Object.assign(make('network', `has no chat endpoint at that address (HTTP 404)${text ? `: ${text}` : ''}`), {permanent: true});
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return make('model', `does not know that model: ${text || `HTTP ${status}`}`);
   if (status === 408 || (status >= 500 && status <= 599)) return make('network', `had a server fault (HTTP ${status})`, {slow: true});
   return make('request', `refused the request: ${text || `HTTP ${status}`}`);
+}
+
+// A server saying the prompt is longer than the context it has loaded: llama.cpp ("request (N tokens) exceeds the available context size (M tokens)", type
+// `exceed_context_size_error` with n_prompt_tokens and n_ctx), OpenAI-style servers ("maximum context length is M tokens ... you requested N") and LM Studio's
+// own ("Trying to keep the first N tokens when context the overflows ... context length of only M tokens"). LM Studio wraps llama.cpp's refusal in a 500 or 502.
+const CONTEXT_FULL = /exceeds?[_ ](?:the )?(?:available |model'?s? )?(?:max(?:imum)? )?context[_ ](?:size|length|window)|(?:maximum|max) context (?:length|size)|context (?:size|length|window) (?:has been |was |is )?exceeded|context length of only|when context the overflows|prompt is too long for the context|input is too long for the context/i;
+
+/**
+ * {promptTokens, contextTokens} (either may be undefined: the server did not say) when a failed request was a prompt longer than the server's context, else null.
+ * Any 4xx that a server answers a refused prompt with and any 5xx a front end passes it on as count.
+ */
+export function contextRefusal(status, text, body) {
+  if (!(status === 400 || status === 413 || status === 422 || (status >= 500 && status <= 599))) return null;
+  const words = String(text ?? '');
+  if (!(body?.error?.type === 'exceed_context_size_error' || CONTEXT_FULL.test(words))) return null;
+  const number = (...values) => { for (const value of values) { const count = Math.floor(Number(value)); if (Number.isFinite(count) && count > 0) return count; } return undefined; };
+  const counted = /request \((\d+) tokens\).*?\((\d+) tokens\)/.exec(words);
+  const asked = /maximum context length is (\d+) tokens.*?(?:requested|resulted in|contain(?:s|ed)?) (\d+) tokens/i.exec(words);
+  return {
+    promptTokens: number(body?.error?.n_prompt_tokens, /"n_prompt_tokens"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[1], asked?.[2], /keep the first (\d+) tokens/i.exec(words)?.[1]),
+    contextTokens: number(body?.error?.n_ctx, /"n_ctx"\s*:\s*(\d+)/.exec(words)?.[1], counted?.[2], asked?.[1], /context length of only (\d+) tokens/i.exec(words)?.[1])};
 }
 
 /** Maps an HTTP status (or the `code` of an error object inside a stream) and its body to a MistralError. */
@@ -258,11 +299,12 @@ export function mapFailure(status, body, {headers, apiKey, provider, now} = {}) 
     error.daily = /per day|TPD|RPD|daily/i.test(lower);
     return error;
   }
-  // llama-server refuses a prompt longer than its context and says how many tokens it counted (docs/LOCAL_AI.md, "Context budget").
-  if (status === 400 && (body?.error?.type === 'exceed_context_size_error' || /exceeds the available context size/i.test(text))) {
-    const counted = /request \((\d+) tokens\).*\((\d+) tokens\)/.exec(text);
+  // llama-server refuses a prompt longer than its context and says how many tokens it counted (docs/LOCAL_AI.md, "Context budget"). A server in front of it
+  // (LM Studio) passes that refusal on inside its own error, as a 500 or 502: the words are what tell it from a server that failed.
+  const overflow = contextRefusal(status, text, body);
+  if (overflow) {
     const error = new MistralError('request', detail, options);
-    error.overflow = {promptTokens: Number(body?.error?.n_prompt_tokens ?? counted?.[1]) || undefined, contextTokens: Number(body?.error?.n_ctx ?? counted?.[2]) || undefined};
+    error.overflow = overflow;
     return error;
   }
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return new MistralError('model', detail, options);
@@ -530,6 +572,10 @@ const contentText = content => typeof content === 'string' ? content
  *   thinkingRoom (custom only, default true): a reply that comes back empty because the model spent the whole budget on thinking is asked once more with more room
  *     (retryBudget, and Qwen3's documented /no_think), and the room that worked is kept in `adapt` (floorTokens, noThink); if that is empty too, the error is kind
  *     'reasoning'. The one-word action decision passes false: it is never worth a thinking model's long answer, and it just reads as "no action".
+ *   noThinking (a server of the player's, custom or local): the fields that ask for no thinking at all (bridge/reasoning.mjs noThinkingFields). Sent only once a request came
+ *     back with nothing but thinking: that request is asked again at once, with them, once (the turn's own time limit still holds), and `adapt.thinks` makes every later request to
+ *     that endpoint carry them from the start. A second answer of only thinking fails the turn saying so ("even when asked not to think"). Never given for the packaged
+ *     local models, which never think.
  *   setTimer / clearTimer: the timers of the first-byte, stall and total limits and of the drain after [DONE] (default setTimeout / clearTimeout;
  *     a test passes a manual clock's, so a loaded machine cannot cut a request early)
  * Returns {text, model, finishReason, usage, trace, attempts, failed: [{kind, status, ms, reason}]} (`failed` lists the attempts that were given up).
@@ -538,13 +584,14 @@ const contentText = content => typeof content === 'string' ? content
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
-  adapt, headers, reasoning, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+  adapt, headers, reasoning, noThinking, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
   if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
   let lastError, adapted = 0, larger = null;   // larger: {maxTokens, noThink} once a reply that went to thinking is asked again with more room
+  let thinkRetry = false;   // a reply of only thinking is asked again once with the fields that ask for no thinking (noThinking)
   const failed = [];
   const hasDeadline = Number.isFinite(deadlineAt);
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -557,10 +604,12 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
       error.failed = failed; throw error;
     }
     const capped = remaining < totalMs;
+    // Do the fields that ask for no thinking go with this attempt? (The retry of a reply that was only thinking, or an endpoint that has shown it thinks.)
+    const askedNoThink = !!noThinking && (thinkRetry || adapt?.thinks === true);
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
-        adapt, headers, reasoning, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
+        adapt, headers, reasoning, noThinking: askedNoThink ? noThinking : undefined, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
         ...(larger ? {maxTokens: larger.maxTokens, noThink: larger.noThink} : {})});
       // What the larger budget (and the switch) bought is kept: the next requests start with it, so no turn pays for the empty first try again.
       if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; }
@@ -569,6 +618,27 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
       failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began), ...(lastError.reason ? {reason: lastError.reason} : {})});
+      // A reply of only thinking from a server of the player's: the endpoint is remembered as one that thinks (the next requests carry the fields that ask for no
+      // thinking from the start), and this request is asked again at once with them, whatever retries are left (the loop above still holds the turn's own time).
+      // A custom provider's reply that spent its budget on thinking also gets the larger room, in the same one retry.
+      const thoughtOnly = lastError.reason === 'thinking-only' || lastError.reasoning === true;
+      if (noThinking && thoughtOnly && !askedNoThink) {
+        if (adapt) adapt.thinks = true;
+        if (thinkingRoom !== false && !signal?.aborted) {
+          thinkRetry = true;
+          if (provider === 'custom' && thinkingRoom && lastError.reasoning && !larger) larger = {maxTokens: retryBudget(Math.max(maxTokens, adapt?.floorTokens ?? 0)), noThink: NO_THINK_MODEL.test(model)};
+          try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
+          attempt--;
+          continue;
+        }
+      }
+      // It thought again although it was asked not to: a server of ours says so, in words the game turns into one line (errorCodeFor).
+      if (provider === 'local' && askedNoThink && thoughtOnly && lastError.reason === 'thinking-only') {
+        lastError = new MistralError('empty', `answered only with thinking (${lastError.trace?.reasoning ?? 0} pieces) even when asked not to think`,
+          {apiKey, provider, reason: 'thinking-only', noRetry: true, trace: lastError.trace});
+        lastError.failed = failed;
+        throw lastError;
+      }
       // A reasoning model that spent its whole reply on thinking (bridge/reasoning.mjs): asked once more with more room, whatever retries are left. Empty again: the
       // player is told this model thinks first.
       if (provider === 'custom' && thinkingRoom && lastError.reasoning && !signal?.aborted) {
@@ -615,20 +685,24 @@ const MAX_ADAPTATIONS = 4;
 // What the custom provider's server refused is remembered in `adapt` ({dropped: Set of field names, swapped: max_tokens is sent as
 // max_completion_tokens, reasoningStep: how many steps of the reasoning field it refused, floorTokens / noThink: what a reasoning model needed, see streamChat});
 // the route keeps one per endpoint and model for the session.
-export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false}; }
+// `thinks`: a request to this endpoint came back with only thinking, so the fields that ask for no thinking go with every request (bridge/reasoning.mjs noThinkingFields);
+// `noThinkDropped`: which of those fields the server refused by name.
+export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false, thinks: false, noThinkDropped: new Set()}; }
 const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p']);
 /**
  * Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). `steps`: how many
  * steps of the reasoning field the request has (bridge/reasoning.mjs): a refusal that is about them moves to the next, after the last nothing is sent.
  */
 function learnRefusal(adapt, rejected, steps = 0) {
-  const signature = () => `${adapt.swapped}|${[...adapt.dropped].join(',')}|${adapt.reasoningStep ?? 0}`;
+  adapt.noThinkDropped ??= new Set();
+  const signature = () => `${adapt.swapped}|${[...adapt.dropped].join(',')}|${adapt.reasoningStep ?? 0}|${[...adapt.noThinkDropped].join(',')}`;
   const before = signature();
   if (rejected.swap) adapt.swapped = true;
+  for (const name of rejected.noThink ?? []) adapt.noThinkDropped.add(name);
   if (rejected.reasoning) adapt.reasoningStep = Math.min((adapt.reasoningStep ?? 0) + 1, steps);
   // A refusal that names no field drops every optional one (the reasoning field too); a rename of max_tokens alone, or a refusal of the reasoning field alone,
   // drops nothing else (temperature and the fact extraction's response_format stay until the server refuses them).
-  else if (!rejected.names.length && !rejected.swap) adapt.reasoningStep = steps;
+  else if (!rejected.names.length && !rejected.swap) { adapt.reasoningStep = steps; for (const name of NO_THINKING_FIELDS) adapt.noThinkDropped.add(name); }
   for (const name of rejected.names.length || rejected.swap || rejected.reasoning ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
   return signature() !== before;
 }
@@ -662,7 +736,7 @@ function emptyAnswer(provider, apiKey, {thought, finishReason, extra = {}}) {
 }
 
 async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer = setTimeout, clearTimer = clearTimeout,
-  reasoning, noThink, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
+  reasoning, noThinking, noThink, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
   const trace = newTrace();
@@ -705,6 +779,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         max_tokens: custom && thinkingRoom !== false && adapt?.floorTokens ? Math.max(maxTokens, adapt.floorTokens) : maxTokens, temperature, ...extraBody};
       // The field that asks a reasoning model to think less, at the step the server has not refused yet (bridge/reasoning.mjs).
       if (custom) Object.assign(body, reasoning?.[adapt?.reasoningStep ?? 0]);
+      // The fields that ask for no thinking at all, for a server that has shown it thinks (a refused one is left out).
+      if (noThinking) for (const [name, value] of Object.entries(noThinking)) if (!adapt?.noThinkDropped?.has(name)) body[name] = value;
       if (adapt) applyAdaptation(body, adapt);
       markStage('llmSent');
       response = await fetchImpl(url, {method: 'POST', signal: controller.signal, ...(dispatcher ? {dispatcher} : {}),
@@ -728,7 +804,14 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     // The rate-limit headers go to the caller (the shared request scheduler reads a per-second limit from them).
     try { onHeaders?.(response.headers); } catch { /* an observer never fails a reply */ }
     if (!response.ok) {
-      const failure = mapFailure(response.status, await errorBody(response, provider), {headers: response.headers, apiKey, provider});
+      const refused = await errorBody(response, provider);
+      const failure = mapFailure(response.status, refused, {headers: response.headers, apiKey, provider});
+      // A server of ours (the local route has no refused-field handling of its own) that refuses a field that asks for no thinking by name: sent again without it.
+      if (noThinking && provider !== 'custom' && !failure.paramsRejected) {
+        const refusal = rejectedParameters(response.status, textOf(refused));
+        const named = refusal ? namedNoThinkFields(textOf(refused)) : [];
+        if (named.length) failure.paramsRejected = {names: [], swap: false, reasoning: true, noThink: named};
+      }
       failure.trace = {...trace, elapsedMs: since()};
       throw failure;
     }

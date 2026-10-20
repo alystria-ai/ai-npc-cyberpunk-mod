@@ -18,6 +18,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
+import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
@@ -146,7 +147,7 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
       // The server asked to be left alone for a while: no request goes out before that (Retry-After), and the notice comes at once.
       if (wait > 0) throw new MistralError('limit', 'asked for a pause between requests', {provider: 'custom', retryAfterMs: wait});
       return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
-        headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning};
+        headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning, noThinking: custom.noThinking};
     },
     cacheBody: () => ({}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
@@ -176,6 +177,14 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // smaller prompt than the context allows (PrefillMeter in bridge/prompt-budget.mjs).
   const speeds = new Map();
   let lastSpeed = null;
+  // What a server the player runs has refused or shown about itself (bridge/mistral-client.mjs newAdaptation: a field it refuses, that it thinks and is asked for no
+  // thinking from then on), per address and model id, for the session. In memory: the player may change the model behind the same address.
+  const adaptations = new Map();
+  const adaptation = connection => {
+    const key = `${connection.trustedOrigin}|${connection.requestModel ?? ''}`;
+    if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
+    return adaptations.get(key);
+  };
   chat = budgetedChat(survivingLoss(chat, {server, log}), {
     budget: async options => {
       const handle = await server.ensure({signal: options?.signal});
@@ -188,8 +197,10 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
         return tokens === null ? null : tokens + templateTokens(messages.length);
       };
-      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count};
+      // server: a model server the player runs. Its loaded context can be smaller than what it reported, so a refusal for length teaches the real one (learnContext).
+      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true};
     },
+    learn: tokens => { try { server.learnContext?.(tokens); } catch { /* a note of the context never fails a request */ } },
     onFit: fit => {
       const rate = lastSpeed?.tokensPerSecond;
       log('The local AI: ' + describeFit(fit) + (fit.target && Number.isFinite(rate) ? ` (this computer reads about ${Math.round(rate)} tokens a second)` : ''));
@@ -230,8 +241,12 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (!background) { try { server.noteSlot?.(typeof persona === 'string' ? persona : null); } catch { /* the warm-up is best effort */ } }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
       const done = typeof server.begin === 'function' ? server.begin({background, cancel: stopper ? () => stopper.abort() : null}) : null;
+      // A server the player runs: what it has refused, and the fields that ask for no thinking, sent once a request came back with nothing but thinking (a model of a
+      // name nobody listed is not asked for less thinking from the start). Our own llama-server never thinks and has neither.
+      let hostname = ''; try { hostname = new URL(connection.endpoint).hostname; } catch { /* no address: nothing to ask */ }
+      const own = connection.external === true ? {adapt: adaptation(connection), noThinking: noThinkingFields({hostname, local: true})} : {};
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
-        ...(stopper ? {signal: stopper.signal} : {}), queue: {behind, ...(stopped ? {stopped: true} : {})},
+        ...own, ...(stopper ? {signal: stopper.signal} : {}), queue: {behind, ...(stopped ? {stopped: true} : {})},
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
     // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
@@ -388,7 +403,7 @@ export class TextProviderHost {
           // what the server has refused so far, and the field that asks a reasoning model to think less. None of them exists for the Mistral route.
           const answer = await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal: sent, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
-            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), ...(lease.noThinking ? {noThinking: lease.noThinking} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(item.body ?? {}), ...extraBody}});

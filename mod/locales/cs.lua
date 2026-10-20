@@ -565,6 +565,8 @@ return {
     ["Convai: Local AI is not ready"] = "Convai: Local AI není připravena",
     ["Local AI"] = "Local AI",
     ["Local AI could not answer that. Try again in a moment."] = "Local AI na to nedokázala odpovědět. Zkus to za chvíli.",
+    ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = "Tvůj model jen přemýšlel a neodpověděl. Vypni pro něj přemýšlení na serveru modelů, nebo vyber model bez uvažování.",
+    ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = "Kontext na tvém serveru modelů je pro tuto postavu příliš malý. Zvyš délku kontextu na serveru (8192 nebo víc).",
     ["Local AI could not answer that one, so a cloud provider did."] = "Local AI na to nedokázala odpovědět, takže odpověděl cloudový poskytovatel.",
     ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Není dost volné grafické paměti pro spuštění Local AI. Zkus v Nastavení menší model.",
     ["Local AI is still loading its model. Try again in a moment."] = "Local AI ještě načítá svůj model. Zkus to za chvíli.",

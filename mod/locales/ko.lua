@@ -565,6 +565,8 @@ return {
     ["Convai: Local AI is not ready"] = "Convai: Local AI가 준비되지 않음",
     ["Local AI"] = "Local AI",
     ["Local AI could not answer that. Try again in a moment."] = "Local AI가 답변하지 못했습니다. 잠시 후 다시 시도하세요.",
+    ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = "모델이 생각만 하고 답하지 않았습니다. 모델 서버에서 추론을 끄거나 비추론 모델을 선택하세요.",
+    ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = "모델 서버의 컨텍스트가 이 캐릭터에 비해 너무 작습니다. 서버에서 컨텍스트 길이를 늘리세요 (8192 이상).",
     ["Local AI could not answer that one, so a cloud provider did."] = "Local AI가 답변하지 못해서 클라우드 제공업체가 답변했습니다.",
     ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Local AI를 시작할 여유 그래픽 메모리가 부족합니다. 설정에서 더 작은 모델을 시도하세요.",
     ["Local AI is still loading its model. Try again in a moment."] = "Local AI가 아직 모델을 불러오는 중입니다. 잠시 후 다시 시도하세요.",

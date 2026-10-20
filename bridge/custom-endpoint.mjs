@@ -21,7 +21,7 @@ import {writePrivate, keyTail} from './mistral-key.mjs';
 import {readClipboardText} from './convai-key.mjs';
 import {checkEndpoint, hostKind} from './custom-models.mjs';
 import {streamChat, MistralError, failureKind, resetClock} from './mistral-client.mjs';
-import {reasoningSteps} from './reasoning.mjs';
+import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
@@ -195,6 +195,8 @@ export class CustomEndpoint {
   get tail() { return keyTail(this.key); }
   /** The steps of the field that asks a reasoning model to think less, for this address and model id (bridge/reasoning.mjs), or undefined. */
   get reasoning() { return reasoningSteps({hostname: this.address?.hostname, local: this.local, model: this.model}); }
+  /** The fields a reply of only thinking is asked again with (bridge/reasoning.mjs noThinkingFields), or undefined (OpenRouter and DeepSeek already get theirs on every request). */
+  get noThinking() { return noThinkingFields({hostname: this.address?.hostname, local: this.local}); }
   /** OpenRouter's two optional headers, for OpenRouter only. */
   get extraHeaders() { return this.address?.secure && this.address.hostname === OPENROUTER_HOST ? OPENROUTER_HEADERS : undefined; }
   secrets() { return [this.key].filter(Boolean); }

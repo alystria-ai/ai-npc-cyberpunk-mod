@@ -9,6 +9,8 @@
 //   2. `ThinkFilter`, `reasoningIn`: what the model thought (a `reasoning` / `reasoning_content` / `reasoning_details` field, or <think>...</think> in
 //      the text) is never part of what the character says, whichever way the chunks of a stream are cut.
 //   3. `retryBudget`, `withNoThink`: a reply that came back empty because the budget went to thinking is asked once more with more room.
+//   4. `noThinkingFields`: a model whose id gave no hint is not asked for less thinking from the start; when a request to a server the player runs (the custom provider, or a
+//      Local AI `endpoint` entry, which is the 'local' route) came back with only thinking, the retry carries these fields and the endpoint is remembered as one that thinks.
 //
 // Sources (read 19 Oct 2026):
 //   OpenRouter  https://openrouter.ai/docs/use-cases/reasoning-tokens   `reasoning: {effort: "none"|"minimal"|"low"|...}` ("none" disables reasoning; a model
@@ -48,6 +50,26 @@ export function reasoningSteps({hostname, local = false, model} = {}) {
   if (host === 'api.deepseek.com') return [{thinking: {type: 'disabled'}}, {reasoning_effort: 'low'}];
   if (!THINKING_MODEL.test(String(model ?? ''))) return undefined;
   return local ? [{reasoning_effort: 'none'}, {reasoning_effort: 'low'}] : [{reasoning_effort: 'low'}];
+}
+
+/** The fields `noThinkingFields` can send (a server's refusal that names one of them drops just that one, adapt.noThinkDropped in bridge/mistral-client.mjs). */
+export const NO_THINKING_FIELDS = Object.freeze(['reasoning_effort', 'chat_template_kwargs', 'think']);
+
+/**
+ * What a turn is asked again with after it came back with only thinking (bridge/mistral-client.mjs, `noThinking`), whatever the model id looked like: a model
+ * of a name nobody listed (a server's own label such as "Laptop AI") is not asked for less thinking by `reasoningSteps`, and then thinks through the token limit.
+ * Every field here is one a server may honour and a server that does not know it ignores; one that refuses a field by name loses just that field.
+ *   a server on this computer or the home network (LM Studio, llama.cpp, Ollama, KoboldCpp)   `reasoning_effort: 'none'` (Ollama's OpenAI endpoint, gpt-oss),
+ *     `chat_template_kwargs: {enable_thinking: false}` (llama.cpp's and vLLM's way into a Qwen3-style template), `think: false` (Ollama's own switch)
+ *   any other host   `reasoning_effort: 'low'` (a model that cannot be told 'none' takes it) and the template switch
+ *   openrouter.ai, api.deepseek.com   undefined: their documented field (`reasoningSteps`) is sent on every request already
+ */
+export function noThinkingFields({hostname, local = false} = {}) {
+  const host = String(hostname ?? '').toLowerCase();
+  if (host === 'openrouter.ai' || host === 'api.deepseek.com') return undefined;
+  return local
+    ? {reasoning_effort: 'none', chat_template_kwargs: {enable_thinking: false}, think: false}
+    : {reasoning_effort: 'low', chat_template_kwargs: {enable_thinking: false}};
 }
 
 /** The fields `reasoningSteps` can add to a request (all of them are removed when a request is rebuilt for another step). */
