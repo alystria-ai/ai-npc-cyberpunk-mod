@@ -21,6 +21,7 @@ import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {setPriority, constants as osConstants} from 'node:os';
 import {SpeechActivity} from './stt-activity.mjs';
+import {USVFS_FLAG, realPathFor} from './local-ai-pack.mjs';
 
 export const LOCAL_STT_ENGINE = 'moonshine-tiny-en-int8';
 export const MODEL_FILES = Object.freeze(['preprocess.onnx', 'encode.int8.onnx', 'uncached_decode.int8.onnx',
@@ -58,14 +59,46 @@ export const DEFAULT_FIXUPS = Object.freeze([
 
 // engine: the English Moonshine model by default; a multilingual pack (bridge/speech-language.mjs LOCAL_PACKS) is looked for in
 // models/stt/<id> (packaged), runtime/stt-model/<id> (development) or <CYBERPUNK_CONVAI_STT_PACKS>/<id>.
-export function resolveLocalSttPaths({project, environment = process.env, pythonExecutable, engine = MOONSHINE_ENGINE} = {}) {
+//
+// Under Mod Organizer 2 (USVFS, the flag CYBERPUNK_CONVAI_USVFS) a voice-input pack is usually its own mod. The service then names the VIRTUAL
+// app/models/stt in CYBERPUNK_CONVAI_STT_PACKS (the service's start script, start-service.mjs), where every mod's <id> folders are listed merged, and the
+// model folder the worker gets is a REAL one: each model file is mapped to its own real place (bridge/local-ai-pack.mjs realPathFor) and the folder
+// that holds the most of them is used, because the worker reads all of one model's files from one folder. A physical install maps nothing
+// (the identity), so its result is the same as before. `exists` and `realPath` are for tests.
+export function resolveLocalSttPaths({project, environment = process.env, pythonExecutable, engine = MOONSHINE_ENGINE, exists = existsSync,
+    realPath = realPathFor(environment)} = {}) {
   const python = environment.CYBERPUNK_CONVAI_LOCAL_STT_PYTHON || pythonExecutable || environment.CYBERPUNK_CONVAI_PYTHON || null;
   const english = engine.kind === 'moonshine';
   const candidates = [english ? environment.CYBERPUNK_CONVAI_STT_MODEL : environment.CYBERPUNK_CONVAI_STT_PACKS && resolve(environment.CYBERPUNK_CONVAI_STT_PACKS, engine.id),
     project && resolve(project, 'models/stt', engine.id),
     project && resolve(project, 'runtime/stt-model', engine.id)].filter(Boolean);
-  const modelDirectory = candidates.find(path => engine.files.every(name => existsSync(resolve(path, name)))) ?? candidates[0] ?? null;
-  return {python, modelDirectory, worker: project ? resolve(project, 'bridge/local-stt-worker.py') : null};
+  const worker = project ? resolve(project, 'bridge/local-stt-worker.py') : null;
+  if (environment?.[USVFS_FLAG] !== '1') {
+    const modelDirectory = candidates.find(path => engine.files.every(name => exists(resolve(path, name)))) ?? candidates[0] ?? null;
+    return {python, modelDirectory, worker};
+  }
+  const placed = candidates.map(path => placeModelFiles(path, engine.files, exists, realPath));
+  const chosen = placed.find(item => item.count === engine.files.length) ?? placed.reduce((best, item) => (item.count > (best?.count ?? -1) ? item : best), null);
+  return {python, modelDirectory: chosen?.directory ?? null, worker, place: chosen ? {looked: chosen.looked, count: chosen.count, of: engine.files.length} : null};
+}
+
+// Where the files of one model folder really are: the real folder that holds the most of them (the earliest file's folder on a tie). The folders to
+// choose from are those USVFS maps a file to; each is then asked for ALL the files itself, because a stray file of the same model in a mod of higher priority
+// maps that one file elsewhere while another mod holds the complete model.
+function placeModelFiles(looked, files, exists, realPath) {
+  const folders = new Map();
+  for (const name of files) {
+    const file = resolve(looked, name);
+    if (!exists(file)) continue;
+    const directory = dirname(resolve(realPath(file)));
+    if (!folders.has(directory.toLowerCase())) folders.set(directory.toLowerCase(), directory);
+  }
+  let best = null;
+  for (const directory of folders.values()) {
+    const count = files.filter(name => exists(resolve(directory, name))).length;
+    if (count > (best?.count ?? 0)) best = {directory, count};
+  }
+  return {looked, directory: best?.directory ?? looked, count: best?.count ?? 0};
 }
 
 const int16 = chunk => {
