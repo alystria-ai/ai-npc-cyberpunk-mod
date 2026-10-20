@@ -69,6 +69,7 @@ The row names carry the status in brackets: the endpoint's host (`openrouter.ai`
 - **Waits.** A cloud endpoint gets 20 s to start answering (25 s on the one retry) and 15 s of silence before a stream is cut; a server on this computer or home network gets 90 s, because its first reply may be loading the model. A slow answer is an error with a notice, never an in-character "hang on" line, so a wrong address is not hidden.
 - **Connection.** An https endpoint's connection is opened when the provider is applied and kept for 60 seconds, so the first reply does not pay the handshake. The warm-up is a `HEAD` of the origin root with no key. A server on this computer needs none.
 - **One request at a time** for a server on this computer or home network: the companion-action decision does not run beside the reply.
+- **Companion actions** (drive to the map marker, attack the tagged enemy, follow, leave) work on this provider like on Mistral and Local AI: a one-word decision request, a note in the reply prompt, and the same message to the game as Convai's (docs/MISTRAL.md, "Companion actions"). The game still has to offer the action (companion in V's party; V on foot beside their stopped car and a marker on the map for a ride; a tagged enemy for an attack). A plain request ("drive me") is honoured when a small model's decision fails.
 
 ### Models that think first
 
