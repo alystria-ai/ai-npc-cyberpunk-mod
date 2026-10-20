@@ -96,7 +96,7 @@ A slider, 50 to 200 percent (steps of 5, default 100), saved as `voiceVolume` in
 settings poll (`updateVoiceVolume`, `bridge/dialogue-level.mjs`). It is added, in dB, to the makeup above (`activeMakeupDb`), so it reaches
 every spoken voice through the two paths that already exist, and V's typed-line voice through its renderer control:
 
-- **Browser renderer** (Pocket, Voxtral, Inworld, Convai): `makeupDb` rides in the playback control the bridge answers on every renderer
+- **Browser renderer** (Pocket, Voxtral, Convai): `makeupDb` rides in the playback control the bridge answers on every renderer
   poll (`ConvaiContinuousSpeech.control`; for V's line `VLine.onFrame`, which has no dialogue makeup, so it carries the volume alone and
   nothing at all at 100). The player sets its gain stage and switches the limiter in whenever the total is not 0 dB. Boosting runs
   through the same limiter as the dialogue level, so 200% on top of +6 dB never reaches full scale (real Edge, offline render: peaks of

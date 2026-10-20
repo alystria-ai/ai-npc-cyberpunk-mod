@@ -527,7 +527,7 @@ test('the engine is the player\'s choice: Pocket unless Voxtral is stored, and a
   assert.equal(voice.update({vVoiceEngine: 'pocket'}), false);
   assert.equal(voice.update({vVoiceEngine: 'voxtral'}), true); assert.equal(voice.engine, 'voxtral');
   assert.equal(voice.update({vVoiceEngine: 'voxtral'}), false);
-  for (const value of ['omni', 'convai', 'inworld', 'POCKET', 7, null]) { voice.update({vVoiceEngine: 'voxtral'}); assert.equal(voice.update({vVoiceEngine: value}), true, String(value)); assert.equal(voice.engine, 'pocket', String(value)); }
+  for (const value of ['omni', 'convai', 'POCKET', 7, null]) { voice.update({vVoiceEngine: 'voxtral'}); assert.equal(voice.update({vVoiceEngine: value}), true, String(value)); assert.equal(voice.engine, 'pocket', String(value)); }
   assert.equal(voice.wantsPocket, true);
   voice.update({vVoiceEngine: 'voxtral'}); assert.equal(voice.wantsPocket, false, 'the cloud engine needs no Pocket worker');
   voice.update({vVoiceEngine: 'pocket', vVoice: false, vVoiceChosen: true}); assert.equal(voice.wantsPocket, false, 'V off: no Pocket worker for V');

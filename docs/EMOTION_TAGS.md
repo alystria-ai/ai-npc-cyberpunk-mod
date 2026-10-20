@@ -46,10 +46,6 @@ lets the voice win. Multilingual with the cloud voice turns the setting off too.
 decides per turn from the engine that speaks (`contextFor({engine})`), so even a leftover `true` in the settings file, or a
 fallback to the cloud voice mid-session, sends no block. So there is no extra player setting and no new interplay.
 
-**Exception (2026-10-13): the Inworld cloud voice.** It always speaks with emotion. While it is the chosen voice the bridge asks for
-and keeps the marks whatever this setting says (`ExpressiveEmotions.active`, `docs/CLOUD_VOICE_INWORLD.md`, "Emotion on every path");
-a reply with no tag is steered from its words. The setting itself is not changed.
-
 Mid-session safety (a character that wrote tags for a while, then the voice switches to Convai and the block stops): in a
 test of 3 characters, 12 turns with the block and then 18 without, every one of the 36 turns with the block carried tags and
 **none of the 54 turns after it was dropped did** (`--hangover 12`). The model does not keep the habit once the block is gone,

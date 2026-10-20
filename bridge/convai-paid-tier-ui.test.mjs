@@ -92,7 +92,7 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
   for _, section in ipairs(loaded.categories) do
     for _, item in ipairs(section.settings) do
       local text = (item.label or '') .. ' ' .. (item.description or '') .. ' ' .. tostring(item.value or '')
-      assert(not text:find('price_', 1, true) and not text:lower():find('recommend') and not text:find('Inworld', 1, true), text)
+      assert(not text:find('price_', 1, true) and not text:lower():find('recommend'), text)
     end
   end
   assert(invoke('paid-tier:back').ok and managerUi.inspect().view == 'settings')

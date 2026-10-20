@@ -32,7 +32,7 @@ local localeRevision = -1
 -- The Companion voices list (menu order): Pocket TTS, the Mistral cloud voice (Voxtral), OmniVoice 16/32 steps with a short or long reference, the other cloud voices.
 local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
--- The Companion voices list of the page on screen: how many entries it has (Inworld is listed only in developer mode) and their texts.
+-- The Companion voices list of the page on screen: how many entries it has and their texts.
 local voiceMenuSize, voiceLabelsShown = 0, {}
 -- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing), by position: M.apply refuses them. A host
 -- that can grey an entry out reads them from the row (`disabledElements`).
@@ -347,7 +347,7 @@ local function profileDescription(profile, snapshot, shared, count)
     if active == 'pocket' or active == 'omni' then
         for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
             if key == profile.key then
-                voice = (snapshot.localVoice.cloudVoice == 'voxtral' or snapshot.localVoice.cloudVoice == 'inworld') and manager.voiceLabel(snapshot.localVoice.cloudVoice)
+                voice = snapshot.localVoice.cloudVoice == 'voxtral' and manager.voiceLabel(snapshot.localVoice.cloudVoice)
                     or manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
                 routed = true
                 break
@@ -357,9 +357,6 @@ local function profileDescription(profile, snapshot, shared, count)
     -- The Mistral cloud voice needs a Mistral key: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'voxtral' and not (snapshot.mistral or {}).saved then
         voice = ui.t('{voice} · needs Mistral key', {voice = manager.voiceLabel('voxtral')})
-    end
-    if not routed and settings.voiceProvider == 'inworld' and not ((snapshot.mistral or {}).inworld or {}).saved then
-        voice = ui.t('{voice} · needs Inworld key', {voice = manager.voiceLabel('inworld')})
     end
     -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
     if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
@@ -391,11 +388,10 @@ local function voiceServiceLabel(state)
     local labels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
         error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
         releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded',
-        remoteVoxtral = 'Voxtral cloud voice · Local model unloaded', remoteInworld = 'Inworld cloud voice · Local model unloaded'}
+        remoteVoxtral = 'Voxtral cloud voice · Local model unloaded'}
     -- The bridge reports 'remote' for every voice that loads no local model; cloudVoice says which one is speaking.
     local function labelKey()
         if state.state == 'remote' and state.cloudVoice == 'voxtral' then return 'remoteVoxtral' end
-        if state.state == 'remote' and state.cloudVoice == 'inworld' then return 'remoteInworld' end
         return state.state
     end
     if state.pending then
@@ -405,7 +401,7 @@ local function voiceServiceLabel(state)
         return ui.t('Changing after the current reply')
     end
     local fallback = state.fallback
-    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
+    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         local values = {
             -- A cloud voice that fell back is not the one speaking: the plain state names the Convai voice.
@@ -441,27 +437,23 @@ local function savedVoiceIndex(settings)
     return voicePreviewModule.indexOf(settings)
 end
 
--- The select's labels, in menu order. The Inworld voice is the last entry and is listed only in developer mode.
+-- The select's labels, in menu order.
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
-local function voiceMenuLabels(pack, mistral, developer)
+local function voiceMenuLabels(pack, mistral)
     local elements, disabled = {}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
         -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
-        -- what the pack and the keys are. The two cloud voices have a menu name of their own: the full one ("Mistral cloud voice
+        -- what the pack and the keys are. The Mistral cloud voice has a menu name of its own: the full one ("Mistral cloud voice
         -- (Voxtral)") stays for sentences.
-        if choice.provider ~= 'inworld' or developer then
-            local label
-            if choice.provider == 'voxtral' then
-                label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
-            elseif choice.provider == 'inworld' then
-                label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
-            else
-                label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
-                if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
-            end
-            elements[#elements + 1] = label
+        local label
+        if choice.provider == 'voxtral' then
+            label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
+        else
+            label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+            if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
         end
+        elements[#elements + 1] = label
     end
     voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
@@ -490,7 +482,7 @@ local function customProblemText(reason)
 end
 
 local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
-local CLOUD_VOICES = {voxtral = true, inworld = true, convai = true}
+local CLOUD_VOICES = {voxtral = true, convai = true}
 
 local function voiceRecord(index)
     local choice = VOICE_CHOICES[index]
@@ -730,12 +722,10 @@ local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastP
 end
 
 -- Settings > Conversation provider: the provider, Mature content, the Local AI model and the key rows of Convai and Mistral
--- (docs/OWN_CONVAI_KEY.md for the Convai key). The second result is the Inworld key row, which belongs to Settings > Development
--- (developer mode). The text shown here about a key is its status, never the key: only its last four characters, which the bridge
--- publishes, are ever displayed.
+-- (docs/OWN_CONVAI_KEY.md for the Convai key). The text shown here about a key is its status, never the key: only its last four
+-- characters, which the bridge publishes, are ever displayed.
 local function ownKeyRows(snapshot)
     local own, mistral = snapshot.ownKey, snapshot.mistral or {}
-    local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
     -- The message of a paste that did not work, for each key (the Convai key has two more reasons than the others).
     local ownMessage, result = nil, own.result
     if result == 'empty' then ownMessage = ui.t('The clipboard is empty. Copy your key first.')
@@ -747,10 +737,6 @@ local function ownKeyRows(snapshot)
     if mistralResult == 'invalid' then mistralMessage = ui.t('Mistral did not accept that key.')
     elseif mistralResult == 'unreadable' then mistralMessage = ui.t('The clipboard could not be read.')
     elseif mistralResult == 'failed' then mistralMessage = ui.t('The key could not be saved.') end
-    local inworldMessage, inworldResult = nil, inworld.result
-    if inworldResult == 'invalid' then inworldMessage = ui.t('Inworld did not accept that key.')
-    elseif inworldResult == 'unreadable' then inworldMessage = ui.t('The clipboard could not be read.')
-    elseif inworldResult == 'failed' then inworldMessage = ui.t('The key could not be saved.') end
     -- Who answers right now, as the last paragraph of the provider row's help: only what the player has to act on or could not guess
     -- (a limit, a rejected key, a wait, a fallback, the free tier's allowance). The selected provider is the row's own value, and a
     -- key is never counted against the daily allowance (bridge/shared-key-guard.mjs).
@@ -918,13 +904,7 @@ local function ownKeyRows(snapshot)
             'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
-    -- The Inworld key belongs to the Inworld cloud voice, which is a developer-mode voice: its row sits in Settings > Development.
-    local inworldRow = keyRow('Inworld API key',
-        'Copy your key from Inworld first. It is read from the clipboard once, checked with Inworld and saved on this computer.\n\nYou can also save it in player-inworld-key.txt in the conversation service folder. It is used only for the Inworld voice.',
-        'Deletes the saved key. The Inworld cloud voice stops until you add a key again.',
-        'inworld-key', {saved = inworld.saved == true, tail = inworld.tail, message = inworldMessage},
-        function() return manager.pasteInworldKey() end, function() return manager.removeInworldKey() end)
-    return rows, inworldRow
+    return rows
 end
 
 -- Settings > Conversation provider > Convai paid tier (docs/CONVAI_PAID_TIER.md): the player's plan, the Convai API key row (a plan is
@@ -1053,7 +1033,7 @@ local function pageSignature(snapshot)
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
             table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed),
-            tostring((snapshot.mistral or {}).saved), tostring(((snapshot.mistral or {}).inworld or {}).saved)}, '|'))
+            tostring((snapshot.mistral or {}).saved)}, '|'))
     end
     if view == 'models' then
         -- The list is built once the scan has finished (the models are sorted then); until then only the status line shows.
@@ -1076,13 +1056,11 @@ local function pageSignature(snapshot)
         add(settingsDigest(snapshot.settings))
         add('voice:' .. voiceStatusText(snapshot))
         local own, pack, mistral = snapshot.ownKey, manager.omniPack(), snapshot.mistral or {}
-        local inworld = type(mistral.inworld) == 'table' and mistral.inworld or {}
         add(table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
             own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
-            tostring(inworld.saved), inworld.tail or '', inworld.result or '',
             tostring(pack.known), tostring(pack.installed), tostring(snapshot.settings.developerMode)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
@@ -1365,13 +1343,7 @@ local function schema()
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
     elseif view == 'settings' then
-        -- The Inworld cloud voice is a developer-mode voice (Settings > Development): its name appears in the help of a setting only
-        -- while developer mode is on, as one more paragraph after the help that holds for everybody.
         local developer = snapshot.settings.developerMode == true
-        local function withInworld(row, extra)
-            if developer then row.description = row.description .. '\n\n' .. ui.t(extra) end
-            return row
-        end
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
             languageElements[index] = choice.label
@@ -1402,9 +1374,8 @@ local function schema()
                 snapshot.settings.vTalks == 'normal' and 3 or snapshot.settings.vTalks == 'rare' and 2 or 1, 1,
                 'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
-            withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
+            setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
-                'Inworld speaks English only as well.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
@@ -1435,9 +1406,8 @@ local function schema()
             end
         end
         categories[#categories + 1] = conversations
-        -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
-        -- Development).
-        local providerRows, inworldKeyRow = ownKeyRows(snapshot)
+        -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys.
+        local providerRows = ownKeyRows(snapshot)
         categories[#categories + 1] = category('conversation-provider', 'Conversation provider', providerRows)
 
         local heights,strengths=manager.gazeChoices()
@@ -1474,10 +1444,9 @@ local function schema()
         if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')' end
         local voicesCategory = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
-            withInworld(setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
+            setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
                 'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
-                voiceMenuLabels(pack, snapshot.mistral, developer), {elements = true, label = true}),
-                'Inworld: the same with your own Inworld key, and it also speaks with emotion.'),
+                voiceMenuLabels(pack, snapshot.mistral), {elements = true, label = true}),
             readonly('voice-status', 'Voice status', voiceStatus, voiceStatusHelp, {description = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
@@ -1487,12 +1456,10 @@ local function schema()
             setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
-            withInworld(setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
+            setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-                'Inworld can voice laughs and sighs too.'),
-            withInworld(setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
+            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
                 'Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-                'Inworld always speaks with emotion, whatever this says.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
@@ -1535,12 +1502,10 @@ local function schema()
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
                 'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
         })
-        -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
                 'For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.'),
         }
-        if developer then development[#development + 1] = inworldKeyRow end
         categories[#categories + 1] = category('development', 'Development', development)
         if support then
             categories[#categories + 1] = category('help', 'Help', {
@@ -1819,10 +1784,6 @@ function M.apply(changes)
             -- Likewise the Mistral cloud voice needs a Mistral key (it works with any conversation provider).
             if choice.provider == 'voxtral' and not manager.mistral().saved then
                 return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
-            end
-            -- The Inworld cloud voice needs an Inworld key of its own.
-            if choice.provider == 'inworld' and not (manager.mistral().inworld or {}).saved then
-                return refused('Requires an Inworld key (add it in Settings > Development)')
             end
             values.voiceProvider = choice.provider
             if choice.provider == 'omni' then values.omniSteps, values.omniReference = choice.steps, choice.reference end

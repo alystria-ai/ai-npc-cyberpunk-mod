@@ -11,7 +11,6 @@ import {readFile, writeFile, rename, rm} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
 import {readClipboardText} from './convai-key.mjs';
 import {validateKey} from './mistral-client.mjs';
-import {parseInworldKey, validateInworldKey} from './inworld-key.mjs';
 
 export const MISTRAL_KEY_FILE = 'player-mistral-key.txt';
 // A Mistral key is a plain run of letters and digits (32 characters today) with no prefix. The shape check only keeps obvious mistakes
@@ -53,8 +52,8 @@ export const PROVIDERS = Object.freeze(['convai', 'mistral', 'local', 'custom'])
  * Local AI's own reason, `localDown`); `applied` is what turns use. `active` means a text provider (Mistral or local) answers.
  */
 export class MistralProvider {
-  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), inworld = null, custom = null} = {}) {
-    Object.assign(this, {keyPath, readText, writeText, removeFile, inworld, custom});
+  constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), custom = null} = {}) {
+    Object.assign(this, {keyPath, readText, writeText, removeFile, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
     this.localTurnNoticePending = false; this.localRestartNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
@@ -181,7 +180,7 @@ export class MistralProvider {
   get apiKey() { return this.key; }
   get tail() { return keyTail(this.key); }
   /** Every value that must be scrubbed from reports. */
-  secrets() { return [this.key, ...(this.custom?.secrets?.() ?? []), ...(this.inworld?.secrets?.() ?? [])].filter(Boolean); }
+  secrets() { return [this.key, ...(this.custom?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
   /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-fallback', 'local-turn-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
@@ -222,16 +221,14 @@ export function parseKeyCommand(raw, now = Date.now()) {
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now, localStatus, localReason,
-    maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics, inworldCommandPath, validateInworld = validateInworldKey} = {}) {
+    maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics, inworldCommandPath, validateInworld});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
-    this.inworldObserved = ''; this.inworldResult = null; this.inworldBusy = false;
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
   async open() {
     this.observed = await this.read(this.commandPath).catch(() => '');
-    if (this.inworldCommandPath) this.inworldObserved = await this.read(this.inworldCommandPath).catch(() => '');
     await this.publishStatus();
     return this;
   }
@@ -256,10 +253,7 @@ export class MistralControl {
       ...(typeof this.localModelProblems === 'function' && this.localModelProblems().length ? {localModelProblems: this.localModelProblems()} : {}),
       // What the local model server loaded and how its turns went (bridge/local-llm-server.mjs diagnostics): file names, family, template length and hash, timings.
       // Only for the support report; the settings page does not read it. Never a path, a key or a word of a reply. Absent until a model was loaded.
-      ...(typeof this.localDiagnostics === 'function' ? (diagnostics => (diagnostics ? {localDiagnostics: diagnostics} : {}))(this.localDiagnostics()) : {}),
-      // Inworld (docs/CLOUD_VOICE_INWORLD.md): only the key status; never the key.
-      ...(this.provider.inworld ? {inworld: {saved: !!this.provider.inworld.key, tail: this.provider.inworld.tail,
-        ...(this.inworldResult ? {result: this.inworldResult} : {})}} : {})};
+      ...(typeof this.localDiagnostics === 'function' ? (diagnostics => (diagnostics ? {localDiagnostics: diagnostics} : {}))(this.localDiagnostics()) : {})};
   }
   publishStatus() {
     // Held until the bridge's first settings poll (MistralProvider.statusHeld): the file keeps what the last session wrote meanwhile.
@@ -269,35 +263,6 @@ export class MistralControl {
   }
   async poll() {
     await this.pollMistral();
-    await this.pollInworld();
-  }
-  async pollInworld() {
-    if (this.inworldBusy || !this.inworldCommandPath || !this.provider.inworld) return;
-    const raw = await this.read(this.inworldCommandPath).catch(() => '');
-    if (raw === this.inworldObserved) return;
-    this.inworldObserved = raw;
-    const command = parseKeyCommand(raw, this.now());
-    if (!command) return;
-    this.inworldBusy = true;
-    try {
-      this.inworldResult = {id: command.id, state: 'checking'};
-      await this.publishStatus();
-      this.inworldResult = {id: command.id, state: await this.runInworld(command)};
-    } catch { this.inworldResult = {id: command.id, state: 'failed'}; }
-    finally { this.inworldBusy = false; }
-    await this.publishStatus();
-  }
-  async runInworld(command) {
-    const inworld = this.provider.inworld;
-    if (command.action === 'clear') { await inworld.remove(); return 'cleared'; }
-    let text;
-    try { text = await this.readClipboard(); } catch { return 'unreadable'; }
-    if (typeof text !== 'string' || !text.trim()) return 'unreadable';
-    const key = parseInworldKey(text);
-    if (!key) return 'invalid';
-    if (await this.validateInworld(key) === 'invalid') return 'invalid';
-    await inworld.save(key);
-    return 'saved';
   }
   async pollMistral() {
     if (this.busy) return;

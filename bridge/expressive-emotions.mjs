@@ -52,12 +52,9 @@ export const EXPRESSIVE_TEXT = EMOTION_TAG_BLOCK;
 export class ExpressiveEmotions {
   constructor() {
     this.enabled = true;
-    // The Inworld cloud voice always speaks with emotion, whatever the player's setting says: the bridge sets this to a function that
-    // answers whether that voice is the chosen one (docs/CLOUD_VOICE_INWORLD.md, "Emotion on every path").
-    this.forcedBy = () => false;
   }
-  /** True while the marks are asked for and kept: the setting, or a voice that needs them. */
-  get active() { return this.enabled || this.forcedBy() === true; }
+  /** True while the marks are asked for and kept: the setting. */
+  get active() { return this.enabled; }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.expressiveEmotions !== false, changed = next !== this.enabled;
@@ -66,7 +63,7 @@ export class ExpressiveEmotions {
   }
   /** The block for one turn. `engine` is the voice that will speak it; text-only turns and the Convai cloud voice get none. */
   contextFor({engine, spoken = true} = {}) {
-    return this.active && spoken && (engine === 'omni' || engine === 'pocket' || engine === 'inworld') ? EXPRESSIVE_TEXT : '';
+    return this.active && spoken && (engine === 'omni' || engine === 'pocket') ? EXPRESSIVE_TEXT : '';
   }
   /** A finished reply (already cleaned by NaturalSpeech.process): marks are kept only while the marks are wanted. */
   process(result) {

@@ -218,8 +218,7 @@ except the once-a-second check):
 - OmniVoice and Pocket: `runtime/local-voice-state.json` (`workerBackend`, `requestedProvider`, `state` loading / ready), decoded by `mod/manager.lua` anyway.
   Only the engine the player chose counts, and only the model load (`loading`), not a per-character preparation (`warming`).
 - Local AI: `localAi` in `runtime/mistral-state.json` (warming, ready, failed, no-memory), read only while Local is the conversation provider.
-No signal exists yet for the Mistral cloud voice's reference preparation (it is a cached, sub-second step), the voice browser's warm-up or the
-Inworld voice; each can add a state to `manager.loadStatus` and two lines to `loadingText` in `mod/manager-ui.lua` when it has one.
+No signal exists yet for the Mistral cloud voice's reference preparation (it is a cached, sub-second step), or the voice browser's warm-up; each can add a state to `manager.loadStatus` and two lines to `loadingText` in `mod/manager-ui.lua` when it has one.
 
 ## Adding a notice
 

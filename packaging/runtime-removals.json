@@ -1,4 +1,8 @@
 {
  "note": "Paths (relative to the game folder, forward slashes, as named in the Runtime zip) that every Runtime build declares as no longer shipped: the service deletes them at its next start (packaging/runtime/apply-removals.mjs). A Runtime update zip adds what it finds by comparing the two Runtimes (packaging/build-runtime-update.mjs). Keep a path here for as long as an installation that still has the file may update to a Runtime that is built from this list.",
- "removes": []
+ "removes": [
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-key.mjs",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-steering.mjs",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-voice.mjs"
+ ]
 }

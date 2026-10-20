@@ -17,7 +17,7 @@ Convai made "Gamer" plans for this mod. A player who wants more Convai conversat
   - **Manage or cancel plan:** opens the player's Convai billing page.
 - **After Buy:** Stripe's checkout page opens in the browser. Once Convai reports the new plan, the Conversation provider becomes **Convai API key**, saved at once as an Apply would. One notice then says so in gameplay (`paid-tier-active`). If Convai has not confirmed the plan five minutes after the page opened, one notice points to **Check my plan** (`paid-tier-pending`). A later check that finds the plan makes the same switch.
 - **On a paid plan** several companions can talk and generate at once (up to six connections); see "Conversations at once" below.
-- **Wording rules:** no option is called recommended. The text never mentions a shared or embedded key, or Inworld. The README mentions the paid tier in one spot only: its Convai API key section.
+- **Wording rules:** no option is called recommended. The text never mentions a shared or embedded key. The README mentions the paid tier in one spot only: its Convai API key section.
 
 ## Convai's endpoints (from the private `Conv-AI/Convai_Payments` repository, read 2026-10-15)
 

@@ -6,7 +6,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {ConvaiKeys, OwnKeyControl} from './convai-key.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
-import {InworldKey} from './inworld-key.mjs';
 import {PaidTierControl} from './convai-paid-tier.mjs';
 import {EditorControl} from './character-editor-control.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
@@ -19,18 +18,17 @@ import {PlayerMemoryControl} from './player-memory-control.mjs';
 const here = new URL('./', import.meta.url);
 const source = name => readFileSync(new URL(name, here), 'utf8');
 const KEY = 'player-fixture-key-1111111111111111';
-const INWORLD = Buffer.from('test-key-id-0123456789:test-key-secret-abcdefghijklmnopqrstuvwxyz').toString('base64');
 const MISTRAL = 'mistral-fixture-key-2222222222222222';
 
 async function folder() { return mkdtemp(join(tmpdir(), 'convai-exchange-')); }
 const command = (id, action, issuedAt) => JSON.stringify({version: 1, id, action, issuedAt});
 
 test('no consumer of a command file ever writes, renames or removes it', () => {
-  const files = ['convai-key.mjs', 'mistral-key.mjs', 'inworld-key.mjs', 'convai-paid-tier.mjs', 'character-editor-control.mjs',
+  const files = ['convai-key.mjs', 'mistral-key.mjs', 'convai-paid-tier.mjs', 'character-editor-control.mjs',
     'player-memory-control.mjs', 'voice-preview.mjs', 'addons.mjs'];
   for (const name of files) {
     const text = source(name);
-    assert.doesNotMatch(text, /(?:rm|rmSync|unlink|unlinkSync|rename|renameSync|writeFile|writeFileSync|truncate|atomicFile|atomic)\s*\(\s*(?:this\.|control\.)?(?:inworldC|c)ommandPath/,
+    assert.doesNotMatch(text, /(?:rm|rmSync|unlink|unlinkSync|rename|renameSync|writeFile|writeFileSync|truncate|atomicFile|atomic)\s*\(\s*(?:this\.|control\.)?commandPath/,
       `${name} changes a command file`);
   }
   // The only removals in the control modules are of the player's own key files in the state folder (never a runtime exchange file).
@@ -85,39 +83,35 @@ test('the Convai key command: an empty placeholder is no command, and a command 
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
-test('the Mistral and Inworld key commands: empty files are no command, and both command files are left untouched on success and on every error path', async () => {
+test('the Mistral key command: an empty file is no command, and the command file is left untouched on success and on every error path', async () => {
   const directory = await folder();
   try {
-    const mistralPath = join(directory, 'mistral-key-command.json'), inworldPath = join(directory, 'inworld-key-command.json');
-    await writeFile(mistralPath, ''); await writeFile(inworldPath, '');
-    const store = {mistral: null, inworld: null};
-    const inworld = new InworldKey({keyPath: 'i', readText: async () => { if (!store.inworld) throw Error('missing'); return `api-key=${store.inworld}\n`; },
-      writeText: async (_path, text) => { store.inworld = /api-key=(\S+)/.exec(text)[1]; }, removeFile: async () => { store.inworld = null; }});
-    const provider = new MistralProvider({keyPath: 'm', inworld,
+    const mistralPath = join(directory, 'mistral-key-command.json');
+    await writeFile(mistralPath, '');
+    const store = {mistral: null};
+    const provider = new MistralProvider({keyPath: 'm',
       readText: async () => { if (!store.mistral) throw Error('missing'); return `api-key=${store.mistral}\n`; },
       writeText: async (_path, text) => { store.mistral = /api-key=(\S+)/.exec(text)[1]; }, removeFile: async () => { store.mistral = null; }});
     await provider.load();
     const published = [];
-    let now = 2_000_000, clipboard = async () => MISTRAL, validate = async () => 'valid', validateInworld = async () => 'valid';
-    const instance = new MistralControl({provider, commandPath: mistralPath, inworldCommandPath: inworldPath, model: () => 'm/free',
+    let now = 2_000_000, clipboard = async () => MISTRAL, validate = async () => 'valid';
+    const instance = new MistralControl({provider, commandPath: mistralPath, model: () => 'm/free',
       localStatus: () => 'not-installed', publish: async value => { published.push(JSON.parse(JSON.stringify(value))); }, now: () => now,
-      readClipboard: () => clipboard(), validate: key => validate(key), validateInworld: key => validateInworld(key)});
+      readClipboard: () => clipboard(), validate: key => validate(key)});
     await instance.open();
     const first = published.length;
-    for (let poll = 0; poll < 3; poll++) { await instance.pollMistral(); await instance.pollInworld(); }
+    for (let poll = 0; poll < 3; poll++) await instance.pollMistral();
     assert.equal(published.length, first, 'empty placeholders are no command');
     let sequence = 0;
     const send = async (kind, action) => {
-      const path = kind === 'mistral' ? mistralPath : inworldPath;
       const text = command(`s:${kind}:${++sequence}`, action, now);
-      await writeFile(path, text);
+      await writeFile(mistralPath, text);
       now += 10;
-      await (kind === 'mistral' ? instance.pollMistral() : instance.pollInworld());
-      assert.equal(await readFile(path, 'utf8'), text, `${kind} ${action} left its command file as it was`);
-      for (const secret of [MISTRAL, INWORLD]) assert.ok(!text.includes(secret));
-      assert.deepEqual((await readdir(directory)).sort(), ['inworld-key-command.json', 'mistral-key-command.json']);
-      const status = published.at(-1);
-      return kind === 'mistral' ? status.result.state : status.inworld.result.state;
+      await instance.pollMistral();
+      assert.equal(await readFile(mistralPath, 'utf8'), text, `${kind} ${action} left its command file as it was`);
+      assert.ok(!text.includes(MISTRAL));
+      assert.deepEqual((await readdir(directory)).sort(), ['mistral-key-command.json']);
+      return published.at(-1).result.state;
     };
     assert.equal(await send('mistral', 'paste'), 'saved');
     clipboard = async () => { throw Error('no clipboard'); };
@@ -126,13 +120,6 @@ test('the Mistral and Inworld key commands: empty files are no command, and both
     clipboard = async () => MISTRAL; validate = async () => 'invalid'; assert.equal(await send('mistral', 'paste'), 'invalid');
     validate = async () => { throw Error('boom'); }; assert.equal(await send('mistral', 'paste'), 'failed');
     assert.equal(await send('mistral', 'clear'), 'cleared');
-    clipboard = async () => INWORLD;
-    assert.equal(await send('inworld', 'paste'), 'saved');
-    clipboard = async () => { throw Error('no clipboard'); };
-    assert.equal(await send('inworld', 'paste'), 'unreadable');
-    clipboard = async () => INWORLD; validateInworld = async () => 'invalid'; assert.equal(await send('inworld', 'paste'), 'invalid');
-    validateInworld = async () => { throw Error('boom'); }; assert.equal(await send('inworld', 'paste'), 'failed');
-    assert.equal(await send('inworld', 'clear'), 'cleared');
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 

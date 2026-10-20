@@ -13,7 +13,7 @@ const exchange = JSON.parse(readFileSync(new URL('../packaging/runtime-exchange.
 // The files the game writes and the bridge only reads: requests, commands, leases and the world heartbeat. The bridge never writes them
 // (it answers in its own files), so an empty one is still exactly the placeholder after the whole run.
 const GAME_OWNED = ['last-input.json', 'microphone-command.json', 'phone-chat-input.json', 'own-key-command.json', 'mistral-key-command.json',
-  'inworld-key-command.json', 'custom-provider-command.json', 'paid-tier-command.json', 'memory-command.json', 'editor-command.json', 'voice-preview.json', 'group-prefetch.json',
+  'custom-provider-command.json', 'paid-tier-command.json', 'memory-command.json', 'editor-command.json', 'voice-preview.json', 'group-prefetch.json',
   'conversation-prewarm.json', 'party-connections.json', 'nearby-connections.json', 'world-session.json', 'relationship-state.json',
   'continuous-control.json', 'companion-invitations.json', 'reaction-lease.json', 'expression-receipt.json', 'report-request.json'];
 // Status files the bridge publishes before it says it is ready (each is awaited by the startup, not left to a timer).

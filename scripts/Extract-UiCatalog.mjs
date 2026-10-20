@@ -132,7 +132,7 @@ const reviewed = {
     'Convai voice', 'On', 'Off', 'Ready', 'Loading', 'Preparing voices', 'Preparing a reply',
     'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
-    'Voxtral cloud voice · Local model unloaded', 'Inworld cloud voice · Local model unloaded',
+    'Voxtral cloud voice · Local model unloaded',
     'Changing after the current reply', 'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
   ],
   'page.memory': [
@@ -399,9 +399,8 @@ for (const [file, tokens] of tokenByFile) {
   const native = file.endsWith('.reds');
   const page = file === 'mod/manager-ui.lua';
   // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/manager-ui.lua): its name and its two helps are source strings.
-  // withInworld(row, extra) adds a paragraph about the Inworld voice to a help while developer mode is on: `extra` is a source string.
   // refused(text) turns a change down in M.apply: its text is a source string too.
-  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1], refused: [0] } : {};
+  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], refused: [0] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {

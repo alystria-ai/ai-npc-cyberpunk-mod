@@ -493,7 +493,7 @@ test('with a language that has its own font family the rows get it in batches; w
   `));
 });
 
-test('Inworld shows only in Developer mode, and no row on any page speaks of a shared key or plan or calls an option recommended', () => run(`${harness()}
+test('no row on any page speaks of Inworld, a shared key or plan or calls an option recommended, with Developer mode off or on', () => run(`${harness()}
   local function everything()
     local text = {}
     for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'memory', 'help', 'paid-tier'}) do
@@ -516,7 +516,7 @@ test('Inworld shows only in Developer mode, and no row on any page speaks of a s
   ns.interact.toggle(ns.find('Developer mode')); frames(10)
   assert(manager.snapshot(player).settings.developerMode == true)
   local on = everything()
-  assert(on:find('inworld · needs key', 1, true) and on:find('inworld api key', 1, true), 'Developer mode lists the Inworld voice and its key row')
+  assert(not on:find('inworld', 1, true), 'Inworld is visible with Developer mode on')
   assert(not on:find('recommend', 1, true) and not on:find('shared key', 1, true) and not on:find('shared plan', 1, true))
 `));
 

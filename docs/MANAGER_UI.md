@@ -102,12 +102,12 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
   OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
-  · Cloud voice**, plus the Inworld cloud voice as the last entry in Developer mode only. Without the optional OmniVoice pack the
+  · Cloud voice**. Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
   Voice status names the voice service state, the voice in use when the chosen one cannot run ("Ready · Using Pocket · Performance,
   OmniVoice · Balanced unavailable"; one gameplay notice says so once), "Changing after the current reply" while a change waits, and,
   for a voice that loads no local model (bridge state `remote`, named from `cloudVoice`), "Voxtral cloud voice · Local model
-  unloaded", "Inworld cloud voice · ..." or "Convai voices · ...".
+  unloaded" or "Convai voices · ...".
 - **Memory:** the memory controls (player memory, service state, how many characters the player has talked to, the selected character,
   Forget selected character, Forget all memories with an inline confirmation) and, in the second section, **Whose memories**, a paged
   list that selects the character. Selecting does not invite anyone or change conversation settings.
@@ -124,8 +124,7 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   (OpenAI-compatible). "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store
   `convai`, `mistral`, `local` or `custom`. A one-time migration on load (marker `convaiProviderChoice` in `settings.json`) maps the old
   switch: on with a key saved becomes "Convai API key", anything else "Convai free tier".
-- **One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) and the Inworld key (Settings >
-  Development, Developer mode only) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
+- **One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
   status is in brackets in the row name: "Convai API key (...a1F9)" (the last four characters, the only part of a key ever shown),
   "(Added)", "(Checking...)" or "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help.
 - **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
@@ -133,9 +132,6 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   or model unavailable; the Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room;
   "Waiting for the conversation to end"; fallbacks such as "Convai: Local AI is not ready") are the first paragraph of the Conversation
   provider row's help.
-- **Inworld is a developer-mode voice.** Companion voices lists it, as the last entry, only while Developer mode is on, as "Inworld ·
-  Cloud voice" or "Inworld · needs key". A saved Inworld voice reads as Pocket while Developer mode is off. The Inworld sentences in the
-  helps of Companion voices, Natural speech, Expressive emotions and Multilingual conversations show only in Developer mode.
 - **Gone:** Prepared voices (always kept; a saved `keepPreparedVoices = false` is read as on and written back as on;
   `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`), the "Who can talk" page, the OmniVoice pack row,
   and Groq as a provider (a saved `groq` reads as `convai`; `player-groq-key.txt` is never read).
@@ -167,8 +163,7 @@ the main settings saved.
 After every apply the page is drawn again. **What the rules did is shown on the rows in place**, with one line under Back:
 
 - A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
-  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Requires an Inworld key (add it in Settings >
-  Development)", "Needs Local AI."). The other changes of the same moment are kept.
+  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI."). The other changes of the same moment are kept.
 - A rule that **moves other rows** corrects them in place, and the line names what moved:
   - **Mature content** needs Local AI and never stands beside a cloud provider. Turning it on also selects, in the same transaction, the
     Local AI provider, the largest uncensored model that fits (when one is installed) and, when the companion voice is a cloud voice,
@@ -423,7 +418,7 @@ shortened). `bridge/description-fit.test.mjs` holds every description in every l
 and a focused row draws a key box ("A", "D") over each arrow, covering the first and last letters; each box is taken as 3 units
 (`KEY_HINT_UNITS`), which leaves 26 for the text. Neither NSUI nor the game scripts shipped with the mod carry the geometry, so this is
 an estimate: if a focused label still runs under a key box in the game, raise `KEY_HINT_UNITS`. The built-in entries are short
-(`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, `Qwen3.5-4B · uncensored`,
+(`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Qwen3.5-4B · uncensored`,
 `Gemma 4 E4B · uncensored`; the word "uncensored" stays because `bridge/local-model-choice.mjs` recognises models by it). A model the
 player adds shows its own name, `(custom)` or `(custom · too large)`, and `fitOption()` cuts a label built at run time (keeping a
 trailing `(...)` or ` · ...` part). `bridge/select-labels.test.mjs` checks every select text in all languages.
@@ -505,7 +500,7 @@ sentences are, in all 15 languages. **Mod Configuration Menu is not checked and 
 | Optional packs | bridge: Pocket, OmniVoice, Local AI standard and lite and the Mature models found; `findNestedPacks()` looks for `red4ext/plugins/AiNpcCyberpunkMod/app` under the game folder's child folders (and one level further), the mod folder and the plugin folder; `pack-placement.json` says what the launcher moved at this start | a pack is still one folder too deep, or the launcher could not move its files | restart the game (the launcher moves the pack at its start; the line says so), and if it is still there move the `red4ext` folder inside it into the game folder |
 | Browser | bridge: `systemBrowserCandidates()` (looked up once per process) | none found | install Edge, Chrome, Brave or Opera |
 | Local AI | bridge: the chosen provider against the pack, the free graphics memory and the server state (`not-used`, `ready`, `warming`, `not-installed`, `no-memory`, `mature-off`, `no-gpu`, `start-failed`, `crashed`) | Local AI is the provider and cannot run | download a pack, turn on Mature content, update the driver, or choose another provider |
-| Internet | bridge: a TCP connection to port 443 of the host each chosen service needs (`api.convai.com`, `api.mistral.ai`, `api.inworld.ai`), closed at once, nothing sent. Not asked for Local AI with a local voice | the connection fails (`no-dns`, `blocked`, `timeout`) | allow Node.js through the firewall or antivirus, check the internet |
+| Internet | bridge: a TCP connection to port 443 of the host each chosen service needs (`api.convai.com`, `api.mistral.ai`), closed at once, nothing sent. Not asked for Local AI with a local voice | the connection fails (`no-dns`, `blocked`, `timeout`) | allow Node.js through the firewall or antivirus, check the internet |
 | Graphics card | bridge: `reg.exe query` of the display class key, once per process | never | none; the name and memory also go into the support report |
 | Mod manager | bridge: `usvfs_x64.dll` among the loaded libraries means Mod Organizer 2; a `vortex.deployment*.json` in the game folder means Vortex | never | MO2: the Overwrite folder; Vortex: install the Runtime and packs by hand |
 

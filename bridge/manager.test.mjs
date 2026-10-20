@@ -945,7 +945,7 @@ test('Companions can see has no setting any more: no row, an old saved companion
   `);
 });
 
-test('Voice status names the voice that speaks: Voxtral and Inworld say so, only the Convai voice says Convai voices', () => {
+test('Voice status names the voice that speaks: Voxtral says so, only the Convai voice says Convai voices', () => {
   run(`${nsuiFixture}
     local clock = 1000
     os.time = function() return clock end
@@ -962,8 +962,8 @@ test('Voice status names the voice that speaks: Voxtral and Inworld say so, only
     assert(invoke('tab:settings').ok)
     assert(status({state = 'remote', provider = 'convai', requestedProvider = 'convai'}) == 'Convai voices · Local model unloaded')
     assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral'}) == 'Voxtral cloud voice · Local model unloaded')
-    assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'inworld'}) == 'Inworld cloud voice · Local model unloaded')
-    -- Switching between the two cloud voices changes only cloudVoice: the row must still follow.
+    -- A change of cloudVoice alone must still move the row.
+    assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket'}) == 'Convai voices · Local model unloaded')
     assert(status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral'}) == 'Voxtral cloud voice · Local model unloaded')
     -- A cloud voice that fell back to Convai is the Convai voice speaking.
     local fell = status({state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral',
@@ -1266,7 +1266,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     -- entry in the reordered list (Voxtral directly after Pocket), so no one's voice changes with the order.
     local choices = dofile('voice-preview.lua')
     assert(choices.indexOf({voiceProvider = 'voxtral'}) == 2 and choices.indexOf({voiceProvider = 'pocket'}) == 1)
-    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and choices.indexOf({voiceProvider = 'inworld'}) == 8)
+    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and #choices.CHOICES == 7)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 3)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 4)
     assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 5)
@@ -1345,7 +1345,7 @@ test('the saved way back is checked on load and on Apply, and is dropped with Ma
   `);
 });
 
-// ---- Settings round 3: the focused option budget, the voice stepper, the developer-only Inworld voice, the provider migration,
+// ---- Settings round 3: the focused option budget, the voice stepper, the provider migration,
 // ---- the key rows and the Mature / cloud provider exclusion.
 
 test('select option width: the budget is the box minus the two key boxes a focused row draws, and a text that fit the old budget but not this one is cut', () => {
@@ -1393,7 +1393,7 @@ test('select option width: every option of every select fits the focused budget 
           local tag = (developer and 'dev' or 'plain') .. (keys and '-keys' or '-nokeys') .. (pack and '-pack' or '-nopack')
           jsonFixtures['voice-' .. tag] = {state = 'ready', provider = 'pocket', omniPack = {installed = pack, missing = {'model'}}, updated = clock * 1000}
           files['runtime/local-voice-state.json'] = 'voice-' .. tag
-          jsonFixtures['state-' .. tag] = {provider = 'local', effective = 'local', saved = keys, tail = 'abcd', inworld = {saved = keys, tail = 'wxyz'}, localAi = 'warming',
+          jsonFixtures['state-' .. tag] = {provider = 'local', effective = 'local', saved = keys, tail = 'abcd', localAi = 'warming',
             localModels = {{id = 'lite', name = 'Qwen3.5-2B', sizeMiB = 1311}, {id = 'mature:lite', name = 'Qwen3.5-4B-HauhauCS · uncensored', sizeMiB = 2700},
               {id = 'custom:long', name = 'My Own Fine-Tuned Companion Model 13B Instruct', sizeMiB = 7000, custom = true, needMiB = 8000},
               {id = 'custom:huge', name = 'Enormous Community Merge With A Very Long Name', sizeMiB = 40960, custom = true, needMiB = 42160, tooLarge = true}}}
@@ -1401,7 +1401,7 @@ test('select option width: every option of every select fits the focused budget 
           assert(manager.applySettings(player, {developerMode = developer}))
           manager.snapshot(player)
           loaded = registered.loadMod('manager')
-          assert(#row('voiceProvider').elements == (developer and 8 or 7), tag .. ': ' .. #row('voiceProvider').elements .. ' voices')
+          assert(#row('voiceProvider').elements == 7, tag .. ': ' .. #row('voiceProvider').elements .. ' voices')
           scan(tag)
         end
       end
@@ -1411,21 +1411,11 @@ test('select option width: every option of every select fits the focused budget 
   `);
 });
 
-test('the Inworld voice is a developer-mode voice: seven entries without Developer mode and eight with it, its key row only in Development, and a saved Inworld voice reads as Pocket TTS without it', () => {
+test('the removed Inworld voice: the list has seven entries with or without Developer mode, no Inworld key row, an Apply for it is refused, and a saved Inworld voice loads as Pocket TTS once, with the file corrected and no Apply loop', () => {
   run(`${nsuiFixture}
     local clock = 1000
     os.clock = function() return clock end
     os.time = function() return clock end
-    local NL2 = string.char(10, 10)
-    local function paragraphs(text)
-      local list, from = {}, 1
-      while true do
-        local at = text:find(NL2, from, true)
-        if not at then list[#list + 1] = text:sub(from); return list end
-        list[#list + 1] = text:sub(from, at - 1); from = at + 2
-      end
-    end
-    local function firstParagraph(text) return paragraphs(text)[1] end
     local function ids(category)
       local list = {}
       for _, item in ipairs(loaded.categories) do
@@ -1435,59 +1425,38 @@ test('the Inworld voice is a developer-mode voice: seven entries without Develop
     end
     assert(invoke('tab:settings').ok)
     local function menu() return row('voiceProvider').elements end
-    -- Without Developer mode: seven entries, none of them Inworld; no key row anywhere.
-    assert(#menu() == 7 and menu()[7] == 'Convai · Cloud voice')
-    for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
-    assert(row('inworld-key') == nil and ids('development') == 'developerMode')
-    assert(not row('voiceProvider').description:find('Inworld', 1, true))
-    -- The voice cannot be applied without the mode either: the entry is not offered, and a stale draft index saves nothing new.
-    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}})
-    assert(result.ok == false and saved.voiceProvider == 'pocket', 'the Inworld entry is not usable without its key')
-    -- With Developer mode: eight entries, Inworld last and Convai before it; the key row follows Developer mode in Development.
-    assert(manager.applySettings(player, {developerMode = true}))
-    loaded = registered.loadMod('manager')
-    assert(#menu() == 8 and menu()[7] == 'Convai · Cloud voice' and menu()[8] == 'Inworld · needs key', table.concat(menu(), '|'))
-    assert(ids('development') == 'developerMode,inworld-key', ids('development'))
-    assert(row('voiceProvider').description:find('Inworld', 1, true))
-    -- The key row: Paste, then the failure first in its help (Not added), then Added with the last four characters (or just Added).
-    local function publish(tag, inworld)
-      jsonFixtures['inworld-' .. tag] = {provider = 'convai', effective = 'convai', saved = false, inworld = inworld}
-      files['runtime/mistral-state.json'] = 'inworld-' .. tag
-      clock = clock + 2; manager.snapshot(player); loaded = registered.loadMod('manager')
-      return row('inworld-key')
+    for _, developer in ipairs({false, true}) do
+      assert(manager.applySettings(player, {developerMode = developer}))
+      loaded = registered.loadMod('manager')
+      assert(#menu() == 7 and menu()[7] == 'Convai · Cloud voice', table.concat(menu(), '|'))
+      for _, label in ipairs(menu()) do assert(not label:find('Inworld', 1, true), label) end
+      assert(row('inworld-key') == nil and ids('development') == 'developerMode', ids('development'))
+      assert(not row('voiceProvider').description:find('Inworld', 1, true))
+      -- A stale draft index past the end saves nothing, and the removed name is not a voice to choose.
+      local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}})
+      assert(result.ok == false and saved.voiceProvider == 'pocket', 'there is no eighth voice')
+      assert(manager.applySettings(player, {voiceProvider = 'inworld'}) == false and saved.voiceProvider == 'pocket')
     end
-    local item = row('inworld-key')
-    assert(item.label == 'Inworld API key' and item.value == 'Paste')
-    assert(invoke('inworld-key').ok)
-    local pasted = jsonFixtures[files['runtime/inworld-key-command.json']]
-    item = publish('bad', {saved = false, result = {id = pasted.id, state = 'invalid'}})
-    assert(item.label == 'Inworld API key (Not added)' and item.value == 'Paste' and firstParagraph(item.description) == 'Inworld did not accept that key.', item.label .. ' | ' .. item.description)
-    item = publish('unreadable', {saved = false, result = {id = pasted.id, state = 'unreadable'}})
-    assert(firstParagraph(item.description) == 'The clipboard could not be read.')
-    item = publish('failed', {saved = false, result = {id = pasted.id, state = 'failed'}})
-    assert(firstParagraph(item.description) == 'The key could not be saved.')
-    item = publish('saved', {saved = true, tail = 'wxyz'})
-    assert(item.label == 'Inworld API key (…wxyz)' and item.value == 'Remove' and not item.description:find('did not accept', 1, true), item.label)
-    item = publish('no-tail', {saved = true})
-    assert(item.label == 'Inworld API key (Added)' and item.value == 'Remove', item.label)
-    assert(#menu() == 8 and menu()[8] == 'Inworld · Cloud voice', menu()[8])
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok and saved.voiceProvider == 'inworld')
-    loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').value == 8, 'the saved Inworld voice is the eighth entry')
-    -- Developer mode off again: a saved Inworld voice becomes Pocket TTS, quietly, and the open page is asked to reload.
-    local ok, problem, notice, reload = manager.applySettings(player, {developerMode = false})
-    assert(ok and notice == nil and reload == true and saved.voiceProvider == 'pocket' and manager.snapshot(player).settings.voiceProvider == 'pocket', tostring(problem))
-    loaded = registered.loadMod('manager')
-    assert(#menu() == 7 and row('voiceProvider').value == 1 and row('inworld-key') == nil)
-    -- Developer mode and the Inworld voice chosen in the same save keep it.
-    assert(manager.applySettings(player, {developerMode = true, voiceProvider = 'inworld'}) and saved.voiceProvider == 'inworld')
-    -- A settings file saved with the voice and the mode on loads as it is; with the mode off the voice loads as Pocket and the file is corrected.
-    for _, case in ipairs({{true, 'inworld'}, {false, 'pocket'}}) do
-      seed = {version = 2, voiceProvider = 'inworld', developerMode = case[1], enabledByKey = {}}
+    -- A settings file that still names the removed voice loads as the default voice, with or without Developer mode, and is corrected
+    -- once: loading the corrected file saves nothing more, and the page shows the default voice as the saved one (nothing pending).
+    for _, developer in ipairs({true, false}) do
+      seed = {version = 2, voiceProvider = 'inworld', developerMode = developer, enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.snapshot(player).settings.voiceProvider == case[2] and saved.voiceProvider == case[2], tostring(case[1]))
+      assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and saved.voiceProvider == 'pocket', tostring(developer))
+      assert(saved.future.keep == 'unchanged' and manager.takeNaturalSpeechNotice() == nil)
+      seed, saved = saved, nil
+      files['runtime/settings.json'] = 'seed'
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(saved == nil, 'the corrected file is saved again')
+      loaded = registered.loadMod('manager')
+      assert(row('voiceProvider').value == 1 and row('voiceProvider').defaultValue == 1 and #menu() == 7)
     end
+    -- With Multilingual conversations on, the removed name still ends at a voice that speaks every language.
+    seed = {version = 2, voiceProvider = 'inworld', multilingualConversations = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.snapshot(player).settings.voiceProvider == 'convai' and saved.voiceProvider == 'convai')
   `);
 });
 
@@ -1842,82 +1811,6 @@ test('a Mistral cloud voice that fell back to Pocket is announced once, with the
   `);
 });
 
-test('the Inworld cloud voice says it needs an Inworld key and cannot be applied without one; with a key it applies, and the key is not the Mistral key', () => {
-  run(`${nsuiFixture}
-    local clock = 1000; os.clock = function() return clock end
-    local function key(tag, value)
-      jsonFixtures['mistral-' .. tag] = value
-      files['runtime/mistral-state.json'] = 'mistral-' .. tag
-      clock = clock + 2
-    end
-    local NEEDS = 'Inworld · needs key'
-    -- The Inworld voice is a developer-mode voice: it is the eighth and last entry, listed with Developer mode on.
-    assert(manager.applySettings(player, {developerMode = true}))
-    assert(invoke('tab:settings').ok)
-    loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[8] == NEEDS, row('voiceProvider').elements[8])
-    assert(manager.voiceLabel('inworld') == 'Inworld cloud voice')
-    local before = saved.voiceProvider
-    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}})
-    assert(result.ok == false and result.error == 'Requires an Inworld key (add it in Settings > Development)', result.error)
-    assert(saved.voiceProvider == before)
-    assert(not manager.applySettings(player, {voiceProvider = 'inworld'}))
-    -- A Mistral key alone does not unlock it.
-    key('a', {provider = 'convai', effective = 'convai', saved = true})
-    loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[8] == NEEDS, row('voiceProvider').elements[8])
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok == false)
-    -- An Inworld key is saved: the entry is a plain label and can be applied.
-    key('b', {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}})
-    loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[8] == 'Inworld · Cloud voice', row('voiceProvider').elements[8])
-    assert(manager.mistral().inworld.saved == true and manager.mistral().inworld.tail == 'wxyz')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok)
-    assert(saved.voiceProvider == 'inworld' and manager.snapshot(player).settings.voiceProvider == 'inworld')
-    -- It rides on Pocket, so Expressive emotions stay on: they become its steering.
-    assert(manager.snapshot(player).settings.expressiveEmotions == true)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
-    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'inworld'}) == 8)
-  `);
-});
-
-test('the Inworld key is one Paste or Remove row in Settings > Development, with Developer mode on; it goes through its own command file and the page shows only its last four characters', () => {
-  run(`${nsuiFixture}
-    local clock = 1000; os.clock = function() return clock end
-    local function inCategory(category, id)
-      for _, item in ipairs(loaded.categories) do
-        if item.id == category then for _, setting in ipairs(item.settings) do if setting.id == id then return setting end end end
-      end
-    end
-    assert(invoke('tab:settings').ok)
-    assert(row('inworld-key') == nil, 'the Inworld key row is listed without Developer mode')
-    assert(manager.applySettings(player, {developerMode = true}))
-    loaded = registered.loadMod('manager')
-    local item = row('inworld-key')
-    assert(item and inCategory('development', 'inworld-key') and not inCategory('voices', 'inworld-key'), 'the row belongs to Development')
-    assert(item.type == 'action' and item.label == 'Inworld API key' and item.value == 'Paste', item.label .. '|' .. tostring(item.value))
-    assert(row('inworld-key-status') == nil and row('inworld-key:paste') == nil and row('inworld-key:remove') == nil, 'the old rows are gone')
-    assert(invoke('inworld-key').ok, 'paste invoke')
-    local command = jsonFixtures[files['runtime/inworld-key-command.json']]
-    assert(command.version == 1 and command.action == 'paste' and command.id:find(':ikey:1', 1, true), 'command')
-    assert(files['runtime/mistral-key-command.json'] == nil and files['runtime/groq-key-command.json'] == nil and files['runtime/memory-command.json'] == nil, 'other channels')
-    jsonFixtures['mistral-i'] = {provider = 'convai', effective = 'convai', saved = false, inworld = {saved = true, tail = 'wxyz'}}
-    files['runtime/mistral-state.json'] = 'mistral-i'
-    clock = clock + 2
-    manager.snapshot(player)
-    loaded = registered.loadMod('manager')
-    item = row('inworld-key')
-    assert(item.label == 'Inworld API key (…wxyz)' and item.value == 'Remove', item.label .. '|' .. tostring(item.value))
-    assert(invoke('inworld-key').ok)
-    command = jsonFixtures[files['runtime/inworld-key-command.json']]
-    assert(command.action == 'clear' and command.id:find(':ikey:', 1, true), 'clear command')
-    -- Developer mode off again: the row is gone and a saved Inworld voice is Pocket TTS.
-    assert(manager.applySettings(player, {developerMode = false}))
-    loaded = registered.loadMod('manager')
-    assert(row('inworld-key') == nil)
-  `);
-});
-
 test('prepared voices are always kept: no switch, no disk row, no Clear action or page, and a saved false is ignored', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
@@ -1954,24 +1847,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
   `);
 });
 
-test('the Inworld cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice off it', () => {
-  run(`${nsuiFixture}
-    local clock = 1000; os.clock = function() return clock end
-    jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}}
-    files['runtime/mistral-state.json'] = 'mistral-a'
-    clock = clock + 2
-    -- The Inworld voice is a developer-mode voice.
-    assert(manager.applySettings(player, {developerMode = true, voiceProvider = 'inworld'}))
-    assert(manager.snapshot(player).settings.voiceProvider == 'inworld')
-    local ok, err = manager.applySettings(player, {multilingualConversations = true})
-    assert(ok, err)
-    assert(manager.snapshot(player).settings.voiceProvider ~= 'inworld')
-    local refused, message = manager.applySettings(player, {voiceProvider = 'inworld'})
-    assert(refused == false and message == 'The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.', message)
-  `);
-});
-
-test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
+test('a fallback reported from the removed Inworld voice is ignored: no notice is shown for a voice that is no longer offered', () => {
   run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
@@ -1980,10 +1856,9 @@ test('an Inworld cloud voice that fell back to Pocket is announced once, with th
     files['runtime/local-voice-state.json'] = 'voice-runtime'
     popupTick(false); popupTick(false)
     popupTick(true)
-    assert(#popups == 1 and popups[1] == 'Inworld cloud voice is not ready yet. Companions are using Pocket · Performance for now.', popups[1])
     state.fallback.temporary = false
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 2 and popups[2] == 'Inworld cloud voice is unavailable. Companions are using Pocket · Performance instead.', popups[2])
+    assert(#popups == 0, table.concat(popups, '|'))
   `);
 });
 
@@ -2398,7 +2273,6 @@ test('every command file is written in place: no temporary file, backup, remove 
     io.open = function(path, mode) if mode == 'wb' and not exempt(path) then opened[#opened + 1] = path end return open(path, mode) end
     assert(manager.pasteOwnKey() and manager.removeOwnKey())
     assert(manager.pasteMistralKey() and manager.removeMistralKey())
-    assert(manager.pasteInworldKey() and manager.removeInworldKey())
     assert(manager.beginMemoryClear('all'))
     assert(manager.confirmMemoryClear(manager.snapshot(player).memory.confirmation.token))
     assert(#removed == 0 and #renamed == 0, 'a command file was removed or renamed: ' .. table.concat(removed, ',') .. '|' .. table.concat(renamed, ','))
@@ -2407,7 +2281,7 @@ test('every command file is written in place: no temporary file, backup, remove 
       assert(not path:find('.tmp', 1, true) and not path:find('.previous', 1, true), 'a side file was opened: ' .. path)
       seen[path] = (seen[path] or 0) + 1
     end
-    for _, path in ipairs({'own-key-command', 'mistral-key-command', 'inworld-key-command'}) do
+    for _, path in ipairs({'own-key-command', 'mistral-key-command'}) do
       assert(seen['runtime/' .. path .. '.json'] == 2, path)
       -- Only the request: the key itself never leaves the clipboard for any file the game writes.
       local command = jsonFixtures[files['runtime/' .. path .. '.json']]
@@ -2477,7 +2351,7 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 9}}).ok)
-    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok, 'the Inworld entry needs its key')
+    assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok, 'there are seven voices')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
@@ -2507,7 +2381,6 @@ test('settings review wording: short voice description, Body gestures without a 
     assert(voices.description:find('about 0.2 s', 1, true) and voices.description:find('1 to 2.5 s', 1, true))
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(utf8.len(voices.description) < 700 and select(2, voices.description:gsub(string.char(10) .. string.char(10), '')) >= 2, 'the voice description stays short and is split into blocks')
-    assert(not voices.description:find('Inworld', 1, true), 'the Inworld voice is not mentioned without Developer mode')
     assert(not voices.description:lower():find('recommended', 1, true), 'the voice description does not call a voice recommended; the Voxtral entry does')
     -- Only the Voxtral entry says recommended, directly after Pocket (with a Mistral key saved); every other voice entry stays plain.
     for index, label in ipairs(voices.elements) do
@@ -2523,13 +2396,10 @@ test('settings review wording: short voice description, Body gestures without a 
     end
     assert(row('headFollowStrength').defaultValue == 3)
     assert(manager.snapshot(player).settings.headFollowStrength == 1, 'the saved strength values are unchanged')
-    -- Developer mode adds the Inworld voice to the description, as one more paragraph.
+    -- Developer mode adds nothing to the voice description.
     assert(manager.applySettings(player, {developerMode = true}))
     loaded = registered.loadMod('manager')
-    local withInworld = row('voiceProvider').description
-    assert(withInworld:find('Inworld: the same with your own Inworld key, and it also speaks with emotion.', 1, true), 'the Inworld voice is described as speaking with emotion')
-    assert(withInworld:sub(1, #voices.description) == voices.description, 'the Inworld paragraph comes after the common text')
-    assert(utf8.len(withInworld) < 800 and not withInworld:lower():find('recommended', 1, true))
+    assert(row('voiceProvider').description == voices.description)
   `);
 });
 
@@ -3441,10 +3311,10 @@ test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it
       for _, item in ipairs(category.settings) do if item.id == 'expressiveEmotions' then owner = category end end
     end
     assert(owner and owner.id == 'voices' and entry.label == 'Expressive emotions')
-    assert(entry.description:find('Convai’s cloud voice', 1, true) and not entry.description:find('Inworld', 1, true), 'Inworld is not mentioned without Developer mode')
+    assert(entry.description:find('Convai’s cloud voice', 1, true))
     assert(manager.applySettings(player, {developerMode = true}))
     loaded = registered.loadMod('manager')
-    assert(row('expressiveEmotions').description:find('Inworld always speaks with emotion', 1, true), 'Developer mode adds the Inworld paragraph')
+    assert(row('expressiveEmotions').description == entry.description, 'Developer mode adds nothing to the help')
     assert(manager.applySettings(player, {developerMode = false}))
     loaded = registered.loadMod('manager')
     local EMOTIONS = 'Expressive emotions need a local voice, so Companion voices was switched to ' .. manager.voiceLabel('pocket') .. '.'
@@ -3601,9 +3471,9 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
     -- V has an engine of its own, so nothing the companions use (not even the Convai cloud voice) makes the setting inactive.
     assert(manager.vVoiceActive() == true)
     -- A case is {saved vVoice, saved voice, expected vVoice, developer mode (default off), the voice it loads as (default: as saved)}.
-    for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true}, {true, 'inworld', true, true},
-        -- The Inworld voice is a developer-mode voice: without developer mode a saved one loads as Pocket TTS.
-        {true, 'inworld', true, false, 'pocket'}, {false, 'inworld', false, false, 'pocket', true},
+    for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true},
+        -- The removed Inworld voice: a saved one loads as Pocket TTS, with or without developer mode.
+        {true, 'inworld', true, false, 'pocket'}, {true, 'inworld', true, true, 'pocket'}, {false, 'inworld', false, false, 'pocket', true},
         -- Only an explicit false stays off; a value that is not a boolean is the default (on).
         {false, 'pocket', false, false, nil, true}, {false, 'convai', false, false, nil, true}, {false, 'pocket', true}, {false, 'omni', true}, {false, 'convai', true},
         {'yes', 'pocket', true}, {1, 'pocket', true},
@@ -3679,11 +3549,10 @@ test('V’s voice engine: Voxtral needs the Mistral key, applies on its own besi
     local engine = row('vVoiceEngine')
     assert(engine.label == 'V’s voice engine' and engine.type == 'select' and engine.value == 1 and engine.defaultValue == 1)
     assert(#engine.elements == 2 and engine.elements[1] == 'Pocket · On your PC' and engine.elements[2] == 'Voxtral · needs Mistral key', engine.elements[2])
-    for _, banned in ipairs({'recommended', 'inworld', 'antivirus', 'embedded', 'paid'}) do
+    for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not tostring(engine.description):lower():find(banned, 1, true), banned)
       for _, element in ipairs(engine.elements) do assert(not element:lower():find(banned, 1, true), banned) end
     end
-    assert(not row('vVoice').description:lower():find('inworld', 1, true))
     assert(engine.description:find('Pocket', 1, true) and engine.description:find('Voxtral', 1, true) and engine.description:find('Mistral key', 1, true))
     -- No key: refused with the one short reason, nothing changes.
     local result = registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 2}})
@@ -3733,7 +3602,7 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     assert(row('vVoice').description:find('type a line', 1, true)
         and row('vVoice').description:find('Push-to-talk', 1, true))
     assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
-    for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid', 'inworld'}) do
+    for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
     end
     local at = {}
@@ -3746,7 +3615,7 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     assert(row('vVoice').description == plain and not row('vVoice').description:find('Works with', 1, true))
     assert(manager.applySettings(player, {developerMode = true}))
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').description == plain and not row('vVoiceEngine').description:lower():find('inworld', 1, true), 'Developer mode adds no Inworld text here')
+    assert(row('vVoice').description == plain, 'Developer mode adds no text here')
     assert(manager.applySettings(player, {voiceProvider = 'pocket', developerMode = false}))
     loaded = registered.loadMod('manager')
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
@@ -4050,7 +3919,7 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
   `);
 });
 
-test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
+test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode, Voice status follows Companion voices', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local order = {}
@@ -4071,15 +3940,15 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
     assert(voices[1] == 'voice' and voices[2] == 'voiceProvider' and voices[3] == 'voice-status', table.concat(voices, ','))
-    for _, id in ipairs(voices) do assert(not id:find('inworld', 1, true) and id ~= 'voice-pack', id .. ' is in Voices') end
+    for _, id in ipairs(voices) do assert(id ~= 'voice-pack', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
     assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI'
       and elements[5] == 'Custom (OpenAI-compatible)')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
-    -- Developer mode: the Inworld key is the row after Developer mode.
+    -- Developer mode adds no row to Development.
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
-    assert(table.concat(idsOf('development'), ',') == 'developerMode,inworld-key', table.concat(idsOf('development'), ','))
+    assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
   `);
 });
 

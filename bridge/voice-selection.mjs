@@ -16,10 +16,10 @@ import {VHelperVoice} from './v-helper-voice.mjs';
 // the face), so its routing is Pocket's and only the synthesis of each reply differs (bridge/voxtral-voice.mjs). A reply it cannot
 // deliver (asked again once with a longer limit) is not given to a local voice: the turn's voice is the Convai cloud voice when the
 // cloud voice has no key at all, and otherwise the reply is shown as written text.
-// The Inworld cloud voice (bridge/inworld-voice.mjs) is the same kind of choice: it speaks a reply with Inworld's
-// text-to-speech in a cloned voice, on the player's own Inworld key, and loads nothing locally either.
-export const CLOUD_VOICES = Object.freeze(['voxtral','inworld']);
-export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : CLOUD_VOICES.includes(value) ? 'pocket' : value;
+export const CLOUD_VOICES = Object.freeze(['voxtral']);
+// A settings file saved while a since-removed cloud voice existed still names it: it resolves to Pocket, the default voice (no error, no log).
+const REMOVED_VOICES = Object.freeze(['inworld']);
+export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(value) ? 'omni' : CLOUD_VOICES.includes(value) || REMOVED_VOICES.includes(value) ? 'pocket' : value;
 export const cloudVoiceChoice = value => CLOUD_VOICES.includes(value) ? value : null;
 // OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
 export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
@@ -34,7 +34,7 @@ export const blockedByWindows = reason => /application control|policy has blocke
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
-export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000, inworld: 9_000});
+export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000});
 const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 // A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni
 // is loaded again in the background after each of these waits (a first failure after 45 s, then 3 min, then 10 min);
@@ -84,14 +84,13 @@ export class VoiceSelection {
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
-    this.inworld=options.inworld||null;
     this.clock = options.clock || Date.now;
     this.cloudRetryAudioMs = {...CLOUD_RETRY_AUDIO_MS, ...options.cloudRetryAudioMs};
     this.packCheckedAt=0;this.refreshOmniPack();
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
     // Voxtral clones each character from the OmniVoice long reference; it reports when it falls back or recovers.
-    for(const cloud of [this.voxtral,this.inworld]){
+    for(const cloud of [this.voxtral]){
       if(!cloud)continue;
       cloud.setReferences?.([this.omniVariants.long.registry,this.omniVariants.short.registry,pocketRegistry]);
       const previous=cloud.onChange;
@@ -182,7 +181,7 @@ export class VoiceSelection {
   // as it should be now (the bridge builds it: bridge/live-voices.mjs); an engine left out is unchanged. It takes effect at the next moment no reply is
   // in flight (the settings poll), never in the middle of one: the routing registries, the cloud voices' references and the running workers all change
   // together. Nothing is reloaded: a worker is sent only the voices that differ, and only those characters lose what was prepared for them (a Pocket
-  // prepared state, an OmniVoice prompt, a Voxtral reference, an Inworld voice); a character that was prepared is prepared again at once, in the
+  // prepared state, an OmniVoice prompt, a Voxtral reference); a character that was prepared is prepared again at once, in the
   // background, so its next line does not pay for it. Returns true when it was applied now, false when it waits for the next idle moment.
   setVoices(update = {}) {
     if (this.closed || !update || typeof update !== 'object') return false;
@@ -206,7 +205,7 @@ export class VoiceSelection {
     // What was prepared for the changed characters before this (the client's list, or a cloud voice's cached reference): prepared again after.
     const warm = new Set();
     for (const key of changed) {
-      if (this.client?.prepared?.has(key) || this.voxtral?.hasCachedReference?.(key) || this.inworld?.hasCachedReference?.(key)) warm.add(key);
+      if (this.client?.prepared?.has(key) || this.voxtral?.hasCachedReference?.(key)) warm.add(key);
     }
     const next = {...(this.live ?? {pocket: undefined, omni: {}}), dir, omni: {...(this.live?.omni ?? {})}};
     if (pending.pocket && this.pocketBase) {
@@ -233,7 +232,7 @@ export class VoiceSelection {
     this.routeKeys = withoutVariants(new Set([...this.routeKeys, ...Object.keys(this.configs.pocket.voices ?? {}),
       ...OMNI_REFERENCES.flatMap(reference => Object.keys(this.omniVariants[reference].snapshot.voices ?? {}))])).sort();
     // The cloud voices read their clips through the same registries: they follow, and forget only the characters that changed.
-    for (const cloud of [this.voxtral, this.inworld]) {
+    for (const cloud of [this.voxtral]) {
       cloud?.replaceReferences?.([this.omniVariants.long.registry, this.omniVariants.short.registry, this.registries.pocket], changed);
     }
     // Every running worker is sent the difference (behind whatever it is doing); the standard availability commit follows each answer.
@@ -280,7 +279,7 @@ export class VoiceSelection {
   }
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // The cloud voice speaks replies: chosen and committed; its route is Pocket's (packet format and routing only, no Pocket worker).
-  get cloudEngine(){return this.cloud==='inworld'?this.inworld:this.cloud==='voxtral'?this.voxtral:null;}
+  get cloudEngine(){return this.cloud==='voxtral'?this.voxtral:null;}
   get cloudActive(){return !!this.cloudEngine&&this.provider==='pocket';}
   // The player chose a cloud voice (committed or waiting for the idle boundary). No local voice model is loaded for it.
   get cloudWanted(){return this.requestedCloud!==null;}
@@ -494,8 +493,6 @@ export class VoiceSelection {
       cloudVoice:this.cloudActive?this.cloud:null,
       voxtral:this.voxtral?{key:this.voxtral.hasKey,degraded:this.voxtral.degraded?.reason??null,spoke:this.voxtral.spoke,
         fellBack:this.voxtral.fellBack}:null,
-      inworld:this.inworld?{key:this.inworld.hasKey,degraded:this.inworld.degraded?.reason??null,spoke:this.inworld.spoke,
-        fellBack:this.inworld.fellBack,characters:this.inworld.chars}:null,
       playbackEnabled:this.playbackEnabled,
       omniSteps:this.omniSteps,requestedOmniSteps:this.requestedOmniSteps,
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
@@ -879,9 +876,6 @@ export class VoiceSelection {
   async synthesizeRest(profile, spoken, options, utterance) {
     const unvoiced = async () => { utterance.decide('pocket'); throw Error('The cloud voice did not speak the first part of this reply'); };
     if (utterance.engine === 'pocket' || !this.cloudEngine.hasKey) return unvoiced();
-    if (this.cloud === 'inworld') return this.synthesizeInworldRest(profile, spoken, options, utterance, unvoiced);
-    // A reply never changes cloud voice partway: a head Inworld spoke is not continued by Voxtral (the reply ends after the head).
-    if (utterance.engine === 'inworld') throw Error('The cloud voice changed during the reply');
     const own = new AbortController();
     const relay = () => own.abort(options.signal.reason);
     options.signal?.addEventListener('abort', relay, {once: true});
@@ -911,14 +905,6 @@ export class VoiceSelection {
     if (failure) throw failure;
     return cloud;
   }
-  // The rest of a reply whose first part was voiced by Inworld: it waits for the head's decision and follows it. A rest that
-  // fails after Inworld began ends the reply early (what was spoken stands); nothing else continues it.
-  async synthesizeInworldRest(profile, spoken, options, utterance, unvoiced) {
-    const engine = await utterance.wait(options.signal);
-    if (engine === 'pocket') return unvoiced();
-    if (engine !== 'inworld') throw Error('The cloud voice changed during the reply');
-    return this.inworld.synthesizeStream(profile, spoken, options);
-  }
   // `language` (ISO 639-1, e.g. 'es') reaches the worker for a reply that is not in English.
   async synthesize(profile,text,options={}){
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
@@ -947,10 +933,9 @@ export class VoiceSelection {
       // Not when V's voice is on and the voice is Pocket or a cloud voice: V's line uses it, so it is prepared (or warmed) as usual.
       if (this.silent && this.usesProfile(profile) && !(this.vHelperWanted && this.provider === 'pocket')) return {provider: this.provider, ready: true, profile, muted: true};
       // A cloud voice has no local model to prepare: the character is ready when it is routed. Its reference clip is read, cut and
-      // encoded now (the Inworld voice is found or cloned now), so the first reply is not waiting for it.
+      // encoded now, so the first reply is not waiting for it.
       if (this.cloudActive) {
         if (this.cloud === 'voxtral' && this.voxtral?.ready) void this.voxtral.reference(voice);
-        if (this.cloud === 'inworld') this.inworld.warm?.(voice);
         return {provider: 'pocket', ready: true, profile, cloudVoice: this.cloud};
       }
       const startingBackend=this.provider;let startedClient;

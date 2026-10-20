@@ -151,7 +151,7 @@ test('runtime/ holds exactly the exchange placeholders, all empty, and nothing o
 });
 
 test("the player's own state and secrets never ship: no settings, key, memory, chat history or session file anywhere in the zip", () => {
-  // The data and secret files by their real names (bridge/convai-key.mjs, mistral-key.mjs, inworld-key.mjs, player-memory.mjs, ...):
+  // The data and secret files by their real names (bridge/convai-key.mjs, mistral-key.mjs, player-memory.mjs, ...):
   // the "*-key-command.json" and "*-state.json" files are exchange placeholders and are rightly shipped, empty.
   const FORBIDDEN = /(?:^|\/)(?:settings\.json|convai-key\.txt|player-(?:convai|mistral|inworld|voxtral)-key\.txt|[a-z-]*-key\.txt|service\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|phone-history\.json|characters-verified\.json|addon-settings\.json|witness-receipts\.json|decision-ledger\.json)$/i;
   assert.deepEqual(names().filter(name => FORBIDDEN.test(name)), []);

@@ -449,18 +449,19 @@ test('the redactor learns every saved key file and the custom provider\'s key li
   const f = await fakeInstall();
   try {
     // Built at run time: a key-shaped literal in the repository trips push protection.
-    const custom = 'test' + 'v'.repeat(28), mistral = 'test' + 'y'.repeat(28), inworld = 'test' + 'u'.repeat(28);
+    const custom = 'test' + 'v'.repeat(28), mistral = 'test' + 'y'.repeat(28), leftover = 'test' + 'u'.repeat(28);
     await f.put(join(f.state, 'player-custom-endpoint.txt'), `# saved by Settings\nendpoint=https://example.invalid/api/v1\nmodel=vendor/model:free\napi-key="${custom}"\n`);
     await f.put(join(f.state, 'player-mistral-key.txt'), `api-key=${mistral}\n`);
-    await f.put(join(f.state, 'player-inworld-key.txt'), `api-key=${inworld}\n`);
+    // A key file of a removed feature (an old install may still have one) is redacted like any other key file.
+    await f.put(join(f.state, 'player-inworld-key.txt'), `api-key=${leftover}\n`);
     const found = await credentialSecrets(f.state);
-    for (const value of [custom, mistral, inworld]) assert(found.includes(value), value.slice(0, 6));
+    for (const value of [custom, mistral, leftover]) assert(found.includes(value), value.slice(0, 6));
     assert(!found.some(value => /example\.invalid|vendor\/model/.test(value)), 'the address and the model id are not secrets');
-    await f.put(join(f.state, 'bridge.stderr.log'), `[Custom] host example.invalid answered for ${custom} and ${mistral} and ${inworld}\n`);
+    await f.put(join(f.state, 'bridge.stderr.log'), `[Custom] host example.invalid answered for ${custom} and ${mistral} and ${leftover}\n`);
     const {entries} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
       request: {id: 'r-keys', issuedAt: Date.now()}, secrets: []});
     const text = entries.map(entry => entry.data).join('\n');
-    for (const value of [custom, mistral, inworld]) assert(!text.includes(value), value.slice(0, 6));
+    for (const value of [custom, mistral, leftover]) assert(!text.includes(value), value.slice(0, 6));
     assert(text.includes('[Custom] host example.invalid answered for [secret-redacted]'));
   } finally { await f.cleanup(); }
 });

@@ -140,7 +140,7 @@ full inventory (ID, name, gender, language count, age/style text where the name 
 | Open AI voices | 6 | 43 languages; names carry a short age/register note. |
 | OpenAI Realtime Voices | 8 | 43 languages; no cost field. |
 | GCP Voices | 8 | Two languages each. |
-| Convai, GCP Realtime, Fish Audio, Inworld | 0 | Single-language voices. |
+| Convai, GCP Realtime, Fish Audio | 0 | Single-language voices. |
 
 Eight of the 252 do not list `en-US` (GCP two-language pairs); every voice assigned below does.
 
