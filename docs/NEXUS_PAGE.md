@@ -7,6 +7,9 @@
 
 [youtube]7hoYG5tmZ98[/youtube]
 
+[b]Install guide and features[/b] (12 min, step by step):
+[youtube]iR0lOYfrFx8[/youtube]
+
 [size=4][b]Recommended settings[/b][/size]
 Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
