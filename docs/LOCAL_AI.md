@@ -600,6 +600,10 @@ The reports' own log lines say what was going on:
     is never cut, the format notes, the right-now block and V's words, is more than the allowance) is fitted to the context as before, so the target
     never fails a request. The log says
     `prompt N of M tokens (soft target); cut: ...` and `this computer reads about N tokens a second`.
+    **The soft target only ever lowers the limit** (2026-10-20, 0.2.4: `exceeds the available context size`, 8,919 tokens against 8,192): the target is the persona (or what the
+    server holds) plus the allowance, and for a long persona that is more than the context itself. Such a target let the prompt through, the server refused it, and the
+    retry was fitted to the same target and refused again, so the turn failed. `budgetedChat` now uses a soft target only when its limit is below the context's own
+    (`fitLimit`); otherwise the context's limit applies, and a refused prompt is retried once, cut to what the server counted.
 - **A persona that does not fit a small context (2026-10-20, third round of reports).** A player's own server ran with a 4,096-token context
   (the limit is then 3,714 tokens): a named character's persona and the output rules alone were more than that, every optional cut had been made,
   and every turn failed (`PromptTooLarge`, 6,948 tokens against 3,714; the fitter did know the real context, the prompt could not be made to fit
@@ -658,7 +662,9 @@ Free graphics memory was never read at turn time, and the Mature family was neve
   `no-response`, `prefill-stalled`, `no-first-token` or `stalled` (not `loading`, `thinking-only`, an empty answer or a refused prompt), or a warm-up that
   got no answer in its whole wait. An answered turn or warm-up clears the count, and so does every new load. `LOCAL_LLM_LIMITS.stallStepDown` (2) stalls
   step down. Work happens only on those failures: one `nvidia-smi` free-memory reading for the log, then a stop and a start. Nothing per frame, nothing
-  per turn.
+  per turn. On a card of about 8 GB or less (`SMALL_CARD_MAX_MIB`) a model that leaves the game under `SMALL_CARD_GAME_RESERVE_MIB` (its file and headroom more
+  than the card less 3,000 MiB: the Mature good model on a 4060, a 3070 or a 5060 Ti, 2026-10-20 reports) steps down at its **first** stall: the second would be another
+  75 s turn for a model that cannot run beside the game. A pack model only; one the player added, and a server the player runs, never step down.
 - `stepDown`: the model id goes into an in-memory set (`#stalled`; cleared by `reset()`, which choosing Local AI again calls, and by `reselect()`, a changed
   model choice or Mature setting), the server is stopped (the memory goes back to the game), and the next start chooses without it. `chooseLocalModel`
   treats `model.stalled` like `broken`; `stepDownTarget` is the next smaller installed model of the same family (same `uncensored` flag, a pack model, never a
