@@ -29,6 +29,9 @@
 //    voice (the next reply's voice is asked as usual), never a tightening of the request gate, never reported as a refused key, and it
 //    leaves no degraded state. That reply is shown as written text; one log line says so. No other voice speaks it: the Convai voice is
 //    chosen when a turn starts (before any text exists), so a refusal that comes with the reply cannot hand it over.
+//  - An ordinary NPC (an archetype or resident voice, never a named character) is cloned from ONE clip, always the same one: the archetype
+//    references are several game lines joined with silence, each in its own delivery, and Voxtral clones every request afresh, so a reply spoken as
+//    two to four requests came out in different-sounding voices, depending on which line each request leaned on (2026-10-21, `singleClip`).
 //  - One request per reply (the whole text, streamed), never one per sentence: a free Mistral key may be limited to about one
 //    request a second for the whole workspace, shared with the text replies. Every request goes through the shared scheduler
 //    (bridge/mistral-rate.mjs), text first; the first-audio limit counts from the moment the request is actually sent.
@@ -97,6 +100,8 @@ export const VOXTRAL_LIMITS = Object.freeze({
 const MODEL_ID = createHash('sha256').update('voxtral-mini-tts').digest('hex');
 // Where a reference came from, by registry order (setReferences): shown in the diagnostics and the log.
 const REFERENCE_SOURCES = ['omni-long', 'omni-short', 'pocket'];
+// The references of ordinary NPCs (scripts/archetype-voices): several whole game lines joined with 0.4 s of silence. Named characters' clips are elsewhere.
+const AMBIENT_REFERENCES = 'runtime/voice-references/archetypes/';
 // A voice key that may name a folder: lower-case letters, digits and hyphens only.
 const SAFE_VOICE_KEY = /^[a-z0-9][a-z0-9-]*$/;
 // What a second ask can cure (not a refused key, not text that cannot be spoken).
@@ -221,13 +226,64 @@ export function joinWavs(clips, {targetSeconds = VOXTRAL_LIMITS.extractedTargetS
     if (seconds >= targetSeconds) break;
   }
   if (!format) return null;
-  const data = Buffer.concat(parts), header = Buffer.alloc(44), align = format.channels * (format.bits / 8);
+  return wavFile(format, Buffer.concat(parts));
+}
+
+/** A canonical 44-byte-header PCM WAV of `data` in `format` ({channels, rate, bits}). */
+function wavFile(format, data) {
+  const header = Buffer.alloc(44), align = format.channels * (format.bits / 8);
   header.write('RIFF', 0, 'latin1'); header.writeUInt32LE(36 + data.length, 4); header.write('WAVEfmt ', 8, 'latin1');
   header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(format.channels, 22);
   header.writeUInt32LE(format.rate, 24); header.writeUInt32LE(format.rate * align, 28); header.writeUInt16LE(align, 32);
   header.writeUInt16LE(format.bits, 34); header.write('data', 36, 'latin1'); header.writeUInt32LE(data.length, 40);
   return Buffer.concat([header, data]);
 }
+
+// The clips of an archetype reference are joined with 0.4 s of silence, and each clip carries about 0.3 s of silent (exact zero) edges of its own, so the
+// seam between two clips is about a second of zeros, longer than any pause inside a line (measured over all 178 references: 154 of them split into
+// exactly the number of clips they were built from, the rest at most one off). A pause that long in a line splits it too: harmless, the longest piece is kept.
+export const SINGLE_CLIP = Object.freeze({
+  version: 1,           // part of the prepared slot's identity (oneClipHash): a change here prepares the clips again
+  minGapSeconds: 0.9,   // a run of digital silence this long is a seam between clips
+  minSeconds: 2,        // the longest clip is used only when it is at least this long (a shorter one is too little to clone from)
+});
+
+/**
+ * The longest clip of a reference joined from several (a canonical PCM WAV of 16 bits or more), cut out at its seams and trimmed of its silent
+ * edges, as a WAV; the first one of equal length, so the same file always gives the same clip. Null when there is nothing to choose
+ * (one clip only, another file type, or the longest clip is under `minSeconds`): the reference is then used as it is.
+ */
+export function singleClip(bytes, {minGapSeconds = SINGLE_CLIP.minGapSeconds, minSeconds = SINGLE_CLIP.minSeconds} = {}) {
+  const wav = pcmParts(bytes);
+  if (!wav || wav.bits < 16) return null;
+  const align = wav.channels * (wav.bits / 8), frames = Math.floor(wav.data.length / align), minGap = Math.round(minGapSeconds * wav.rate);
+  if (!Number.isInteger(align) || frames <= minGap) return null;
+  const clips = [];
+  let start = -1, last = -1;
+  for (let frame = 0; frame < frames; frame++) {
+    const at = frame * align;
+    let silent = true;
+    for (let offset = 0; offset < align; offset++) if (wav.data[at + offset] !== 0) { silent = false; break; }
+    if (silent) continue;
+    if (start >= 0 && frame - last - 1 >= minGap) { clips.push([start, last + 1]); start = -1; }
+    if (start < 0) start = frame;
+    last = frame;
+  }
+  if (start >= 0) clips.push([start, last + 1]);
+  if (clips.length < 2) return null;
+  let best = clips[0];
+  for (const clip of clips) if (clip[1] - clip[0] > best[1] - best[0]) best = clip;
+  if ((best[1] - best[0]) / wav.rate < minSeconds) return null;
+  return wavFile(wav, wav.data.subarray(best[0] * align, best[1] * align));
+}
+// The length of a WAV in seconds, to one decimal (for the log).
+function wavSeconds(bytes) {
+  const wav = pcmParts(bytes);
+  return wav ? Math.round(wav.data.length / (wav.channels * (wav.bits / 8)) / wav.rate * 10) / 10 : 0;
+}
+// The identity of the prepared slot (bridge/voxtral-reference.mjs keys it by the source clip's hash) of a reference that was cut to one clip:
+// not the registry's hash of the joined file, or a slot prepared from the joined file would be used in its place.
+const oneClipHash = sha256 => createHash('sha256').update(`${sha256}|one-clip-${SINGLE_CLIP.version}`).digest('hex');
 
 // ---- long replies -------------------------------------------------------------------------------------------------------------
 
@@ -400,7 +456,15 @@ export class VoxtralVoice {
   async build(key) {
     // `prepare` (bridge/voxtral-reference.mjs): a smaller clip to send instead (every request carries the reference, and the upload is
     // most of the first-audio wait). A clip it cannot make smaller is sent as it is.
-    const finish = async (bytes, source, sha256, player = false) => {
+    const finish = async (bytes, source, sha256, player = false, ordinary = false) => {
+      // An ordinary NPC speaks from one clip, the same one for every request of every reply (see the rule at the top of this file).
+      if (ordinary) {
+        const one = singleClip(bytes);
+        if (one) {
+          this.log(`${key}: cloned from one clip, ${wavSeconds(one)} s of the ${wavSeconds(bytes)} s reference`);
+          bytes = one; sha256 = sha256 ? oneClipHash(sha256) : undefined;
+        }
+      }
       bytes = capWav(bytes, this.limits.maxReferenceSeconds);
       if (this.prepare) {
         try {
@@ -430,7 +494,8 @@ export class VoxtralVoice {
         if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
         // The registry carries the file's hash: a changed file is not the reference that was validated.
         if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) continue;
-        const found = await finish(bytes, player ? 'player' : REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined, player);
+        const found = await finish(bytes, player ? 'player' : REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined, player,
+          !player && entry.reference.startsWith(AMBIENT_REFERENCES));
         if (found) return found;
       } catch { /* this entry's file is unusable: try the next source */ }
     }

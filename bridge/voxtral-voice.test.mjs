@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
 import {VOXTRAL_TTS3_LANGUAGES, VOXTRAL_TTS1_LANGUAGES, voxtralSpeaks, modelRefused} from './voxtral-languages.mjs';
-import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL, capWav, isContentRefusal, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
+import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL, capWav, isContentRefusal, joinWavs, mapStatus, redact, singleClip, SINGLE_CLIP, splitReply, sseEvents} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
@@ -450,6 +450,69 @@ test('extracted clips are only looked for under the character\'s own folder: not
   for (const key of ['../judy-alvarez', 'Judy', 'a/b', '', '..', 'judy alvarez']) assert.equal(await fixture.voice.reference(key), null, JSON.stringify(key));
   assert.deepEqual(fixture.lists, [], 'no folder was listed for them');
   assert.ok(await fixture.voice.reference('judy-alvarez'));
+});
+
+// ---- ordinary NPCs: one clip, always the same one ------------------------------------------------------------------------------
+
+// A reference joined the way scripts/archetype-voices does: [seconds, level] parts, level 0 being digital silence (the edges and the seams).
+function joinedOf(parts, rate = 24000) {
+  const frames = parts.reduce((sum, [seconds]) => sum + Math.round(seconds * rate), 0), bytes = Buffer.alloc(44 + frames * 2);
+  bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8);
+  bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34);
+  bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
+  let at = 44;
+  for (const [seconds, level] of parts) for (let n = Math.round(seconds * rate); n > 0; n--, at += 2) bytes.writeInt16LE(level, at);
+  return bytes;
+}
+// Three lines, each with 0.3 s of silent edges, and 0.4 s between them: a seam of about a second.
+const threeLines = (a = 3, b = 5, c = 4) => joinedOf([[0.3, 0], [a, 100], [0.3, 0], [0.4, 0], [0.3, 0], [b, 200], [0.3, 0], [0.4, 0], [0.3, 0], [c, 300], [0.3, 0]]);
+const levelsOf = bytes => new Set(Array.from({length: (bytes.length - 44) >> 1}, (_, at) => bytes.readInt16LE(44 + at * 2)));
+
+test('singleClip: the longest of the joined clips, cut at the seams and trimmed, the first one when two are as long; nothing to choose gives null', () => {
+  const one = singleClip(threeLines(3, 5, 4));
+  assert.equal(one.readUInt32LE(24), 24000); assert.equal(one.readUInt32LE(4), one.length - 8); assert.equal(one.readUInt32LE(40), one.length - 44);
+  assert.equal(one.length - 44, 5 * 24000 * 2, 'the 5 s clip, with none of its silent edges');
+  assert.deepEqual([...levelsOf(one)], [200], 'every sample comes from that one clip');
+  assert.deepEqual([...levelsOf(singleClip(threeLines(4, 4, 3)))], [100], 'equal lengths: the first');
+  assert.deepEqual(singleClip(threeLines(3, 5, 4)), one, 'the same file always gives the same clip');
+  // A pause inside a line (under the seam length) does not split it.
+  const pause = joinedOf([[0.3, 0], [2, 100], [0.5, 0], [2, 100], [0.3, 0], [0.4, 0], [0.3, 0], [3, 200], [0.3, 0]]);
+  assert.equal(singleClip(pause).length - 44, (2 + 0.5 + 2) * 24000 * 2, 'a 4.5 s line with its own pause is longer than the 3 s one');
+  // Nothing to choose: one clip, a longest clip that is too short to clone from, another file type, 8-bit audio.
+  assert.equal(singleClip(joinedOf([[0.3, 0], [6, 100], [0.3, 0]])), null);
+  assert.equal(singleClip(threeLines(1.5, 1.2, 1)), null);
+  assert.equal(SINGLE_CLIP.minSeconds, 2);
+  assert.equal(singleClip(Buffer.from('not a wav file at all, but long enough to be looked at')), null);
+  assert.equal(singleClip(Buffer.alloc(10)), null);
+  const eight = threeLines(); eight.writeUInt16LE(8, 34);
+  assert.equal(singleClip(eight), null);
+});
+
+test('an ordinary NPC is cloned from one clip, the same one for every request; a named character keeps its whole reference', async () => {
+  const joined = threeLines(3, 5, 4), file = 'archetypes/omni-long/npc-homeless-female-v2.wav';
+  const named = joinedOf([[0.3, 0], [3, 100], [1, 0], [5, 200], [0.3, 0]]);
+  const registries = [createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: {
+    'npc-homeless-female-v2': {reference: `runtime/voice-references/${file}`, sha256: sha(joined), transcript: 'None o\' your biz.'},
+    'judy-alvarez': {reference: 'runtime/voice-references/picked/autobest/omni-long/judy-alvarez.wav', sha256: sha(named), transcript: 'Ready when you are, V.'}}})];
+  const files = {[file]: joined, 'picked/autobest/omni-long/judy-alvarez.wav': named}, prepared = [], logs = [];
+  const root = resolve('fixture-references');
+  const voice = new VoxtralVoice({getKey: () => KEY, referenceRoot: root, registry: registries, scheduler: fastScheduler(), onLog: line => logs.push(line),
+    read: async path => files[path.slice(root.length + 1).split(/[\\/]/).join('/')] ?? Promise.reject(Error('ENOENT')),
+    prepare: async (bytes, options) => { prepared.push({bytes, options}); return null; }});
+  const first = await voice.reference('npc-homeless-female-v2');
+  const sent = Buffer.from(first.base64, 'base64');
+  assert.deepEqual([...levelsOf(sent)], [200]); assert.equal(sent.length - 44, 5 * 24000 * 2);
+  assert.equal(first.source, 'omni-long');
+  assert.equal(await voice.reference('npc-homeless-female-v2'), first, 'built once per voice: every request and every reply of the conversation sends these bytes');
+  // The prepared slot is keyed by the clip, not by the joined file (a slot made from the joined file would be used in its place).
+  assert.equal(prepared.length, 1); assert.deepEqual(prepared[0].bytes, sent);
+  assert.notEqual(prepared[0].options.sha256, sha(joined)); assert.match(prepared[0].options.sha256, /^[0-9a-f]{64}$/);
+  assert.ok(logs.some(line => line.includes('npc-homeless-female-v2: cloned from one clip, 5 s of the')), logs.join(''));
+  // A named character is not touched: its reference goes on as the whole file.
+  const whole = await voice.reference('judy-alvarez');
+  assert.equal(whole.base64, named.toString('base64'));
+  assert.equal(prepared[1].options.sha256, sha(named));
 });
 
 // ---- the voice selection: menu choice, fallback to Pocket, one report ---------------------------------------------------------
