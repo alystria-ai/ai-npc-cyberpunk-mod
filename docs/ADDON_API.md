@@ -17,7 +17,7 @@ AI NPC Cyberpunk Mod."
   `bridge/addons.test.mjs` ("inert") and `bridge/addons-lua.test.mjs` ("loading the module touches nothing").
 - **No Convai, ever.** An add-on speaker's text comes only from **Mistral**, the **local AI** or the player's own **Custom** provider.
   - It never uses Convai: neither the free tier nor a player's own key.
-  - It never counts toward the shared key's 100 conversations a day.
+  - It never counts toward the shared key's 500 conversations a day.
   - It never opens a Convai connection, memory or warm-up.
   - A `convai` field in a manifest is refused, and an add-on key in `characters.json` is removed at start.
 - **No per-frame work.** Everything runs on the main mod's existing 0.1 s tick, only while an add-on is registered, and on events
@@ -564,7 +564,7 @@ Custom provider never gets it.
   network answers one request at a time).
 - On the local AI a remark uses the GPU only while it is written. If the pack is installed but not running, the first remark starts
   it, so call `handle:prepare` when a fight or ride begins.
-- An add-on turn never touches Convai and never counts toward the shared key's 100 conversations a day.
+- An add-on turn never touches Convai and never counts toward the shared key's 500 conversations a day.
 
 ## Personas and modes: quality is the product
 
