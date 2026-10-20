@@ -21,6 +21,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
+import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
@@ -177,6 +178,14 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // smaller prompt than the context allows (PrefillMeter in bridge/prompt-budget.mjs).
   const speeds = new Map();
   let lastSpeed = null;
+  // The character text a slow machine is given (bridge/compact-persona.mjs): compact once the machine is measured to read slowly, chosen when a character's first turn comes.
+  const compacts = new CompactChoice({log});
+  // The meter of the model load a handle belongs to. A model loaded again starts from the compact state the load before learned.
+  const speedOf = handle => {
+    const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
+    if (!speeds.has(speedKey)) { const before = lastSpeed; speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, compact: before?.compact === true})); }
+    return speeds.get(speedKey);
+  };
   // What a server the player runs has refused or shown about itself (bridge/mistral-client.mjs newAdaptation: a field it refuses, that it thinks and is asked for no
   // thinking from then on), per address and model id, for the session. In memory: the player may change the model behind the same address.
   const adaptations = new Map();
@@ -190,9 +199,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       const handle = await server.ensure({signal: options?.signal});
       if (!(handle?.contextSize > 0)) return null;
       if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter());
-      const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
-      if (!speeds.has(speedKey)) { speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true})); }
-      lastSpeed = speeds.get(speedKey);
+      lastSpeed = speedOf(handle);
       const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
         return tokens === null ? null : tokens + templateTokens(messages.length);
@@ -201,6 +208,12 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count, server: handle.external === true};
     },
     learn: tokens => { try { server.learnContext?.(tokens); } catch { /* a note of the context never fails a request */ } },
+    // The compact character text of a machine measured to read slowly (bridge/compact-persona.mjs); a fast machine is given the very arguments it was built from.
+    shape: (args, options, base) => {
+      let persona = args.persona;
+      try { persona = compacts.personaFor(args.persona, {speed: base?.speed, mature: args.mature ?? null, guard: args.guard ?? false, limits: args.limits}); } catch { /* a cut that fails leaves the whole text */ }
+      return persona === args.persona ? args : {...args, persona};
+    },
     onFit: fit => {
       const rate = lastSpeed?.tokensPerSecond;
       log('The local AI: ' + describeFit(fit) + (fit.target && Number.isFinite(rate) ? ` (this computer reads about ${Math.round(rate)} tokens a second)` : ''));
@@ -277,6 +290,11 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     prewarm: (messages, options) => server.prewarm(messages, options),
+    // The persona a warm-up (and so the prompt cache of the character's first turn) is built from: the one the turn will use (compact on a machine measured to read slowly).
+    // Without a request to the server: the last load's meter is the one a turn will use (a model loaded again starts from its state), and with none there is nothing measured.
+    shapePersona(persona, {mature = null, guard = false, limits} = {}) {
+      try { return compacts.personaFor(persona, {speed: lastSpeed, mature, guard, limits}); } catch { return persona; }   // the warm-up never fails for a cut
+    },
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
     // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
     // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
@@ -875,7 +893,8 @@ export class TextProviderHost {
       const mature = this.guardOnly ? null : await this.#matureLevel(route);
       const guard = mature ? true : await this.#guardOn(route);
       // The player's world rules follow the head in every prompt (bridge/mistral-prompt.mjs systemPrompt), so they are warmed with it.
-      const head = systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
+      const shown = route.shapePersona ? await route.shapePersona(persona, {mature, guard, limits: this.limits}) : persona;
+      const head = systemHead({persona: shown, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
       await route.prewarm([{role: 'system', content: [head, worldRulesBlock(persona.worldRules)].filter(Boolean).join('\n\n')}, {role: 'user', content: '.'}], {key});
     } catch (error) {
       route.failure?.(error);
