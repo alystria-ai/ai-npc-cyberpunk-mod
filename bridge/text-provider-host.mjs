@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -18,6 +18,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {currentClock, markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
+import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit} from './prompt-budget.mjs';
@@ -283,6 +284,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // What is loaded and how the turns went (bridge/local-llm-server.mjs diagnostics), for the log line of a turn that failed and for the support report.
     diagnostics: () => { try { return server.diagnostics?.() ?? null; } catch { return null; } },
     noteTurn: info => { try { return server.noteTurn?.(info) ?? {first: false}; } catch { return {first: false}; } },
+    // One more stall steps the model down (or a step is under way): a repeated line is then not worth a second request (LocalLlmServer.stepDownNear).
+    stepDownNear: () => { try { return server.stepDownNear?.() === true; } catch { return false; } },
     jsonBody: () => ({response_format: {type: 'json_schema', json_schema: {name: 'facts', strict: true, schema: FACT_SCHEMA}}}),
     summarizeAllowed: () => true,
     // Any failure of a local turn (a refused prompt, no answer, a server that went away) hands the turn to the player's cloud provider
@@ -800,11 +803,13 @@ export class TextProviderHost {
     // With the guard on, a first sentence that flags is never committed to the voice either.
     if (feed && typeof feed === 'object') feed.reject = guard ? head => (refuseHead ? refuseHead(head) : false) || this.matureGuard.flagsReply(head, {history: recalled.turns}) : refuseHead;
     let outcome;
+    const firstBegan = this.now();
     try { outcome = await run(''); } catch (error) {
       if (!spec?.missed || signal?.aborted) throw error;
       spec.over = true;
       outcome = await run('');
     }
+    const firstMs = this.now() - firstBegan;
     // A reply the guard replaced is final: no second attempt, no checks (the refusal is the character's own line).
     if (outcome.guarded) { route.success(); return outcome; }
     // A reply that steps out of character, or is a model's reasoning, gets one more try. The second answer is used unless it
@@ -813,7 +818,21 @@ export class TextProviderHost {
     // A reply that says a line already said (an example line, its own last reply) gets the same one more try.
     const repeated = repeatsLine(outcome.reply, said), echoed = provoked && takesUpAiTalk(outcome.reply);
     if ((breaksCharacter(outcome.reply) || leaksReasoning(outcome.reply) || looksCut(outcome.reply) || repeated || echoed) && !signal?.aborted) {
-      if (feed.committed) {
+      // A reply whose only fault is a line said again. Asking once more doubles the turn: a slow local turn (2026-10-20 report: the text complete at 38.5 s, the voice at 74.8 s) is
+      // not worth a second one. The repeated sentence is left out when words of the reply's own remain (nothing to wait for); otherwise the first reply is kept when the first
+      // attempt was already slow (SLOW_TURNS.slowMs) or the local server is one stall from stepping down; a quick first attempt is asked again as before.
+      const onlyRepeated = repeated && !echoed && !breaksCharacter(outcome.reply) && !leaksReasoning(outcome.reply) && !looksCut(outcome.reply);
+      let settled = false;
+      if (onlyRepeated && !feed.committed) {
+        const trimmed = dropRepeatedLines(outcome.reply, said);
+        if (trimmed) { this.log('reply repeated a line; left the repeated sentence out'); outcome = {...outcome, reply: trimmed}; settled = true; }
+        else if (firstMs > SLOW_TURNS.slowMs || this.#stepDownNear(route)) {
+          this.log(`reply repeated a line, but the first attempt took ${Math.round(firstMs / 1000)} s${firstMs > SLOW_TURNS.slowMs ? '' : ' and the local model is about to step down'}: keeping it instead of asking once more`);
+          settled = true;
+        }
+      }
+      if (settled) { /* the reply stands */ }
+      else if (feed.committed) {
         this.log(repeated ? 'reply repeated a line after its first sentence was spoken; keeping that sentence' : 'reply broke character after its first sentence was spoken; keeping that sentence');
         outcome = {...outcome, reply: feed.head};
       } else {
@@ -824,6 +843,11 @@ export class TextProviderHost {
     if (leaksReasoning(outcome.reply) || looksCut(outcome.reply) && outcome.reply.split(/\s+/).length < 4) throw new MistralError('empty', 'answered with its reasoning or a cut-off line', {provider: route.provider});
     route.success();
     return outcome;
+  }
+
+  // Is the local model server one stall from stepping down to a smaller model or the cloud (or already doing it)? Another request would only wait for the reload.
+  #stepDownNear(route) {
+    try { return route?.stepDownNear?.() === true; } catch { return false; }   // only the local route has one
   }
 
   /** Runs `task` when background work may run (the bridge's gate: no combat, nothing speaking); checks again every 10 s until then. */

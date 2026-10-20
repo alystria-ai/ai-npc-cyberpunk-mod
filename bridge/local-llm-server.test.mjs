@@ -1133,6 +1133,16 @@ test('a changed choice that would end on the model already loaded does not reloa
   assert.equal(await blind.server.reselect(), true);
 });
 
+test('stepDownNear: false until one stall has happened, true while one more would step down, false again after an answered turn', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}});
+  await h.server.ensure();
+  assert.equal(h.server.stepDownNear(), false);
+  stall(h.server, 'no-response');
+  assert.equal(h.server.stepDownNear(), true, 'the next stall steps down');
+  h.server.noteTurn({ok: true, trace: {firstTokenMs: 400}});
+  assert.equal(h.server.stepDownNear(), false);
+});
+
 // ---- A lost graphics device (Vulkan ErrorDeviceLost): llama-server stays alive and healthy, every request fails --------------------------------------------------------
 // 2026-10-20 report: an RX 580 failed seven turns in a row, 50 to 100 ms each, until llama-server finally crashed. /health still answered, so recover() called it fine.
 

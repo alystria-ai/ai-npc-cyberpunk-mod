@@ -1430,12 +1430,26 @@ export class LocalLlmServer extends EventEmitter {
       // with 123 to 314 MiB free, 60 s twice): the second stall is another turn lost for nothing.
       // And a model loaded after a step-down, again with layers on the CPU (the card has no room for it either, now that the game holds it): its second stall is another
       // 60 to 75 s turn for a model the game leaves no room for (2026-10-20 reports of a 3060 Ti: Gemma stepped down to Qwen "part on the CPU", and its two stalls were two more failed turns).
-      const needed = this.#oversizeForCard() || this.#hopelessOffload() || this.#offloadedAfterStep() ? 1 : LOCAL_LLM_LIMITS.stallStepDown;
+      const needed = this.#stallsNeeded();
       this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + needed + '): ' + what);
       if (this.#stalls < needed) { void this.#checkSpill('a stall'); return false; }
       this.#stepping = true;
       void this.#stepDown().catch(() => {}).finally(() => { this.#stepping = false; });
       return true;
+    } catch { return false; }
+  }
+
+  #stallsNeeded() { return this.#oversizeForCard() || this.#hopelessOffload() || this.#offloadedAfterStep() ? 1 : LOCAL_LLM_LIMITS.stallStepDown; }
+
+  /**
+   * Would one more stall step the model down, or is a step down under way? The host then keeps a reply that repeats a line instead of asking for another one (a request that would
+   * only wait for the reload). A plain read of fields already held: nothing is measured, nothing runs per frame. A server the player runs never steps down.
+   */
+  stepDownNear() {
+    try {
+      if (this.#info?.external) return false;
+      if (this.#stepping) return true;
+      return this.#state === 'ready' && !!this.#modelId && this.#stalls > 0 && this.#stalls + 1 >= this.#stallsNeeded();
     } catch { return false; }
   }
 

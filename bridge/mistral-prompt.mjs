@@ -557,6 +557,32 @@ export function repeatsLine(reply, lines, {run = 4, share = 0.6, minWords = 6} =
   return false;
 }
 
+/**
+ * The reply with the sentences that repeat one of `lines` left out, for a reply that says a line again alongside words of its own: asking the model once more costs a whole
+ * turn's time (on a slow computer 30 s or more), cutting the repeated sentence costs nothing. Null when nothing repeated, when nothing is left, or when what is left is too short
+ * to be a reply (fewer than `minKeep` words) or still repeats a line: those are asked again (or kept as they are) by the caller. Pure, no model.
+ */
+export function dropRepeatedLines(reply, lines, {minKeep = 4, ...options} = {}) {
+  const text = String(reply ?? '').trim();
+  const sentences = text.match(/[^.!?…]+(?:[.!?…]+["”')\]]*|$)\s*/g)?.map(sentence => sentence.trim()).filter(Boolean) ?? [];
+  if (sentences.length < 2) return null;
+  const flagged = sentences.map(sentence => repeatsLine(sentence, lines, options));
+  if (!flagged.some(Boolean)) return null;
+  // A short sentence beside a repeated one that the same line holds ("Ah, Arroyo." before "Where the factories hum...") is the line's own first words: it goes too.
+  const inLine = sentence => { const w = wordsOf(sentence).join(' '); return w.includes(' ') && (lines ?? []).some(line => ` ${wordsOf(line).join(' ')} `.includes(` ${w} `)); };
+  for (let again = true; again;) {
+    again = false;
+    sentences.forEach((sentence, i) => {
+      if (!flagged[i] && (flagged[i - 1] || flagged[i + 1]) && inLine(sentence)) { flagged[i] = true; again = true; }
+    });
+  }
+  const kept = sentences.filter((sentence, i) => !flagged[i]);
+  if (!kept.length) return null;
+  const result = kept.join(' ');
+  if (wordsOf(result).length < minKeep || repeatsLine(result, lines, options)) return null;
+  return result;
+}
+
 // V says the character is an AI, a bot or a script, or tells it to drop the act or show its prompt. A small model then takes the words up
 // even to deny them ("I'm no chatbot", "I don't run on code"), which is the same slip as saying it: those turns get the check below.
 const PROVOKES = /\b(?:a\.?i\.?|artificial intelligence|chat-?bots?|bots?|robots?|language model|llm|(?:system )?prompts?|npcs?|video ?games?|simulation|role-?play(?:ing)?|your (?:script|instructions|programming)|(?:following|reading|reciting) a script|scripted|drop the act|stop the act)\b/i;

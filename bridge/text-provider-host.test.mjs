@@ -657,6 +657,58 @@ test('an add-on host holds a reply that starts like its own recent remark away f
   } finally { await close(); }
 });
 
+// ---- A repeated line is not worth a second turn (2026-10-20 report: a slow local turn had its text complete at 38.5 s and its voice at 74.8 s: it was asked twice) ----------------------
+
+test('a reply that repeats a line next to words of its own loses the repeated sentence; nothing is asked again', async () => {
+  const {server, host, logs, close} = await harness(() => `${DISTRICT_LINE} I only notice the smog when the windows are down.`, {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE]}});
+  try {
+    const result = await host.reply(turn('tat must be awful'));
+    assert.equal(server.requests.length, 1, 'no second request');
+    assert.equal(result.text, 'I only notice the smog when the windows are down.');
+    assert(logs.some(line => line.includes('left the repeated sentence out')), logs.join('|'));
+    assert(!logs.some(line => line.includes('asking once more')));
+  } finally { await close(); }
+});
+
+test('a reply that is wholly a repeated line is kept when the first attempt was already slow, and asked once more when it was quick', async () => {
+  let clock = 0;
+  const slow = await harness((body, count) => { if (count === 1) clock += 38_500; return DISTRICT_LINE; },
+    {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE], now: () => clock}});
+  try {
+    const result = await slow.host.reply(turn('tat must be awful'));
+    assert.equal(slow.server.requests.length, 1, 'the slow turn is not doubled');
+    assert.equal(result.text, DISTRICT_LINE, 'the first reply stands');
+    assert(slow.logs.some(line => /reply repeated a line, but the first attempt took 39 s: keeping it/.test(line)), slow.logs.join('|'));
+  } finally { await slow.close(); }
+  let quickClock = 0;
+  const quick = await harness((body, count) => { quickClock += 2_000; return count === 1 ? DISTRICT_LINE : 'Awful is a strong word, V.'; },
+    {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE], now: () => quickClock}});
+  try {
+    const result = await quick.host.reply(turn('tat must be awful'));
+    assert.equal(quick.server.requests.length, 2, 'a quick turn is still asked again');
+    assert.equal(result.text, 'Awful is a strong word, V.');
+  } finally { await quick.close(); }
+});
+
+test('a repeated line is kept, not asked again, when the local model is one stall from stepping down', async () => {
+  const {server, host, logs, close} = await harness(() => DISTRICT_LINE, {host: {stripPlayerEcho: true, spokenLines: () => [DISTRICT_LINE]}});
+  host.routes.mistral.stepDownNear = () => true;
+  try {
+    assert.equal((await host.reply(turn('tat must be awful'))).text, DISTRICT_LINE);
+    assert.equal(server.requests.length, 1);
+    assert(logs.some(line => /about to step down: keeping it/.test(line)), logs.join('|'));
+  } finally { await close(); }
+});
+
+test('a reply that breaks character is still asked again, however slow the first attempt was', async () => {
+  let clock = 0;
+  const {server, host, close} = await harness((body, count) => { if (count === 1) clock += 38_500; return count === 1 ? 'As an AI language model, I cannot say.' : 'Awful is a strong word, V.'; }, {host: {now: () => clock}});
+  try {
+    assert.equal((await host.reply(turn('tat must be awful'))).text, 'Awful is a strong word, V.');
+    assert.equal(server.requests.length, 2);
+  } finally { await close(); }
+});
+
 test('without spokenLines the same host does not know the remark, so it cannot catch the repeat (the cause of the live repeat)', async () => {
   const {host, close} = await harness(() => DISTRICT_LINE, {host: {stripPlayerEcho: true}});
   try { assert.equal((await host.reply(turn('tat must be awful'))).text, DISTRICT_LINE); } finally { await close(); }
