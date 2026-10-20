@@ -32,7 +32,7 @@ import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
 import {homedir} from 'node:os';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks} from './quest-context.mjs';
+import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
@@ -54,6 +54,7 @@ import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
+import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
@@ -596,7 +597,7 @@ const multilingual = new MultilingualConversations();
 const memoryPolicy = config => keys.memoryBlocked && config ? withoutIdentity(config) : keys.identify(config);
 // Sessions opened under another identity belong to it; the transcript the phone shows is not touched.
 function retireIdentifiedSessions() {
-  sessions.clear(); realtimeSessions.clear();
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
   void phone.forgetSessions().catch(() => {});
 }
 function memoryAdopted() {
@@ -1882,7 +1883,7 @@ async function publishResult(input, profile, result, current = async () => true,
   const voice = addonHost.usesVoiceContext(input.profileKey);
   try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
-  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, {ambient: isAmbientProfile(input.profileKey), voice})}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -2107,7 +2108,7 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
   await invitations.clear('world-or-memory-reset');
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await connections.clear();
-  sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear(); knowledgeTurns.clear();
   partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
   rewarmLocalVoice();
 }
@@ -3003,7 +3004,7 @@ async function applyKeyChoice() {
     quota.clear();
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-    sessions.clear(); realtimeSessions.clear();
+    sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation key: ${own ? "the player's own" : "the installation's"}`);
     rewarmLocalVoice();
@@ -3022,7 +3023,7 @@ async function applyProviderChoice() {
     if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom')) void warmTurnConnections({provider: mistral.route});
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-    sessions.clear(); realtimeSessions.clear();
+    sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
     rewarmLocalVoice();

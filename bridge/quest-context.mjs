@@ -8,7 +8,7 @@ import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from '
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
 import {gearContext, visibleGearContext} from './player-gear.mjs';
-import {turnContext} from './turn-context.mjs';
+import {turnContext, describeTurnContext, sceneryFor} from './turn-context.mjs';
 import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
@@ -149,6 +149,8 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   return result;
 }
 
+// The options the right-now block of a turn is built (and logged) with.
+export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input)});
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
@@ -158,11 +160,13 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
-  const now = turnContext(input, {ambient});
+  // The weather and the part of the day are scenery, stated only when new to the conversation (bridge/scenery-memory.mjs), as a short
+  // "Background" line of their own in the volatile tail, so a turn that has or lacks them does not change the block the prompt cache keeps.
+  const {text: now, background} = describeTurnContext(input, turnContextOptions(input, ambient));
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
-    return [{tier: 'now', text: now}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: gameDialogueContext(input)},
+    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: gameDialogueContext(input)},
       {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: visibleGearContext(input)},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: followUpContext(input)}];
   }
@@ -171,7 +175,8 @@ export function conversationContextBlocks(input) {
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
-  return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'world', key: 'knowledge', text: knowledge},
+  return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
+    {tier: 'world', key: 'knowledge', text: knowledge},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: trusted?.jobsContext},
     {tier: 'world', key: 'journal', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
     {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: gearContext(input)},
