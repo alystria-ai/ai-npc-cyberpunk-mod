@@ -20,7 +20,7 @@ import {currentClock, markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
-import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -174,6 +174,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
   // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
   const meters = new Map();
+  let lastMeter = null;   // the meter of the model that answered last: the compact character text (and its warm-up) counts its target with the same ratio the soft target does
+  const mismatches = new Map();   // a gap between the budget's count and the server's is written to the log a few times per meter, not every turn
   // How fast this machine reads a prompt, per load of the model (a reload may have less graphics memory to work with): a slow one is given a
   // smaller prompt than the context allows (PrefillMeter in bridge/prompt-budget.mjs).
   const speeds = new Map();
@@ -198,7 +200,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     budget: async options => {
       const handle = await server.ensure({signal: options?.signal});
       if (!(handle?.contextSize > 0)) return null;
-      if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter());
+      if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter({charsPerToken: seedRatio(handle.model)}));
+      lastMeter = meters.get(handle.model);
       lastSpeed = speedOf(handle);
       const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
@@ -211,12 +214,19 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // The compact character text of a machine measured to read slowly (bridge/compact-persona.mjs); a fast machine is given the very arguments it was built from.
     shape: (args, options, base) => {
       let persona = args.persona;
-      try { persona = compacts.personaFor(args.persona, {speed: base?.speed, mature: args.mature ?? null, guard: args.guard ?? false, limits: args.limits}); } catch { /* a cut that fails leaves the whole text */ }
+      try { persona = compacts.personaFor(args.persona, {speed: base?.speed, meter: base?.meter, mature: args.mature ?? null, guard: args.guard ?? false, limits: args.limits}); } catch { /* a cut that fails leaves the whole text */ }
       return persona === args.persona ? args : {...args, persona};
     },
     onFit: fit => {
       const rate = lastSpeed?.tokensPerSecond;
-      log('The local AI: ' + describeFit(fit) + (fit.target && Number.isFinite(rate) ? ` (this computer reads about ${Math.round(rate)} tokens a second)` : ''));
+      log('The local AI: ' + describeFit(fit) + (fit.target && Number.isFinite(rate) ? ` (this computer reads about ${Math.round(rate)} tokens a second)` : '') + (fit.bias > 1 ? ` (counts corrected by ${fit.bias.toFixed(2)})` : ''));
+    },
+    // The server counted clearly more than the budget did for the prompt that was sent (bridge/prompt-budget.mjs TokenMeter.bias): later prompts are counted with that gap.
+    onMismatch: ({raw, real, gap, exact, bias}) => {
+      const seen = mismatches.get(lastMeter) ?? 0;
+      if (seen >= 3) return;
+      mismatches.set(lastMeter, seen + 1);
+      log(`The local AI: the server counted ${real} tokens for a prompt this computer counted as ${raw} (${exact ? "by the server's tokenizer" : 'by estimate'}, ${gap.toFixed(2)} times); later prompts are counted ${bias.toFixed(2)} times higher`);
     }});
   // parallel: false: the server answers one request at a time (one slot), so an action decision does not overlap the reply; measured
   // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
@@ -293,7 +303,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // The persona a warm-up (and so the prompt cache of the character's first turn) is built from: the one the turn will use (compact on a machine measured to read slowly).
     // Without a request to the server: the last load's meter is the one a turn will use (a model loaded again starts from its state), and with none there is nothing measured.
     shapePersona(persona, {mature = null, guard = false, limits} = {}) {
-      try { return compacts.personaFor(persona, {speed: lastSpeed, mature, guard, limits}); } catch { return persona; }   // the warm-up never fails for a cut
+      try { return compacts.personaFor(persona, {speed: lastSpeed, meter: lastMeter, mature, guard, limits}); } catch { return persona; }   // the warm-up never fails for a cut
     },
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
     // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
