@@ -395,3 +395,17 @@ test('local-stepdown: a smaller model was loaded (said once, with its name) or t
   other.noteLocalStepDown('X');
   assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
 });
+
+test('local-cpu: a model that runs mostly on the processor is said once with the next reply, only while Local AI is chosen, and a new choice drops it', () => {
+  const model = new MistralProvider({});
+  model.setPreference('local'); model.apply();
+  model.noteLocalCpuHeavy();
+  assert.equal(model.takeNotice(), 'local-cpu');
+  assert.equal(model.takeNotice(), undefined, 'once');
+  model.noteLocalCpuHeavy();
+  model.setPreference('convai'); model.setPreference('local');
+  assert.equal(model.takeNotice(), undefined, 'a new choice drops it');
+  const other = new MistralProvider({});
+  other.noteLocalCpuHeavy();
+  assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
+});

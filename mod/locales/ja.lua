@@ -1047,6 +1047,7 @@ return {
     ["Defaults"] = "初期設定",
     ["Press Confirm to put every setting back to its default."] = "「確認」を押すと、すべての設定が初期設定に戻ります。",
     ["Local AI stopped working and was restarted."] = "Local AI が動作しなくなったため、再起動しました。",
+    ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI はここでは主にプロセッサで動作するため、返信は遅くなります。",
     ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "TweakXL がありません。Nexus Mods から TweakXL をインストール（nexusmods.com/cyberpunk2077/mods/4197）し、Cyberpunk 2077 フォルダーに展開してから、ゲームを再起動してください。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "このmodのメニューと通知だけを変更します。\n\nキャラクターの声と、話す言語は別々です。マイクは、英語以外の音声を認識するためのヒントとしてこの言語を使います。",
     ["Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works."] = "コンパニオンは、その性格に応じて、ときどき言葉を切ったり、ためらったり、笑ったり、ため息をついたりします。いつそうするかは各キャラクターが決め、頻度は低いままです。\n\nOmniVoice は笑い声やため息を出せます。他の音声は間を入れるだけです。\n\nConvai のクラウド音声を使い、Convai が応答している間は利用できません。クラウド音声を選ぶとこの機能はオフになり、この機能をオンにすると音声は Pocket に切り替わります。Mistral、Local AI、カスタムでは動作します。",

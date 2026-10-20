@@ -3396,8 +3396,8 @@ end
 -- What a failed Local AI turn was waiting for, in the bridge's own words ("no first word from the model after 60 s"): one short plain English phrase, shown in
 -- brackets after the translated sentence as data, like any provider's error text (it is not a translation key). Anything that is not short printable ASCII is
 -- ignored, and so is a reply without one.
-local function localFailureSuffix(reply)
-    local detail = reply.errorDetail
+local function localFailureSuffix(reply, field)
+    local detail = reply[field or 'errorDetail']
     if type(detail) ~= 'string' or detail == '' or #detail > 140 or detail:find('[%c\128-\255]') then return '' end
     return '\n(' .. detail .. ')'
 end
@@ -3471,6 +3471,10 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-restarted' then
         return 'local-restarted', ui.t('Local AI stopped working and was restarted.')
     end
+    -- The Local AI model is mostly on the processor (too little of it fits the graphics card beside the game): said once, with the next reply; the bridge's few words say what is faster.
+    if reply.keyNotice == 'local-cpu' then
+        return 'local-cpu', ui.t('Local AI runs mostly on your processor here, so replies will be slow.') .. localFailureSuffix(reply, 'keyNoticeDetail')
+    end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
         local used = reply.keyNoticeModel
@@ -3513,6 +3517,7 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
+    elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText)
     elseif keyId == 'local-stepdown' then convaiNotices.send(player, 'local-stepdown', keyText) end
@@ -4642,7 +4647,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-stepdown' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

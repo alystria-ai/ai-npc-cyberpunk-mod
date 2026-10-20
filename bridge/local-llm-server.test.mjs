@@ -45,7 +45,7 @@ function harness(t, {standard = true, lite = true, env = {}, envFor, ...options}
   const logs = [];
   const tmpDir = join(directory, 'tmp');
   mkdirSync(tmpDir);
-  const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 0, command: process.execPath,
+  const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 0, freeMemMiB: () => 32000, command: process.execPath,
     argsPrefix: [FAKE], spawnImpl, fetchImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false,
     processOptions: {env, tmpDir, pollMs: 20}, ...options});
   const failures = [];
@@ -178,14 +178,15 @@ test('the tier is chosen from the smaller of the device and nvidia-smi free memo
 });
 
 test('low memory, no discrete GPU and a missing pack fail without spawning, and emit failed once', async t => {
-  const low = harness(t, {freeVramMiB: () => 1500});
-  await assert.rejects(low.server.ensure(), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory');
-  await assert.rejects(low.server.ensure(), error => error.reason === 'low-memory');
-  assert.deepEqual(low.server.status(), {state: 'failed', reason: 'low-memory', detail: 'too-small', tier: null, model: null});
-  assert.deepEqual(low.failures, [{reason: 'low-memory', detail: 'too-small'}], 'not even the smaller model would have enough of its layers on the card: the card is too small');
+  // 1,500 MiB of graphics memory free: the smaller model goes on the card as far as it fits and runs the rest on the processor, which needs system memory; with none to spare it does not start.
+  const low = harness(t, {freeVramMiB: () => 1500, freeMemMiB: () => 500});
+  await assert.rejects(low.server.ensure(), error => error instanceof LocalAiUnavailable && error.reason === 'start-failed' && error.detail === 'low-ram');
+  await assert.rejects(low.server.ensure(), error => error.reason === 'start-failed');
+  assert.deepEqual(low.server.status(), {state: 'failed', reason: 'start-failed', detail: 'low-ram', tier: null, model: null});
+  assert.deepEqual(low.failures, [{reason: 'start-failed', detail: 'low-ram'}]);
   assert.equal(low.calls.length, 0);
   // reset() allows another try, and it can now succeed.
-  low.server.freeVramMiB = () => 6000;
+  low.server.freeVramMiB = () => 6000; low.server.freeMemMiB = () => 32000;
   low.server.reset();
   assert.equal(low.server.status().state, 'stopped');
   assert.equal((await low.server.ensure()).tier, 'standard');
@@ -422,7 +423,7 @@ test('prewarm sends only the given messages as a one-token request, and never th
   assert.equal(request.promptChars, 'You are Judy.'.length);
   assert.equal(request.cachePrompt, true);
   assert.equal(calls.length, 1);
-  const broken = harness(t, {freeVramMiB: () => 100});
+  const broken = harness(t, {freeVramMiB: () => 100, freeMemMiB: () => 200});
   assert.equal(await broken.server.prewarm([{role: 'user', content: 'x'}]), false);
 });
 
@@ -824,10 +825,28 @@ test('Mature content on never loads a censored model: a Mature model that does n
   const roomy = choiceHarness(t, {selected: {matureOn: true}, freeMiB: 3000});
   await roomy.server.ensure();
   assert.ok(roomy.calls[0].args.includes('-ngl') && roomy.calls[0].args[roomy.calls[0].args.indexOf('-fit') + 1] === 'off');
-  // Mature content off with no room: an ordinary model is offloaded (the smallest), never an uncensored one; with too little room it is the card that is too small.
+  // Mature content off with no room at all (1,000 MiB): an ordinary model is offloaded (the smallest), never an uncensored one; any share loads, here nearly none, and the player is told once.
   const off = choiceHarness(t, {selected: {matureOn: false}, freeMiB: 1000});
-  await assert.rejects(off.server.ensure(), error => error.reason === 'low-memory' && error.detail === 'too-small');
-  assert.deepEqual(off.loaded(), [], 'nothing was started');
+  const slow = [];
+  off.server.on('offload-slow', event => slow.push(event));
+  await off.server.ensure();
+  assert.deepEqual(off.loaded(), ['q2.gguf']);
+  assert.deepEqual([argValue(off.calls[0], '-fit'), argValue(off.calls[0], '-fitt'), argValue(off.calls[0], '-c')], ['on', '1792', '8192']);
+  assert.deepEqual(slow.map(event => [event.id, event.share]), [['lite', 0]]);
+  assert.ok(off.logs.some(line => /will run mostly on the processor: only about 0% of its layers fit the graphics card with 1792 MiB kept free for the game \(1000 MiB free\); replies will be slow \(a smaller model or the Custom provider is faster\)/.test(line)), off.logs.join('|'));
+  assert.deepEqual(off.failures, []);
+  // The processor's side is what stops a load: the part of the model that stays in system memory (its file and cache) must fit what is free.
+  const noRam = choiceHarness(t, {selected: {matureOn: false}, freeMiB: 1000, freeMemMiB: () => 600});
+  await assert.rejects(noRam.server.ensure(), error => error.reason === 'start-failed' && error.detail === 'low-ram');
+  assert.deepEqual([noRam.calls.length, noRam.failures], [0, [{reason: 'start-failed', detail: 'low-ram'}]]);
+  assert.ok(noRam.logs.some(line => /cannot run partly on the processor: about \d+ MiB of system memory are needed for its CPU part and cache, 600 MiB are free: close programs, or choose a smaller model in Settings, or use the Custom provider/.test(line)), noRam.logs.join('|'));
+  assert.ok(unavailableDetail('start-failed', 'low-ram').includes('Custom provider') && !/cloud/i.test(unavailableDetail('start-failed', 'low-ram')));
+  // A card with room for most of the model needs no warning, and the system memory it needs is only the part that stays on the processor (about 3,900 MiB here, 5,000 free).
+  const half = onlyGood(choiceHarness(t, {selected: {matureOn: true}, freeMiB: 5500, freeMemMiB: () => 5000}));
+  const quiet = [];
+  half.server.on('offload-slow', event => quiet.push(event));
+  await half.server.ensure();
+  assert.deepEqual([half.calls.length, quiet.length], [1, 0], 'about half of the layers on the card: slow, but not mostly on the processor');
 });
 
 test('buildServerArgs adds --chat-template only when one is named', () => {
@@ -881,7 +900,7 @@ test('stalled turns step the model down: standard to lite after two stalls with 
   assert.equal((await h.server.ensure()).model, 'Qwen3.5-4B');
 });
 
-test('stalled turns on the Mature family: mature:good steps down to mature:lite, never to a censored model, and with Mature lite stalled it is loaded with part of it on the CPU, then Local AI is unavailable', async t => {
+test('stalled turns on the Mature family: mature:good steps down to mature:lite, never to a censored model, and with Mature lite stalled it is loaded with part of it on the CPU, where a further stall leaves it loaded', async t => {
   const h = stepHarness(t, {selected: {matureOn: true}});
   await h.server.ensure();
   assert.deepEqual([h.server.modelId, h.loaded()], ['mature:good', ['big-u.gguf']]);
@@ -894,14 +913,12 @@ test('stalled turns on the Mature family: mature:good steps down to mature:lite,
   stall(h.server, 'prefill-stalled'); stall(h.server, 'stalled');
   assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
   assert.deepEqual([h.loaded().at(-1), argValue(h.calls[2], '-fit'), argValue(h.calls[2], '-c'), h.steps.length, h.failures.length], ['small-u.gguf', 'on', '8192', 1, 0]);
-  // ... and when that stalls once more Local AI is unavailable, with no cloud event.
+  // ... and when that stalls once more it stays loaded: nothing smaller, nothing more to give up, and a slow answer is still an answer. No failure, no cloud event, no third server.
   stall(h.server, 'prefill-stalled');
-  assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.failures, h.steps.map(step => step.model)], [[{reason: 'low-memory', detail: 'too-small'}], ['Qwen3.5-2B-Uncensored']]);
-  assert.equal(h.server.status().state, 'failed');
-  await assert.rejects(h.server.ensure(), error => error.reason === 'low-memory');
-  assert.deepEqual(h.loaded(), ['big-u.gguf', 'small-u.gguf', 'small-u.gguf'], 'nothing else was started');
+  assert.equal(await until(() => h.logs.some(line => /already runs with part of its layers on the CPU; no smaller model is installed, so it stays loaded/.test(line))), true);
+  assert.deepEqual([h.failures, h.steps.length, h.server.status().state, h.calls.length], [[], 1, 'ready', 3]);
   // Choosing Local AI again (reset) tries the whole choice from the top.
+  await h.server.stop();
   h.server.reset();
   assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
 });
@@ -916,7 +933,7 @@ test('a pinned model steps down inside its own family: the Mature good model (pi
   assert.deepEqual(h.fallbacks, []);
 });
 
-test('with no smaller model installed the stalled model is loaded again with part of its layers on the CPU (no cloud event), and when that stalls too Local AI is unavailable: low-memory, too-small', async t => {
+test('with no smaller model installed the stalled model is loaded again with part of its layers on the CPU (no cloud event), and when that stalls too it stays loaded (slow, but it answers)', async t => {
   const h = stepHarness(t, {mature: false, lite: false});
   await h.server.ensure();
   assert.deepEqual(h.loaded(), ['q4.gguf']);
@@ -930,26 +947,26 @@ test('with no smaller model installed the stalled model is loaded again with par
   assert.ok(Number(argValue(args, '-t')) >= 2);
   assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the whole-model server was stopped');
   assert.equal(h.server.diagnostics().model.offload, true);
-  // It was the game that took the card: the model on the CPU is already the last thing to try, so its first stall ends Local AI (nothing smaller, nothing to give up).
+  // It stalls once more: it already runs part on the CPU and nothing is smaller, so it stays loaded (a slow answer is still an answer); Local AI is not marked unavailable.
   stall(h.server, 'prefill-stalled');
-  assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.steps, h.failures, h.server.status().state, h.calls.length], [[], [{reason: 'low-memory', detail: 'too-small'}], 'failed', 2], 'no third server, no cloud event');
-  assert.ok(h.logs.some(line => /it already ran with part of its layers on the CPU and no smaller model is installed, so Local AI is unavailable/.test(line)));
-  assert.equal(await until(() => h.calls[1].child.exitCode !== null || h.calls[1].child.signalCode !== null), true);
-  await assert.rejects(h.server.ensure(), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory' && error.detail === 'too-small' && /too-small/.test(error.message));
-  assert.equal(unavailableDetail('low-memory', 'too-small').includes('Custom provider'), true);
+  assert.equal(await until(() => h.logs.some(line => /already runs with part of its layers on the CPU; no smaller model is installed, so it stays loaded/.test(line))), true);
+  await sleep(100);
+  assert.deepEqual([h.steps, h.failures, h.server.status().state, h.calls.length], [[], [], 'ready', 2], 'no third server, no failure, no cloud event');
+  assert.ok(unavailableDetail('low-memory', 'too-small').includes('Custom provider'));
 });
 
-test('a standard model with a lite one that does not fit the free memory now: Local AI says the card is too small (no cloud event), and a model the player added never steps down on a stall', async t => {
+test('a standard model with a lite one that does not fit the free memory now: the lite one is loaded mostly on the CPU (said once, no cloud event), and a model the player added never steps down on a stall', async t => {
   // The game filled the card: after the stalled model left, the lite one (needs 2011 MiB) has 1500 MiB.
   let free = 24000;
   const tight = stepHarness(t, {mature: false, freeMiB: 24000, freeVramMiB: () => free});
+  const slow = [];
+  tight.server.on('offload-slow', event => slow.push(event));
   await tight.server.ensure();
   free = 1500;
   stall(tight.server, 'no-response'); stall(tight.server, 'no-response');
-  assert.equal(await until(() => tight.failures.length > 0), true);
-  assert.deepEqual([tight.failures, tight.steps.map(step => step.model)], [[{reason: 'low-memory', detail: 'too-small'}], []], 'the card is too small beside the game: a local failure');
-  assert.deepEqual(tight.loaded(), ['q4.gguf']);
+  assert.equal(await until(() => tight.calls.length === 2 && tight.server.status().state === 'ready'), true);
+  assert.deepEqual([tight.failures, tight.steps.map(step => step.model), slow.map(event => [event.id, event.share])], [[], ['Qwen3.5-2B'], [['lite', 0]]], 'a smaller model, mostly on the processor, and the player is told so');
+  assert.deepEqual(tight.loaded(), ['q4.gguf', 'q2.gguf']);
 
   const custom = choiceHarness(t, {mature: false, selected: {pin: 'custom:mine', customModels: []}});
   const own = join(custom.directory, 'mine.gguf');
@@ -1023,15 +1040,14 @@ test('a chosen Mature model that the file-size rule says does not fit, but whose
   assert.ok(/about 4\d% of the layers on the card/.test(none.logs.find(line => /model ready/.test(line))), none.logs.find(line => /model ready/.test(line)));
   assert.ok(none.logs.some(line => /partial offload: Gemma-4-E4B-uncensored, about 4\d% of its layers on the card \(projected 3520 MiB at 8192 q8_0 against 3900 MiB free\)/.test(line)), none.logs.filter(line => /partial/.test(line)).join('|'));
   assert.equal(none.probes.filter(probe => probe.contextSize === 8192 && probe.kvType === 'q8_0').length, 1, 'the projection of the offload placement is the one the fit already made: no second tool run');
-  // 3,000 MiB leave a quarter of the layers: too few, nothing is loaded and the card is said to be too small.
+  // 3,000 MiB leave 4% of the layers: it still loads (any share does, owner decision 2026-10-21), the player is told once that it runs mostly on the processor, and nothing names a cloud provider.
   const hopeless = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 3000}}));
-  await assert.rejects(hopeless.server.ensure(), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory' && error.detail === 'too-small');
-  assert.deepEqual([hopeless.calls.length, hopeless.failures, hopeless.server.status().state, hopeless.server.status().detail], [0, [{reason: 'low-memory', detail: 'too-small'}], 'failed', 'too-small']);
-  assert.ok(hopeless.logs.some(line => /too large for this graphics card beside the game: only about 4% of its layers would stay on the card.*smaller model.*Custom provider/.test(line)), hopeless.logs.join('|'));
-  assert.equal(hopeless.steps.length, 0, 'no step-down event: it names a cloud provider, and none takes the turns');
-  await assert.rejects(hopeless.server.ensure(), error => error.reason === 'low-memory' && error.detail === 'too-small');
-  hopeless.server.reset();
-  assert.equal(hopeless.server.status().detail, undefined);
+  const slow = [];
+  hopeless.server.on('offload-slow', event => slow.push(event));
+  await hopeless.server.ensure();
+  assert.deepEqual([hopeless.calls.length, hopeless.failures, hopeless.steps.length, argValue(hopeless.calls[0], '-fit'), argValue(hopeless.calls[0], '-fitt'), argValue(hopeless.calls[0], '-c')], [1, [], 0, 'on', '1792', '8192']);
+  assert.deepEqual(slow.map(event => [event.id, Math.round(event.share * 100)]), [['mature:good', 4]]);
+  assert.ok(hopeless.logs.some(line => /will run mostly on the processor: only about 4% of its layers fit the graphics card.*a smaller model or the Custom provider is faster/.test(line) && !/cloud/i.test(line)), hopeless.logs.join('|'));
 });
 
 test('a pinned ordinary model whose projection fits is kept instead of replaced by the lite model; the default choice and a card with room take no probe at all', async t => {
@@ -1060,31 +1076,44 @@ test('buildServerArgs: the cache type is given only when the fit asked for it', 
   assert.deepEqual([args[args.indexOf('-ctk') + 1], args[args.indexOf('-ctv') + 1]], ['q8_0', 'q8_0']);
 });
 
-test('a model that would have almost none of its layers on the card is not loaded at all (the 5 GB model on an 8 GB card with 123 to 314 MiB free: 60 s twice); one with a good part of them is, and takes two stalls', async t => {
+test('a model with almost none of its layers on the card (the 5 GB model on an 8 GB card with 123 to 314 MiB free) loads, says so once, and with nothing smaller stays loaded at its first stall; one with a good part of them takes two stalls', async t => {
   const hopeless = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 300}}));
-  await assert.rejects(hopeless.server.ensure(), error => error.reason === 'low-memory' && error.detail === 'too-small');
-  assert.equal(hopeless.calls.length, 0, 'no server was started that would be CPU-bound from its first word');
-  // The first-stall rule stays for a placement whose share was not known to be that small at the load (an estimate that was too generous): a loaded record with a small share.
-  // 3,900 MiB free: about 40% of the layers stay on the card: two stalls.
+  const slow = [];
+  hopeless.server.on('offload-slow', event => slow.push(event));
+  await hopeless.server.ensure();
+  assert.deepEqual([hopeless.calls.length, slow.length, slow[0]?.share], [1, 1, 0]);
+  // Under 35% of the layers on the card one stall is enough to look for a smaller model; there is none (only the good model is installed), so the model stays loaded.
+  stall(hopeless.server, 'prefill-stalled');
+  assert.equal(await until(() => hopeless.logs.some(line => /stalled \(1 of 1\)/.test(line))), true, 'one stall was enough to look');
+  assert.equal(await until(() => hopeless.logs.some(line => /so it stays loaded/.test(line))), true);
+  assert.deepEqual([hopeless.calls.length, hopeless.failures, hopeless.steps.length, hopeless.server.status().state], [1, [], 0, 'ready']);
+  // 3,900 MiB free: about 40% of the layers stay on the card: no warning, two stalls.
   const mostly = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 3900}}));
+  const quiet = [];
+  mostly.server.on('offload-slow', event => quiet.push(event));
   await mostly.server.ensure();
   stall(mostly.server, 'prefill-stalled');
   await sleep(150);
-  assert.deepEqual([mostly.steps.length, mostly.calls.length], [0, 1]);
+  assert.deepEqual([mostly.steps.length, mostly.calls.length, quiet.length], [0, 1, 0]);
 });
 
-test('a model loaded after a step-down that the card has no room for is not loaded with layers on the CPU (the 3060 Ti report: Gemma, then Qwen part on the CPU, two more failed turns): Local AI says the card is too small; with room it takes two stalls', async t => {
+test('a model loaded after a step-down that the card has no room for is loaded mostly on the CPU and said so (the 3060 Ti report: Gemma, then Qwen part on the CPU), and a stall there leaves it loaded; with room it takes two stalls', async t => {
   const small = `Available devices:
   Vulkan0: NVIDIA GeForce RTX 3060 Ti (8188 MiB, 7600 MiB free)
 `;
   const free = {value: 7600};
   const h = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free, listDevices: async () => small});
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
   assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
   free.value = 1500;                                       // the game took the card after the load
   stall(h.server, 'prefill-stalled');
-  assert.equal(await until(() => h.failures.length > 0), true, 'the oversize model steps down at its first stall, and the smaller one has no room either');
-  assert.deepEqual([h.failures, h.steps.length, h.server.status().state, h.loaded()], [[{reason: 'low-memory', detail: 'too-small'}], 0, 'failed', ['big-u.gguf']], 'a local failure, no cloud event, no layers on the CPU that would read at 40 tokens a second');
-  assert.ok(h.logs.some(line => /Qwen3.5-2B-Uncensored is too large for this graphics card beside the game/.test(line)), h.logs.join('|'));
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true, 'the oversize model steps down at its first stall; the smaller one has little room but loads');
+  assert.deepEqual([h.failures, h.steps.map(step => step.model), h.loaded(), slow.map(event => event.id)], [[], ['Qwen3.5-2B-Uncensored'], ['big-u.gguf', 'small-u.gguf'], ['mature:lite']]);
+  assert.ok(!h.calls[1].args.includes('-ngl') && argValue(h.calls[1], '-fit') === 'on');
+  stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.logs.some(line => /so it stays loaded/.test(line))), true, 'its first stall changes nothing: no smaller model, and it answers, slowly');
+  assert.deepEqual([h.failures, h.server.status().state, h.calls.length], [[], 'ready', 2]);
   // The same on a card that leaves room for the lite model: whole on the card, two stalls as anywhere.
   const roomy = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 7600}, listDevices: async () => small});
   await roomy.server.ensure();
@@ -1171,27 +1200,41 @@ test('a spill with no smaller model (the 2026-10-21 8 GB RTX 4060 report: answer
     h.logs.filter(line => /partial|fit of/.test(line)).join('|'));
   assert.deepEqual([h.server.diagnostics().engine.offloadPlan.fitTargetMiB, h.server.diagnostics().model.offload], [1792, true]);
   assert.equal(h.probes.filter(probe => probe.contextSize === 8192 && probe.kvType === 'q8_0').length >= 1, true);
-  // The offloaded model spills again: nothing smaller and nothing more to give up, so Local AI is unavailable (a local failure with the too-small reason).
+  // The offloaded model spills again: it is loaded again the same way (at most three times a session), and then Local AI is unavailable (the card cannot hold it beside the game).
+  for (let again = 2; again <= 3; again++) {
+    h.clock.now += 200_000;
+    h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
+    assert.equal(await until(() => h.calls.length === again + 1 && h.server.status().state === 'ready'), true, 'reload ' + again);
+  }
   h.clock.now += 200_000;
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
   assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.failures, h.steps, h.calls.length], [[{reason: 'low-memory', detail: 'too-small'}], [], 2]);
+  assert.deepEqual([h.failures, h.steps, h.calls.length], [[{reason: 'low-memory', detail: 'too-small'}], [], 4]);
 });
 
-test('a spill with no smaller model and too little of the card left (the game holds it): Local AI is unavailable with the too-small reason, no cloud event, no server started that would read at 40 tokens a second', async t => {
+test('a spill with no smaller model and too little of the card left (the game holds it): the same model is loaded mostly on the CPU, said once, no cloud event', async t => {
   const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
   const free = {value: 4500};
   const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free});
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
   await h.server.ensure();
   free.value = 2800;   // (2,800 - 1,792 - 1,100) is nothing: the model would be on the CPU
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
-  assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.failures, h.steps, h.calls.length, h.server.status().state, h.server.status().detail], [[{reason: 'low-memory', detail: 'too-small'}], [], 1, 'failed', 'too-small']);
-  await assert.rejects(h.server.ensure(), error => error.reason === 'low-memory' && error.detail === 'too-small');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.deepEqual([h.failures, h.steps, h.server.status().state, slow.map(event => [event.id, event.share])], [[], [], 'ready', [['standard', 0]]]);
   assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the spilled server was stopped');
+  assert.equal(argValue(h.calls[1], '-fit'), 'on');
+  // Not enough system memory for the part that stays on the processor: it is not started, and the reason says so.
+  const poor = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 4500}, freeMemMiB: () => 32000});
+  await poor.server.ensure();
+  poor.free.value = 2800; poor.server.freeMemMiB = () => 1500;
+  poor.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
+  assert.equal(await until(() => poor.failures.length > 0), true);
+  assert.deepEqual([poor.failures, poor.steps, poor.calls.length], [[{reason: 'start-failed', detail: 'low-ram'}], [], 1]);
 });
 
-test('a spilled model the player added is fitted again like a pack model (it was left alone before), and with no placement possible Local AI is unavailable', async t => {
+test('a spilled model the player added is fitted again like a pack model (it was left alone before), and with no placement on the card it runs mostly on the processor', async t => {
   const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
   const free = {value: 24000};
   const sizes = {'mine.gguf': 4000};
@@ -1205,11 +1248,13 @@ test('a spilled model the player added is fitted again like a pack model (it was
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
   assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
   assert.deepEqual([h.loaded(), argValue(h.calls[1], '-c'), h.calls[1].args.includes('-ngl')], [['mine.gguf', 'mine.gguf'], '8192', true], 'the same file, whole on the card in the smaller context');
-  // It spills again with nothing smaller (a model the player added never steps down) and 3,000 MiB left: the card is too small for it beside the game.
+  // It spills again with nothing smaller (a model the player added never steps down) and 3,000 MiB left: the same file is loaded mostly on the processor, said once.
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
   free.value = 3000; h.clock.now += 200_000;
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
-  assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.failures, h.steps.length, h.calls.length], [[{reason: 'low-memory', detail: 'too-small'}], 0, 2]);
+  assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
+  assert.deepEqual([h.failures, h.steps.length, slow.map(event => event.id), argValue(h.calls[2], '-fit')], [[], 0, ['custom:mine'], 'on']);
 });
 
 test('a changed choice that would end on the model already loaded does not reload it, and still says the chosen model does not fit', async t => {
@@ -1285,18 +1330,21 @@ test('the second lost device of a session steps the model down one size (its own
   assert.equal(h.steps.length, 1);
 });
 
-test('a lost device with no smaller model installed: the second loss loads the same model with part of it on the CPU, two more end Local AI (low-memory, too-small), and it never restarts in a loop', async t => {
+test('a lost device with no smaller model installed: the second loss loads the same model with part of it on the CPU, again after each pair of losses up to three times, then Local AI is unavailable (low-memory, too-small), and it never restarts in a loop', async t => {
   const h = stepHarness(t, {mature: false, lite: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10});
   await h.server.ensure();
-  await h.server.recover({deviceLost: true});
-  const offloaded = await h.server.recover({deviceLost: true});
+  const lose = () => h.server.recover({deviceLost: true});
+  await lose();                                  // the first loss: a restart (server 2)
+  const offloaded = await lose();                // the second: the same model, part on the CPU (server 3)
   assert.equal(offloaded.model, 'Qwen3.5-4B');
   assert.deepEqual([h.calls.length, h.steps.length, h.failures.length], [3, 0, 0]);
   assert.deepEqual([argValue(h.calls[2], '-fit'), argValue(h.calls[2], '-c'), argValue(h.calls[2], '-fitt')], ['on', '8192', '1792']);
-  await h.server.recover({deviceLost: true});   // the first loss of the offloaded model: a restart
-  await assert.rejects(h.server.recover({deviceLost: true}), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory' && error.detail === 'too-small');
+  for (let round = 2; round <= 3; round++) { await lose(); await lose(); }   // a restart and a reload each round
+  assert.equal(h.calls.length, 7);
+  await lose();                                  // a restart, then the fourth pair: three reloads were enough
+  await assert.rejects(lose(), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory' && error.detail === 'too-small');
   assert.deepEqual([h.failures, h.steps.map(step => step.model)], [[{reason: 'low-memory', detail: 'too-small'}], []]);
-  assert.equal(h.calls.length, 4, 'no fifth server');
+  assert.equal(h.calls.length, 8, 'no ninth server');
   assert.equal(h.server.status().state, 'failed');
 });
 

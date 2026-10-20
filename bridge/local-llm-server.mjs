@@ -35,7 +35,7 @@ import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadThreads, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
@@ -51,6 +51,8 @@ const REASON_TEXT = Object.freeze({
 
 /** The `detail` of a 'low-memory' failure after the model could not be placed even with part of its layers on the CPU (too few of them would stay on the card): Local AI is down, with no cloud fallback. */
 export const TOO_SMALL = 'too-small';
+/** The `detail` of a 'start-failed' refusal: the part of the model that runs on the processor (and its cache) does not fit the free system memory. */
+export const LOW_RAM = 'low-ram';
 
 export class LocalAiUnavailable extends Error {
   // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
@@ -76,6 +78,7 @@ const PLAYER_REASON = Object.freeze({
 export function unavailableDetail(reason, detail) {
   // A model that cannot stay on the card even with part of it on the CPU (TOO_SMALL): the sentence says what to do about it, locally (no cloud provider is suggested).
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
+  if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
@@ -100,6 +103,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   backgroundQuietMs: 10_000,   // work no player waits on (a summary, memory work) does not start within this long after a turn ended; the bridge's own gate holds 20 s from a turn's start
   maxRestarts: 2,
   deviceLostStepDown: 2,       // the graphics device was lost (Vulkan ErrorDeviceLost) this many times in a session: the first loss restarts llama-server, the second steps down a model size
+  offloadReloads: 3,           // a model that spilled, was lost or stalled again is loaded again with part of it on the CPU at most this many times a session, then Local AI is unavailable
   deviceLostPauseMs: 2000,     // the driver needs a moment to reset the device: the server it is restarted on waits this long before it starts
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
   externalContext: 8192,       // its context when neither the entry, the listing nor /props says
@@ -508,8 +512,8 @@ export class LocalLlmServer extends EventEmitter {
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
   // The model the next start loads with part of its layers on the CPU (a step-down with no smaller model, bridge/local-vram-fit.mjs offloadPlan), and the word that says why Local AI is
   // 'failed' beyond its reason (TOO_SMALL: the model cannot stay on the card even with part of it on the CPU).
-  // `#offloadTried`: the models already reloaded once with part of their layers on the CPU after a step (a second time Local AI is unavailable instead: no loop of reloads).
-  #forcedOffload = null; #reasonDetail = null; #offloadTried = new Set();
+  // `#offloadTried`: how often each model was reloaded with part of its layers on the CPU after a step (LOCAL_LLM_LIMITS.offloadReloads at most: then Local AI is unavailable, no loop of reloads).
+  #forcedOffload = null; #reasonDetail = null; #offloadTried = new Map();
   // While a step runs (#beginStep .. #endStep) the model is about to change: ensure() waits on this gate instead of starting a load the step would cancel (a turn that came
   // during #spillAct's free-memory read and fit probe started the large model again, #stepDown then stopped it, and the turn failed with 'stopped': 2026-10-21 reports).
   #stepGate = null;
@@ -665,9 +669,9 @@ export class LocalLlmServer extends EventEmitter {
         if (error instanceof LocalAiUnavailable && error.reason !== 'stopped') {
           // The start after a step-down found no room for the smaller model (the game took the card). A model that is too small a card for even with part of it on the CPU (TOO_SMALL) says so
           // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
-          const tooSmall = error.detail === TOO_SMALL;
+          const tooSmall = error.detail === TOO_SMALL || error.detail === LOW_RAM;
           if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason, tooSmall ? TOO_SMALL : null);
+          this.#fail(error.reason, tooSmall ? error.detail : null);
         }
         throw error;
       });
@@ -938,16 +942,24 @@ export class LocalLlmServer extends EventEmitter {
     if (forced !== null && forced === choice.model.id && choice.model.external !== true && choice.offload !== true) choice = {...choice, offload: true};
     // With the card's numbers a file model turned out too large for it, and a server the player runs is the last resort: use it.
     if (choice.model.external === true) return this.#startExternal(choice.model, failedPin, generation);
-    // Part of the model on the CPU: where the fit pass would put it, and whether enough stays on the card to be worth it. Under FIT_LIMITS.hopelessShare the model would be CPU-bound (the 8 GB
-    // RTX 4060 report: 36 to 54 prompt tokens a second): it is not loaded, and Local AI says the card is too small (smaller model or Custom provider; never a cloud provider).
+    // Part of the model on the CPU: where the fit pass would put it. Any share loads, 0% included (owner decision 2026-10-21, "allow, warn once"): under FIT_LIMITS.hopelessShare the model runs mostly
+    // on the processor (36 to 54 prompt tokens a second in the 2026-10-19 reports, 2 generated tokens a second at 0%), so the player is told once ('offload-slow': the game's 'local-cpu' notice, which
+    // names a smaller model and the Custom provider, never a cloud provider). What stops the load is the processor's side: the part of the model and its cache that stay in system memory must fit it.
     let placement = null;
     if (choice.offload === true) {
       placement = await this.#placeOffload(choice, freeMiB, device, realFit[choice.model.id] ?? null);
       this.#guard(generation);
+      const ram = offloadRamNeedMiB({share: placement.share, sizeMiB: Number(choice.sizeMiB) || 0, projectedMiB: placement.projectedMiB});
+      const freeRam = Number(this.freeMemMiB());
+      if (ram !== null && Number.isFinite(freeRam) && freeRam < ram) {
+        this.log('[local] ' + choice.model.name + ' cannot run partly on the processor: about ' + Math.round(ram) + ' MiB of system memory are needed for its CPU part and cache, ' + Math.round(freeRam)
+          + ' MiB are free: close programs, or choose a smaller model in Settings, or use the Custom provider');
+        throw new LocalAiUnavailable('start-failed', LOW_RAM);
+      }
       if (placement.hopeless) {
-        this.log('[local] ' + choice.model.name + ' is too large for this graphics card beside the game: only about ' + Math.round(placement.share * 100) + '% of its layers would stay on the card with '
-          + placement.targetMiB + ' MiB kept free for the game (' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free, ' + Math.round(FIT_LIMITS.hopelessShare * 100) + '% is the least): choose a smaller model in Settings, or use the Custom provider');
-        throw new LocalAiUnavailable('low-memory', TOO_SMALL);
+        this.log('[local] ' + choice.model.name + ' will run mostly on the processor: only about ' + Math.round(placement.share * 100) + '% of its layers fit the graphics card with ' + placement.targetMiB
+          + ' MiB kept free for the game (' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free); replies will be slow (a smaller model or the Custom provider is faster)');
+        this.emit('offload-slow', {id: choice.model.id, model: choice.model.loadedName ?? choice.model.name, share: placement.share});
       }
     }
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
@@ -1342,7 +1354,7 @@ export class LocalLlmServer extends EventEmitter {
       if (this.#deviceLosses >= needed && from && from.custom !== true) {
         this.#deviceLosses = 0;
         this.#beginStep();
-        try { await this.#stepDown(); } finally { this.#endStep(); }
+        try { await this.#stepDown({cause: 'lost'}); } finally { this.#endStep(); }
         return 'step';
       }
       if (this.#deviceLosses >= needed + 2) {
@@ -1651,14 +1663,14 @@ export class LocalLlmServer extends EventEmitter {
    * unloaded (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to what is free now, once per model per session: the largest context
    * of the ladder whose projection plus FIT_LIMITS.refitMarginMiB fits, with the 8-bit KV cache as the last rung (the whole model on the card: a model half on the CPU reads prompts
    * no faster). When no rung fits, or the refit spilled again, the next smaller model of its family is loaded (#stepDown), and with none the same model is loaded with part of its
-   * layers on the CPU if enough of them can stay on the card (FIT_LIMITS.hopelessShare), else Local AI is unavailable ('low-memory', TOO_SMALL: no cloud provider takes the turns).
+   * layers on the CPU (any share loads; under FIT_LIMITS.hopelessShare the player is told once), else, after three such reloads, Local AI is unavailable ('low-memory', TOO_SMALL: no cloud provider takes the turns).
    * The saved choice is never changed. A model the player added is handled the same way (it was left alone before: a spilled one stayed at 1 to 5 tokens a second).
    */
   async #spillAct(verdict) {
     const fromId = this.#modelId, selected = this.#selected(this.pack);
     const from = selected.models.find(model => model.id === fromId);
     if (!from || from.external === true) return;
-    if (this.#refitted.has(fromId)) { this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down'); return this.#stepDown({spill: true}); }
+    if (this.#refitted.has(fromId)) { this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down'); return this.#stepDown({cause: 'spill'}); }
     this.#refitted.add(fromId);
     this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory): unloading it and loading it again fitted to what is free');
     await this.stop();
@@ -1673,22 +1685,24 @@ export class LocalLlmServer extends EventEmitter {
       return;
     }
     this.log('[local] ' + this.#model + ' does not fit whole in the ' + (Number.isFinite(free) ? Math.round(free) + ' MiB' : 'memory') + ' that is free now: stepping down');
-    return this.#stepDown({free: Number.isFinite(free) ? free : null, spill: true});
+    return this.#stepDown({free: Number.isFinite(free) ? free : null, cause: 'spill'});
   }
 
   /**
    * The loaded model has to leave the card (stalled turns, a lost device twice, a spill that could not be fitted). The next smaller installed model of its family is loaded when there is one.
    * With none, the same model is loaded again with part of its layers on the CPU (`-fit on`, context 8,192, the 8-bit cache, FIT_LIMITS.offloadGameRoomMiB kept free for the game; the start
-   * refuses it when under FIT_LIMITS.hopelessShare of the layers would stay on the card), and a model that already runs that way, or is too large, makes Local AI unavailable with the
-   * 'low-memory' reason and the TOO_SMALL detail: its notice says the card is too small and points to a smaller model or the Custom provider. No cloud provider takes the turns.
-   * `spill` lets a model the player added through (a stall never steps one of those down). `free`: the free memory already read.
+   * any share loads, see #startOnce), and a model that was reloaded that way offloadReloads times already makes Local AI unavailable with the 'low-memory' reason and the TOO_SMALL detail:
+   * its notice says the card is too small and points to a smaller model or the Custom provider. No cloud provider takes the turns.
+   * `cause`: 'stall' (the default), 'lost' (the device was lost twice) or 'spill'; a spill lets a model the player added through (a stall never steps one of those down). `free`: the free memory already read.
+   * A model that already runs part on the CPU and stalls has nothing left to give up: it stays loaded (slow, but it answers), and the player already knows ('offload-slow'). After a spill or a lost device
+   * it is loaded again the same way, LOCAL_LLM_LIMITS.offloadReloads times a session at most.
    */
-  async #stepDown({free: known = null, spill = false} = {}) {
+  async #stepDown({free: known = null, cause = 'stall'} = {}) {
     const fromId = this.#modelId, fromName = this.#model;
     const selected = this.#selected(this.pack);
     const from = selected.models.find(model => model.id === fromId);
     // Only a model of a pack (standard, lite, Mature good, Mature lite) steps down on a stall; one the player added is theirs to change (a spill is the exception: see #spillAct).
-    if (!from || (from.custom === true && !spill)) return;
+    if (!from || (from.custom === true && cause !== 'spill')) return;
     let free = Number.isFinite(known) ? known : null;
     if (free === null) {
       try { free = Number(await this.freeVramMiB()); } catch { /* the reading is for the log */ }
@@ -1705,16 +1719,23 @@ export class LocalLlmServer extends EventEmitter {
       return;
     }
     this.#stepFrom = null;
-    if ((this.#loaded?.id === fromId && this.#loaded.offload === true) || this.#offloadTried.has(fromId)) {
-      // Already part on the CPU (now or earlier this session) and still too slow, spilled or lost: nothing smaller, nothing more to give up. The saved choice stays; reset() or a changed choice tries again.
+    if (cause === 'stall' && this.#loaded?.id === fromId && this.#loaded.offload === true && this.#proc) {
+      // Already part on the CPU and slow: nothing smaller to go to and nothing more to give up, and a slow answer is still an answer. It stays loaded; the count starts again.
+      this.#stalls = 0;
+      if (!this.#loaded.stayNoted) { this.#loaded.stayNoted = true; this.log('[local] ' + fromName + ' stalled' + freeText + ' and already runs with part of its layers on the CPU; no smaller model is installed, so it stays loaded (replies are slow)'); }
+      return;
+    }
+    const tries = this.#offloadTried.get(fromId) ?? 0;
+    if (tries >= LOCAL_LLM_LIMITS.offloadReloads) {
+      // Loaded again with part on the CPU several times this session and it keeps being pushed off or lost: the card cannot hold it beside the game. The saved choice stays; reset() or a changed choice tries again.
       this.#stalled.add(fromId);
-      this.log('[local] stepping down from ' + fromName + freeText + ': it already ran with part of its layers on the CPU and no smaller model is installed, so Local AI is unavailable (the card is too small for the model beside the game)');
+      this.log('[local] stepping down from ' + fromName + freeText + ': it was loaded with part of its layers on the CPU ' + tries + ' times this session and no smaller model is installed, so Local AI is unavailable (the card is too small for the model beside the game)');
       await this.stop();
       this.#fail('low-memory', TOO_SMALL);
       return;
     }
-    this.log('[local] stepping down from ' + fromName + freeText + ': no smaller model is installed, so the same model is loaded again with part of its layers on the CPU if enough of them can stay on the card');
-    this.#forcedOffload = fromId; this.#offloadTried.add(fromId);
+    this.log('[local] stepping down from ' + fromName + freeText + ': no smaller model is installed, so the same model is loaded again with part of its layers on the CPU');
+    this.#forcedOffload = fromId; this.#offloadTried.set(fromId, tries + 1);
     await this.stop();   // its graphics memory goes back to the game before the placement is worked out
     this.#kick();
   }

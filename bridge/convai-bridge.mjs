@@ -393,6 +393,14 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
 // Turns stalled (the game uses most of the graphics memory and the model reads at a crawl): the server stepped down to the next smaller model of its family, or, with
 // none left, the cloud text provider takes over (its 'failed' follows). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
 localServer.on('model-stepdown', ({model}) => { mistral.noteLocalStepDown(model); });
+// A model loaded with under 35% of its layers on the graphics card (the game holds the rest) runs mostly on the processor: slow, but allowed. The game says so once per model, with the next
+// reply (mod/init.lua, 'local-cpu'; the game also shows it at most once per session). Smaller model or Custom provider is the cure it names; no cloud provider.
+const cpuHeavyNoted = new Set();
+localServer.on('offload-slow', ({id, model, share}) => {
+  if (cpuHeavyNoted.has(id)) return;
+  cpuHeavyNoted.add(id); mistral.noteLocalCpuHeavy();
+  console.error(`[LocalAI] ${model} runs mostly on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slow`);
+});
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
 // What the model server loaded and how its last turn went goes into the status file (the support report reads it): after a start, after the first turn on a model and
 // after a turn that failed (the supervisor says so with this event), bundled within half a second. Nothing runs between those moments.
@@ -497,8 +505,11 @@ const voiceLanguageNotice = new VoiceLanguageNotice();
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take();
   // The fallback notice names the model that was used instead.
-  return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
+  return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
+    // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
+    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
 };
+const LOCAL_CPU_DETAIL = 'a smaller model or the Custom provider is faster';
 // A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
 // the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
 function noteTurnFailure(error, input, {microphone = false} = {}) {

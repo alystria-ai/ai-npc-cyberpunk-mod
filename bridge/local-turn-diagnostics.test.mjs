@@ -569,7 +569,7 @@ function runLua(code) {
 
 test('the notice for a failed local turn is the translated sentence plus the bridge\'s reason, and only a short plain one', async () => {
   const source = await readFile(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  const start = source.indexOf('local function localFailureSuffix(reply)');
+  const start = source.indexOf('local function localFailureSuffix(reply, field)');
   const end = source.indexOf('-- A turn the local AI could not answer and the player\'s cloud provider did');
   assert.ok(start > 0 && end > start, 'the helper and the branch are in mod/init.lua');
   // The helper and the whole keyReplyNotice head are run as written, with a stand-in for the translation function.
@@ -586,6 +586,13 @@ test('the notice for a failed local turn is the translated sentence plus the bri
   for (const phrase of ['no first word from the model after 60 s', 'ran out of the turn\'s time: no first word from the model after 61 s', 'stuck reading the prompt (2048 of 4824 tokens after 40 s)',
     'the model was still loading after 80 s (a first start compiles shaders for a minute or two)', 'the prompt (9000 tokens) does not fit the model\'s context (8192)'])
     assert.match(run(`{errorCode = 'local-failed', errorDetail = '${phrase.replace(/'/g, '\\\'')}'}`), /\n\(/, phrase);
+  // The 'local-cpu' notice (a model mostly on the processor): the translated sentence plus the bridge's few words from keyNoticeDetail, run as written; no detail, no suffix.
+  const cpuBranch = source.slice(source.indexOf('if reply.keyNotice == \'local-cpu\' then'), source.indexOf('-- The Local AI model the player chose is missing, does not fit or did not start'));
+  assert.ok(cpuBranch.includes('local-cpu'), 'the branch is in mod/init.lua');
+  const cpu = reply => runLua(`local ui = {t = function(text) return 'T(' .. text .. ')' end}\n${helper}\nlocal function notice(reply)\n${cpuBranch}\nreturn nil\nend\nlocal id, text = notice(${reply})\nreturn id .. '|' .. text`);
+  assert.equal(cpu('{keyNotice = \'local-cpu\', keyNoticeDetail = \'a smaller model or the Custom provider is faster\'}'),
+    'local-cpu|T(Local AI runs mostly on your processor here, so replies will be slow.)\n(a smaller model or the Custom provider is faster)');
+  assert.equal(cpu('{keyNotice = \'local-cpu\'}'), 'local-cpu|T(Local AI runs mostly on your processor here, so replies will be slow.)');
 });
 
 // ---- both packs installed: what the folder holds, and the install that did not finish -------------------------------------------------------
@@ -975,7 +982,7 @@ test('a slow turn on a model that does not fit the graphics memory says so in th
   assert.equal(failureDetail(new Error('x')), undefined);
 });
 
-test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the same model is loaded with part of it on the CPU, one more stall ends Local AI (a local failure, no cloud step-down event), and the saved choice is untouched', async t => {
+test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the same model is loaded with part of it on the CPU, one more stall leaves it loaded (no failure, no cloud step-down event), and the saved choice is untouched', async t => {
   const {host, server, provider, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
   // The bridge's wiring (bridge/convai-bridge.mjs): the supervisor's step-down and failure reach the provider.
   const steps = [];
@@ -990,12 +997,12 @@ test('end to end: two stalled turns in a row step Local AI down; with no smaller
   assert(logs.some(line => /no smaller model is installed, so the same model is loaded again with part of its layers on the CPU/.test(line)), logs.join('\n'));
   assert.equal(server.status().state, 'ready', 'the same model, loaded again with part of it on the CPU');
   assert.deepEqual(steps, [], 'no step-down event: it would name a cloud provider');
-  // The model on the CPU stalls once more: nothing smaller and nothing more to give up, so Local AI is unavailable, with the reason that says the card is too small.
+  // The model on the CPU stalls once more: nothing smaller and nothing more to give up, so it stays loaded (a slow answer is still an answer); Local AI is not marked unavailable.
   const third = await host.reply(turn('hello once more')).catch(e => e);
   assert.equal(third.reason, 'prefill-stalled');
-  for (let wait = 0; wait < 400 && server.status().state !== 'failed'; wait++) await sleep(25);
-  assert.equal(server.status().state, 'failed');
-  assert.deepEqual([steps, server.status().reason, server.status().detail], [[], 'low-memory', 'too-small']);
+  for (let wait = 0; wait < 400 && !logs.some(line => /so it stays loaded/.test(line)); wait++) await sleep(25);
+  assert(logs.some(line => /already runs with part of its layers on the CPU; no smaller model is installed, so it stays loaded/.test(line)), logs.join('\n'));
+  assert.deepEqual([steps, server.status().state], [[], 'ready']);
   // The provider: Local AI is still the saved choice.
   assert.equal(provider.preference, 'local');
 });

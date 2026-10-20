@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadThreads, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
 // The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context).
@@ -163,4 +163,12 @@ test('offloadPlan: whole when the projection fits beside the room kept for the g
 test('offloadThreads: about half the physical cores (a quarter of the logical processors), at least 2 and at most 6', () => {
   assert.deepEqual([4, 8, 12, 16, 24, 32, 64].map(offloadThreads), [2, 2, 3, 4, 6, 6, 6]);
   assert.deepEqual([offloadThreads(1), offloadThreads(undefined), offloadThreads(NaN)], [2, 2, 2]);
+});
+
+test('offloadRamNeedMiB: the part of the model and its cache that stays on the processor plus 1 GiB; nothing when it is all on the card or the share or size is unknown', () => {
+  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 2582}), Math.ceil(2582 + 310 + 1024), 'all on the processor: the file, 12% for the cache, the headroom');
+  assert.equal(offloadRamNeedMiB({share: 0.5, sizeMiB: 5400}), Math.ceil(0.5 * (5400 + 648) + 1024));
+  assert.equal(offloadRamNeedMiB({share: 0.9, sizeMiB: 1000}), Math.ceil(0.1 * (1000 + 300) + 1024), 'the cache is at least 300 MiB');
+  assert.equal(offloadRamNeedMiB({share: 0, projectedMiB: 3271}), Math.ceil(3271 + 393 + 1024), 'no file size: the projection stands in');
+  for (const unknown of [offloadRamNeedMiB({share: 1, sizeMiB: 2582}), offloadRamNeedMiB({share: null, sizeMiB: 2582}), offloadRamNeedMiB({share: 0.4}), offloadRamNeedMiB({})]) assert.equal(unknown, null);
 });
