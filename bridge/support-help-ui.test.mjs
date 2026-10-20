@@ -188,7 +188,7 @@ test('Settings offers Edit characters, and Open writes one fresh command with ev
   local open = row('character-editor:open')
   assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled, 'the Open row is offered')
   assert(open.label == 'Edit characters', 'the row label')
-  assert(open.description:find('Mistral and Local AI, not Convai', 1, true), 'the row says the editor does not apply to Convai')
+  assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true), 'the row says the editor does not apply to Convai')
   local writesBefore = #fileWrites
   local result = invoke('character-editor:open')
   assert(result.ok, tostring(result.error))
@@ -199,7 +199,7 @@ test('Settings offers Edit characters, and Open writes one fresh command with ev
   local count = 0
   for source, text in pairs(command.strings) do count = count + 1; assert(type(source) == 'string' and text == source, 'English shows the source: ' .. source) end
   assert(count == ${pageSources.length}, 'every sentence of the page is sent, got ' .. count)
-  assert(command.strings['Save'] and command.strings['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'])
+  assert(command.strings['Save'] and command.strings['Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.'])
   local first = command.id
   advance(1)
   assert(invoke('character-editor:open').ok)

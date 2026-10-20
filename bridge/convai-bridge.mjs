@@ -2591,7 +2591,7 @@ async function runCustomTurn(request, input, profile, current, clock, {userText 
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;
   if (!mistral.active) {
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: `${profile.name} is one of your own characters. They need Mistral or Local AI: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
+      error: `${profile.name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
     {signal, isCurrent: current, isCurrentSync: current.sync});
     return;
   }

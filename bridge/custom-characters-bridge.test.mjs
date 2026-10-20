@@ -74,7 +74,7 @@ test('with Convai answering, the turn is refused in one plain sentence and nothi
   const [, path, reply] = find(r.log, 'atomic')[0];
   assert.equal(path, 'runtime/reply.json');
   assert.equal(reply.errorCode, 'custom-provider');
-  assert.match(reply.error, /^Rebecca is one of your own characters\. They need Mistral or Local AI/);
+  assert.match(reply.error, /^Rebecca is one of your own characters\. They need Mistral, Local AI or Custom/);
   assert.deepEqual([reply.requestId, reply.generation, reply.entity], ['1-1-5ULL', undefined, undefined]);
   assert.equal(find(r.log, 'reply').length, 0);
   assert.equal(r.published.length, 0);

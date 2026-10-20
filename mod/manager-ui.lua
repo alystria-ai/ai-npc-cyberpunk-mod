@@ -795,8 +795,8 @@ local function ownKeyRows(snapshot)
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
     -- Mature content is part of the main mod (off by default). It works with Local AI, Mistral and Custom: turning it on beside Convai selects
@@ -925,7 +925,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -1400,7 +1400,7 @@ local function schema()
                 'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
             setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
+                'Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
@@ -1490,7 +1490,7 @@ local function schema()
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
                 'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nThe voice that speaks it is chosen in the next row.'),
             setting('vVoiceEngine', 'V’s voice engine', 'select', snapshot.settings.vVoiceEngine == 'voxtral' and 2 or 1, 1,
-                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.',
+                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.',
                 {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })

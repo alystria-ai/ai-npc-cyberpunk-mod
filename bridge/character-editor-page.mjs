@@ -453,7 +453,7 @@ export function editorClient() {
     gender.addEventListener('change', () => { draft.gender = gender.value; });
     const facing = model.state.facing !== false ? h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: facingFill}, T('Use the character I’m facing'))) : null;
     return h('div', {},
-      h('p', {class: 'help'}, T('Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.')),
+      h('p', {class: 'help'}, T('Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.')),
       textField('name', T('Name'), T('The name the character goes by. They give it when somebody asks who they are.'), ctx),
       h('div', {class: 'field'}, h('label', {for: 'f-gender'}, T('Gender')), h('p', {class: 'help', id: 'h-gender'}, T('It picks the voice when the character has no clip.')), gender),
       h('div', {class: 'field'}, h('h3', {}, T('How the game finds this character')),
@@ -576,7 +576,7 @@ export function editorClient() {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').textContent = T('Your changes work with Mistral and Local AI. They do not apply to Convai.');
+    $('sub').textContent = T('Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.');
     $('close').textContent = T('Close editor');
     $('search').placeholder = T('Search characters');
     $('search').setAttribute('aria-label', T('Search characters'));
@@ -592,7 +592,7 @@ export function editorClient() {
   // The warning that Convai is answering. Not on the world rules page: Convai gets those as context, and that page says so.
   function drawBanner() {
     const banner = $('banner');
-    if (model.state.provider === 'convai' && !model.world) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'); }
+    if (model.state.provider === 'convai' && !model.world) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.'); }
     else banner.hidden = true;
   }
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });

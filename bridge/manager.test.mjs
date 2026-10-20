@@ -4204,7 +4204,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
-    assert(provider.description:find('With Mistral or Local AI, Convai', 1, true), 'the voice paragraph names the option Local AI')
+    assert(provider.description:find('With Mistral, Local AI or Custom, Convai', 1, true), 'the voice paragraph names the options Local AI and Custom')
     assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
