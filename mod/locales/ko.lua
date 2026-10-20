@@ -25,6 +25,8 @@ return {
   ["Automatic (game interface language)"] = "자동(게임 인터페이스 언어)",
   ["Automatic reactions"] = "자동 반응",
   ["Back"] = "뒤로",
+  ["Restore defaults"] = "기본값 복원",
+  ["Close this menu."] = "이 메뉴를 닫습니다.",
   ["Back to party"] = "파티로 돌아가기",
   ["Back to settings"] = "설정으로 돌아가기",
   ["Browse your characters, discover a game model, or manage your current party."] = "캐릭터와 게임 모델을 찾아보거나 현재 파티를 관리하세요.",

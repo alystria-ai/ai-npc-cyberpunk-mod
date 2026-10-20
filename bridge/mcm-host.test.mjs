@@ -149,8 +149,9 @@ test('the home page: one category with the four destinations, explicit apply, no
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
-  -- No Back on Home, on purpose: MCM has no public call that closes its screen, and its own Escape closes it when the page names no
-  -- back action (escapeBack stays on, backActionId unset). A footer button here could not do that, so there is none.
+  -- No Back on Home with MCM 0.10.5, on purpose: it has no public call that closes its screen, and its own Escape closes it when the
+  -- page names no back action (escapeBack stays on, backActionId unset). A footer button here could not do that, so there is none
+  -- (MCM 0.10.6 has api.ui.close and gets one: see the 0.10.6 tests at the end).
   assert(mcm.config().navigation.pageId == 'home|1|1' and mcm.config().navigation.backActionId == nil and mcm.config().navigation.escapeBack == true)
   assert(#mcm.config().footerActions == 0)
 `));
@@ -907,4 +908,189 @@ test('at the main menu the pages that need a save say so in a row, the same row 
   assert(labels():find('Characters and party', 1, true), labels())
   press('Back to Companion Manager'); press('Settings')
   assert(labels():find('Interface language', 1, true) and not labels():find('Characters and party', 1, true), labels())
+`));
+
+// ---- MCM 0.10.6 UI API (private preview from MCM's author, 2026-10-20): close, setActionVisibility, labelIndent, highlightModifiedValues,
+// rowFontSize for every row, wrapping footer labels. Each is used only when this MCM has it; 0.10.5 must behave exactly as before.
+
+test('detection of the 0.10.6 additions: by the call (close, setActionVisibility), and by the version for the presentation options; 0.10.5 has none', () => run(`${harness({screen: false, mcm: {version: '0.10.5'}})}
+  local function flags(found)
+    local result = mcmHost.newUi(found)
+    return tostring(result.close) .. ' ' .. tostring(result.actionVisibility) .. ' ' .. tostring(result.presentation)
+  end
+  local function fn() return true end
+  local ui6 = {close = fn, setActionVisibility = fn}
+  assert(flags(mcm.api) == 'false false false', 'the 0.10.5 fake: ' .. flags(mcm.api))
+  assert(flags({version = '0.10.5', ui = {}}) == 'false false false')
+  assert(flags({version = '0.10.6', ui = ui6}) == 'true true true')
+  assert(flags({version = '0.10.6-preview.1', ui = ui6}) == 'true true true')
+  assert(flags({version = '0.11.0', ui = ui6}) == 'true true true')
+  assert(flags({version = '0.10.6', ui = {close = fn}}) == 'true false false', 'one call alone does not enable the presentation options')
+  assert(flags({version = '0.10.6', ui = {setActionVisibility = fn}}) == 'false true false')
+  assert(flags({version = '0.10.5', ui = ui6}) == 'true true false', 'the options need 0.10.6 by version')
+  assert(flags({version = 'unknown', ui = ui6}) == 'true true true', 'an unreadable version with both calls: the calls decide')
+  assert(flags({ui = 5}) == 'false false false' and flags(nil) == 'false false false')
+`));
+
+test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no visibility map, no close, no Back on Home, Add to favorites left to the player', () => withScreen(`
+  ${footer}
+  assert(mcm.api.ui.close == nil and mcm.api.ui.setActionVisibility == nil, 'the fake of 0.10.5 has neither call')
+  assert(mcmHost.inspect().newUi.close == false and mcmHost.inspect().newUi.presentation == false)
+  local presentation = mcm.config().presentation
+  local keys = {}
+  for key in pairs(presentation) do keys[#keys + 1] = key end
+  table.sort(keys)
+  assert(table.concat(keys, ',') == 'descriptionFontSize,labelWidthFraction,locale,quietActions,statusPlacement', table.concat(keys, ','))
+  assert(mcm.config().actionVisibility == nil)
+  for _, name in ipairs(mcm.calls) do assert(name ~= 'ui.close' and name ~= 'ui.setActionVisibility', 'called ' .. name) end
+  -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
+  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Settings')
+  press('Settings')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  assert(mcm.set('Subtitles', false))
+  local row = {}
+  for _, button in ipairs(mcm.layout().footerRow) do row[#row + 1] = button.label end
+  assert(table.concat(row, ' | ') == 'REVERT | APPLY | ADD TO FAVORITES | Defaults | Back', table.concat(row, ' | '))
+  assert(mcm.layout().footerWraps == false)
+  for _, line in ipairs(mcm.layout().rows) do if line.kind == 'setting' then assert(line.x == 48 and line.size == 22, line.label) end end
+  mcm.revert()
+  -- A page where a read-only line is drawn at its own size stays out of the way of rowFontSize: nothing sent.
+  assert(mcm.config().presentation.rowFontSize == nil)
+`));
+
+test('MCM 0.10.6: the presentation gets labelIndent 20, highlightModifiedValues false and rowFontSize 22 on top of the base ones, and Add to favorites is hidden', () => run(`${harness({mcm: {version: '0.10.6'}})}
+  ${footer}
+  mcm.openScreen(); frames(2)
+  assert(mcmHost.inspect().newUi.close and mcmHost.inspect().newUi.actionVisibility and mcmHost.inspect().newUi.presentation)
+  local presentation = mcm.config().presentation
+  assert(presentation.labelIndent == 20 and presentation.highlightModifiedValues == false and presentation.rowFontSize == 22)
+  assert(presentation.descriptionFontSize == 22 and presentation.labelWidthFraction == 0.5 and presentation.statusPlacement == 'header'
+    and presentation.quietActions == true and presentation.locale == convaiUiLocale.current())
+  local visibility = mcm.config().actionVisibility
+  assert(visibility and visibility.favorite == 'hide' and visibility.defaults == nil and visibility.modifiedFilter == nil, 'only the favorite action is hidden')
+  assert(mcm.config().applyPolicy == 'explicit')
+  -- Settings: labels at the buttons' x, one size, nothing purple, four buttons with changes pending and the whole name of the defaults button.
+  press('Settings')
+  local layout = mcm.layout()
+  for _, row in ipairs(layout.rows) do
+    if row.kind == 'setting' then assert(row.x == 20 and row.size == 22 and row.color == 'red', row.label .. ' x ' .. row.x) end
+    if row.kind == 'action' then assert(row.x == 20 and row.size == 22, row.label) end
+  end
+  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  assert(mcm.set('Subtitles', false))
+  local row = {}
+  for _, button in ipairs(mcm.layout().footerRow) do row[#row + 1] = button.label end
+  assert(table.concat(row, ' | ') == 'REVERT | APPLY | Restore defaults | Back', table.concat(row, ' | '))
+  assert(mcm.layout().footerWraps == true)
+  mcm.revert()
+  -- Restore defaults is still pressed twice; the first press shows Confirm.
+  press('Restore defaults')
+  assert(footerLabels() == 'Confirm | Back', footerLabels())
+  press('Restore defaults')
+  assert(mcm.status() == 'Defaults restored.', mcm.status())
+  assert(footerLabels() == 'Restore defaults | Back')
+`));
+
+test('MCM 0.10.6 in another language: the new labels are translated, and the presentation is given again with its new options kept', () => run(`${harness({locale: 'de', mcm: {version: '0.10.6'}})}
+  mcm.openScreen()
+  frames(3)
+  convaiUiLocale.configure('de'); convaiUiLocale.update(0)
+  frames(12)
+  local presentation = mcm.config().presentation
+  assert(presentation.locale == 'de' and presentation.labelIndent == 20 and presentation.highlightModifiedValues == false and presentation.rowFontSize == 22)
+  assert(mcm.config().actionVisibility.favorite == 'hide')
+  local back = mcm.row('Zurück')
+  assert(back and back.value == 'Zurück' and back.description ~= 'Close this menu.', 'the Back of Home in German')
+  mcm.press('Einstellungen'); frames(3)
+  local layout = mcm.layout()
+  local last = layout.footer[1]
+  assert(last and last.label ~= 'Restore defaults', 'the defaults button is translated: ' .. tostring(last and last.label))
+`));
+
+test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape stays MCM\'s own, and no other page gets it', () => run(`${harness({mcm: {version: '0.10.6'}})}
+  ${footer}
+  mcm.openScreen(); frames(2)
+  assert(footerLabels() == 'Back', footerLabels())
+  local config = mcm.config()
+  assert(config.footerActions[1] == 'home:close' and #config.footerActions == 1)
+  assert(config.navigation.backActionId == nil and config.navigation.escapeBack == true, 'Escape stays the close of MCM')
+  local back = mcm.row('Back')
+  assert(back and back.type == 'action' and back.value == 'Back' and back.description ~= '' and back.capabilities.action == true)
+  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Back', labels())
+  -- The sub-pages keep their own Back, and Home's is only on Home.
+  press('Settings')
+  assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
+  assert(mcm.row('home:close') == nil)
+  press('Back to Companion Manager')
+  assert(footerLabels() == 'Back')
+  assert(mcm.closes == 0 and mcm.api.ui.getContext().open == true)
+  -- Pressing it calls api.ui.close(modKey) and MCM closes the screen on its next update; the provider's closeMod puts the page on Home.
+  local closed = {}
+  local real = mcm.api.ui.close
+  mcm.api.ui.close = function(...) closed[#closed + 1] = {...}; return real(...) end
+  press('Current party')
+  press('Back to Companion Manager')
+  press('Back')
+  assert(#closed == 1 and closed[1][1] == 'cyberpunk-convai:manager' and closed[1][2] == nil, 'api.ui.close(modKey), once')
+  frames(3)
+  assert(mcm.closes == 1 and mcm.api.ui.getContext().open == false, 'MCM closed the screen')
+  assert(managerUi.inspect().view == 'home')
+  -- Opened again, the page is Home with its Back, and nothing was left armed.
+  mcm.openScreen(); frames(2)
+  assert(footerLabels() == 'Back')
+`));
+
+test('MCM 0.10.6: a close MCM refuses (no renderer) is answered with MCM\'s reason, logged once, and the page stays', () => run(`${harness({mcm: {version: '0.10.6', renderer: false}})}
+  mcm.openScreen(); frames(2)
+  -- Without its renderer MCM refuses the request; the action's answer is MCM's reason (MCM shows it on its status line), not silence.
+  for _ = 1, 3 do
+    local ok, why = mcm.press('Back')
+    assert(ok == false and tostring(why):find('renderer', 1, true), tostring(why))
+  end
+  frames(4)
+  assert(mcm.api.ui.getContext().open == true and mcm.closes == 0)
+  local lines = 0
+  for _, line in ipairs(logged) do if line:find('would not close the page', 1, true) then lines = lines + 1 end end
+  assert(lines == 1, 'one console line for three presses: ' .. lines)
+  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Back', labels())
+`));
+
+test('MCM 0.10.6 by version but refusing the new presentation options: the base ones are sent instead, Add to favorites is still hidden, and the old names are used', () => run(`${harness({screen: false, nsui: false, hideMcm: true, mcm: {version: '0.10.6'}})}
+  ${footer}
+  local refused = 0
+  local real = mcm.api.ui.setPresentation
+  mcm.api.ui.setPresentation = function(key, value)
+    if value.labelIndent ~= nil or value.highlightModifiedValues ~= nil then refused = refused + 1; return nil, 'Unsupported presentation option: labelIndent' end
+    return real(key, value)
+  end
+  mcmHidden = false
+  frames(40)
+  assert(mcmHost.ready())
+  assert(refused >= 1, 'the new options were tried')
+  assert(mcm.config().presentation and mcm.config().presentation.labelIndent == nil and mcm.config().presentation.rowFontSize == nil)
+  assert(mcm.config().presentation.descriptionFontSize == 22 and mcm.config().actionVisibility.favorite == 'hide')
+  assert(mcmHost.inspect().newUi.presentation == false and mcmHost.inspect().newUi.close == true)
+  local tries = refused
+  frames(40)
+  assert(refused == tries, 'not tried again every second')
+  local said = 0
+  for _, line in ipairs(logged) do if line:find('refused the 0.10.6 presentation options', 1, true) then said = said + 1 end end
+  assert(said == 1, 'said once: ' .. said)
+  mcm.openScreen(); frames(2)
+  press('Settings')
+  assert(footerLabels() == 'Defaults | Back', 'the 0.10.5 name of the button: ' .. footerLabels())
+`));
+
+test('MCM 0.10.6 adds no per-frame work: nothing is called while the screen is closed, the new calls are made once per connection, and shutdown clears them', () => run(`${harness({mcm: {version: '0.10.6'}})}
+  frames(20)
+  local function count(name) local n = 0; for _, call in ipairs(mcm.calls) do if call == name then n = n + 1 end end; return n end
+  assert(count('ui.setActionVisibility') == 1 and count('ui.setPresentation') == 1, 'once at connect: ' .. count('ui.setActionVisibility'))
+  local calls = #mcm.calls
+  for _ = 1, 600 do clock = clock + 1 / 60; managerUi.update(player, true) end
+  assert(#mcm.calls == calls, 'no MCM call while closed: ' .. tostring(mcm.calls[calls + 1]))
+  -- Open and press around with the screen shown: Back is the only caller of close.
+  mcm.openScreen(); frames(10)
+  assert(count('ui.close') == 0 and count('ui.setActionVisibility') == 1)
+  managerUi.shutdown(true)
+  assert(not mcmHost.ready() and mcm.config() and next(mcm.config()) == nil, 'the UI configuration is cleared')
 `));

@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Automatica (lingua dell’interfaccia di gioco)",
     ["Automatic reactions"] = "Reazioni automatiche",
     ["Back"] = "Indietro",
+    ["Restore defaults"] = "Ripristina predefiniti",
+    ["Close this menu."] = "Chiude questo menu.",
     ["Back to Companion Manager"] = "Torna a Gestione compagni",
     ["Back to party"] = "Torna al gruppo",
     ["Back to settings"] = "Torna alle impostazioni",

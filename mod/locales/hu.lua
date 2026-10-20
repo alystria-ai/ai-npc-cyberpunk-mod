@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Automatikus (a játék nyelve)",
     ["Automatic reactions"] = "Automatikus reakciók",
     ["Back"] = "Vissza",
+    ["Restore defaults"] = "Gyári értékek visszaállítása",
+    ["Close this menu."] = "Bezárja ezt a menüt.",
     ["Back to Companion Manager"] = "Vissza a Társkezelőhöz",
     ["Back to party"] = "Vissza a csapathoz",
     ["Back to settings"] = "Vissza a beállításokhoz",

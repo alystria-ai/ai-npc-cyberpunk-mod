@@ -310,7 +310,9 @@ as numbers: 0.10.10 is newer than 0.10.5) and the public UI extension `ui` with 
 `setPresentation`, `setNavigation`, `setFooterActions`, `setChoiceStates`, `setStatus`, `getContext`, `open`, `clear`, and `hasDrafts`,
 `reloadMod`, `revert`, `refreshProvider`). Otherwise it logs one line to `runtime/mcm.log` and the console ("... Mod Configuration Menu cannot
 host the page (MCM 0.10.3 is older than 0.10.5 ...)") and stays out. No MCM function is overridden or observed, no MCM widget or
-internal table is read; `bridge/mcm-host.test.mjs` checks that the file contains no `Observe`, `Override`, `McmUi` or `require`.
+internal table is read; `bridge/mcm-host.test.mjs` checks that the file contains no `Observe`, `Override`, `McmUi` or `require`. The calls
+MCM 0.10.6 added (`close`, `setActionVisibility`, three presentation options) are not required: each is used only when this MCM has it
+(see "MCM 0.10.6" below).
 
 **The page.** Every category of the page is a category of MCM, each row a setting: `bool`, `select`, `int` rows are drafts
 (capabilities read, write, draft; NO default: MCM draws a row purple only when it has a default and differs from it, and the same rows
@@ -319,7 +321,7 @@ footer button on Settings and Relationships, pressed twice because MCM's public 
 `M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
 without write, except on the Settings page where Voice status and Johnny's standing are status buttons (an action with the value as its
 text that does nothing: MCM draws a read-only line at size 26 and every other row at 22). Two alignments remain that no public option
-changes: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20).
+changes in MCM 0.10.5: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20); MCM 0.10.6 moves the first with `labelIndent` (see "MCM 0.10.6" below).
 Relationships is a page of its own (view `relationships`, back to Settings), opened by a Relationships button in Conversations. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
 it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
@@ -347,8 +349,8 @@ starts on Home (`closeMod` puts the page back).
 page logic's own once-a-second look. The model browser's scan runs a bounded batch a frame only while the browser is shown.
 
 **The shortcut.** `M.open` refuses like the NSUI walk ("Load a save first.", "Close the text box first.", "Finish the scene first.")
-and otherwise calls `api.ui.open`. MCM has no public call to close its screen, so pressing the shortcut again while it is open does
-nothing (Esc and MCM's own close work as usual).
+and otherwise calls `api.ui.open`. Pressing the shortcut again while the screen is open does nothing (Esc, MCM's own close and, with MCM
+0.10.6, the Back button of Home work as usual).
 
 **Both installed.** The rule: with MCM 0.10.5 or newer and Native Settings UI both installed, the page is MCM's alone and this mod has no
 Native Settings UI tab. MCM imports Native Settings UI's tabs into its own list through its bridge (a second entry whose option handles go
@@ -362,8 +364,37 @@ log line says it. Native Settings UI alone, or beside an MCM older than 0.10.5 (
 old MCM the mirror still exists, so the tab keeps its option tables in place: a value change, and a change of text or section name while the
 tab is not on screen, update the same tables (MCM finds an option again by index, type and path), and only a change of kind or id replaces a row.
 
+**MCM 0.10.6 (2026-10-20, from a private preview that Antrix, MCM's author, sent; not public yet, and not seen in the game).** 0.10.5 stays the
+minimum and behaves exactly as before. The version number of `api.ui` stays 1, so the additions are found by the call, not by
+`api.ui.apiVersion` (`mcm-host.lua` `M.newUi(found)`): `close` is on when `api.ui.close` is a function, `actionVisibility` when
+`api.ui.setActionVisibility` is, and `presentation` (the new options of `setPresentation`) when both are and `found.version` is 0.10.6 or
+newer (or cannot be read). `setPresentation` checks every option and refuses the whole call for one it does not know, which is why the new
+options are never sent to 0.10.5; if a 0.10.6 MCM refuses them anyway the base options are sent instead, with one log line, and the new
+options are not tried again. What changes with 0.10.6:
+- `setPresentation` also gets `labelIndent = 20` (a setting's label at the buttons' x, was 48), `highlightModifiedValues = false` (MCM's
+  purple for a changed value off; defaults, resets and the Modified counter stay) and `rowFontSize = 22` (now applied to setting, action and
+  read-only labels and values alike; descriptions keep `descriptionFontSize`).
+- `setActionVisibility(modKey, {favorite = 'hide'})`: MCM's Add to favorites button is hidden on this page only (`defaults` and
+  `modifiedFilter` also exist and are left to inherit; each call replaces the previous map; Apply and Revert stay MCM's). It is sent with the
+  presentation, so it is given again after a language change.
+- **Back on Home** (id `home:close`, label and button text "Back", description "Close this menu."): a footer button on the home page
+  only, which calls `api.ui.close(modKey)`; MCM closes its screen on its next update with its usual question when changes are pending (Home
+  has none), and `closeMod` puts the page back on Home. The page still names no `backActionId` and keeps `escapeBack`, so Escape is MCM's
+  own close, as before. If MCM refuses the request the action answers with MCM's reason (shown by MCM) and one line is logged.
+  The sub-pages keep their own Back; submenu navigation is unchanged.
+- The defaults button is named **Restore defaults** (new string, 15 languages) instead of **Defaults**: MCM 0.10.6 wraps footer labels that
+  do not fit instead of squeezing every label, and with Add to favorites hidden the row is one button shorter. The first press still
+  shows **Confirm** and the two-press rule is unchanged.
+- Not changed (follow-up, see TODO.md): the page still gives no row a default, so MCM's own Defaults button, Modified counter and filter
+  stay unused and this host's Restore defaults remains. With `highlightModifiedValues = false` real defaults would no longer paint rows
+  purple, but they would bring MCM's own Defaults button (whose semantics, confirmation and interaction with the rules of `M.apply` and
+  with disabled voice entries cannot be checked without the game) beside ours. The Voice status and Johnny's standing status buttons are
+  kept for the same reason (with one `rowFontSize` they could be plain read-only lines again).
+
 Tests: `bridge/mcm-host.test.mjs` over `bridge/mcm-fake.mjs`, a fake MCM that keeps the rules of MCM's own modules for providers,
-schemas, drafts, Apply (including the exact `appliedIds` check), actions and the public UI extension; the setup check in
+schemas, drafts, Apply (including the exact `appliedIds` check), actions and the public UI extension (given version 0.10.6 or newer it also has
+`close`, `setActionVisibility` and the new presentation options, and its layout follows them; at 0.10.5 it refuses the new options like the
+real one, so the tests prove that none is sent); the setup check in
 `bridge/setup-check-lua.test.mjs`.
 
 ## Fonts and widths

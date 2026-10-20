@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Automaticky (jazyk rozhraní hry)",
     ["Automatic reactions"] = "Automatické reakce",
     ["Back"] = "Zpět",
+    ["Restore defaults"] = "Obnovit výchozí",
+    ["Close this menu."] = "Zavře tuto nabídku.",
     ["Back to Companion Manager"] = "Zpět do Správce společníků",
     ["Back to party"] = "Zpět ke skupině",
     ["Back to settings"] = "Zpět do nastavení",

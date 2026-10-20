@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1110,
+    "strings": 1112,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -223,6 +223,7 @@
     "Close editor": "Close editor",
     "Close friends": "Close friends",
     "Close the phone to finish the pending companion requests.": "Close the phone to finish the pending companion requests.",
+    "Close this menu.": "Close this menu.",
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": "Codeware is too old. Update it from Nexus Mods, then restart the game.",
     "Companion Manager": "Companion Manager",
     "Companion behavior": "Companion behavior",
@@ -679,6 +680,7 @@
     "Requires the optional OmniVoice pack (GPU)": "Requires the optional OmniVoice pack (GPU)",
     "Reset everything": "Reset everything",
     "Reset to default": "Reset to default",
+    "Restore defaults": "Restore defaults",
     "Return to Companion Manager.": "Return to Companion Manager.",
     "Return to conversation settings.": "Return to conversation settings.",
     "Revert changes": "Revert changes",
@@ -1867,6 +1869,7 @@
       "Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.",
       "Audioware {version} is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.",
       "Auto",
+      "Back",
       "Back to the shipped text.",
       "Behavior: {list}",
       "Billed every month.",
@@ -1904,6 +1907,7 @@
       "Clip removed.",
       "Close editor",
       "Close friends",
+      "Close this menu.",
       "Codeware is too old. Update it from Nexus Mods, then restart the game.",
       "Companion preparation failed.",
       "Companion preparation is unavailable.",
@@ -2167,6 +2171,7 @@
       "Requires the optional OmniVoice pack (GPU)",
       "Reset everything",
       "Reset to default",
+      "Restore defaults",
       "Revert changes",
       "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.",
       "Running",
@@ -3056,11 +3061,13 @@
     },
     "Back": {
       "contexts": [
-        "page.action"
+        "page.action",
+        "ui.localized"
       ],
       "references": [
         "mod/manager-ui.lua:1157",
-        "mod/manager-ui.lua:1158"
+        "mod/manager-ui.lua:1158",
+        "mod/mcm-host.lua:273"
       ]
     },
     "Back to Companion Manager": {
@@ -3911,6 +3918,14 @@
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:461"
       ]
     },
+    "Close this menu.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm-host.lua:273"
+      ]
+    },
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": {
       "contexts": [
         "ui.localized"
@@ -4023,7 +4038,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:690",
-        "mod/mcm-host.lua:241"
+        "mod/mcm-host.lua:267"
       ]
     },
     "Confirm memory clear": {
@@ -4688,8 +4703,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:240",
-        "mod/mcm-host.lua:241"
+        "mod/mcm-host.lua:266"
       ]
     },
     "Defaults restored.": {
@@ -4697,7 +4711,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:344",
+        "mod/mcm-host.lua:376",
         "mod/nsui.lua:472"
       ]
     },
@@ -6492,7 +6506,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:158"
+        "mod/mcm-host.lua:183"
       ]
     },
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": {
@@ -7069,7 +7083,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:252",
-        "mod/mcm-host.lua:155"
+        "mod/mcm-host.lua:180"
       ]
     },
     "Page {page} of {pages}  |  {count} results": {
@@ -7365,7 +7379,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:333"
+        "mod/mcm-host.lua:365"
       ]
     },
     "Press Enter to write  /  Esc to stop typing": {
@@ -7397,7 +7411,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:157"
+        "mod/mcm-host.lua:182"
       ]
     },
     "Prices in US dollars. You can cancel at any time on Convai’s billing page.": {
@@ -7445,7 +7459,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:242"
+        "mod/mcm-host.lua:268"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7699,7 +7713,7 @@
       "references": [
         "mod/manager-ui.lua:1817",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:269"
+        "mod/mcm-host.lua:301"
       ]
     },
     "Reset everything": {
@@ -7716,6 +7730,14 @@
       ],
       "references": [
         "mod/character-editor.lua:67"
+      ]
+    },
+    "Restore defaults": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm-host.lua:266"
       ]
     },
     "Return to Companion Manager.": {
@@ -8309,7 +8331,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:163"
+        "mod/mcm-host.lua:188"
       ]
     },
     "State: {state}": {
@@ -11085,7 +11107,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1563",
-        "mod/mcm-host.lua:355"
+        "mod/mcm-host.lua:387"
       ]
     },
     "Your group": {
