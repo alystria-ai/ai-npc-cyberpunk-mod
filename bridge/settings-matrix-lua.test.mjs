@@ -31,7 +31,7 @@ const harness = () => nsuiHarness({modules: everything}) + `
   frames(3)
 `;
 
-test('D1: Mature content turned on with Local AI changes no voice, and turning it off (after the Mistral key was removed) leaves the voice alone too', () => run(`${harness()}
+test('D1 (2026-10-20, revised after a live test): Mature content turned on with Local AI moves a Voxtral voice to Pocket and says so; turning it off after the Mistral key was removed leaves Pocket (no refusal loop)', () => run(`${harness()}
   bridge('key', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
@@ -40,45 +40,49 @@ test('D1: Mature content turned on with Local AI changes no voice, and turning i
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'local', 'Mature content is on with Local AI')
-  assert(saved.voiceProvider == 'voxtral', 'the voice stays: ' .. tostring(saved.voiceProvider))
+  assert(saved.voiceProvider == 'pocket', 'the voice moved to Pocket: ' .. tostring(saved.voiceProvider))
   assert(saved.matureRestore and saved.matureRestore.conversationProvider and saved.matureRestore.localModel, 'the provider and the model are kept for the way back')
-  assert(saved.matureRestore.voice == nil and saved.matureRestore.vVoiceEngine == nil, 'no voice part is recorded')
-  assert(not tostring(managerUi.inspect().shown):find('voice', 1, true), 'nothing is said about a voice: ' .. tostring(managerUi.inspect().shown))
-  -- The player removes the Mistral key, then turns Mature content off.
+  assert(saved.matureRestore.voice.before.provider == 'voxtral' and saved.matureRestore.voice.set.provider == 'pocket', 'and the voice')
+  assert(tostring(managerUi.inspect().shown):find('Pocket · Performance', 1, true), 'the line names the voice: ' .. tostring(managerUi.inspect().shown))
+  -- The player removes the Mistral key, then turns Mature content off: it works, and the voice stays on Pocket (Voxtral cannot be chosen without the key).
   bridge('nokey', {provider = 'local', effective = 'local', localAi = 'ready', saved = false, localModels = MODELS,
     localModelDefault = 'mature:unc', localModelMatureDefault = 'mature:unc'})
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false, 'Mature content could not be turned off: ' .. tostring(managerUi.inspect().shown))
   assert(saved.conversationProvider == 'convai', 'the provider it changed is put back')
-  assert(saved.voiceProvider == 'voxtral', 'the voice is the player’s: ' .. tostring(saved.voiceProvider))
+  assert(saved.voiceProvider == 'pocket', 'the voice stays on Pocket: ' .. tostring(saved.voiceProvider))
   assert(ns.find('Mature content').state == false)
 `));
 
-test('D1: Mature content never moves the companion voice or V’s voice, on or off, with or without the OmniVoice pack, with Local AI or Mistral', () => run(`${harness()}
+test('Mature content moves only a Voxtral voice: the Convai cloud voice and OmniVoice stay, with or without the OmniVoice pack, on Local AI and Custom; Mistral and Convai text turn it off', () => run(`${harness()}
   bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
   press('Settings'); frames(20)
   assert(manager.applySettings(player, {voiceProvider = 'convai', vVoice = true, vVoiceEngine = 'voxtral'}))
   frames(8)
+  -- The companions on the Convai cloud voice stay; V on Voxtral moves to Pocket (and comes back with the setting off).
   for _, pack in ipairs({true, false}) do
     voices(pack); frames(8)
     ns.interact.toggle(ns.find('Mature content')); frames(8)
-    assert(saved.matureContent == true and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true, 'on, pack ' .. tostring(pack))
+    assert(saved.matureContent == true and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'on, pack ' .. tostring(pack))
     ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
     assert(saved.matureContent == false and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'voxtral', 'off, pack ' .. tostring(pack))
   end
-  -- Mistral, then Local AI, with Mature content on: still the same voices, and no line about them.
-  assert(manager.applySettings(player, {conversationProvider = 'mistral', matureContent = true}))
+  -- Mistral text: Mature content turned on from there selects Local AI (the pack is installed) and the voices move with it.
+  assert(manager.applySettings(player, {conversationProvider = 'mistral', voiceProvider = 'voxtral'}))
   frames(8)
-  ns.interact.select(ns.find('Conversation provider'), 4); frames(8); ns.verify()
-  assert(saved.conversationProvider == 'local' and saved.matureContent == true and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'voxtral')
-  assert(not tostring(managerUi.inspect().shown):find('voice', 1, true), tostring(managerUi.inspect().shown))
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
+  -- Choosing Mistral again turns it off, and puts Voxtral back for both (nothing was changed since).
+  ns.interact.select(ns.find('Conversation provider'), 3); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'mistral' and saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral',
+    tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
 `));
 
-test('D1: a saved Mature record from before keeps its provider and model parts; its voice parts are dropped without a word', () => run(`${harness()}
-  bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = false, localModels = MODELS,
+test('A saved Mature record from before keeps all its parts; a Voxtral voice beside Mature content in a saved file is Pocket; turning it off with the kept parts puts the provider and Voxtral back', () => run(`${harness()}
+  bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
   local function load(values)
@@ -94,17 +98,19 @@ test('D1: a saved Mature record from before keeps its provider and model parts; 
     voice = {before = {provider = 'omni', steps = 16, reference = 'short'}, set = {provider = 'pocket'}},
     vVoiceEngine = {before = 'voxtral', set = 'pocket'}}})
   assert(old.matureRestore and old.matureRestore.conversationProvider.before == 'convai', 'the provider part is kept')
-  assert(old.matureRestore.voice == nil and old.matureRestore.vVoiceEngine == nil, 'the voice parts are dropped')
+  assert(old.matureRestore.voice.before.provider == 'omni' and old.matureRestore.voice.before.steps == 16 and old.matureRestore.vVoiceEngine.before == 'voxtral', 'the voice parts are kept')
   assert(old.voiceProvider == 'pocket' and old.vVoiceEngine == 'pocket')
-  -- A record that held only voice parts is no record at all.
-  old = load({conversationProvider = 'local', matureContent = true, matureRestore = {voice = {before = {provider = 'convai'}, set = {provider = 'pocket'}}}})
-  assert(old.matureRestore == nil, 'a record of voice parts only is gone')
-  -- Turning it off with the kept parts puts the provider back and leaves the voice.
-  load({conversationProvider = 'local', matureContent = true, voiceProvider = 'omni', matureRestore = {
-    conversationProvider = {before = 'convai', set = 'local'}, voice = {before = {provider = 'convai'}, set = {provider = 'omni'}}}})
+  -- A hand-edited file with Voxtral and Mature content: both voices load as Pocket.
+  old = load({conversationProvider = 'local', matureContent = true, voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'})
+  assert(old.voiceProvider == 'pocket' and old.vVoiceEngine == 'pocket' and old.matureContent == true)
+  -- Turning it off with the kept parts puts the provider, OmniVoice and Voxtral back.
+  load({conversationProvider = 'local', matureContent = true, voiceProvider = 'pocket', vVoiceEngine = 'pocket', matureRestore = {
+    conversationProvider = {before = 'convai', set = 'local'},
+    voice = {before = {provider = 'omni', steps = 16, reference = 'short'}, set = {provider = 'pocket'}},
+    vVoiceEngine = {before = 'voxtral', set = 'pocket'}}})
   press('Settings'); frames(20)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
-  assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'omni', tostring(saved.voiceProvider))
+  assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
 `));
 
 test('Restore defaults while Mature content is on gives the default voices, whatever voice was chosen', () => run(`${harness()}
@@ -112,46 +118,49 @@ test('Restore defaults while Mature content is on gives the default voices, what
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   voices(true)
   press('Settings'); frames(20)
-  assert(manager.applySettings(player, {voiceProvider = 'convai', naturalSpeech = false, vVoiceEngine = 'voxtral'}))
+  assert(manager.applySettings(player, {voiceProvider = 'voxtral', naturalSpeech = false, vVoiceEngine = 'voxtral'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8)
-  assert(saved.matureContent == true and saved.voiceProvider == 'convai')
+  assert(saved.matureContent == true and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local now = settings()
   assert(now.matureContent == false and now.conversationProvider == 'convai')
   assert(now.voiceProvider == 'pocket', 'the default voice is Pocket, got ' .. tostring(now.voiceProvider))
   assert(now.vVoice == true and now.vVoiceEngine == 'pocket', 'V speaks with Pocket by default')
-  assert(now.battleReactions == true and now.lootReactions == true and now.johnnyInHead == false and now.johnnyRemarks == 'off')
+  assert(now.battleReactions == false and now.lootReactions == false and now.johnnyInHead == false and now.johnnyRemarks == 'off')
 `));
 
-test('D3: Mature content from Convai without the Local AI pack selects Mistral when a key is saved, else Custom when it is ready, else it refuses', () => run(`${harness()}
+test('D3 (2026-10-20, revised): Mature content from Convai or Mistral without the Local AI pack selects Custom when it is ready, else it refuses, and never selects Mistral, with or without a key', () => run(`${harness()}
   local function customState(ready) jsonFixtures['custom-' .. tostring(ready)] = {version = 1, updated = 1, ready = ready, host = 'openrouter.ai', secure = true,
     ['local'] = false, model = ready and 'llama3.2' or nil, keySaved = true, tail = 'wxyz'}
     files['runtime/custom-provider-state.json'] = 'custom-' .. tostring(ready); clock = clock + 2; manager.snapshot(player) end
   press('Settings'); frames(20)
-  -- A Mistral key, no Local AI pack: Mistral is selected, and the line names it.
+  -- A Mistral key, no Local AI pack, no Custom endpoint: refused (Mistral is never selected), nothing changes.
   bridge('key', {provider = 'convai', effective = 'convai', localAi = 'absent', saved = true})
-  frames(8)
+  customState(false); frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
-  assert(saved.matureContent == true and saved.conversationProvider == 'mistral', tostring(saved.conversationProvider))
-  assert(saved.matureRestore.conversationProvider.before == 'convai' and saved.matureRestore.conversationProvider.set == 'mistral')
-  assert(tostring(managerUi.inspect().shown):find('Mistral (free plan)', 1, true), tostring(managerUi.inspect().shown))
-  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
-  assert(saved.matureContent == false and saved.conversationProvider == 'convai', 'turning it off puts Convai back')
-  -- No key, a Custom endpoint that is ready: Custom is selected.
-  bridge('nokey', {provider = 'convai', effective = 'convai', localAi = 'absent', saved = false})
+  assert(saved.matureContent == false and saved.conversationProvider == 'convai', 'refused: ' .. tostring(saved.conversationProvider))
+  assert(tostring(managerUi.inspect().shown):find('Needs Local AI or Custom.', 1, true), tostring(managerUi.inspect().shown))
+  -- A Custom endpoint that is ready: Custom is selected, with or without the key, and the line names it; turning it off puts Convai back.
   customState(true); frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom', tostring(saved.conversationProvider))
   assert(tostring(managerUi.inspect().shown):find('Custom (OpenAI-compatible)', 1, true), tostring(managerUi.inspect().shown))
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == false and saved.conversationProvider == 'convai')
-  -- A Custom endpoint that is not ready, no key, no pack: refused, nothing changes.
-  customState(false); frames(8)
+  bridge('nokey', {provider = 'convai', effective = 'convai', localAi = 'absent', saved = false}); frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
-  assert(saved.matureContent == false and saved.conversationProvider == 'convai', 'refused: ' .. tostring(saved.conversationProvider))
-  assert(tostring(managerUi.inspect().shown):find('Needs Local AI, Mistral or Custom.', 1, true), tostring(managerUi.inspect().shown))
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom')
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  -- From Mistral with a key and no other way: refused, and Mistral stays.
+  customState(false); frames(8)
+  assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+  bridge('key2', {provider = 'mistral', effective = 'mistral', localAi = 'absent', saved = true}); frames(8)
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and ns.find('Mature content').state == false)
+  assert(tostring(managerUi.inspect().shown):find('Needs Local AI or Custom.', 1, true), tostring(managerUi.inspect().shown))
 `));
+
 
 test('D8: Natural speech is blocked only by the Convai cloud voice on a Convai provider; Mistral, Local AI and Custom keep it with that voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})

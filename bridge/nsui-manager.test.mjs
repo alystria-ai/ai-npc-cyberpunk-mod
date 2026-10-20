@@ -161,13 +161,13 @@ test('the manager opens on its first page: after leaving the tab, after closing 
 test('a change is applied for real after a moment, as one transaction; rows the rules corrected are put back in place with one line under the way back', () => run(`${harness()}
   press('Settings')
   local gestures = ns.find('React to battles')
-  assert(gestures.state == true, 'battle reactions are on by default')
+  assert(gestures.state == false, 'battle reactions are off by default')
   ns.interact.toggle(gestures)
   frames(1)
-  assert(manager.snapshot(player).settings.battleReactions == true, 'nothing is saved at the moment of the click')
+  assert(manager.snapshot(player).settings.battleReactions == false, 'nothing is saved at the moment of the click')
   frames(6)
-  assert(manager.snapshot(player).settings.battleReactions == false and saved.battleReactions == false and saved.battleReactionsChosen == true, 'applied once the changes have settled')
-  assert(ns.find('React to battles') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
+  assert(manager.snapshot(player).settings.battleReactions == true and saved.battleReactions == true and saved.battleReactionsChosen == nil, 'applied once the changes have settled')
+  assert(ns.find('React to battles') == gestures and gestures.state == true, 'the row is the same widget and shows the saved value')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
   ns.interact.toggle(ns.find('Subtitles')); ns.interact.toggle(ns.find('Voice playback'))
@@ -242,7 +242,7 @@ test('Mature content turned on in place selects Local AI and the uncensored mode
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent ~= true and ns.find('Mature content').state == false, 'the switch went back to off')
-  assert(managerUi.inspect().shown == 'Needs Local AI, Mistral or Custom.', tostring(managerUi.inspect().shown))
+  assert(managerUi.inspect().shown == 'Needs Local AI or Custom.', tostring(managerUi.inspect().shown))
 `));
 
 test('Mature content turned off while the model row is on an uncensored model (no way back saved) moves the row to the standard model; a saved uncensored model with Mature off shows the default', () => run(`${harness()}
@@ -270,53 +270,89 @@ test('Mature content turned off while the model row is on an uncensored model (n
   assert(ns.find('Local AI model').selectedElementIndex == 1, 'the default is shown, not the uncensored model')
 `));
 
-test('Mature content beside Mistral or Custom is just turned on (provider, model and voice stay), Convai turns it off again, and Local AI still moves a cloud voice to Pocket', () => run(`${harness()}
+test('Mature content beside Mistral: turning it on selects Local AI and says so (never Mistral), choosing Mistral or Convai turns it off; beside Custom it is just turned on, and a Voxtral voice moves to Pocket in the same save', () => run(`${harness()}
   local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
-  bridge('ready', {provider = 'mistral', effective = 'mistral', localAi = 'ready',
+  bridge('ready', {provider = 'mistral', effective = 'mistral', localAi = 'ready', saved = true,
     localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
   jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
   files['runtime/local-voice-state.json'] = 'voice-state'
   press('Settings')
   frames(20)
-  -- Mistral: on at once, and nothing else changes (no Local AI, no uncensored model).
+  -- Mistral: Mature content cannot be on beside it, so turning it on selects Local AI and the uncensored model, and names them.
   assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
   frames(8)
   local mature = ns.find('Mature content')
   assert(ns.find('Conversation provider').selectedElementIndex == 3 and mature.state == false)
   ns.interact.toggle(mature); frames(8); ns.verify()
-  assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.localModel ~= 'mature:unc', 'Mistral stays, the model is the player\\'s')
-  assert(saved.matureRestore == nil, 'nothing was changed, so there is no way back to keep')
-  assert(ns.find('Conversation provider').selectedElementIndex == 3 and ns.find('Mature content').state == true)
-  -- Custom: the same; switching from Mistral to Custom keeps it on.
-  ns.interact.select(ns.find('Conversation provider'), 5); frames(8); ns.verify()
-  assert(saved.conversationProvider == 'custom' and saved.matureContent == true, 'Custom keeps Mature content on')
-  -- Choosing Convai turns it off.
-  ns.interact.select(ns.find('Conversation provider'), 1); frames(8); ns.verify()
-  assert(saved.conversationProvider == 'convai' and saved.matureContent == false, 'Convai turns it off')
-  -- Turning it on beside Custom with a cloud companion voice leaves the voice alone (the lines are in the cloud for the reply anyway).
-  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'convai', naturalSpeech = false}))
+  assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc', tostring(saved.conversationProvider))
+  assert(saved.matureRestore.conversationProvider.before == 'mistral' and saved.matureRestore.conversationProvider.set == 'local')
+  assert(ns.find('Conversation provider').selectedElementIndex == 4 and ns.find('Mature content').state == true)
+  assert(managerUi.inspect().shown == 'Also changed: Local AI, Uncensored model.', tostring(managerUi.inspect().shown))
+  -- Choosing Mistral while it is on turns it off (and the rest stays as the player chose it).
+  ns.interact.select(ns.find('Conversation provider'), 3); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'mistral' and saved.matureContent == false, 'Mistral turns it off')
+  assert(ns.find('Mature content').state == false)
+  -- Custom: it is just turned on; switching from Local AI to Custom keeps it on; Convai turns it off.
+  assert(manager.applySettings(player, {conversationProvider = 'custom'}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
-  assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'convai', tostring(saved.voiceProvider))
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.localModel ~= 'mature:unc', 'Custom stays, the model is the player\\'s')
+  assert(saved.matureRestore == nil, 'nothing was changed, so there is no way back to keep')
+  ns.interact.select(ns.find('Conversation provider'), 4); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'local' and saved.matureContent == true, 'Local AI keeps Mature content on')
+  ns.interact.select(ns.find('Conversation provider'), 1); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'convai' and saved.matureContent == false, 'Convai turns it off')
+  -- Beside Custom with the companions and V on Voxtral, turning it on moves both to Pocket (named), and turning it off puts them back.
+  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral', naturalSpeech = false}))
+  frames(8)
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(saved.voiceProvider))
+  assert(managerUi.inspect().shown == 'Also changed: Pocket · Performance, V’s voice for typed lines.', tostring(managerUi.inspect().shown))
+  assert(ns.find('Companion voices').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == false and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', tostring(saved.voiceProvider))
+  assert(ns.find('Companion voices').selectedElementIndex == 2 and ns.find('V’s voice for typed lines').selectedElementIndex == 3)
 `));
+
+test('with Mature content on the Voxtral entries say so in their labels and a click on one is refused in place (Native Settings UI has no greyed-out entries), the rows go back to what is saved', () => run(`${harness()}
+  local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
+  bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = true,
+    localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
+    localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
+  press('Settings')
+  frames(20)
+  assert(manager.applySettings(player, {conversationProvider = 'local', matureContent = true}))
+  frames(8)
+  local companions, engine = ns.find('Companion voices'), ns.find('V’s voice for typed lines')
+  local voxtral
+  for index, label in ipairs(companions.elements) do if label:find('Voxtral', 1, true) then voxtral = index end end
+  assert(companions.elements[voxtral] == 'Voxtral · not with Mature' and engine.elements[3] == 'Voxtral · not with Mature', tostring(companions.elements[voxtral]))
+  ns.interact.select(companions, voxtral); frames(8); ns.verify()
+  assert(saved.voiceProvider == 'pocket' and ns.find('Companion voices').selectedElementIndex == 1, 'refused, the row shows the saved voice')
+  assert(managerUi.inspect().shown == 'Voxtral is not used with Mature content.', tostring(managerUi.inspect().shown))
+  ns.interact.select(ns.find('V’s voice for typed lines'), 3); frames(8); ns.verify()
+  assert(saved.vVoiceEngine == 'pocket' and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  assert(managerUi.inspect().shown == 'Voxtral is not used with Mature content.', tostring(managerUi.inspect().shown))
+`));
+
 
 test('Restore defaults goes through the same validated path, only on the Settings page', () => run(`${harness()}
   -- On another page it says where it works and changes nothing.
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {battleReactions = false, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
+  assert(manager.applySettings(player, {battleReactions = true, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
     naturalSpeech = false}))
   frames(20)
-  assert(ns.find('React to battles').state == false and ns.find('Subtitle display').selectedElementIndex == 2)
+  assert(ns.find('React to battles').state == true and ns.find('Subtitle display').selectedElementIndex == 2)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
+  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == false)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
   assert(ns.find('Follow-up questions').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
-  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 1)
+  assert(ns.find('React to battles').state == false and ns.find('Companion voices').selectedElementIndex == 1)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
   -- Restore defaults after the cloud voice was chosen puts the default voice back.
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
@@ -773,7 +809,7 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
   local gestures = ns.find('React to battles', TAB)
   ns.setOption(gestures, not gestures.state); frames(8)
-  assert(manager.snapshot(player).settings.battleReactions == false, 'the change was applied')
+  assert(manager.snapshot(player).settings.battleReactions == true, 'the change was applied')
   assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
   ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
@@ -935,20 +971,20 @@ test('V’s voice is one list: Off, Pocket, Voxtral; choosing Voxtral without a 
   assert(saved.vVoice == false and saved.vVoiceEngine == 'voxtral')
 `));
 
-test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => run(`${harness()}
+test('React to battles and to collected loot are off by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions off', () => run(`${harness()}
   press('Settings')
-  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
+  assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
   ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
   ns.interact.select(ns.find('Johnny in your head'), 4); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
   frames(10); ns.verify()
-  assert(saved.battleReactions == false and saved.battleReactionsChosen == true and saved.lootReactions == false and saved.lootReactionsChosen == true)
+  assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
+  assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
-  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
+  assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));

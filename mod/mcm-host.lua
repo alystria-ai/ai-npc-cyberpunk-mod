@@ -296,7 +296,9 @@ local function schema()
             local states = {}
             for index = 1, entriesOf(id, disabled) do
                 -- The row says why an entry is greyed out (the OmniVoice pack, the Mistral key); the pack is the reason of the voice list.
-                states[index] = {enabled = not disabled[index], reason = disabledReasons[id] or ui.t('Requires the optional OmniVoice pack (GPU)')}
+                -- An entry whose value is a string carries its own reason (Voxtral beside Mature content); the others share the row's.
+                local own = type(disabled[index]) == 'string' and disabled[index] or nil
+                states[index] = {enabled = not disabled[index], reason = own or disabledReasons[id] or ui.t('Requires the optional OmniVoice pack (GPU)')}
             end
             pcall(api.ui.setChoiceStates, MOD_KEY, id, states, {wrap = false})
             held[id] = true

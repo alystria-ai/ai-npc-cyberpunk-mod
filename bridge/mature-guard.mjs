@@ -10,7 +10,7 @@
 //   output screen   the finished reply (and the first sentence before it is voiced) is read the same way, plus the window: a reply
 //                   that puts a minor cue and romance or sex together, or that has the character claim to be under 18, is dropped and
 //                   replaced by the same kind of refusal; the dropped text is never recorded in the history or the memory.
-// Only the local AI, Mistral and Custom get any of this, when the setting is on (or, for the local AI, the loaded model is an uncensored one) (the host asks per turn). Everything here is regular expressions and string
+// Only the local AI and Custom get any of this, when the setting is on (or, for the local AI, the loaded model is an uncensored one) (the host asks per turn). Everything here is regular expressions and string
 // work on a message of at most 1,200 characters: well under a millisecond, no I/O, no model call, nothing per frame.
 // It is deliberately over-strict: a false refusal costs one line of dialogue, a miss is the thing the pack must never do.
 //

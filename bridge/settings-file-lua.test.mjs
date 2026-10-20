@@ -520,43 +520,46 @@ test('Johnny: remarks saved beside Johnny in your head off read as Off and the f
   }
 });
 
-test('React to battles and to loot: a fresh file has them on; an old saved false counts only when the player chose it', () => {
+test('React to battles and to loot: a fresh file has them off; a saved value is read as it is, with or without the Chosen keys of the on-by-default rule that never shipped (kept in the file, never read, never written by an Apply)', () => {
   const fresh = loadFile({...freshSettings});
   assert.equal(fresh.writes, 0);
-  assert.deepEqual([fresh.settings.battleReactions, fresh.settings.lootReactions], [true, true]);
+  assert.deepEqual([fresh.settings.battleReactions, fresh.settings.lootReactions], [false, false]);
+  assert.equal(JSON.parse(fresh.text).battleReactionsChosen, undefined); assert.equal(JSON.parse(fresh.text).lootReactionsChosen, undefined);
   for (const key of ['battleReactions', 'lootReactions']) {
     const chosen = `${key}Chosen`;
-    // The old default saved as false (never chosen): on now, saved once, and still not marked as chosen.
-    let out = loadFile({...freshSettings, [key]: false});
-    assert.equal(out.settings[key], true, `${key}: an unchosen false is the new default`);
-    assert.equal(JSON.parse(out.text)[key], true); assert.equal(JSON.parse(out.text)[chosen], false); assert.equal(out.writes, 1);
-    // A file from before the flag with the key missing altogether.
-    const without = {...freshSettings}; delete without[key]; delete without[chosen];
-    out = loadFile(without);
-    assert.equal(out.settings[key], true, `${key}: missing is on`); assert.equal(JSON.parse(out.text)[chosen], false);
-    // False the player chose stays off, and is not rewritten.
-    out = loadFile({...freshSettings, [key]: false, [chosen]: true});
-    assert.equal(out.settings[key], false, `${key}: a chosen false stays`); assert.equal(out.writes, 0);
-    // True stays true.
-    out = loadFile({...freshSettings, [key]: true, [chosen]: true});
-    assert.equal(out.settings[key], true); assert.equal(out.writes, 0);
+    // False, with and without a leftover Chosen flag: off, and nothing is rewritten.
+    for (const flag of [undefined, false, true]) {
+      const out = loadFile({...freshSettings, [key]: false, ...(flag === undefined ? {} : {[chosen]: flag})});
+      assert.equal(out.settings[key], false, `${key} false, flag ${flag}`); assert.equal(out.writes, 0, `${key} false, flag ${flag}`);
+      assert.equal(JSON.parse(out.text)[chosen], flag, 'a leftover flag stays in the file untouched');
+    }
+    // True stays true, flag or not.
+    for (const flag of [undefined, false, true]) {
+      const out = loadFile({...freshSettings, [key]: true, ...(flag === undefined ? {} : {[chosen]: flag})});
+      assert.equal(out.settings[key], true, `${key} true, flag ${flag}`); assert.equal(out.writes, 0, `${key} true, flag ${flag}`);
+    }
+    // A file from before the key existed: the default, off, saved once.
+    const without = {...freshSettings}; delete without[key];
+    const out = loadFile(without);
+    assert.equal(out.settings[key], false, `${key}: missing is off`); assert.equal(out.writes, 1);
   }
-  // An Apply that carries the key marks it chosen, whatever the value, so a later load keeps it.
+  // An Apply writes the value and no flag.
   const out = run(`${managerLua}
     local player, manager = newPlayer(), newManager()
     manager.update(player, 0.1)
-    assert(manager.applySettings(player, {battleReactions = false}))
+    assert(manager.applySettings(player, {battleReactions = true}))
     report('text', settingsText())
     local again = newManager()
     report('again', again.snapshot(player).settings)
   `);
   const saved = JSON.parse(out.text);
-  assert.deepEqual([saved.battleReactions, saved.battleReactionsChosen, saved.lootReactions, saved.lootReactionsChosen], [false, true, true, false]);
-  assert.equal(out.again.battleReactions, false);
-  assert.equal(out.again.lootReactions, true);
+  assert.deepEqual([saved.battleReactions, saved.battleReactionsChosen, saved.lootReactions, saved.lootReactionsChosen], [true, undefined, false, undefined]);
+  assert.equal(out.again.battleReactions, true);
+  assert.equal(out.again.lootReactions, false);
 });
 
-test('a fresh file has the 2026-10-20 defaults: reactions on, Johnny Off, V’s voice on with Pocket, Natural speech off, no removed key', () => {
+
+test('a fresh file has the 2026-10-20 defaults: reactions off, Johnny Off, V’s voice on with Pocket, Natural speech off, no removed key', () => {
   const out = run(`${managerLua}
     local player, manager = newPlayer(), newManager()
     manager.update(player, 0.1)
@@ -565,6 +568,6 @@ test('a fresh file has the 2026-10-20 defaults: reactions on, Johnny Off, V’s 
   const saved = JSON.parse(out.text);
   assert.deepEqual([saved.battleReactions, saved.lootReactions, saved.johnnyInHead, saved.johnnyRemarks, saved.vVoice, saved.vVoiceEngine,
     saved.naturalSpeech, saved.followUpInterest, saved.matureContent, saved.conversationProvider],
-  [true, true, false, 'off', true, 'pocket', false, true, false, 'convai']);
+  [false, false, false, 'off', true, 'pocket', false, true, false, 'convai']);
   for (const key of RETIRED) assert.equal(saved[key], undefined, key);
 });

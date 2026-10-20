@@ -36,8 +36,12 @@ local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
 -- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
 local V_VOICE_ENGINES = {'pocket', 'voxtral'}
--- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI, Mistral and Custom text providers may have it, Convai never.
-local function matureProvider(provider) return provider == 'local' or provider == 'mistral' or provider == 'custom' end
+-- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI and Custom text providers may have it; Convai and Mistral never (owner
+-- decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a live test: "let's not risk their API key").
+local function matureProvider(provider) return provider == 'local' or provider == 'custom' end
+-- Nor does a Voxtral voice (Mistral's cloud voice) speak beside it, for the companions or V: turning Mature content on moves them to Pocket and says so,
+-- turning it off puts them back (stageMature in mod/manager-ui.lua), and choosing Voxtral while it is on is refused. The bridge speaks Pocket then too.
+local MATURE_VOXTRAL = 'Voxtral is not used with Mature content.'
 -- Settings the page no longer has (2026-10-20): their behaviour is fixed (always on) or the feature is gone. An old saved value is dropped at
 -- load (once, from the file) and an Apply that still carries one ignores it; nothing reads them.
 local RETIRED_SETTINGS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
@@ -410,10 +414,21 @@ local function validModelId(value)
 end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
---   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local' | 'mistral' | 'custom'},
---    localModel = {before = <model id>, set = <the uncensored model id>}}
--- Each part is optional; anything malformed is dropped, and nil is returned when nothing is left. Returns a new table. Turning Mature content on
--- changes no voice any more (2026-10-20): the 'voice' and 'vVoiceEngine' parts an older save carries are dropped here and read as nothing.
+--   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local' | 'custom'},
+--    localModel = {before = <model id>, set = <the uncensored model id>},
+--    voice = {before = <voice>, set = <voice>}, vVoiceEngine = {before = 'voxtral', set = 'pocket'}}
+-- where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral', steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only).
+-- The voice parts are back since 2026-10-20 (Voxtral is not used beside Mature content; the earlier rule that dropped them is gone), and a record an
+-- older version saved keeps loading. Each part is optional; anything malformed is dropped, and nil is returned when nothing is left. Returns a new table.
+local function cleanMatureVoice(value)
+    if type(value) ~= 'table' then return nil end
+    local provider = value.provider
+    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' then return nil end
+    if provider ~= 'omni' then return {provider = provider} end
+    if (value.steps ~= 16 and value.steps ~= 32) or (value.reference ~= 'short' and value.reference ~= 'long') then return nil end
+    return {provider = provider, steps = value.steps, reference = value.reference}
+end
+
 -- A provider as the restore record names it: the stored values, or 'convai-key' (Convai with the player's own key, which the
 -- selector lists as its own entry; stored as 'convai' plus useOwnConvaiKey).
 local function restoreProviderName(value)
@@ -430,6 +445,17 @@ local function cleanMatureRestore(value)
     part = value.localModel
     if type(part) == 'table' and validModelId(part.before) and validModelId(part.set) then
         result.localModel, any = {before = part.before, set = part.set}, true
+    end
+    part = value.voice
+    if type(part) == 'table' then
+        local before, set = cleanMatureVoice(part.before), cleanMatureVoice(part.set)
+        if before and set then result.voice, any = {before = before, set = set}, true end
+    end
+    -- V's voice engine: Mature content moves V off Voxtral.
+    part = value.vVoiceEngine
+    local function engine(name) return name == 'pocket' or name == 'voxtral' end
+    if type(part) == 'table' and engine(part.before) and engine(part.set) and part.before ~= part.set then
+        result.vVoiceEngine, any = {before = part.before, set = part.set}, true
     end
     return any and result or nil
 end
@@ -680,17 +706,10 @@ local function loadSettings()
         and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'custom' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
-    -- React to battles and to collected loot: on by default since 2026-10-20 (they were off). Until then the file saved false as the default, so a
-    -- saved false counts only once the player has set it themselves (an Apply that carried it: battleReactionsChosen, lootReactionsChosen);
-    -- an unchosen false becomes the new default, true, once. Whoever switched one off keeps it off from then on.
-    if type(settings.battleReactionsChosen) ~= 'boolean' then settings.battleReactionsChosen = false end
-    if type(settings.battleReactions) ~= 'boolean' or (not settings.battleReactions and not settings.battleReactionsChosen) then
-        settings.battleReactions, settingsNeedSave = true, true
-    end
-    if type(settings.lootReactionsChosen) ~= 'boolean' then settings.lootReactionsChosen = false end
-    if type(settings.lootReactions) ~= 'boolean' or (not settings.lootReactions and not settings.lootReactionsChosen) then
-        settings.lootReactions, settingsNeedSave = true, true
-    end
+    -- React to battles and to collected loot: off by default (owner, 2026-10-20: the short-lived "on by default" with its once-only migration
+    -- never shipped and is gone; a file with leftover battleReactionsChosen / lootReactionsChosen keys is read like any other, the keys unread).
+    if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
+    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = false, true end
     -- Settings that are gone (RETIRED_SETTINGS): auto-connect, expressive emotions, game dialogue, the live holocall picture and body
     -- gestures are always on, and the two developer-only features are removed. A saved value, a false included, is ignored; the key is dropped
     -- from the file once.
@@ -739,7 +758,7 @@ local function loadSettings()
     -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
     -- dropped; the bridge ignores it either way.
     if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
-    -- Mature content (off by default): lets the Local AI, Mistral and Custom providers write adult language and themes. Read by the bridge on change only.
+    -- Mature content (off by default): lets the Local AI and Custom providers write adult language and themes (not Convai, not Mistral). Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
     -- Mature content and Convai (free tier or API key) exclude each other (Convai prompting cannot take it): a saved pairing comes back with Mature content off.
     if settings.matureContent == true and not matureProvider(settings.conversationProvider) then settings.matureContent, settingsNeedSave = false, true end
@@ -776,6 +795,12 @@ local function loadSettings()
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
     if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
+    -- A Voxtral voice beside Mature content (an older file, a hand edit): Pocket, for the companions and for V (MATURE_VOXTRAL). No record is made, so
+    -- turning Mature content off leaves Pocket where it is; the page's own way (stageMature) records it and puts Voxtral back.
+    if settings.matureContent == true then
+        if settings.voiceProvider == 'voxtral' then settings.voiceProvider, settingsNeedSave = 'pocket', true end
+        if settings.vVoiceEngine == 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
+    end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -1712,7 +1737,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
             vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket',
-            -- Part of the main mod: off by default; Local AI, Mistral and Custom (not Convai). The optional Mature pack (uncensored models, Local AI) only changes the help text.
+            -- Part of the main mod: off by default; Local AI and Custom (not Convai, not Mistral). The optional Mature pack (uncensored models, Local AI) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
@@ -1759,8 +1784,6 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'battleReactions' then nextSettings.battleReactionsChosen = true end
-        if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
@@ -1859,6 +1882,18 @@ function M.applySettings(player, values)
     local rulesReload = false
     if nextSettings.matureContent == true and not matureProvider(nextSettings.conversationProvider) then
         nextSettings.matureContent, rulesReload = false, true
+    end
+    -- No Voxtral beside Mature content (MATURE_VOXTRAL): choosing it while the setting stays on is refused, and turning the setting on beside a saved
+    -- Voxtral (a caller other than the page, which stages the move itself and names it) moves it to Pocket, quietly, for the companions and for V.
+    if nextSettings.matureContent == true then
+        if nextSettings.voiceProvider == 'voxtral' then
+            if values.voiceProvider == 'voxtral' and values.matureContent ~= true then return false, MATURE_VOXTRAL end
+            nextSettings.voiceProvider, rulesReload = 'pocket', true
+        end
+        if nextSettings.vVoiceEngine == 'voxtral' then
+            if values.vVoiceEngine == 'voxtral' and values.matureContent ~= true then return false, MATURE_VOXTRAL end
+            nextSettings.vVoiceEngine, rulesReload = 'pocket', true
+        end
     end
     if nextSettings.developerMode ~= settings.developerMode then rulesReload = true end
     -- Natural speech needs a local voice. It is judged as it will be after this Apply: making the pairing with the Convai cloud voice on a

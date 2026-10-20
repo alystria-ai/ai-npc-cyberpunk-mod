@@ -49,7 +49,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
-import {MatureContent} from './mature-content.mjs';
+import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
@@ -284,6 +284,8 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
   voxtral:voxtralVoice,
+  // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
+  cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
@@ -837,7 +839,7 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
 const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters, worldRules});
-// "Mature content": read from the settings file when it changes (never per turn); the local AI, Mistral and Custom routes use it, Convai never. The optional Mature
+// "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
 const matureContent = new MatureContent();
@@ -1116,7 +1118,9 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   // pacing or pausing requests (a limit was hit, an allowance is nearly used up) V is skipped.
   cloud: {
     problem: key => {
-      // Mature content never changes or refuses a voice (owner decision 2026-10-20): Voxtral for V is allowed with it on, with any text provider.
+      // Mature content on: no line goes to Mistral's voice (owner decision 2026-10-20, after Voxtral refused Mature lines in a live test). The settings poll
+      // already reads a saved Voxtral engine as Pocket while it is on (vSettings); this is the net for a line that is asked before that poll.
+      if (!matureAllowsCloudVoice(matureContent.enabled)) return 'Mature content is on';
       if (!voxtralVoice.hasKey) return 'no Mistral key';
       if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
       if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;
@@ -3210,8 +3214,9 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     // V's voice row is one list (Off / Pocket / Voxtral): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
-    // is Voxtral again as soon as a key is saved; the poll runs this every time).
-    const vSettings = settings?.vVoiceEngine === 'voxtral' && !voxtralVoice.hasKey ? {...settings, vVoiceEngine: 'pocket'} : settings;
+    // is Voxtral again as soon as a key is saved; the poll runs this every time). The same while Mature content is on: no cloud voice then
+    // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off.
+    const vSettings = settings?.vVoiceEngine === 'voxtral' && (!voxtralVoice.hasKey || !matureAllowsCloudVoice(matureContent.enabled)) ? {...settings, vVoiceEngine: 'pocket'} : settings;
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);

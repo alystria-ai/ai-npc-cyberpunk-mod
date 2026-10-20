@@ -97,6 +97,9 @@ export class VoiceSelection {
       cloud.onChange=degraded=>{try{previous?.(degraded);}finally{if(!this.closed)this.publish();}};
     }
     this.options = options;
+    // While this says true (the bridge: Mature content is on) no cloud voice speaks and none is wanted: a saved Voxtral choice is Pocket, and a
+    // reply that still reaches the committed cloud voice before the switch is not sent to it (the written reply stands). Owner decision 2026-10-20.
+    this.cloudBarred = typeof options.cloudBarred === 'function' ? () => { try { return options.cloudBarred() === true; } catch { return false; } } : () => false;
     // A draft must stay unchanged this long before it may prepare a model, so
     // cycling quickly through the choices never starts or retires a worker.
     // Zero keeps the preview immediate for callers that do not debounce.
@@ -364,8 +367,10 @@ export class VoiceSelection {
       this.playbackEnabled=settings.voice;this.routeRevision++;
       for(const key of this.routeKeys)this.routeChanges.add(key);
     }
-    const chosen=canonicalVoiceProvider(settings?.voiceProvider);
-    if(typeof settings?.voiceProvider==='string')this.requestedCloud=cloudVoiceChoice(settings.voiceProvider);
+    // A cloud voice is never wanted while it is barred (Mature content on): the saved Voxtral choice is read as Pocket, the local default.
+    const saved=this.cloudBarred()&&cloudVoiceChoice(settings?.voiceProvider)?'pocket':settings?.voiceProvider;
+    const chosen=canonicalVoiceProvider(saved);
+    if(typeof saved==='string')this.requestedCloud=cloudVoiceChoice(saved);
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
@@ -490,7 +495,11 @@ export class VoiceSelection {
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
-      requestedProvider: this.requestedProvider, fallback: this.fallback??this.cloudFallback, pending: this.pending,
+      // The cloud voice is reported as replaced by the Convai voice only when it really cannot be asked (no key, a refused key, a limit cooling down:
+      // `cloudBlocked`). One reply that timed out or lost its connection is not that: the next reply asks again, and the game must not say that
+      // companions "are using the Convai voice for now" (the 2026-10-20 live test: a first ask timed out, the second one spoke, the notice appeared).
+      // `voxtral.degraded` below still carries the reason for the support report.
+      requestedProvider: this.requestedProvider, fallback: this.fallback??this.cloudBlocked, pending: this.pending,
       cloudVoice:this.cloudActive?this.cloud:null,
       voxtral:this.voxtral?{key:this.voxtral.hasKey,degraded:this.voxtral.degraded?.reason??null,spoke:this.voxtral.spoke,
         fellBack:this.voxtral.fellBack}:null,
@@ -853,6 +862,7 @@ export class VoiceSelection {
     });
     const ask = extra => engine.synthesizeStream(profile, spoken, {...options, onPcm, ...extra});
     try {
+      if (this.cloudBarred()) throw Error(`The ${name} voice is not used while Mature content is on`);
       if (!engine.ready) throw Error(`The ${name} voice cannot be asked now (${engine.hasKey ? 'waiting out a limit' : 'no key'})`);
       try { return await ask(); }
       catch (error) {
@@ -877,7 +887,7 @@ export class VoiceSelection {
   // held until the head is known to have been the cloud voice, and dropped (the request cancelled) if it was not.
   async synthesizeRest(profile, spoken, options, utterance) {
     const unvoiced = async () => { utterance.decide('pocket'); throw Error('The cloud voice did not speak the first part of this reply'); };
-    if (utterance.engine === 'pocket' || !this.cloudEngine.hasKey) return unvoiced();
+    if (utterance.engine === 'pocket' || !this.cloudEngine.hasKey || this.cloudBarred()) return unvoiced();
     const own = new AbortController();
     const relay = () => own.abort(options.signal.reason);
     options.signal?.addEventListener('abort', relay, {once: true});
