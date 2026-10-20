@@ -636,6 +636,108 @@ class Assets(unittest.TestCase):
         self.assertNotIn('pocket_tts',sys.modules)
 
 
+class UsvfsPaths(unittest.TestCase):
+    """Inside Mod Organizer 2's virtual file system (USVFS) Path.resolve() of a file answers with the mod folder that holds it, which is not where
+    resolve() of its folder points when the folder is the merge of several mods. USVFS does not exist here, so it is simulated: the files are plain
+    files at their virtual place, and Path.resolve() is patched to answer as USVFS does (a folder of the app in mods/A, each file below it in mods/B).
+    The decision logic is what is tested: the flag plus a path that is spelled inside its folder is accepted, a link never is, and nothing changes
+    without the flag."""
+    setUp = Assets.setUp
+    tearDown = Assets.tearDown
+    validate = Assets.validate
+
+    def usvfs_resolve(self):
+        real = Path.resolve
+        merged = [real(self.export), real(self.refs)]
+        mods = real(self.root) / 'mods'
+
+        def resolve(path, strict=False):
+            found = real(path, strict=strict)
+            for folder in merged:
+                if found == folder:
+                    return mods / 'A' / folder.name
+                if found.is_relative_to(folder):
+                    return mods / 'B' / folder.name / found.relative_to(folder)
+            return found
+        return patch.object(Path, 'resolve', resolve)
+
+    def inside_usvfs(self, value='1'):
+        return patch.dict(os.environ, {runtime.USVFS_VARIABLE: value})
+
+    def test_the_simulation_shows_the_bug_without_the_flag(self):
+        with self.usvfs_resolve():
+            for value in (None, '0', 'yes', ''):
+                with self.subTest(flag=value):
+                    environment = {} if value is None else {runtime.USVFS_VARIABLE: value}
+                    with patch.dict(os.environ, environment), self.assertRaisesRegex(ValueError, 'missing or linked'):
+                        runtime.local_asset(self.export, 'model.safetensors')
+
+    def test_the_export_and_the_references_validate_inside_usvfs_and_nothing_is_resolved(self):
+        with self.usvfs_resolve(), self.inside_usvfs():
+            registry = self.validate()
+        self.assertEqual(registry['paths']['exportDirectory'], self.export)
+        self.assertEqual(registry['paths']['referenceDirectory'], self.refs)
+        self.assertEqual(registry['inference']['weights_path'], str(self.export / 'model.safetensors'))
+        self.assertEqual(sorted(registry['refs']), sorted(self.voices), 'every reference is found at its virtual place')
+        self.assertEqual(registry['unavailable'], {})
+
+    def test_inside_usvfs_the_bytes_are_still_checked_against_their_identity(self):
+        with self.usvfs_resolve(), self.inside_usvfs():
+            (self.export / 'model.safetensors').write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError, 'selected identity'):
+                self.validate()
+            (self.export / 'model.safetensors').write_bytes(b'not a neural model; fixture identity only')
+            (self.refs / 'johnny-silverhand.wav').write_bytes(b'changed')
+            registry = self.validate()
+        self.assertEqual(registry['unavailable'], {'johnny-silverhand': 'unavailable'}, 'a changed reference withdraws that voice')
+        self.assertNotIn('johnny-silverhand', registry['refs'])
+
+    def test_inside_usvfs_the_pinned_source_check_still_reads_the_files(self):
+        with self.usvfs_resolve(), self.inside_usvfs():
+            with self.assertRaisesRegex(ValueError, 'pinned official revision'):
+                runtime.validate_config(self.config, yaml_load=json.loads)
+
+    def test_a_link_is_refused_inside_usvfs_as_it_is_outside(self):
+        real = Path.is_symlink
+        with self.usvfs_resolve(), self.inside_usvfs():
+            with patch.object(Path, 'is_symlink', lambda path: path.name == 'model.safetensors' or real(path)):
+                with self.assertRaisesRegex(ValueError, 'missing or linked'):
+                    runtime.local_asset(self.export, 'model.safetensors')
+            with patch.object(Path, 'is_symlink', lambda path: path == self.export or real(path)):
+                with self.assertRaisesRegex(ValueError, 'linked'):
+                    self.validate()
+            with patch.object(Path, 'is_symlink', lambda path: path == self.refs.parent or real(path)):
+                with self.assertRaisesRegex(ValueError, 'linked'):
+                    self.validate()
+
+    def test_a_real_symlink_planted_in_the_export_is_refused_inside_usvfs(self):
+        outside = self.root / 'elsewhere.bin'
+        outside.write_bytes(b'not the export')
+        (self.export / 'receipt.json').unlink()
+        try:
+            os.symlink(outside, self.export / 'receipt.json')
+        except (OSError, NotImplementedError):
+            self.skipTest('symbolic links are not available here')
+        with self.inside_usvfs(), self.assertRaisesRegex(ValueError, 'missing or linked'):
+            self.validate()
+
+    def test_without_usvfs_the_decisions_are_exactly_as_before(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(runtime.USVFS_VARIABLE, None)
+            registry = self.validate()
+        self.assertEqual(registry['paths']['exportDirectory'], self.export.resolve())
+        self.assertEqual(registry['paths']['referenceDirectory'], self.refs.resolve())
+
+    def test_spelled_containment_is_by_name_and_never_follows_dots(self):
+        base = self.root / 'app'
+        self.assertTrue(runtime.spelled_inside(base, base))
+        self.assertTrue(runtime.spelled_inside(base / 'models' / 'pocket' / 'a.bin', base))
+        self.assertFalse(runtime.spelled_inside(base / '..' / 'other' / 'a.bin', base))
+        self.assertFalse(runtime.spelled_inside(base / 'models' / '..' / '..' / 'a.bin', base))
+        self.assertFalse(runtime.spelled_inside(self.root / 'app-other' / 'a.bin', base), 'a sibling that starts with the same letters is not inside')
+        self.assertTrue(runtime.spelled_inside(str(base).upper() + os.sep + 'X', str(base).lower()) or os.name != 'nt')
+
+
 class Pipe:
     def __init__(self):
         self.lines=queue.Queue()

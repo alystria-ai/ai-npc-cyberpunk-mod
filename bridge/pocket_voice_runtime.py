@@ -289,6 +289,29 @@ def sha(value):
     return isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) is not None
 
 
+# Mod Organizer 2 runs the game, and every process it starts, inside USVFS (a virtual file system). The service sets this variable to "1" in every
+# process it starts there (packaging/runtime/usvfs-compat.mjs). A folder of the app is then the merge of several mod folders, and Path.resolve() of a file
+# in it answers with the real place of that one file: the mod that holds it, which is rarely the mod that resolve() of the folder named. Comparing
+# resolved paths therefore refuses a file that is plainly inside its folder. Under USVFS the paths are compared as they are spelled instead
+# (absolute, normalised, never resolved), and every component of the path is still refused when it is a symlink or junction, so a link planted in the
+# app folder still cannot redirect the worker. The bytes read are the real files either way, and their hashes are checked against the pinned list.
+USVFS_VARIABLE = "CYBERPUNK_CONVAI_USVFS"
+
+
+def usvfs_active(environ=None):
+    return (os.environ if environ is None else environ).get(USVFS_VARIABLE) == "1"
+
+
+def is_linked(path):
+    return path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction())
+
+
+def spelled_inside(path, root):
+    """True when `path` is `root` or below it as spelled (absolute, `..` collapsed, case folded on Windows), without resolving either."""
+    path, root = os.path.normcase(os.path.abspath(path)), os.path.normcase(os.path.abspath(root))
+    return path == root or path.startswith(root.rstrip("\\/") + os.sep)
+
+
 def plain_absolute(value, label):
     if (not isinstance(value, str) or not value or value != value.strip()
             or any(ord(char) < 32 or ord(char) == 127 for char in value)):
@@ -299,15 +322,19 @@ def plain_absolute(value, label):
     # Check ancestors too: a symlink/junction must not mix one export with
     # another owner's references or move writes into an immutable asset tree.
     for candidate in (path, *path.parents):
-        if candidate.is_symlink() or (hasattr(candidate, "is_junction") and candidate.is_junction()):
+        if is_linked(candidate):
             raise ValueError(f"Pocket {label} must not use linked directories")
-    return path.resolve()
+    # Inside USVFS the path stays as spelled: its resolved form is only where one mod happens to hold it (see above).
+    return Path(os.path.abspath(path)) if usvfs_active() else path.resolve()
 
 
 def local_asset(root, name):
-    root = Path(root).resolve()
+    usvfs = usvfs_active()
+    root = Path(os.path.abspath(root)) if usvfs else Path(root).resolve()
     path = root / name
-    if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(root):
+    # Inside USVFS the file is looked at where the virtual folder shows it; it is refused when it is linked (or left the folder by spelling).
+    inside = spelled_inside(path, root) if usvfs else path.resolve().is_relative_to(root)
+    if is_linked(path) or not path.is_file() or not inside:
         raise ValueError("Pocket export asset is missing or linked")
     return path
 

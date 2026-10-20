@@ -20,8 +20,8 @@ import time
 
 from pocket_voice_runtime import (
     MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
-    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, apply_voices, cpu_environment, read_json, text_valid,
-    validate_config,
+    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, apply_voices, cpu_environment, read_json, spelled_inside, text_valid,
+    usvfs_active, validate_config,
 )
 
 
@@ -485,7 +485,9 @@ def main():
             from pocket_tts import TTSModel
             beat("pocket_tts")
 
-            if not Path(pocket_tts.__file__).resolve().is_relative_to(source):
+            # Inside Mod Organizer 2's USVFS the package is looked at where the virtual source folder shows it (pocket_voice_runtime.USVFS_VARIABLE).
+            if not (spelled_inside(pocket_tts.__file__, source) if usvfs_active()
+                    else Path(pocket_tts.__file__).resolve().is_relative_to(source)):
                 raise RuntimeError("Pocket import did not resolve to the pinned local source")
             torch.set_num_threads(registry["threads"])
             torch.set_num_interop_threads(1)

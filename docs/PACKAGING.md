@@ -527,6 +527,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
     incomplete download is. The Runtime's own `models/stt/<id>` (a pack merged into the Runtime's mod) is still the second place looked at. The service
     log has `Mod Organizer 2: voice-input pack models, where each runs from (...)`: one line per pack found, with its real folder and whether all its files are in it.
     The English model (Moonshine) is part of the Runtime and is unchanged.
+  - **The voice workers (Pocket, V's helper, OmniVoice)** check that their assets lie inside their folders and that no link redirects them.
+    Both used to compare `Path.resolve()` results, and under USVFS the resolved path of a file is the mod folder that holds it, which is not
+    where its folder resolves to when the folder is a merge of several mods (an update mod over the Runtime), and the OmniVoice pack is a mod
+    of its own, outside the Runtime's folder. A player on MO2 (0.2.4, same code in 0.2.5) got no voice at all: Pocket "export asset is missing
+    or linked", OmniVoice "Portable voice assets must remain in the application directory". Now, when `CYBERPUNK_CONVAI_USVFS=1`
+    (every process the service starts under MO2), both workers compare the paths as spelled (absolute, `..` collapsed, never resolved) and
+    still refuse a symlink or junction in any component; the pinned SHA-256 checks read the real bytes as before. The OmniVoice worker also
+    takes the pack's own folder as a second approved root for its model, adapter and Python package: `start-service.mjs` names it in
+    `CYBERPUNK_CONVAI_OMNI_PACK` (`serviceEnvironment(..., {usvfs})`; only under usvfs), and the persistent voice data must stay apart from it too.
+    A physical install sets neither variable and every check is as before. Tests: `scripts/test_pocket_voice_runtime.py` (`UsvfsPaths`),
+    `scripts/test_resident_voice_paths.py` (`UsvfsVoicePaths`), `packaging/mo2-voice-workers.test.mjs`. The phone-analysis worker is unchanged: nothing in the
+    player install writes its `phone-analysis.json`, so it is not started for players.
   - **Where the files were found** is in the service log (`Mod Organizer 2: Local AI pack files, where each really is (...)`: one line per marker,
     model, the server with whether its DLLs are beside it, the embedding model) and in the support report's `localAi.packFiles` (`foundIn`: the MO2
     mod folder's name, never a path; `engine`: the server's and the embedding model's mod and whether the DLLs sit beside the server). A physical
@@ -536,7 +548,8 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
   `packaging/runtime-layout.mjs` (`realpath`, "cannot redirect into another location") belongs to the bootstrap route
   (`Runtime-Service.mjs`), which `launcher.ini` never starts. The voice workers' checks (`pocket-voice.mjs`, `phone-analysis-config.mjs`,
-  `resident-voice.mjs`) canonicalize both sides alike and run only once the bridge is up.
+  `resident-voice.mjs`) canonicalize both sides alike and run only once the bridge is up. The Python workers' own path checks
+  (`bridge/pocket_voice_runtime.py`, `bridge/resident-voice-worker.py`) compared `Path.resolve()` results, which under MO2 differ (below, "The voice workers").
 - **A start never ends without a status.** `start-service.mjs` writes `runtime/bridge-service.json` from its first line, in place:
   `starting` / `service-starting` with `source: "service"`, the `stage` it is in (`loading-modules`, `preparing`, `placing-packs`,
   `preparing-state`, `loading-supervisor`) and a `view` (`usvfs no; Runtime outside the game folder; init.lua visible`, so the short
