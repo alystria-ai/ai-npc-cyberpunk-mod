@@ -52,7 +52,7 @@ Requirements, controls and troubleshooting are on the [Nexus Mods page](https://
 
 ## Mature packs (18+)
 
-For adults only. The main mod has a **Mature content** setting, off by default, for Local AI only. The standard models refuse most adult content. These packs add uncensored models, so the setting has its full effect: strong language, graphic violence, dark themes, and romance and sexual content between consenting adults.
+For adults only. The main mod has a **Mature content** setting, off by default, for Local AI, Mistral and Custom. The standard models refuse most adult content. These packs add uncensored models for Local AI, so the setting has its full effect: strong language, graphic violence, dark themes, and romance and sexual content between consenting adults.
 
 The **hard limits are always on**, on every model: nothing involving minors, nothing without consent, nothing sexual about real people, no real-world weapon or drug instructions, no hate. The mod checks them on your messages before any model sees them, and on every reply before it is spoken.
 

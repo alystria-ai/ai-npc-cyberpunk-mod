@@ -50,7 +50,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
 import {VTalkLedger} from './v-talks.mjs';
-import {MatureContent} from './mature-content.mjs';
+import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
@@ -838,7 +838,7 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
 const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters, worldRules});
-// "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it. The optional Mature
+// "Mature content": read from the settings file when it changes (never per turn); the local AI, Mistral and Custom routes use it, Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
 const matureContent = new MatureContent();
@@ -1115,7 +1115,8 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   // pacing or pausing requests (a limit was hit, an allowance is nearly used up) V is skipped.
   cloud: {
     problem: key => {
-      if (matureContent.enabled) return 'Mature content keeps your lines off the cloud';
+      // Mature content with the text on this computer keeps V's line off the cloud; with Mistral or Custom text the line is sent there anyway (matureAllowsCloudVoice).
+      if (!matureAllowsCloudVoice(matureContent.enabled, mistral.preference)) return 'Mature content with Local AI keeps your lines off the cloud';
       if (!voxtralVoice.hasKey) return 'no Mistral key';
       if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
       if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;

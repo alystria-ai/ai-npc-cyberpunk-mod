@@ -242,7 +242,38 @@ test('Mature content turned on in place selects Local AI and the uncensored mode
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent ~= true and ns.find('Mature content').state == false, 'the switch went back to off')
-  assert(managerUi.inspect().shown == 'Needs Local AI.', tostring(managerUi.inspect().shown))
+  assert(managerUi.inspect().shown == 'Needs Local AI, Mistral or Custom.', tostring(managerUi.inspect().shown))
+`));
+
+test('Mature content beside Mistral or Custom is just turned on (provider, model and voice stay), Convai turns it off again, and Local AI still moves a cloud voice to Pocket', () => run(`${harness()}
+  local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
+  bridge('ready', {provider = 'mistral', effective = 'mistral', localAi = 'ready',
+    localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
+    localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
+  jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
+  files['runtime/local-voice-state.json'] = 'voice-state'
+  press('Settings')
+  frames(20)
+  -- Mistral: on at once, and nothing else changes (no Local AI, no uncensored model).
+  assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+  frames(8)
+  local mature = ns.find('Mature content')
+  assert(ns.find('Conversation provider').selectedElementIndex == 3 and mature.state == false)
+  ns.interact.toggle(mature); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.localModel ~= 'mature:unc', 'Mistral stays, the model is the player\\'s')
+  assert(saved.matureRestore == nil, 'nothing was changed, so there is no way back to keep')
+  assert(ns.find('Conversation provider').selectedElementIndex == 3 and ns.find('Mature content').state == true)
+  -- Custom: the same; switching from Mistral to Custom keeps it on.
+  ns.interact.select(ns.find('Conversation provider'), 5); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'custom' and saved.matureContent == true, 'Custom keeps Mature content on')
+  -- Choosing Convai turns it off.
+  ns.interact.select(ns.find('Conversation provider'), 1); frames(8); ns.verify()
+  assert(saved.conversationProvider == 'convai' and saved.matureContent == false, 'Convai turns it off')
+  -- Turning it on beside Custom with a cloud companion voice leaves the voice alone (the lines are in the cloud for the reply anyway).
+  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'convai', naturalSpeech = false, expressiveEmotions = false}))
+  frames(8)
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'convai', tostring(saved.voiceProvider))
 `));
 
 test('Restore defaults goes through the same validated path, only on the Settings page', () => run(`${harness()}

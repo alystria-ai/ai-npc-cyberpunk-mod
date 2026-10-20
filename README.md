@@ -88,7 +88,7 @@ To remove everything, also delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (the memori
 - **Relationships that follow your save.** Judy, Panam, River, Kerry and Meredith know where things stand with V.
 - **Make them yours.** Edit a character's bio, speaking style and memories in your browser, or make a character of your own (a name, a bio, a voice clip) for someone who has no profile, such as a spawned Night City Allies follower (with Mistral or Local AI). Give any story character a voice clip of your own, and the local voices copy it.
 - **Sixteen interface languages,** and a Multilingual setting that lets you talk in any language.
-- **An optional Mature setting** for adults. It is off by default and works with Local AI only. See [Mature content](#mature-content-18).
+- **An optional Mature setting** for adults. It is off by default and works with Local AI, Mistral and Custom. See [Mature content](#mature-content-18).
 
 Only characters the mod spawns join your party. Story characters you meet in the world, such as the game's own Judy or Jackie, can be talked to where they stand once you turn on Settings > Conversations > Talk to story characters (it is off by default): they answer in their own voice and their face follows the words, and nothing else about them changes, so the story plays out exactly as written.
 
@@ -205,7 +205,7 @@ For more Convai than the free tier gives, the **Convai paid tier** row right bel
 
 ### Mature content (18+)
 
-**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), add one model each without those refusals. Each includes the Local AI engine and the memory model, so either works on its own, without a Local AI pack (with a Mature pack alone, Local AI runs only while Mature content is on). Mature lite is about 2.9 GB to download and needs about 3.4 GB of free video memory; Mature standard is about 5.5 GB and needs about 6.5 GB. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
+**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI, Mistral and Custom: turning it on beside Convai selects Local AI, and choosing Convai turns it off. The Mature packs below are for Local AI. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), add one model each without those refusals. Each includes the Local AI engine and the memory model, so either works on its own, without a Local AI pack (with a Mature pack alone, Local AI runs only while Mature content is on). Mature lite is about 2.9 GB to download and needs about 3.4 GB of free video memory; Mature standard is about 5.5 GB and needs about 6.5 GB. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
 
 ## Pick a voice
 
@@ -629,7 +629,7 @@ Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan
 
 #### Mature content (setting and pack)
 
-`matureContent` (off by default) is part of the main mod and works with the Local AI provider only (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`). Turning it on stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The two optional packs, Mature lite and Mature standard (markers `manifest.mature-lite.json` and `manifest.mature-standard.json`, read by `bridge/mature-pack.mjs`; either works alone), add one uncensored model each, and each also ships the same `llama` folder and embedding model as the Local AI packs (the marker's `server` and `embed` fields, merged by `bridge/local-ai-pack.mjs`), so a Mature pack alone counts as an installed Local AI. With only Mature models installed, Local AI runs only while Mature content is on (`mature-off` otherwise; `bridge/local-model-choice.mjs`). They are distributed only on the Hugging Face page and built only by the release workflow's opt-in `mature` input, never on a tag push. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
+`matureContent` (off by default) is part of the main mod and works with the Local AI, Mistral and Custom providers, never Convai (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`; one layer for all three, built in `bridge/mistral-prompt.mjs`, with the hard-limit guard on each). Turning it on beside Convai or Local AI stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The two optional packs, Mature lite and Mature standard (markers `manifest.mature-lite.json` and `manifest.mature-standard.json`, read by `bridge/mature-pack.mjs`; either works alone), add one uncensored model each, and each also ships the same `llama` folder and embedding model as the Local AI packs (the marker's `server` and `embed` fields, merged by `bridge/local-ai-pack.mjs`), so a Mature pack alone counts as an installed Local AI. With only Mature models installed, Local AI runs only while Mature content is on (`mature-off` otherwise; `bridge/local-model-choice.mjs`). They are distributed only on the Hugging Face page and built only by the release workflow's opt-in `mature` input, never on a tag push. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
 
 ### Daily limit
 
@@ -1177,7 +1177,7 @@ The Settings page groups its rows in this order, one NSUI section each: Interfac
 | `gameDialogueContext` | Continue from game dialogue | on |
 | `holocallLiveImage` | Live holocall picture | on |
 | `conversationProvider` / `useOwnConvaiKey` | Conversation provider (Convai free tier, Convai API key, Mistral, Local) | `convai`, key off |
-| `matureContent`, `localModel` | Mature content (Local AI only), Local AI model | off, `auto` |
+| `matureContent`, `localModel` | Mature content (Local AI, Mistral, Custom), Local AI model | off, `auto` |
 | `eyeContactHeight` | Eye contact height (-0.10 to +0.10 m in five steps) | 0 |
 | `headFollowStrength` | Head tracking strength (0, 0.5, 1, 1.5) | 1 (Gentle) |
 | `bodyGestures` | Body gestures | on |
@@ -1189,7 +1189,7 @@ The Settings page groups its rows in this order, one NSUI section each: Interfac
 | `expressiveEmotions` | Expressive emotions | on, except beside a saved Convai cloud voice |
 | `followUpInterest` | Follow-up questions | on |
 | `vVoice` | V's voice for typed lines | on |
-| `vVoiceEngine` | V's voice engine: `pocket` or `voxtral` (Voxtral needs a Mistral key and is not kept with Mature content on) | `pocket` |
+| `vVoiceEngine` | V's voice engine: `pocket` or `voxtral` (Voxtral needs a Mistral key and is not kept with Mature content on and Local AI as the text provider) | `pocket` |
 | `subtitles`, `subtitleStyle` | Subtitles, display (`dialogue` or `overhead`) | on, `dialogue` |
 | `battleReactions`, `lootReactions` | Automatic reactions | off, off |
 | `developerMode` | Developer mode | off |

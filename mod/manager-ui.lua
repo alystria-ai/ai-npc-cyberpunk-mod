@@ -463,16 +463,20 @@ local function voiceStatusText(snapshot)
     if support and support.serviceFault() == 'browser' then return ui.t('Needs a browser') end
     return voiceServiceLabel(snapshot.localVoice)
 end
--- Mature content only works with the Local AI provider, its replies must not go to a cloud voice, and it never stands beside a cloud
--- provider (Convai free tier, Convai API key, Mistral, Custom). So turning it ON also selects, in the same saved transaction, the Local AI
--- provider, the uncensored model and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it is); without
--- the Local AI pack it cannot be on at all and the switch goes back to off. Picking a cloud provider while it is on turns it OFF.
+-- Mature content works with the Local AI, Mistral and Custom providers and never stands beside Convai (free tier or API key). With Local AI its
+-- replies must not go to a cloud voice. So turning it ON beside Convai selects, in the same saved transaction, the Local AI provider, the
+-- uncensored model and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it is); without the Local AI pack it
+-- cannot be on beside Convai and the switch goes back to off. Beside Local AI it selects the uncensored model and Pocket TTS the same way; beside
+-- Mistral or Custom it changes nothing else (the lines go to that service anyway, and the model and voice are the player's). Picking Convai
+-- while it is on turns it OFF.
 -- Turning it OFF puts back what turning it on changed, unless the player changed it since. What was changed is kept in the saved
 -- settings (manager: matureRestore). stageMature computes all of it from the saved settings and the batch of changes; it runs when a
 -- change is applied and costs nothing otherwise.
 -- The provider list in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
 local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local', 'custom'}
 local LOCAL_PROVIDER = 4
+-- Positions of the providers that take Mature content as they are (Mistral, Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) never does.
+local MATURE_CLOUD_PROVIDERS = {[3] = true, [5] = true}
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
 local function customProblemText(reason)
     if reason == 'missing' then return ui.t('file not found') end
@@ -566,13 +570,14 @@ local function stageMature(changes, snapshot)
     if mature and mature.value == true and not savedMature then
         local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
         local usingLocal = providerNow == LOCAL_PROVIDER
-        if not usingLocal and (not installed or by.conversationProvider) then
-            -- Without the Local AI pack Mature content cannot be on beside a cloud provider: the switch goes back to off. The same
-            -- when the same change picks a cloud provider: the provider the player chose stays.
-            mature.value, refusal = false, ui.t('Needs Local AI.')
+        local cloudText = MATURE_CLOUD_PROVIDERS[providerNow] == true
+        if not usingLocal and not cloudText and (not installed or by.conversationProvider) then
+            -- Without the Local AI pack Mature content cannot be on beside Convai: the switch goes back to off. The same
+            -- when the same change picks Convai: the provider the player chose stays.
+            mature.value, refusal = false, ui.t('Needs Local AI, Mistral or Custom.')
         else
             record = {}
-            if not usingLocal and PROVIDER_IDS[providerNow] then
+            if not usingLocal and not cloudText and PROVIDER_IDS[providerNow] then
                 stage('conversationProvider', LOCAL_PROVIDER)
                 record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
                 names[#names + 1] = ui.t('Local AI')
@@ -610,8 +615,8 @@ local function stageMature(changes, snapshot)
     elseif mature and mature.value == false and savedMature then
         turnedOff()
     elseif savedMature and not mature and by.conversationProvider and providerNow ~= LOCAL_PROVIDER
-        and providerNow ~= providerIndexOf(saved) then
-        -- A cloud provider picked while Mature content is on turns it off, with the same way back.
+        and not MATURE_CLOUD_PROVIDERS[providerNow] and providerNow ~= providerIndexOf(saved) then
+        -- Convai picked while Mature content is on turns it off, with the same way back.
         stage('matureContent', false)
         turnedOff()
     end
@@ -772,22 +777,19 @@ local function ownKeyRows(snapshot)
         or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
-    -- Mature content is part of the main mod (off by default). It works with the Local AI provider only: turning it on selects Local AI,
-    -- and choosing a cloud provider turns it off. The help says whether the optional Mature pack (uncensored models) is installed (the
-    -- bridge reports its marker).
+    -- Mature content is part of the main mod (off by default). It works with Local AI, Mistral and Custom: turning it on beside Convai selects
+    -- Local AI, and choosing Convai turns it off. The help says whether the optional Mature pack (uncensored models, Local AI) is installed
+    -- (the bridge reports its marker).
     local matureRow
     do
-        local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.')
+        local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Works with Local AI, Mistral and Custom.')
         -- The rules come before the pack: the description area holds only so much, and those are what has to be read.
         matureHelp = matureHelp .. '\n\n' .. ui.t('Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.')
         matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
-            and ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.')
-            or ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
-        matureHelp = matureHelp .. '\n\n' .. ui.t('Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
-            .. ' ' .. ui.t('Choosing a cloud provider turns it off.')
-        if not LOCAL_AI_PRESENT[mistral.localAi] then
-            matureHelp = ui.t('Needs Local AI.') .. '\n\n' .. matureHelp
-        end
+            and ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.')
+            or ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
+        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai, turning it on selects Local AI. With Local AI it also selects the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
+            .. ' ' .. ui.t('Choosing Convai turns it off.')
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
     -- Which installed Local AI model loads: each installed model by its manifest name, smallest file first (the bridge reports the list); the sizes

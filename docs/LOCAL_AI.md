@@ -868,7 +868,7 @@ party, V on foot beside their own stopped car with a destination marked on the m
 
 #### Part of the main mod; the pack only adds models
 
-The setting is part of the main mod. It is visible and usable without any other download, off by default, Local AI only, and turning it on
+The setting is part of the main mod. It is visible and usable without any other download, off by default, for Local AI, Mistral and Custom (2026-10-20; never Convai), and turning it on
 shows no notice (the user removed the 18+ notice on 2026-10-14; the help text says it is for adults, 18+). With the stock Local AI models it mostly changes language, violence and tone: those models are trained to refuse most
 sexual content, so the full effect needs the uncensored models of the optional Mature packs (Mature lite and Mature standard, one model each, either alone). The packs no longer gate anything (it did until
 2026-10-14). It changes the setting's help text, and since 2026-10-13 its models are loaded: they appear in the Local AI model row, and
@@ -887,7 +887,7 @@ with Mature content on the default choice and the fallback prefer the largest on
 - Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
   `mod/manager-ui.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
   replies refuses anything romantic or sexual involving minors on every model, and either "The Mature pack (uncensored models) is
-  installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
+  installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing Convai turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the packs (one uncensored GGUF each) are distributed ONLY as optional files on this project's Hugging Face repository
   (`alystria-ai/ai-npc-cyberpunk-mod-packs`, `0.N/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.N.zip` and `...-Mature-Standard-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
@@ -923,13 +923,12 @@ with Mature content on the default choice and the fallback prefer the largest on
 
 Settings > Conversation provider, right under the provider row: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
-only for this provider: the layer is built in `bridge/mature-content.mjs`, and `MATURE_PROVIDERS` is `{local: true, mistral: false,
-convai: false}`. The host asks for the layer per route (`TextProviderHost#matureLevel`), so a local turn that falls back to
-the player's cloud provider is answered without it. The settings page keeps it off while a cloud provider (Convai free tier, Convai API key, Mistral)
-is chosen: choosing one turns Mature content off in the drafts and puts back what turning it on changed, and load and Apply force it off (2026-10-14;
-docs/MANAGER_UI.md, "Mature content and cloud providers exclude each other").
+for the providers in `MATURE_PROVIDERS` (`{local: true, mistral: true, custom: true, convai: false}` since 2026-10-20, see "Mature content on Mistral and Custom"; Local AI only
+before): the layer is built in `bridge/mature-content.mjs`. The host asks for the layer per route (`TextProviderHost#matureLevel`). The settings page keeps it off while Convai
+(free tier or API key) is chosen: choosing Convai turns Mature content off in the drafts and puts back what turning it on changed, and load and Apply force it off (2026-10-14;
+docs/MANAGER_UI.md, the Mature content rule).
 Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
-that it applies to Local AI only and that some things are never allowed.
+that it works with Local AI, Mistral and Custom and that some things are never allowed.
 
 What it adds: one block of about 430 tokens (o200k count) at the END of the system head (`systemHead({mature})`), after the output rules and before
 the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
@@ -986,7 +985,7 @@ own voice, and any others you like (a palette, not a checklist: vary it, never t
 crude and sexual words (fuck, shit, cunt, cock, pussy, tits, ass, cum, hard, wet, horny, suck, ride, bend over ...) and 20 words of Night City slang taken from the game's
 own data (choom, gonk, preem, nova, delta, flatline, chrome, chromed-up, wetware, meat, eddies, joytoy, doll, dollhouse, BD, braindance, jack in, plug in, corpo,
 ripperdoc; "joytoy" is the game's word for a sex worker, though the repo's lore files do not quote it). The suggestive level gets the swears and the slang, none of the
-anatomical or act words. It is in the layer only, so it is on only while Mature is on and for the Local AI only; the closing sentence, the adults-only line, the HARD
+anatomical or act words. It is in the layer only, so it is on only while Mature is on and for the providers that have the layer; the closing sentence, the adults-only line, the HARD
 LIMITS and the guard are unchanged, and with the setting off the prompt is byte for byte the old one (48 requests of the brief set compared with `cmp`, plus the
 unit tests). Cost: the layer grows from 491 to 641 tokens with the Gemma tokenizer (488 to 636 with the Qwen3.5 one), about 150 tokens or 3% of a 4,400-token prompt.
 Measured on the two picks (`docs/MATURE_SAMPLES_V4_2026-10-14.md`): a crude or explicit word in 32 of 36 adult replies and 22 of 36 neutral ones on Gemma (18 and 6 before),
@@ -1001,7 +1000,7 @@ preselected when it fits). The research and the picks are in `docs/MATURE_MODELS
 skill, yet with the always-on crude prompt (round 3, `docs/MATURE_SAMPLES_V3_2026-10-14.md`) the 4B was the crudest light model measured, so it is the lite one.
 Good: Gemma-4-E4B-MiniFantasy (the crudest strong-slot model measured; Ministral-3-8B-Nymphaea was not).
 A one-time log line per bridge session says what the prompt got: `[MatureContent] layer applied (level full, model <name>)`, or
-`layer NOT applied (provider <name> never gets it)` when the setting is on and a cloud provider answers. No words of a turn are ever logged.
+`layer NOT applied (provider <name> never gets it)` when the setting is on and a provider without the layer (Convai) is asked. No words of a turn are ever logged.
 The age guard (2026-10-14), before the hard limits: "You and V are adults, 18 or older, always ... do not play, pretend or imagine yourself or
 V as a child, a teen or a student, or as younger in any way ... If V asks, refuse in one short line, in character." Hard limits, last in
 the layer, for every model: nothing sexual with anyone under 18 or who seems under 18; nothing without consent or glorifying sexual
@@ -1085,11 +1084,42 @@ tuned against). On a stress set of 47 harmless messages that put a child word be
 the rule itself (the Mature help text, "children" next to "romanticizing" in research notes). With a model, one benign reply was dropped by the
 output screen in each run (`b-nervous` on Gemma, `minor-hate-kids` on Qwen 4B).
 
+#### Mature content on Mistral and Custom (2026-10-20)
+
+Owner decision of 2026-10-20, after `deliverables/mature-cloud-check-2026-10-20.md` (terms read and 54 live turns on two Mistral models: no refusal, the tone
+clearly changed): the setting now also works with the **Mistral** and **Custom** (OpenAI-compatible) text providers. **Convai never gets it** (its prompting cannot
+take the layer). The Mature **models** (the Mature pack) stay Local AI only, and the model-row gating of Local AI (Mature models listed and loaded only with the
+setting on, the Mature-only install failing with `mature-off` while it is off) is unchanged.
+- **One layer, one builder.** `MATURE_PROVIDERS` is `{local: true, mistral: true, custom: true, convai: false}`. The host asks per route (`TextProviderHost#matureLevel`),
+  so Mistral and Custom turns get exactly the text the Local AI gets, built by the same `buildMessages`/`systemPrompt` in `bridge/mistral-prompt.mjs`: the layer (with the
+  word palette) ends the system head, then the player's world rules, the format notes, the world block (`matureWorld`, a partner's relationship text leans in), the memory
+  summary and the right-now block; the closing sentence of the user message carries the Mature sentence. Every turn, as on Local AI. Convai's context carries none of it. Order and
+  sameness are pinned in `bridge/mature-content.test.mjs`.
+- **The level** comes from the model name like on Local AI (`allowanceFor`): a Mistral model (ministral, mistral, mixtral) is in no row, so it gets `suggestive` (crude and
+  forward, the act cut away); a Custom model is read by its name (a Qwen or Gemma 4 model gets `full`, an unlisted one `suggestive`). Mistral and Custom ask for no model
+  start, so nothing is awaited (the model is the first one the route will ask).
+- **The guard follows.** With the setting on, the hard-limit guard runs on those two routes too: the input screen (before any request), the output screen, the first-sentence
+  screen for the voice, and the adults-only and hard-limit lines. With the setting off nothing runs there (only the Local AI also screens an uncensored model with the setting off).
+  Add-on hosts (guard only) follow the same route rule.
+- **A Local AI turn that falls back to Mistral** is now answered with the layer on both routes (Mistral has it), where before the fallback went without it.
+- **The setting page:** it is no longer forced off by Mistral or Custom, and choosing them leaves it on and changes nothing else. Turning it on beside Convai still selects Local AI
+  (with the uncensored model and a local voice instead of a cloud one), or goes back to off with "Needs Local AI, Mistral or Custom." without the pack. Choosing Convai turns it off.
+  Turning it on beside Mistral or Custom changes no provider, model or voice and keeps no way back (`matureRestore`). Loading or applying a saved Convai + Mature pairing saves it as off.
+- **Voxtral voice rule (V's lines).** With Mature on and the text on **Local AI**, V's line stays off the cloud as before: the manager refuses Voxtral, turning it on moves V
+  to Pocket, a hand-edited pairing is normalised at load, and the bridge refuses a cloud V line (`matureAllowsCloudVoice` in `bridge/mature-content.mjs`; the log says
+  "Mature content with Local AI keeps your lines off the cloud"). With the text on **Mistral or Custom** the line is already sent to the cloud for the reply, so the
+  cloud voice adds no new exposure and is allowed. Moving back to Local AI with Voxtral saved moves V to Pocket. The companions' own voices were never restricted.
+- **What the player is told.** The row's help says it works with Local AI, Mistral and Custom, that the Mature pack's uncensored models are for Local AI, and what is never
+  allowed. No warning popup and no notice (unchanged). With Mistral or Custom the player's lines go to that service as every turn does, and its own terms apply
+  (docs/MISTRAL.md, docs/CUSTOM_PROVIDER.md).
+- **Policy.** The 2026-10-13 verdict for Mistral (ambiguous) stands as a reading of the terms; the owner decided to offer the setting anyway, with the hard limits and the
+  guard on, and the level capped by the model name (suggestive for Mistral's own models).
+
 Provider policies (read 2026-10-13; the pages were summarised by a small model, so re-read them before the release):
 - Mistral, Usage Policy (legal.mistral.ai/terms/usage-policy, effective June 11, 2026): no sentence permits or bans adult sexual
   content as such. It bars "Content that enables or exploits individuals, including through human trafficking or sexual services." and
   intimate images "without the explicit consent of all individuals involved." Its Commercial Terms add no content line. `safe_prompt`:
-  "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stays off.
+  "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stayed off; the owner turned it on on 2026-10-20 (see "Mature content on Mistral and Custom").
 - Groq (Acceptable Use and Responsible AI Policy, read 2026-10-13): ambiguous, so it stayed off; Groq was removed as a provider on 2026-10-14.
 - Convai: never (a hosted service; the player's own key changes nothing).
 

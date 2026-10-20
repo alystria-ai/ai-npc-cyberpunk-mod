@@ -169,9 +169,10 @@ Both engines are English only: a turn in another language gets no V line (subtit
 **Missing key, Mature content, language.** Voxtral for V needs a Mistral key: the row reads "Voxtral · needs Mistral key" and the
 manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). If the key
 is removed later, the bridge skips V's line (one log line, subtitle still shown); there is **no silent fallback to Pocket**, because
-that would load a model the player did not choose. Mature content keeps V's lines off the cloud: the manager refuses Voxtral while
-Mature is on, turning Mature on moves V to Pocket (with the page reload Mature already does, no notice), a hand-edited pairing is
-normalized at load, and the bridge refuses a cloud V line with Mature on.
+that would load a model the player did not choose. Mature content with Local AI keeps V's lines off the cloud: the manager refuses Voxtral while
+Mature is on and Local AI is the text provider, turning Mature on (or choosing Local AI beside it) moves V to Pocket (with the page reload Mature already does, no notice), a hand-edited pairing is
+normalized at load, and the bridge refuses a cloud V line then (`matureAllowsCloudVoice`). With Mistral or Custom text (Mature may be on there since 2026-10-20) the line goes to the cloud
+for the reply anyway, so Voxtral is allowed.
 
 **Measured (simulated providers, `scripts/Measure-VVoice.mjs`, real `VVoice`/`VLine`/`TurnClock`; prep 180 ms, companion text 900 ms,
 5 runs; milliseconds).** "Delay" is when the reply's audio starts, minus when it would start without V.

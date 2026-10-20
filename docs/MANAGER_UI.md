@@ -163,15 +163,16 @@ the main settings saved.
 After every apply the page is drawn again. **What the rules did is shown on the rows in place**, with one line under Back:
 
 - A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
-  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI."). The other changes of the same moment are kept.
+  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI, Mistral or Custom."). The other changes of the same moment are kept.
 - A rule that **moves other rows** corrects them in place, and the line names what moved:
-  - **Mature content** needs Local AI and never stands beside a cloud provider. Turning it on also selects, in the same transaction, the
-    Local AI provider, the largest uncensored model that fits (when one is installed) and, when the companion voice is a cloud voice,
-    Pocket TTS (a local voice is left as it is; with Multilingual conversations on, OmniVoice Balanced is used instead, and nothing
-    moves when its pack is missing). Without the Local AI pack it cannot be on and the switch goes back to off ("Needs Local AI.").
+  - **Mature content** works with Local AI, Mistral and Custom (since 2026-10-20) and never stands beside Convai (free tier or API key). Turning it on
+    beside Convai, or beside Local AI, also selects, in the same transaction, the Local AI provider (from Convai), the largest uncensored model that fits
+    (when one is installed) and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it is; with Multilingual conversations
+    on, OmniVoice Balanced is used instead, and nothing moves when its pack is missing). Without the Local AI pack it cannot be on beside Convai and the
+    switch goes back to off ("Needs Local AI, Mistral or Custom."). Beside Mistral or Custom it just turns on and changes nothing else (no way back is kept).
     What it changed is kept in `settings.json` (`matureRestore`: `{conversationProvider, localModel, voice}` each as `{before, set}`),
-    so turning it off puts back what it changed, except anything the player changed since; choosing a cloud provider turns it off the
-    same way. The line reads "Also changed: ...".
+    so turning it off puts back what it changed, except anything the player changed since; choosing Convai turns it off the
+    same way; choosing Mistral or Custom leaves it on. The line reads "Also changed: ...".
   - **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice keeps
     it and turns Natural speech and Expressive emotions off (they would be read aloud). One notice ("The Convai cloud voice cannot use
     Natural speech or Expressive emotions, so they were turned off.") shows only when the player had set one of them
@@ -179,7 +180,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     Pocket · Performance with the "needs a local voice" notice. If one batch picks the cloud voice and turns a tag setting on, the voice
     wins. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
     Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
-  - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on.
+  - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on with Local AI as the text provider (with Mistral or Custom text it is allowed: the lines are in the cloud for the reply anyway).
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
   page and the Relationships page it applies every saved row of both pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
@@ -327,10 +328,10 @@ group, the last one goes round to All).
 
 **Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
 Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
-`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content turns on Local AI,
+`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content beside Convai or Local AI turns on Local AI,
 the uncensored model and a local voice with it; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
 asked for, not the extra ones the rules saved. MCM loads the page again and the rows show what was saved. If the rules did not keep a
-requested value (Mature content without Local AI), MCM would keep that draft as unapplied: the host reverts it from the next tick and
+requested value (Mature content beside Convai without Local AI), MCM would keep that draft as unapplied: the host reverts it from the next tick and
 the status line gives the reason. MCM refuses a button while changes are pending ("Apply or revert pending changes ..."); that is MCM's
 own rule.
 

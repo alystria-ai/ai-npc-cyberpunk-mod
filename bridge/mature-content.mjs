@@ -1,17 +1,19 @@
 // "Mature content" (Settings > Voices, off by default; docs/LOCAL_AI.md, "Mature content").
 //
-// The setting is part of the main mod: off by default, the local AI only, with an 18+ notice when it is turned on. It works with any model;
+// The setting is part of the main mod: off by default, with an 18+ notice when it is turned on. It works with any model;
 // the standard ones are trained to refuse most sexual content, so for them it mostly changes language, violence and tone, and the optional
 // uncensored models of the Mature pack (bridge/mature-pack.mjs, packaging/MATURE_PACK_README.md; a separate download on the project's
 // GitHub releases only) give the full effect. Whatever the model, the hard-limit guard (bridge/mature-guard.mjs) runs while the setting is on.
 // Off: nothing here runs and the prompt is byte for byte the one built without it.
-// On: the fully local AI (and only that provider) gets one short layer at the end of the system head, right after the output rules, so
-// it sits in the stable early part of the prompt (the llama-server prefix cache keeps working) and the prompt budget never cuts it
-// (bridge/prompt-budget.mjs only trims the world, memory, history, notes and example lines). Every other provider is refused here:
+// On: the text providers that may have it (MATURE_PROVIDERS: the local AI, Mistral and the Custom provider; owner decision 2026-10-20) get one
+// short layer at the end of the system head, right after the output rules, so it sits in the stable early part of the prompt (the llama-server
+// prefix cache and Mistral's prompt cache keep working) and the prompt budget never cuts it (bridge/prompt-budget.mjs only trims the world,
+// memory, history, notes and example lines). It is the same layer, word bank and closing line on every one of them, built in one place
+// (bridge/mistral-prompt.mjs), so the world rules, the world block and the right-now block follow it exactly as they do on the local AI.
+// Every other provider is refused here:
 //   convai    never (a hosted service with its own rules; the player's own key does not change that)
-//   mistral   no: its published usage policy does not clearly permit adult sexual content through the API
-// (the quotes and dates are in docs/LOCAL_AI.md). A provider is added by setting its flag below to true, and only with a policy that
-// says so in plain words.
+// With Mistral or Custom the player's lines go to that service as they do for every turn; its own terms apply (docs/MISTRAL.md,
+// docs/CUSTOM_PROVIDER.md). A provider is removed from the layer by setting its flag below to false.
 //
 // What the layer allows depends on the model that is loaded, because a model's licence can forbid what the layer would otherwise
 // invite. `MODEL_ALLOWANCE` is a small table keyed by model family; the family is read from the loaded model's name (the pack
@@ -22,8 +24,16 @@
 // The hard limits are in both. Pure functions and one small state holder: no I/O.
 import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 
-/** Providers that may get the layer. */
-export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: false, convai: false});
+/** Providers that may get the layer (the route names of bridge/text-provider-host.mjs; Convai prompting cannot take it). */
+export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: true, custom: true, convai: false});
+
+/**
+ * With the setting on, may V's cloud voice (Voxtral, a request to Mistral) speak? `preference` is the Conversation provider setting. The old rule
+ * ("Mature content keeps your lines off the cloud") holds while the text stays on this computer (Local AI) and wherever the layer does not apply
+ * (Convai, which Mature content is never on beside): V's line is spoken locally. With the text on Mistral or Custom the line is already sent to
+ * the cloud for the reply, so the cloud voice adds no new exposure and is allowed. Off, nothing here restricts the voice.
+ */
+export const matureAllowsCloudVoice = (enabled, preference) => enabled !== true || (MATURE_PROVIDERS[preference] === true && preference !== 'local');
 
 /** The allowance per model family, first match wins. `licence` is the reason, for the log and the docs. */
 export const MODEL_ALLOWANCE = Object.freeze([
@@ -114,7 +124,7 @@ const SPEECH = {
 // eddies, chrome, meat, dollhouse, braindance/BD, jack in; "joytoy" is the game's own word for a sex worker, used in its dialogue, though the repo's data files
 // do not quote it) and the innuendo that builds on those words. It is a palette, not a checklist: the line says so, and the model is told to keep it natural
 // and to use any other words it likes. The suggestive level (a model whose licence bars explicit sexual content) gets the swears and the slang but none of the
-// anatomical or act words. Part of the layer, so it is on only while the setting is on, for the local AI only.
+// anatomical or act words. Part of the layer, so it is on only while the setting is on, for the providers in MATURE_PROVIDERS.
 const PALETTE = {
   full: 'Use words like these freely and often, in your own voice, and any others you like (a palette, not a checklist: vary it, never the same word at the end of every reply, only where it sounds natural):'
     + 'fuck, fucking, shit, bitch, bastard, asshole, prick, cunt, cock, dick, pussy, tits, ass, cum, hard, wet, horny, suck, ride, bend over; '
@@ -181,7 +191,7 @@ export const MATURE_USE = 'Let your affection and desire for V colour how you sp
 export const MATURE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises. What you do and want now, in this moment with V, is yours to say.';
 const WORLD_SWAPS = Object.freeze([[ROMANCE_USE, MATURE_USE], [ROMANCE_LIMITS, MATURE_LIMITS]]);
 
-/** The world block of a turn as the local AI gets it with the setting on (see above); `text` unchanged when it holds neither paragraph. */
+/** The world block of a turn as a provider in MATURE_PROVIDERS gets it with the setting on (see above); `text` unchanged when it holds neither paragraph. */
 export function matureWorld(text) {
   let out = String(text ?? '');
   for (const [from, to] of WORLD_SWAPS) if (out.includes(from)) out = out.split(from).join(to);
@@ -193,7 +203,7 @@ export const MATURE_MARK = 'MATURE CONTENT IS ON';
 
 /**
  * The setting. `requested` follows runtime/settings.json (off unless the file says `true`) and is all that decides `enabled`: the setting is
- * part of the main mod (off by default, Local AI only). `pack` is whether the optional Mature pack (the uncensored models, a separate download
+ * part of the main mod (off by default). `pack` is whether the optional Mature pack (the uncensored models, a separate download
  * on the project's GitHub releases; bridge/mature-pack.mjs) is installed. It never gates the setting; it adds a line to the setting's help text and
  * makes Local AI's Auto model choice prefer an uncensored model while the setting is on (bridge/local-model-choice.mjs).
  */

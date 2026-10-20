@@ -104,14 +104,14 @@ for (const code of codes) {
 
 test('the Mature content rules and the note on who answers survive the cut in every language', () => {
   const never = 'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.';
-  const intro = 'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.';
-  const packLine = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
+  const intro = 'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Works with Local AI, Mistral and Custom.';
+  const packLine = 'The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
   const providerFirst = 'Who writes your companions’ replies. A change waits until no conversation is running.';
   for (const code of ['en', ...codes]) {
     const rows = code === 'en' ? Object.fromEntries(Object.keys(catalog.strings).map(key => [key, key])) : localeTable(code);
     const tr = text => rows[text] ?? assert.fail(`${code}: no translation of ${text.slice(0, 40)}`);
-    // The Mature help as the page builds it: the rules first (and "Needs Local AI." in front when Local AI is missing).
-    const help = [tr('Needs Local AI.'), tr(intro), tr(never), tr(packLine)].join('\n\n');
+    // The Mature help as the page builds it: the rules first.
+    const help = [tr(intro), tr(never), tr(packLine)].join('\n\n');
     run(`${nsuiFixture}
       local fitted = managerUi.fitDescription(${JSON.stringify(help)})
       assert(fitted:find(${JSON.stringify(tr(never))}, 1, true), '${code}: the rules of Mature content were cut')
