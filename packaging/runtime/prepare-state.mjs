@@ -48,7 +48,8 @@ async function writeIfChanged(path, bytes) {
 // dataHome: the folder that holds data/ (state-home.mjs dataHomeFor), or null/undefined to keep data/ in the game's mod folder.
 // packRoots: {localAi, omni}, where an optional pack is when that is not under app/ (a pack installed as its own Mod Organizer 2 mod;
 // start-service.mjs), else app/local-ai and app/omni. omni is the pack's real folder (one pack, Python runs from it); localAi is the
-// VIRTUAL folder, where the Local AI and Mature packs (each its own mod) are merged: the bridge maps each file to its real place.
+// VIRTUAL folder, where the Local AI and Mature packs (each its own mod) are merged: the bridge maps each file to its real place. stt is the
+// virtual app/models/stt, where the voice-input packs (each its own mod) are merged: layout.sttPacks and CYBERPUNK_CONVAI_STT_PACKS exist only then.
 export function installLayout({appDirectory, gameRoot, dataHome = null, packRoots = {}}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
   const omni = packRoots.omni ? resolve(packRoots.omni) : resolve(app, 'omni');
@@ -67,6 +68,7 @@ export function installLayout({appDirectory, gameRoot, dataHome = null, packRoot
     omniDefaults: resolve(omni, 'defaults'),
     // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, llama/, models/).
     localAi: packRoots.localAi ? resolve(packRoots.localAi) : resolve(app, 'local-ai'),
+    ...(packRoots.stt ? {sttPacks: resolve(packRoots.stt)} : {}),
   });
 }
 
@@ -217,6 +219,8 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
   // The folder of the copies of the player's state files in runtime/ (bridge/game-state.mjs, docs/PACKAGING.md "Mod Organizer 2"): the bridge keeps
   // them current. Only with a data home outside the game folder, where Mod Organizer 2 cannot lose them; a copy inside the game folder is no safer.
   if (layout.dataHome) env.CYBERPUNK_CONVAI_GAME_STATE = resolve(layout.state, 'game-state');
+  // Under Mod Organizer 2 the voice-input packs are looked up in the virtual folder (bridge/local-stt.mjs resolveLocalSttPaths); a physical install sets nothing.
+  if (layout.sttPacks) env.CYBERPUNK_CONVAI_STT_PACKS = layout.sttPacks;
   if (omni) Object.assign(env, {
     CYBERPUNK_CONVAI_PYTHON: layout.omniPython,
     CYBERPUNK_CONVAI_OMNI_MODEL: layout.omniModel,

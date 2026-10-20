@@ -201,6 +201,7 @@ enterStage('preparing');
 //     into one virtual folder. locate() would map that folder to ONE mod's real folder (the mod of the highest priority) and hide the other
 //     packs' markers and models, so the bridge gets the VIRTUAL folder (its stat fallbacks list and read it merged) and maps each file a
 //     manifest names to its own real place (bridge/local-ai-pack.mjs, realPathFor; llama-server and its DLLs from one real folder).
+//   - stt (voice-input packs, app/models/stt/<id>): the same, with the virtual folder (bridge/local-stt.mjs resolveLocalSttPaths).
 function packRootsFor() {
   if (!usvfsCompat || launchedApp === appDirectory) return {};
   const roots = {};
@@ -209,6 +210,10 @@ function packRootsFor() {
     const found = usvfsCompat.locate(virtual);
     if (found.kind !== 'missing') roots[key] = key === 'localAi' ? virtual : found.path;
   }
+  // The voice-input packs (app/models/stt/<id>, one mod each): the VIRTUAL folder lists every mod's <id> folders; bridge/local-stt.mjs maps each model
+  // file to its real place and hands the worker the one real folder that holds the most of a model's files.
+  const stt = resolve(launchedApp, 'models/stt');
+  if (usvfsCompat.locate(stt).kind !== 'missing') roots.stt = stt;
   return roots;
 }
 const layoutFor = dataHome => installLayout({appDirectory, gameRoot, dataHome, packRoots: packRootsFor()});
@@ -310,6 +315,18 @@ if (usvfsCompat) {
     const lines = packPlaceLines({environment: {CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi, CYBERPUNK_CONVAI_USVFS: '1'}});
     if (lines.length) log(`Mod Organizer 2: Local AI pack files, where each really is (${layout.localAi}):\n  ${lines.join('\n  ')}`);
   } catch (error) { log(`Mod Organizer 2: locating the Local AI pack files failed: ${error?.message || error}`); }
+  // And the voice-input packs: the virtual folder the bridge reads (CYBERPUNK_CONVAI_STT_PACKS) and the real folder each model is run from.
+  try {
+    if (layout.sttPacks) {
+      const [{resolveLocalSttPaths}, {LOCAL_PACKS}] = await Promise.all([import('../bridge/local-stt.mjs'), import('../bridge/speech-language.mjs')]);
+      const lines = [];
+      for (const pack of LOCAL_PACKS) {
+        const {modelDirectory, place} = resolveLocalSttPaths({project: layout.app, environment: {CYBERPUNK_CONVAI_STT_PACKS: layout.sttPacks, CYBERPUNK_CONVAI_USVFS: '1'}, engine: pack});
+        if (place?.count) lines.push(`${pack.id}: ${modelDirectory} (${place.count === place.of ? `all ${place.of} files` : `${place.count} of ${place.of} files; the model is not complete in one folder`})`);
+      }
+      if (lines.length) log(`Mod Organizer 2: voice-input pack models, where each runs from (${layout.sttPacks}):\n  ${lines.join('\n  ')}`);
+    }
+  } catch (error) { log(`Mod Organizer 2: locating the voice-input packs failed: ${error?.message || error}`); }
 }
 // The files a Runtime update no longer ships are removed here (packaging/runtime/apply-removals.mjs): the update zip is extracted over
 // the old Runtime and cannot delete, so it carries app/defaults/runtime-removals.json (every Runtime does, the full one too). It runs from
@@ -388,7 +405,7 @@ if (prepareOnly) {
     removals: removals ? {state: removals.state, version: removals.version, removed: removals.removed, absent: removals.absent, refused: removals.refused,
       failed: removals.failed, left: removals.left} : null,
     key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state, app: layout.app,
-    packs: {localAi: layout.localAi, omni: layout.omni}, childNodeOptions: env.NODE_OPTIONS ?? null,
+    packs: {localAi: layout.localAi, omni: layout.omni, ...(layout.sttPacks ? {stt: layout.sttPacks} : {})}, childNodeOptions: env.NODE_OPTIONS ?? null,
     browser: env.CYBERPUNK_CONVAI_BROWSER ?? null}) + '\n');
   process.exit(0);
 }

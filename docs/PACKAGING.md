@@ -515,9 +515,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
     physical install is unchanged). The engine processes get real absolute file paths. `llama-server.exe` and its DLLs must be neighbours in one
     real folder (Windows looks beside the real exe): if both packs ship `llama/` and MO2 would give the exe from one mod and a DLL from the
     other, the server is taken from the folder with the most of the DLLs the merged `llama/` lists (the winning exe's folder, else the folder
-    of any marker that names a server; ties go to the winner). OmniVoice is one pack in one mod, so its real root is kept. Not covered:
-    the microphone packs (`app/models/stt/<id>`) are read from the Runtime's own real app folder (`bridge/local-stt.mjs`), so a mic pack
-    installed as its own MO2 mod is not found (open item in TODO.md).
+    of any marker that names a server; ties go to the winner). OmniVoice is one pack in one mod, so its real root is kept.
+  - **Voice-input (microphone) packs are resolved the same way (2026-10-20, `packaging/mo2-mic-packs.test.mjs`).** MicPack-European and MicPack-Asian unpack
+    into `app/models/stt/<id>`, which the service used to read only from the Runtime's own real app folder, so a pack installed as its own MO2 mod was
+    missed. Under MO2 `start-service.mjs` now puts the VIRTUAL `app/models/stt` in `CYBERPUNK_CONVAI_STT_PACKS` (`layout.sttPacks`; set only
+    then, a physical install adds no field and no variable), where every mod's `<id>` folders are listed merged. `resolveLocalSttPaths`
+    (`bridge/local-stt.mjs`, with `CYBERPUNK_CONVAI_USVFS=1`) maps each model file to its real place with `realPathFor`, then picks the real folder
+    that holds the most of the model's files (each candidate folder is asked for all of them itself, so a stray file of the same model in a mod of
+    higher priority cannot hide a complete model; a tie goes to the folder of the model's first file) and gives THAT folder to the Python worker, which
+    reads all of a model's files from one folder. A model complete in no single folder is reported unavailable (`model-missing`), as an
+    incomplete download is. The Runtime's own `models/stt/<id>` (a pack merged into the Runtime's mod) is still the second place looked at. The service
+    log has `Mod Organizer 2: voice-input pack models, where each runs from (...)`: one line per pack found, with its real folder and whether all its files are in it.
+    The English model (Moonshine) is part of the Runtime and is unchanged.
   - **Where the files were found** is in the service log (`Mod Organizer 2: Local AI pack files, where each really is (...)`: one line per marker,
     model, the server with whether its DLLs are beside it, the embedding model) and in the support report's `localAi.packFiles` (`foundIn`: the MO2
     mod folder's name, never a path; `engine`: the server's and the embedding model's mod and whether the DLLs sit beside the server). A physical

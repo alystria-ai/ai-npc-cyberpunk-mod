@@ -162,6 +162,7 @@ test('under USVFS the start puts the stat fallbacks in, runs the Runtime from it
     assert.match(log, /the CET mod's init\.lua is visible; runtime\/ is visible/);
     assert.doesNotMatch(log, /Stopped:/);
     assert.doesNotMatch(log, /locating the Local AI pack files failed/, 'the pack locator ran (it lists a pack\'s files only when they are somewhere else than where they were looked for)');
+    assert.doesNotMatch(log, /locating the voice-input packs failed/);
     assert.equal(await exists(join(f.game, PLUGIN)), false, 'nothing is created for the Runtime in the game folder');
   } finally { await f.cleanup(); }
 });
