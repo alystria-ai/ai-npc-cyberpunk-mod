@@ -226,7 +226,7 @@ test('Mistral: a decision that says none still honours a plain request, and Loca
   } finally { mistral.host.close(); }
   const server = {ensure: async () => ({apiKey: KEY, endpoint: 'http://127.0.0.1:1/v1/chat/completions', model: 'm', requestModel: 'm', trustedOrigin: 'http://127.0.0.1:1', contextSize: 0}),
     status: () => ({state: 'ready', model: 'm'}), begin: () => () => {}, touch() {}, preempt: () => false, noteSlot() {}};
-  const local = await fakeChatHost(localRoute({server, provider: {noteLocalFailure() {}, noteLocalTurnFallback() {}}}), 'local');
+  const local = await fakeChatHost(localRoute({server, provider: {noteLocalFailure() {}}}), 'local');
   try {
     assert.equal(local.host.routes.local.parallel, false);
     await local.host.reply(turn('attack him', {companionAction: noRide({tactic: {targetName: 'Gonk', hostile: true, distance: 9, kinds: ['fight']}})}));

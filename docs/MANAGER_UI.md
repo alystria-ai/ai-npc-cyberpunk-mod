@@ -105,7 +105,8 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   · Cloud voice**. Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
   The Voice status row was removed on 2026-10-20: the voice state shows through the fallback notices (when the chosen voice cannot run, one gameplay
-  notice names the voice in use, e.g. "OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.") and the Help page.
+  notice names the voice, e.g. "OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.") and the Help page.
+  A local voice that cannot run is never replaced by a cloud voice (2026-10-21).
 - **Memory:** the memory controls (player memory, service state, how many characters the player has talked to, the selected character,
   Forget selected character, Forget all memories with an inline confirmation) and, in the second section, **Whose memories**, a paged
   list that selects the character (one at a time; the chosen row's button says Unselect, and pressing it again unchooses it; the choice is cleared when a character clear is confirmed). Selecting does not invite anyone or change conversation settings.

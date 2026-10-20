@@ -3436,16 +3436,16 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
     end
-    -- Local AI is chosen and could not start, and nobody took the turn over (no Mistral key, Convai's free turns for today used): its own reason,
-    -- never the Convai limit the player did not choose (bridge/convai-bridge.mjs providerFailureCode).
+    -- Local AI is chosen and could not start: its own reason, and the next turn tries again. No other provider ever takes the turn over
+    -- (bridge/convai-bridge.mjs providerFailureCode).
     if reply.errorCode == 'local-no-memory' then
         return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
     elseif reply.errorCode == 'local-unavailable' then
         return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
     end
-    -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
+    -- An older bridge's code for Local AI that could not start (it said a cloud provider takes over, which never happens now): the same line as local-unavailable.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
-        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
+        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
     end
     -- The browser for the conversation page was found but would not start (bridge/system-browser.mjs): name it, the detail says which and why.
     if reply.errorCode == 'browser-failed' then
@@ -3461,10 +3461,6 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'local-context' then
         return 'local-context', ui.t("Your model server's context is too small for this character. Raise the context length in your server (8192 or more).")
     end
-    -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
-    if reply.keyNotice == 'local-turn-fallback' then
-        return 'local-turn-fallback', ui.t('Local AI could not answer that one, so a cloud provider did.')
-    end
     -- The Local AI model server stopped working by itself and was started again (bridge/local-llm-server.mjs): said once, with the next reply.
     if reply.keyNotice == 'local-restarted' then
         return 'local-restarted', ui.t('Local AI stopped working and was restarted.')
@@ -3475,13 +3471,11 @@ local function keyReplyNotice(reply)
         if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
         return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.', {model = used})
     end
-    -- Local AI's turns stalled because the game uses most of the graphics memory: the bridge loaded the next smaller model (the reply names it), or, with none
-    -- left, a cloud provider takes over (no model name). Said once per step (bridge/local-llm-server.mjs, 'model-stepdown').
+    -- Local AI's turns stalled because the game uses most of the graphics memory: the bridge loaded the next smaller model (the reply names it; an older bridge may
+    -- send none). Said once per step (bridge/local-llm-server.mjs, 'model-stepdown'). With no smaller model left Local AI fails with local-no-memory instead.
     if reply.keyNotice == 'local-stepdown' then
         local used = reply.keyNoticeModel
-        if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then
-            return 'local-stepdown', ui.t('Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used.')
-        end
+        if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
         return 'local-stepdown', ui.t('Local AI switched to {model}: the game is using most of your graphics memory.', {model = used})
     end
     -- A text provider answered in a language the chosen voice cannot speak (Pocket is English only; Voxtral lists some languages): the reply showed as text. Said once per game session.
@@ -3508,8 +3502,6 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
     elseif keyId == 'custom-no-setup' then convaiNotices.send(player, 'custom-no-setup', keyText)
     elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
-    elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
-    elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText)
@@ -4621,9 +4613,6 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'custom-reasoning', keyText) end
                         elseif keyId == 'custom-unreachable' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
-                        -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
-                        elseif keyId == 'local-fallback' then
-                            if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
                         -- The browser for the conversation page would not start: the same rule, with the browser named.
                         elseif keyId == 'browser-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'browser-failed', keyText) end
@@ -4635,7 +4624,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-thinking', keyText) end
                         elseif keyId == 'local-context' then
                             if not pending.reaction then convaiNotices.send(player, 'local-context', keyText) end
-                        -- Local AI could not start and nobody took the turn over: the same rule, with Local AI's own reason.
+                        -- Local AI could not start and the turn failed: the same rule, with Local AI's own reason.
                         elseif keyId == 'local-unavailable' then
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then

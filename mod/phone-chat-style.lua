@@ -60,7 +60,6 @@ local statusSources = {
     ['The free daily limit for this model was reached. Try again after it resets.'] = true,
     ['This model spends its reply on thinking. Choose a non-reasoning model in Settings.'] = true,
     ['The custom provider did not answer. Check its address in Settings, or try again.'] = true,
-    ['Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'] = true,
     ['The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.'] = true,
     ['Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.'] = true,
     ['Convai did not accept your API key. Check it in Settings > Conversation provider.'] = true,

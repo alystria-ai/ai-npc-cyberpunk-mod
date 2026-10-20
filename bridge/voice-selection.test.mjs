@@ -115,7 +115,7 @@ test('wider registry routes additional prepared characters locally and incomplet
   const prepared = await h.voice.prepareProfile('alex');
   assert.equal(prepared.provider, 'pocket'); assert.equal(prepared.ready, true);
   assert.equal(h.voice.profileReady('alex'), true);
-  assert.deepEqual(await h.voice.prepareProfile('blue-moon'), {provider: 'convai', ready: true, reason: 'unprepared'});
+  assert.deepEqual(await h.voice.prepareProfile('blue-moon'), {provider: 'text', ready: true, reason: 'unprepared'});
   await h.voice.synthesizeStream('alex', 'Additional character.');
   assert.equal(h.workers.length, 1); assert.equal(h.workers[0].calls[0].profile, 'alex');
   assert.deepEqual(h.voice.profileKeys, [...LOCAL_VOICE_KEYS, 'alex'].sort());
@@ -167,7 +167,7 @@ test('an absent reference discovered during startup becomes remote before invita
   await tick(); assert.equal(h.voice.usesProfile('judy-alvarez'), true);
   assert.equal(h.voice.availabilityPending, true);
   h.voice.applyWhenIdle(false);
-  assert.deepEqual(await preparation, {provider: 'convai', ready: true, reason: 'unavailable'});
+  assert.deepEqual(await preparation, {provider: 'text', ready: true, reason: 'unavailable'});
   assert.equal(h.voice.usesProfile('judy-alvarez'), false);
   assert.equal(h.workers[0].calls.length, 0);
   await h.voice.close();
@@ -188,7 +188,7 @@ test('startup availability discovered during an owned turn remains staged until 
   assert(h.voice.update({voiceProvider: 'pocket', omniSteps: 32}, null, false));
   assert.equal(h.voice.usesProfile('judy-alvarez'), false); assert.equal(h.voice.routeRevision, 1);
   assert.deepEqual(h.voice.consumeRouteChanges(), ['judy-alvarez']); assert.deepEqual(h.voice.consumeRouteChanges(), []);
-  assert.deepEqual(await preparation, {provider: 'convai', ready: true, reason: 'unavailable'});
+  assert.deepEqual(await preparation, {provider: 'text', ready: true, reason: 'unavailable'});
   await h.voice.close();
 });
 
@@ -237,7 +237,7 @@ test('all physically quarantined references defer during an owned turn then reti
   const preparation = h.voice.prepareProfile('judy-alvarez'); await tick();
   assert(h.voice.applyWhenIdle(false)); await h.voice.retiring;
   assert.equal(h.live(), 0); assert.equal(h.voice.wantsLocal, false);
-  assert.deepEqual(await preparation, {provider: 'convai', ready: true, reason: 'unavailable'});
+  assert.deepEqual(await preparation, {provider: 'text', ready: true, reason: 'unavailable'});
   for (const key of LOCAL_VOICE_KEYS) assert.equal(h.voice.usesProfile(key), false);
   h.voice.prepare({provider: 'pocket', steps: 32});
   await h.voice.start(); h.voice.update({voiceProvider: 'convai'}, null, false);
@@ -251,7 +251,7 @@ test('a voice configuration with no ready references never starts a speculative 
   const voice = new VoiceSelection(pocketSettings({alex: {status: 'unprepared'}}), {factory() { throw Error('must not create worker'); }});
   voice.prepare({provider: 'pocket', steps: 32}); await voice.start();
   assert.equal(voice.configured, false); assert.equal(voice.usesProfile('alex'), false);
-  assert.deepEqual(await voice.prepareProfile('alex'), {provider: 'convai', ready: true, reason: 'unprepared'});
+  assert.deepEqual(await voice.prepareProfile('alex'), {provider: 'text', ready: true, reason: 'unprepared'});
   await voice.close();
 });
 
@@ -443,7 +443,7 @@ test('the default is Pocket TTS; both Omni qualities share the one warmed model 
   await h.voice.synthesize('johnny-silverhand','Second sentence.');
   assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);assert.equal(h.workers[0].closes,0);
   assert.deepEqual(h.calls.filter(value=>Array.isArray(value)).map(value=>value.at(-1)),[32,16]);
-  assert.deepEqual(await h.voice.prepareProfile('blue-moon'),{provider:'convai',ready:true,reason:'unprepared'});
+  assert.deepEqual(await h.voice.prepareProfile('blue-moon'),{provider:'text',ready:true,reason:'unprepared'});
   h.voice.update({voiceProvider:'pocket'},null,false);await h.voice.start();
   assert.equal(h.voice.provider,'pocket');assert.equal(h.workers[0].closes,1);assert.equal(h.workers[1].backend,'pocket');
   assert.equal(h.peak(),1);assert.equal(h.voice.fallback,null);
@@ -529,9 +529,9 @@ test('shared selection rejects Omni readiness immediately on actual worker failu
   }
 });
 
-test('the fallback order is OmniVoice, then Pocket, then Convai, though the menu lists Pocket first',async()=>{
-  const {VOICE_FALLBACK_ORDER}=await import('./voice-selection.mjs');
-  assert.deepEqual([...VOICE_FALLBACK_ORDER],['omni','pocket','convai']);
+test('the local voices are OmniVoice, then Pocket, though the menu lists Pocket first; no cloud voice is ever in the order',async()=>{
+  const {VOICE_FALLBACK_ORDER,TEXT_ROUTE}=await import('./voice-selection.mjs');
+  assert.deepEqual([...VOICE_FALLBACK_ORDER],['omni','pocket']);assert.equal(TEXT_ROUTE,'text');
   const h=dualFixture();
   assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.requestedProvider,'pocket');
   h.voice.request({voiceProvider:'omni',omniSteps:16});h.voice.applyWhenIdle(false);
@@ -539,21 +539,22 @@ test('the fallback order is OmniVoice, then Pocket, then Convai, though the menu
   await h.voice.close();
 });
 
-test('an Omni worker that cannot start falls to Pocket once, and invitation readiness follows the fallback',async()=>{
+test('an Omni worker that cannot start leaves the replies as text, loads no Pocket for it, and invitation readiness follows',async()=>{
   const h=dualFixture({fail:['omni'],start:'omni'});
   const invited=h.voice.prepareProfile('johnny-silverhand');
   await tick();await tick();
   // The fallback commits at the next idle settings poll, like any routing change.
   h.voice.update({},null,false);
-  assert.deepEqual(await invited,{provider:'pocket',ready:true,profile:'johnny-silverhand'});
-  assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.requestedProvider,'omni');
-  // A failed Omni stays out of routing and is loaded again later in the background, so the fallback is temporary.
-  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket',temporary:true});
-  assert.deepEqual(h.states.at(-1).fallback,{from:'omni',to:'pocket',temporary:true});
+  assert.deepEqual(await invited,{provider:'text',ready:true,reason:'unavailable'});
+  assert.equal(h.voice.provider,'text');assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.textOnly,true);
+  assert.equal(h.workers.filter(worker=>worker.backend==='pocket').length,0,'no Pocket worker is started for an Omni that failed');
+  // A failed Omni stays out of routing and is loaded again later in the background, so the text-only route is temporary.
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'text',temporary:true});
+  assert.deepEqual(h.states.at(-1).fallback,{from:'omni',to:'text',temporary:true});
   assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1,'a failed Omni is not restarted in a loop');
   h.voice.update({},null,false);await tick();
   assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,1);
-  // Choosing OmniVoice again is an explicit retry.
+  // Choosing Pocket is the player's own choice; choosing OmniVoice again is an explicit retry.
   h.voice.update({voiceProvider:'pocket'},null,false);assert.equal(h.voice.fallback,null);
   h.voice.update({voiceProvider:'omni',omniSteps:32},null,false);await tick();await tick();
   assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,2);
@@ -565,31 +566,66 @@ test('a failure during an owned turn waits for the idle boundary before the rout
   await h.voice.start().catch(()=>{});await tick();
   assert.equal(h.voice.provider,'omni','the owned turn keeps its route');assert.equal(h.voice.pending,true);
   h.voice.update({},null,false);
-  assert.equal(h.voice.provider,'pocket');assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket',temporary:true});
+  assert.equal(h.voice.provider,'text');assert.deepEqual(h.voice.fallback,{from:'omni',to:'text',temporary:true});
   await h.voice.close();
 });
 
-test('Pocket failing, or both local voices failing, falls down to Convai',async()=>{
+test('Pocket failing, or Omni failing, falls to text and never to the Convai voice (owner rule 2026-10-21)',async()=>{
   const pocketOnly=dualFixture({start:'pocket',fail:['pocket']});
   await pocketOnly.voice.start().catch(()=>{});await tick();pocketOnly.voice.update({},null,false);
-  assert.equal(pocketOnly.voice.provider,'convai');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'convai',temporary:true});
-  assert.equal((await pocketOnly.voice.prepareProfile('johnny-silverhand')).provider,'convai');
+  assert.equal(pocketOnly.voice.provider,'text');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'text',temporary:true});
+  const receipt=await pocketOnly.voice.prepareProfile('johnny-silverhand');
+  assert.equal(receipt.provider,'text');assert.notEqual(receipt.provider,'convai');
+  assert.equal(pocketOnly.voice.convaiVoiceAllowed,false,'a failed local voice does not allow the Convai voice');
   await pocketOnly.voice.close();
   const both=dualFixture({fail:['omni','pocket'],start:'omni'});
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
   await both.voice.start().catch(()=>{});await tick();both.voice.update({},null,false);
-  assert.equal(both.voice.provider,'convai');assert.deepEqual(both.voice.fallback,{from:'omni',to:'convai',temporary:true});
+  assert.equal(both.voice.provider,'text');assert.deepEqual(both.voice.fallback,{from:'omni',to:'text',temporary:true});
+  assert.equal(both.workers.filter(worker=>worker.backend==='pocket').length,0);
   await both.voice.close();
 });
 
-test('a saved Convai choice never reports a fallback, and a missing Omni setup starts on Pocket',async()=>{
+test('the Convai voice is a route only when the player chose it; a local voice that cannot run is never replaced by it (every way a local voice can fail)',async()=>{
+  const route=h=>({provider:h.voice.provider,resolved:h.voice.resolvedProvider,fallbackTo:h.voice.fallback?.to,allowed:h.voice.convaiVoiceAllowed,
+    cloud:h.voice.cloudEngine,cloudActive:h.voice.cloudActive});
+  const outcomes=[];
+  // Omni chosen: pack missing; worker fails; nothing configured. Pocket chosen: worker fails; nothing configured.
+  const packless=dualFixture({start:'omni'});packless.voice.omniPackSource=()=>({installed:false,missing:['model']});packless.voice.refreshOmniPack();
+  packless.voice.update({voiceProvider:'omni'},null,false);outcomes.push(route(packless));await packless.voice.close();
+  const omniFails=dualFixture({fail:['omni'],start:'omni'});await omniFails.voice.start().catch(()=>{});await tick();omniFails.voice.update({},null,false);outcomes.push(route(omniFails));await omniFails.voice.close();
+  const pocketFails=dualFixture({fail:['pocket'],start:'pocket'});await pocketFails.voice.start().catch(()=>{});await tick();pocketFails.voice.update({},null,false);outcomes.push(route(pocketFails));await pocketFails.voice.close();
+  const empty=new VoiceSelection({});empty.update({voiceProvider:'pocket'},null,false);outcomes.push(route({voice:empty}));await empty.close();
+  const emptyOmni=new VoiceSelection({});emptyOmni.update({voiceProvider:'omni'},null,false);outcomes.push(route({voice:emptyOmni}));await emptyOmni.close();
+  for(const outcome of outcomes){
+    assert.equal(outcome.provider,'text',JSON.stringify(outcome));assert.equal(outcome.resolved,'text');assert.equal(outcome.fallbackTo,'text');assert.equal(outcome.allowed,false);
+    assert.equal(outcome.cloud,null,'no cloud voice (Voxtral) takes over');assert.equal(outcome.cloudActive,false);
+  }
+  // Chosen on purpose, the Convai voice is a route and never reports a fallback.
+  const chosen=dualFixture({start:'convai'});assert.equal(chosen.voice.provider,'convai');assert.equal(chosen.voice.convaiVoiceAllowed,true);assert.equal(chosen.voice.fallback,null);
+  assert.equal((await chosen.voice.prepareProfile('johnny-silverhand')).provider,'convai');await chosen.voice.close();
+});
+
+test('the other local voice stands in only if it is already loaded, and is never loaded for that',async()=>{
+  // Pocket is loaded; the player asks for Omni, which cannot start (settings preview not involved): resolve() may name Pocket only while it is loaded.
+  const h=dualFixture({start:'pocket'});await h.voice.start();
+  assert.equal(h.voice.loadedBackend('pocket'),true);
+  h.voice.requestedProvider='omni';h.voice.failedBackends.add('omni');
+  assert.equal(h.voice.resolve('omni'),'pocket','an already loaded Pocket may speak while Omni is down');
+  await h.voice.retire();
+  assert.equal(h.voice.resolve('omni'),'text','with Pocket not loaded the replies are written; Pocket is not started');
+  assert.equal(h.workers.filter(worker=>worker.backend==='pocket').length,1);
+  await h.voice.close();
+});
+
+test('a saved Convai choice never reports a fallback, and a missing Omni setup leaves the replies as text without starting Pocket',async()=>{
   const convai=dualFixture({start:'convai'});
   assert.equal(convai.voice.provider,'convai');assert.equal(convai.voice.fallback,null);await convai.voice.close();
   const h=fixture();
   assert.equal(h.voice.requestedProvider,'pocket');assert.equal(h.voice.provider,'pocket');assert.equal(h.voice.fallback,null);
   h.voice.update({voiceProvider:'omni',omniSteps:16},null,false);
-  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
-  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'text');
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'text'});assert.equal(h.workers.length,0,'Pocket is not started in place of OmniVoice');
   await h.voice.close();
 });
 
@@ -685,19 +721,20 @@ test('a Settings draft warms the draft reference before Apply, and Apply keeps t
   await h.voice.close();
 });
 
-test('without the optional OmniVoice pack an Omni choice falls to Pocket and says what is missing',async()=>{
+test('without the optional OmniVoice pack an Omni choice shows replies as text (no Pocket, no cloud voice) and says what is missing',async()=>{
   let installed=false;
   const h=referenceFixture({omniPack:()=>({installed,missing:installed?[]:['python','model']})});
   assert.equal(h.voice.omniPack.installed,false);
   h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);
-  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'pocket');
-  assert.deepEqual(h.voice.fallback,{from:'omni',to:'pocket'});
+  assert.equal(h.voice.requestedProvider,'omni');assert.equal(h.voice.provider,'text');
+  assert.deepEqual(h.voice.fallback,{from:'omni',to:'text'});
   h.voice.publish();
   assert.deepEqual(h.states.at(-1).omniPack,{installed:false,missing:['python','model']});
   // A draft of an unavailable Omni never starts an Omni worker.
   h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},{provider:'omni',omniSteps:16,omniReference:'short'},false);
   await tick();assert.equal(h.workers.filter(worker=>worker.backend==='omni').length,0);
-  assert.equal((await h.voice.prepareProfile('judy-alvarez')).provider,'pocket');
+  assert.equal((await h.voice.prepareProfile('judy-alvarez')).provider,'text');
+  assert.equal(h.workers.length,0,'no worker of any kind was started while the pack is missing');
   // Installing the pack while the game runs is noticed on a later settings poll.
   installed=true;h.advance(31_000);
   h.voice.update({voiceProvider:'omni',omniSteps:16,omniReference:'short'},null,false);
@@ -718,8 +755,8 @@ test('prepared voices are always kept: on for every worker, and an old saved kee
   await h.voice.close();
 });
 
-// A slow or failed OmniVoice is not a lost one: Pocket serves meanwhile, Omni loads again in the background, and the
-// voice returns at an idle reply boundary. `omni` scripts each Omni attempt in order: 'fail', 'hold' (a gate the test
+// A slow or failed OmniVoice is not a lost one: the replies are written meanwhile (Pocket is not loaded in its place, and no cloud voice speaks),
+// Omni loads again in the background, and the voice returns at an idle reply boundary. `omni` scripts each Omni attempt in order: 'fail', 'hold' (a gate the test
 // opens), or 'ok' (the default once the script runs out). `pocket` scripts the Pocket attempts the same way.
 function retryFixture({omni = [], pocket = []} = {}) {
   const workers = [], states = [], logs = []; let now = 1000, live = 0, peak = 0;
@@ -757,33 +794,34 @@ function retryFixture({omni = [], pocket = []} = {}) {
     pocket: () => workers.find(worker => worker.backend === 'pocket')};
 }
 
-test('an Omni that fails keeps Pocket for now, loads again in the background, and returns at an idle boundary, never mid-reply', async () => {
+test('an Omni that fails shows replies as text, loads again in the background, and returns at an idle boundary, never mid-reply', async () => {
   const h = retryFixture({omni: ['fail', 'hold']});
   h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.settle();
   h.voice.update({}, null, false); await h.voice.start(); await h.settle();
-  assert.equal(h.voice.provider, 'pocket'); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', temporary: true});
+  assert.equal(h.voice.provider, 'text'); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'text', temporary: true});
   assert.equal(h.states.at(-1).omniRetry.failures, 1); assert.equal(h.states.at(-1).omniRetry.loading, false);
   assert.ok(h.states.at(-1).omniRetry.nextInMs > 0 && h.states.at(-1).omniRetry.nextInMs <= 45_000);
-  assert.equal(h.voice.profileReady('johnny-silverhand'), true, 'Pocket serves while Omni is away');
+  assert.equal(h.voice.profileReady('johnny-silverhand'), false, 'nothing speaks while Omni is away');
+  assert.equal(h.pocketWorkers().length, 0, 'Pocket is not loaded in its place');
   // Not due yet: nothing starts. Due, but a reply is in flight: still nothing.
   h.advance(44_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 1);
   h.advance(1000); h.voice.update({}, null, true); await h.settle(); assert.equal(h.omniWorkers().length, 1, 'no load during a reply');
-  // Idle: one background worker starts, at low priority, beside the live Pocket worker (Pocket uses no VRAM).
+  // Idle: one background worker starts, at low priority, with nothing else loaded.
   h.voice.update({}, null, false); await h.settle();
   assert.equal(h.omniWorkers().length, 2); const candidate = h.omniWorkers()[1];
   assert.equal(candidate.starts, 1); assert.equal(candidate.hooks.lowPriority, true);
   assert.equal(h.states.at(-1).omniRetry.loading, true);
-  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.pocket().closes, 0); assert.equal(h.voice.profileReady('johnny-silverhand'), true);
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.pocketWorkers().length, 0); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
   h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 2, 'a loading candidate is not started twice');
-  // It finishes while a reply is in flight: the reply keeps Pocket; routing is staged, not switched.
+  // It finishes while a reply is in flight: the reply keeps its route (written); routing is staged, not switched.
   candidate.gate.resolve(); await h.settle();
   assert.equal(h.voice.pending, true); assert.equal(h.voice.fallback, null); assert.equal(h.voice.omniRetry, null);
   h.voice.update({}, null, true); await h.settle();
-  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.pocket().closes, 0, 'the reply in flight keeps its worker');
-  // The next idle poll commits: Omni is the route, its loaded worker is adopted (not loaded again), Pocket is released.
+  assert.equal(h.voice.provider, 'text', 'the reply in flight keeps its route');
+  // The next idle poll commits: Omni is the route and its loaded worker is adopted (not loaded again).
   assert.equal(h.voice.update({}, null, false), true); await h.voice.retiring; await h.settle();
   assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.fallback, null);
-  assert.equal(h.omniWorkers().length, 2, 'no third Omni load'); assert.equal(h.pocket().closes, 1);
+  assert.equal(h.omniWorkers().length, 2, 'no third Omni load'); assert.equal(h.pocketWorkers().length, 0);
   assert.equal(h.voice.client, candidate); assert.equal(h.voice.profileReady('johnny-silverhand'), true);
   assert.equal(h.states.at(-1).omniRetry, null); assert.equal(h.states.at(-1).provider, 'omni');
   assert.equal(candidate.steps, 16);
@@ -806,7 +844,7 @@ test('Omni retries back off, give up after the last one, and choosing Omni again
   }
   assert.deepEqual(waits, [45_000, 180_000, 600_000]);
   // The fourth failure ends it: a plain, permanent fallback.
-  assert.equal(h.voice.omniRetry, null); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket'});
+  assert.equal(h.voice.omniRetry, null); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'text'});
   assert.equal(h.states.at(-1).omniRetry, null); assert.ok(h.logs.some(line => /giving up/.test(line)));
   h.advance(86_400_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 4);
   // The player chooses Omni again: the normal start path, with the retry story reset.
@@ -846,13 +884,13 @@ test('a failed background load is retried again after its worker has exited', as
   await h.voice.close();
 });
 
-// A Pocket worker that failed (two stalled starts while the game loads, a crash) is not lost for the session: the voice falls to Convai's,
-// Pocket loads again after the same waits as Omni, and a Pocket that is up again is routed at the next idle poll.
+// A Pocket worker that failed (two stalled starts while the game loads, a crash) is not lost for the session: the replies are written (never
+// given to the Convai voice), Pocket loads again after the same waits as Omni, and a Pocket that is up again is routed at the next idle poll.
 test('a Pocket that fails is loaded again after each wait, only when due and idle, and the fourth failure is the last', async () => {
   const h = retryFixture({pocket: ['fail', 'fail', 'fail', 'fail']});
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.pocketWorkers().length, 1); assert.equal(h.voice.provider, 'convai');
-  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai', temporary: true});
+  assert.equal(h.pocketWorkers().length, 1); assert.equal(h.voice.provider, 'text');
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text', temporary: true});
   assert.equal(h.pocketWorkers()[0].closes, 1, 'the failed worker is released while it waits');
   const waits = [];
   for (const delay of [45_000, 180_000, 600_000]) {
@@ -869,7 +907,7 @@ test('a Pocket that fails is loaded again after each wait, only when due and idl
   }
   assert.deepEqual(waits, [45_000, 180_000, 600_000]);
   // The fourth failure ends it: a plain, permanent fallback, and nothing more is ever loaded.
-  assert.equal(h.voice.pocketRetry, null); assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai'});
+  assert.equal(h.voice.pocketRetry, null); assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text'});
   assert.equal(h.states.at(-1).pocketRetry, null); assert.ok(h.logs.some(line => /\[PocketRetry\] giving up/.test(line)));
   assert.equal(h.pocketWorkers().every(worker => worker.closes === 1), true);
   h.advance(86_400_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.pocketWorkers().length, 4);
@@ -882,7 +920,7 @@ test('a Pocket that fails is loaded again after each wait, only when due and idl
 test('a Pocket that Windows blocked (Smart App Control, an Application Control policy) is not tried again and the problem says what blocked it', async () => {
   const h = retryFixture({pocket: ['blocked', 'ok']});
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.voice.provider, 'convai');
+  assert.equal(h.voice.provider, 'text');
   assert.equal(h.voice.voiceProblem().cause, 'blocked'); assert.equal(h.voice.voiceProblem().engine, 'pocket');
   assert.equal(h.voice.pocketRetry, null, 'no second try: it would import the same blocked file again');
   h.advance(86_400_000); h.voice.update({}, null, false); await h.settle();
@@ -901,7 +939,7 @@ test('a Pocket that Windows blocked (Smart App Control, an Application Control p
 test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {
   const h = retryFixture({pocket: ['fail', 'ok']});
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.voice.provider, 'convai'); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
   // The failure is told once with its reason and is a problem for the setup check while it lasts; a Pocket that loaded again is none.
   assert.deepEqual(h.failures, [{engine: 'pocket', reason: 'pocket worker failed'}]);
   assert.deepEqual(h.voice.voiceProblem(), {engine: 'pocket', reason: 'pocket worker failed'});
@@ -917,7 +955,7 @@ test('a Pocket that loads on a retry takes the route back at the next idle poll,
   h.pocketWorkers()[1].hooks.onState({state: 'error'}); await h.settle();
   assert.equal(h.voice.pocketRetry.failures, 1);
   h.voice.update({}, null, false); await h.settle();
-  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai', temporary: true});
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text', temporary: true});
   await h.voice.close(); assert.equal(h.live(), 0);
 });
 
@@ -954,7 +992,7 @@ test('a Pocket retry ends, or waits, when the voice is not wanted: another voice
   closing.advance(600_000); closing.voice.update({}, null, false); await closing.settle(); assert.equal(closing.pocketWorkers().length, 1);
 });
 
-test('with the real OmniVoice client, a silent start falls to Pocket, then a below-normal worker loads and takes over at idle', async () => {
+test('with the real OmniVoice client, a silent start leaves replies as text (no Pocket), then a below-normal worker loads and takes over at idle', async () => {
   const {EventEmitter} = await import('node:events');
   const {PassThrough, Writable} = await import('node:stream');
   const {constants} = await import('node:os');
@@ -1002,20 +1040,21 @@ test('with the real OmniVoice client, a silent start falls to Pocket, then a bel
   timers.advance(1); await settle(); assert.equal(voice.failedBackends.has('omni'), true);
   timers.advance(VOICE_WORKER_LIMITS.exitGraceMs); await settle();
   voice.update({}, null, false); await voice.start(); await settle();
-  assert.equal(voice.provider, 'pocket'); assert.deepEqual(voice.fallback, {from: 'omni', to: 'pocket', temporary: true});
+  assert.equal(voice.provider, 'text'); assert.deepEqual(voice.fallback, {from: 'omni', to: 'text', temporary: true});
+  assert.equal(pocketWorkers.length, 0, 'Pocket is not loaded in place of OmniVoice');
   // 45 s later, with the game idle, a second worker loads at below-normal priority.
   now += 45_000; voice.update({}, null, false); await settle();
   assert.equal(children.length, 2); assert.deepEqual(priorities, [[4001, constants.priority.PRIORITY_BELOW_NORMAL]]);
-  assert.equal(voice.provider, 'pocket'); assert.equal(pocketWorkers[0].closed, undefined);
-  // It reports progress and finishes; the route stays on Pocket until the idle poll.
+  assert.equal(voice.provider, 'text');
+  // It reports progress and finishes; the route stays written until the idle poll.
   children[1].stdout.write(JSON.stringify({op: 'state', state: 'loading'}) + '\n'); await settle();
   ready(children[1]); await settle();
-  assert.equal(voice.omniRetry, null); assert.equal(voice.provider, 'pocket');
+  assert.equal(voice.omniRetry, null); assert.equal(voice.provider, 'text');
   assert.deepEqual(priorities.at(-1), [4001, constants.priority.PRIORITY_NORMAL], 'normal priority once ready');
-  voice.update({}, null, true); await settle(); assert.equal(voice.provider, 'pocket', 'never mid-reply');
+  voice.update({}, null, true); await settle(); assert.equal(voice.provider, 'text', 'never mid-reply');
   voice.update({}, null, false); await voice.retiring; await settle();
   assert.equal(voice.provider, 'omni'); assert.equal(voice.fallback, null); assert.equal(children.length, 2, 'the loaded worker is adopted');
-  assert.equal(pocketWorkers[0].closed, true); assert.equal(voice.profileReady('johnny-silverhand'), true);
+  assert.equal(pocketWorkers.length, 0); assert.equal(voice.profileReady('johnny-silverhand'), true);
   assert.equal(voice.client.loaded, true); assert.equal(voice.client.child, children[1]);
   const closed = voice.close(); children[1].emit('close', 0); await closed;
 });
@@ -1027,11 +1066,12 @@ test('a loaded background Omni for a reference the player no longer wants is rel
   h.advance(45_000); h.voice.update({}, null, false); await h.settle();
   const candidate = h.omniWorkers()[1]; candidate.gate.resolve(); await h.settle();
   assert.equal(h.voice.candidate.loaded, true);
-  // A reply is in flight, so the commit waits; meanwhile the player picks the other reference set.
+  // A reply is in flight, so the commit waits; meanwhile the player picks the other reference set. Nothing else is loaded, so the loaded worker
+  // takes the empty slot at once (the route stays written until the idle commit), and the reference change then releases it.
   h.voice.update({omniReference: 'short'}, null, true); await h.settle();
-  assert.equal(candidate.closes, 1, 'the unwanted candidate is released'); assert.equal(h.voice.candidate, null);
+  assert.equal(h.voice.candidate, null); assert.equal(h.voice.client, candidate); assert.equal(h.voice.provider, 'text', 'never mid-reply');
   h.voice.update({omniReference: 'short'}, null, false); await h.voice.retiring; await h.settle();
-  assert.equal(h.omniWorkers().length, 3); assert.equal(h.omniWorkers()[2].starts, 1);
+  assert.equal(candidate.closes, 1, 'the unwanted worker is released'); assert.equal(h.omniWorkers().length, 3); assert.equal(h.omniWorkers()[2].starts, 1);
   assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.omniReference, 'short'); assert.equal(h.voice.client, h.omniWorkers()[2]);
   await h.voice.close(); assert.equal(h.live(), 0);
 });

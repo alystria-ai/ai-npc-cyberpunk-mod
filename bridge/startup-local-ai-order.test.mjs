@@ -44,7 +44,7 @@ test('with Mature content off the same install reports mature-off and loads noth
     const blocked = await bridge.until(() => status(bridge), value => value?.localReason === 'mature-off', 'mature-off was not reported');
     assert.equal(blocked.localAi, 'failed');
     assert.equal(blocked.provider, 'local');
-    assert.equal(blocked.effective, 'convai', 'Convai answers meanwhile');
+    assert.equal(blocked.effective, 'local', 'Local AI stays the provider (its turns say mature-off); nothing goes to Convai');
     assert.equal(blocked.localModelDefault, undefined, 'no default model is offered while only Mature models exist and Mature content is off');
     assert.equal(blocked.localModelMatureDefault, 'mature:lite', 'the model that turning Mature content on selects');
     await bridge.idle(1500);

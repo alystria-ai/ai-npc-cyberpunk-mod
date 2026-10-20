@@ -468,9 +468,9 @@ test('the reply is fitted to the server\'s context: the entry\'s size is the bud
   assert(!large.logs.some(line => /local AI/i.test(line)));
 });
 
-test('a server that is down leads to the fallback provider, with one notice; a server that went away mid-session does too, and is looked at again', async t => {
+test('a server that is down fails the turn with its own reason and Local AI stays the provider, key or no key; a server that went away mid-session is looked at again, and the cloud is never asked', async t => {
   const cloud = await fakeServer(t, {reply: 'The cloud answers, V.'});
-  // No pack, no cloud account: the turn fails once, the provider asks for Convai and queues the single notice.
+  // No pack, no cloud account: the turn fails, the provider stays Local AI and no notice is queued.
   const dead = await fakeServer(t); const deadEndpoint = dead.endpoint; await dead.close();
   const project = emptyProject(t);
   const down = supervisor(t, {project, selected: {customModels: scanManifest(project, [{endpoint: deadEndpoint, name: 'Down'}]).models}});
@@ -478,29 +478,30 @@ test('a server that is down leads to the fallback provider, with one notice; a s
   const error = await bare.host.reply(turn('hi')).catch(caught => caught);
   assert.ok(isLocalUnavailable(error), String(error));
   assert.equal(bare.provider.localBroken, 'start-failed');
-  assert.equal(bare.provider.requested, 'convai');
-  bare.provider.apply();
-  assert.equal(bare.provider.takeNotice(), 'local-fallback');
+  assert.equal(bare.provider.requested, 'local');
+  assert.equal(bare.provider.apply(), false);
   assert.equal(bare.provider.takeNotice(), undefined);
 
-  // With a Mistral key saved: the cloud answers the turn the local one could not.
+  // With a Mistral key saved: the turn the local one could not answer fails too; the cloud is not asked.
   const api = await fakeServer(t);
   const live = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api)]).models}});
   const both = await hostFor(t, {server: live.server, mistralKey: 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL', cloud});
   assert.equal((await both.host.reply(turn('first'))).text, 'Sure thing, V. What do you need?');
   await api.close();
-  const second = await both.host.reply(turn('second'));
-  assert.equal(second.text, 'The cloud answers, V.', 'the turn the server could not answer went to the cloud');
+  const second = await both.host.reply(turn('second')).catch(caught => caught);
+  assert.ok(second instanceof Error, 'the turn the server could not answer failed');
   assert.equal(live.server.status().state, 'stopped', 'the lost server is looked at again before the next turn');
-  const third = await both.host.reply(turn('third'));
-  assert.equal(third.text, 'The cloud answers, V.');
+  const third = await both.host.reply(turn('third')).catch(caught => caught);
+  assert.ok(isLocalUnavailable(third), String(third));
   assert.equal(live.failures.length, 1, 'the look found it still down: one failure episode');
   assert.equal(both.provider.localBroken, 'start-failed');
+  assert.equal(both.provider.requested, 'local');
+  assert.equal(cloud.chats().length, 0, 'the cloud was never asked');
 });
 
 // ---- What a real KoboldCpp does that the first fake did not (live test 2026-10-18, KoboldCpp 1.123.1) ------------------------------
 
-test('a server that dies while it writes the reply: the cut-off text is a failed turn (no stored reply), the server is looked at again, and the cloud answers when there is one', async t => {
+test('a server that dies while it writes the reply: the cut-off text is a failed turn (no stored reply), the server is looked at again, and the cloud is never asked, key or no key', async t => {
   const long = 'You want the whole history of this place? That is a lot of noise. I can give you the highlights, if you really want them.';
   const cloud = await fakeServer(t, {reply: 'The cloud answers, V.'});
   const api = await fakeServer(t, {reply: long, cutAfter: 4});
@@ -518,10 +519,12 @@ test('a server that dies while it writes the reply: the cut-off text is a failed
   assert.deepEqual(lone.host.memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns, []);
   assert.equal(h.server.status().state, 'stopped', 'the next turn looks at the server again');
   assert(h.logs.some(line => /stopped answering/.test(line)), h.logs.join('\n'));
-  // With a Mistral key saved the cloud answers the turn the server could not finish.
+  // With a Mistral key saved the turn fails the same way: the cloud does not answer the turn the server could not finish.
   const live = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api)]).models}});
   const both = await hostFor(t, {server: live.server, mistralKey: 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL', cloud});
-  assert.equal((await both.host.reply(turn('Tell me the whole history.'))).text, 'The cloud answers, V.');
+  const kept = await both.host.reply(turn('Tell me the whole history.')).catch(caught => caught);
+  assert.equal(failureKind(kept), 'network', String(kept));
+  assert.equal(cloud.chats().length, 0, 'the cloud was never asked');
 });
 
 test('a server that guards only its chat requests (KoboldCpp --password): a wrong or missing key passes the first look, fails the turn as a refused key, and is named once in the log', async t => {

@@ -147,7 +147,7 @@ When something in the mod fails, or replies stay slow, a short report goes to th
 [/list]
 
 [b]What languages can I use?[/b]
-Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
+Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack (the game tells you when it switches your voice for this). A voice that cannot speak a reply shows it as text, never in a cloud voice you did not choose. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 
 [b]The Companion Manager doesn't show up.[/b]
 Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.

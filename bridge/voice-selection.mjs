@@ -15,7 +15,10 @@ import {VHelperVoice} from './v-helper-voice.mjs';
 // backend switch). It borrows only Pocket's ROUTE and audio packet format (the same packets feed the subtitles, the lip sync and
 // the face), so its routing is Pocket's and only the synthesis of each reply differs (bridge/voxtral-voice.mjs). A reply it cannot
 // deliver (asked again once with a longer limit) is not given to a local voice: the turn's voice is the Convai cloud voice when the
-// cloud voice has no key at all, and otherwise the reply is shown as written text.
+// cloud voice has no key at all, and otherwise the reply is shown as written text. (Cloud to cloud is the only fallback that leaves the computer.)
+// A LOCAL voice (OmniVoice, Pocket) that fails is never replaced by a cloud voice (owner rule 2026-10-21, after a player's report of surprise cloud
+// use): the fallback is a local retry, the other local engine only if it is already loaded (none is loaded for this), else the route 'text' below
+// (the reply is shown as written text and the game says so once). The voice comes back by itself when the local engine recovers.
 export const CLOUD_VOICES = Object.freeze(['voxtral']);
 // A settings file saved while a since-removed cloud voice existed still names it: it resolves to Pocket, the default voice (no error, no log).
 const REMOVED_VOICES = Object.freeze(['inworld']);
@@ -23,15 +26,17 @@ export const canonicalVoiceProvider = value => ['hybrid','omnivoice'].includes(v
 export const cloudVoiceChoice = value => CLOUD_VOICES.includes(value) ? value : null;
 // OmniVoice reads either its short (up to 10 s) or its long (up to 18 s) searched reference per character.
 export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ? value : null;
-// Fallback order, best first: OmniVoice (16 or 32 steps), Pocket TTS, Convai. The Settings menu lists Pocket first
-// because it is the default, but a choice that cannot run still falls to the next entry of THIS list: an Omni
-// choice (the optional pack missing, no CUDA) lands on Pocket, a Pocket failure lands on Convai, which is always
-// runnable.
+// The local voices, best first: OmniVoice (16 or 32 steps), Pocket TTS. The Settings menu lists Pocket first because it is the
+// default. A choice that cannot run falls to the next entry of THIS list only when that engine is ALREADY loaded (an Omni choice that
+// cannot run does not start Pocket for it), and otherwise to TEXT_ROUTE: no voice, the reply is written. 'convai' is a route only
+// when the player chose the Convai voice (or a cloud voice that has no key and so falls to it: cloud to cloud).
 // A Python library the voice needs that Windows refused to load: Smart App Control, or a company's or a school's Application Control (WDAC) policy, blocks a
 // file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
 // Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
 export const blockedByWindows = reason => /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(String(reason ?? ''));
-export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
+export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
+// The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
+export const TEXT_ROUTE = 'text';
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
 export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000});
@@ -67,7 +72,7 @@ export class VoiceSelection {
       return [reference,{input,registry,snapshot:snapshot(input,registry),path:omniPaths[reference],
         configured:input.provider==='hybrid'&&registry.keys.length>0,availability:new Set(registry.keys)}];
     }));
-    this.registries={pocket:pocketRegistry,convai:empty};
+    this.registries={pocket:pocketRegistry,convai:empty,[TEXT_ROUTE]:empty};
     this.configs={pocket:snapshot(validated,pocketRegistry)};
     // What a worker is started with never changes: its configuration file is the start-up one, and what it holds is checked against that.
     // The voices a player changes later (setVoices) replace the routing registries above and are sent to the running workers.
@@ -75,7 +80,7 @@ export class VoiceSelection {
     this.baseConfigs={pocket:this.configs.pocket,omni:Object.fromEntries(OMNI_REFERENCES.map(reference=>[reference,this.omniVariants[reference].snapshot]))};
     this.live=null;this.pendingVoices=null;
     this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0};
-    this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set()};
+    this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set(),[TEXT_ROUTE]:new Set()};
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
     this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
     // A character the player made (bridge/custom-characters.mjs) has a voice of its own only when it was given a clip before the service
@@ -145,12 +150,11 @@ export class VoiceSelection {
     // error, crash) stay out of routing until the player chooses them again.
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
     // Multilingual conversations: Pocket TTS speaks only English, so while it is on the fallback skips Pocket (an Omni
-    // choice that cannot run lands on the cloud voice). Settings never pair the two; a hand-edited pairing also ends
-    // on the cloud voice. The Voxtral cloud voice runs on Pocket's route but speaks the language of the text (Voxtral TTS 3: 22 languages), so it keeps
-    // the route while it is chosen; a reply in a language it does not list goes to the Convai voice (bridge/multilingual.mjs planTurnVoice).
+    // choice that cannot run lands on text). Settings never pair the two; a hand-edited pairing also ends on text. The Voxtral cloud voice runs on Pocket's route but speaks the language of the text (Voxtral TTS 3: 22 languages), so it keeps
+    // the route while it is chosen; a reply in a language it does not list goes to the Convai voice (cloud to cloud, bridge/multilingual.mjs planTurnVoice).
     this.multilingual=false;
   }
-  // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the choice falls to Pocket) and
+  // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the replies are written, never given to a cloud voice) and
   // the Settings menu says what is missing. A pack installed while the game runs is noticed within 30 s.
   refreshOmniPack(){
     this.packCheckedAt=this.clock();
@@ -271,17 +275,31 @@ export class VoiceSelection {
     }
     return client;
   }
-  // A Pocket worker that failed earlier stays out of routing, except for a cloud voice: it runs no worker, so the failure is not its.
+  // A local voice that failed earlier stays out of routing, except for a cloud voice: it runs no worker, so the failure is not its.
+  // Only local voices are usable backends: the Convai voice is a route the player chooses, never a stand-in (see resolve).
   backendUsable(backend){
-    return backend==='convai'||(!!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
-      &&(!this.failedBackends.has(backend)||(backend==='pocket'&&this.cloudWanted)));
+    return !!this.configuredByBackend[backend]&&this.availabilities[backend].size>0
+      &&(!this.failedBackends.has(backend)||(backend==='pocket'&&this.cloudWanted));
   }
-  // The first usable entry at or below the requested one.
+  // The engine is loaded, ready and healthy right now: the only way a voice other than the chosen one may take over (it is never loaded for that).
+  loadedBackend(backend){
+    return this.clientBackend===backend&&!!this.client&&this.client.loaded===true&&!this.client.failure&&!this.client.closing;
+  }
+  // The route for a chosen voice. The Convai voice only when it was chosen. A local voice that cannot run is replaced by the other local voice only
+  // if that one is already loaded, and otherwise by TEXT_ROUTE (the reply is written). A cloud voice (Voxtral) that has no route at all falls to the
+  // Convai voice, the one cloud-to-cloud step; it never loads a local model.
   resolve(provider){
+    if(provider==='convai')return 'convai';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
-    return VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
-      .find(backend=>this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'&&!this.cloudWanted))||'convai';
+    const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
+      .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'&&!this.cloudWanted));
+    return found||(this.cloudWanted?'convai':TEXT_ROUTE);
   }
+  // May the Convai voice speak a reply of this installation? The player chose it, or chose a cloud voice (which falls to it when it cannot be asked).
+  // Never because a local voice failed.
+  get convaiVoiceAllowed(){return this.provider==='convai'||this.cloudWanted;}
+  // True while no voice speaks the replies: the chosen local voice cannot run and nothing local stands in for it.
+  get textOnly(){return this.provider===TEXT_ROUTE;}
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // The cloud voice speaks replies: chosen and committed; its route is Pocket's (packet format and routing only, no Pocket worker).
   get cloudEngine(){return this.cloud==='voxtral'?this.voxtral:null;}
@@ -325,8 +343,8 @@ export class VoiceSelection {
     const value={from:this.requestedProvider,to:want};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
-  // Why a character is on Convai: chosen, or the local voice cannot serve it.
-  convaiReason(profile){
+  // Why a character has no local voice: the Convai voice was chosen, or the local voice cannot serve it (its reply is then written).
+  remoteReason(profile){
     if(this.requestedProvider==='convai')return 'selected';
     const status=this.registries.pocket.status(this.voiceOf(profile,this.registries.pocket));
     return status==='ready'?'unavailable':status;
@@ -539,7 +557,7 @@ export class VoiceSelection {
     // reference gone); settle on the first entry that stays usable once it
     // is applied, so one commit reaches the final route.
     let target=this.resolvedProvider;
-    for(let step=0;step<VOICE_FALLBACK_ORDER.length;step++){
+    for(let step=0;step<=VOICE_FALLBACK_ORDER.length;step++){
       const verified=this.verifiedAvailabilities.get(this.verifiedKey(target));
       if(verified)this.setAvailability(target,new Set(verified));
       const next=this.resolvedProvider;
@@ -564,7 +582,7 @@ export class VoiceSelection {
     if (this.closed) return Promise.reject(Error('Voice service is closed'));
     this.phoneAnalysis?.setWanted(this.phoneWanted);
     if (!this.wantsLocal) {
-      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : this.silent ? 'stopped' : 'disabled'));
+      this.publish(this.releasing ? 'releasing' : (this.provider === 'convai'||this.cloudWanted ? 'remote' : this.provider === TEXT_ROUTE ? 'disabled' : this.silent ? 'stopped' : 'disabled'));
       return Promise.resolve();
     }
     const backend=this.targetBackend;
@@ -644,11 +662,11 @@ export class VoiceSelection {
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
-  // Would routing speak with Pocket if it could run? The player chose Pocket, or chose Omni and Omni cannot run now, so Pocket is the next
-  // voice. A cloud voice, the Convai voice and Multilingual conversations (Pocket speaks English only) want no Pocket worker.
+  // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
+  // place. A cloud voice, the Convai voice and Multilingual conversations (Pocket speaks English only) want no Pocket worker.
   get pocketWanted(){
     if(this.cloudWanted||this.multilingual)return false;
-    return this.requestedProvider==='pocket'||(this.requestedProvider==='omni'&&!this.backendUsable('omni'));
+    return this.requestedProvider==='pocket';
   }
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
@@ -762,11 +780,14 @@ export class VoiceSelection {
     this.details=entry.lastState||this.details;
     return true;
   }
+  // The state published when no local worker is loaded: 'remote' for a voice that runs elsewhere, 'disabled' while the replies are written (the voice cannot run),
+  // 'stopped' only when playback is Off or the service is closed. Never 'stopped' for a running bridge whose voice failed: the supervisor reads 'stopped' in this file as a bridge that is gone.
+  idleState() { return this.closed ? 'stopped' : this.resolvedProvider===TEXT_ROUTE ? 'disabled' : this.silent ? 'stopped' : 'remote'; }
   retire() {
     const client = this.client;
     const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = this.clientReference = null;
-    if (!client) { this.tickVHelper(); this.publish(this.releasing ? 'releasing' : (this.closed||this.silent ? 'stopped' : 'remote')); return this.retiring; }
+    if (!client) { this.tickVHelper(); this.publish(this.releasing ? 'releasing' : this.idleState()); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
@@ -779,7 +800,7 @@ export class VoiceSelection {
       this.releasing = false;
       if (!this.client) {
         this.details = {resident:false,gpuVramBytes:0,cudaAllocatedMiB:0,cudaReservedMiB:0};
-        this.publish(this.closed||this.silent ? 'stopped' : 'remote');
+        this.publish(this.idleState());
       }
     });
     const completed = this.retiring;
@@ -931,14 +952,16 @@ export class VoiceSelection {
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps});
   }
   async prepareProfile(profile, options = {}) {
-    const remote = reason => ({provider: 'convai', ready: true, reason});
+    // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen (or a cloud voice,
+    // which falls to it); with a local voice chosen they are written ('text'), never given to a cloud voice.
+    const remote = reason => ({provider: this.convaiVoiceAllowed ? 'convai' : TEXT_ROUTE, ready: true, reason});
     for (;;) {
       throwIfCancelled(options.signal);
       if (this.closed) throw Error('Voice service is closed');
       await this.routingSettled(options);
       throwIfCancelled(options.signal);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote(this.convaiReason(profile));
+      if (this.provider === 'convai' || this.provider === TEXT_ROUTE) return remote(this.remoteReason(profile));
       const voice = this.voiceOf(profile);
       if (!this.configured || !this.registry.has(voice)) return remote(this.registry.status(voice));
       // Playback Off: no worker is kept for the companions, and nobody is waited on for one. The character is ready to join; loading
@@ -958,7 +981,7 @@ export class VoiceSelection {
       }
       catch (error) {
         throwIfCancelled(options.signal);
-        if (!this.closed && this.provider === 'convai') return remote(this.convaiReason(profile));
+        if (!this.closed && (this.provider === 'convai' || this.provider === TEXT_ROUTE)) return remote(this.remoteReason(profile));
         // The failed worker is now out of routing; wait for the fallback commit.
         await new Promise(resolve => setImmediate(resolve));
         if (!this.closed && this.failedBackends.has(startingBackend)) continue;
@@ -969,7 +992,7 @@ export class VoiceSelection {
       // The flight waits for the normal idle commit; no polling loop is held.
       await this.routingSettled(options);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote(this.convaiReason(profile));
+      if (this.provider === 'convai' || this.provider === TEXT_ROUTE) return remote(this.remoteReason(profile));
       if (!this.hasProfile(profile)) return remote('unavailable');
       const client = this.client;
       // Retry only a real ownership/selection transition. A fulfilled startup
@@ -985,7 +1008,7 @@ export class VoiceSelection {
       try { receipt = await client.prepareProfile(voice, options); }
       catch (error) {
         throwIfCancelled(options.signal);
-        if (!this.closed && this.provider === 'convai') return remote(this.convaiReason(profile));
+        if (!this.closed && (this.provider === 'convai' || this.provider === TEXT_ROUTE)) return remote(this.remoteReason(profile));
         await new Promise(resolve => setImmediate(resolve));
         if (!this.closed && this.failedBackends.has(startingBackend)) continue;
         throw error;
@@ -995,7 +1018,7 @@ export class VoiceSelection {
       throwIfCancelled(options.signal);
       await this.routingSettled(options);
       if (this.closed) throw Error('Voice service is closed');
-      if (this.provider === 'convai') return remote(this.convaiReason(profile));
+      if (this.provider === 'convai' || this.provider === TEXT_ROUTE) return remote(this.remoteReason(profile));
       if (this.client !== client) continue;
       if (!this.hasProfile(profile)) return remote('unavailable');
       return {...receipt,provider:this.provider};

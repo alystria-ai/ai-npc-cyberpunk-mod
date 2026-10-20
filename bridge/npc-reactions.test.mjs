@@ -495,7 +495,7 @@ test('Mistral and the local AI: the same turn, the same rule, the same message t
     status: () => ({state: 'ready', model: 'm'}), begin: () => () => {}, touch() {}, preempt: () => false, noteSlot() {}};
   const routes = {
     mistral: () => mistralRoute({provider, gapMs: 0}),
-    local: () => localRoute({server, provider: {noteLocalFailure() {}, noteLocalTurnFallback() {}}}),
+    local: () => localRoute({server, provider: {noteLocalFailure() {}}}),
   };
   for (const name of ['mistral', 'local']) {
     const tagged = await fakeChatHost(routes[name](), name, 'Stay away from me. [leave]');

@@ -356,7 +356,7 @@ mistral.statusHeld = true;
 // at a folder of models (docs/LOCAL_AI.md).
 let localPack = detectLocalAiPack({project});
 // Omni (the OmniVoice pack) loads first and the model tier is chosen from the graphics memory left (docs/LOCAL_AI.md): a wait of
-// at most two minutes inside the supervisor, then the tier that fits, else the cloud provider.
+// at most two minutes inside the supervisor, then the tier that fits, else Local AI says why it cannot (its turns never go to a cloud provider).
 // True once a settings poll has read the voice settings (playback on or off): until then `playbackEnabled` is only its default.
 let voiceSettingsRead = false;
 const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
@@ -375,13 +375,13 @@ const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stat
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {
   mistral.noteLocalFailure(reason);
-  // Nobody can take the turns over (no Mistral key, Convai's free day used up): they stay on Local AI and each says why. One line per failure.
+  // The turns stay on Local AI (never handed to Mistral or Convai) and each says why; the next turn tries again (bridge/text-provider-host.mjs localRoute). One line per failure.
   if (mistral.localDown) logLocalDown();
 });
 // The model server stopped by itself and is running again: the game says so once, with the next reply (mod/init.lua, 'local-restarted').
 localServer.on('restarted', () => mistral.noteLocalRestarted());
 function logLocalDown() {
-  console.error(`[LocalAI] Local AI is unavailable (${mistral.localBroken}) and Convai's free turns for today are used: turns stay on Local AI and the game names the reason`);
+  console.error(`[LocalAI] Local AI is unavailable (${mistral.localBroken}): turns stay on Local AI, the game names the reason, and the next turn tries again`);
 }
 // A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
@@ -391,9 +391,13 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
   localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
 });
 // Turns stalled (the game uses most of the graphics memory and the model reads at a crawl): the server stepped down to the next smaller model of its family, or, with
-// none left, the cloud text provider takes over (its 'failed' follows). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
+// none left, Local AI fails with 'low-memory' (its 'failed' follows; no cloud takes over). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
 localServer.on('model-stepdown', ({model}) => { mistral.noteLocalStepDown(model); });
-localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
+localServer.on('state', status => {
+  // The model server is running: whatever failed before is over (a later turn found memory again, or the retry of a turn started it), so turns stop failing with the old reason.
+  if (status?.state === 'ready') mistral.clearLocalFailureAny();
+  try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ }
+});
 // What the model server loaded and how its last turn went goes into the status file (the support report reads it): after a start, after the first turn on a model and
 // after a turn that failed (the supervisor says so with this event), bundled within half a second. Nothing runs between those moments.
 let diagnosticsTimer = null;
@@ -427,7 +431,7 @@ function localAiStatus() {
 // Why Local AI is down, when the settings page can tell the player what to do: only Mature models are usable and Mature content is off.
 const localAiReason = () => { const {state, reason} = localServer.status(); return state === 'failed' && reason === 'mature-off' ? 'mature-off' : null; };
 // Choosing Local: look for the pack, clear an earlier failure, and load the model in the background so the shader compile of a
-// first start is over before the first conversation. A missing pack or a failed start falls back to the cloud provider with one notice.
+// first start is over before the first conversation. A missing pack or a failed start leaves the provider on Local AI, and its turns say why.
 function prepareLocal() {
   const packInstalled = refreshLocalPack(true).installed;
   if (!packInstalled) scanCustomModels();   // a pack-less install can still have a server of its own listed
@@ -470,15 +474,6 @@ const remarkAllowance = await new RemarkAllowance({guard: turnGuard,
 const hostGuard = {check: config => { turnGuard.check(); remarkAllowance.check(config); if (tokenSource) keys.assertAllowed(); },
   consume: config => { turnGuard.consume(); remarkAllowance.consume(config); }};
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
-// Convai's free tier cannot take a turn today: the shared key's day is used up (the local count, or the sign-in backend's answer). A Local AI that
-// cannot start then keeps its turns instead of handing them to Convai, where each would only meet the daily limit (MistralProvider.convaiAvailable).
-// Memory reads only; asked by the settings poll (applyProviderChoice) and the status file, never per frame.
-const convaiDayUsed = () => {
-  if (keys.source !== 'shared') return false;
-  if (turnGuard.snapshot()?.blocked === true) return true;
-  try { keys.assertAllowed(); return false; } catch { return true; }
-};
-mistral.convaiAvailable = () => !convaiDayUsed();
 const currentKey = () => keys.current();
 // A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).
 // With Mistral there is no Convai connection to pre-open or to speculate on either. Group look-ahead is the exception on a
@@ -499,6 +494,8 @@ const keyNotice = () => {
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
+// The game's code for a turn Local AI could not take (never a hand-over to another provider): not enough free graphics memory, or any other reason it could not start.
+const localUnavailableCode = error => error?.reason === 'low-memory' ? 'local-no-memory' : 'local-unavailable';
 // A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
 // the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
 function noteTurnFailure(error, input, {microphone = false} = {}) {
@@ -506,11 +503,11 @@ function noteTurnFailure(error, input, {microphone = false} = {}) {
   try {
     const errorCode = input ? turnFailure(error, input).errorCode : undefined;
     errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
-      localReason: errorCode === 'local-fallback' || errorCode === 'local-unavailable' ? mistral.localBroken || localServer.status().reason : undefined});
+      localReason: errorCode === 'local-fallback' || errorCode === 'local-unavailable' || errorCode === 'local-no-memory' ? mistral.localBroken || localServer.status().reason : undefined});
   } catch { /* a report is never worth a failure of its own */ }
 }
-// While Local AI is chosen and cannot start, a failed turn names Local AI's problem ('local-no-memory', 'local-unavailable'), never a Convai one
-// (MistralProvider.failureCode: no 'local-fallback' when nobody takes over, no 'daily-limit' for a turn that fell back to Convai). Others pass.
+// While Local AI is chosen and cannot start, a failed turn names Local AI's own problem ('local-no-memory', 'local-unavailable'); an older 'local-fallback'
+// code becomes that too (MistralProvider.failureCode). Others pass.
 const providerFailureCode = code => mistral.failureCode(code);
 // keyFailure (below) with that correction: what every failed turn's reply carries.
 const turnFailure = (error, input) => {
@@ -518,7 +515,7 @@ const turnFailure = (error, input) => {
   const corrected = errorCode === failure.errorCode ? failure : {...failure, errorCode};
   // Local AI could not start (or would not start again after it stopped working): the game's sentence says that, and these few words say why
   // (the pack is missing, no graphics card, the model server stopped working), shown after it like a local turn's detail.
-  if ((errorCode === 'local-unavailable' || errorCode === 'local-fallback') && !corrected.errorDetail) {
+  if ((errorCode === 'local-unavailable' || errorCode === 'local-no-memory' || errorCode === 'local-fallback') && !corrected.errorDetail) {
     const detail = unavailableDetail(isLocalUnavailable(error) ? error.reason : mistral.localBroken, isLocalUnavailable(error) ? error.detail : undefined);
     if (detail) return {...corrected, errorDetail: detail};
   }
@@ -527,10 +524,10 @@ const turnFailure = (error, input) => {
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {
   // A Mistral failure says what to do about it (key, free limit, model); an automatic reaction (battle, loot) just stops.
-  // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
+  // The local AI that could not start: the turn fails with Local AI's own reason (local-no-memory, local-unavailable) and the next turn tries again; no other provider takes it.
   // The browser for the conversation page would not start (or there is none): a turn V asked for says which browser and why, like a Local AI failure.
   const browserFailed = error?.code === 'BROWSER_START_FAILED' || error?.code === 'NO_BROWSER';
-  const errorCode = (input?.reaction ? undefined : browserFailed ? 'browser-failed' : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
+  const errorCode = (input?.reaction ? undefined : browserFailed ? 'browser-failed' : isLocalUnavailable(error) ? localUnavailableCode(error) : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
   // The detail is the bridge's own short sentence ("Brave was found but would not start: ..."), already cut down to file names.
   if (errorCode === 'browser-failed') return {errorCode, errorDetail: error.code === 'NO_BROWSER' ? 'no Chromium browser found' : String(error.message).split('\n')[0].slice(0, 140)};
@@ -686,7 +683,7 @@ const phoneFailures = new PhoneFailureLog({
   provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
   contacts: await requiredJson('characters/phone-contacts.json'), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -911,16 +908,15 @@ const warmTurnConnections = options => options?.provider === 'custom'
   : warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
-// local AI, whatever the player's conversation provider is: one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
+// local AI, whatever the player's conversation provider is: one text host per route (the local AI never falls back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
 const addonTextHosts = new Map();
 function addonTextHost(route, profileKey) {
-  const allowsMistral = route === 'local' && addonHost.routeFor(profileKey, {applied: 'mistral', mistralKey: true}) === 'mistral';
-  const cacheKey = `${route}:${allowsMistral}`;
+  const cacheKey = `${route}:false`;   // the key keeps the shape it had when the local host could also hold a Mistral route
   let host = addonTextHosts.get(cacheKey);
   if (!host) {
     host = new TextProviderHost({provider: fixedProvider(mistral, route), memory: sharedMemory(mistralMemory), personas: personaBook,
-      routes: {[route]: textRoutes[route], ...(allowsMistral ? {mistral: textRoutes.mistral} : {})}, transformReply: cleanReply, gate: memoryQuiet,
+      routes: {[route]: textRoutes[route]}, transformReply: cleanReply, gate: memoryQuiet,
       // The hard-limit guard (never the crude Mature persona layer) for an add-on speaker too: with the Mature setting on or an uncensored model loaded.
       matureContent, guardOnly: true,
       // An add-on speaker never says V's words: a reply that opens with V's own line (or writes V's side of the talk) loses them before the voice hears them.
@@ -987,8 +983,10 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 const turnVoices = new Map();
 // A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
 // which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
+// `convai`: the Convai voice may speak this installation's turns, because the player chose it or chose a cloud voice that falls to it. A LOCAL voice
+// that cannot run (or has no clip for this character) is never replaced by it: that turn is written (planTurnVoice 'none'), and Convai gets ttsEnabled false.
 // `cloud` and `speaks`: the Voxtral voice (it runs on Pocket's route) and the languages the model in use speaks (bridge/multilingual.mjs cloudSpeaks).
-const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider,
+const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,
   cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language)});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
@@ -1003,6 +1001,7 @@ function turnVoice(input) {
   }
   return plan;
 }
+// True when the Convai cloud voice is NOT the one speaking this turn: a local voice, or nothing at all ('none': written). Either way Convai sends no audio.
 const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
 // One line per spoken reply: the voice chosen, the voice that spoke and why they differ (bridge/voice-routing-log.mjs).
 // Routing facts only, no dialogue; the file append is queued off the speech path. Never allowed to affect a reply.
@@ -1216,8 +1215,9 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   companionAction: companionActions.configFor(input), local: localTurn(input),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
   ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input),
-  // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai speaks only a turn in another language that an English-only voice cannot, and a fault in the
-  // format of its audio then leaves the written reply instead of failing the turn (bridge/realtime-client.mjs, audioOptional).
+  // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice or a cloud
+  // voice that falls to it are the only cases where it speaks), and a fault in the format of any audio it does send leaves the written reply instead of failing the turn
+  // (bridge/realtime-client.mjs, audioOptional).
   audioOptional: localChoice(input.profileKey).uses});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -1403,7 +1403,7 @@ function syncVoiceRoutes({wait = false, signal} = {}) {
 function invitedVoiceCurrent(profile, receipt) {
   if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
       || voiceRouteReservation || voiceRoutePending.size) return false;
-  if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
+  if (receipt.provider === 'convai' || receipt.provider === 'text') return !localVoice.usesProfile(profile);
   // Playback Off: the worker was released and none is waited for (bridge/voice-selection.mjs, prepareProfile `muted`).
   if (receipt.muted === true) return localVoice.playbackEnabled === false && receipt.provider === localVoice.provider && localVoice.usesProfile(profile);
   return receipt.provider === localVoice.provider && ['pocket','omni'].includes(receipt.provider) && receipt.profile === profile
@@ -1414,8 +1414,9 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
     const receipt = await localVoice.prepareProfile(profile, {signal});
-    if (receipt?.ready !== true || !['convai','pocket','omni'].includes(receipt.provider)
-        || (receipt.provider !== 'convai' && receipt.profile !== profile)) {
+    const unvoiced = receipt?.provider === 'convai' || receipt?.provider === 'text';
+    if (receipt?.ready !== true || !['convai','text','pocket','omni'].includes(receipt.provider)
+        || (!unvoiced && receipt.profile !== profile)) {
       throw Error('Local voice readiness could not be verified');
     }
     await abortable(syncVoiceRoutes({wait: true, signal}), signal);
@@ -1425,7 +1426,7 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     // Recheck the actual route before authorizing this invitation's connection.
     if (receipt.muted === true && localVoice.playbackEnabled === false) {
       if (receipt.provider !== localVoice.provider || !localVoice.usesProfile(profile)) continue;
-    } else if (receipt.provider !== 'convai') {
+    } else if (!unvoiced) {
       if(receipt.provider!==localVoice.provider)continue;
       if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
     } else if (localVoice.usesProfile(profile)) continue;
@@ -1518,10 +1519,13 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
   const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey)});
   if (voice.engine === 'none') {
-    if (mistral.active && !multilingual.enabled && !input.reaction) voiceLanguageNotice.note();
+    // The chosen local voice cannot run right now (the game says so once, from the voice state's fallback): the reply is written, never given to a cloud voice.
+    const unavailable = voice.reason === 'local-voice-unavailable';
+    if (!unavailable && mistral.active && !multilingual.enabled && !input.reaction) voiceLanguageNotice.note();
     logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
-      audioError: voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
+      audioError: unavailable ? 'The selected voice is unavailable right now; showing the written reply.'
+        : voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
         : 'The selected voice speaks English only; showing the written reply.'};
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
@@ -3038,7 +3042,7 @@ async function applyProviderChoice() {
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
     rewarmLocalVoice();
-    // Local AI is chosen and down, and nobody can take its turns (no Mistral key, Convai's free day used up): they stay here and say why.
+    // Local AI is chosen and down: its turns stay here (never Mistral or Convai) and say why.
     if (mistral.localDown) logLocalDown();
     // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
     if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);

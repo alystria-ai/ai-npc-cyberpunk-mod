@@ -570,7 +570,7 @@ function runLua(code) {
 test('the notice for a failed local turn is the translated sentence plus the bridge\'s reason, and only a short plain one', async () => {
   const source = await readFile(new URL('../mod/init.lua', import.meta.url), 'utf8');
   const start = source.indexOf('local function localFailureSuffix(reply)');
-  const end = source.indexOf('-- A turn the local AI could not answer and the player\'s cloud provider did');
+  const end = source.indexOf('-- The Local AI model server stopped working by itself and was started again');
   assert.ok(start > 0 && end > start, 'the helper and the branch are in mod/init.lua');
   // The helper and the whole keyReplyNotice head are run as written, with a stand-in for the translation function.
   const helper = source.slice(start, source.indexOf('-- id and text of the notice a reply calls for'));
@@ -833,12 +833,11 @@ test('a turn that fails on a started model keeps its own reason when Local AI is
   provider.setPreference('local'); provider.apply();
   // Local AI works: nothing is corrected.
   assert.equal(provider.failureCode('local-failed'), 'local-failed');
-  // It cannot start and Convai's day is used: a start problem says so in Local AI's words, a failed turn on a model that did start keeps its reason.
-  provider.convaiAvailable = () => false;
+  // It cannot start: a start problem says so in Local AI's words (the turns never go to Convai or Mistral), a failed turn on a model that did start keeps its reason.
   provider.noteLocalFailure('low-memory');
   assert.equal(provider.localDown, true);
   assert.equal(provider.failureCode('local-fallback'), 'local-no-memory');
-  assert.equal(provider.failureCode('daily-limit'), 'local-no-memory');
+  assert.equal(provider.failureCode('daily-limit'), 'daily-limit', 'a Convai code is not rewritten: Convai is never asked for a Local AI turn');
   assert.equal(provider.failureCode('local-failed'), 'local-failed', 'the turn\'s own reason (errorDetail) is not replaced by a start problem');
   assert.equal(provider.failureCode(undefined), undefined);
 
@@ -975,7 +974,7 @@ test('a slow turn on a model that does not fit the graphics memory says so in th
   assert.equal(failureDetail(new Error('x')), undefined);
 });
 
-test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the cloud takes over with one notice, and the saved choice is untouched', async t => {
+test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed Local AI fails with low-memory, no cloud takes over and no notice is queued, and the saved choice is untouched', async t => {
   const {host, server, provider, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
   // The bridge's wiring (bridge/convai-bridge.mjs): the supervisor's step-down and failure reach the provider.
   const steps = [];
@@ -989,14 +988,14 @@ test('end to end: two stalled turns in a row step Local AI down; with no smaller
   for (let wait = 0; wait < 400 && server.status().state !== 'failed'; wait++) await sleep(25);
   assert.equal(server.status().state, 'failed');
   assert.deepEqual([steps.map(step => step.model), server.status().reason], [[null], 'low-memory']);
-  assert(logs.some(line => /stepping down from .*no smaller model is installed, the cloud text provider takes over/.test(line)), logs.join('\n'));
-  // The provider: Local AI is still the saved choice; the turns go to a cloud provider, and the game is told once, in the step-down's words.
+  assert(logs.some(line => /stepping down from .*no smaller model is installed/.test(line)), logs.join('\n'));
+  // The provider: Local AI is still the saved choice and still the provider; its next turns fail with its own reason (local-no-memory) and are tried again.
   assert.equal(provider.preference, 'local');
-  assert.equal(provider.requested, 'convai');
-  provider.apply();
-  assert.equal(provider.takeNotice(), 'local-stepdown');
-  assert.equal(provider.noticeModel, '');
+  assert.equal(provider.requested, 'local');
+  assert.equal(provider.localFailureCode, 'local-no-memory');
+  assert.equal(provider.apply(), false);
   assert.equal(provider.takeNotice(), undefined);
+  assert.equal(provider.noticeModel, '');
 });
 
 // ---- 2026-10-21, round 3: the first turn after the idle stop, and a turn that was never sent is not a stall ----------------------------------------------------------

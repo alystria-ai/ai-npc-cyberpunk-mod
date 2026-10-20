@@ -24,7 +24,7 @@ The **Local AI model** row shows how Local AI is doing. While the model is not r
 | Row name | Help starts with |
 |---|---|
 | Local AI model (Warming up) | "Local AI is warming up…" |
-| Local AI model (Not enough memory) | "Not enough graphics memory for Local AI. A cloud provider is used instead." |
+| Local AI model (Not enough memory) | "Not enough free graphics memory to start Local AI. Try a smaller model in Settings." (Local AI stays your provider: each turn says so, and the next turn tries again.) |
 | Local AI model (Unavailable) | "Local AI could not start. Check Local AI in Settings > Conversation provider." or, when only Mature models are installed and Mature content is off, "Only Mature models found. Turn on Mature content to use them." |
 
 When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, and the help says what is wrong with the service.
@@ -37,29 +37,33 @@ The voice matters more than the text. If the graphics card is short of memory, t
 do anything:
 
 1. It keeps your chosen voice (OmniVoice loads first) and uses the **lite** model instead of the standard one.
-2. If even the lite model does not fit beside OmniVoice, it keeps the voice and uses a cloud provider for the text: Mistral if you saved a
-   Mistral key, otherwise Convai. You see one notice, once: "Local AI could not start, so a cloud provider is used. Check Local AI in
-   Settings > Conversation provider."
+2. If even the lite model does not fit beside OmniVoice, it keeps the voice, and Local AI cannot answer for now. **Nothing is ever sent to Mistral
+   or Convai instead** (owner rule 2026-10-21, after a player's surprise cloud use): Local AI stays your provider, and each turn you ask for shows
+   "Not enough free graphics memory to start Local AI. Try a smaller model in Settings." The next turn tries to start the model again by itself
+   (at most once every ten seconds), so it recovers as soon as the game gives memory back. You can also choose a smaller model.
 3. The voice is only changed as a last resort.
 
-If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
-Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
+If the pack is missing or the model cannot start, the same applies: Local AI stays the provider and each turn says "Local AI could not start.
+Check Local AI in Settings > Conversation provider." (with the reason in brackets). A start that failed, a crash or too little free memory is tried
+again by the next turn; a missing pack or a Mature-only install with Mature content off is cured by installing the pack or turning Mature content on
+(the mod notices either within a few seconds), and a new model choice, or turning Mature content on or off, tries the start again at once. Choosing
+Mistral, Convai or Custom in Settings is your own choice to make; the mod never makes it for you.
 
 The game can also take the graphics memory after the model is loaded (a big scene, high textures). The card then moves the model into shared
 system memory, where it reads a prompt at a crawl. When two requests in a row get no usable answer (a turn or a persona warm-up with no reply, a
 prompt read that stops, a reply that goes quiet) and none was answered in between, the mod steps down for the rest of the session, in the same
 family: **standard to lite**, and for the Mature models **Mature good to Mature lite** (an uncensored model never gives way to a censored one). You
 see one notice, once: "Local AI switched to {model}: the game is using most of your graphics memory." When no smaller model is installed, or the
-lite model does not fit the memory that is free then, a cloud provider takes the text (Mistral with a saved key, otherwise Convai), with one notice,
-once: "Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used." Your saved model choice is not
+lite model does not fit the memory that is free then, Local AI cannot answer for now: each turn says "Not enough free graphics memory to start Local AI.
+Try a smaller model in Settings." and the next turn tries to start the model again; no cloud provider takes the text. Your saved model choice is not
 changed; choosing Local AI again, or another model, tries the whole choice again. A model you added yourself and a server you run never step down.
 On a card of about 8 GB or less the default choice (no model saved) keeps 3 GB of the card for the game, so it takes the lite model; a model you pick
 in the row is loaded as you chose it (and steps down only if it stalls).
 
-Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
-stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
-Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
-you to try the Local AI you already chose).
+Local AI turns never go to Mistral or Convai, whether you saved a Mistral key or not, whether Mature content is on or off, and whether Convai's free
+tier has turns left. They stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a
+smaller model in Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which
+would tell you to try the Local AI you already chose).
 
 ### Choosing the model
 
@@ -87,7 +91,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   (see "Mature content"). Then every installed model is an uncensored one, and the rule is: they run only while Mature content is on. With it on, the
   default and the fallbacks are the Mature models as above (the good one if it fits, else the lite one, with layers on the CPU if even that does not fit).
   With it off, nothing is chosen, a pin makes no difference, Local AI is unavailable (the start fails with the reason `mature-off`, so the row shows the
-  usual "Unavailable" state and the cloud provider answers with the usual one notice), and the row offers no default (nothing is saved on Apply); turning
+  usual "Unavailable" state and each turn says so; no cloud provider answers), and the row offers no default (nothing is saved on Apply); turning
   Mature content on selects the Mature model and lifts the failure, and turning it off again unloads the model. As soon as a standard, lite or custom model is
   installed beside the Mature pack nothing of this applies and everything above holds as before.
 - **Fallback.** A chosen model that is missing, does not fit the free graphics memory or did not start is replaced by the largest
@@ -116,10 +120,9 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   loaded model already satisfies the new choice. While another provider answers nothing loads; the next start reads the choice.
 - The small CPU embedder for memory search is not part of the choice and stays as it is.
 
-If Local AI cannot answer one particular turn (for example the model went away mid-reply), that turn is answered by your cloud provider
-(Mistral with a saved key) and you see "Local AI could not answer that one, so a cloud provider did." at most
-once every ten minutes. With no cloud account saved you see "Local AI could not answer that. Try again in a moment." instead of silence.
-Local AI stays the chosen provider either way.
+If Local AI cannot answer one particular turn (for example the model went away mid-reply), that turn fails and you see "Local AI could not answer
+that. Try again in a moment." instead of silence. It is never answered by Mistral or Convai, with or without a saved Mistral key. Local AI stays the
+chosen provider, and the next turn asks it again.
 
 ### Add your own model
 
@@ -302,7 +305,7 @@ much of it that is. Size the model, its quantisation and its context (and Kobold
 for itself: a model that fills the card makes the game stutter. The mod's own memory model for remembering past talks is small and runs
 on the processor: it keeps running when an installed pack provides it.
 
-**If your server is not reachable.** When it is chosen but does not answer (not started yet, wrong address, wrong key), the mod says so once in the game and uses another Local AI model if you have one ("The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so ... was used instead."), and otherwise your cloud provider ("Local AI could not start, so a cloud provider is used. ..."), as it does when a model does not start. To try again, start your server, then pick another provider and Apply, and choose Local AI and Apply again. If it stops answering during play, or stops in the middle of a reply, that turn goes to your cloud provider (Mistral with a saved key, with the notice "Local AI could not answer that one, so a cloud provider did.") or, with none, you see "Local AI could not answer that. Try again in a moment." The mod looks at the server again before the next turn. For the cause, look in `bridge.stderr.log` for `[LocalAI] [local]` lines: `could not be reached (ECONNREFUSED)` is a server that is not running or the wrong port; `did not accept the API key` is a wrong `apiKey`; `the server answered HTTP 404 at /models` is an address that is missing its `/v1`; `stopped answering` is a server that went away during play.
+**If your server is not reachable.** When it is chosen but does not answer (not started yet, wrong address, wrong key), the mod says so once in the game and uses another Local AI model if you have one ("The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so ... was used instead."), and otherwise says "Local AI could not start. Check Local AI in Settings > Conversation provider." on each turn (no cloud provider is used instead), as it does when a model does not start. To try again, start your server; the next turn looks at it again. If it stops answering during play, or stops in the middle of a reply, that turn fails and you see "Local AI could not answer that. Try again in a moment." The mod looks at the server again before the next turn. For the cause, look in `bridge.stderr.log` for `[LocalAI] [local]` lines: `could not be reached (ECONNREFUSED)` is a server that is not running or the wrong port; `did not accept the API key` is a wrong `apiKey`; `the server answered HTTP 404 at /models` is an address that is missing its `/v1`; `stopped answering` is a server that went away during play.
 
 The same rules as for any model apply to a server: **Mature content** reads its `uncensored` and `family` entries, and the hard limits and the
 output screen run on its replies exactly as for a model of the pack.
@@ -339,12 +342,12 @@ Graphics memory (video memory) each setup adds on top of what the game itself us
 | OmniVoice | Local AI lite | about 3.9 GB (up to 5.9 GB) | |
 | OmniVoice | Local AI standard | about 5.2 GB (up to 7.3 GB) | |
 
-When the card is short, the voice is kept before the text: standard gives way to lite, lite gives way to Mistral or Convai, and the
-voice only changes as a last resort.
+When the card is short, the voice is kept before the text: standard gives way to lite, lite gives way to a "not enough free graphics memory" notice
+(never to Mistral or Convai on its own), and the voice only changes as a last resort.
 
 The start rule has a margin: the standard model starts only when about 6 GB of video memory is free (its 5.15 GB file plus 1.2 GB of
 room), although it uses about 3.1 GB once loaded; the lite model needs about 2 GB free (its 1.21 GB file plus 0.7 GB) and uses about
-1.6 to 1.8 GB. With less free memory the lite model is used, then cloud text. The margin is deliberate, so the game keeps its textures.
+1.6 to 1.8 GB. With less free memory the lite model is used, then Local AI says it has no room (it never moves the text to the cloud). The margin is deliberate, so the game keeps its textures.
 
 You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB is better) and a separate NVIDIA or AMD
 graphics card that supports Vulkan. A computer with only integrated graphics cannot run the packs' models (a server of your own on
@@ -409,13 +412,16 @@ pinned hash. See `docs/PACKAGING.md`.
 Omni loads first and the tier is chosen from what is left: the supervisor's `beforeStart` hook (set in `convai-bridge.mjs`) waits, for
 at most two minutes, until the requested voice has settled, and then reads the free video memory. Standard fits if free memory is at
 least its file size plus 1.2 GB, else lite if it is at least its file size plus 0.7 GB, else the supervisor fails with `low-memory`,
-`MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
-with the single `local-fallback` notice. Convai only while it can answer (`MistralProvider.convaiAvailable`, which the bridge points at the shared
-key's day: the local count or the sign-in backend's answer): with that day used up and no Mistral key the provider stays `local`
-(`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` instead of `local-fallback` or `daily-limit`
-(`MistralProvider.failureCode`), and the bridge logs `[LocalAI] Local AI is unavailable (<reason>) and Convai's free turns for today are used`.
-A change of the model choice or of Mature content clears a `low-memory`, `start-failed` or `crashed` failure and starts again
-(`syncLocalModelChoice`).
+`MistralProvider.noteLocalFailure` is called once, and the provider **stays `local`** (`requested` is always `local` while Local AI is chosen; owner rule
+2026-10-21): `localBroken` records the reason (`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` (`isLocalUnavailable`;
+`MistralProvider.failureCode` also turns an older bridge's `local-fallback` into those), no notice of its own is queued, and the bridge logs
+`[LocalAI] Local AI is unavailable (<reason>): turns stay on Local AI, the game names the reason, and the next turn tries again`. Nothing is handed to Mistral
+or Convai (`MistralProvider.convaiAvailable`, `noteLocalTurnFallback` and the `local-fallback` / `local-turn-fallback` notices are gone).
+The next turn starts Local AI again: `localRoute` (`connect` and `prepare`, never background work) calls `server.reset()` when the server is `failed` for
+`low-memory`, `start-failed` or `crashed` (not `not-installed` or `mature-off`, which the install and Mature polls cure) and at least ten seconds (`LOCAL_RETRY_MS`)
+have passed since the last try; a start that this turn's own `ensure` just lost counts as the last try. No timer and nothing per frame. When the server reports
+`ready` again the bridge clears `localBroken` (`MistralProvider.clearLocalFailureAny`). A change of the model choice or of Mature content clears a
+`low-memory`, `start-failed` or `crashed` failure and starts again at once (`syncLocalModelChoice`).
 
 ### Context budget
 
@@ -553,12 +559,11 @@ build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,7
 
 ### When Local AI cannot answer a turn
 
-`localRoute` falls back for any failure of a turn (a prompt that cannot fit, a server that went away, no first byte in time): to Mistral
-when a key is saved (`TextProviderHost#candidates`). The turn's reply is the cloud
-provider's, and `MistralProvider.noteLocalTurnFallback()` queues the `local-turn-fallback` notice (sent as `keyNotice` on that reply; the
-game shows it at most every ten minutes). With no cloud provider the turn fails with the game code `local-failed` (`errorCodeFor`), shown
-as "Local AI could not answer that. Try again in a moment." (the phone shows the same words; the game's notice adds the reason in brackets, see "When a local turn fails"). Automatic reactions show neither notice.
-A server that could not start keeps its own path (`local-fallback`, see "Provider state"). Both notices are in `docs/NOTIFICATIONS.md`; the
+`localRoute` never falls back (`fallsBack: () => false`; `TextProviderHost#candidates` returns the provider's own route only): a turn Local AI cannot answer (a prompt that
+cannot fit, a server that went away, no first byte in time) fails with the game code `local-failed` (`errorCodeFor`), shown as "Local AI could not answer that.
+Try again in a moment." (the phone shows the same words; the game's notice adds the reason in brackets, see "When a local turn fails"), whether a Mistral key is
+saved or not and whether Mature content is on or off. The next turn asks Local AI again. Automatic reactions show no notice.
+A server that could not start has its own codes (`local-no-memory`, `local-unavailable`, see "Provider state"). The notices are in `docs/NOTIFICATIONS.md`; the
 strings are in the 15 locale files and `localization/en.json`.
 
 ### When a local turn fails (2026-10-19: Mature content, Gemma 4, every reply timed out)
@@ -586,8 +591,8 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
     `return_progress`, which makes it send one per prompt batch, so a slow prompt that keeps advancing is waited for and a stuck one is named. The wait
     before the first word is long on purpose: see "A machine with no CPU to spare" below;
   - a timeout is not asked again (it would repeat the wait); a refusal or an empty reply is, once;
-  - a model still loading when the budget ends ends the turn at once (`still loading`); the load goes on, so the next turn finds it ready, and with a
-    cloud key saved the cloud provider answers that turn (`local-turn-fallback`);
+  - a model still loading when the budget ends ends the turn at once (`still loading`); the load goes on, so the next turn finds it ready (the turn itself fails with
+    `local-failed`; no cloud provider answers it);
   - a model that writes only thinking (`reasoning_content`, 160 pieces and no reply text) is stopped at once, not after its 600 tokens.
 - **Every failed turn says why.** The error carries `reason` (`no-response`, `no-first-token`, `prefill-stalled`, `thinking-only`, `stalled`, `loading`,
   `deadline`) and the request's record (`trace`: when the headers, the first event and the first word came, pieces, thinking pieces, prompt progress,
@@ -595,8 +600,8 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   The bridge logs `[LocalTurn] FAILED: ...` with the model file, family, chat template (source, length, hash), context and server state; the first
   turn after each load and any turn whose first word took more than 8 s are logged the same way (`[LocalTurn] ok ...`).
   The game's `local-failed` notice shows the sentence after its own translated one (`errorDetail` in `reply.json`, shown as data: not a translation
-  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone. This fits the rules of "Convai takes the turns only while
-  it can answer them" (`MistralProvider.failureCode`): a Local AI that could not start has its own notices (`local-no-memory`, `local-unavailable`), and a turn
+  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone. This fits the rule that a failed Local AI turn is never
+  handed to another provider (`MistralProvider.failureCode`): a Local AI that could not start has its own notices (`local-no-memory`, `local-unavailable`), and a turn
   that failed on a model that did start keeps `local-failed` and its reason (`failureCode` leaves it alone). The game's 90 s reading of the bridge status
   (`noReplyMessage`, "Local AI is still loading its model" / "did not answer within 90 s") is for a turn the bridge never answered; a local failure arrives at 80 s
   at the latest, so the game shows one of the two, never both.
@@ -628,7 +633,7 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   `PriorityGate`) do the same to themselves, because the python.exe the bridge starts can be a launcher whose child is the real worker.
 - **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
   list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
-  Mature content off Local AI then cannot start (`mature-off`): no warm-up and no notice, and the turn goes to the fallback provider. A model file with no marker
+  Mature content off Local AI then cannot start (`mature-off`): no warm-up and no warm-up notice, and a turn fails with the `mature-off` reason (no other provider answers). A model file with no marker
   is the same. `describePackFiles` (`bridge/local-ai-pack.mjs`) lists the markers, the model files each names (there or not, with sizes) and the .gguf files of
   `models/`; `packFileProblems` turns a named file that is not there into a note in the model row's help ("Gemma 4 E4B: file not found") and one log line
   (`[LocalAI] the Local AI folder is incomplete: ...`); the support report has the description as `localAi.packFiles`.
@@ -685,8 +690,8 @@ The reports' own log lines say what was going on:
 - **A persona that does not fit a small context (2026-10-20, third round of reports).** A player's own server ran with a 4,096-token context
   (the limit is then 3,714 tokens): a named character's persona and the output rules alone were more than that, every optional cut had been made,
   and every turn failed (`PromptTooLarge`, 6,948 tokens against 3,714; the fitter did know the real context, the prompt could not be made to fit
-  without touching the persona). Now, when no other route is left to answer the turn (the host passes `lastResort` on the last of its candidates; a
-  Mistral key saved means Mistral answers a turn the local server cannot take, as before, with the full persona), `fitMessages({shrinkPersona: true})`
+  without touching the persona). Now, when no other route is left to answer the turn (the host passes `lastResort` on the last of its candidates, which is the Local AI route
+  itself since 2026-10-21: a saved Mistral key no longer changes this), `fitMessages({shrinkPersona: true})`
   shortens the persona itself in fixed levels (`PERSONA_LEVELS`: the backstory to 9,000 / 6,000 / 4,200 / 3,000 / 2,200 / 1,600 / 1,100 / 700 characters, the style
   to 1,200 and below from the fourth level, example lines already gone), each cut at a sentence, and the first level that fits is used. The rules, the format
   notes, the right-now block, the character's own rules and the Mature layer are still never cut. The levels are few and coarse so the same turn after
@@ -781,7 +786,7 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
   and the turn waits for it within what is left of its own 80 s (never less than the 3 s one more request needs), then asks once more at the new address.
   A turn is asked again once; a server that dies again fails the turn as before (`local-failed`).
 - A turn that does not get a new server in time ends with `the model server stopped working and was still starting again` (reason `restarting`).
-- A server that cannot be started again (two attempts) is the old `crashed` failure: the cloud provider answers when there is one, else the turn says
+- A server that cannot be started again (two attempts) is the old `crashed` failure: the turn says
   `Local AI could not start...` with the reason in brackets (`the model server stopped working and did not start again`, `no discrete graphics card was found`,
   `the Local AI pack is not installed`, from `unavailableDetail`).
 - A restart that worked is said once, with the next reply: `local-restarted`, "Local AI stopped working and was restarted."
@@ -796,8 +801,7 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 `recover()` called it fine and every later turn failed 50 to 100 ms after it began, until the process finally crashed. Now a request that fails with those words
 (`ErrorDeviceLost`, `device lost`, `VK_ERROR_DEVICE_LOST`, in the error's text or in the server's own log tail) goes to `LocalLlmServer.noteDeviceLost` without the health check:
 the first loss of a session ends llama-server and starts it again (after `deviceLostPauseMs`, 2 s, so the driver has reset the device); the turn is asked once more on the new server and
-the player gets the usual `local-restarted` notice. The second loss steps down one model size through the same path as stalled turns (`model-stepdown` and its notice; the cloud text
-provider when no smaller model is installed; the count starts again for the smaller model). A model the player added is only restarted, and after two more losses Local AI is marked
+the player gets the usual `local-restarted` notice. The second loss steps down one model size through the same path as stalled turns (`model-stepdown` and its notice; Local AI fails with `low-memory` when no smaller model is installed, with no cloud provider taking over; the count starts again for the smaller model). A model the player added is only restarted, and after two more losses Local AI is marked
 failed (`crashed`) instead of restarting for ever. One process counts once. A loss on the retry is noted at once, so the step happens now, not at the next turn's failure.
 Tests: `bridge/local-llm-server.test.mjs` and `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_DEVICE_LOST_FROM`).
 
@@ -807,7 +811,7 @@ Tests: `bridge/local-llm-server.test.mjs` and `bridge/local-server-recovery.test
 graphics memory *at that moment*, and a model that does not start is replaced. Nothing looked at the turns afterwards. A 5,088 MiB Mature good model loaded
 on an 8 GB card with 7,174 MiB free (the game had not filled the card yet); then the game took the memory, the driver moved the model into shared system
 memory, and every request stalled (persona warm-ups with no answer in 60 s, a turn with no response, a prompt read stuck at 3,071 of 5,472 tokens). Those
-failures only decided that one turn went to Mistral when a key was saved (`fallsBack`, notice `local-turn-fallback`), or failed with `local-failed`.
+failures only decided that one turn failed with `local-failed` (before 2026-10-21 it went to Mistral when a key was saved: `fallsBack`, notice `local-turn-fallback`, both removed).
 Free graphics memory was never read at turn time, and the Mature family was never stepped at all (the older fallbacks apply at load only).
 
 **What happens now.**
@@ -824,9 +828,9 @@ Free graphics memory was never read at turn time, and the Mature family was neve
   custom one or a server). A pinned model that stalled gets `fellBack: 'too-slow'`: its family's next model (a Mature one is loaded with layers on the CPU
   when it does not fit, like the rest of the Mature pack; an ordinary one only when it fits), else the default rule. The saved pin is never written.
 - The start that follows emits `model-stepdown {from, model, free}` (once; `model` is the new model's name). With no model left, or no room for it, the
-  event has `model: null` and the server fails with `low-memory`, which hands the turns to the cloud text provider as any other failed start does.
-  `MistralProvider.noteLocalStepDown` turns the event into the `local-stepdown` notice (`keyNoticeModel` carries the name; without a name the notice is the
-  cloud text and replaces `local-fallback`, which says "could not start").
+  event has `model: null` and the server fails with `low-memory`: the turns stay on Local AI and fail with `local-no-memory` (no cloud provider takes them), and the next turn tries again.
+  `MistralProvider.noteLocalStepDown` turns the event into the `local-stepdown` notice (`keyNoticeModel` carries the name); without a name it does nothing, because the
+  `low-memory` failure that follows already tells the player.
 - `diagnostics().steppedDown` lists the models left out, for the support report; the log has `[local] ... stalled (1 of 2)` and `[local] stepping down from ...`.
 - On a card of 8,704 MiB or less (`SMALL_CARD_MAX_MIB`) the default rule (no pin; the settings page's default uses the same function) needs
   `SMALL_CARD_GAME_RESERVE_MIB` (3,000) of the card's total memory to stay free beside the model: the model's need must be at most total minus 3,000, else the next
@@ -871,7 +875,7 @@ before a load (`lms load --estimate-only`) and has a CUDA-only "limit offload to
    process's Dedicated and Shared Usage. Shared usage beyond 128 MiB that is at least 300 MiB and 10% of what the process holds is a spill. Nothing per frame, per turn or while the
    replies are fast; no counters (not Windows, a failed read) change nothing. The reading goes to the log and `diagnostics().engine.spill`.
 3. **Reaction to a spill.** The server is stopped (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to it with a 1,024 MiB margin (once per
-   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then the cloud). Measured end to end with the real server (Balanced mode, the
+   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then Local AI says it has no room). Measured end to end with the real server (Balanced mode, the
    card over-committed by four other servers): Gemma 4 E4B spilled at 6.2 tokens a second (1,073 prompt tokens a second), 6.5 s after the slow reply was reported the lite model was
    loaded and read 3,658 prompt tokens and wrote 103 tokens a second (Silent mode: 6.2 and 109, 8.8 s). A partial placement does not look like a spill (76 MiB shared with 20 layers on the card). Before this change a reply that came, however slowly, was never counted as a stall.
 4. **A model on the CPU for the most part steps down at its first stall.** When the fit says under 35% of the layers can stay on the card (123 to 314 MiB free: the 8 GB RTX 4060 report,
@@ -998,8 +1002,9 @@ reader is to read through the native core.
 ### Provider state
 
 `conversationProvider` is `convai | mistral | local | custom` (a saved `groq` from before 2026-10-14 reads as `convai`; `custom` is the OpenAI-compatible endpoint of docs/CUSTOM_PROVIDER.md, which takes Mature content since 2026-10-20). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
-setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
-`noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
+setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is always requested while Local AI is chosen; after
+`noteLocalFailure(reason)` it stays `local` (`localBroken` holds the reason, `localDown` is true) and its turns fail with its own notice; nothing moves to Mistral or Convai.
+The next turn retries the start (see "Ordering with OmniVoice"). The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
 `[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths), and `localDiagnostics` (what the server loaded and how its last turns went, for the support report only; see "When a local turn fails").
 
@@ -1025,8 +1030,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   process, makes one `GET <endpoint>/models` (4 s, with the key), takes the context from the entry, the listing (`context_length`, `max_context_length`,
   `loaded_context_length`, `n_ctx`; never `n_ctx_train`), `GET /props` or KoboldCpp's `/api/extra/true_max_context_length`, else 8192, and the model id from the entry or the only
   listed model, else `local`. It sets no idle timer and runs no warm-up (nothing of ours is loaded); `tokenize` answers null (the estimate and the refusal it learns from stand); a
-  server that cannot be reached is `#modelFailed` like a custom file (`model-fallback` to the default, else `LocalAiUnavailable('start-failed')`: one notice, then the cloud
-  provider); with no pack, only servers count as installed (the bridge's `localAiStatus` and `prepareLocal`). `externalLost()` (called by the local route on a network failure)
+  server that cannot be reached is `#modelFailed` like a custom file (`model-fallback` to the default, else `LocalAiUnavailable('start-failed')`: each turn says Local AI could not start, and the next turn looks at the server again); with no pack, only servers count as installed (the bridge's `localAiStatus` and `prepareLocal`). `externalLost()` (called by the local route on a network failure)
   forgets a server that stopped answering so the next `ensure()` looks again. The request goes through the same `localRoute` and `streamChat` as our own server, with
   `requestModel` and `trustedOrigin` on the lease: `checkedEndpoint` accepts a non-loopback address only when it is exactly that origin, so the key reaches that one origin. The
   embedder (`local-embed.mjs`) is separate and unchanged. `bridge/support-report.mjs` adds the manifest's `apiKey` values to the scrubber's secrets.
@@ -1351,8 +1355,8 @@ Mature-only install failing with `mature-off` while it is off) is unchanged.
 - **The guard follows.** With the setting on, the hard-limit guard runs on Custom too: the input screen (before any request), the output screen, the first-sentence
   screen for the voice, and the adults-only and hard-limit lines. With the setting off nothing runs there (only the Local AI also screens an uncensored model with the setting off).
   Add-on hosts (guard only) follow the same route rule.
-- **A Local AI turn that fails is not handed to Mistral while the setting is on** (`TextProviderHost#candidates`). With it off the fallback to a Mistral key works as before, with no layer.
-  A fallback would otherwise send the character's crude history and V's words to the Mistral key the owner chose not to risk; the turn now fails with Local AI's own reason, as with no key.
+- **A Local AI turn that fails is not handed to Mistral** (`TextProviderHost#candidates`). Since 2026-10-21 this holds with the setting off too (a failed Local AI never uses a Mistral key); before it,
+  only the setting on blocked it. A fallback would otherwise send the character's crude history and V's words to the Mistral key the owner chose not to risk; the turn fails with Local AI's own reason.
 - **No Voxtral voice beside it, for the companions and for V, with any provider.**
   - Bridge: `matureAllowsCloudVoice(enabled)` (`bridge/mature-content.mjs`) is false while the setting is on. `VoiceSelection` takes `cloudBarred` (the bridge: `!matureAllowsCloudVoice(matureContent.enabled)`):
     a saved Voxtral companion voice is read as Pocket (`request`), a reply that still reaches a committed cloud voice before the idle switch is not sent (the written reply stands), and the
@@ -1403,8 +1407,9 @@ through a real model (see "The guard against real models"). Prompts only; no mod
 `npm test` covers the supervisor against `bridge/fixtures/fake-llama-server.mjs`, the pack detector, the embedder, the shared host and its
 routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model. The fake server reports `/props`, counts
 `/tokenize` and refuses an over-long prompt with the real 400 body (`FAKE_LLAMA_CTX`, `FAKE_LLAMA_CHARS_PER_TOKEN`).
-`bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
-fallback and its notice. `bridge/local-turn-diagnostics.test.mjs` covers a stalled turn (the reasons, the budget, the model still loading, thinking only),
+`bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn and that a turn it cannot answer fails
+without the cloud being asked. `bridge/text-provider-failure-paths.test.mjs` and `bridge/text-provider-host.test.mjs` pin that a failed local turn never reaches the Mistral route
+(Mature on and off, a key saved) and the retry of a failed start on the next turn. `bridge/local-turn-diagnostics.test.mjs` covers a stalled turn (the reasons, the budget, the model still loading, thinking only),
 the diagnostics, the log lines, the device pick and the game's notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
 and off, a pin, a missing pin, the low-memory fallback) and `bridge/local-llm-server.test.mjs` the loaded model, the fallback event and the
 idle reload. `bridge/external-endpoint.test.mjs` covers a server the player runs, against a fake OpenAI-compatible server on localhost: the address rules, detection with and
@@ -1418,7 +1423,7 @@ the support report, and the Mature rules and hard-limit guard on its replies.
 2. First start only: the shader compile takes about a minute and shows no error notice.
 3. FPS and 1% lows in four states: baseline; model loaded and idle; 20 scripted turns; model unloaded after ten minutes. Idle must cost
    nothing (the supervisor has no polling).
-4. Free video memory with OmniVoice chosen: standard where it fits, lite where it does not, cloud text with one notice where neither does.
-5. Remove the pack (or point the folder somewhere empty): choosing Local AI gives one notice and Convai or Mistral answers.
+4. Free video memory with OmniVoice chosen: standard where it fits, lite where it does not, and where neither does each turn says there is not enough free graphics memory (no cloud text).
+5. Remove the pack (or point the folder somewhere empty): choosing Local AI keeps Local AI as the provider and each turn says it could not start; nothing is sent to Convai or Mistral.
 6. Forget on the Memory page: ask the character what it remembers afterwards.
 7. Stop the bridge: no `llama-server` process is left.

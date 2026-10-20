@@ -211,29 +211,64 @@ async function pair({mistral = KEY} = {}) {
   return provider;
 }
 
-test('local: requested while it works; a failure sends turns to Mistral when a key exists, else Convai, with one notice', async () => {
-  const withKey = await pair();
-  withKey.setPreference('local'); withKey.apply();
-  assert.equal(withKey.route, 'local'); assert.equal(withKey.active, true);
-  withKey.noteLocalFailure('low-memory');
-  assert.equal(withKey.requested, 'mistral');
-  assert.equal(withKey.pending, true);
-  withKey.apply();
-  assert.equal(withKey.route, 'mistral');
-  assert.equal(withKey.takeNotice(), 'local-fallback');
-  assert.equal(withKey.takeNotice(), undefined);
-  const noKey = await pair({mistral: null});
-  noKey.setPreference('local'); noKey.apply();
-  noKey.noteLocalFailure('not-installed'); noKey.apply();
-  assert.equal(noKey.route, 'convai');
-  assert.equal(noKey.takeNotice(), 'local-fallback');
+test('local: requested always; a failure never moves turns to Mistral or Convai, and no notice of its own is queued (owner rule 2026-10-21)', async () => {
+  for (const mistral of [KEY, null]) {
+    for (const reason of ['not-installed', 'low-memory', 'mature-off', 'no-gpu', 'start-failed', 'crashed']) {
+      const provider = await pair({mistral});
+      provider.setPreference('local'); provider.apply();
+      assert.equal(provider.route, 'local'); assert.equal(provider.active, true);
+      provider.noteLocalFailure(reason);
+      const label = `${reason}, key ${mistral ? 'saved' : 'absent'}`;
+      assert.equal(provider.localBroken, reason, label);
+      assert.equal(provider.requested, 'local', label);
+      assert.equal(provider.pending, false, label);
+      assert.equal(provider.apply(), false, label);
+      assert.deepEqual([provider.applied, provider.route], ['local', 'local'], label);
+      assert.equal(provider.localDown, true, label);
+      assert.equal(provider.localFailureCode, reason === 'low-memory' ? 'local-no-memory' : 'local-unavailable', label);
+      assert.equal(provider.takeNotice(), undefined, label + ': no fallback notice');
+      assert.equal(provider.takeNotice(), undefined, label);
+      // A model server that runs again ends the failure; the provider never moved.
+      assert.equal(provider.clearLocalFailureAny(), true, label);
+      assert.deepEqual([provider.localBroken, provider.localDown, provider.requested], [null, false, 'local'], label);
+      assert.equal(provider.clearLocalFailureAny(), false, label);
+    }
+  }
   // Choosing Local again clears the failure.
-  noKey.setPreference('convai'); noKey.setPreference('local');
-  assert.equal(noKey.requested, 'local');
+  const again = await pair({mistral: null});
+  again.setPreference('local'); again.noteLocalFailure('not-installed');
+  again.setPreference('convai'); again.setPreference('local');
+  assert.equal(again.localBroken, null); assert.equal(again.requested, 'local');
   // Another provider's setting never carries a local failure.
   const other = await pair();
   other.noteLocalFailure('crashed');
   assert.equal(other.localBroken, null);
+  assert.equal(other.clearLocalFailureAny(), false);
+  // The old convaiAvailable hook is gone: nothing can hand Local AI's turns to Convai.
+  const hooked = await pair({mistral: null});
+  hooked.convaiAvailable = () => true;
+  hooked.setPreference('local'); hooked.apply(); hooked.noteLocalFailure('crashed');
+  assert.equal(hooked.requested, 'local');
+  assert.equal('noteLocalTurnFallback' in hooked, false);
+});
+
+test('Custom: a saved address and model keep Custom the provider whatever its endpoint does; only a missing setup moves to Convai, with its own notice', async () => {
+  let ready = true;
+  const custom = {get ready() { return ready; }, onChange() {}, secrets: () => []};
+  const provider = new MistralProvider({custom});
+  provider.setPreference('custom'); provider.apply();
+  assert.deepEqual([provider.requested, provider.applied, provider.route], ['custom', 'custom', 'custom']);
+  for (const kind of ['rate', 'invalid', 'model', 'credits', 'daily']) {
+    provider.noteLimit(kind);
+    assert.equal(provider.requested, 'custom', kind);
+  }
+  provider.noteLocalFailure('crashed');
+  assert.equal(provider.localBroken, null, 'a local failure is not carried while Custom is chosen');
+  assert.equal(provider.requested, 'custom');
+  ready = false;   // address or model id removed: the one provider-level move away from Custom
+  assert.equal(provider.requested, 'convai');
+  provider.apply();
+  assert.equal(provider.takeNotice(), 'custom-no-setup');
 });
 
 test('local: a chosen model that could not be used says so once, naming the model used, only while Local AI answers, and the list of models is published without paths', async () => {
@@ -347,14 +382,16 @@ test('local: a Mature-only install that could not start while Mature content was
   const provider = await pair({mistral: null});
   provider.setPreference('local'); provider.apply();
   provider.noteLocalFailure('mature-off');
-  assert.equal(provider.requested, 'convai');
+  assert.equal(provider.requested, 'local', 'Local AI stays the provider');
+  assert.equal(provider.localDown, true);
   assert.equal(provider.clearLocalFailure('low-memory'), false, 'only the named reason is lifted');
-  assert.equal(provider.requested, 'convai');
+  assert.equal(provider.localBroken, 'mature-off');
   let changes = 0; provider.onChange(() => { changes++; });
   assert.equal(provider.clearLocalFailure('mature-off'), true);
   assert.equal(changes, 1);
   assert.equal(provider.requested, 'local');
-  assert.equal(provider.takeNotice(), undefined, 'the failure notice that was waiting is dropped');
+  assert.equal(provider.localDown, false);
+  assert.equal(provider.takeNotice(), undefined);
   assert.equal(provider.clearLocalFailure('mature-off'), false, 'nothing left to lift');
   // Not while another provider is chosen.
   const other = await pair();
@@ -362,7 +399,7 @@ test('local: a Mature-only install that could not start while Mature content was
   assert.equal(other.clearLocalFailure('mature-off'), false);
 });
 
-test('local-stepdown: a smaller model was loaded (said once, with its name) or the cloud took over (said once instead of local-fallback); a new choice drops it', () => {
+test('local-stepdown: a smaller model was loaded (said once, with its name); with none left nothing is said here and nothing moves to the cloud; a new choice drops it', () => {
   const model = new MistralProvider({});
   model.setPreference('local'); model.apply();
   // A smaller model was loaded: one notice, with the model's name, on the next reply; the Local AI stays the provider.
@@ -371,20 +408,20 @@ test('local-stepdown: a smaller model was loaded (said once, with its name) or t
   assert.equal(model.noticeModel, 'Qwen3.5-2B');
   assert.equal(model.takeNotice(), undefined);
   assert.equal(model.applied, 'local');
-  // No smaller model: the supervisor's failure (low-memory) hands the turns to a cloud provider, and its one notice is the step-down's, without a name.
+  // No smaller model: the supervisor's failure (low-memory) follows; the turns stay on Local AI and fail with its own reason ('local-no-memory'). No notice here.
   const cloud = new MistralProvider({});
   cloud.key = 'k'.repeat(32);
   cloud.setPreference('local'); cloud.apply();
   cloud.noteLocalStepDown(null);
   cloud.noteLocalFailure('low-memory');
-  assert.equal(cloud.requested, 'mistral');
-  cloud.apply();
-  assert.equal(cloud.takeNotice(), 'local-stepdown');
-  assert.equal(cloud.noticeModel, '');
+  assert.equal(cloud.requested, 'local');
+  assert.equal(cloud.apply(), false);
   assert.equal(cloud.takeNotice(), undefined);
-  // An ordinary failure that follows is the usual 'local-fallback'.
+  assert.equal(cloud.localFailureCode, 'local-no-memory');
+  // An ordinary failure that follows says nothing either.
   cloud.noteLocalFailure('start-failed');
-  assert.equal(cloud.takeNotice(), 'local-fallback');
+  assert.equal(cloud.takeNotice(), undefined);
+  assert.equal(cloud.route, 'local');
   // Another provider chosen: nothing stays pending.
   const gone = new MistralProvider({});
   gone.setPreference('local'); gone.apply();

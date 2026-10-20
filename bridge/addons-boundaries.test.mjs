@@ -601,9 +601,13 @@ test('routes: for every provider set and player state the route is never Convai,
         const custom = applied === 'custom' && customReady;
         assert.equal(route === 'custom', custom, label);
         assert.ok(route === null || route === 'custom' || providers.includes(route), label);
-        if (route === 'mistral') assert.ok(mistralKey, label);
-        if (route === 'local') assert.ok(localReady, label);
-        if (!custom) {
+        // The player chose Local AI and the speaker allows it: the route is Local AI even when it is failing right now (localReady false). The turn then fails with
+        // Local AI's own notice and is tried again; it is never moved to Mistral behind the player's back (owner rule 2026-10-21).
+        const ownLocal = applied === 'local' && providers.includes('local');
+        if (route === 'mistral') { assert.ok(mistralKey, label); assert.ok(!ownLocal, `Local AI is never exchanged for Mistral: ${label}`); }
+        if (route === 'local') assert.ok(localReady || ownLocal, label);
+        if (ownLocal) assert.equal(route, 'local', label);
+        if (!custom && !ownLocal) {
           assert.equal(route === null, !usable('mistral') && !usable('local'), `it never gives up while something allowed works: ${label}`);
           if (usable(applied)) assert.equal(route, applied, `the player's own provider first: ${label}`);
         }
