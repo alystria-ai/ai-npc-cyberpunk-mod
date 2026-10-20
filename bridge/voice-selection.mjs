@@ -27,6 +27,10 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // because it is the default, but a choice that cannot run still falls to the next entry of THIS list: an Omni
 // choice (the optional pack missing, no CUDA) lands on Pocket, a Pocket failure lands on Convai, which is always
 // runnable.
+// A Python library the voice needs that Windows refused to load: Smart App Control, or a company's or a school's Application Control (WDAC) policy, blocks a
+// file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
+// Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
+export const blockedByWindows = reason => /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(String(reason ?? ''));
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket','convai']);
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
@@ -613,10 +617,12 @@ export class VoiceSelection {
    */
   voiceProblem(){
     if(this.closed)return null;
-    if(this.vHelperWanted&&this.vHelper.failed)return {engine:'v-helper',reason:this.vHelper.failure??'unknown'};
-    if(this.pocketWanted&&this.failedBackends.has('pocket'))return {engine:'pocket',reason:this.failureReasons.pocket??'unknown'};
+    if(this.vHelperWanted&&this.vHelper.failed)return this.withCause({engine:'v-helper',reason:this.vHelper.failure??'unknown'});
+    if(this.pocketWanted&&this.failedBackends.has('pocket'))return this.withCause({engine:'pocket',reason:this.failureReasons.pocket??'unknown'});
     return null;
   }
+  // `cause: 'blocked'` when Windows refused to load a file of the voice (blockedByWindows); the Help row then says so, in plain words.
+  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason){
@@ -638,6 +644,10 @@ export class VoiceSelection {
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
     const failures=(this.pocketRetry?.failures??0)+1,delay=this.pocketRetryDelays[failures-1];
+    if(blockedByWindows(reason)){
+      this.log(`not trying again: Windows blocked a file of the voice (${reason})`,'PocketRetry');
+      this.pocketRetry=null;return;
+    }
     if(this.closed||!this.pocketWanted||delay===undefined){
       if(this.pocketRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`,'PocketRetry');
       this.pocketRetry=null;return;

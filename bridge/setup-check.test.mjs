@@ -461,6 +461,8 @@ test('voice: a row only when the bridge can say, a problem only while the Pocket
   assert.deepEqual((await checks({voice: () => null})).voice, {id: 'voice', state: 'ok', code: 'ok'});
   assert.deepEqual((await checks({voice: async () => ({engine: 'v-helper', reason: 'ValueError: a folder C:\\Users\\someone\\game'})})).voice,
     {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'v-helper'});
+  assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'ImportError: DLL load failed: An Application Control policy has blocked this file.', cause: 'blocked'})})).voice,
+    {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket', cause: 'blocked'});
   const boom = () => { throw Error('detector failed'); };
   assert.deepEqual((await checks({voice: boom})).voice, {id: 'voice', state: 'unknown', code: 'unknown'});
   assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);

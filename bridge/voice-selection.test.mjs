@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
-import {VoiceSelection} from './voice-selection.mjs';
+import {VoiceSelection, blockedByWindows} from './voice-selection.mjs';
 import {LOCAL_VOICE_KEYS, ResidentVoice} from './resident-voice.mjs';
 import {abortable} from './transport-pool.mjs';
 
@@ -732,7 +732,10 @@ function retryFixture({omni = [], pocket = []} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (mode === 'fail') { this.failure = Error(backend + ' worker failed'); hooks.onState({state: 'error'}); throw this.failure; }
+        if (mode === 'fail' || mode === 'blocked') {
+          this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)' : backend + ' worker failed');
+          hooks.onState({state: 'error'}); throw this.failure;
+        }
         owned = true; live++; peak = Math.max(peak, live);
         hooks.onState({state: 'loading', resident: false});
         if (mode === 'hold') await gate.promise;
@@ -874,6 +877,25 @@ test('a Pocket that fails is loaded again after each wait, only when due and idl
   h.voice.update({voiceProvider: 'convai'}, null, false); h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
   assert.equal(h.pocketWorkers().length, 5); assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null);
   await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('a Pocket that Windows blocked (Smart App Control, an Application Control policy) is not tried again and the problem says what blocked it', async () => {
+  const h = retryFixture({pocket: ['blocked', 'ok']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'convai');
+  assert.equal(h.voice.voiceProblem().cause, 'blocked'); assert.equal(h.voice.voiceProblem().engine, 'pocket');
+  assert.equal(h.voice.pocketRetry, null, 'no second try: it would import the same blocked file again');
+  h.advance(86_400_000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 1, 'no second worker was started');
+  assert.ok(h.logs.some(line => /\[PocketRetry\] not trying again: Windows blocked/.test(line)));
+  assert.equal(h.failures.length, 1, 'the failure is still reported once');
+  // Another failure is retried as before and carries no cause.
+  const other = retryFixture({pocket: ['fail', 'ok']});
+  other.voice.update({}, null, false); await other.settle();
+  assert.equal(other.voice.voiceProblem().cause, undefined); assert.ok(other.voice.pocketRetry);
+  assert.equal(blockedByWindows('ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.'), true);
+  assert.equal(blockedByWindows('Pocket source differs from the pinned official revision'), false);
+  assert.equal(blockedByWindows(undefined), false);
 });
 
 test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {

@@ -494,12 +494,13 @@ export async function collectSetupCheck(options = {}) {
   });
 
   // The Pocket voice (V's voice, and the companions' when Pocket is the voice they use): a problem only while a worker has failed and has not loaded
-  // again. Only the bridge knows (voice() -> null | {engine, reason}); a run without it has no such row. The row gives the engine, never the reason's
-  // words (they can hold a folder): the reason is in the log and the error report.
+  // again. Only the bridge knows (voice() -> null | {engine, reason, cause?}); a run without it has no such row. The row gives the engine, never the reason's
+  // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) is the one
+  // cause a row names.
   const voice = () => guarded('voice', async () => {
     const problem = await call('voice');
     if (!problem) return {state: 'ok', code: 'ok'};
-    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket'};
+    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' ? {cause: 'blocked'} : {})};
   });
 
   const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
