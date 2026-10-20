@@ -25,7 +25,7 @@ Every file sits here at the top of the repository with its `SHA256SUMS-*.txt` ch
 |---|---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
 | `AI-NPC-Cyberpunk-Mod-Runtime.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.4-to-0.2.5.zip` | SIZE_025 | The Runtime update: only the files that changed between 0.2.4 and 0.2.5. Extract it over your existing 0.2.4 Runtime instead of downloading the full Runtime; choose Replace if Windows asks. Files 0.2.5 no longer needs are removed by the mod at the next start. | Optional: only if you have the 0.2.4 Runtime installed |
+| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.4-to-0.2.5.zip` | 0.8 MB | The Runtime update: only the files that changed between 0.2.4 and 0.2.5. Extract it over your existing 0.2.4 Runtime instead of downloading the full Runtime; choose Replace if Windows asks. Files 0.2.5 no longer needs are removed by the mod at the next start. | Optional: only if you have the 0.2.4 Runtime installed |
 | `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.3-to-0.2.4.zip` | 0.3 MB | An earlier step, kept for players on 0.2.3: extract it first, then the 0.2.4-to-0.2.5 update. | Optional: only if you have the 0.2.3 Runtime installed |
 | `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip` | 23 MB | The oldest step kept, for players on 0.2.2: extract it first, then 0.2.3-to-0.2.4, then 0.2.4-to-0.2.5. | Optional: only if you have the 0.2.2 Runtime installed |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
