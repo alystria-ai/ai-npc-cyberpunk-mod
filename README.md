@@ -28,7 +28,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 
 - **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
 - **Mistral with a free account.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
-- **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 100 turns a day. Install, start the game, talk.
+- **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 500 turns a day. Install, start the game, talk.
 
 Already pay for OpenRouter or Nano-GPT, or run Ollama or LM Studio on your PC? The **Custom (OpenAI-compatible)** provider uses any of them: paste an address, a model ID and, for most, a key ([details](#custom-openai-compatible)).
 
@@ -138,7 +138,7 @@ The microphone only ever starts when you press the key. A recording stops by its
 | **Setup** | Download a Local AI pack | Free Mistral account, paste its key | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key |
 | **Cost** | Free | Free | Free | Your Convai plan | What your provider charges; a server on your PC is free |
 | **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
-| **Limit** | None | About 1 message a second, about 5,000 turns a day | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | Your provider's |
+| **Limit** | None | About 1 message a second, about 5,000 turns a day | 500 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | Your provider's |
 | **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
 | **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fastest cloud text: the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same | Depends on the endpoint and model |
 | **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers | On your computer |
@@ -633,7 +633,7 @@ Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan
 
 ### Daily limit
 
-The Convai free tier allows 100 turns a day per install. The in-game notice shows what is left, and choosing Mistral, Local AI or your own Convai key lifts the limit.
+The Convai free tier allows 500 turns a day per install. The in-game notice shows what is left, and choosing Mistral, Local AI or your own Convai key lifts the limit.
 
 ### Voices and TTS engines
 
