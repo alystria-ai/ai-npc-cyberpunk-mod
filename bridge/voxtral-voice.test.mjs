@@ -570,6 +570,23 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
   } finally { await server.close(); }
 });
 
+test('cloud to cloud is the only fallback that leaves the computer: Voxtral chosen with no usable Pocket route falls to the Convai voice, and a local voice never does', async () => {
+  const server = await serve((request, response) => { response.end(); });
+  try {
+    // Voxtral chosen, but this installation has no Pocket route to ride on at all: the Convai voice (cloud to cloud), as before.
+    const rideless = new VoiceSelection({}, {voxtral: new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), endpoint: server.endpoint,
+      read: async () => REFERENCE, scheduler: fastScheduler()})});
+    rideless.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(rideless.provider, 'convai'); assert.equal(rideless.convaiVoiceAllowed, true);
+    await rideless.close();
+    // The same installation with a LOCAL voice chosen: text, and the Convai voice is not allowed.
+    const local = new VoiceSelection({});
+    local.update({voiceProvider: 'pocket'}, null, false);
+    assert.equal(local.provider, 'text'); assert.equal(local.convaiVoiceAllowed, false);
+    await local.close();
+  } finally { await server.close(); }
+});
+
 test('a first ask that times out and a second one that speaks never announce a switch to the Convai voice (the false "Mistral cloud voice is not ready, using Convai" notice of the 2026-10-20 live test)', async () => {
   let mode = 'slow-once';
   const server = await serve(async (request, response) => {
@@ -774,7 +791,7 @@ test('a consumer error or a cancelled reply is not a fallback to Pocket', async 
   } finally { await server.close(); }
 });
 
-test('multilingual conversations keep the Voxtral voice (it speaks the language of the text) and still skip Pocket, so a Pocket choice routes to the Convai voice', async () => {
+test('multilingual conversations keep the Voxtral voice (it speaks the language of the text) and still skip Pocket, so a Pocket choice shows text (never the Convai voice)', async () => {
   const server = await serve((request, response) => { response.end(); });
   try {
     const h = selection(server);
@@ -782,7 +799,7 @@ test('multilingual conversations keep the Voxtral voice (it speaks the language 
     assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.cloud, 'voxtral');
     assert.equal(h.cloud.speaks('es'), true); assert.equal(h.cloud.speaks('cs'), false, 'Czech is not one of the languages Mistral names for Voxtral TTS 3');
     h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
-    assert.equal(h.voice.provider, 'convai'); assert.equal(h.voice.cloudActive, false);
+    assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.cloudActive, false); assert.equal(h.voice.convaiVoiceAllowed, false);
     await h.voice.close();
   } finally { await server.close(); }
 });

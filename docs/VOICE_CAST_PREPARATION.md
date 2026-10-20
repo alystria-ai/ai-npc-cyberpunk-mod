@@ -165,7 +165,7 @@ Each candidate must retain these independently checkable fields:
 
 Separate statuses are `discovered`, `attributed`, `decoded_verified`,
 `listening_qualified`, and `promoted`. A missing or rejected reference keeps
-that character's configured Convai voice. Do not borrow an unrelated cloned
+that character's replies written as text while a local voice is chosen (the Convai voice only when the player chose it). Do not borrow an unrelated cloned
 voice or claim extraction metadata establishes perceived quality.
 
 Prompt caching must include the model/tokenizer revision, reference and

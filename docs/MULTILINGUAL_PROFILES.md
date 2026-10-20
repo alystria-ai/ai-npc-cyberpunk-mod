@@ -431,9 +431,10 @@ the chosen voice through. It still guards the edge cases:
 
 - A turn the cloud voice speaks never gets the Natural speech or Expressive emotions (emotion tag) instructions.
 - OmniVoice is told each reply's language (ISO 639-1); English requests are unchanged.
-- While the setting is on, an OmniVoice choice that cannot run falls back to the cloud voice, never to Pocket
-  (`VoiceSelection.resolve`). If a turn still ends up on Pocket, a turn expected in another language goes to the cloud
-  voice, and a reply in another language is shown as text rather than read by Pocket.
+- While the setting is on, an OmniVoice choice that cannot run shows the replies as text, never Pocket and never a cloud
+  voice (`VoiceSelection.resolve`, route `text`; changed 2026-10-21, before it fell to the cloud voice). If a turn still ends up on Pocket, a
+  turn expected in another language and a reply in another language are shown as text rather than read by Pocket or handed to the
+  Convai voice (`planTurnVoice`). Only a chosen Voxtral voice that does not speak the language falls to the Convai twin's voice (cloud to cloud).
 - The expected language is the player's message (script, function words, greetings), else the language of the last
   exchange (reactions, the microphone placeholder, warm connections), else English.
 - Checked on 2026-10-07 with Judy's reference: en, es, ja, de, zh, ru all render with the Omni worker (16 steps).

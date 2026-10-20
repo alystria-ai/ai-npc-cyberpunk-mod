@@ -24,7 +24,7 @@ test('Local AI is chosen before its pack is installed: the pack extracted while 
     await bridge.ready();
     const waiting = await bridge.until(() => status(bridge), value => value?.localAi === 'not-installed', 'the missing pack was not reported');
     assert.equal(waiting.provider, 'local');
-    assert.equal(waiting.effective, 'convai', 'Convai answers meanwhile');
+    assert.equal(waiting.effective, 'local', 'Local AI stays the provider: its turns say why it cannot answer yet, and never go to Convai');
     assert.deepEqual(await startedModels(bridge), []);
     await bridge.installPack(standardPack);
     assert.equal(await firstStart(bridge), 'standard.gguf');

@@ -1,12 +1,11 @@
 // Local AI saved as the conversation provider, and the first turn after a load showed the Convai daily limit (2026-10-19 report, 0.2.1,
 // RTX 5070 Ti, Local AI and Mature packs). The cause: a Local AI that could not start (here, for want of free graphics memory) handed every turn
-// to Convai, also when Convai's free tier had used today's turns; each turn then met the daily limit, the notice told the player to try the Local
-// AI they had chosen, and later turns were silent (that notice shows once a session) after "Preparing connection to …" (the game reads Convai
-// as the provider). Still so on main before this change: the reordered settings poll (fixes-0.2.2) only fixed which model the first start loads.
+// to Convai, also when Convai's free tier had used today's turns; each turn then met the daily limit and the notice told the player to try the Local AI they had chosen.
 //
-// Now: Convai takes a Local AI's turns only while it can answer them; otherwise they stay on Local AI and fail with its own reason
-// ('local-no-memory', 'local-unavailable'), and a new model choice tries the start again. The status file is not written before the first
-// settings poll, so the game never reads the default provider as the saved one.
+// Now (owner rule 2026-10-21, after a player's surprise cloud use): Local AI chosen means Local AI answers. When it cannot start, its turns are never handed to
+// Mistral or Convai, with a key or without, with Convai's free day left or used up: they fail with its own reason ('local-no-memory', 'local-unavailable'),
+// and the next turn tries the start again. The status file is not written before the first settings poll, so the game never reads the default provider
+// as the saved one.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -24,76 +23,37 @@ async function provider({key = null} = {}) {
   return value.load();
 }
 
-test('Local AI down with no Mistral key: Convai takes its turns only while Convai can answer; with its free day used up they stay on Local AI', async () => {
-  const p = await provider();
-  let convaiOpen = true;
-  p.convaiAvailable = () => convaiOpen;
-  p.setPreference('local'); p.apply();
-  p.noteLocalFailure('low-memory');
-  assert.equal(p.requested, 'convai', 'Convai can answer: the designed fallback, with one notice');
-  assert.equal(p.localDown, false);
-  p.apply();
-  assert.equal(p.route, 'convai');
-  assert.equal(p.takeNotice(), 'local-fallback');
-
-  // Convai's day runs out: the turns go back to Local AI at the next idle boundary, and nothing claims a cloud provider answers.
-  convaiOpen = false;
-  assert.equal(p.requested, 'local');
-  assert.equal(p.pending, true);
-  assert.equal(p.localDown, true);
-  p.apply();
-  assert.equal(p.route, 'local');
-  assert.equal(p.pending, false);
-  assert.equal(p.localFailureCode, 'local-no-memory');
-  assert.equal(p.takeNotice(), undefined);
-
-  // A new day (or a raised limit): Convai takes over again.
-  convaiOpen = true;
-  assert.equal(p.requested, 'convai');
-  assert.equal(p.localDown, false);
+test('Local AI down: the turns stay on Local AI with a key or without one, and the reason picks the code', async () => {
+  for (const key of [null, MISTRAL_KEY]) {
+    const p = await provider({key});
+    p.setPreference('local'); p.apply();
+    p.noteLocalFailure('low-memory');
+    assert.equal(p.requested, 'local');
+    assert.equal(p.pending, false, 'no switch at all');
+    assert.equal(p.active, true, 'a text provider still answers: no Convai connection is prepared (the game shows no "Preparing connection")');
+    assert.equal(p.localDown, true);
+    assert.equal(p.localFailureCode, 'local-no-memory');
+    assert.equal(p.takeNotice(), undefined, 'no notice says a cloud provider is used');
+    p.noteLocalFailure('start-failed');
+    assert.equal(p.requested, 'local');
+    assert.equal(p.localFailureCode, 'local-unavailable');
+    // The model server runs again (the next turn started it): Local AI is simply working.
+    assert.equal(p.clearLocalFailureAny(), true);
+    assert.equal(p.localDown, false); assert.equal(p.localFailureCode, undefined);
+  }
 });
 
-test('Local AI that cannot start while Convai\'s day is already used: the turns never leave Local AI, and the reason picks the code', async () => {
+test('failureCode: a failed turn names Local AI\'s own problem while it is chosen and down, and leaves every other code alone', async () => {
   const p = await provider();
-  p.convaiAvailable = () => false;
-  p.setPreference('local'); p.apply();
-  p.noteLocalFailure('start-failed');
-  assert.equal(p.requested, 'local');
-  assert.equal(p.pending, false, 'no switch at all');
-  assert.equal(p.active, true, 'a text provider still answers: no Convai connection is prepared (the game shows no "Preparing connection")');
-  assert.equal(p.localDown, true);
-  assert.equal(p.localFailureCode, 'local-unavailable');
-  assert.equal(p.takeNotice(), undefined, 'the local-fallback notice would say a cloud provider is used');
-  // A Mistral key changes nothing here: Mistral takes over as before.
-  const keyed = await provider({key: MISTRAL_KEY});
-  keyed.convaiAvailable = () => false;
-  keyed.setPreference('local'); keyed.apply(); keyed.noteLocalFailure('low-memory');
-  assert.equal(keyed.requested, 'mistral');
-  assert.equal(keyed.localDown, false);
-  // An observer that throws counts as "Convai can answer" (the old behaviour), never as a crash.
-  const broken = await provider();
-  broken.convaiAvailable = () => { throw Error('guard gone'); };
-  broken.setPreference('local'); broken.apply(); broken.noteLocalFailure('low-memory');
-  assert.equal(broken.requested, 'convai');
-});
-
-test('failureCode: a failed turn names Local AI\'s problem while Local AI is chosen and down, and leaves every other code alone', async () => {
-  const p = await provider();
-  let convaiOpen = false;
-  p.convaiAvailable = () => convaiOpen;
   assert.equal(p.failureCode('daily-limit'), 'daily-limit', 'Convai chosen: its limit is the right notice');
-  assert.equal(p.failureCode('local-fallback'), 'local-fallback');
   p.setPreference('local'); p.apply();
-  assert.equal(p.failureCode('daily-limit'), 'daily-limit', 'Local AI works: nothing to correct');
+  assert.equal(p.failureCode('daily-limit'), 'daily-limit', 'a Convai code is never rewritten: Convai is not asked for a Local AI turn');
+  assert.equal(p.failureCode('local-fallback'), 'local-unavailable', 'an older bridge code never says a cloud provider is used');
   p.noteLocalFailure('low-memory');
-  assert.equal(p.failureCode('local-fallback'), 'local-no-memory', 'nobody takes over: not "so a cloud provider is used"');
-  assert.equal(p.failureCode('daily-limit'), 'local-no-memory', 'never "try Local AI" to a player who chose it');
-  for (const code of [undefined, 'local-failed', 'mistral-key', 'custom-unreachable', 'quota-shared']) assert.equal(p.failureCode(code), code, String(code));
-  convaiOpen = true;
-  assert.equal(p.failureCode('local-fallback'), 'local-fallback', 'Convai takes the next turns: the fallback notice is true');
-  assert.equal(p.failureCode('daily-limit'), 'local-no-memory', 'a turn that fell back to Convai and met its limit still names Local AI');
+  assert.equal(p.failureCode('local-fallback'), 'local-no-memory');
+  for (const code of [undefined, 'local-failed', 'mistral-key', 'custom-unreachable', 'quota-shared', 'local-unavailable', 'local-no-memory']) assert.equal(p.failureCode(code), code, String(code));
   const other = await provider();
-  other.setPreference('local'); other.apply(); other.convaiAvailable = () => false; other.noteLocalFailure('crashed');
+  other.setPreference('local'); other.apply(); other.noteLocalFailure('crashed');
   assert.equal(other.failureCode('local-fallback'), 'local-unavailable');
 });
 
@@ -117,8 +77,13 @@ test('the status file is held while the provider says so: open() and every publi
 
 // The wiring in the bridge script (a script, not a module: its source is read).
 const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-test('the bridge wires it: the shared key\'s day decides convaiAvailable, every failed turn and phone message is corrected, the status is held until the first poll and each turn is named', () => {
-  assert.match(bridge, /const convaiDayUsed = \(\) => \{\n\s*if \(keys\.source !== 'shared'\) return false;\n\s*if \(turnGuard\.snapshot\(\)\?\.blocked === true\) return true;\n\s*try \{ keys\.assertAllowed\(\); return false; \} catch \{ return true; \}\n\};\nmistral\.convaiAvailable = \(\) => !convaiDayUsed\(\);/);
+test('the bridge wires it: no hook hands Local AI turns to Convai, every failed turn and phone message is corrected, the status is held until the first poll and each turn is named', () => {
+  assert.doesNotMatch(bridge, /convaiAvailable|convaiDayUsed/, 'nothing decides whether Convai may take a Local AI turn');
+  assert.match(bridge, /isLocalUnavailable\(error\) \? localUnavailableCode\(error\) : mistralCodeFor\(error\)/);
+  assert.match(bridge, /: isLocalUnavailable\(error\) \? localUnavailableCode\(error\) : undefined\); \},/, 'the phone says Local AI\'s reason too');
+  assert.match(bridge, /const localUnavailableCode = error => error\?\.reason === 'low-memory' \? 'local-no-memory' : 'local-unavailable';/);
+  assert.doesNotMatch(bridge, /'local-fallback' : mistralCodeFor|isLocalUnavailable\(error\) \? 'local-fallback'/, 'no turn failure is named local-fallback any more');
+  assert.match(bridge, /localServer\.on\('state', status => \{\n[^\n]*\n\s*if \(status\?\.state === 'ready'\) mistral\.clearLocalFailureAny\(\);/, 'a model server that runs again ends the failure');
   assert.equal((bridge.match(/\.\.\.keyFailure\(/g) ?? []).length, 0, 'a failed-turn reply skips the correction');
   assert.equal((bridge.match(/\.\.\.turnFailure\(error, input\)/g) ?? []).length, 3, 'the text, streamed and voice failures');
   assert.match(bridge, /failureCode: error => \{ const code = mistralCodeFor\(error\) \?\? quota\.codeFor\(error\); return providerFailureCode\(/);
@@ -162,18 +127,22 @@ function usedUpToday(limit) {
   return JSON.stringify({...body, mac}) + '\n';
 }
 
-test('a real bridge whose Local AI cannot start for want of graphics memory, with Convai\'s free turns left: Convai answers meanwhile, as designed', {timeout: 60000}, async () => {
+test('a real bridge whose Local AI cannot start for want of graphics memory, with Convai\'s free turns left: the turns stay on Local AI', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', voice: false}, localAi: standardPack, fakeLlama: FAKE_SERVER,
     env: {CYBERPUNK_TEST_DEVICES: FULL_CARD}});
   try {
     await bridge.ready();
-    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'no-memory' && value.pending === false, 'the failed start was not reported');
-    assert.deepEqual({provider: settled.provider, effective: settled.effective}, {provider: 'local', effective: 'convai'});
-    assert.doesNotMatch(bridge.errors(), /turns stay on Local AI/);
+    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'no-memory', 'the failed start was not reported');
+    await bridge.idle(1200);   // two polls: a switch to Convai would have been applied by now
+    const after = await status(bridge);
+    assert.deepEqual({provider: after.provider, effective: after.effective, pending: after.pending}, {provider: 'local', effective: 'local', pending: false}, bridge.errors());
+    assert.equal(settled.provider, 'local');
+    assert.doesNotMatch(bridge.errors(), /Conversation provider: convai/);
+    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(low-memory\): turns stay on Local AI/);
   } finally { await bridge.cleanup(); }
 });
 
-test('the same bridge with the shared key\'s day used up: the turns stay on Local AI, which says why, and choosing another model tries the start again', {timeout: 60000}, async () => {
+test('the same bridge with the shared key\'s day used up changes nothing: the turns stay on Local AI, which says why, and choosing another model tries the start again', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', voice: false}, localAi: standardPack, fakeLlama: FAKE_SERVER,
     stateFiles: {'daily-usage.json': usedUpToday(1)},
     env: {CYBERPUNK_TEST_DEVICES: FULL_CARD, CYBERPUNK_CONVAI_DAILY_LIMIT: '1', LOCALAPPDATA: folder => `${folder}\\appdata`}});
@@ -187,7 +156,7 @@ test('the same bridge with the shared key\'s day used up: the turns stay on Loca
       `Local AI keeps the turns (main sent them to Convai, where each met the daily limit)\n${bridge.errors()}`);
     assert.equal(settled.provider, 'local');
     assert.doesNotMatch(bridge.errors(), /Conversation provider: convai/);
-    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(low-memory\) and Convai's free turns for today are used: turns stay on Local AI/);
+    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(low-memory\): turns stay on Local AI/);
     const own = await bridge.read('own-key-state.json');
     assert.equal(own?.daily?.blocked, true, 'the settings page says the free tier is used up');
 

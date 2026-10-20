@@ -1,5 +1,5 @@
-// Failure and fallback paths of the text routes (bridge/text-provider-host.mjs) that text-provider-host.test.mjs does not pin: the turn
-// handed from the local AI to Mistral exactly once per failure, a start that failed, a cancelled turn that must not fall back, a reply
+// Failure paths of the text routes (bridge/text-provider-host.mjs) that text-provider-host.test.mjs does not pin: a failed local turn is never
+// handed to Mistral (owner rule 2026-10-21), a start that failed, a cancelled turn that must not fall back, a reply
 // that already reached the voice, the provider's limit notes, observers that throw, a key saved while a turn is running, a summary that
 // failed, a speculative turn whose words were not confirmed, and the text a player can see never holding a key or a provider body.
 import {test} from 'node:test';
@@ -74,7 +74,7 @@ async function makeProvider({key = KEY, preference = 'local', apply = true} = {}
 }
 
 // The local AI with a Mistral key saved: the local route first, Mistral behind it. The local server is a stub whose address is a fake llama-server.
-async function both({local, mistral, key = KEY, ensure, withMistralRoute = true} = {}) {
+async function both({local, mistral, key = KEY, ensure, withMistralRoute = true, matureContent = null, localDefaults = {}} = {}) {
   const llama = await fakeServer(local), cloud = await fakeServer(mistral ?? nextLine);
   const calls = {ensure: 0, lost: 0, keyRefused: 0, prewarm: 0};
   const server = {status: () => ({state: 'ready'}), touch() {}, prewarm: async () => { calls.prewarm++; },
@@ -83,9 +83,9 @@ async function both({local, mistral, key = KEY, ensure, withMistralRoute = true}
   const provider = await makeProvider({key});
   const memory = await MistralMemory.open({path: null}), logs = [];
   const localSide = localRoute({server, provider});
-  localSide.chatDefaults = {retries: 1, backoffMs: [5], firstByteMs: 2000, totalMs: 5000};
+  localSide.chatDefaults = {retries: 1, backoffMs: [5], firstByteMs: 2000, totalMs: 5000, ...localDefaults};
   const routes = {local: localSide, ...(withMistralRoute ? {mistral: mistralRoute({provider, endpoint: cloud.endpoint, gapMs: 0, chatDefaults: QUICK})} : {})};
-  const host = new TextProviderHost({provider, memory, personas: book, routes, log: line => logs.push(line)});
+  const host = new TextProviderHost({provider, memory, personas: book, routes, log: line => logs.push(line), ...(matureContent ? {matureContent} : {})});
   return {llama, cloud, calls, server, provider, memory, logs, host, close: async () => { host.close(); await llama.close(); await cloud.close(); }};
 }
 
@@ -98,45 +98,74 @@ async function cloudOnly(script, {key = KEY, route = {}, hostOptions = {}} = {})
   return {cloud, provider, memory, logs, host, mistral, close: async () => { host.close(); await cloud.close(); }};
 }
 
-// ---- the local AI hands a failed turn to Mistral, once ---------------------------------------------------------------------------------
+// ---- a failed local turn is never handed to Mistral (owner rule 2026-10-21) ---------------------------------------------------------------
 
-test('a local turn that fails is handed to Mistral once; each failed turn costs the local server its own retry and Mistral one request, never a storm', async () => {
+const matureStub = enabled => ({enabled, forTurn: () => ({level: null}), refusalLevel: () => null});
+
+test('a local turn that fails stays failed with a Mistral key saved: the local server is asked again by the next turn and Mistral is never asked', async () => {
   const {llama, cloud, calls, provider, host, logs, close} = await both({local: () => ({status: 503, message: 'overloaded'})});
   try {
-    const first = await host.reply(turn('hello'));
-    assert.equal(first.transport, 'mistral');
-    assert.equal(first.text, LINES[0]);
+    const first = await host.reply(turn('hello')).catch(caught => caught);
+    assert.ok(first instanceof MistralError);
+    assert.equal(errorCodeFor(first), 'local-failed');
     assert.equal(llama.requests.length, 2, 'the local server was asked, and once more');
-    assert.equal(cloud.requests.length, 1, 'Mistral answered the turn once');
+    assert.equal(cloud.requests.length, 0, 'Mistral was never asked');
     assert.equal(calls.lost, 1, 'a server that did not answer is looked at again before the next turn');
     assert.equal(provider.localBroken, null, 'one bad turn is not a failed start');
     assert.equal(provider.applied, 'local', 'the local AI stays the provider');
-    assert.equal(provider.takeNotice(), 'local-turn-fallback');
-    assert.equal(provider.takeNotice(), undefined, 'one notice per fallback');
-    assert.equal(logs.filter(line => /could not answer .*using Mistral/.test(line)).length, 1);
-    const second = await host.reply(turn('hello again'));
-    assert.equal(second.transport, 'mistral');
-    assert.equal(llama.requests.length, 4); assert.equal(cloud.requests.length, 2);
+    assert.equal(provider.takeNotice(), undefined, 'no notice says a cloud provider answered');
+    assert.equal(logs.filter(line => /using Mistral/.test(line)).length, 0);
+    const second = await host.reply(turn('hello again')).catch(caught => caught);
+    assert.equal(errorCodeFor(second), 'local-failed');
+    assert.equal(llama.requests.length, 4); assert.equal(cloud.requests.length, 0);
   } finally { await close(); }
 });
 
-test('a local AI that cannot start answers the turn through Mistral, remembers the failure once, and is not started again after the switch', async () => {
+test('a local AI that cannot start fails the turn with its own reason, whether a Mistral key is saved and Mature is off or on: Mistral is never asked, and the next turn starts it again', async () => {
   const unavailable = () => Object.assign(new Error('The local AI is not available [local:unavailable]'), {reason: 'low-memory'});
-  const {cloud, calls, provider, host, close} = await both({local: () => 'never asked', ensure: async () => { throw unavailable(); }});
-  try {
-    const result = await host.reply(turn('hello'));
-    assert.equal(result.transport, 'mistral');
-    assert.equal(calls.ensure, 1);
-    assert.equal(provider.localBroken, 'low-memory');
-    assert.equal(provider.requested, 'mistral');
-    assert.equal(provider.localTurnNoticePending, false, 'a start that failed has its own notice, not the per-turn one');
-    assert.equal(provider.apply(), true);
-    assert.equal(provider.takeNotice(), 'local-fallback');
-    assert.equal(provider.takeNotice(), undefined);
-    await host.reply(turn('and again'));
-    assert.equal(calls.ensure, 1, 'with Mistral as the provider the local server is not asked to start for every turn');
-    assert.equal(cloud.requests.length, 2);
-  } finally { await close(); }
+  for (const mature of [null, matureStub(false), matureStub(true)]) {
+    const {cloud, calls, provider, host, logs, close} = await both({local: () => 'never asked', ensure: async () => { throw unavailable(); }, matureContent: mature});
+    try {
+      const error = await host.reply(turn('hello')).catch(caught => caught);
+      assert.ok(isLocalUnavailable(error), String(mature?.enabled));
+      assert.ok(calls.ensure >= 1);
+      const asked = calls.ensure;
+      assert.equal(provider.localBroken, 'low-memory');
+      assert.equal(provider.requested, 'local');
+      assert.equal(provider.apply(), false, 'nothing to switch');
+      assert.equal(provider.takeNotice(), undefined);
+      assert.equal(cloud.requests.length, 0, 'Mistral was never asked');
+      assert.equal(logs.filter(line => /using Mistral/.test(line)).length, 0);
+      await host.reply(turn('and again')).catch(() => {});
+      assert.ok(calls.ensure > asked, 'every turn asks the local server to start again');
+      assert.equal(cloud.requests.length, 0);
+      assert.equal(provider.route, 'local');
+    } finally { await close(); }
+  }
+});
+
+test('every kind of local failure (not available, a dropped connection, a hang past the time limit) with a Mistral key saved: the mistral route\'s chat is never called', async () => {
+  const kinds = {
+    unavailable: {ensure: async () => { throw Object.assign(new Error('The local AI is not available [local:unavailable]'), {reason: 'start-failed'}); }, local: () => 'never asked'},
+    network: {local: () => ({status: 502, message: 'bad gateway'})},
+    timeout: {local: () => ({hang: true}), localDefaults: {retries: 0, firstByteMs: 120, promptStallMs: 120, stallMs: 120, totalMs: 300}},
+  };
+  for (const [kind, options] of Object.entries(kinds)) {
+    for (const mature of [matureStub(false), matureStub(true)]) {
+      const {cloud, host, provider, close} = await both({...options, matureContent: mature});
+      let mistralChat = 0;
+      const original = host.routes.mistral.chat;
+      host.routes.mistral.chat = async (...args) => { mistralChat++; return original(...args); };
+      try {
+        const error = await host.reply(turn('hello')).catch(caught => caught);
+        assert.ok(error instanceof Error, `${kind} ${mature.enabled}`);
+        assert.equal(isLocalUnavailable(error) || failureKind(error) === 'network', true, `${kind} ${mature.enabled}: the local error comes back`);
+        assert.equal(mistralChat, 0, `${kind} ${mature.enabled}`);
+        assert.equal(cloud.requests.length, 0, `${kind} ${mature.enabled}`);
+        assert.equal(provider.route, 'local');
+      } finally { await close(); }
+    }
+  }
 });
 
 test('with no Mistral key a failed local turn is an error the game can name (local-failed): no holding line, nothing remembered, the server looked at again', async () => {
@@ -187,14 +216,14 @@ test('once the first sentence reached the voice, a local server that dies is not
   } finally { await close(); }
 });
 
-test('a local server whose first look could not tell about its key is named once when a turn is refused, and the cloud answers that turn', async () => {
+test('a local server whose first look could not tell about its key is named once when a turn is refused, and the turn fails (the cloud is not asked)', async () => {
   const {calls, cloud, host, close} = await both({local: () => ({status: 401, message: 'Unauthorized'})});
   try {
-    const result = await host.reply(turn('hello'));
-    assert.equal(result.transport, 'mistral');
+    const error = await host.reply(turn('hello')).catch(caught => caught);
+    assert.ok(error instanceof MistralError);
     assert.equal(calls.keyRefused, 1);
     assert.equal(calls.lost, 0, 'a refused key is not a server that went away');
-    assert.equal(cloud.requests.length, 1);
+    assert.equal(cloud.requests.length, 0);
   } finally { await close(); }
 });
 

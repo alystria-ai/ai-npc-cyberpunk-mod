@@ -479,7 +479,7 @@ export class PocketVoice {
     return prepared;
   }
   prepareProfile(profile, {signal} = {}) {
-    if (!this.usesProfile(profile)) return Promise.resolve({provider: 'convai', ready: true,
+    if (!this.usesProfile(profile)) return Promise.resolve({provider: 'text', ready: true,
       reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
     const operation = this.tail.then(async () => { const prepared = await this.ensurePrepared(profile, signal);
       return {provider: 'pocket', ready: this.profileReady(profile), profile,

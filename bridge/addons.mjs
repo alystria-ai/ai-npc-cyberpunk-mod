@@ -754,10 +754,12 @@ export class AddonHost {
    * The text provider of an add-on speaker's turn: the player's Custom provider when it is the one in use and its endpoint is ready (every
    * speaker follows it, like the companions; the manifest's `providers` list names only Mistral and the local AI), else the player's own
    * provider when the speaker allows it, else Mistral when a key is saved, else the local AI when its pack is installed and working; null
-   * when none can serve it (the game then tells the player once that the add-on needs a free Mistral key or the Local AI pack).
+   * when none can serve it (the game then tells the player once that the add-on needs a free Mistral key or the Local AI pack). With Local AI
+   * the player's provider and the speaker allowing it, the route is 'local' even when Local AI is failing right now: the turn then fails with
+   * Local AI's own notice and is tried again, and is never moved to Mistral behind the player's back (owner rule 2026-10-21).
    *   applied        the conversation provider in use ('convai', 'mistral', 'local', 'custom')
    *   mistralKey     a Mistral key is saved and was not refused
-   *   localReady     the Local AI pack is installed and has not failed to start
+   *   localReady     the Local AI pack is installed and has not failed to start (only decides the fallbacks below; not the player's own Local AI choice)
    *   customReady    the Custom provider's endpoint is set up (address and model)
    */
   routeFor(profileKey, {applied, mistralKey = false, localReady = false, customReady = false} = {}) {
@@ -765,6 +767,7 @@ export class AddonHost {
     if (!owner) return null;
     if (applied === 'custom' && customReady) return 'custom';
     const allowed = owner.speaker.providers;
+    if (applied === 'local' && allowed.includes('local')) return 'local';
     const usable = route => allowed.includes(route) && (route === 'mistral' ? mistralKey : localReady);
     if (usable(applied)) return applied;
     for (const route of ['mistral', 'local']) if (usable(route)) return route;

@@ -155,7 +155,8 @@ test('the bridge only touches add-ons through the host, and every touch is a no-
     assert.equal(turn.includes(banned), false, `runAddonTurn uses ${banned}`);
   }
   assert.match(bridge, /new TextProviderHost\(\{provider: fixedProvider\(mistral, route\), memory: sharedMemory\(mistralMemory\)/);
-  assert.match(bridge, /routes: \{\[route\]: textRoutes\[route\], \.\.\.\(allowsMistral \? \{mistral: textRoutes\.mistral\} : \{\}\)\}/, 'only the chosen route, and Mistral when the speaker allows it');
+  assert.match(bridge, /routes: \{\[route\]: textRoutes\[route\]\}, transformReply/, 'only the chosen route: a failing local AI never gets a Mistral route behind it');
+  assert.doesNotMatch(bridge, /allowsMistral/);
   // The once-a-second re-read exists only with add-ons.
   assert.match(bridge, /const addonTimer = addonHost\.active \? setInterval\(/);
   assert.match(bridge, /\.\.\.addonHost\.blocks\(input\),/);
@@ -206,7 +207,15 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
     assert.equal(route('addon-skippy-gun', {applied, mistralKey: false, localReady: true}), 'local');
     assert.equal(route('addon-skippy-gun', {applied, mistralKey: false, localReady: false}), null);
   }
-  assert.equal(route('addon-skippy-gun', {applied: 'local', mistralKey: true, localReady: false}), 'mistral', 'a failed Local AI falls to Mistral');
+  // Local AI is the player's provider and the speaker allows it: the route is Local AI even when it is failing right now. The turn then fails with Local AI's own
+  // notice and is tried again; it is never moved to Mistral behind the player's back (owner rule 2026-10-21).
+  for (const mistralKey of [true, false]) assert.equal(route('addon-skippy-gun', {applied: 'local', mistralKey, localReady: false}), 'local', `a failing Local AI stays Local AI (key ${mistralKey})`);
+  assert.equal(route('addon-cab-delamain', {applied: 'local', mistralKey: true, localReady: false}), 'local');
+  // A speaker that does not allow the local AI is another matter: it keeps using Mistral when a key is saved.
+  const mistralOnly = new AddonHost({addons: [validateManifest(manifest({id: 'ms', name: 'Mist', providers: ['mistral'],
+    speakers: [{id: 'mist', name: 'Mist', persona: {backstory: 'A voice.'}}]}), tmpdir())]});
+  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: true, localReady: false}), 'mistral');
+  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: false, localReady: false}), null);
   // A speaker that allows only the local AI never uses a Mistral key.
   assert.equal(route('addon-cab-delamain', {applied: 'mistral', mistralKey: true, localReady: false}), null);
   assert.equal(route('addon-cab-delamain', {applied: 'convai', mistralKey: true, localReady: true}), 'local');

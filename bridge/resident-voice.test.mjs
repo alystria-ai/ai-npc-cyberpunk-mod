@@ -400,7 +400,7 @@ test('v2 widens configured voices without warming the cast at startup; Invite pr
   assert.deepEqual([...h.client.prepared].sort(), [...LOCAL_VOICE_KEYS].sort());
   for (const key of ['unavailable', 'unprepared', 'not-registered']) {
     assert.equal(h.client.usesProfile(key), false);
-    assert.deepEqual(await h.client.prepareProfile(key), {provider: 'convai', ready: true,
+    assert.deepEqual(await h.client.prepareProfile(key), {provider: 'text', ready: true,
       reason: key === 'not-registered' ? 'missing' : key});
   }
   const prepared = h.client.prepareProfile('alex'); await tick();
@@ -443,7 +443,7 @@ test('preparation cancellation before execution skips work, while eviction requi
   const closed = h.client.close(); h.finish(); await closed;
 });
 
-test('missing ready reference is an explicit remote route before any dialogue is submitted', async () => {
+test('missing ready reference is an explicit no-local-voice route before any dialogue is submitted', async () => {
   const h = harness({settings: widerConfig(), protocolVersion: 2, autoReady: false});
   const starting = h.client.start();
   const profiles = Object.keys(config.voices);
@@ -453,7 +453,7 @@ test('missing ready reference is an explicit remote route before any dialogue is
   await starting;
   assert.equal(h.client.usesProfile('alex'), false);
   const ready = await h.client.prepareProfile('alex');
-  assert.equal(ready.provider, 'convai'); assert.equal(h.requests.length, 0);
+  assert.equal(ready.provider, 'text'); assert.equal(h.requests.length, 0);
   const closed = h.client.close(); h.finish(); await closed;
 });
 

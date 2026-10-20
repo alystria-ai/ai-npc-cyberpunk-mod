@@ -976,12 +976,17 @@ function M.omniPack()
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
--- in gameplay so a paused menu cannot swallow it. A temporary fallback (OmniVoice is being loaded again in the
--- background and returns by itself, with no notice) says so instead of calling the voice unavailable.
+-- in gameplay so a paused menu cannot swallow it. A chosen LOCAL voice (OmniVoice, Pocket) that cannot run is never replaced by a cloud voice:
+-- replies are shown as text until it is back (to == 'text', one sentence for the temporary and the lasting case). Only the Mistral cloud voice
+-- falls to the Convai voice, and for that a temporary fallback (the cloud voice is asked again) says so instead of calling the voice unavailable.
 function M.takeVoiceFallbackNotice()
     local pending = voiceFallbackNotice
     voiceFallbackNotice = nil
     if not pending then return nil end
+    if pending.to == 'text' then
+        return ui.t('{requested} is unavailable right now. Replies show as text until it is back.', {
+            requested = M.voiceLabel(pending.from, pending.steps, pending.reference)})
+    end
     if pending.temporary then
         return ui.t('{requested} is not ready yet. Companions are using {voice} for now.', {
             requested = M.voiceLabel(pending.from, pending.steps, pending.reference), voice = M.voiceLabel(pending.to)})
@@ -1291,7 +1296,7 @@ local function updateLocalVoice()
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
     if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
-        and (fallback.to == 'pocket' or fallback.to == 'convai') then
+        and (fallback.to == 'pocket' or fallback.to == 'convai' or fallback.to == 'text') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '')

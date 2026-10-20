@@ -1,7 +1,14 @@
 # Shared local voices
 
-The Mistral cloud voice (Voxtral, 2026-10-12) is a seventh Companion voices entry that rides on the Pocket route and falls back to
-Pocket for any reply it cannot deliver in time: see `docs/CLOUD_VOICE_VOXTRAL.md`.
+The Mistral cloud voice (Voxtral, 2026-10-12) is a seventh Companion voices entry that rides on the Pocket route; a reply it cannot deliver in
+time is shown as written text, and with no key at all the Convai voice speaks (cloud to cloud): see `docs/CLOUD_VOICE_VOXTRAL.md`.
+
+**A local voice never falls back to a cloud voice (owner rule, 2026-10-21, after a player's report of surprise cloud use).** When the chosen
+local voice (OmniVoice or Pocket) cannot run, the fallback is a local retry, or the other local voice only if it is already loaded (it is never
+loaded for that), and otherwise **text only**: the reply is shown as written text, Convai is asked for text with `ttsEnabled: false`, and
+the game says "{voice} is unavailable right now. Replies show as text until it is back." once. The voice comes back by itself when the local
+engine recovers (the retries below). The Convai voice is spoken only when the player chose it (or chose Voxtral and it has no key). See
+"Fallback order" below.
 
 ## Voice report and reference picker (one page)
 
@@ -82,14 +89,14 @@ profile starts on Pocket TTS. Migration (`mod/manager.lua`): a saved `omni`/`hyb
 16 steps); a saved `pocket` or `convai` stays; a missing or unknown provider becomes Pocket TTS. The description in the menu is three sentences with no
 listening percentages: Pocket is light and fast on the CPU (first audio about 0.2 s); OmniVoice sounds better,
 especially on harder voices, needs a capable GPU and the optional pack, and the higher tiers take longer to start (about 1 to
-2.5 s); Convai uses the cloud, and a choice that cannot run falls to a simpler voice with one notice. The measured numbers
+2.5 s); Convai uses the cloud, and a local choice that cannot run shows the replies as text with one notice (never a cloud voice). The measured numbers
 live here, not in the game: by ear OmniVoice was about 15–20 % better than Pocket at 16 steps and 20–25 % at 32, while for
 well-covered voices (Johnny, Judy, Panam, Alex) Pocket is within about 5 %. First audio: Omni 16 about 1.3 s short / 1.45 s
 long, Omni 32 about 2.1 s / 2.5 s.
 
-**Fallback order is unchanged** (`bridge/voice-selection.mjs`, `VOICE_FALLBACK_ORDER`): OmniVoice, then Pocket, then Convai.
-The menu lists Pocket first, but an Omni choice that cannot run (pack missing, no CUDA, worker failure) falls to Pocket, a Pocket
-failure falls to Convai. The reference choice is part of the Omni worker: a worker holds one reference configuration, so a
+**The local order** (`bridge/voice-selection.mjs`, `VOICE_FALLBACK_ORDER`): OmniVoice, then Pocket; there is no Convai entry. The menu
+lists Pocket first, but an Omni choice that cannot run (pack missing, no CUDA, worker failure) is replaced by Pocket only if Pocket is
+already loaded, and otherwise by the route `text` (`TEXT_ROUTE`); a Pocket failure is also `text`. The reference choice is part of the Omni worker: a worker holds one reference configuration, so a
 change of short/long (at the next idle boundary, like any routing change) releases the worker and starts one on the other
 configuration; a change of steps never restarts it. A Settings draft warms the draft's reference before Apply.
 
@@ -118,9 +125,9 @@ hash matches the weights file, and all 44 decoder tensors in `model.safetensors`
 (`<config.model>/model.safetensors` or `CYBERPUNK_CONVAI_OMNI_MODEL`), the adapter (`.../backend/services/tts_backend.py`) and the
 worker script. The bridge publishes `omniPack: {installed, missing}` in `local-voice-state.json` (re-checked every 30 s while
 missing). Without the pack the four Omni menu entries are greyed out, Apply refuses them
-with "Requires the optional OmniVoice pack (GPU)", a saved Omni choice falls back to Pocket with the usual one-time notice, and the Companion voices
+with "Requires the optional OmniVoice pack (GPU)", a saved Omni choice shows the replies as text with the usual one-time notice (Pocket is not loaded in its place, and no cloud voice speaks), and the Companion voices
 row name reads "(no Omni pack)" (the separate "OmniVoice pack" row was removed on 2026-10-14). An unknown status (the service has not reported) never locks an entry. CUDA is not probed up front; a worker
-that cannot get a GPU fails at start and the same fallback applies.
+that cannot get a GPU fails at start and the same route (text) applies.
 
 **Keep prepared voices** (Settings > Voices, default on; the bridge picks it up from `settings.json` without a restart).
 - Pocket saves each companion's prepared voice state (the encoded reference and its prompt, bit-identical to what encoding
@@ -176,25 +183,29 @@ changed the setting keeps Pocket until they pick another voice.
 
 ### Fallback order
 
-The list is also the fallback order, best first: OmniVoice, Pocket TTS, Convai.
-A choice that cannot run falls to the next entry; Convai is always runnable.
-"Cannot run" means the backend is not configured, none of its references is
+The local voices are OmniVoice, then Pocket TTS. **No cloud voice is ever a fallback for them.** A choice that cannot run is replaced by
+the other local voice only when that one is already loaded (never loaded for the purpose), and otherwise by the route **`text`**: no
+voice speaks, and each reply is shown as written text (`planTurnVoice` gives the turn the engine `none`, Convai is asked with
+`ttsEnabled: false`, the reply carries `audioError`, and the routing log says `used="none (written reply only)"` with the reason).
+The Convai voice (`provider: "convai"`) is a route only when the player chose it, or chose Voxtral and it has no key or no route (cloud
+to cloud, `VoiceSelection.convaiVoiceAllowed`).
+"Cannot run" means the backend is not configured (a machine with no Pocket setup at all included), none of its references is
 available, or its worker failed (for example no CUDA GPU, OmniVoice failing to
 load, a crashed worker). A failed worker stays out of routing until the player
 chooses that provider again, and is not restarted in a loop. The exception since
 October 10 is OmniVoice: it is loaded again in the background after 45 s, 3 min
 and 10 min, and takes its place back at an idle boundary ("Startup limit, background retry and switch back" below); Pocket
-gets the same three waits (see "Pocket retries too" there); a Convai failure is unchanged. The fallback
+gets the same three waits (see "Pocket retries too" there). The route change
 commits at the next idle settings poll, like any routing change, so a turn in
-progress keeps its voice. The bridge publishes `fallback: {from, to}` (with `temporary: true` while OmniVoice is being retried) in
-`runtime/local-voice-state.json` (and the support report) once the lower voice
-is the committed route; the CET mod reads it and posts one gameplay notice per
-fallback ("OmniVoice · Balanced is unavailable. Companions are using Pocket ·
-Performance instead."), which names the voice in use. Invitations
-that were preparing against the failed backend continue on the fallback instead
-of failing. The pre-existing readiness and availability checks are unchanged.
-The same machinery lets a machine with no OmniVoice setup start on Pocket
-without a manual switch.
+progress keeps its voice. The bridge publishes `fallback: {from, to}` (`to: "text"`; with `temporary: true` while a retry is pending) in
+`runtime/local-voice-state.json` (and the support report) once the text-only route is
+committed; the CET mod reads it and posts one gameplay notice per
+fallback ("OmniVoice · Balanced is unavailable right now. Replies show as text until it is back."), the same words for a temporary and a
+lasting case. Invitations
+that were preparing against the failed backend continue with a `{provider: "text", ready: true}` receipt instead
+of failing (the companion joins; its replies are written). The pre-existing readiness and availability checks are unchanged.
+Multilingual conversations are the same: Pocket speaks English only, so a Pocket choice paired with them (a hand-edited setting) or a
+reply in another language on Pocket is shown as text, not read by Pocket and not handed to the Convai voice.
 
 Pocket uses **float32 on CPU**, with four inference threads, one
 shared model and per-character acoustic reference states. It does not load the
@@ -205,7 +216,7 @@ character. This trained student is English. The selected weight file is
 The source integration has 75 available character references. Johnny uses the
 approved 22.286-second original-dialogue montage; Judy and Panam retain their
 approved original recordings. The remaining cast uses its existing attributed
-references. The four unprepared profiles use their configured Convai voices.
+references. The four unprepared profiles are written (shown as text) while a local voice is chosen; they are never given to the Convai voice.
 No cloned/generated speech is used as a reference.
 
 - Selecting any local option requests preparation from an unsaved Settings
@@ -240,8 +251,8 @@ No cloned/generated speech is used as a reference.
   has bounded owned-child/self-exit recovery; an unconfirmed exit prevents a
   replacement model from starting.
 - Voice playback Off sends one identified text-only turn without running either
-  local renderer or requesting Convai TTS. Unprepared references retain their
-  configured Convai fallback; a local failure preserves the written reply
+  local renderer or requesting Convai TTS. A character with no usable reference
+  has its reply written (it is not given to the Convai voice); a local failure preserves the written reply
   without borrowing a different character's recording.
 
 **Qualification:** the student was approved from listening samples and measured
@@ -298,7 +309,7 @@ session ("A failed worker stays out of routing until the player chooses that pro
   keeps its limit, but a Pocket that still fails (a stalled start while the game loads, a crash) is no longer lost for the session:
   `VoiceSelection` schedules the same waits (**45 s**, **3 min**, **10 min**; a fourth failure gives up until the player chooses Pocket
   again), published as `pocketRetry: {failures, loading, nextInMs}` and logged as `[PocketRetry] ...`, with `fallback.temporary: true`
-  while it runs. There is no background candidate (the voice it falls to, Convai's, loads nothing): when a retry is due, with no reply in
+  while it runs. There is no background candidate (the route it falls to, text, loads nothing): when a retry is due, with no reply in
   flight and voice playback not Off (V's typed line counts), the failure is cleared and the normal start loads Pocket again; the route
   returns at the next idle poll. The failed worker is released when it fails. The story ends, and nothing loads, when the player chooses
   another voice, a cloud voice or Multilingual conversations, or the service closes.
@@ -329,9 +340,9 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 - The current catalog has **75 prepared local voice profiles** out of 79.
   Convai generates their reply text, and one shared OmniVoice model produces
   speech from attributed game recordings. The four profiles without prepared
-  references—8ug8ear, Jake Estevez, NC Resident Male and NC Resident Female—use
-  their configured Convai voices. Choosing Convai uses online voices for all
-  characters.
+  references—8ug8ear, Jake Estevez, NC Resident Male and NC Resident Female—have
+  their replies shown as text while a local voice is chosen (never in a cloud voice).
+  Choosing Convai uses online voices for all characters.
 - While OmniVoice is selected, the bridge starts one hidden worker. Lazy
   conditioning prepares Johnny, Judy and Panam at startup, then prepares other
   profiles on invitation or when speech needs them. At most **eight conditioning
@@ -345,7 +356,7 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   See [VOICE_PREPARATION.md](VOICE_PREPARATION.md).
 - Selecting Convai waits for the current conversation reply (including every
   streamed phrase or microphone response) to finish. Subsequent replies use the
-  character's configured Convai voice. The old worker finishes outstanding CUDA
+  character's configured Convai voice (the player chose it). The old worker finishes outstanding CUDA
   work and exits through EOF, releasing its GPU allocation. Status distinguishes
   a pending change, releasing memory, and a fully unloaded model.
 - Switching back warms one new worker only after the old worker exits. Rapid
@@ -434,7 +445,7 @@ Characters share the same pretrained weights. A profile adds a recording,
 transcript and cached conditioning prompt, rather than a separate fine-tuned
 model. The version 2 registry uses lazy preparation, three startup profiles and
 an eight-prompt memory cache. Invite prepares the selected profile before spawn
-permission. A missing or unprepared reference uses Convai explicitly.
+permission. A missing or unprepared reference gets the receipt `{provider: "text", ready: true}`: the companion joins and its replies are written.
 
 The shared pinned model/tokenizer snapshot is 3,267,470,260 bytes (3.04 GiB).
 The earlier three-reference setup measured 3,226,982 bytes of selected clips

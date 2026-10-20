@@ -41,22 +41,30 @@ function fixture({omniPack, settings = {voiceProvider: 'pocket'}} = {}) {
 const JUDY = {key: 'judy-alvarez', name: 'Judy Alvarez', voiceName: 'Ava (Warm Young-Adult American Female)'};
 const RESIDENT = {key: 'resident-male', name: 'NC Resident', voiceName: 'Julia (Expressive Young-Adult American Female)'};
 const planFor = (voice, profile, {enabled = false, language = 'en'} = {}) => planTurnVoice({enabled, language,
-  local: {uses: voice.usesProfile(profile), provider: voice.provider}});
+  local: {uses: voice.usesProfile(profile), provider: voice.provider, convai: voice.convaiVoiceAllowed}});
 const route = (h, profile, reply, extra = {}) => {
   const plan = extra.plan ?? planFor(h.voice, profile.key);
   return describeVoiceRoute({voice: h.voice, input: {profileKey: profile.key}, profile, plan,
     reply: reply ?? {engine: plan.engine, language: plan.language}, sources: h.sources, now: () => new Date(2026, 9, 8, 14, 3, 21).getTime(), ...extra});
 };
 
-test('a generic NC resident with no local reference lands on the Convai cloud voice and the line says why', () => {
+test('a generic NC resident with no local reference gets a written reply (never the Convai cloud voice) and the line says why', () => {
   const h = fixture();
   const record = route(h, RESIDENT);
-  assert.equal(record.engine, 'convai');
+  assert.equal(record.engine, 'none');
   assert.equal(record.fallback, 'no local reference for this profile');
   assert.equal(formatVoiceRoute(record),
     '2026-10-08 14:03:21 profile=resident-male name="NC Resident" requested="Pocket · Performance" '
-    + 'used="Convai cloud (Julia (Expressive Young-Adult American Female))" ref=- '
+    + 'used="none (written reply only)" ref=- '
     + 'fallback="no local reference for this profile"');
+});
+
+test('with the Convai voice chosen on purpose the line names it, with no fallback', () => {
+  const h = fixture({settings: {voiceProvider: 'convai'}});
+  const record = route(h, RESIDENT);
+  assert.equal(record.engine, 'convai'); assert.equal(record.fallback, null);
+  assert.equal(formatVoiceRoute(record), '2026-10-08 14:03:21 profile=resident-male name="NC Resident" requested="Convai · Cloud voice" '
+    + 'used="Convai cloud (Julia (Expressive Young-Adult American Female))" ref=-');
 });
 
 test('a prepared Pocket character reports Pocket, its reference set and seconds, and no fallback', () => {
@@ -89,8 +97,9 @@ test('OmniVoice reports its tier, steps, reference choice and the language of a 
 
 test('fallback reasons: missing Omni pack, failed worker, Multilingual non-English, written reply only', () => {
   const missing = fixture({omniPack: {installed: false, missing: ['python']}, settings: {voiceProvider: 'omni', omniReference: 'short'}});
-  assert.equal(missing.voice.provider, 'pocket');
-  assert.equal(formatVoiceRoute(route(missing, JUDY)).includes('used="Pocket"'), true);
+  assert.equal(missing.voice.provider, 'text');
+  assert.equal(formatVoiceRoute(route(missing, JUDY)).includes('used="none (written reply only)"'), true, 'no Pocket and no cloud voice speaks');
+  assert.equal(route(missing, JUDY).engine, 'none');
   assert.equal(route(missing, JUDY).fallback, 'Omni pack missing');
   assert.equal(route(missing, RESIDENT).fallback, 'Omni pack missing', 'the pack explains it before the profile does');
 
@@ -105,18 +114,18 @@ test('fallback reasons: missing Omni pack, failed worker, Multilingual non-Engli
   // An Omni that failed is retried in the background, and the log says so until it gives up.
   const loading = fixture({settings: {voiceProvider: 'omni', omniReference: 'short'}});
   loading.voice.failedBackends.add('omni'); loading.voice.omniRetry = {failures: 1, nextAt: 0}; loading.voice.applyWhenIdle(false);
-  assert.equal(loading.voice.provider, 'pocket');
+  assert.equal(loading.voice.provider, 'text');
   assert.equal(route(loading, JUDY).fallback, 'Omni still loading (retrying in the background)');
   loading.voice.omniRetry = null;
   assert.equal(route(loading, JUDY).fallback, 'Omni worker unavailable');
 
-  // Multilingual on with a Pocket pairing: the turn plan sends a non-English reply to the cloud voice.
+  // Multilingual on with a Pocket pairing: Pocket is out of routing, and the turn is written (not sent to the cloud voice).
   const multi = fixture({settings: {voiceProvider: 'pocket', multilingualConversations: true}});
   const plan = planFor(multi.voice, 'judy-alvarez', {enabled: true, language: 'de'});
-  assert.equal(plan.engine, 'convai');
+  assert.equal(plan.engine, 'none');
   assert.equal(route(multi, JUDY, undefined, {plan}).fallback, 'Multilingual is on: Pocket speaks English only');
   // Pocket still routes but the reply turned out to be non-English: the turn plan names it.
-  const english = {engine: 'convai', language: 'de', reason: 'english-only-voice'};
+  const english = {engine: 'none', language: 'de', reason: 'english-only-voice'};
   assert.equal(route(fixture(), JUDY, undefined, {plan: english}).fallback, 'Multilingual non-English reply: Pocket speaks English only');
   assert.equal(route(multi, JUDY, {engine: 'none', language: 'de'}, {plan}).used, 'none (written reply only)');
 
@@ -175,7 +184,8 @@ test('the support report includes the tail of the routing log', async () => {
     assert(summary.logs.some(row => row.id === 'voice-routing' && row.found), 'listed and found');
     const entry = entries.find(item => /-voice-routing\.txt$/.test(item.name));
     assert(entry, 'in the zip');
-    assert.match(entry.data, /requested="Pocket · Performance" used="Convai cloud/);
+    assert.match(entry.data, /requested="Pocket · Performance" used="none \(written reply only\)"/);
+    assert.doesNotMatch(entry.data, /used="Convai cloud/);
     assert.match(entry.data, /fallback="no local reference for this profile"/);
     assert.doesNotMatch(entry.data, /must never reach/);
   } finally { await f.cleanup(); }

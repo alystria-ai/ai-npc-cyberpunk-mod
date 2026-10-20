@@ -144,10 +144,18 @@ test('the two Local AI failures: their own words in the game and on the phone, s
       assert(id == code and words == text, code .. ': ' .. tostring(words))
       assert(keyReplyNotice({keyNotice = code, text = 'Hello'}) == nil, code .. ' is not a key notice')
     end
-    -- The designed fallback and the Convai limit keep their own notices.
-    assert(keyReplyNotice({errorCode = 'local-fallback', error = 'x'}) == 'local-fallback')
+    -- An older bridge's local-fallback (it said a cloud provider is used) reads as Local AI's own sentence, under the local-unavailable id; there is no per-turn
+    -- cloud notice any more. The Convai limit keeps its own notice.
+    local id1, words1 = keyReplyNotice({errorCode = 'local-fallback', error = 'x'})
+    assert(id1 == 'local-unavailable' and words1 == ${L(LOCAL['local-unavailable'])}, tostring(id1) .. ': ' .. tostring(words1))
+    local id2, words2 = keyReplyNotice({keyNotice = 'local-fallback', text = 'Hello'})
+    assert(id2 == 'local-unavailable' and words2 == ${L(LOCAL['local-unavailable'])}, tostring(id2))
+    assert(keyReplyNotice({keyNotice = 'local-turn-fallback', text = 'Hello'}) == nil)
     assert(keyReplyNotice({errorCode = 'daily-limit', error = 'x'}) == 'daily-limit')
   `);
+  assert.doesNotMatch(read('notices.lua'), /\['local-(turn-)?fallback'\] =/, 'no catalog entry for a cloud hand-over');
+  assert.ok(read('phone-chat.lua').replace(/\r\n/g, '\n').includes(`['local-fallback'] = '${LOCAL['local-unavailable']}',`), 'an older bridge\'s code reads the same on the phone');
+  assert.doesNotMatch(init, /a cloud provider is used|so a cloud provider did/, 'no sentence in the game says a cloud provider takes over');
   for (const code of Object.keys(LOCAL)) {
     assert.match(init, new RegExp(`keyId == '${code}' then\\n\\s+if not pending\\.reaction then convaiNotices\\.send\\(player, '${code}', keyText\\) end`), `${code}: not skipped for an automatic reaction`);
     assert.match(read('notices.lua'), new RegExp(`\\['${code}'\\] = \\{class = PLAYER, repeatS = 30\\}`), `${code}: catalog entry`);
