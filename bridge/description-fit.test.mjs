@@ -104,7 +104,7 @@ for (const code of codes) {
 
 test('the Mature content rules and the note on who answers survive the cut in every language', () => {
   const never = 'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.';
-  const intro = 'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Works with Local AI, Mistral and Custom.';
+  const intro = 'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.';
   const packLine = 'The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
   const providerFirst = 'Who writes your companions’ replies. A change waits until no conversation is running.';
   for (const code of ['en', ...codes]) {

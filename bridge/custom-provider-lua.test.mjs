@@ -938,9 +938,9 @@ test('choosing Custom while Mature content is on keeps it on in the same save; L
   -- Custom and Mature content on in one batch is saved with Mature content on.
   assert(apply({{id = 'conversationProvider', value = 5}, {id = 'matureContent', value = true}}).ok)
   assert(saved.conversationProvider == 'custom' and saved.matureContent == true)
-  -- The Mature content help names the three providers and Convai.
-  assert(row('matureContent').description:find('Choosing Convai turns it off.', 1, true))
-  assert(row('matureContent').description:find('Works with Local AI, Mistral and Custom.', 1, true))
+  -- The Mature content help names Local AI and Custom, and that Convai or Mistral turns it off.
+  assert(row('matureContent').description:find('Choosing Convai or Mistral turns it off.', 1, true))
+  assert(row('matureContent').description:find('Needs Local AI or Custom.', 1, true))
 `));
 
 test('release plumbing: the module ships like the paid tier one, the catalogue reads it, and the notices catalogue lists the seven ids', () => {
