@@ -2953,7 +2953,7 @@
       "references": [
         "mod/manager-ui.lua:1169",
         "mod/manager-ui.lua:1170",
-        "mod/mcm-host.lua:265"
+        "mod/mcm-host.lua:298"
       ]
     },
     "Back to Companion Manager": {
@@ -3771,7 +3771,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:265"
+        "mod/mcm-host.lua:298"
       ]
     },
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": {
@@ -3886,7 +3886,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:688",
-        "mod/mcm-host.lua:259"
+        "mod/mcm-host.lua:292"
       ]
     },
     "Confirm memory clear": {
@@ -4547,7 +4547,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:258"
+        "mod/mcm-host.lua:291"
       ]
     },
     "Defaults restored.": {
@@ -4555,7 +4555,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:387",
+        "mod/mcm-host.lua:420",
         "mod/nsui.lua:472"
       ]
     },
@@ -6169,7 +6169,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:185"
+        "mod/mcm-host.lua:195"
       ]
     },
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": {
@@ -6716,7 +6716,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:252",
-        "mod/mcm-host.lua:182"
+        "mod/mcm-host.lua:192"
       ]
     },
     "Page {page} of {pages}  |  {count} results": {
@@ -6989,7 +6989,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:376"
+        "mod/mcm-host.lua:409"
       ]
     },
     "Press Enter to write  /  Esc to stop typing": {
@@ -7021,7 +7021,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:184"
+        "mod/mcm-host.lua:194"
       ]
     },
     "Prices in US dollars. You can cancel at any time on Convai’s billing page.": {
@@ -7069,7 +7069,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:260"
+        "mod/mcm-host.lua:293"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7300,7 +7300,7 @@
         "mod/manager-ui.lua:1475",
         "mod/manager-ui.lua:1802",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:301"
+        "mod/mcm-host.lua:334"
       ]
     },
     "Reset everything": {
@@ -7324,7 +7324,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:258"
+        "mod/mcm-host.lua:291"
       ]
     },
     "Return to Companion Manager.": {
@@ -7918,7 +7918,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:190"
+        "mod/mcm-host.lua:200"
       ]
     },
     "State: {state}": {
@@ -10654,7 +10654,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1537",
-        "mod/mcm-host.lua:398"
+        "mod/mcm-host.lua:431"
       ]
     },
     "Your group": {

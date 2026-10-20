@@ -156,7 +156,7 @@ export const mcmFake = String.raw`
         local settings = incoming.settings or {}
         good, why = mcmDense(settings, 'Provider schema category ' .. ci .. ' settings')
         if not good then return false, why end
-        local category = {id = tostring(incoming.id or ('category_' .. ci)), name = tostring(incoming.name or ''), settings = {}}
+        local category = {id = tostring(incoming.id or ('category_' .. ci)), name = tostring(incoming.name or ''), description = tostring(incoming.description or ''), settings = {}}
         for si, row in ipairs(settings) do
           if row.elements ~= nil then
             good, why = mcmDense(row.elements, 'Provider schema setting ' .. si .. ' elements')
@@ -187,6 +187,8 @@ export const mcmFake = String.raw`
       end
       mod.categories, mod.settingById, mod.loaded = nextCategories, byId, true
       if schema.name ~= nil and tostring(schema.name) ~= '' then mod.name = tostring(schema.name) end
+      -- catalog.lua keeps the description of every schema: it is the text of the description panel while no row is hovered.
+      if schema.description ~= nil then mod.description = tostring(schema.description) end
       -- Drafts that equal the loaded value are dropped (drafts.lua reconcileMod).
       for id, draft in pairs(drafts) do
         if draft.modKey == mod.key then
@@ -519,7 +521,9 @@ export const mcmFake = String.raw`
     --   setting  (bool, select, int and their kin): label in the marker column (x 48), size 22, red, or purple when the value differs from
     --            the default the provider gave (MCM's "changed" mark; it needs a default; the player may choose an asterisk instead);
     --   action   (supported, with the action capability): label flush left (x 20), size 22, red, a button with the value as its text;
-    --   readonly (a string, or anything unsupported or disabled, such as a disabled action): label flush left, size 26, value in muted blue.
+    --   readonly (a string, or anything unsupported or disabled, such as a disabled action): size 26, value in muted blue, the label at x 36:
+    --            MCM draws it as a surface at x 20 with its text inset by 16 (MCMLayout.reds ListRowTextLeftInset, 4 with text-only list
+    --            selection), so it starts further right than the label of an action under it (x 20), whatever labelIndent says.
     -- The x of a setting (48) is MCMLayout.reds contentLabelX = markerX 20 + marker width 20 + gap 8, a constant; the presentation options
     -- (rowFontSize, labelWidthFraction ...) do not move it, and neither does any property of a row.
     -- A footer action is not in the list; it is a footer button labelled by its value.
@@ -550,7 +554,7 @@ export const mcmFake = String.raw`
             elseif setting.supported and setting.type == 'action' then
               entry.kind, entry.x, entry.size, entry.color, entry.button, entry.buttonText = 'action', 20, rowSize or 22, 'red', true, setting.value
             else
-              entry.kind, entry.x, entry.size, entry.color, entry.button = 'readonly', 20, rowSize or 26, 'red', false
+              entry.kind, entry.x, entry.size, entry.color, entry.button = 'readonly', 36, rowSize or 26, 'red', false
             end
             out.rows[#out.rows + 1] = entry
           end
@@ -596,6 +600,11 @@ export const mcmFake = String.raw`
       -- 0.10.6: a label that does not fit wraps onto another line instead of being cut.
       out.footerWraps = newer
       return out
+    end
+    -- The description of the mod as the last schema gave it (what MCM's description panel says while no row is hovered).
+    function F.description()
+      local mod = modOf(active)
+      return mod and mod.description or ''
     end
     function F.row(label)
       for _, row in ipairs(F.rows()) do if row.label == label or row.id == label then return row end end
