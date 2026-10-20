@@ -127,6 +127,13 @@ export const PREFILL = Object.freeze({
   maxAgeMs: 10 * 60_000,      // a measurement older than this is no longer believed
   offloadPrior: 120,          // before anything is measured, a model with layers on the CPU is taken to read this many tokens a second
   failureFloor: 512,          // a stuck request is credited with at least one batch of this many tokens
+  // The compact character text (bridge/compact-persona.mjs) is a further step for a machine that is clearly slow, with a hysteresis so it does not flip from turn to turn:
+  // two readings in a row under `compactBelow` switch it on, two in a row at `compactAbove` or more switch it off, anything between keeps the state. Measured readings
+  // only (the prior of a model with layers on the CPU does not count). 600: the 0.2.4 reports read 36 to 420 tokens a second when slow, a card the game shares reads 700 and
+  // more at worst, and the developer's card reads 5,000; below 600 the 3,500 tokens of a long persona cost 6 s and more every time a character is spoken to for the first time.
+  compactBelow: 600,
+  compactAbove: 1000,
+  compactRuns: 2,
 });
 
 /**
@@ -136,8 +143,16 @@ export const PREFILL = Object.freeze({
  * or nothing is known.
  */
 export class PrefillMeter {
-  #rate = null; #at = 0; #cached = 0;
-  constructor({now = Date.now, offload = false} = {}) { this.now = now; this.offload = offload === true; }
+  #rate = null; #at = 0; #cached = 0; #compact = false; #streak = 0;
+  // compact: the state this machine was in under the load before (a model loaded again after an idle stop starts from what was learned, not from the full text).
+  constructor({now = Date.now, offload = false, compact = false} = {}) { this.now = now; this.offload = offload === true; this.#compact = compact === true; }
+  // One reading, `weight` of them (a request that stalled counts for the whole run at once): a streak of readings on the other side of the threshold flips the state.
+  #judge(sample, weight = 1) {
+    if (!(sample > 0) || !Number.isFinite(sample)) return;
+    const against = this.#compact ? sample >= PREFILL.compactAbove : sample < PREFILL.compactBelow;
+    this.#streak = against ? this.#streak + weight : 0;
+    if (this.#streak >= PREFILL.compactRuns) { this.#compact = !this.#compact; this.#streak = 0; }
+  }
   #blend(sample) {
     if (!(sample > 0) || !Number.isFinite(sample)) return;
     this.#rate = this.#rate !== null && this.now() - this.#at <= PREFILL.maxAgeMs ? (this.#rate + sample) / 2 : sample;
@@ -148,7 +163,7 @@ export class PrefillMeter {
     const timings = trace?.timings;
     const cached = Number(timings?.cachedTokens), fresh = Number(timings?.promptTokens), ms = Number(timings?.promptMs);
     if (Number.isFinite(cached) && cached >= 0) this.#cached = cached;
-    if (fresh >= PREFILL.minSample && ms > 0) this.#blend(fresh / ms * 1000);
+    if (fresh >= PREFILL.minSample && ms > 0) { this.#blend(fresh / ms * 1000); this.#judge(fresh / ms * 1000); }
   }
   /** A request that ended while the prompt was being read: what was read in the time the server had it (never before it had it). */
   observeFailure(trace) {
@@ -158,7 +173,9 @@ export class PrefillMeter {
     if (cache > 0) this.#cached = cache;
     const seconds = (trace.elapsedMs - trace.headersMs) / 1000;
     if (seconds < 5) return;
-    this.#blend(Math.max(PREFILL.failureFloor, progress.processed - cache) / seconds);
+    const sample = Math.max(PREFILL.failureFloor, progress.processed - cache) / seconds;
+    this.#blend(sample);
+    this.#judge(sample, PREFILL.compactRuns);
   }
   /** Tokens a second, or null (nothing measured lately, and no reason to expect a slow machine). */
   get tokensPerSecond() {
@@ -167,6 +184,11 @@ export class PrefillMeter {
   }
   /** The tokens the server held of the last prompt. */
   get cachedTokens() { return this.#cached; }
+  /**
+   * True while this machine is measured to read prompts slowly enough for the compact character text (PREFILL.compactBelow / compactAbove; bridge/compact-persona.mjs).
+   * Never true before something was measured, and never for a machine that reads fast.
+   */
+  get compact() { return this.#compact; }
   /** True while the machine is believed to read slowly (a measurement below PREFILL.fastTokensPerSecond, or the prior of a model with layers on the CPU). */
   get slow() { const rate = this.tokensPerSecond; return rate !== null && rate < PREFILL.fastTokensPerSecond; }
   /**
@@ -287,7 +309,7 @@ export const PERSONA_LEVELS = Object.freeze([
   Object.freeze({backstory: 1100, style: 500}), Object.freeze({backstory: 700, style: 360})]);
 
 // The beginning of a text up to `limit` characters, ended at a sentence (or else a word) so no sentence is cut in two; the text itself when it is not longer.
-function leadingText(text, limit) {
+export function leadingText(text, limit) {
   const value = String(text ?? '');
   if (value.length <= limit) return value;
   const piece = value.slice(0, limit);
@@ -400,7 +422,7 @@ export const MIN_SERVER_CONTEXT = 2048;
  *   budget(options) -> {contextTokens, reserveTokens?, meter?, count?} | null    (null: send as is)
  *   onFit(fit, options)      called with every fit that cut something (the log line)
  *   tooLarge(fit, options)   the error to throw when the prompt cannot fit (default: PromptTooLarge)
- *   shape(args, options)     optional: the arguments to build the prompt from instead (a route may build a smaller persona and history);
+ *   shape(args, options, base)  optional: the arguments to build the prompt from instead (a route may build a smaller persona and history; `base` is the budget);
  *                            a route without one fits exactly what `buildMessages` was given
  *   options.lastResort       true when no other route is left to answer the turn: a prompt that cannot fit has its persona shortened (PERSONA_LEVELS)
  *                            instead of failing; otherwise it fails and the host hands the turn to the next route
@@ -418,7 +440,7 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {})
     const source = options?.messages?.[PROMPT_SOURCE];
     const base = source ? await budget?.(options) : null;
     if (!base) return chat(options);
-    const args = shape ? shape(source, options) : source;
+    const args = shape ? shape(source, options, base) : source;
     let current = base;
     // `speed` (a PrefillMeter): on a machine that has been seen to read prompts slowly, a smaller target than the context is tried first.
     // An explicit `soft` of the budget wins.

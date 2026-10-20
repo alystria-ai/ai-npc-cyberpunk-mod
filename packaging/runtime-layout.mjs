@@ -27,6 +27,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/character-editor.mjs',
   'bridge/character-overrides.mjs',
   'bridge/chat-memory-resets.mjs',
+  'bridge/compact-persona.mjs',
   'bridge/companion-actions.mjs',
   'bridge/companion-expressions.mjs',
   'bridge/companion-invitations.mjs',

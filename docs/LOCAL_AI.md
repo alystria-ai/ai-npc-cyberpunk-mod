@@ -613,13 +613,77 @@ The reports' own log lines say what was going on:
   to 1,200 and below from the fourth level, example lines already gone), each cut at a sentence, and the first level that fits is used. The rules, the format
   notes, the right-now block, the character's own rules and the Mature layer are still never cut. The levels are few and coarse so the same turn after
   turn lands on the same persona and the server's prefix cache keeps holding it. A context too small even for the shortest level (about 3,000 tokens
-  and less) still fails as before. The log says `cut: ..., persona:1600`. The soft target of a slow machine never shortens the persona. The
+  and less) still fails as before. The log says `cut: ..., persona:1600`. The soft target of a slow machine never shortens the persona (the compact character text of "Compact character text on slow machines" does, on a machine measured to read slowly). The
   supervisor's diagnostics also name the real context of a server the player runs (the turn line said `context 0` for it).
 - **The sentence the game shows says why.** A slow turn on a model that is partly on the CPU ends `...; the model is partly on the CPU` (`error.hint`,
   still within the 140 characters the game accepts).
 - **Not changed.** The 75 s limits and the 80 s turn budget stay under the game's 90 s; the idle stop after ten minutes stays (the model leaving the
   card is what keeps the game's frame rate when nobody is talking). What helps the player: the lite Mature model, a lower texture quality in the game,
   or the Local AI pack's Standard model with Mature content off.
+
+### Compact character text on slow machines (2026-10-20: "30 to 60 s for a character's first turn")
+
+**Why.** The 0.2.4 reports read prompts at 36 to 420 tokens a second (the game keeps the card busy, or part of the model is on the CPU). A named
+character's persona and the output rules are about 3,100 to 3,600 tokens (Judy 3,570, Jackie 3,330, Johnny 3,130; the Mature layer adds 600), and the
+world rules follow. The first turn of a character reads all of that once (the prompt cache holds it for the later turns), so at 100 tokens a second
+that read alone is 31 to 36 s, at 300 tokens a second 10 to 12 s. The soft target (`PrefillMeter.soft`) already cuts the world block, the history and the
+memories on such a machine but never the persona, so the persona was the part that stayed.
+
+**What decides "slow" (measured, never guessed).** `PrefillMeter.compact` (`bridge/prompt-budget.mjs`), one latch per model load, fed by the same readings as
+the soft target (the server's `prompt_n` / `prompt_ms` of every answered turn with 256 or more new tokens, and a request that stalled on the prompt):
+- **On:** two readings in a row under **600 tokens a second** (`PREFILL.compactBelow`), or one stalled request (it counts for both). A single slow reading
+  is not enough (the first turn after a model load can read slowly on a fast card).
+- **Off:** two readings in a row at **1,000 tokens a second or more** (`compactAbove`). Anything between 600 and 1,000 keeps the state, and a reading on the
+  other side only counts when it is next to another one, so the state does not flip from turn to turn.
+- **Not a measurement:** the prior of a model with layers on the CPU (120 tokens a second, used only to size the soft target) does not switch it on, and a
+  machine nobody has measured is taken as a fast one: its first turn is the whole text, and measures the speed.
+- **Why 600.** The developer's card reads about 5,000 tokens a second (15,700 tokens in 7 s); the reports read 36 to 54 (a model partly on the CPU) and 50 to
+  420 (the game on the same card). Under 600 a 3,500-token persona costs 6 s and more at every first turn of a character, and the full text is what ran the
+  reports' 60 and 75 s turns out of time. The soft target's own line (700) stays as it is; this is a further step for the clearly slow. The exit is higher
+  (1,000) so that a machine that hovers around 600 to 800 does not change its characters' text.
+- A model loaded again (an idle stop and a start) starts from the state the load before ended in, so the first turn after a reload is not the whole text
+  on a machine that was just slow; two fast readings undo it.
+
+**What the compact text keeps and drops** (`bridge/compact-persona.mjs`, `compactPersonaFor`; a deterministic cut by section, no generation, no model).
+The head (persona, output rules, Mature or guard layer, world rules) aims at about **8,000 characters, 1,900 tokens** (`COMPACT.targetChars`). Never cut,
+and counted first: the output rules (all nine, word for word), the Mature or guard layer, the player's world rules, a character's own rules of speech and
+remembered facts, and everything after the head (format notes, world block, right-now block, V's words). The persona text gets the room that is left, never
+less than 2,600 characters (`floorChars`), so a Mature layer or long world rules leave less of it. The blocks are taken in this order until the room is
+used, each up to a cap, the last one cut at a line or a sentence: the opening paragraph (who they are, 1,500), the first paragraph of the style (voice and
+speech, 1,100), "who you are not" (archetypes, 1,500), ESTABLISHED RELATIONSHIPS (1,100; includes the line about V), ESTABLISHED BACKGROUND (800), the
+closing style paragraph about group talk and private history (520), KNOWLEDGE AND CURRENT SAVE (700), KNOWLEDGE LIMITS (650), two example lines (240 each),
+other style paragraphs (the slang list of an archetype, 500), any other section (500). Dropped whole: PUBLIC INTRINSIC TOPIC MATERIAL (the lore entries with
+their "Scope" lines, the biggest part of a long persona), the appearance, the example lines beyond two. A persona that would lose under 800 characters (an
+everyday resident) is left whole. Across the roster every named character comes to 1,300 to 2,200 tokens (Judy 3,570 to 1,910, with Mature 4,185 to 2,070).
+Not measured offline: how much the replies change (the owner decided the trade: "shorter character text on slow PCs only").
+
+**When it switches.** The choice is made once per character, at that character's first turn (the server holds another character, or the model load is new),
+and kept while the server holds them (`CompactChoice`). A machine that turns slow in the middle of a talk keeps that talk's whole text and its cached
+prompt (changing it would cost a whole re-read); the next character starts compact. The text is a pure function of the persona, the Mature level, the world
+rules and the character's own rules, so every turn builds the same early prompt and the prefix cache holds. The warm-up of a character's persona
+(`TextProviderHost#prewarm`, `route.shapePersona`) is built from the same text as the turn. `localRoute`'s `shape` hook (`budgetedChat`) applies it to the
+arguments the prompt is built from; only Local AI (our llama-server, and a server the player runs through Local AI) has it. The soft target then works on the
+compact head (its allowance is added to the head's own size). The log has one line when it starts (`The local AI: compact character text (this computer
+reads about N tokens a second); ...`), one per character that was cut (`... the head goes from about 3570 to 1908 tokens`), and one when the whole text is
+back. A fast machine is given the very arguments `buildMessages` was called with: its prompt is byte for byte what it was (a test builds five turns).
+
+**Offline numbers.** Tokens are characters over 4.2 (this prompt's measured ratio on Gemma 4). The read of the head alone at a character's first turn, whole
+against compact, at rates from the reports. No GPU benchmark was run: the game was open (and another benchmark was running), and one would have competed
+with it; no CPU-only run either, which would have cost the game frames.
+
+| Character | Head, whole | Head, compact | at 100 tok/s | at 300 tok/s | at 500 tok/s |
+|---|---|---|---|---|---|
+| Judy | 3,570 | 1,908 | 36 s to 19 s | 12 s to 6 s | 7 s to 4 s |
+| Jackie | 3,331 | 1,597 | 33 s to 16 s | 11 s to 5 s | 7 s to 3 s |
+| Judy, Mature full | 4,185 | 2,072 | 42 s to 21 s | 14 s to 7 s | 8 s to 4 s |
+
+**Live check owed** (needs a slow machine, or a throttled one: another program holding the card, or a model with layers on the CPU): talk to one character, then
+to a second one. The log must show `compact character text (this computer reads about N tokens a second)` before the second character's first turn, the
+`[LocalTurn]` line of that turn must show about 1,600 fewer `new` tokens than the first character's with the same world context, the reply must still sound
+like the character, and the same character's later turns must show `cached` close to the whole prompt. On a fast machine nothing about it may appear in the log.
+
+Tests: `bridge/compact-persona.test.mjs` (the cut and what it keeps, the Mature and world-rule room, the whole roster, the hysteresis, the choice kept while the
+server holds the character, a fast machine byte for byte, a slow one within the budget and the same head three turns running, the warm-up on the same text).
 
 ### When the model server stops while a turn is asked (2026-10-20: "could not be reached (ECONNREFUSED)")
 
