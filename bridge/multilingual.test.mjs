@@ -664,7 +664,16 @@ test('a text provider speaks another language with OmniVoice, and shows it as te
   assert.equal(replyVoice({plan: pocket, text: french, local: pocketLocal}).engine, 'none');
   assert.deepEqual(replyVoice({plan: pocket, text: 'Nothing much, V. You?', local: pocketLocal}), {engine: 'pocket', language: 'en'});
   const pocketEnglish = planTurnVoice({enabled: false, textProvider: true, language: 'en', local: pocketLocal});
-  assert.equal(replyVoice({plan: pocketEnglish, text: french, local: pocketLocal}).engine, 'none', 'a French reply to an English message');
+  // An English conversation keeps the chosen voice whatever the reply looks like: the characters' Spanish slang is never muted, and a Voxtral
+  // player is never moved to another voice.
+  assert.deepEqual(replyVoice({plan: pocketEnglish, text: french, local: pocketLocal}), {engine: 'pocket', language: 'en'});
+  assert.deepEqual(replyVoice({plan: pocketEnglish, text: 'Ay, chica, vámonos, hermano. Claro que sí.', local: pocketLocal}), {engine: 'pocket', language: 'en'});
+  const voxtralLocal = {uses: true, provider: 'voxtral'};
+  const voxtralEnglish = planTurnVoice({enabled: false, textProvider: true, language: 'en', local: voxtralLocal});
+  assert.deepEqual(replyVoice({plan: voxtralEnglish, text: 'Nothing much, V. You?', local: voxtralLocal}), {engine: 'voxtral', language: 'en'});
+  const voxtralFrench = planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: voxtralLocal});
+  assert.equal(replyVoice({plan: voxtralFrench, text: french, local: voxtralLocal}).engine, 'none');
+  assert.deepEqual(replyVoice({plan: voxtralFrench, text: 'Nothing much, V. You?', local: voxtralLocal}), {engine: 'voxtral', language: 'en'});
   // A cloud voice that cannot speak (no key) stays the written reply it always was.
   assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket'}}).engine, 'convai');
   // Off and not a text provider: exactly the voice used before.

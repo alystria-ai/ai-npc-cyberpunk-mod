@@ -105,11 +105,11 @@ export class MultilingualConversations {
 export function planTurnVoice({enabled = false, language = 'en', local = {}, textProvider = false} = {}) {
   const chosen = local.uses ? local.provider : 'convai';
   if (!enabled && !textProvider) return {engine: chosen, language: null, reason: 'multilingual-off'};
-  if (!language || language === 'en') return {engine: chosen, language: 'en', reason: 'english'};
+  if (!language || language === 'en') return {engine: chosen, language: 'en', reason: 'english', ...(enabled ? {} : {textProvider: true})};
   // A text provider has no Convai twin and no Convai cloud voice to hand a turn to: OmniVoice speaks another language, and an English-only
   // voice keeps its place in the plan, so that the finished reply decides (replyVoice): a reply in another language is shown as text.
-  if (!enabled) return local.uses && local.provider === 'omni' ? {engine: 'omni', language, reason: 'omni'}
-    : {engine: chosen, language, reason: chosen === 'convai' ? 'cloud-voice' : 'english-only-voice'};
+  if (!enabled) return local.uses && local.provider === 'omni' ? {engine: 'omni', language, reason: 'omni', textProvider: true}
+    : {engine: chosen, language, reason: chosen === 'convai' ? 'cloud-voice' : 'english-only-voice', textProvider: true};
   if (local.uses && local.provider === 'omni') return {engine: 'omni', language, reason: 'omni'};
   return {engine: 'convai', language, reason: local.uses ? 'english-only-voice' : 'cloud-voice'};
 }
@@ -122,6 +122,15 @@ export function planTurnVoice({enabled = false, language = 'en', local = {}, tex
 export function replyVoice({plan, text, local = {}} = {}) {
   if (!plan || plan.engine === 'convai') return {engine: 'convai', language: plan?.language ?? null};
   if (plan.reason === 'multilingual-off') return {engine: plan.engine, language: null};
+  // A text provider never changes the chosen voice in an English conversation (a Voxtral player stays on Voxtral, and Pocket still speaks a
+  // reply full of the characters' Spanish slang): only a conversation in another language checks the finished reply.
+  if (plan.textProvider) {
+    const language = detectLanguage(text).language ?? plan.language ?? 'en';
+    if (plan.engine === 'omni') return {engine: 'omni', language};
+    if (plan.language === 'en') return {engine: plan.engine, language: 'en'};
+    if (language === 'en') return {engine: plan.engine, language: 'en'};
+    return {engine: 'none', language, reason: 'english-only-voice'};
+  }
   const detected = detectLanguage(text).language;
   // An unclear reply keeps what the turn expected.
   const language = detected ?? plan.language ?? 'en';
