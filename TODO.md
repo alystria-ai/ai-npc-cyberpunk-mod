@@ -4,6 +4,19 @@ The single working document for development: open items first, then a dated log,
 
 ## Open items
 
+### Next up (2026-10-20, after 0.2.4)
+
+- **Adopt the MCM 0.10.6 UI API** (Antrix sent a private preview: Downloads/Mod Configuration Menu-0.10.6-preview.1.zip; not public, do not redistribute or commit it). Feature-detect each call so MCM 0.10.5 keeps working:
+  - `MCM.ui.setPresentation`: add `labelIndent = 20, highlightModifiedValues = false, rowFontSize = 22` (rowFontSize now applies to setting, action and read-only labels and values; descriptions keep descriptionFontSize; defaults, resets and the Modified counter keep working).
+  - `MCM.ui.setActionVisibility(modKey, {favorite = "hide"})` (also takes defaults and modifiedFilter; "hide"/"show"/"inherit"; each call replaces the previous map; Apply/Revert stay MCM's).
+  - `MCM.ui.close(modKey)` for a Back button on the home page (usual pending-change prompt); submenu navigation unchanged.
+  - Footer buttons now wrap instead of squeezing labels: recheck the footer once adopted.
+  - Test in game with the preview installed, then thank Antrix.
+- **Launcher 1.0.1** (optional launcher.ini) is on main but not shipped: test it in game, then ship it in the next release.
+- **Install tutorial**: the owner records the shots from deliverables/tutorial-0.2.4/PLAN.md; then the Pocket draft voice-over (model downloaded), edit, ambience, one Cartesia render.
+- **Player replies for 0.2.4** are in Downloads/AI-NPC-Nexus-0.2.4/5-PLAYER_REPLIES.md for the owner to post.
+- **Downloads**: AI-NPC-Nexus-0.2.2 and 0.2.3 folders are still there (owner said wait).
+
 Rewritten 2026-10-15 afternoon at `main` c277774d. The log entry "2026-10-15 (TODO cleanup)" lists what was removed or merged; the older "2026-10-14 (TODO cleanup)" entry keeps the long text of the shortened live-check lists. Log entries that say "NOT merged" or "NOT installed" predate the merges: every branch is in `main` except `skippy-stock`, `skippy-voice`, `v-voice-finetune` (not used) and `youtube-home-2` (superseded when YouTube was removed). Every 2026-10-17 branch (spawned characters, companion items 1 to 6, group count and look-ahead, pre-open, Voxtral retry, V's voice engine, Bonsai lite) is in `main` 07541c71, pushed and in the rebuilt v0.2 release.
 
 Install state: everything on `main` 07541c71 is installed in the game (2026-10-17, with `dev_install_tree.py`), including the reds and the archives. `mod/diagnostics.lua` is the uncommitted dev copy and is never installed. The Skippy and DelamainCab zips come from the sibling clones; rebuild them if their latest commits are not in the installed zips (unsure which are). The 43 voices' louder clips are runtime-only and in the bucket. Install backups: scratchpad `install-backup-1014b` and `install-backup-1015e`. Lua needs a CET reload, `bridge/` a bridge restart, plugins, redscript and archives a game restart. A live check below counts as owed unless it says it was seen.
