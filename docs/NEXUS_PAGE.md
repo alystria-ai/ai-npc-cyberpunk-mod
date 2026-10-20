@@ -51,7 +51,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [*][b]They know the moment.[/b] They continue from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window, so they can talk about where you are (the picture is never saved).
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make characters forget, edit any character's bio, speaking style and memories in your browser, or make a character of your own for someone who has no profile (Mistral or Local AI).
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup. OmniVoice, for NVIDIA cards, can laugh and sigh. Voxtral makes each voice in the cloud with a free Mistral key. Optional natural speech adds pauses and hesitations.
-[*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see Recommended settings). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
+[*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see above). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
 [/list]
 
 [size=4][b]Requirements[/b][/size]
