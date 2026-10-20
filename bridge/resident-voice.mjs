@@ -7,6 +7,7 @@ import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS, registryFromTable, 
 import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from './runtime-paths.mjs';
 import {realpathSync} from 'node:fs';
 import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
+import {readGpuProcessMemory} from './gpu-memory.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -29,7 +30,10 @@ export class ResidentVoice {
     adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
     cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
-    lowPriority = false, setPriority = osSetPriority} = {}) {
+    lowPriority = false, setPriority = osSetPriority,
+    // gpuMemory(pid) -> {dedicatedMiB, sharedMiB} | null: one reading of the worker's graphics-memory counters when a generation or a preparation runs out of time
+    // (diagnostics only). A test that supplies its own spawn gets none unless it passes this.
+    gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null} = {}) {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
     this.workerEnvironment = omniRuntimeOverrides({modelDirectory, adapterDirectory, referenceDirectory, cacheDirectory});
     this.registry = createVoiceProfileRegistry(config);
@@ -47,6 +51,7 @@ export class ResidentVoice {
     // A background (re)start loads below normal priority so it does not compete with the game for CPU; it is
     // raised to normal once ready, because rendering replies is latency-sensitive.
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
+    this.gpuMemory = typeof gpuMemory === 'function' ? gpuMemory : null;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
   /**
@@ -143,7 +148,22 @@ export class ResidentVoice {
     this.phaseLabel = label;
     this.phaseTimer = this.schedule(() => {
       this.phaseTimer = null;
-      this.fail(Error(`Local voice ${label} timed out`));
+      const error = Error(`Local voice ${label} timed out`), pid = this.child?.pid;
+      // A render that ran out of its two minutes (about fifty times a phrase's time on a card with room) says where its graphics memory is before the worker is
+      // ended: 2026-10-20 reports of OmniVoice beside Local AI and the game on 12 GB cards had no log of the failing session. One short reading, only now.
+      if (label === 'startup' || !this.gpuMemory || !pid || this.closing || this.failure) { this.fail(error); return; }
+      let done = false;
+      const finish = memory => {
+        if (done) return; done = true;
+        if (memory && Number.isFinite(memory.dedicatedMiB) && Number.isFinite(memory.sharedMiB)) {
+          error.gpu = {dedicatedMiB: Math.round(memory.dedicatedMiB), sharedMiB: Math.round(memory.sharedMiB)};
+          try { this.onLog(`graphics memory of the voice worker after its ${label} ran out of time: ${error.gpu.dedicatedMiB} MiB on the card, ${error.gpu.sharedMiB} MiB in shared system memory
+`); } catch { /* a log line never changes the failure */ }
+        }
+        this.fail(error);
+      };
+      try { Promise.resolve(this.gpuMemory(pid)).then(finish, () => finish(null)); } catch { finish(null); }
+      this.schedule(() => finish(null), 4000);
     }, delay);
   }
   // Any output from a starting worker restarts the stall window (a few dozen re-arms in a whole start, none after it).

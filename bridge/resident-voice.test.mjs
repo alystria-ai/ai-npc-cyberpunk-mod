@@ -520,3 +520,35 @@ test('Keep prepared voices makes the join-time warm-up use the selected steps; o
   on.reply(2); await third;
   const closed = on.client.close(); on.finish(); await closed;
 });
+
+// 2026-10-20 reports fb572ec20560db52 (OmniVoice beside Local AI and the game on two 12 GB cards): the report held no log of the failing session, so the
+// worker's graphics memory is read once when a render runs out of time and goes into the log and onto the failure (and from there into the report).
+test('a generation that runs out of time logs the worker graphics memory and carries it on the failure', async () => {
+  const timers = clock(), logs = [], pids = [];
+  const h = harness({timers, workerOptions: {onLog: line => logs.push(line), gpuMemory: async pid => { pids.push(pid); return {dedicatedMiB: 2100.4, sharedMiB: 1650}; }}});
+  const first = h.client.synthesize('judy-alvarez', 'First'); await tick();
+  const rejected = assert.rejects(first, error => /generation timed out/.test(error.message) && error.gpu.sharedMiB === 1650 && error.gpu.dedicatedMiB === 2100);
+  timers.advance(VOICE_WORKER_LIMITS.renderMs); await rejected;
+  assert.deepEqual(pids, [1234]);
+  assert.deepEqual(h.client.failure.gpu, {dedicatedMiB: 2100, sharedMiB: 1650});
+  assert.equal(logs.filter(line => /graphics memory of the voice worker after its generation ran out of time: 2100 MiB on the card, 1650 MiB in shared system memory/.test(line)).length, 1);
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('a reading that fails or never arrives does not hold up or change the failure; a startup is not read', async () => {
+  for (const gpuMemory of [async () => { throw Error('typeperf missing'); }, async () => null, () => new Promise(() => {})]) {
+    const timers = clock(), logs = [];
+    const h = harness({timers, workerOptions: {onLog: line => logs.push(line), gpuMemory}});
+    const first = h.client.synthesize('judy-alvarez', 'First'); await tick();
+    const rejected = assert.rejects(first, error => /generation timed out/.test(error.message) && error.gpu === undefined);
+    timers.advance(VOICE_WORKER_LIMITS.renderMs); await tick(); timers.advance(4000); await rejected;
+    assert.equal(logs.some(line => /graphics memory/.test(line)), false);
+    const closed = h.client.close(); h.finish(); await closed;
+  }
+  let reads = 0;
+  const timers = clock(), slow = harness({autoReady: false, timers, workerOptions: {gpuMemory: async () => { reads++; return {dedicatedMiB: 1, sharedMiB: 1}; }}});
+  const started = slow.client.start(), failed = assert.rejects(started, /startup timed out/); await tick();
+  timers.advance(VOICE_WORKER_LIMITS.startupStallMs); await failed;
+  assert.equal(reads, 0);
+  const closed = slow.client.close(); slow.finish(); await closed;
+});

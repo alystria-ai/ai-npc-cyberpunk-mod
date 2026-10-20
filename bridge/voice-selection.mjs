@@ -600,14 +600,15 @@ export class VoiceSelection {
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
     this.failureReasons[backend]=String(client.failure?.message??'unknown').slice(0,200);
-    this.noteFailure(backend,client.failure?.message);
+    this.noteFailure(backend,client.failure?.message,client.failure?.gpu);
     if(backend==='omni')this.scheduleOmniRetry(client.failure?.message);
     if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
     this.reconcile();
     this.publish();
   }
   // A voice that could not start, told to whoever listens (the bridge records it for an error report, bridge/error-events.mjs). Never throws.
-  noteFailure(engine,reason){try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200)});}catch{}}
+  // `gpu` ({dedicatedMiB, sharedMiB}): the worker's graphics memory when a render ran out of time, when it was read.
+  noteFailure(engine,reason,gpu){try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
   /**
    * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
    * Pocket worker counts only while it is the voice they need (Pocket chosen, or OmniVoice that cannot run); V's own worker only while V's voice wants it.
@@ -725,7 +726,7 @@ export class VoiceSelection {
     this.candidate=null;
     // Also when it dies after finishing but before the idle commit: Omni leaves routing again, the fallback stays.
     this.failedBackends.add('omni');
-    this.noteFailure('omni',entry.client.failure?.message);
+    this.noteFailure('omni',entry.client.failure?.message,entry.client.failure?.gpu);
     void this.retireCandidate(entry).catch(()=>{this.omniRetry=null;});
     this.scheduleOmniRetry(entry.client.failure?.message);
     this.publish();

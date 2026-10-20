@@ -375,10 +375,13 @@ export class ErrorEvents {
    * no other way to tell us (a 2026-10-19 report held the Pocket failure only as log lines of an unrelated setup problem). At most once per
    * distinct reason per bridge run, like every record; a retry that fails the same way adds nothing.
    */
-  voiceFailed({engine, reason} = {}) {
+  voiceFailed({engine, reason, gpu} = {}) {
     const name = typeof engine === 'string' && /^[a-z0-9-]{1,20}$/.test(engine) ? engine : 'voice';
     const why = clip(String(reason ?? '').split(/\r?\n/)[0], 200).trim() || 'unknown';
-    this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name}});
+    // A render that ran out of time carries its worker's graphics memory (numbers only), so the report says whether the card was over-committed.
+    const memory = Number.isFinite(gpu?.dedicatedMiB) && Number.isFinite(gpu?.sharedMiB)
+      ? {gpuDedicatedMiB: Math.max(0, Math.round(gpu.dedicatedMiB)), gpuSharedMiB: Math.max(0, Math.round(gpu.sharedMiB))} : {};
+    this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name, ...memory}});
   }
   /**
    * Replies are slow and stay slow (bridge/slow-turns.mjs decides; `data` is its report section). The message is the same every time, so
