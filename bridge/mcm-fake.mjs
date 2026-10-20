@@ -1,4 +1,4 @@
-// A fake Mod Configuration Menu (CET mod "ModConfigurationMenuAPI", Nexus Mods 31640, version 0.10.5) for the Lua tests of the Companion
+// A fake Mod Configuration Menu (CET mod "ModConfigurationMenuAPI", Nexus Mods 31640, version 0.10.5, and with options.version 0.10.6 or newer its UI additions) for the Lua tests of the Companion
 // Manager's MCM host (mod/mcm-host.lua). It re-implements the public contract the host relies on, with the rules of MCM's own modules
 // (modules/core.lua, catalog.lua, drafts.lua, transactions.lua, values.lua, ui_extensions.lua of 0.10.5):
 //   * ids: a setting is addressed as "<provider>:<mod>:<id>"; a provider needs id, registrationKey, apiVersion 2, listMods and loadMod;
@@ -13,6 +13,12 @@
 //     live check showed after Apply);
 //   * api.ui answers only for a mod the catalog knows ("Unknown mod" before the provider is indexed), validates what it is given the way
 //     ui_extensions.lua does, and returns true, or nil and the reason, never raising; ui.open needs an attached renderer.
+//   * MCM 0.10.6 (options.version >= 0.10.6; api.ui.apiVersion stays 1): api.ui.close (queued, taken by update; a pending draft keeps the
+//     screen open and sets F.closePrompt, the way MCM asks first), api.ui.setActionVisibility (favorite, defaults, modifiedFilter; hide, show,
+//     inherit; each call replaces the map), and the presentation options labelIndent (0-120), highlightModifiedValues and rowFontSize for
+//     every row; 0.10.5 refuses an option it does not know, the whole call, as the real one does. layout() follows them: setting labels at
+//     labelIndent, no purple with highlightModifiedValues false, no Add to favorites / Defaults / Modified when hidden, and footer labels
+//     that wrap (footerWraps) instead of being cut.
 // A player is simulated with the helpers of the returned object (open the screen, set a draft, press, apply ...). Use:
 // put `mcmFake` in the Lua source of a test, then `local mcm = newMcm({version = '0.10.5'})`; `mcm.api` is what GetMod answers.
 export const mcmFake = String.raw`
@@ -65,6 +71,18 @@ export const mcmFake = String.raw`
     local coreStatus = ''
     local listeners, nextToken = {}, 0
     local api = {version = F.version, apiVersion = 2}
+    local function versionAtLeast(wanted)
+      local found = {}
+      for part in tostring(F.version):gmatch('%d+') do found[#found + 1] = tonumber(part) end
+      for index = 1, 3 do
+        local have, want = found[index] or 0, wanted[index]
+        if have ~= want then return have > want end
+      end
+      return true
+    end
+    local newer = versionAtLeast({0, 10, 6})
+    local closeRequest
+    F.closes, F.closePrompt = 0, false
 
     local function note(name) F.calls[#F.calls + 1] = name end
     local function emit(name, payload) for _, callback in pairs(listeners[name] or {}) do pcall(callback, payload, name) end end
@@ -375,6 +393,7 @@ export const mcmFake = String.raw`
       ui.setPresentation = checked('setPresentation', function(key, value)
         assert(type(value) == 'table', 'Invalid presentation')
         local allowed = {locale = true, descriptionFontSize = true, rowFontSize = true, labelWidthFraction = true, statusPlacement = true, quietActions = true}
+        if newer then allowed.labelIndent, allowed.highlightModifiedValues = true, true end
         for name in pairs(value) do assert(allowed[name], 'Unsupported presentation option: ' .. tostring(name)) end
         for _, name in ipairs({'descriptionFontSize', 'rowFontSize'}) do
           assert(value[name] == nil or (type(value[name]) == 'number' and value[name] >= 12 and value[name] <= 32 and value[name] % 1 == 0), 'Invalid font size')
@@ -382,8 +401,27 @@ export const mcmFake = String.raw`
         assert(value.locale == nil or (type(value.locale) == 'string' and #value.locale <= 16), 'Invalid locale')
         assert(value.labelWidthFraction == nil or (type(value.labelWidthFraction) == 'number' and value.labelWidthFraction >= 0.3 and value.labelWidthFraction <= 0.8), 'Invalid label width')
         assert(value.statusPlacement == nil or value.statusPlacement == 'footer' or value.statusPlacement == 'header', 'Invalid status placement')
+        assert(value.labelIndent == nil or (type(value.labelIndent) == 'number' and value.labelIndent >= 0 and value.labelIndent <= 120), 'Invalid label indent')
+        assert(value.highlightModifiedValues == nil or type(value.highlightModifiedValues) == 'boolean', 'Invalid modified highlighting flag')
         return set(key, 'presentation', value)
       end)
+      if newer then
+        ui.close = checked('close', function(key)
+          known(key)
+          assert(renderer, 'No UI renderer is available')
+          assert(context.open and context.modKey == key, 'Mod is not displayed')
+          closeRequest = key
+          return 1
+        end)
+        ui.setActionVisibility = checked('setActionVisibility', function(key, value)
+          assert(type(value) == 'table', 'Expected action visibility map')
+          for name, policy in pairs(value) do
+            assert(({favorite = true, defaults = true, modifiedFilter = true})[name], 'Unsupported action visibility option')
+            assert(policy == 'inherit' or policy == 'hide' or policy == 'show', 'Invalid visibility policy')
+          end
+          return set(key, 'actionVisibility', value)
+        end)
+      end
       ui.setStatus = checked('setStatus', function(key, value)
         assert(value == nil or (type(value) == 'table' and type(value.text) == 'string'), 'Status needs text')
         assert(value == nil or value.kind == nil or value.kind == 'info' or value.kind == 'success' or value.kind == 'error', 'Invalid status kind')
@@ -439,6 +477,13 @@ export const mcmFake = String.raw`
     end
     -- MCM's own update: it takes the requests made through api.ui.open and publishes the context.
     function F.update()
+      if closeRequest then
+        local key = closeRequest
+        closeRequest = nil
+        if active == key then
+          if hasDrafts(key) then F.closePrompt = true else F.closes = F.closes + 1; F.closeScreen() end
+        end
+      end
       if openRequest then
         local key = openRequest
         openRequest = nil
@@ -483,6 +528,9 @@ export const mcmFake = String.raw`
       local mod = modOf(active)
       if not mod then return out end
       local cfg = config[active] or {}
+      local presentation = newer and cfg.presentation or {}
+      local visibility = newer and cfg.actionVisibility or {}
+      local rowSize = presentation.rowFontSize
       local inFooter = {}
       for _, id in ipairs(cfg.footerActions or {}) do inFooter[id] = true end
       for _, category in ipairs(mod.categories) do
@@ -497,12 +545,12 @@ export const mcmFake = String.raw`
             local drawn = setting.supported and (setting.type == 'bool' or setting.type == 'select' or setting.type == 'int'
               or setting.type == 'float' or setting.type == 'key')
             if drawn then
-              entry.kind, entry.x, entry.size, entry.button = 'setting', 48, 22, false
-              entry.color = (setting.defaultValue ~= nil and mcmNormalize(setting, value) ~= setting.defaultValue) and 'modified' or 'red'
+              entry.kind, entry.x, entry.size, entry.button = 'setting', presentation.labelIndent or 48, rowSize or 22, false
+              entry.color = (presentation.highlightModifiedValues ~= false and setting.defaultValue ~= nil and mcmNormalize(setting, value) ~= setting.defaultValue) and 'modified' or 'red'
             elseif setting.supported and setting.type == 'action' then
-              entry.kind, entry.x, entry.size, entry.color, entry.button, entry.buttonText = 'action', 20, 22, 'red', true, setting.value
+              entry.kind, entry.x, entry.size, entry.color, entry.button, entry.buttonText = 'action', 20, rowSize or 22, 'red', true, setting.value
             else
-              entry.kind, entry.x, entry.size, entry.color, entry.button = 'readonly', 20, 26, 'red', false
+              entry.kind, entry.x, entry.size, entry.color, entry.button = 'readonly', 20, rowSize or 26, 'red', false
             end
             out.rows[#out.rows + 1] = entry
           end
@@ -527,7 +575,7 @@ export const mcmFake = String.raw`
           end
         end
       end
-      out.mcmDefaultsButton, out.modified, out.comparable = modified > 0, modified, comparable
+      out.mcmDefaultsButton, out.modified, out.comparable = modified > 0 and visibility.defaults ~= 'hide', modified, comparable
       -- The whole footer row, left to right, as MCM's bottomActions builds it: Revert and Apply while drafts are pending, its own Defaults,
       -- Add to favorites (a setting of the PLAYER in MCM, favoriteUxMode "button" or "both", the default; the public API has no way for a
       -- mod to hide it), the Modified counter, then the provider's footer buttons. renderActionRows gives every button the same share
@@ -540,10 +588,13 @@ export const mcmFake = String.raw`
         row[#row + 1] = {label = 'APPLY', mcm = true}
       end
       if out.mcmDefaultsButton then row[#row + 1] = {label = 'DEFAULTS', mcm = true} end
-      row[#row + 1] = {label = 'ADD TO FAVORITES', mcm = true}
-      if comparable > 0 then row[#row + 1] = {label = 'MODIFIED (' .. modified .. ')', mcm = true} end
+      -- Add to favorites is shown by the player's own MCM setting; a mod can hide it from 0.10.6 (favorite = 'hide').
+      if visibility.favorite ~= 'hide' then row[#row + 1] = {label = 'ADD TO FAVORITES', mcm = true} end
+      if comparable > 0 and visibility.modifiedFilter ~= 'hide' then row[#row + 1] = {label = 'MODIFIED (' .. modified .. ')', mcm = true} end
       for _, button in ipairs(out.footer) do row[#row + 1] = {label = button.label, id = button.id} end
-      out.footerRow, out.footerShare = row, 55 / #row
+      out.footerRow, out.footerShare = row, 55 / math.max(1, #row)
+      -- 0.10.6: a label that does not fit wraps onto another line instead of being cut.
+      out.footerWraps = newer
       return out
     end
     function F.row(label)

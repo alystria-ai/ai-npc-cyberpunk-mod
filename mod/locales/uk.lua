@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Автоматично (мова інтерфейсу гри)",
     ["Automatic reactions"] = "Автоматичні реакції",
     ["Back"] = "Назад",
+    ["Restore defaults"] = "Відновити типові",
+    ["Close this menu."] = "Закриває це меню.",
     ["Back to Companion Manager"] = "До менеджера компаньйонів",
     ["Back to party"] = "Назад до групи",
     ["Back to settings"] = "Назад до налаштувань",

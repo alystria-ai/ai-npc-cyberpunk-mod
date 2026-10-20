@@ -5,8 +5,11 @@
 --
 -- Only MCM's public API is used: GetMod('ModConfigurationMenuAPI'), providers.registerProvider and the provider callbacks
 -- (listMods, loadMod, invokeAction, applyBatch, closeMod), hasDrafts, reloadMod, revert, refreshProvider and the public UI extension (api.ui, v1, MCM 0.10.5): setApplyPolicy, setPresentation, setNavigation,
--- setFooterActions, setChoiceStates, setStatus, getContext, open and clear. No MCM function is overridden or hooked, and no widget
--- of MCM is touched. Antrix, MCM's author, exposed these calls and wrote the reference port this module follows.
+-- setFooterActions, setChoiceStates, setStatus, getContext, open and clear. MCM 0.10.6 adds to that interface (the version number of api.ui
+-- stays 1, so each addition is found by its own function, or by the MCM version for the new presentation options, never by api.ui.apiVersion):
+-- close, setActionVisibility and the presentation options labelIndent, highlightModifiedValues and (now for every row) rowFontSize. They are
+-- used only when present (M.newUi); with MCM 0.10.5 none of them is called and nothing below changes. No MCM function is overridden or
+-- hooked, and no widget of MCM is touched. Antrix, MCM's author, exposed these calls and wrote the reference port this module follows.
 --
 --  * Apply policy: explicit. A change is a draft that MCM keeps (changed-row markers, Revert, Apply, Defaults) until the player
 --    presses Apply; MCM then hands the whole batch to applyBatch, which runs manager-ui.lua's M.apply (ONE validated, saved
@@ -20,6 +23,8 @@
 --    property moves it), red, and purple when its value differs from the DEFAULT the provider gave (MCM's "changed" mark,
 --    mcm_model.lua settingDisplay: no default, no mark); an action is a flush-left label (x 20) with a button; a read-only line is a
 --    flush-left label at size 26 (MCM's list-row text) with a value.
+--    (MCM 0.10.6 lifts three of these: labelIndent puts a setting's label at x 20 like the buttons, highlightModifiedValues = false turns
+--    the purple off while defaults still count, and rowFontSize sizes setting, action and read-only rows alike; see applyPresentation.)
 --    So: no row is given a default (nothing is purple; MCM's own Defaults button and Modified counter go with it), and this host
 --    offers its own Restore defaults button in the footer instead (the rows' defaults are manager-ui.lua's M.defaults; MCM's public API
 --    has no confirmation, so the button asks to be pressed twice). The read-only lines of the Settings page (Voice status, Johnny's
@@ -55,6 +60,10 @@ local UI_CALLS = {'setApplyPolicy', 'setPresentation', 'setNavigation', 'setFoot
 -- The scroll calls are used when present (MCM 0.10.5 has them): the list keeps its place after Apply.
 local SCROLL_CHECK, SCROLL_TRIES = 0.3, 3
 local API_CALLS = {'hasDrafts', 'reloadMod', 'revert', 'refreshProvider'}
+-- MCM 0.10.6 (UI extension, version number still 1): found by the call, and by the version for the presentation options.
+local NEW_VERSION = {0, 10, 6}
+-- The Back button of the home page closes MCM's screen (api.ui.close); its id is not one of the page's rows.
+local HOME_BACK_ID = 'home:close'
 local CAPABILITIES = {
     -- reset = false and no defaultValue: MCM marks a row purple only when it has a default and differs from it (see the top).
     setting = {read = true, write = true, draft = true, reset = false},
@@ -67,6 +76,8 @@ local DEFAULTS_ID, STATUS_PREFIX = 'defaults:restore', 'status:'
 local core, options
 local restoreArmed, restorePage = false, nil
 local api, provider, version
+-- What this MCM offers beyond 0.10.5 (M.newUi): {close, actionVisibility, presentation}; all false for 0.10.5.
+local newUi = {}
 local connectAt, connectTries, lastReason = 0, 0, nil
 local slowAt, localeRevision = 0, -1
 local wasActive, opened = false, false
@@ -126,6 +137,20 @@ function M.unsupported(found)
         if type(found[name]) ~= 'function' then return 'it lacks ' .. name end
     end
     return nil
+end
+
+-- The additions of MCM 0.10.6 that `found` offers: close (api.ui.close), actionVisibility (api.ui.setActionVisibility) and presentation (the
+-- options labelIndent and highlightModifiedValues of setPresentation, which an older MCM refuses as a whole, so they are only sent when
+-- both calls are there and the version is 0.10.6 or newer, or cannot be read). MCM 0.10.5 answers false for all three.
+function M.newUi(found)
+    local result = {close = false, actionVisibility = false, presentation = false}
+    local extension = type(found) == 'table' and found.ui or nil
+    if type(extension) ~= 'table' then return result end
+    result.close = type(extension.close) == 'function'
+    result.actionVisibility = type(extension.setActionVisibility) == 'function'
+    local parsed = parseVersion(found.version)
+    result.presentation = result.close and result.actionVisibility and (parsed == nil or atLeast(parsed, NEW_VERSION))
+    return result
 end
 
 -- ---- The page as MCM wants it -----------------------------------------------------------------------------------------------------
@@ -237,18 +262,25 @@ local function schema()
         -- Apply, MCM's Add to favorites, this one, Back) and MCM gives each one the same share of the row, cutting the text that is
         -- longer. The footer is only read again when the page is loaded again, which MCM refuses while changes are pending, so the button
         -- cannot be hidden then; the description (hover) carries the full sentence.
-        footer[#footer + 1] = action(DEFAULTS_ID, ui.t('Defaults'),
-            restoreArmed and ui.t('Confirm') or ui.t('Defaults'),
+        -- MCM 0.10.6 wraps a label that does not fit (and Add to favorites is hidden there), so the whole name fits.
+        local label = newUi.presentation and ui.t('Restore defaults') or ui.t('Defaults')
+        footer[#footer + 1] = action(DEFAULTS_ID, label, restoreArmed and ui.t('Confirm') or label,
             ui.t('Puts every setting on Settings and Relationships back to its default. Press the button twice to confirm.'))
+    end
+    -- Home's Back (MCM 0.10.6): the footer button that closes MCM's screen, like the Back of the pages under it. It is not the page's
+    -- back action (no backActionId), so Escape stays MCM's own close.
+    if view == 'home' and newUi.close then
+        footer[#footer + 1] = action(HOME_BACK_ID, ui.t('Back'), ui.t('Back'), ui.t('Close this menu.'))
     end
     -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
     local footerIds, byId = {}, {}
     for _, item in ipairs(footer) do byId[item.id] = item end
-    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID}) do
+    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID, HOME_BACK_ID}) do
         if byId[id] then footerIds[#footerIds + 1] = id end
     end
-    -- The home page has no way back of its own: MCM's public API cannot close its screen (api.closeMod only closes the provider's
-    -- mod, the screen stays), but with no backActionId its own Escape closes the screen, so Escape is Home's Back.
+    -- The home page has no back action of its own (no backActionId): MCM's own Escape closes the screen, so Escape is Home's Back. With
+    -- MCM 0.10.6 a footer Back (HOME_BACK_ID, above) asks api.ui.close for the same; 0.10.5 has no public call that closes its screen
+    -- (api.closeMod only closes the provider's mod, the screen stays), so there Escape is all there is.
     if currentBack then footerIds[#footerIds + 1] = currentBack.id end
     if #footer > 0 then
         categories[#categories + 1] = {id = 'ui-footer', name = model.name, description = '', settings = footer}
@@ -366,6 +398,19 @@ local function buildProvider()
         invokeAction = function(id, actionId)
             if id ~= MOD then return {ok = false, error = 'Unknown mod.'} end
             if actionId == DEFAULTS_ID then return restoreDefaults() end
+            if actionId == HOME_BACK_ID then
+                restoreArmed = false
+                if not newUi.close then return {ok = false, error = 'Not available right now.'} end
+                -- MCM closes the screen on its next update, with its usual question when changes are pending (Home has none).
+                local called, request, problem = pcall(api.ui.close, MOD_KEY)
+                if not called then request, problem = nil, request end
+                if request == nil then
+                    lastError = 'Close: ' .. tostring(problem)
+                    logRepeat('Companion Manager: Mod Configuration Menu would not close the page: ' .. tostring(problem))
+                    return {ok = false, error = tostring(problem or 'Mod Configuration Menu would not close the page.')}
+                end
+                return {ok = true, schemaChanged = false}
+            end
             -- Any other button drops a first press of Restore defaults (the button is drawn again); a status button shows its text
             -- (MCM's description panel) and does nothing.
             local wasArmed = restoreArmed
@@ -409,13 +454,40 @@ local function present()
 end
 
 -- MCM answers these only for a mod it has indexed, so they are repeated (once a second) until it accepts them. Returns whether it did.
--- No rowFontSize: MCM applies it by walking the finished list (MCMPanelPresentation.Walk), which left the setting labels smaller than
--- the action labels beside them; without it every row keeps MCM's own size.
+-- MCM 0.10.5: no rowFontSize (MCM applied it by walking the finished list, which left the setting labels smaller than the action labels
+-- beside them), so every row keeps MCM's own size, and nothing beyond the base options is sent (0.10.5 refuses an option it does not
+-- know, the whole call). MCM 0.10.6: rowFontSize sizes setting, action and read-only rows alike, labelIndent puts a setting's label at the
+-- buttons' x, highlightModifiedValues = false turns the purple of a changed value off (defaults, reset and the Modified counter are
+-- untouched), and Add to favorites is hidden (setActionVisibility replaces the previous map; Apply and Revert stay MCM's).
 local function applyPresentation()
     local called, policy = pcall(api.ui.setApplyPolicy, MOD_KEY, 'explicit')
-    local shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, {locale = ui.current(), descriptionFontSize = 22,
-        labelWidthFraction = 0.5, statusPlacement = 'header', quietActions = true})
-    configured = called and policy == true and shown and presentation == true
+    local base = {locale = ui.current(), descriptionFontSize = 22, labelWidthFraction = 0.5, statusPlacement = 'header', quietActions = true}
+    local shown, presentation
+    if newUi.presentation then
+        local extended = {}
+        for key, value in pairs(base) do extended[key] = value end
+        extended.rowFontSize, extended.labelIndent, extended.highlightModifiedValues = 22, 20, false
+        shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, extended)
+        if not (shown and presentation == true) then
+            -- The mod is not indexed yet (the base call fails too: tried again in a second), or this MCM refuses an option: base only.
+            shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, base)
+            if shown and presentation == true then
+                newUi.presentation = false
+                logRepeat('Companion Manager: Mod Configuration Menu refused the 0.10.6 presentation options, so the 0.10.5 ones are used.')
+            end
+        end
+    else
+        shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, base)
+    end
+    local ready = called and policy == true and shown and presentation == true
+    if ready and newUi.actionVisibility then
+        local hidden, result = pcall(api.ui.setActionVisibility, MOD_KEY, {favorite = 'hide'})
+        if not (hidden and result == true) then
+            newUi.actionVisibility = false
+            logRepeat('Companion Manager: Mod Configuration Menu would not hide Add to favorites: ' .. tostring(hidden and 'refused' or result))
+        end
+    end
+    configured = ready
     return configured
 end
 
@@ -436,6 +508,7 @@ local function connect()
                 or 'Update it to 0.10.5 or newer, or install Native Settings UI.'))
         return false
     end
+    newUi = M.newUi(found)
     local called, registered, problem = pcall(found.providers.registerProvider, provider)
     if not called or not registered then
         lastError = 'Register: ' .. tostring(called and problem or registered)
@@ -619,12 +692,13 @@ function M.shutdown()
     if type(api.providers) == 'table' and type(api.providers.unregisterProvider) == 'function' then
         pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey)
     end
-    api, opened, wasActive = nil, false, false
+    api, opened, wasActive, newUi = nil, false, false, {}
 end
 
 function M.inspect()
     return {available = api ~= nil, version = version, active = opened, error = lastError ~= '' and lastError or nil,
-        reason = lastReason, page = pageSeen, back = currentBack and currentBack.id or nil}
+        reason = lastReason, page = pageSeen, back = currentBack and currentBack.id or nil,
+        newUi = {close = newUi.close == true, actionVisibility = newUi.actionVisibility == true, presentation = newUi.presentation == true}}
 end
 
 -- Tests only.

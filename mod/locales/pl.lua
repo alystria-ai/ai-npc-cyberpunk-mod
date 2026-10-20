@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Automatycznie (język interfejsu gry)",
     ["Automatic reactions"] = "Reakcje automatyczne",
     ["Back"] = "Wstecz",
+    ["Restore defaults"] = "Przywróć domyślne",
+    ["Close this menu."] = "Zamyka to menu.",
     ["Back to Companion Manager"] = "Wróć do Menedżera towarzyszy",
     ["Back to party"] = "Wróć do drużyny",
     ["Back to settings"] = "Wróć do ustawień",

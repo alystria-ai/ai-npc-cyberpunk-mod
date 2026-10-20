@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Otomatik (oyun arayüz dili)",
     ["Automatic reactions"] = "Otomatik tepkiler",
     ["Back"] = "Geri",
+    ["Restore defaults"] = "Varsayılanları geri yükle",
+    ["Close this menu."] = "Bu menüyü kapatır.",
     ["Back to Companion Manager"] = "Yoldaş Yöneticisi'ne dön",
     ["Back to party"] = "Ekibe dön",
     ["Back to settings"] = "Ayarlara dön",

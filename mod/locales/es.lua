@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "Automático (idioma de la interfaz del juego)",
     ["Automatic reactions"] = "Reacciones automáticas",
     ["Back"] = "Volver",
+    ["Restore defaults"] = "Restablecer valores",
+    ["Close this menu."] = "Cierra este menú.",
     ["Back to party"] = "Volver al grupo",
     ["Back to settings"] = "Volver a ajustes",
     ["Browse your characters, discover a game model, or manage your current party."] = "Explora tus personajes, busca un modelo del juego o gestiona tu grupo actual.",

@@ -25,6 +25,8 @@ return {
     ["Automatic (game interface language)"] = "自動（遊戲介面語言）",
     ["Automatic reactions"] = "自動反應",
     ["Back"] = "返回",
+    ["Restore defaults"] = "還原預設值",
+    ["Close this menu."] = "關閉此選單。",
     ["Back to party"] = "返回隊伍",
     ["Back to settings"] = "返回設定",
     ["Browse your characters, discover a game model, or manage your current party."] = "瀏覽角色、尋找遊戲模型，或管理目前隊伍。",
