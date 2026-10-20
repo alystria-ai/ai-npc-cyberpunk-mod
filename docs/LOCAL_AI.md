@@ -869,7 +869,7 @@ reader is to read through the native core.
 
 ### Provider state
 
-`conversationProvider` is `convai | mistral | local | custom` (a saved `groq` from before 2026-10-14 reads as `convai`; `custom` is the OpenAI-compatible endpoint of docs/CUSTOM_PROVIDER.md, which never gets Mature content). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
+`conversationProvider` is `convai | mistral | local | custom` (a saved `groq` from before 2026-10-14 reads as `convai`; `custom` is the OpenAI-compatible endpoint of docs/CUSTOM_PROVIDER.md, which takes Mature content since 2026-10-20). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
@@ -1223,13 +1223,13 @@ setting on, the Mature-only install failing with `mature-off` while it is off) i
   screen for the voice, and the adults-only and hard-limit lines. With the setting off nothing runs there (only the Local AI also screens an uncensored model with the setting off).
   Add-on hosts (guard only) follow the same route rule.
 - **A Local AI turn that falls back to Mistral** is now answered with the layer on both routes (Mistral has it), where before the fallback went without it.
-- **The setting page:** it is no longer forced off by Mistral or Custom, and choosing them leaves it on and changes nothing else. Turning it on beside Convai still selects Local AI
-  (with the uncensored model and a local voice instead of a cloud one), or goes back to off with "Needs Local AI, Mistral or Custom." without the pack. Choosing Convai turns it off.
+- **The setting page:** it is no longer forced off by Mistral or Custom, and choosing them leaves it on and changes nothing else. Turning it on beside Convai selects Local AI when its pack is installed
+  (with the uncensored model; no voice is changed), else Mistral when a Mistral key is saved, else Custom when it is set up ("Also changed" names the provider), else it goes back to off
+  with "Needs Local AI, Mistral or Custom." Choosing Convai turns it off.
   Turning it on beside Mistral or Custom changes no provider, model or voice and keeps no way back (`matureRestore`). Loading or applying a saved Convai + Mature pairing saves it as off.
-- **Voxtral voice rule (V's lines).** With Mature on and the text on **Local AI**, V's line stays off the cloud as before: the manager refuses Voxtral, turning it on moves V
-  to Pocket, a hand-edited pairing is normalised at load, and the bridge refuses a cloud V line (`matureAllowsCloudVoice` in `bridge/mature-content.mjs`; the log says
-  "Mature content with Local AI keeps your lines off the cloud"). With the text on **Mistral or Custom** the line is already sent to the cloud for the reply, so the
-  cloud voice adds no new exposure and is allowed. Moving back to Local AI with Voxtral saved moves V to Pocket. The companions' own voices were never restricted.
+- **Voice rule dropped (2026-10-20).** Mature content no longer changes or refuses any voice, for V or the companions, on any provider. The earlier rule (with Mature on and the text
+  on Local AI, V's line stayed off the cloud, Voxtral was refused and moved to Pocket, and the bridge logged "keeps your lines off the cloud") is removed completely: `matureAllowsCloudVoice`
+  is gone from `bridge/mature-content.mjs` and the manager no longer touches V's voice engine when Mature changes.
 - **What the player is told.** The row's help says it works with Local AI, Mistral and Custom, that the Mature pack's uncensored models are for Local AI, and what is never
   allowed. No warning popup and no notice (unchanged). With Mistral or Custom the player's lines go to that service as every turn does, and its own terms apply
   (docs/MISTRAL.md, docs/CUSTOM_PROVIDER.md).

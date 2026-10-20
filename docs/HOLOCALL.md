@@ -163,17 +163,13 @@ and story characters are not touched.
 - **Latency.** Dialing warms the bridge conversation (`warmConversation`) while the window rings, so
   the first turn uses the same warm path as face-to-face talk.
 
-### Live picture (setting, on by default)
+### Live picture (always on)
 
-**Companion Manager > Settings > Conversations > Live holocall picture.** (It was in
-Development until 2026-10-14; it is the only holocall setting.)
-
-**On by default since 2026-10-14.** It was off by default at first, and the first version wrote that `false` into
-`runtime/settings.json` for everyone, so merely changing the default would not have reached an existing install.
-`mod/manager.lua` therefore treats a saved `false` as a choice only when an Apply carried it
-(`holocallLiveImageChosen`, as for Expressive emotions); an unchosen `false` becomes `true` on the next load. The
-live test that prompted this saw only the portrait for exactly that reason: with the setting off the call is always
-the portrait voice call, a normal result, not a failure.
+**Always on since 2026-10-20: the setting "Live holocall picture" was removed, so there is no holocall setting and nothing to
+switch.** It had been in Development until 2026-10-14, then a Conversations row, on by default. `mod/init.lua` passes
+`liveImage = function() return true end`; a saved `holocallLiveImage` (or `holocallLiveImageChosen`) key from an older file is
+ignored and dropped from `settings.json` once, and an old `false` behaves as on. A call to a contact without a staged setup, or one
+whose picture cannot be shown, is still the portrait voice call: a normal result, not a failure.
 
 **Who gets a picture, as in the game (branch `holocall-native-look`, 2026-10-14).** Only the contacts the game
 itself has a holocall setup for (`STAGED` in `mod/holocall.lua`: 59 of the mod's phone contacts, mapped by hand
@@ -181,7 +177,7 @@ from the folders above, e.g. `stout` -> `meredith`, `marianne` -> `claire`, `stu
 contact is a voice call with the portrait, as the game does for contacts without a setup, with no spawn, no search
 and no notice. The probe line says `cast=video` or `cast=voice`.
 
-With the setting on, dialing a staged character does the following (one step per 0.25 s call tick):
+Dialing a staged character does the following (one step per 0.25 s call tick):
 
 1. **Finds a studio** out of V's sight: a level floor with 2.3 m of headroom, hidden from V's eyes by something
    solid, with open space for the camera on one side. Candidates in order: **near first**, a floor 10 m above to

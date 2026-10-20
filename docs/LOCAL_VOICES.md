@@ -190,7 +190,7 @@ progress keeps its voice. The bridge publishes `fallback: {from, to}` (with `tem
 `runtime/local-voice-state.json` (and the support report) once the lower voice
 is the committed route; the CET mod reads it and posts one gameplay notice per
 fallback ("OmniVoice · Balanced is unavailable. Companions are using Pocket ·
-Performance instead."), and the Settings voice status names the voice in use. Invitations
+Performance instead."), which names the voice in use. Invitations
 that were preparing against the failed backend continue on the fallback instead
 of failing. The pre-existing readiness and availability checks are unchanged.
 The same machinery lets a machine with no OmniVoice setup start on Pocket

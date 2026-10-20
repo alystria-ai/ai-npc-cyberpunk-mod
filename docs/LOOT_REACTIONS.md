@@ -1,9 +1,15 @@
 # Companion loot reactions
 
-Companion Manager **Settings → React to collected loot** is off by default; turn it on there.
+Companion Manager **Settings → React to collected loot** is **on by default since 2026-10-20**; a player who had turned it off keeps it off
+(a saved off counts only when the player chose it).
 A nearby companion can comment once after V finishes a batch of confirmed world
 pickups. This setting is independent of battle reactions. Turning it off discards
 pending loot comments.
+
+## Cost on the Convai free tier
+
+Ordinary loot comments are ten minutes apart; newly acquired Legendary gear gets its own spacing of two minutes. On the shared Convai key each
+comment counts as one of the day's turns, and once the day's allowance is used up nothing is spent and the comment is skipped silently.
 
 ## Collection and ownership
 

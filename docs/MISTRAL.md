@@ -8,7 +8,7 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 ## What the player does
 
 1. Get a free key from Mistral (the free plan, "Experiment", needs phone verification at signup).
-2. Settings > Conversation provider > the Mistral key row, button **Paste** (copies the key from the clipboard, checks it with Mistral, saves it on this computer; once a key is saved the button reads **Remove**).
+2. Settings > Conversation provider > the Mistral key row, button **Paste** (copies the key from the clipboard, checks it with Mistral, saves it on this computer; once a key is saved the button reads **Remove**). The Remove help says "Deletes the saved key." and then what the key powers now: "Conversations go back to Convai free tier." (Mistral is the provider), "Companions switch from Voxtral to the Convai voice." (the companion voice is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on with the Voxtral engine); with none of these, "Nothing you use now depends on it."
    Or save the key by hand in `player-mistral-key.txt` in the conversation service's state folder (`api-key=<key>` or just the key).
    The row name shows the status in brackets: the last four characters, "(Added)", "(Checking...)" or "(Not added)"; only the last four characters are ever shown.
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
@@ -16,7 +16,7 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 
 Any other OpenAI-style endpoint (OpenRouter, Nano-GPT, Ollama, LM Studio) is the Custom provider, which shares this route's prompt, memory, streaming and reply checks: see [CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md).
 
-**Mature content works with Mistral** (owner decision 2026-10-20). With the setting on, a Mistral turn gets the same Mature layer, word palette and closing line the Local AI gets, every turn, through the shared text host (`TextProviderHost`), with the hard-limit guard on the input and the reply. A Mistral model is in no row of the allowance table, so it gets the `suggestive` level (crude and forward, the act itself cut away). The lines go to Mistral as every turn does, and Mistral's own terms apply: its Usage Policy neither bans nor permits consensual adult text (read 2026-10-20, `deliverables/mature-cloud-check-2026-10-20.md`), and it may add output filters of its own. With Mature on and Mistral as the text provider, V's Voxtral voice is allowed (the lines are in the cloud already); with Local AI it is not. Details: [LOCAL_AI.md](LOCAL_AI.md), "Mature content on Mistral and Custom".
+**Mature content works with Mistral** (owner decision 2026-10-20). With the setting on, a Mistral turn gets the same Mature layer, word palette and closing line the Local AI gets, every turn, through the shared text host (`TextProviderHost`), with the hard-limit guard on the input and the reply. A Mistral model is in no row of the allowance table, so it gets the `suggestive` level (crude and forward, the act itself cut away). The lines go to Mistral as every turn does, and Mistral's own terms apply: its Usage Policy neither bans nor permits consensual adult text (read 2026-10-20, `deliverables/mature-cloud-check-2026-10-20.md`), and it may add output filters of its own. Mature content changes no voice, with any provider: V's Voxtral voice stays allowed (since 2026-10-20). Turning Mature on while Convai is the provider selects Local AI when its pack is installed, else Mistral when a key is saved, else Custom when it is set up, else the switch stays off; "Also changed" then names "Mistral (free plan)". Details: [LOCAL_AI.md](LOCAL_AI.md), "Mature content on Mistral and Custom".
 
 This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
 is the provider entry "Convai API key" in the same selector; the daily-limit notice and the player documents do not promote it.
@@ -234,7 +234,7 @@ answers it with `reply(config, options)`, the Mistral route. While the provider 
 ## What works and what does not
 
 Works: text talk, Phone Chat, group conversations, battle and loot reactions, subtitles, Pocket/Omni voices, lip sync, emotions,
-Natural speech and Expressive emotion tags, follow-up hooks, quest and world knowledge in the prompt, Forget, and the voice key when
+Natural speech and Expressive emotion tags (Natural speech also works with the Convai voice selection: the bridge plays Pocket for it here), follow-up hooks, quest and world knowledge in the prompt, Forget, and the voice key when
 local speech-to-text is available.
 
 Does not: Convai long-term memory and its cloud voices (use Convai for those); Multilingual conversations (the setting is off while

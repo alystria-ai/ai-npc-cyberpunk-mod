@@ -15,7 +15,7 @@ hooks have been seen firing in game yet**; see the check list at the end.
 | --- | --- | --- |
 | Capture adapter | `mod/game-dialogue.lua` | Hooks the game's subtitle feed and dialogue choices, keeps a bounded buffer of plain strings, returns a snapshot. |
 | Wiring | `mod/init.lua`, `mod/group-chat.lua`, `mod/microphone.lua`, `mod/phone-chat.lua` | Attach `gameDialogue` to F6 text, F7/F8 voice, group rounds and Phone Chat sends. Reset on load/death/detach. |
-| Setting | `mod/manager.lua`, `mod/manager-ui.lua`, 15 locales | Settings > Conversations > **Continue from game dialogue** (On by default). |
+| Setting | none | Always on. The setting "Continue from game dialogue" was removed on 2026-10-20; a saved `gameDialogueContext` key is ignored and dropped from the file once. |
 | Validation, scoping, text | `bridge/game-dialogue.mjs` | Parses the snapshot, selects the lines this turn may use, renders the context block. |
 | Bridge wiring | `bridge/protocol.mjs`, `bridge/quest-context.mjs`, `bridge/phone-chat.mjs`, `bridge/group-lookahead.mjs` | Parse the field, add the block to the per-turn dynamic context, keep group look-ahead claims exact. |
 | Tests | `bridge/game-dialogue.test.mjs` | Bridge scoping/text, and the Lua adapter with mocked native calls. |
@@ -90,8 +90,7 @@ otherwise use"), so Multilingual conversations still decides the reply language.
 - The mod's own replies are never recorded: `mod/subtitles.lua` shows them as
   `CRUID(0x436F6E760000 + serial)`; the adapter checks that range and the
   current owned line.
-- Cleared on save load, death and player detach (`abandonSession`), when the
-  setting is turned off, and by a CET reload (the Lua state restarts). Fast travel
+- Cleared on save load, death and player detach (`abandonSession`) and by a CET reload (the Lua state restarts). Fast travel
   keeps the buffer; the 180-second window still applies.
 - `capture()` returns `{version = 1, status = 'ready', lines = {...}}` with each
   line's age in seconds, or nothing when off or empty.
@@ -173,10 +172,9 @@ per-turn dynamic context, like the journal snapshot.
 
 ## Setting
 
-Settings > Conversations > **Continue from game dialogue**, On by default
-(stored as `gameDialogueContext`). Off: nothing is recorded, the buffer is
-cleared and no turn carries the field. Label and description are in
-`localization/en.json` and all 15 locales.
+None since 2026-10-20. "Continue from game dialogue" was a Conversations row (On by default, stored as
+`gameDialogueContext`); the recording is always on now, `mod/init.lua` gives the recorder no `enabled` option, and an old saved key is
+ignored and dropped from the file once. The recorder still honours an `enabled` option for tests (`skipped.disabled`).
 
 ## Install
 
@@ -247,5 +245,4 @@ Each item: do it, then run `convaiGameDialogue:dump()` and read the probe.
     duplicates, skipped lines present.
 16. **Save/load:** after loading a save the probe shows no lines
     (`resetReason: save restored`).
-17. **Setting Off:** turn it off and Apply; the probe shows no lines and new
-    dialogue is not recorded (`skipped.disabled`).
+17. **No setting:** there is no row to turn it off; the `disabled` skip is covered by the unit tests only.

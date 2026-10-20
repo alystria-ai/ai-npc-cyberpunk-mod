@@ -388,24 +388,24 @@ one-time notice:
 | Turned on, Omni pack installed, voice Pocket or Convai | OmniVoice · Balanced (16 steps, short reference: the lightest Omni) |
 | Turned on, voice already an OmniVoice tier | kept |
 | Turned on together with Convai · Cloud voice chosen in the same Apply (no tag setting on) | kept |
-| Turned on, no Omni pack | Convai · Cloud voice; Natural speech and Expressive emotions turned off (Multilingual wins: the cloud voice would read their tags aloud) |
+| Turned on, no Omni pack | Convai · Cloud voice; Natural speech turned off (Multilingual wins: the cloud voice would read its tags aloud; Expressive emotions has no setting since 2026-10-20 and is simply not asked for with that voice) |
 | On, Pocket chosen | refused: "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it." |
-| On, no pack, Natural speech or Expressive emotions turned on | refused, with the reason |
-| On, pack installed, a tag setting turned on beside the saved cloud voice | voice moves to OmniVoice · Balanced (never to Pocket) |
-| On, the cloud voice chosen (tag settings on, or turned on in the same Apply) | the cloud voice is kept and the tag settings are turned off, with one notice if the player had set one (2026-10-11) |
+| On, no pack, Natural speech turned on | refused, with the reason |
+| On, pack installed, Natural speech turned on beside the saved cloud voice | voice moves to OmniVoice · Balanced (never to Pocket) |
+| On, the cloud voice chosen (Natural speech on, or turned on in the same Apply) | the cloud voice is kept and Natural speech is turned off, with one notice ("The Convai cloud voice cannot use Natural speech, so it was turned off."; the rule holds with Convai as the provider, which is where Multilingual works, 2026-10-20) |
 | Turned off | the voice stays as it is |
 
 Refusing Pocket was chosen over turning Multilingual off: a voice change that silently drops another feature would be
-surprising, while the refusal keeps the draft pending and says exactly what to do. With the pack, all three settings
+surprising, while the refusal keeps the draft pending and says exactly what to do. With the pack, both settings
 work together. A saved file that pairs Multilingual with Pocket (hand-edited) is read as the cloud voice, and a saved
-cloud voice with a tag setting has the tag settings turned off (with or without Multilingual: the voice is always kept).
+cloud voice with Natural speech on, beside a Convai provider, has Natural speech turned off (with or without Multilingual: the voice is always kept).
 
 ### Voice per turn (the safety net)
 
 With the voice always OmniVoice or the cloud voice, the per-turn plan (`planTurnVoice`, `replyVoice`) mostly passes
 the chosen voice through. It still guards the edge cases:
 
-- A turn the cloud voice speaks never gets the Natural speech or Expressive emotions instructions.
+- A turn the cloud voice speaks never gets the Natural speech or Expressive emotions (emotion tag) instructions.
 - OmniVoice is told each reply's language (ISO 639-1); English requests are unchanged.
 - While the setting is on, an OmniVoice choice that cannot run falls back to the cloud voice, never to Pocket
   (`VoiceSelection.resolve`). If a turn still ends up on Pocket, a turn expected in another language goes to the cloud

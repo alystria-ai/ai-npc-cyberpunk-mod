@@ -38,7 +38,9 @@ global settings or another mod's UI to match a manual selection.
   Rendering and feedback callbacks use cached string lookups. This preserves
   the native callback allocation boundary established after the MCM crash.
 - Auto reads `/language` → `OnScreen`, matching the installed Codeware API.
-  Subtitle and voice-over language are separate. A two-second poll uses elapsed
+  Subtitle and voice-over language are separate. The row's help (since 2026-10-20) says it changes this mod's menus and notices only, that
+  character voices and the language the player talks in are separate, and that the microphone uses this language as a hint for non-English speech
+  (`docs/LOCAL_STT.md`, "Other languages"). A two-second poll uses elapsed
   wall time as well as frame delta so paused menus still update. A temporarily
   unavailable setting retains the last successful choice.
 - Manager settings validate and atomically save the canonical `uiLanguage`

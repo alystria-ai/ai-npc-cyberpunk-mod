@@ -330,7 +330,7 @@ thinking and listening. Both fail on the previous code.
 ## October 9: blinking while speaking, and expressions that read during a reply
 
 User report (recording Judy for the lip sync video): she never blinks while she talks, and her face barely changes
-across a reply, even with Expressive emotions on.
+across a reply, even with Expressive emotions on (a setting then; always on since 2026-10-20).
 
 **Blinks: root cause.** Our layer never wrote the eyelids, so nothing of ours froze them. The cause is where the
 game's blinks come from. Cyberpunk's own dialogue lipsync animations carry a talking face's blinks on
@@ -485,7 +485,7 @@ emotions on it was "a little better".
   whole-reply sarcasm, contraction normalising ("I am sorry"), and gates: mild words never smile, a grief
   frame turns fond words into sadness, a clearly negative phrase leaves no smile under it. A reply with no
   feeling is calm: no reply-level cue, neutral face.
-- Priority: the character's own tags (Expressive emotions) from the first tag on; then Convai's label as the
+- Priority: the character's own tags (Expressive emotions, always on since 2026-10-20) from the first tag on; then Convai's label as the
   reply prior (other families' text feelings × .7, joy damped under a negative label); then the text.
 - Convai's late label: `realtime-client.mjs` keeps the one id-less `bot-emotion` that arrives between a
   text-only reply's end and the next reply's `bot-llm-started` (4 s limit; a second one is ambiguous and

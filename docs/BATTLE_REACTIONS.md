@@ -1,10 +1,16 @@
 # Battle awareness and automatic comments
 
-Companion Manager Settings has **React to battles**, off by default. A nearby managed
+Companion Manager Settings has **React to battles**, **on by default since 2026-10-20** (a player who had turned it off keeps it off:
+a saved off counts only when the player chose it). A nearby managed
 companion may give a short opening warning and another brief comment after the
 fight. One speaker owns each comment; duplicate copies share one identity.
 Ordinary F6/F8, microphone and phone conversations also receive recent battle
 facts, independently of the automatic-comment setting.
+
+## Cost on the Convai free tier
+
+A fight uses at most one opening and one closing comment per ten-minute cooldown. On the shared Convai key each comment counts as one of the
+day's turns, and once the day's allowance is used up nothing is spent and the reaction is skipped silently.
 
 ## Encounter rules
 
