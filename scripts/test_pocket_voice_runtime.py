@@ -691,6 +691,42 @@ class Producer(unittest.TestCase):
         values=struct.unpack('<3f',base64.b64decode(sent[0]['pcm']));self.assertGreater(values[2],1)
         self.assertTrue(model.finished);self.assertGreaterEqual(result['firstPcmCopiedReadyMs'],result['firstPcmYieldMs'])
 
+    def test_a_long_decoder_chunk_goes_out_as_ordered_packets_instead_of_ending_the_voice(self):
+        # 0.2.4 reports: on a busy computer the decoder batches every queued latent frame into one chunk; five seconds of audio used to
+        # raise "outside its frame limit", which retired the worker and left V silent for the session.
+        frames_long=24000*5+300
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+                yield 'long'
+                yield [.2]*2
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1);sent=[]
+        def send(frame):
+            sent.append(frame);commands.ack.set()
+        def encode(values):
+            count=frames_long if values=='long' else len(values)
+            return struct.pack('<f',.5)*count,count
+        result=worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',encode)
+        self.assertEqual([frame['frames'] for frame in sent],[3,24000,24000,24000,24000,24000,300,2])
+        self.assertEqual([frame['index'] for frame in sent],list(range(1,9)))
+        offsets=[0];[offsets.append(offsets[-1]+frame['frames']) for frame in sent[:-1]]
+        self.assertEqual([frame['offsetFrames'] for frame in sent],offsets)
+        self.assertTrue(all(len(base64.b64decode(frame['pcm']))==frame['frames']*4 for frame in sent))
+        self.assertTrue(all(frame['frames']<=worker.PACKET_FRAMES for frame in sent))
+        self.assertEqual(result['frames'],3+frames_long+2);self.assertEqual(result['chunks'],8)
+        # The same copied-ready clock on every packet of one chunk (the bridge refuses a clock that goes backwards, not an equal one).
+        self.assertEqual({frame['copiedReadyMs'] for frame in sent[1:7]}.__len__(),1)
+
+    def test_an_empty_or_over_the_reply_limit_chunk_is_still_refused(self):
+        for count in (0,24000*worker.MAX_AUDIO_SECONDS+1):
+            class Model:
+                def generate_audio_stream(self,state,text,**options):
+                    yield 'x'
+            commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1)
+            with self.assertRaisesRegex(ValueError,'frame limit'):
+                worker.stream_request(Model(),{},'Reply.',commands,lambda frame:commands.ack.set(),1,'johnny-silverhand',
+                                      lambda values,count=count:(b'\0'*(count*4),count))
+
     def test_cancel_drains_native_decoder_to_eof_before_another_turn_can_reuse_model(self):
         events=[]
         class Model:

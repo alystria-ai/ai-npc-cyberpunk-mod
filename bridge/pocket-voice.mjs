@@ -17,9 +17,10 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 // for the whole start, progress or not (a restart does not extend it). Importing the runtime has been measured at 2 to 36 s on healthy
 // machines and over 45 s on a busy one, so it gets a longer window; loading the student and warming voices are given longer ones.
 // cancelMs: how long a cancelled request may keep the worker busy before the worker is stopped. A first-time preparation of a voice
-// (1.4 to 4.5 s) cannot be interrupted, so a cancelled one gets prepareCancelMs: the worker finishes it, answers 'cancelled', and goes on.
+// (1.4 to 4.5 s, far longer on a computer starved of CPU) cannot be interrupted, and neither can the worker reading a reply's text before its
+// first sound, so a cancelled one of those gets prepareCancelMs: the worker finishes it, answers 'cancelled', and goes on.
 export const POCKET_LIMITS = Object.freeze({startupMs: 240_000, prepareMs: 60_000,
-  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 15_000, exitMs: 5000, maxFrames: 24000 * 120,
+  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 30_000, exitMs: 5000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'importing-dependencies': 60_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
   progressCpuMs: 100, progressLogMs: 30_000, startAttempts: 2, voicesMs: 30_000});
 const HEARTBEAT_STEPS = Object.freeze(['numpy', 'torch', 'yaml', 'pocket_tts']);
@@ -454,8 +455,12 @@ export class PocketVoice {
     if (!this.pending.has(request.id) || request.cancelReason) return;
     request.cancelReason = reason; request.controller.abort(reason);
     try { this.send({op: 'cancel', id: request.id}); } catch (error) { this.fail(error); }
+    // A stream that has produced no audio yet is still preparing its voice or reading its text, and neither can be interrupted from outside
+    // (0.2.4 report: a V line cancelled while the worker was starved of CPU took the worker down at the 2 s deadline, and V stayed silent).
+    // It gets the long wait; one that is already generating stops within a step, so it keeps the short one.
+    const uninterruptible = request.kind === 'prepare' || (request.kind === 'stream' && request.chunks === 0);
     request.cancelTimer = this.timer(() => this.fail(Error('Pocket worker did not stop its cancelled request')),
-      request.kind === 'prepare' ? POCKET_LIMITS.prepareCancelMs : POCKET_LIMITS.cancelMs);
+      uninterruptible ? POCKET_LIMITS.prepareCancelMs : POCKET_LIMITS.cancelMs);
   }
   finishRequest(request, error, result) {
     if (!this.pending.delete(request.id)) return;

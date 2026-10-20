@@ -283,6 +283,10 @@ def require_cpu_float32(torch, model):
     return dtypes
 
 
+# The longest single PCM packet (one second at 24 kHz); the bridge accepts up to four seconds in a packet.
+PACKET_FRAMES = 24000
+
+
 def stream_request(model, state, text, commands, send, request_id, key, encode_pcm,
                    now=time.perf_counter):
     """Publish every copied chunk before asking the generator for its next one.
@@ -302,21 +306,29 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             yielded_ms = (now() - started) * 1000
             commands.check()
             payload, frames = encode_pcm(chunk)
+            # The decoder turns every latent frame that is queued by the time it runs into ONE chunk. On a busy computer it falls
+            # behind and one chunk can hold seconds of speech (0.2.4: "Pocket returned PCM outside its frame limit" ended V's voice
+            # for the whole session). A long chunk is valid audio: it goes out as consecutive packets of at most PACKET_FRAMES, in
+            # order, each acknowledged like any other. Only a chunk that is not PCM at all, or that would pass the whole reply
+            # limit, is refused.
             if (not isinstance(payload, bytes) or type(frames) is not int
-                    or not 0 < frames <= 24000 * 4 or len(payload) != frames * 4
+                    or frames < 1 or len(payload) != frames * 4
                     or total + frames > 24000 * MAX_AUDIO_SECONDS):
                 raise ValueError("Pocket returned PCM outside its frame limit")
             copied_ms = (now() - started) * 1000
             first_yield = yielded_ms if first_yield is None else first_yield
             first_ready = copied_ms if first_ready is None else first_ready
-            index += 1
-            commands.expect_ack(index)
-            send({"op": "pcm", "id": request_id, "profile": key, "index": index,
-                  "offsetFrames": total, "frames": frames, "sampleRate": 24000,
-                  "channels": 1, "format": "f32le", "pcm": base64.b64encode(payload).decode("ascii"),
-                  "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
-            total += frames
-            commands.await_ack()
+            for begin in range(0, frames, PACKET_FRAMES):
+                piece = min(PACKET_FRAMES, frames - begin)
+                index += 1
+                commands.expect_ack(index)
+                send({"op": "pcm", "id": request_id, "profile": key, "index": index,
+                      "offsetFrames": total, "frames": piece, "sampleRate": 24000,
+                      "channels": 1, "format": "f32le",
+                      "pcm": base64.b64encode(payload[begin * 4:(begin + piece) * 4]).decode("ascii"),
+                      "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
+                total += piece
+                commands.await_ack()
     except BaseException:
         # Closing the upstream generator at a yield skips its decoder.join().
         # Set the native stop event and drain to its real EOF first. The owned
