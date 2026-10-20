@@ -172,6 +172,36 @@ is a tone of another pitch so the packets name the voice; muted; the reply is li
 
 The tail arrives at about the same moment either way (the head's 7 s of speech covers it), now in the same voice.
 
+## Ordinary NPCs: one clip (2026-10-21)
+
+**What the owner heard.** In one reply, a pedestrian ("Homeless Woman", `npc-homeless-female-v2`) sounded like different people.
+The log showed one voice for the whole reply (`[VoiceRouting] ... voice=npc-homeless-female-v2 ... ref="archetypes/omni-long 9.86s"`):
+nothing chose a clip per segment or per emotion (the emotion marks are carried with the request and no voice reads them; the
+`provider: "pocket"` in `[EmotionTimeline]` is the transport marker the Voxtral packets carry).
+
+**Cause.** The reference of an ordinary NPC (`runtime/voice-references/archetypes/<set>/<key>.wav`, `scripts/archetype-voices`) is
+several whole game lines joined with 0.4 s of silence (2 to 6 clips, 8 to 18 s), each line in its own delivery. Voxtral clones every
+request afresh, and a reply is two to four requests (the streamed first sentence and the tail, each split in two when it passes
+160 characters), so each request leaned on a different line of the joined clip and the voices differed. Cloning one clip is more
+repeatable than cloning a collage of several.
+
+**Rule.** For a reference under `archetypes/` (never a named character's, never the player's own), `VoxtralVoice.build` sends ONE clip:
+`singleClip` cuts the longest piece between two seams (a run of exact digital silence of 0.9 s or more: the 0.4 s joint plus about
+0.3 s of silent edge on each clip) and trims its silent edges. It is chosen once, is the same bytes for every request, reply and
+conversation of that voice, and costs one pass over the clip when the voice is first built (never per frame). A reference with one
+clip only, or whose longest clip is under 2 s, is sent as it is (2 of 178 long references: `npc-melee-vendor-female-v2`,
+`npc-wraiths-female-v2`). Measured over the 178 long references: 176 cut to one clip of 2.8 to 14.2 s (median 7.2 s; the
+preparer then cuts at 8.5 s as before). The log says `[Voxtral] <key>: cloned from one clip, N s of the M s reference` once per voice.
+
+**Prepared slots.** The slot is keyed by the source clip's hash, so a one-clip reference has its own signature (`oneClipHash`); the
+slots shipped in the Runtime for the old joined files no longer match. The next release builds the new ones with the same code
+(`voxtralCache` calls `VoxtralVoice.build`); until then a machine without ffmpeg sends the WAV of the clip instead of the Ogg.
+
+**Not changed.** Named characters (`picked/autobest/...`, two clips joined, 13 to 18 s) keep their whole reference; the same
+mechanism could apply to them but their joined clips were chosen and listened to as a set. Pocket and OmniVoice (local) have no
+per-segment reference choice either: one voice state or one prompt per voice key for the whole reply. Their joined references are
+unchanged (OmniVoice needs the transcript of exactly the audio it is given).
+
 ## Which clip is cloned
 
 Tried in this order for a voice key; the first that gives a usable file is used (`VoxtralVoice.build`, `timing.voiceReferenceSource`
