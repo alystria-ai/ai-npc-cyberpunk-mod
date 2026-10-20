@@ -245,6 +245,31 @@ test('Mature content turned on in place selects Local AI and the uncensored mode
   assert(managerUi.inspect().shown == 'Needs Local AI, Mistral or Custom.', tostring(managerUi.inspect().shown))
 `));
 
+test('Mature content turned off while the model row is on an uncensored model (no way back saved) moves the row to the standard model; a saved uncensored model with Mature off shows the default', () => run(`${harness()}
+  local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
+  bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready',
+    localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}},
+    localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
+  jsonFixtures['voice-state'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = clock * 1000}
+  files['runtime/local-voice-state.json'] = 'voice-state'
+  press('Settings')
+  frames(20)
+  -- Both packs installed, Mature content on, the uncensored model chosen, and no earlier choice recorded (it was set by hand, or by an older version).
+  assert(manager.applySettings(player, {conversationProvider = 'local', matureContent = true, localModel = 'mature:unc'}))
+  frames(8)
+  assert(saved.matureRestore == nil and saved.localModel == 'mature:unc')
+  assert(ns.find('Local AI model').selectedElementIndex == 2, 'the row shows the uncensored model')
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == false and saved.localModel == 'standard', tostring(saved.localModel))
+  assert(ns.find('Local AI model').selectedElementIndex == 1, 'the row shows the standard model')
+  assert(saved.conversationProvider == 'local', 'Local AI stays')
+  -- A saved uncensored model with Mature content off (the file was edited): the row shows the model that loads, the default.
+  assert(manager.applySettings(player, {localModel = 'mature:unc'}))
+  frames(8)
+  assert(saved.matureContent == false and saved.localModel == 'mature:unc')
+  assert(ns.find('Local AI model').selectedElementIndex == 1, 'the default is shown, not the uncensored model')
+`));
+
 test('Mature content beside Mistral or Custom is just turned on (provider, model and voice stay), Convai turns it off again, and Local AI still moves a cloud voice to Pocket', () => run(`${harness()}
   local function bridge(tag, value) jsonFixtures['m-' .. tag] = value; files['runtime/mistral-state.json'] = 'm-' .. tag; clock = clock + 2; manager.snapshot(player) end
   bridge('ready', {provider = 'mistral', effective = 'mistral', localAi = 'ready',

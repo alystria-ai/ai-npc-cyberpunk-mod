@@ -77,8 +77,12 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
 - **Turning Mature content on** selects, in the same pending changes as Local AI itself (waiting for Apply), the largest uncensored
   model that fits (the Mature standard model if it is installed and fits, else the Mature lite one), if one is installed, and says so ("Uncensored model"). With no uncensored model installed (or none that fits) it
   leaves the model alone. Turning Mature content off puts the earlier model back, as it does the other choices.
-- **Choosing a model** uses exactly that model, whatever fits better and whatever Mature content says (an uncensored model with
-  Mature content off simply runs without the Mature rules).
+- **Choosing a model** uses exactly that model, whatever fits better, with one exception: **with Mature content off a Mature pack model never loads**,
+  pinned or not. The saved choice is kept (not rewritten) and ignored with no notice; the default rule runs, so the standard (or lite) model loads and the
+  row shows it. A loaded Mature model is replaced (the server reloads) when Mature content goes off, and the pin is used again when it comes back on.
+  Turning Mature content off in the settings page also moves a row still on a Mature model to the standard (else the lite) model in the same change
+  (after the earlier model is put back, if one was recorded). With Mature content on you may pin the standard model; it is kept. A model you added yourself
+  is not covered by this: it runs when you pick it (the default rule still prefers ordinary models while Mature content is off).
 - **A Mature pack alone (no standard, lite or custom model installed).** The Mature packs include the engine, so they work without a Local AI pack
   (see "Mature content"). Then every installed model is an uncensored one, and the rule is: they run only while Mature content is on. With it on, the
   default and the fallbacks are the Mature models as above (the good one if it fits, else the lite one, with layers on the CPU if even that does not fit).
@@ -560,8 +564,9 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
 - **Replies.** A reply ends at the first end-of-turn or turn-start marker (`<turn|>`, `<|turn>`, `<end_of_turn>`, `<start_of_turn>`, `<|im_end|>`,
   `<|im_start|>`); our own server is also given them as `stop` strings, so a fine-tune whose end-of-turn token the server does not know cannot run on to
   the token limit. A Gemma thought channel (`<|channel>thought ... <channel|>`) left in a reply is removed.
-- **Not changed.** A pinned model is used whatever Mature content says (`bridge/local-model-choice.mjs`): with the pin `standard` and the Mature pack
-  installed, the normal Gemma 4 loads with the Mature layer on it. The settings page selects the uncensored model when Mature content is turned on
+- **Not changed.** A pinned ordinary model is used whatever Mature content says (`bridge/local-model-choice.mjs`): with the pin `standard` and the Mature pack
+  installed, the normal Gemma 4 loads with the Mature layer on it. (Since 2026-10-20 the other direction is closed: a pinned Mature pack model is skipped while
+  Mature content is off, see "Choosing a model".) The settings page selects the uncensored model when Mature content is turned on
   (`mod/manager-ui.lua`), and 0.2.1's first start of a launch ignored both (fixed by `20fa585c`, already on main).
 - **Tests.** `bridge/local-turn-diagnostics.test.mjs` (fake llama-server: stall after the role chunk, stall while reading the prompt, a reply that stops
   partway, a model that only thinks, a model still loading, the budget, the request fields, the diagnostics, the log lines, the support report, the
