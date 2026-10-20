@@ -509,7 +509,7 @@ whole, 5,600 tokens; now 4,040 to 4,550.
 - **A correction for what the ratio cannot explain.** After each turn `TokenMeter.observe` compares the server's count with what the budget counted for that prompt (the tokenizer's own
   count when it was asked, else the estimate under the ratio learned meanwhile, so a wrong ratio is not corrected twice). A gap over 6% becomes the `bias` (the larger of the last two
   turns, at most 2.5): the next fits multiply their estimate and the tokenizer's count by it, so the soft and the hard limit are met in the server's tokens. An odd turn is followed for two
-  turns, a lasting gap for as long as it lasts, and a model that agrees with the budget has a bias of exactly 1 (a fast machine's prompt is the same as before). A gap of 15% or more
+  turns, a lasting gap for as long as it lasts, and a model that agrees with the budget has a bias of exactly 1 (a fast machine's prompt is the same as before). A server's refusal of a prompt teaches the ratio only, as before. A gap of 15% or more
   is logged (three times per model): `The local AI: the server counted 5262 tokens for a prompt this computer counted as 3270 (by the server's tokenizer, 1.61 times); later prompts are
   counted 1.61 times higher`, and a fit made with a bias says `(counts corrected by 1.61)`. A report that shows this line says what the missing part was.
 - **One estimator.** The compact character text (`bridge/compact-persona.mjs`) aims at 1,900 tokens counted with the model's ratio (`COMPACT.targetTokens`, the meter's ratio, quantised to 0.2 and

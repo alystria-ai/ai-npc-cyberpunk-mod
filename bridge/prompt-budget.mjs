@@ -124,9 +124,9 @@ export class TokenMeter {
   /**
    * `promptTokens` is the server's count for `messages` (usage.prompt_tokens, or n_prompt_tokens of a refusal). `raw` and `exact`: what the budget counted for them
    * before the bias, and whether that was the tokenizer's own count; with them the gap between the budget and the server is learned too.
-   * Returns whether the ratio learned something (`lastGap` is the gap of this observation, or null).
+   * `gap: false` (a refusal: the count says the prompt did not fit, not how far the budget was off) teaches the ratio only. Returns whether the ratio learned something (`lastGap` is the gap of this observation, or null).
    */
-  observe(messages, promptTokens, {raw, exact = false} = {}) {
+  observe(messages, promptTokens, {raw, exact = false, gap = true} = {}) {
     this.lastGap = null;
     const real = Number(promptTokens);
     const tokens = real - templateTokens(messages.length);
@@ -146,7 +146,7 @@ export class TokenMeter {
       learned = true;
     }
     const counted = exact ? Number(raw) : estimateTokens(messages, this.charsPerToken);
-    if (Number.isFinite(counted) && counted >= 200) {
+    if (gap && Number.isFinite(counted) && counted >= 200) {
       this.lastGap = real / counted;
       this.#gaps.push(this.lastGap);
       if (this.#gaps.length > BUDGET.biasKeep) this.#gaps.shift();
@@ -544,7 +544,7 @@ export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, 
         }
         // The server's count of the refused prompt replaces the estimate: learn the ratio and cut by what the estimate missed.
         const counted = Number(refused.promptTokens) > 0;
-        const learned = counted ? base.meter?.observe(fit.messages, refused.promptTokens, {raw: fit.raw, exact: fit.exact}) : null;
+        const learned = counted ? base.meter?.observe(fit.messages, refused.promptTokens, {gap: false}) : null;
         // A ratio the meter learned corrects the next estimate by itself; only a count it could not learn from is taken off the budget.
         const missed = learned || !counted ? 0 : Math.max(0, Number(refused.promptTokens) - fit.tokens);
         // The context the server says it has; one that does not say (LM Studio's loaded context can be smaller than what it reported) is stepped down by half.
