@@ -791,7 +791,7 @@ test('a consumer error or a cancelled reply is not a fallback to Pocket', async 
   } finally { await server.close(); }
 });
 
-test('multilingual conversations keep the Voxtral voice (it speaks the language of the text) and still skip Pocket, so a Pocket choice shows text (never the Convai voice)', async () => {
+test('the Voxtral voice speaks the language of the text, and a Pocket choice stays on Pocket (an old multilingualConversations is not read)', async () => {
   const server = await serve((request, response) => { response.end(); });
   try {
     const h = selection(server);
@@ -799,7 +799,7 @@ test('multilingual conversations keep the Voxtral voice (it speaks the language 
     assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.cloud, 'voxtral');
     assert.equal(h.cloud.speaks('es'), true); assert.equal(h.cloud.speaks('cs'), false, 'Czech is not one of the languages Mistral names for Voxtral TTS 3');
     h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
-    assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.cloudActive, false); assert.equal(h.voice.convaiVoiceAllowed, false);
+    assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, false);
     await h.voice.close();
   } finally { await server.close(); }
 });

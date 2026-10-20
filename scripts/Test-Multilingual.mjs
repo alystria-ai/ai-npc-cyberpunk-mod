@@ -1,4 +1,4 @@
-// End-to-end check of Multilingual conversations without the game, through the bridge's own modules.
+// End-to-end check of the multilingual twins (a Convai turn in another language) without the game, through the bridge's own modules.
 //
 //   node scripts/Test-Multilingual.mjs <out-folder> [--render]
 //
@@ -46,13 +46,13 @@ const registry = new RelationshipRouting({ordinaryIds: ids, multilingual: twins}
 const boundary = {worldToken: 'multilingual-check', generation: 1};
 function route(multilingual, mode) {
   const routes = new RelationshipRouting({ordinaryIds: ids, multilingual: twins});
-  routes.update({multilingualConversations: multilingual, relationshipModes: {'judy-alvarez': mode}}, undefined, {boundary});
-  return routes.select('judy-alvarez', boundary);
+  routes.update({relationshipModes: {'judy-alvarez': mode}}, undefined, {boundary});
+  return routes.select('judy-alvarez', boundary, {multilingual});
 }
 const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
 speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
 function context(selection, text, multilingual) {
-  const setting = new MultilingualConversations(); setting.update({multilingualConversations: multilingual});
+  const setting = new MultilingualConversations();
   return ['Current situation: V is standing with Judy in her apartment in Kabuki, Night City. It is evening.',
     relationshipContext(selection, 'private'), speech.contextFor({engine: 'omni', random: () => 0}),
     emotions.contextFor({engine: 'omni'}), setting.contextFor(text)].filter(Boolean).join('\n\n');
@@ -62,7 +62,7 @@ const check = (ok, what) => { if (!ok) failures.push(what); return ok ? 'pass' :
 
 // ---- Routing (local) ----
 // One profile per character: the relationship style (Off ordinary, On romantic) never changes the provider key or ID; only the
-// multilingual setting picks between the profile and its twin.
+// turn's language (select's multilingual option, bridge/multilingual.mjs wantsTwin) picks between the profile and its twin.
 for (const multilingual of [true, false]) {
   const ordinary = route(multilingual, 'off'), romantic = route(multilingual, 'on');
   const expected = multilingual && twins['judy-alvarez'] ? 'judy-alvarez-multilingual' : 'judy-alvarez';

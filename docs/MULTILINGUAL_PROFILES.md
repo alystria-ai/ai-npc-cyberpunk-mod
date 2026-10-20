@@ -6,8 +6,8 @@ with an ID in `runtime/characters.json`, and the 44 generic NPC archetypes of
 same account: 124 twins (80 named, 44 archetype). Each character has one profile and one
 twin. (Until 2026-10-09 the five romantic profiles of Judy, Panam, River, Kerry and
 Meredith had twins too, 128 in all; see "Retired romantic profiles" below.)
-The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
-conversations is on (see "Multilingual conversations" below).
+The twins exist and are verified; the mod uses them automatically, for a message that is clearly not English, on the Convai
+route (see "Automatic language" below). There is no setting for it (the Multilingual conversations setting was removed on 2026-10-21).
 Lucy Kushinada and Rita Wheeler (`lucy-kushinada`, `rita-wheeler`, the Night City Allies followers, added 2026-10-18) have a profile and a twin like the rest (156 twins in all: 82 named, 74 archetype); their twins' language boxes were unticked through the signed-in dashboard on 2026-10-18 (readback unticked) and `languageBoxOff: true` is recorded for both in `runtime/multilingual-profiles.json` and the release data (`docs/NCA_FOLLOWERS_PLAN.md`, section 6).
 Alt Cunningham (`alt-cunningham`, added 2026-10-10) has a profile and a twin like the rest. Her twin's language box is not yet recorded
 as unticked (`languageBoxOff` is false in `runtime/multilingual-profiles.json`): until that web-session step is done the
@@ -50,13 +50,13 @@ ignores any `<key>-romantic` row left in `runtime/multilingual-profiles.json`, a
 setting (Auto / On / Off) only decides whether a romance block is added to the turn's dynamic context.
 Deleting the retired Convai characters is a separate manual step, see docs/ROMANCE_DYNAMIC_CONTEXT.md.
 
-## Text providers (Mistral, Local AI, Custom): the player's language, no twins
+## Text providers (Mistral, Local AI, Custom): the player's language, no twins (the same detector serves every route)
 
 Added 2026-10-20 after a Local AI player with the European microphone pack and OmniVoice reported that characters always answered in English.
 The cause: on every text provider the bridge forced Multilingual conversations off (the twins are Convai characters), and with it the
 reply-language block, so an English persona answered in English whatever the player wrote.
 
-Now there is no setting and no twin: while a text provider answers (`mistral.active`), `MultilingualConversations.textProvider` is on and
+Now there is no setting and no twin: while a text provider answers, the reply-language block is built for every turn (since 2026-10-21 on every route, not only text providers) and
 - the dynamic context ends with the same `languageContext` block as the twins get ("answer in the language of the player's latest message,
   which is French ..."), but only when it changes something (`textProviderLanguageContext`): nothing for an English conversation (the context is
   byte-identical to before, no extra tokens), the player's language when the message is in another language, English again when the player
@@ -71,7 +71,7 @@ Now there is no setting and no twin: while a text provider answers (`mistral.act
   them. OmniVoice speaks them all, and Voxtral most of them."). No voice model is loaded for it. An English conversation keeps the chosen voice untouched.
   A text provider has no Convai cloud voice to fall back on, so the plan never hands such a turn to `convai`.
 
-The Convai Multilingual setting is unchanged (twins, the Convai free tier only).
+The Convai route uses the same detection and the same context block, and adds the twins (next section).
 
 ## Archetype twins (npc-*)
 
@@ -369,12 +369,31 @@ character, so the comparison ignores keys ending in `min_credit_cost_e8`; they a
 - Memory is per profile: Convai long-term memory is scoped by character ID plus
   end-user ID, so each twin keeps its own memory, as if it were another character.
 
-## Multilingual conversations (the mod setting)
+## Automatic language (since 2026-10-21; there is no setting)
 
-Settings > Conversations > **Multilingual conversations**, off by default (`multilingualConversations` in
-`runtime/settings.json`). Code: `bridge/multilingual.mjs` (twin map, setting, per-turn voice),
-`bridge/reply-language.mjs` (language detection), `bridge/relationship-routing.mjs` (twin selection),
-`bridge/voice-selection.mjs` (no Pocket fallback while on), `mod/manager.lua` / `mod/manager-ui.lua` (setting; a change is saved a moment after it is made).
+The Multilingual conversations setting (`multilingualConversations`, Settings > Conversations, off by default) is gone. An old saved value is a
+retired setting: dropped at load (`RETIRED_SETTINGS` in `mod/manager.lua`) and ignored by an Apply and by the bridge. Code:
+`bridge/reply-language.mjs` (language detection), `bridge/multilingual.mjs` (the holder of the conversation's language, `wantsTwin`, the per-turn
+voice plan), `bridge/relationship-routing.mjs` (`select(profile, boundary, {multilingual})`), `bridge/player-knowledge.mjs` (passes the turn's text
+when it picks the route), `bridge/convai-bridge.mjs` (`twinForTurn`).
+
+### Detection (`bridge/reply-language.mjs`)
+
+No model, no network, no per-turn load. Script first (kana, Hangul, Han, Greek, Arabic, Hebrew, Devanagari, Thai name their language; Cyrillic is
+Russian or Ukrainian). Latin text is scored against word lists built once when the module loads (`bridge/language-lexicon.mjs`: 16 languages, about
+300 to 700 function words, everyday verbs, question words and greetings each; `bridge/language-english-vocab.mjs`: English words from the mod's own
+docs and profiles at half weight; `bridge/language-ui-vocab.mjs`: the interface words of the 11 shipped translations at half weight), plus marked letters
+(ñ, ß, ł, ř, ő, ğ, ă, ø, Vietnamese tone marks) and Spanish's ¿ and ¡. A short line the lists cannot decide ("Siamo quasi arrivati?") goes to a character
+trigram model trained on the same lists, which chooses among the languages the lists lean towards and must clear English by a margin; English is called only when
+nothing foreign was heard. Night City names, street slang and the Spanish and Japanese nicknames the characters use are neutral (no language), so
+"preem gig choom" and "hey hermano what's up" stay English, and "¿Qué pasa, choom?" is Spanish. Short capitals ("CET", "LOL") are ignored. A call costs
+about 20 to 60 microseconds for a chat line and a quarter of a millisecond for a 1,200 character reply; loading the lists takes about 100 ms once.
+Languages: English, Spanish, Portuguese, French, German, Italian, Dutch, Polish, Czech, Hungarian, Turkish, Swedish, Romanian, Catalan, Norwegian, Vietnamese
+(Latin); Russian, Ukrainian, Japanese, Chinese, Korean, Greek, Arabic, Hebrew, Hindi, Thai (by script). That covers every language Voxtral TTS 3 lists and
+every language the mod's interface ships in (`bridge/reply-language.test.mjs` checks both).
+Measurement: `node scripts/Eval-LanguageDetection.mjs [--set=dev|heldout|blind] [--errors]` prints precision and recall per language on the labelled short
+lines (`bridge/reply-language.cases.mjs`, `.heldout.json`, `.blind.json`); `node scripts/Eval-LanguageCorpus.mjs [--parity=even]` runs it on the mod's own
+translated interface strings and on windows of English documentation (the English false-positive check).
 
 ### Routing
 
@@ -384,59 +403,51 @@ Settings > Conversations > **Multilingual conversations**, off by default (`mult
   original and is logged as "Multilingual profiles not used". No map is an English-only installation.
 - Each twin becomes provider key `<providerKey>-multilingual` (`judy-alvarez-multilingual`)
   in the original's family (`judy-alvarez`).
-- On, the twin of THE character's profile is used; the relationship style (Auto / Romantic / Ordinary, the same save
-  facts) no longer picks between two profiles, it only decides the romance block of the turn's context. A profile
-  without a usable twin keeps its original.
-- The setting commits at the same idle boundary as the relationship modes; every character with a twin is
-  marked changed once, so its warm connections are replaced with the new character ID.
+- **Per turn, from the message** (`wantsTwin`, `twinForTurn`): a message clearly in another language goes to the twin of THE character's profile; a message
+  clearly in English (three words or more) goes to the ordinary character; anything unclear ("ok", one word, a recording with no text yet, a reaction) stays where
+  the conversation is (the twin while it was last in another language, a microphone hint counting when nothing was said yet). A reaction never starts a twin
+  conversation. The relationship style (Auto / Romantic / Ordinary) does not pick the profile, it only decides the romance block of the turn's context. A profile
+  without a usable twin keeps its original. Twins are used only on the free shared Convai plan: a player's own key (one session, no twins) and any text
+  provider answer with the ordinary character.
+- Nothing is committed or retired when the language changes: `PlayerKnowledge.prepare` receives the turn's text, asks `select(profile, boundary,
+  {multilingual})` and freezes the route (provider key, character ID, session scope) for that turn. Warm connections have no message and stay on the ordinary
+  character, so a language change never re-warms every nearby character on its twin; only the character being talked to opens a twin session.
+  Guards on either ID of a character are current (`guardSelected`).
+- **Cost of a switch.** The twin is another Convai character: its first turn opens a new realtime session (a connection and a session
+  start, nothing measured live yet for the twin path) and, in the shipped backend mode, no memory checks are made from the player's machine. Within a
+  French conversation every turn after the first goes to the twin and its open session. Switching back to English returns to the original's session.
+  Because the choice is made per message, a bilingual player can cost one new session per language change; the rules above (three English words to
+  switch back, unclear lines stay) keep that to real changes.
+- **Memory.** A twin has its own Convai memory and its own session history, so what the player said in English is not known to the twin (and the other way
+  round); nothing is copied. The mod's own context (world, relationship, phone recap, quests) is rebuilt for every turn and is the same for both, so
+  the character keeps its knowledge of the world and the relationship; only Convai's long-term memory of past conversations and the in-session history are
+  split by language. The bridge-side text routes (Mistral, Local AI, Custom) have one memory and are not affected.
 
 ### Memory and Forget
 
 - A twin is its own character for Convai memory (character ID + player ID), so its memories are separate from the
-  original's, and switching the setting starts on the other profile's memories (nothing is copied; there is no
-  memory-add API).
+  original's (nothing is copied; there is no memory-add API).
 - The twin keys are in the family map (`providerFamilies`) used by player memory, the Forget command and chat
   history resets, so Forget for a character clears the profile and its twin, and Forget all
   clears every twin the player talked to. The Memory screen shows the canonical character only.
 - `PlayerMemoryApi` checks each twin's own marker (`markerKeys`: `[CyberpunkConvai profile v2:<key>:multilingual]`);
   an original's marker on a twin ID, or the reverse, is refused (`NOT_MOD_OWNED`).
 
-### Voices while it is on (staged Apply, `mod/manager.lua` `resolveMultilingualVoice`)
+### Voices
 
-Pocket TTS speaks only English, so turning the setting on also switches Companion voices in the same Apply, with a
-one-time notice:
+No voice setting is moved, refused or switched any more (the staged-Apply rules of the old setting are gone). The voice of each turn is planned from the
+message and checked against the finished reply (`planTurnVoice`, `replyVoice`; the bridge passes `textProvider: true` on every route):
 
-| Situation at Apply | Result |
-| --- | --- |
-| Turned on, Omni pack installed, voice Pocket or Convai | OmniVoice · Balanced (16 steps, short reference: the lightest Omni) |
-| Turned on, voice already an OmniVoice tier | kept |
-| Turned on together with Convai · Cloud voice chosen in the same Apply (no tag setting on) | kept |
-| Turned on, no Omni pack | Convai · Cloud voice; Natural speech turned off (Multilingual wins: the cloud voice would read its tags aloud; Expressive emotions has no setting since 2026-10-20 and is simply not asked for with that voice) |
-| On, Pocket chosen | refused: "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it." |
-| On or turned on, Voxtral chosen (2026-10-21) | kept (no refusal, no move), pack or not, Natural speech included (only pauses, no tag is read aloud); a reply in a language Voxtral does not list goes to the Convai twin's voice (`voice-language-unsupported`) |
-| On, no pack, Natural speech turned on | refused, with the reason |
-| On, pack installed, Natural speech turned on beside the saved cloud voice | voice moves to OmniVoice · Balanced (never to Pocket) |
-| On, the cloud voice chosen (Natural speech on, or turned on in the same Apply) | the cloud voice is kept and Natural speech is turned off, with one notice ("The Convai cloud voice cannot use Natural speech, so it was turned off."; the rule holds with Convai as the provider, which is where Multilingual works, 2026-10-20) |
-| Turned off | the voice stays as it is |
-
-Refusing Pocket was chosen over turning Multilingual off: a voice change that silently drops another feature would be
-surprising, while the refusal keeps the draft pending and says exactly what to do. With the pack, both settings
-work together. A saved file that pairs Multilingual with Pocket (hand-edited) is read as the cloud voice, and a saved
-cloud voice with Natural speech on, beside a Convai provider, has Natural speech turned off (with or without Multilingual: the voice is always kept).
-
-### Voice per turn (the safety net)
-
-With the voice always OmniVoice or the cloud voice, the per-turn plan (`planTurnVoice`, `replyVoice`) mostly passes
-the chosen voice through. It still guards the edge cases:
-
-- A turn the cloud voice speaks never gets the Natural speech or Expressive emotions (emotion tag) instructions.
-- OmniVoice is told each reply's language (ISO 639-1); English requests are unchanged.
-- While the setting is on, an OmniVoice choice that cannot run shows the replies as text, never Pocket and never a cloud
-  voice (`VoiceSelection.resolve`, route `text`; changed 2026-10-21, before it fell to the cloud voice). If a turn still ends up on Pocket, a
-  turn expected in another language and a reply in another language are shown as text rather than read by Pocket or handed to the
-  Convai voice (`planTurnVoice`). Only a chosen Voxtral voice that does not speak the language falls to the Convai twin's voice (cloud to cloud).
-- The expected language is the player's message (script, function words, greetings), else the language of the last
-  exchange (reactions, the microphone placeholder, warm connections), else English.
+- English: the chosen voice, untouched (the characters' Spanish slang is never muted).
+- OmniVoice speaks any language and is told the reply's language. The Voxtral voice speaks the languages Voxtral TTS 3 lists (22), the language of the text.
+- Pocket TTS (English only) and Voxtral for a language it does not list keep the plan; a reply in another language is shown as text, with one
+  `voice-language` notice per game session. The Convai cloud voice is only the voice when the player chose it (the twins have Azure multilingual voices).
+  A local voice never hands a reply to a cloud voice.
+- An OmniVoice choice that cannot run shows the replies as text, never Pocket in its place and never a cloud voice (`VoiceSelection.resolve`, route `text`;
+  changed 2026-10-21, before it fell to the cloud voice). Only a chosen Voxtral voice that cannot be asked falls to the Convai voice (cloud to cloud).
+- A turn the cloud voice speaks gets no Natural speech or Expressive emotions (emotion tag) instructions.
+- The expected language is the player's message (detector above), else the language of the last exchange (reactions, the microphone placeholder, warm
+  connections), else English. A reaction's reply does not set the conversation's language.
 - Checked on 2026-10-07 with Judy's reference: en, es, ja, de, zh, ru all render with the Omni worker (16 steps).
 
 ### Known limits

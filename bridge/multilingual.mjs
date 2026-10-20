@@ -1,17 +1,20 @@
-// "Multilingual conversations" (Settings > Conversations, off by default).
+// Replies follow the player's language, automatically (the Multilingual conversations setting is gone since 2026-10-21).
 //
-// On: every conversation goes to the character's multilingual twin, a full clone of its Convai profile that answers
-// in whatever language the player uses (docs/MULTILINGUAL_PROFILES.md). The relationship block (bridge/romance-context.mjs)
-// is added to the twin's turns exactly as to the original's (bridge/relationship-routing.mjs). A twin is its own
-// character for memory: its memories are separate, and Forget clears both (the twin shares the original's family).
+// Every turn's text is checked by bridge/reply-language.mjs, once, with no model and no I/O. What that decides:
+//   - the reply-language block of the turn's context (textProviderLanguageContext: nothing in an English conversation, so the context is
+//     byte-identical to before; the player's language when a message is in another language; English again on a switch back);
+//   - the voice of the turn (planTurnVoice, replyVoice): Pocket TTS speaks English only, so a reply in another language is shown as text
+//     rather than handed to a cloud voice; OmniVoice and the Voxtral voice speak the languages they list;
+//   - on the Convai route, which character answers (wantsTwin): a message that is clearly not English goes to the character's multilingual
+//     twin, a full clone of its Convai profile that answers in the player's language (docs/MULTILINGUAL_PROFILES.md); English goes back to
+//     the ordinary character. A twin is its own character for Convai memory: its memories are separate, and Forget clears both (the twin
+//     shares the original's family). The relationship block (bridge/romance-context.mjs) is added to a twin's turns exactly as to the original's.
+// Text providers (Mistral, Local AI, Custom) and add-on speakers have no twins: the context block and the voice plan do the work.
 //
-// Voices: Pocket TTS speaks only English, so turning the setting on moves Companion voices to OmniVoice (the optional
-// pack), Voxtral (Mistral cloud, which speaks the language the text is written in: bridge/voxtral-languages.mjs) or the Convai cloud voice (mod/manager.lua); the twins have Azure multilingual cloud voices. The voice of each
-// turn is still planned here as a safety net: a turn the cloud voice speaks gets no Natural speech or Expressive
-// emotions instructions (the cloud voice would read their tags aloud), OmniVoice is told the reply's language, and a
-// reply in another language never reaches Pocket. The Convai voice is only ever the player's own choice (or where a chosen cloud voice
-// falls to it, cloud to cloud): a LOCAL voice that cannot speak a turn (it failed, or it is Pocket and the language is not English) never hands
-// the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
+// Voices: Pocket TTS speaks English only. A turn the cloud voice speaks gets no Natural speech or Expressive emotions instructions (the cloud
+// voice would read their tags aloud), OmniVoice is told the reply's language. The Convai voice is only ever the player's own choice (or where a
+// chosen cloud voice falls to it, cloud to cloud): a LOCAL voice that cannot speak a turn (it failed, or it is Pocket and the language is not
+// English) never hands the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
 // Pure functions plus one small state holder: no I/O.
 import {detectLanguage} from './reply-language.mjs';
 
@@ -51,49 +54,48 @@ export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
   return {twins, skipped};
 }
 
-/** The setting, plus the language the conversation was last in (a fallback for turns without player text). */
+/** The language the conversation was last in: a fallback for turns without text of their own (a recording, a reaction, one word). */
 export class MultilingualConversations {
-  // `textProvider`: a text provider (Mistral, Local AI, Custom) answers the turns. The twins stay off there (`enabled` is false), but the
-  // reply language, the language note and the voice plan still follow the player's language (languageContext, planTurnVoice).
-  constructor() { this.enabled = false; this.textProvider = false; this.lastLanguage = null; }
-  /** True while turns are language aware: the Convai twins are on, or a text provider answers. */
-  get aware() { return this.enabled || this.textProvider; }
-  update(settings) {
-    if (!settings || typeof settings !== 'object') return false;
-    const next = settings.multilingualConversations === true, changed = next !== this.enabled;
-    this.enabled = next;
-    if (!this.aware) this.lastLanguage = null;
-    return changed;
-  }
-  /** The provider answering turns is a text provider (or not). Returns true when that changed. */
-  setTextProvider(active) {
-    const next = active === true, changed = next !== this.textProvider;
-    this.textProvider = next;
-    if (!this.aware) this.lastLanguage = null;
-    return changed;
-  }
+  constructor() { this.lastLanguage = null; }
   /** Remember a confidently detected language of player text or a reply. Returns true when it changed. */
   observe(text) {
-    if (!this.aware) return false;
     const {language} = detectLanguage(text);
     if (!language || language === this.lastLanguage) return false;
     this.lastLanguage = language;
     return true;
   }
   /**
-   * The reply-language block for a turn (languageContext). `hint` is a language the player is known to use (the microphone's last
+   * The reply-language block for a turn (textProviderLanguageContext). `hint` is a language the player is known to use (the microphone's last
    * recognised language, or the one remembered from an earlier launch): a turn with no text of its own, such as a recording, follows it
-   * when the conversation has no language yet. Only used on a text provider.
+   * when the conversation has no language yet.
    */
   contextFor(text, hint = null) {
-    if (this.enabled) return languageContext({enabled: true, text, lastLanguage: this.lastLanguage});
-    return this.textProvider ? textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint}) : '';
+    return textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint});
   }
   /** The language a turn is expected in: its own text when that is clear, else the last exchange's, else English. */
   expected(text) {
     const {language} = detectLanguage(text);
     return language ?? this.lastLanguage ?? 'en';
   }
+  /** Does the Convai route send this turn to the multilingual twin? (wantsTwin) */
+  wantsTwin({text, reaction = false, hint = null} = {}) { return wantsTwin({text, reaction, lastLanguage: this.lastLanguage ?? hint}); }
+}
+
+/**
+ * Which Convai character answers a turn: the multilingual twin (true) or the ordinary character (false). A switch is a different Convai
+ * session (a new connection) and a different long-term memory, so it happens only on clear evidence:
+ *   - a message clearly in another language goes to the twin;
+ *   - a message clearly in English (three words or more) goes to the ordinary character;
+ *   - everything else (a recording with no text yet, a reaction, one word, "ok") stays where the conversation is: the twin while it was last in
+ *     another language, the ordinary character otherwise. A reaction never starts a twin conversation of its own.
+ */
+export function wantsTwin({text, reaction = false, lastLanguage = null} = {}) {
+  const holds = !!lastLanguage && lastLanguage !== 'en';
+  if (reaction || typeof text !== 'string' || !text) return holds;
+  const {language, words} = detectLanguage(text);
+  if (language && language !== 'en') return true;
+  if (language === 'en' && words >= 3) return false;
+  return holds;
 }
 
 /**
@@ -174,19 +176,19 @@ export function replyVoice({plan, text, local = {}} = {}) {
 
 // English names of the languages the detector reports, for the reply-language instruction.
 export const LANGUAGE_NAMES = Object.freeze({en: 'English', es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German',
-  it: 'Italian', nl: 'Dutch', pl: 'Polish', cs: 'Czech', hu: 'Hungarian', tr: 'Turkish', sv: 'Swedish', ja: 'Japanese',
+  it: 'Italian', nl: 'Dutch', pl: 'Polish', cs: 'Czech', hu: 'Hungarian', tr: 'Turkish', sv: 'Swedish', ro: 'Romanian', ca: 'Catalan',
+  no: 'Norwegian', vi: 'Vietnamese', ja: 'Japanese',
   zh: 'Chinese', ko: 'Korean', ru: 'Russian', uk: 'Ukrainian', el: 'Greek', ar: 'Arabic', he: 'Hebrew', hi: 'Hindi', th: 'Thai'});
 const REFERENCE_NOTE = 'Everything else in this context is written in English only as reference notes; it never sets your reply language.';
 
 /**
- * The reply-language block of a turn's dynamic context, last in the context (Multilingual conversations on only).
+ * The reply-language block of a turn's dynamic context, last in the context.
  * The twins answer in the player's language on their own, but the mod's dynamic context (relationship, knowledge,
  * Natural speech and Expressive emotions notes) is English, and with it a short message such as "hola, cómo estás" was
  * answered in English in game (2026-10-08). Naming the language of the player's message fixes that. A turn without
  * player text (a reaction, the microphone placeholder) follows the language the conversation was last in.
  */
-export function languageContext({enabled = false, text, lastLanguage = null} = {}) {
-  if (!enabled) return '';
+export function languageContext({text, lastLanguage = null} = {}) {
   const language = detectLanguage(text).language;
   if (language) {
     const name = LANGUAGE_NAMES[language] ?? 'that language';
@@ -209,10 +211,10 @@ export function textProviderLanguageContext({text, lastLanguage = null} = {}) {
   const language = detectLanguage(text).language;
   if (language) {
     if (language === 'en' && (!lastLanguage || lastLanguage === 'en')) return '';
-    return languageContext({enabled: true, text, lastLanguage});
+    return languageContext({text, lastLanguage});
   }
   if (!lastLanguage || lastLanguage === 'en') return '';
-  return languageContext({enabled: true, text, lastLanguage});
+  return languageContext({text, lastLanguage});
 }
 
 /**

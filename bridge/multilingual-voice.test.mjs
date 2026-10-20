@@ -4,8 +4,8 @@ import {resolve} from 'node:path';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
 
-// Multilingual conversations: Settings move the voice to OmniVoice or the cloud voice; the voice selection keeps
-// a fallback from ever landing on Pocket (English only) while the setting is on. Fake workers; nothing spawns.
+// Replies in another language (no setting since 2026-10-21): OmniVoice gets the reply's language; the voice selection keeps its usual fallback order
+// and Pocket (English only) shows a reply it cannot speak as text. Fake workers; nothing spawns.
 const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pocket-tts', voices,
   runtime: Object.fromEntries(['sourceDirectory', 'exportDirectory', 'referenceDirectory', 'workDirectory'].map(key => [key, resolve('fixture', key)])),
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
@@ -35,42 +35,41 @@ function fixture({fail = []} = {}) {
 }
 const tick = () => new Promise(done => setImmediate(done));
 
-test('an OmniVoice choice that cannot run shows text, never Pocket and never the cloud voice, with Multilingual on or off', async () => {
-  const off = fixture({fail: ['omni']});
-  off.voice.update({voiceProvider: 'omni'}, null, false); await off.voice.start().catch(() => {}); await tick();
-  off.voice.update({voiceProvider: 'omni'}, null, false);
-  assert.equal(off.voice.provider, 'text', 'off: text; Pocket is not loaded in place of OmniVoice');
-  await off.voice.close();
-  const on = fixture({fail: ['omni']});
-  on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
-  await on.voice.start().catch(() => {}); await tick();
-  on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
-  assert.equal(on.voice.provider, 'text'); assert.deepEqual(on.voice.fallback, {from: 'omni', to: 'text', temporary: true}); // Omni is retried in the background
-  assert.equal(on.workers.filter(worker => worker.backend === 'pocket').length, 0);
-  await on.voice.close();
+test('an OmniVoice choice that cannot run shows text: never Pocket in its place and never the cloud voice (an old multilingualConversations changes nothing)', async () => {
+  const h = fixture({fail: ['omni']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.voice.start().catch(() => {}); await tick();
+  h.voice.update({voiceProvider: 'omni'}, null, false);
+  assert.equal(h.voice.provider, 'text', 'text; Pocket is not loaded in place of OmniVoice');
+  await h.voice.close();
+  // An old settings file that still says multilingualConversations: true changes nothing here: the key is no longer read.
+  const old = fixture({fail: ['omni']});
+  old.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
+  await old.voice.start().catch(() => {}); await tick();
+  old.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
+  assert.equal(old.voice.provider, 'text'); assert.deepEqual(old.voice.fallback, {from: 'omni', to: 'text', temporary: true}); // Omni is retried in the background
+  assert.equal(old.workers.filter(worker => worker.backend === 'pocket').length, 0);
+  assert.equal(old.voice.multilingual, undefined);
+  await old.voice.close();
 });
 
-test('a hand-edited Pocket choice with Multilingual on ends on text (Pocket speaks English only; no cloud voice takes over); off again restores Pocket', async () => {
+test('a Pocket choice stays on Pocket whatever an old settings file says; the Pocket worker is still wanted', async () => {
   const h = fixture();
   h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
-  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.convaiVoiceAllowed, false);
-  assert.equal(h.voice.usesProfile('johnny-silverhand'), false);
-  // A busy turn keeps its route until the idle boundary.
-  h.voice.update({voiceProvider: 'pocket', multilingualConversations: false}, null, true);
-  assert.equal(h.voice.provider, 'text');
-  h.voice.update({voiceProvider: 'pocket', multilingualConversations: false}, null, false);
   assert.equal(h.voice.provider, 'pocket');
+  assert.equal(h.voice.usesProfile('johnny-silverhand'), true);
+  assert.equal(h.voice.pocketWanted, true);
+  assert.equal(Object.hasOwn(h.voice.state, 'multilingual'), false);
   await h.voice.close();
 });
 
 test('OmniVoice chosen: a reply in another language reaches the worker with its language', async () => {
   const h = fixture();
-  h.voice.update({voiceProvider: 'omni', omniSteps: 16, multilingualConversations: true}, null, false); await h.voice.start();
+  h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.voice.start();
   assert.deepEqual(h.voice.languageOmni('johnny-silverhand'), {usable: true, ready: true});
   await h.voice.synthesize('johnny-silverhand', 'こんばんは、V。', {language: 'ja'});
   const omni = h.workers.find(worker => worker.backend === 'omni');
   assert.deepEqual(omni.calls, [{profile: 'johnny-silverhand', text: 'こんばんは、V。', language: 'ja', steps: 16}]);
-  h.voice.update({voiceProvider: 'convai', multilingualConversations: true}, null, false);
+  h.voice.update({voiceProvider: 'convai'}, null, false);
   assert.deepEqual(h.voice.languageOmni('johnny-silverhand'), {usable: false, ready: false});
   await h.voice.close();
 });

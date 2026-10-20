@@ -149,10 +149,6 @@ export class VoiceSelection {
     // failedBackends: local workers that could not start or died (no CUDA, load
     // error, crash) stay out of routing until the player chooses them again.
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
-    // Multilingual conversations: Pocket TTS speaks only English, so while it is on the fallback skips Pocket (an Omni
-    // choice that cannot run lands on text). Settings never pair the two; a hand-edited pairing also ends on text. The Voxtral cloud voice runs on Pocket's route but speaks the language of the text (Voxtral TTS 3: 22 languages), so it keeps
-    // the route while it is chosen; a reply in a language it does not list goes to the Convai voice (cloud to cloud, bridge/multilingual.mjs planTurnVoice).
-    this.multilingual=false;
   }
   // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the replies are written, never given to a cloud voice) and
   // the Settings menu says what is missing. A pack installed while the game runs is noticed within 30 s.
@@ -292,7 +288,7 @@ export class VoiceSelection {
     if(provider==='convai')return 'convai';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
-      .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'&&!this.cloudWanted));
+      .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend));
     return found||(this.cloudWanted?'convai':TEXT_ROUTE);
   }
   // May the Convai voice speak a reply of this installation? The player chose it, or chose a cloud voice (which falls to it when it cannot be asked).
@@ -401,7 +397,6 @@ export class VoiceSelection {
       this.requestedProvider=chosen;
     }
     if ([16,32].includes(settings?.omniSteps))this.requestedOmniSteps=settings.omniSteps;
-    if(typeof settings?.multilingualConversations==='boolean')this.multilingual=settings.multilingualConversations;
     const reference=canonicalOmniReference(settings?.omniReference);
     if(reference)this.requestedOmniReference=reference;
     // Prepared voices are always kept (Settings has no switch for it any more): a saved keepPreparedVoices is not read.
@@ -528,7 +523,6 @@ export class VoiceSelection {
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
       keepPreparedVoices:this.keepPrepared,
-      multilingual:this.multilingual,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
         nextInMs:this.candidate?0:Math.max(0,this.omniRetry.nextAt-this.clock())}:null,
@@ -663,9 +657,9 @@ export class VoiceSelection {
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
-  // place. A cloud voice, the Convai voice and Multilingual conversations (Pocket speaks English only) want no Pocket worker.
+  // place. A cloud voice and the Convai voice want no Pocket worker.
   get pocketWanted(){
-    if(this.cloudWanted||this.multilingual)return false;
+    if(this.cloudWanted)return false;
     return this.requestedProvider==='pocket';
   }
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.

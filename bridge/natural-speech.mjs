@@ -17,7 +17,7 @@ export {EMOTION_NAMES};
 export const OMNI_TAGS = Object.freeze(['laughter', 'sigh', 'confirmation-en', 'question-en', 'question-ah', 'question-oh',
   'surprise-ah', 'surprise-oh', 'dissatisfaction-hnn']);
 // Four more OmniVoice tags are interjections of Chinese and Japanese (wa, yo, ei, yi). They are offered, and voiced, only on
-// a turn whose reply language is Chinese or Japanese (Multilingual conversations); on any other turn they are treated like
+// a turn whose reply language is Chinese or Japanese; on any other turn they are treated like
 // an unknown tag: removed from the display text and never voiced.
 export const CJK_TAGS = Object.freeze(['surprise-wa', 'surprise-yo', 'question-ei', 'question-yi']);
 export const CJK_LANGUAGES = Object.freeze(['zh', 'ja']);

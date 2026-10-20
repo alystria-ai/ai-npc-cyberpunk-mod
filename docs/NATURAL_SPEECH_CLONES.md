@@ -500,7 +500,7 @@ is on, and the context path for off is the same code as today.
 
 - **Memory splits.** A clone is its own Convai character, with its own long-term memory and session history, just like
   the Multilingual twins. Switching Natural speech on gives Judy a Judy who remembers nothing of the original's
-  conversations, and switching back returns the old memories. With Multilingual on as well, a character's memory is spread
+  conversations, and switching back returns the old memories. With the twin in use as well, a character's memory is spread
   over up to four characters. Copying memories between them (`/memory/add`) is possible, but it goes against the current
   rule that routing never copies memories, so that is the user's decision. Judy and Johnny have memory on; Panam's
   ordinary profile and the archetypes have it off.
@@ -537,7 +537,7 @@ Round 1:
    while Natural speech is on, for one in-game A/B against the block. No change to routing for anyone else, and the
    original is untouched.
 3. **If the clone wins by ear, do Option C** (84 named and romantic clones, English only). Archetypes and Multilingual
-   keep the current block. Option A only if the user plays with Multilingual and Natural speech on together.
+   keep the current block. Option A only if players talk in other languages with Natural speech on.
 4. **If neither feels different enough,** the issue is the target rate, not the samples. Raise the block's offer rates
    (or allow a sound plus a pause in one reply) rather than build clones; both approaches reach any rate (v1 and (e)
    reached 100%).

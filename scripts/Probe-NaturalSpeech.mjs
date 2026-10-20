@@ -256,7 +256,7 @@ try {
           profile: profileKey, name: profile.name, language: lang ?? undefined})
         : blockKind === 'head' ? headBlock(profileKey, sessionId, input.requestId)
         : prototypeBlock(profileKey, sessionId, input.requestId);
-      const context = [conversationContext(input), isAmbientProfile(profileKey) ? archetypeContext(input) : '', knowledge, block, lang ? languageContext({enabled: true, text}) : '']
+      const context = [conversationContext(input), isAmbientProfile(profileKey) ? archetypeContext(input) : '', knowledge, block, lang ? languageContext({text}) : '']
         .filter(Boolean).join('\n\n');
       const result = await host.reply({key, characterId: ids[profileKey], endUserId, sessionId, scope: 'natural-speech-probe',
         ttsEnabled: false, text, context});

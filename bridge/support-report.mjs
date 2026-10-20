@@ -530,7 +530,6 @@ function companionProviders({settings, voice, routing, party}) {
     omniReference: voice?.omniReference ?? settings?.omniReference ?? null,
     omniPackInstalled: voice?.omniPack?.installed ?? null,
     keepPreparedVoices: voice?.keepPreparedVoices ?? settings?.keepPreparedVoices ?? null,
-    multilingualConversations: settings?.multilingualConversations ?? null,
     companions: rows};
 }
 

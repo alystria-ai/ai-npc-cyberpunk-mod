@@ -1,59 +1,128 @@
-// Which language is a piece of conversation text in? ("Multilingual conversations", bridge/multilingual.mjs.)
+// Which language is a piece of conversation text in? (Used on every turn, bridge/multilingual.mjs.)
 //
-// Cheap and deterministic: no model, no I/O. Two signals, in order:
+// Cheap and deterministic: no model, no I/O, no network. Signals, in order:
 //   1. Script. Letters outside the Latin alphabet name the language directly (kana: Japanese, Hangul: Korean,
-//      Han without kana: Chinese, Cyrillic: Russian, or Ukrainian when its own letters appear, and so on).
-//   2. For Latin text, common function words ("the", "and", "que", "und", ...) plus a few strongly marked letters
-//      (ñ, ß, ł, ř, ő, ğ, ...) and a short list of greetings and thanks, so a one-word "Hola" still counts.
-// English wins every close call: the characters already mix Spanish, Japanese and street slang into English
-// ("Ay, chica, let's go", "choom", "hermano"), and the answer only decides which voice speaks a reply. A text with
-// too little to go on returns null (unknown), and the caller keeps its previous expectation.
+//      Han without kana: Chinese, Greek, Arabic, Hebrew, Devanagari, Thai). Cyrillic is Russian or Ukrainian, told apart by their own
+//      letters, then their word lists.
+//   2. For Latin text, a word lexicon (bridge/language-lexicon.mjs: function words, everyday verbs, question words, greetings for 16
+//      languages) with a few strongly marked letters (ñ, ß, ł, ř, ő, ğ, ă, ø, the Vietnamese tone marks ...) and Spanish's ¿ and ¡.
+//      A word listed for one language counts fully for it, a word shared by several counts a share of one for each. English also has a
+//      vocabulary (bridge/language-english-vocab.mjs) that counts half, so an English line with a word that is also French ("content",
+//      "route") is not taken for French.
+//   3. When the lexicon cannot call a short line ("Siamo quasi arrivati?" has two words it knows and one it does not), a small
+//      character model trained on the same lists: it recognises the spelling of words the lists do not hold. It never calls a language
+//      the lexicon and the letters give no hint of unless the line is clearly unlike English.
+// English wins every close call: the characters mix Spanish, Japanese and street slang into English ("Ay, chica, let's go",
+// "choom", "hermano"), and the answer decides the reply language and the voice. Night City names and slang are neutral (no
+// language). A text with too little to go on returns null (unknown), and the caller keeps the conversation's last language.
+// The lists are built once when this module loads; a call costs tens of microseconds (scripts/Eval-LanguageDetection.mjs prints the
+// time and the precision and recall per language on the labelled lines of bridge/reply-language.cases.mjs).
 // Pure functions: no I/O, so it can be tested without the bridge.
+import {WORDS, NEUTRAL} from './language-lexicon.mjs';
+import {ENGLISH_VOCAB} from './language-english-vocab.mjs';
+import {UI_VOCAB} from './language-ui-vocab.mjs';
 
 // Bracketed voice tags ([laughter]), emotion tags ({joy}), the F7 "[Microphone]" placeholder, URLs and anything
 // that is not a letter or an apostrophe do not count.
 const NOISE = /\[[^\]]*\]|\{[^}]*\}|https?:\/\/\S+/g;
 
+// The Latin range includes Latin Extended Additional (Vietnamese tone marks) and Romanian's comma letters.
+const LATIN = 'a-zA-Z\\u00C0-\\u024F\\u1E00-\\u1EFF';
+const CYRILLIC = '\\u0400-\\u04FF';
 const SCRIPTS = [
   ['kana', /[぀-ヿㇰ-ㇿｦ-ﾟ]/gu],
   ['hangul', /[ᄀ-ᇿ㄰-㆏가-힯]/gu],
-  ['han', /[㐀-䶿一-鿿豈-﫿]/gu],
-  ['cyrillic', /[Ѐ-ӿ]/gu],
+  ['han', /[㐀-䶿一-鿿豈-﫿]/gu],
+  ['cyrillic', new RegExp(`[${CYRILLIC}]`, 'gu')],
   ['greek', /[Ͱ-Ͽ]/gu],
   ['arabic', /[؀-ۿݐ-ݿ]/gu],
   ['hebrew', /[֐-׿]/gu],
   ['devanagari', /[ऀ-ॿ]/gu],
   ['thai', /[฀-๿]/gu],
-  ['latin', /[a-zÀ-ɏ]/giu],
+  ['latin', new RegExp(`[${LATIN}]`, 'gu')],
 ];
+const WORD = new RegExp(`[${LATIN}]+(?:'[${LATIN}]+)?'?`, 'gu');
 
-// Function words, lowercase. Only words that are common in one language and rare in English text are listed for
-// the other languages, so an English sentence with a Spanish nickname still scores as English.
-const WORDS = {
-  en: 'the a an and or but is are was were be been am i you he she it we they me my your our their this that these those what which who why how where when there here have has had do does did not no yes to of in on at for with from about just can will would could should get got let\'s it\'s i\'m don\'t you\'re that\'s okay so if then than some any all like know think',
-  es: 'el la los las un una unos unas y o pero es son era fue estoy estás está estamos están ser soy eres que qué de del en con por para como cómo dónde cuando cuándo por qué porque muy también pues sí no hay mi mis tu tus su sus nos les le lo me te se esto eso esta este ese esa al bien gracias hola sabes quiero puedo tengo tienes vamos ahora aquí allí nada algo todo nunca siempre mucho más ya tú hacer puedes oye vale claro quieren quieres vienes creo dime hasta luego mañana noche tiempo gente cosa cosas mejor entonces sin sobre entre otro otra bueno',
-  pt: 'o a os as um uma e ou mas é são era foi estou está estamos estão ser sou que de do da dos das em no na nos nas com por para como onde quando porque muito também sim não há meu minha seu sua você vocês isso isto esse essa ao bem obrigado obrigada olá tenho tem vamos agora aqui nada algo tudo nunca sempre mais já fazer pode posso quer quero acho diga até amanhã noite tempo gente coisa coisas melhor então sem sobre entre outro outra bom né vai hoje',
-  fr: 'le la les un une des et ou mais est sont était été je tu il elle nous vous ils elles que qui quoi de du en dans avec pour par comme où quand pourquoi parce très aussi oui non pas ne mon ma mes ton ta tes son sa ses ce cette ces au aux bien merci bonjour suis es sommes êtes avoir ai as avons c\'est j\'ai rien quelque toujours jamais vraiment faire peux veux dois ici maintenant ça tout tous soir demain nuit temps gens chose choses mieux alors sans sur entre autre peut salut va',
-  de: 'der die das den dem des ein eine einen einem und oder aber ist sind war waren bin bist sein ich du er sie es wir ihr nicht kein keine ja nein zu von mit für auf aus bei nach wie was wer wo wann warum weil sehr auch noch schon nur mein meine dein deine sich dass hier jetzt danke hallo habe hast haben gut nichts etwas immer heute morgen vielleicht wirklich machen machst kann kannst willst muss dort gibt geht mal doch mehr abend nacht zeit leute sache besser dann ohne über zwischen andere',
-  it: 'il lo la i gli le un uno una e o ma è sono era erano essere sei siamo che di del della dei delle in con per come dove quando perché molto anche sì no non mio mia tuo tua suo sua questo questa quello quella al alla bene grazie ciao ho hai abbiamo cosa niente qualcosa tutto sempre mai più già fare fai puoi posso vuoi voglio penso dimmi fino domani notte stasera tempo gente cose meglio allora senza sopra tra altro altra buono',
-  nl: 'de het een en of maar is zijn was waren ik jij je hij zij wij jullie niet geen ja nee te van met voor op uit bij naar hoe wat wie waar wanneer waarom omdat heel ook nog al mijn jouw dat dit hier nu dank hallo heb hebt hebben goed',
-  pl: 'i w z na nie to jest są był była się że do od po za co jak gdzie kiedy dlaczego bo bardzo też tak mój moja twój twoja jego jej ten ta to tu teraz dziękuję cześć mam masz jestem jesteś',
-  cs: 'a v ve z na ne to je jsou byl byla se že do od po za co jak kde kdy proč protože velmi také ano můj moje tvůj tvoje jeho její ten ta tady teď děkuji ahoj mám máš jsem jsi ale nebo jsme jste není už jen když něco nic všechno tohle tím víš vím nevím můžeme chci musíme dobře díky',
-  hu: 'a az egy és vagy de nem igen is van vannak volt én te ő mi ti ők hogy mit ki hol mikor miért mert nagyon még már csak az ez itt most köszönöm szia vagyok vagy tudom tudod akarsz akarok lehet kell nincs jó rendben köszi mondani talán velem veled neked nekem ezt azt',
-  tr: 've veya ama bir bu şu o ben sen biz siz onlar değil evet hayır için ile gibi ne nasıl nerede neden çünkü çok da de mi mı mu mü benim senin var yok burada şimdi teşekkürler merhaba',
-  sv: 'och eller men är var jag du han hon vi ni de inte ja nej att av med för på från hur vad vem var när varför för mycket också min mitt din ditt det den här nu tack hej',
+// ---- The lexicon and the character model, built once -------------------------------------------------------------------
+// Languages whose writing elides with an apostrophe ("j'ai", "l'amico", "l'ajuda"): the token splits into a head ("j'") and the word.
+const ELIDING = new Set(['fr', 'it', 'ca']);
+const CYRILLIC_LANGUAGES = ['ru', 'uk'];
+const wordsOf = (language, text) => {
+  const out = new Set();
+  for (const part of text.toLowerCase().split(/[\s-]+/)) {
+    if (!part) continue;
+    const pieces = ELIDING.has(language) && part.includes('\'') && !part.endsWith('\'') ? part.split(/(?<=')/) : [part];
+    for (const piece of pieces) {
+      const word = CYRILLIC_LANGUAGES.includes(language) ? piece.replace(/['’ʼ]/g, '') : piece;
+      if ((word.match(/\p{L}/gu) || []).length >= 2 || word.endsWith('\'')) out.add(word);
+    }
+  }
+  return out;
 };
-const LEXICON = new Map();
-for (const [language, words] of Object.entries(WORDS)) {
-  for (const word of words.split(' ')) {
+const TYPES = {};          // language -> Set of word types (the lexicon and the training text)
+const LEXICON = new Map(); // word -> Set of languages
+for (const [language, text] of Object.entries(WORDS)) {
+  TYPES[language] = wordsOf(language, text);
+  for (const word of TYPES[language]) {
+    if (NEUTRAL.has(word)) continue;
     if (!LEXICON.has(word)) LEXICON.set(word, new Set());
     LEXICON.get(word).add(language);
   }
 }
-// Letters that point strongly at one language (each occurrence counts once per word).
+// English vocabulary: counts for English at half weight, and trains its character model. Not a lexicon entry, so it never dilutes the
+// weight of another language's word that happens to be spelled the same.
+const VOCAB = new Set(ENGLISH_VOCAB.split(/\s+/).filter(word => word && !NEUTRAL.has(word)));
+for (const word of VOCAB) TYPES.en.add(word);
+// The interface vocabulary of the languages the mod ships: half weight, shared among the languages that hold the word.
+const VLEX = new Map();
+for (const [language, text] of Object.entries(UI_VOCAB)) {
+  TYPES[language] ??= new Set();
+  for (const word of text.split(/s+/)) {
+    if (!word || NEUTRAL.has(word)) continue;
+    TYPES[language].add(word);
+    if (!VLEX.has(word)) VLEX.set(word, new Set());
+    VLEX.get(word).add(language);
+  }
+}
+const LATIN_LANGUAGES = Object.keys(TYPES).filter(language => !CYRILLIC_LANGUAGES.includes(language));
+const ELISION_HEADS = new Set([...LEXICON.keys()].filter(word => word.endsWith('\'')));
+
+// Interpolated character trigram models (trigram, bigram, unigram) over the word types of each language.
+const MODEL = {};
+for (const language of Object.keys(TYPES)) {
+  const model = MODEL[language] = {n3: new Map(), d3: new Map(), n2: new Map(), d2: new Map(), n1: new Map(), total: 0};
+  const bump = (map, key) => map.set(key, (map.get(key) ?? 0) + 1);
+  for (const word of TYPES[language]) {
+    if (NEUTRAL.has(word)) continue;
+    const padded = '^^' + word + '$';
+    for (let i = 2; i < padded.length; i++) {
+      const a = padded[i - 2], b = padded[i - 1], c = padded[i];
+      bump(model.n3, a + b + c); bump(model.d3, a + b);
+      bump(model.n2, b + c); bump(model.d2, b);
+      bump(model.n1, c); model.total++;
+    }
+  }
+}
+function wordLogLikelihood(model, word) {
+  const padded = '^^' + word + '$';
+  let sum = 0;
+  for (let i = 2; i < padded.length; i++) {
+    const a = padded[i - 2], b = padded[i - 1], c = padded[i];
+    const d3 = model.d3.get(a + b), d2 = model.d2.get(b);
+    const uni = ((model.n1.get(c) ?? 0) + 0.05) / (model.total + 0.05 * 300);
+    const bi = d2 ? (model.n2.get(b + c) ?? 0) / d2 : 0;
+    const tri = d3 ? (model.n3.get(a + b + c) ?? 0) / d3 : 0;
+    const p = d3 ? 0.6 * tri + 0.3 * bi + 0.1 * uni : d2 ? 0.8 * bi + 0.2 * uni : uni;
+    sum += Math.log(p);
+  }
+  return sum;
+}
+
+// Letters that point strongly at one language (each word counts once per language).
 const MARKED = [
-  ['es', /ñ/u], ['de', /ß/u], ['pl', /[łąęśźżń]/u], ['cs', /[řěůťďšč]/u], ['hu', /[őű]/u],
-  ['tr', /[ğşı]/u], ['pt', /[ãõ]/u], ['fr', /[œæ]/u],
+  ['es', /ñ/u], ['de', /ß/u], ['pl', /[łąęśźż]/u], ['cs', /[řěůťďšč]/u], ['hu', /[őű]/u],
+  ['tr', /[ğşı]/u], ['pt', /[ãõ]/u], ['fr', /œ/u], ['ro', /[ășțşţ]/u], ['no', /ø/u],
+  ['vi', /[ơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/u],
 ];
 
 /** Letter counts per script for a text, with tags and URLs removed. */
@@ -64,39 +133,113 @@ export function scriptCounts(text) {
   return {counts, clean};
 }
 
+// "Misty's", "don't", "j'ai", "l'amico": the tokens of a Latin text with their apostrophes handled. Returns {words, englishMarks}.
+const ENGLISH_SUFFIX = /^[^']+'(?:s|re|ll|ve|d|m|t)$/;
+function tokens(clean) {
+  // Short capitals ("CET", "ETA", "LOL", "NPC") are acronyms, no evidence for any language.
+  const raw = (clean.replace(/[’`ʼ]/g, '\'').match(WORD) || []).filter(token => token.length > 3 || token !== token.toUpperCase()).map(token => token.toLowerCase());
+  const words = [];
+  let englishMarks = 0;
+  for (const token of raw) {
+    if (LEXICON.has(token) || NEUTRAL.has(token)) { words.push(token); continue; }
+    const apostrophe = token.indexOf('\'');
+    if (apostrophe < 0) { words.push(token); continue; }
+    if (ENGLISH_SUFFIX.test(token)) { englishMarks++; words.push(token.slice(0, apostrophe)); continue; }
+    const head = token.slice(0, apostrophe + 1), tail = token.slice(apostrophe + 1);
+    if (ELISION_HEADS.has(head)) { words.push(head); if (tail) words.push(tail); continue; }
+    words.push(token.replace(/'/g, ''));
+  }
+  return {words, englishMarks};
+}
+
+// How sure the lexicon must be. A word listed for one language earns it 1, a shared word a share, an interface-vocabulary word half; so a
+// line of three plain French words scores about 3. A language wins on words alone when it has at least STRONG, leads the next language
+// by LEAD, and is at least twice as far ahead of English as English's own evidence plus half a word.
+const STRONG = 1.3;
+const LEAD = 0.6;
+
 function latinLanguage(clean) {
-  // One-letter words do not count: "V" is the player's name, and a, i, o, e, y, w, z are words in several languages.
-  const words = (clean.toLowerCase().replace(/[’`]/g, '\'').match(/[a-zÀ-ɏ]+(?:'[a-z]+)?/gu) || [])
-    .filter(word => word.length > 1);
+  const {words: all, englishMarks} = tokens(clean);
+  // One-letter words do not count: "V" is the player's name, and a, i, o, e, y, w, z are words in several languages. Names and slang are no evidence.
+  const words = all.filter(word => (word.length > 1 || word.endsWith('\'')) && !NEUTRAL.has(word));
   if (!words.length) return {language: null, words: 0};
   const score = {};
+  const add = (language, value) => { score[language] = (score[language] ?? 0) + value; };
   for (const word of words) {
-    for (const language of LEXICON.get(word) ?? []) score[language] = (score[language] ?? 0) + 1 / LEXICON.get(word).size;
-    for (const [language, pattern] of MARKED) if (pattern.test(word)) score[language] = (score[language] ?? 0) + 1;
+    const hit = LEXICON.get(word);
+    if (hit) for (const language of hit) add(language, 1 / hit.size);
+    if (VOCAB.has(word)) add('en', 0.5);
+    const extra = VLEX.get(word);
+    if (extra) for (const language of extra) add(language, 0.5 / extra.size);
+    for (const [language, pattern] of MARKED) if (pattern.test(word)) add(language, 1);
   }
+  if (englishMarks) add('en', Math.min(englishMarks, 2) * 0.5);
   // Inverted question and exclamation marks are Spanish punctuation, outside any word.
   const inverted = (clean.match(/[¿¡]/gu) || []).length;
-  if (inverted) score.es = (score.es ?? 0) + inverted;
+  if (inverted) add('es', Math.min(inverted, 2));
   const english = score.en ?? 0;
-  let best = null;
-  for (const [language, value] of Object.entries(score)) if (language !== 'en' && (!best || value > score[best])) best = language;
-  const other = best ? score[best] : 0;
+  const ranked = Object.entries(score).filter(([language]) => language !== 'en').sort((a, b) => b[1] - a[1]);
+  const best = ranked[0]?.[0] ?? null, other = ranked[0]?.[1] ?? 0, second = ranked[1]?.[1] ?? 0;
+  const count = words.length;
   // One or two words: a single distinctive word decides ("Hola", "Danke", "Merci"), as long as English has nothing.
-  if (words.length <= 2) {
-    if (other >= 1 && english === 0) return {language: best, words: words.length};
-    if (english >= 1 && other < 1) return {language: 'en', words: words.length};
-    return {language: null, words: words.length};
+  if (count <= 2) {
+    if (other >= 1 && english === 0 && other - second >= 0.5) return {language: best, words: count};
+    if (english >= 1 && other < 1) return {language: 'en', words: count};
+    return {language: null, words: count};
   }
-  if (other >= 2 && other > english * 1.5 + 0.5) return {language: best, words: words.length};
-  if (english >= 1 && english >= other) return {language: 'en', words: words.length};
-  return {language: null, words: words.length};
+  // A clear lexical win: nothing English at all, or well ahead of it.
+  if (other >= STRONG && other - second >= LEAD && other - 2 * english >= 0.5) return {language: best, words: count};
+  if (english >= 1 && english >= other && english >= second * 1.2) return {language: 'en', words: count};
+  return {language: modelLanguage(words, score, english, other), words: count};
 }
 
 /**
+ * The character model's call for a line the lexicon left open. The lexicon shortlists (every language with a real share of the evidence) and
+ * the model chooses among them, if it puts the choice clearly ahead of English; with no shortlist the model must be far ahead of English
+ * and of every other language. English is called only when the model is clearly ahead and nothing foreign was heard.
+ */
+function modelLanguage(words, score, english, other) {
+  const sample = words.slice(0, 40);
+  const total = {};
+  for (const language of LATIN_LANGUAGES) {
+    const model = MODEL[language];
+    let sum = 0;
+    for (const word of sample) sum += wordLogLikelihood(model, word.replace(/'/g, ''));
+    total[language] = sum;
+  }
+  const chars = sample.reduce((sum, word) => sum + word.length, 0);
+  const foreign = LATIN_LANGUAGES.filter(language => language !== 'en');
+  const byModel = languages => languages.reduce((best, language) => (!best || total[language] > total[best] ? language : best), null);
+  const shortlist = other >= 0.3 ? foreign.filter(language => (score[language] ?? 0) >= Math.max(0.3, 0.6 * other)) : [];
+  if (english < 0.5) {
+    if (shortlist.length) {
+      const choice = byModel(shortlist);
+      const rivals = shortlist.filter(language => language !== choice);
+      const overRival = rivals.length ? total[choice] - Math.max(...rivals.map(language => total[language])) : Infinity;
+      if (total[choice] - total.en >= 3 + 0.2 * chars && overRival >= 1) return choice;
+    } else if (chars >= 12) {
+      const choice = byModel(foreign), rivals = foreign.filter(language => language !== choice);
+      if (total[choice] - total.en >= 6 + 0.45 * chars && total[choice] - Math.max(...rivals.map(language => total[language])) >= 1.5) return choice;
+    }
+  }
+  if (!shortlist.length && other < 0.3 && english < 1 && chars >= 6 && total.en - total[byModel(foreign)] >= 2 + 0.3 * chars) return 'en';
+  return null;
+}
+
+let memoText, memoResult;
+/**
  * The language of a text as an ISO 639-1 code ('en', 'es', 'ja', ...) or null when there is too little to tell.
- * `script` names the deciding script ('latin', 'kana', 'cyrillic', ...).
+ * `script` names the deciding script ('latin', 'kana', 'cyrillic', ...); `words` is how many words of evidence a Latin line had.
+ * One call is remembered: a turn asks about the same text several times.
  */
 export function detectLanguage(text) {
+  if (text === memoText && memoResult) return memoResult;
+  const result = Object.freeze(detect(text));
+  memoText = text; memoResult = result;
+  return result;
+}
+
+function detect(text) {
   const {counts, clean} = scriptCounts(text);
   const letters = Object.values(counts).reduce((sum, value) => sum + value, 0);
   if (!letters) return {language: null, script: null};
@@ -106,15 +249,36 @@ export function detectLanguage(text) {
     if (counts.kana) return {language: 'ja', script: 'kana'};
     if (counts.hangul) return {language: 'ko', script: 'hangul'};
     if (counts.han) return {language: 'zh', script: 'han'};
-    if (counts.cyrillic) return {language: /[іїєґ]/iu.test(clean) ? 'uk' : 'ru', script: 'cyrillic'};
+    if (counts.cyrillic) return {language: cyrillicLanguage(clean), script: 'cyrillic'};
     if (counts.greek) return {language: 'el', script: 'greek'};
     if (counts.arabic) return {language: 'ar', script: 'arabic'};
     if (counts.hebrew) return {language: 'he', script: 'hebrew'};
     if (counts.devanagari) return {language: 'hi', script: 'devanagari'};
     if (counts.thai) return {language: 'th', script: 'thai'};
   }
-  const {language} = latinLanguage(clean);
-  return {language, script: 'latin'};
+  const {language, words} = latinLanguage(clean);
+  return {language, script: 'latin', words};
+}
+
+// Ukrainian and Russian share the script: the letters і ї є ґ are Ukrainian, ы э ъ ё are Russian; otherwise their word lists decide, then
+// their character models. Russian when nothing says otherwise.
+function cyrillicLanguage(clean) {
+  const lower = clean.toLowerCase();
+  if (/[іїєґ]/u.test(lower)) return 'uk';
+  if (/[ыэъё]/u.test(lower)) return 'ru';
+  const words = (lower.replace(/['’ʼ`]/g, '').match(new RegExp(`[${CYRILLIC}]+`, 'gu')) || []).filter(word => word.length > 1);
+  let uk = 0, ru = 0;
+  for (const word of words) {
+    const hit = LEXICON.get(word), extra = VLEX.get(word);
+    if (hit?.has('uk')) uk += 1 / hit.size;
+    if (hit?.has('ru')) ru += 1 / hit.size;
+    if (extra?.has('uk')) uk += 0.5 / extra.size;
+    if (extra?.has('ru')) ru += 0.5 / extra.size;
+  }
+  if (uk !== ru) return uk > ru ? 'uk' : 'ru';
+  let ukModel = 0, ruModel = 0;
+  for (const word of words.slice(0, 40)) { ukModel += wordLogLikelihood(MODEL.uk, word); ruModel += wordLogLikelihood(MODEL.ru, word); }
+  return ukModel - ruModel > 2 ? 'uk' : 'ru';
 }
 
 /** True only when the text is confidently in a language other than English. */

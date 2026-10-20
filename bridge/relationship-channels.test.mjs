@@ -9,6 +9,7 @@ import fengari from 'fengari';
 import {RelationshipRouting, retireRelationshipConnections, relationshipRegistry, parseRelationshipState, selectRelationshipProfile,
   RELATIONSHIP_FACTS, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
+import {wantsTwin} from './multilingual.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge} from './player-phone-knowledge.mjs';
 import {PhoneChat} from './phone-chat.mjs';
@@ -244,7 +245,7 @@ function harness({modes = {}, facts = ALL_FACTS, now = NOW, twins} = {}) {
   };
   const router = new PlayerKnowledge({playerMemory: memory, pack: PACK, now: () => clock, getBoundary: boundary,
     isWorldCurrent: binding => binding.worldToken === world.worldToken && binding.generation === world.generation,
-    selectProfile: (profile, binding) => routes.select(profile, binding)});
+    selectProfile: (profile, binding, turn) => routes.select(profile, binding, {multilingual: wantsTwin({text: turn?.text, reaction: !!turn?.reaction})})});
   const api = {routes, router, memoryCalls, memory, epochs,
     settings: {relationshipModes: {...modes}},
     snapshot: state(facts, {capturedAt: now}),
@@ -556,15 +557,15 @@ test('invitation preparation is bound to the captured provider ID: a style chang
   const guard = auto.routes.select('judy-alvarez', world);
   auto.tick(9000);
   assert.equal(auto.routes.guardSelected('judy-alvarez', {characterId: guard.characterId}, world), true);
-  // A provider change (Multilingual Conversations switching to the twin) still invalidates the captured lane.
+  // The twin is chosen per turn from the message, so a lane taken on the original stays authorised when a French turn goes to the twin, and a
+  // lane taken on the twin is authorised too; another character's ID never is.
   const ml = harness({facts: FACTS['judy-alvarez'], twins: {'judy-alvarez': 'judy-ml-id'}});
   const lane = ml.routes.invitationMemory(memoryStub(ml), () => world).route('judy-alvarez', {channel: 'private'});
   assert.equal(lane.guard.characterId, idFor('judy-alvarez'));
-  ml.settings = {...ml.settings, multilingualConversations: true};
-  assert.equal(ml.commit(), true);
-  assert.equal(ml.routes.guardSelected('judy-alvarez', lane.guard, world), false,
-    'a stale pending invitation lane must not stay authorised after the provider changes');
+  assert.equal(ml.commit(), false);
+  assert.equal(ml.routes.guardSelected('judy-alvarez', lane.guard, world), true);
   assert.equal(ml.routes.guardSelected('judy-alvarez', {characterId: 'judy-ml-id'}, world), true);
+  assert.equal(ml.routes.guardSelected('judy-alvarez', {characterId: idFor('panam-palmer')}, world), false);
 });
 
 // ---------------------------------------------------------------------------
@@ -574,7 +575,7 @@ test('the bridge sends the admitted turn\'s selected provider key and relationsh
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /relationshipContext\(prepared\.relationship, prepared\.route\.channel,\s*\{group: prepared\.input\.group, audience: prepared\.route\.audience,\s*worldToken: prepared\.worldToken, generation: prepared\.generation\}\)/);
   assert.equal([...source.matchAll(/profileKey: prepared\.route\.providerProfileKey \?\? prepared\.route\.profileKey/g)].length >= 3, true);
-  assert.match(source, /selectProfile: \(profile, boundary\) => relationshipRoutes\.select\(profile, boundary\)/);
+  assert.match(source, /selectProfile: \(profile, boundary, turn\) => relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\)\}\)/);
   assert.match(source, /characterId: routeFor\(input\)\?\.guard\?\.characterId/);
   // One profile per character: nothing reads the retired alternate-profile file, and memory ignores retired provider rows.
   assert.match(source, /retired: providerKey => RETIRED_PROVIDER_KEY\.test\(providerKey\)/);
@@ -610,7 +611,7 @@ test('reviewed relationship statements reach private and phone chat but never a 
   }
 });
 
-test('warmed party connections keep their ID across a style change; only a provider change retires the old one', async () => {
+test('warmed party connections keep their ID across a style change; a French turn prepares the twin on its own scope and retires nothing', async () => {
   const h = harness({facts: {...FACTS['judy-alvarez'], ...FACTS['panam-palmer']}, twins: {'judy-alvarez': 'judy-ml-id'}});
   const retained = [];
   const connections = new PartyConnections({host: {retain: async configs => { retained.push(configs); }},
@@ -634,13 +635,22 @@ test('warmed party connections keep their ID across a style change; only a provi
   assert.equal(turn.relationship.style, 'ordinary');
   assert.equal(warmScopes.includes(turn.scope), true, 'the warmed page serves the changed-style turn');
   assert.deepEqual(scopes(), warmScopes);
-  // Multilingual Conversations is the one thing that still changes a provider: exactly that character is retired.
+  // The message's language picks the character per turn: a French turn is prepared on the twin and its own scope, an English one on the
+  // original, and the warmed pages are neither retired nor replaced (a saved multilingualConversations from an old file is not read).
   h.settings = {...h.settings, multilingualConversations: true};
-  assert.equal(h.commit(), true);
-  const changed = h.routes.consumeRouteChanges();
-  assert.deepEqual(changed, ['judy-alvarez']);
-  await retireRelationshipConnections(connections, changed);
-  assert.deepEqual(ids(), ['judy-ml-id', idFor('panam-palmer')].sort());
+  assert.equal(h.commit(), false);
+  assert.deepEqual(h.routes.consumeRouteChanges(), []);
+  const french = await h.router.prepare(input('judy-alvarez', {text: 'Combien de temps encore ?'}));
+  assert.equal(french.relationship.multilingual, true);
+  assert.equal(french.guard.characterId, 'judy-ml-id');
+  assert.equal(warmScopes.includes(french.scope), false, 'the twin has its own conversation page');
+  const english = await h.router.prepare(input('judy-alvarez', {text: 'how long until we get there'}));
+  assert.equal(english.relationship.multilingual, false);
+  assert.equal(english.guard.characterId, idFor('judy-alvarez'));
+  assert.equal(warmScopes.includes(english.scope), true);
+  // A turn with nothing to judge by ("ok", a recording) stays on the original: only a message in another language moves a conversation.
+  assert.equal((await h.router.prepare(input('judy-alvarez', {text: 'ok'}))).relationship.multilingual, false);
+  assert.deepEqual(ids(), [idFor('judy-alvarez'), idFor('panam-palmer')].sort());
   // Every retained page carries the one player ID and a scope tied to its own provider ID.
   assert(retained.at(-1).every(config => config.endUserId === USER));
   assert.equal(new Set(retained.at(-1).map(config => config.scope)).size, retained.at(-1).length);
