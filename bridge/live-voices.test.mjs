@@ -14,7 +14,6 @@ import {PocketVoice} from './pocket-voice.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
-import {InworldVoice} from './inworld-voice.mjs';
 import {MistralScheduler} from './mistral-rate.mjs';
 import {createVoiceProfileRegistry, diffVoiceTables, registryFromTable, voiceChangeBatches, voiceTable} from './voice-profile-registry.mjs';
 import {speechWav} from './voice-clip-fixture.mjs';
@@ -550,7 +549,7 @@ test('whole chain (Voxtral): the very next request sends the new clip, removing 
   } finally { await stub.close(); await r.cleanup(); }
 });
 
-test('Voxtral and Inworld: replaceReferences forgets only the changed characters and keeps the registries current', () => {
+test('Voxtral: replaceReferences forgets only the changed characters and keeps the registries current', () => {
   const registry = createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: {a: shipped('a'), b: shipped('b')}});
   const voxtral = new VoxtralVoice({getKey: () => null, referenceRoot: resolve('x'), registry});
   voxtral.references.set('a', Promise.resolve({base64: 'a'})); voxtral.references.set('b', Promise.resolve({base64: 'b'}));
@@ -560,14 +559,6 @@ test('Voxtral and Inworld: replaceReferences forgets only the changed characters
   assert.equal(voxtral.references.has('b'), true);
   assert.equal(voxtral.hasReference('c'), true, 'the new registry is the one it reads');
   assert.equal(voxtral.hasCachedReference('b'), true);
-  const inworld = new InworldVoice({getKey: () => null, referenceRoot: resolve('x'), registry, storePath: join(tmpdir(), 'never-written.json')});
-  inworld.entries.set('a', {state: 'ready', voiceId: 'v-a'}); inworld.entries.set('b', {state: 'ready', voiceId: 'v-b'});
-  inworld.library.references.set('a', Promise.resolve({base64: 'a'}));
-  assert.deepEqual(inworld.replaceReferences([next], ['a']).sort(), ['a']);
-  assert.equal(inworld.entries.has('a'), false);
-  assert.equal(inworld.entries.get('b').voiceId, 'v-b');
-  assert.equal(inworld.library.references.has('a'), false);
-  assert.equal(inworld.hasReference('c'), true);
 });
 
 // ---- one place for a player's clips, even with two services around ------------------------------------------------------------------
@@ -608,7 +599,7 @@ test('one click is answered by one service: a service with another data folder l
 test('the bridge gives the store, the voice workers and the cloud voices one state folder, and tells the voices about every change', async () => {
   const source = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(source, /PlayerVoices\.open\(\{dir: stateDirectory,/);
-  assert.equal((source.match(/playerRoot: playerVoices\.folder/g) ?? []).length, 2, 'Voxtral and Inworld read the clips from the store\'s folder');
+  assert.equal((source.match(/playerRoot: playerVoices\.folder/g) ?? []).length, 1, 'Voxtral reads the clips from the store\'s folder');
   assert.match(source, /playerVoiceDirectory: playerVoices\.folder/);
   assert.match(source, /onChanged: key =>/);
   assert.match(source, /localVoice\.setVoices\(update\)/);

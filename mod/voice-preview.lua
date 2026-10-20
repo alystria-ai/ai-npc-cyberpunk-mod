@@ -11,10 +11,8 @@ local DEFAULT_SETTLE = 0
 -- omniSteps and omniReference, and indexOf() finds the entry, so reordering the list changes no one's choice). Pocket TTS is the default;
 -- the Mistral cloud voice (Voxtral, labelled recommended) follows it.
 -- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
--- (Voxtral) needs a Mistral key and the Inworld cloud voice an Inworld key; in the bridge both use only Pocket's route and audio
--- format and load no local voice model (a reply they cannot deliver is asked again once, then shown as written text).
--- The Inworld voice is the last entry because it is listed only in developer mode (Settings > Development): without it the menu is
--- the first seven entries, so an index means the same thing in both.
+-- (Voxtral) needs a Mistral key; in the bridge it uses only Pocket's route and audio format and loads no local voice model
+-- (a reply it cannot deliver is asked again once, then shown as written text).
 M.CHOICES = {
     {provider = 'pocket'},
     {provider = 'voxtral'},
@@ -23,13 +21,12 @@ M.CHOICES = {
     {provider = 'omni', steps = 32, reference = 'short'},
     {provider = 'omni', steps = 32, reference = 'long'},
     {provider = 'convai'},
-    {provider = 'inworld'},
 }
 
 -- The select index of a saved choice ({voiceProvider, omniSteps, omniReference}).
 function M.indexOf(saved)
     saved = type(saved) == 'table' and saved or {}
-    if saved.voiceProvider == 'convai' or saved.voiceProvider == 'voxtral' or saved.voiceProvider == 'inworld' then
+    if saved.voiceProvider == 'convai' or saved.voiceProvider == 'voxtral' then
         for index, choice in ipairs(M.CHOICES) do
             if choice.provider == saved.voiceProvider then return index end
         end
@@ -135,13 +132,13 @@ function M.new(options)
         local choice = providerOk and not providerError and M.CHOICES[provider] or nil
         if not choice
             or not savedOk or type(saved) ~= 'table'
-            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral' and saved.voiceProvider ~= 'inworld'
+            or (saved.voiceProvider ~= 'pocket' and saved.voiceProvider ~= 'omni' and saved.voiceProvider ~= 'voxtral'
                 and saved.voiceProvider ~= 'hybrid' and saved.voiceProvider ~= 'convai') then
             staged = nil
             cancel(stamp)
             return
         end
-        -- Select order: M.CHOICES (Pocket TTS, OmniVoice 16/32 steps with a short/long reference, Mistral cloud voice, Inworld cloud voice, Convai).
+        -- Select order: M.CHOICES (Pocket TTS, OmniVoice 16/32 steps with a short/long reference, Mistral cloud voice, Convai).
         local omniSteps, omniReference = choice.steps, choice.reference
         provider = choice.provider
         local savedProvider = saved.voiceProvider == 'hybrid' and 'omni' or saved.voiceProvider

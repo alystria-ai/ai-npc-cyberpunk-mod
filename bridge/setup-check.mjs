@@ -26,8 +26,8 @@ const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS 
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
 
-/** The host each service is reached at: Convai, Mistral (its text and the Voxtral voice), Inworld (its voice). */
-export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai', inworld: 'api.inworld.ai'});
+/** The host each service is reached at: Convai, Mistral (its text and the Voxtral voice). */
+export const SERVICE_HOSTS = Object.freeze({convai: 'api.convai.com', mistral: 'api.mistral.ai'});
 
 const clip = (value, size = 120) => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, size) : null;
 const exists = async (path, kind = 'dir') => {
@@ -350,7 +350,6 @@ export function neededServices(settings, {custom = null} = {}) {
   // The Convai cloud voice is only available while Convai answers; with another provider the bridge speaks with Pocket instead.
   const voice = settings?.voiceProvider;
   if (voice === 'voxtral') services.push('mistral');
-  else if (voice === 'inworld') services.push('inworld');
   else if (voice === 'convai' && conversation === 'convai') services.push('convai');
   return [...new Set(services)];
 }

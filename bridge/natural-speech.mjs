@@ -232,13 +232,6 @@ const OMNI_RULES_TEXT = 'Use at most one in this reply, only if this exact momen
   + 'direction: never use asterisks, parentheses or any other bracketed text, and never spell a laugh out as "haha" or "heh". '
   + 'Tags are removed from the subtitles. Keep the same length and content you would give otherwise.';
 
-// Inworld's voice renders a different, shorter list of sounds (its own steering page: [laugh] [sigh] [clear throat] [breathe] [cough]
-// [yawn]). Three of them are offered, the ones a person does while talking; the same rules and places as OmniVoice apply.
-const INWORLD_TAGS_TEXT = 'Natural speech is on, and this reply is a moment where ONE human touch may fit. Your voice engine is '
-  + 'Inworld, which can voice a few non-verbal sounds written as tags: [laugh], [sigh] and [breathe] (a quiet audible breath, '
-  + 'before something hard to say).';
-const INWORLD_RULES_TEXT = OMNI_RULES_TEXT.replaceAll('[laughter]', '[laugh]');
-
 const POCKET_TEXT = 'Natural speech is on, and this reply is a moment where ONE natural pause may fit. Your voice engine is '
   + 'Pocket TTS, which cannot voice laughs, sighs or other sounds and would read any bracketed tag or spelled-out sound '
   + 'aloud as a word. So never write tags such as [laughter] or [sigh], and no "heh", "haha", "hmm" or "uh". The only '
@@ -263,11 +256,10 @@ export const PITY_TURNS = 4;
 export const OFFER_RATE_BY_PROFILE = Object.freeze({'judy-alvarez': .5, 'panam-palmer': .35, 'johnny-silverhand': .42});
 const offerRate = (trait, profile) => OFFER_RATE_BY_PROFILE[profile] ?? OFFER_RATE[trait] ?? OFFER_RATE.neutral;
 const PITY_TRAITS = Object.freeze(['warm', 'neutral']);
-const INWORLD_SOUNDS = Object.freeze(['laugh', 'sigh', 'breathe']);
-const VOICED_SOUNDS = Object.freeze([...OMNI_TAGS, ...CJK_TAGS, ...INWORLD_SOUNDS, 'cough', 'yawn', 'clear-throat']);
+const VOICED_SOUNDS = Object.freeze([...OMNI_TAGS, ...CJK_TAGS, 'cough', 'yawn', 'clear-throat']);
 
 /**
- * The per-turn block for the current voice engine ('omni', 'inworld' or 'pocket'); '' for any other engine.
+ * The per-turn block for the current voice engine ('omni' or 'pocket'); '' for any other engine.
  * `profile`/`name`/`trait` add the character's own "how they talk" line (OmniVoice only); `language` adds the Chinese and
  * Japanese sounds for a reply in one of those languages. Without them the text is the plain English block.
  */
@@ -275,11 +267,10 @@ export function naturalSpeechContext({engine, recent = [], profile, name, trait,
   const cjk = engine === 'omni' && CJK_LANGUAGES.includes(language);
   const base = engine === 'omni'
     ? [OMNI_TAGS_TEXT, cjk ? CJK_TAGS_TEXT : '', OMNI_PAUSES_TEXT, talkLine({profile, name, trait}), OMNI_RULES_TEXT, placeText(place)].filter(Boolean).join(' ')
-    : engine === 'inworld' ? [INWORLD_TAGS_TEXT, OMNI_PAUSES_TEXT, talkLine({profile, name, trait}), INWORLD_RULES_TEXT, placeText(place)].filter(Boolean).join(' ')
     : engine === 'pocket' ? POCKET_TEXT : '';
   if (!base) return '';
   const offered = engine === 'omni' ? [...omniTagsFor(cjk ? language : undefined), 'ellipsis', 'dash', 'filler']
-    : engine === 'inworld' ? [...INWORLD_SOUNDS, 'ellipsis', 'dash', 'filler'] : ['ellipsis', 'dash'];
+    : ['ellipsis', 'dash'];
   const used = recent.filter(id => offered.includes(id));
   return used.length
     ? `${base} Your previous reply already used ${used.map(deviceName).join(', ')}: do not use ${used.length > 1 ? 'those' : 'it'} in this reply.`
@@ -301,13 +292,13 @@ export class NaturalSpeech {
     return changed;
   }
   /**
-   * The context block for one turn. `engine` is the voice that will speak it ('omni', 'inworld', 'pocket' or 'convai'); text-only
+   * The context block for one turn. `engine` is the voice that will speak it ('omni', 'pocket' or 'convai'); text-only
    * turns (phone chat, silent playback) and automatic reactions get none. The devices are OFFERED on a share of turns
    * (OFFER_RATE[trait]); see `offers` for what blocks an offer. The decision is made once per `turn` (the request id),
    * so a rebuilt context agrees with the one already sent. `random` is injectable for tests.
    */
   contextFor({engine, sessionId, spoken = true, turn, trait = 'neutral', profile, name, language, random = Math.random} = {}) {
-    if (!this.enabled || !spoken || (engine !== 'omni' && engine !== 'pocket' && engine !== 'inworld')) return '';
+    if (!this.enabled || !spoken || (engine !== 'omni' && engine !== 'pocket')) return '';
     const decision = this.offers(turn, trait, sessionId, random, profile);
     if (!decision.offered) return '';
     return naturalSpeechContext({engine, recent: this.last.get(sessionId) ?? [], profile, name, trait, language, place: decision.place});
@@ -376,8 +367,8 @@ export class NaturalSpeech {
     if (voice.length) out.speechText = keepSpeechTags(result.text, voice);
     // Where each emotion tag sits in the display text, for Expressive emotions (which drops them when it is off).
     if (parsed.marks.length) out.emotionMarks = parsed.marks;
-    // Where each sound sits, for a voice that renders sounds in the text it is given (Inworld; bridge/inworld-steering.mjs maps the
-    // names and drops the ones it cannot voice). Only while Natural speech is on, like the OmniVoice tags.
+    // Where each sound sits, for a voice that renders sounds in the text it is given.
+    // Only while Natural speech is on, like the OmniVoice tags.
     if (this.enabled && parsed.sounds.length) out.voiceMarks = parsed.sounds;
     return out;
   }

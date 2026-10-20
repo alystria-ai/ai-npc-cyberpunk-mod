@@ -4,7 +4,6 @@ Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's
 cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
 conversation provider (Convai free tier, Mistral or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
-The Inworld cloud voice (`docs/CLOUD_VOICE_INWORLD.md`) is the sibling choice on the player's own Inworld key; the menu then has eight entries.
 
 **No local voice model runs while this voice is chosen (2026-10-13).** Choosing it starts no Pocket worker, no OmniVoice worker, no
 local text-to-speech of any kind: a worker that was running is retired when the choice is committed (at the next idle moment, like any
@@ -22,7 +21,7 @@ Code: `bridge/voxtral-voice.mjs` (the adapter), `bridge/mistral-rate.mjs` (the s
 
 ## What the player sees
 
-Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Voxtral · Mistral cloud**, Convai · Cloud voice (an eighth entry, the Inworld voice, is listed after these only in Developer mode). Without a Mistral key the entry reads "Voxtral · needs Mistral key" (short on purpose: a select value
+Settings > Voices > Companion voices has seven entries: Pocket · Performance, four OmniVoice tiers, **Voxtral · Mistral cloud**, Convai · Cloud voice. Without a Mistral key the entry reads "Voxtral · needs Mistral key" (short on purpose: a select value
 that is wider than about 26 average letters runs over the arrows or the focused row's key boxes, see docs/MANAGER_UI.md, "Select labels") and
 Apply refuses it ("Requires a Mistral key (add it in Settings > Conversation provider)"), the same way the OmniVoice entries behave without
 the pack (those are greyed out). The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted with the Mistral key row's Paste button in Settings > Conversation provider); the

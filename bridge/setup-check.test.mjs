@@ -252,7 +252,7 @@ test('reachability: a name that does not resolve, a refused connection, silence 
   }
   const aggregate = connector(socket => socket.emit('error', Object.assign(new AggregateError([
     Object.assign(Error('v6'), {code: 'ENETUNREACH'}), Object.assign(Error('v4'), {code: 'ECONNREFUSED'})], 'all failed'), {code: undefined})));
-  assert.equal(await checkReachable('api.inworld.ai', {lookup: resolves, connect: aggregate.connect}), 'blocked', 'one refused address among unreachable ones');
+  assert.equal(await checkReachable('api.mistral.ai', {lookup: resolves, connect: aggregate.connect}), 'blocked', 'one refused address among unreachable ones');
   const unreachable = connector(socket => socket.emit('error', Object.assign(Error('no route'), {code: 'ENETUNREACH'})));
   assert.equal(await checkReachable('x', {lookup: resolves, connect: unreachable.connect}), 'timeout', 'no route is no answer');
   const timedOut = connector(socket => socket.emit('error', Object.assign(Error('timed out'), {code: 'ETIMEDOUT'})));
@@ -272,8 +272,8 @@ test('reachability: a name that does not resolve, a refused connection, silence 
   assert.equal(other.calls[0].port, 8443);
   assert.equal(await checkReachable('x', {lookup: resolves, connect: () => { throw Object.assign(Error('denied'), {code: 'EACCES'}); }}), 'blocked');
   assert.equal(await checkReachable('x', {lookup: resolves, connect: () => { throw Error('odd'); }}), 'timeout');
-  assert.deepEqual(Object.keys(SERVICE_HOSTS), ['convai', 'mistral', 'inworld']);
-  assert.deepEqual(Object.values(SERVICE_HOSTS), ['api.convai.com', 'api.mistral.ai', 'api.inworld.ai']);
+  assert.deepEqual(Object.keys(SERVICE_HOSTS), ['convai', 'mistral']);
+  assert.deepEqual(Object.values(SERVICE_HOSTS), ['api.convai.com', 'api.mistral.ai']);
 });
 
 // ---------------------------------------------------------------- the document
@@ -334,12 +334,12 @@ test('internet: the services the chosen providers need, each tested once, the fi
   // Mistral for the text and for the Voxtral voice: one host, one test.
   assert.deepEqual(await run({conversationProvider: 'mistral', voiceProvider: 'voxtral'}), {id: 'internet', state: 'ok', code: 'reachable', service: 'mistral', host: 'api.mistral.ai'});
   assert.deepEqual(seen, ['api.mistral.ai']);
-  // Convai text with the Convai voice: one host. Convai text with Inworld: two, conversation first, the failing one is named.
+  // Convai text with the Convai voice: one host. Convai text with the Voxtral voice: two, conversation first, the failing one is named.
   await run({voiceProvider: 'convai'}); assert.deepEqual(seen, ['api.convai.com']);
-  assert.deepEqual(await run({voiceProvider: 'inworld'}, {'api.inworld.ai': 'blocked'}), {id: 'internet', state: 'problem', code: 'blocked', service: 'inworld', host: 'api.inworld.ai'});
-  assert.deepEqual(seen, ['api.convai.com', 'api.inworld.ai']);
+  assert.deepEqual(await run({voiceProvider: 'voxtral'}, {'api.mistral.ai': 'blocked'}), {id: 'internet', state: 'problem', code: 'blocked', service: 'mistral', host: 'api.mistral.ai'});
+  assert.deepEqual(seen, ['api.convai.com', 'api.mistral.ai']);
   assert.equal((await run({voiceProvider: 'voxtral'}, {'api.convai.com': 'no-dns', 'api.mistral.ai': 'timeout'})).service, 'convai', 'the first that fails, in order');
-  assert.deepEqual(await run({conversationProvider: 'mistral', voiceProvider: 'inworld'}, {'api.mistral.ai': 'no-dns'}),
+  assert.deepEqual(await run({conversationProvider: 'mistral', voiceProvider: 'voxtral'}, {'api.mistral.ai': 'no-dns'}),
     {id: 'internet', state: 'problem', code: 'no-dns', service: 'mistral', host: 'api.mistral.ai'});
   // Nothing needed: the local AI with a local voice (the Convai voice is not available without Convai, so the bridge uses Pocket instead).
   for (const settings of [{conversationProvider: 'local'}, {conversationProvider: 'local', voiceProvider: 'omni'}, {conversationProvider: 'local', voiceProvider: 'convai'}]) {

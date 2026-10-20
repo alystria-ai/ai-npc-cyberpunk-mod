@@ -33,8 +33,8 @@ function setOf(path) {
 const OMNI_TIERS = {'16:short': 'Balanced', '16:long': 'Quality', '32:short': 'High Quality', '32:long': 'Ultra Quality'};
 
 // Matches the Settings menu (mod/manager.lua voiceLabel).
-const CLOUD_LABELS = {voxtral: 'Mistral cloud voice (Voxtral)', inworld: 'Inworld cloud voice'};
-const CLOUD_NAMES = {voxtral: 'Mistral cloud voice', inworld: 'Inworld cloud voice'};
+const CLOUD_LABELS = {voxtral: 'Mistral cloud voice (Voxtral)'};
+const CLOUD_NAMES = {voxtral: 'Mistral cloud voice'};
 
 /** The voice choice as the player reads it in Settings: "Pocket · Performance", "OmniVoice · Quality", "Convai · Cloud voice". */
 export function requestedLabel(provider, steps, reference) {
@@ -136,7 +136,7 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
   const local = engine === 'pocket' || engine === 'omni';
-  // The cloud voice (Voxtral, Inworld) uses Pocket's route and packet format but no local model: chosen, it is what the player asked
+  // The cloud voice (Voxtral) uses Pocket's route and packet format but no local model: chosen, it is what the player asked
   // for and it speaks. With no key the turn goes to the Convai cloud voice (engine 'convai'); in a limit or refused-key cool-down the
   // reply is written only (no local voice stands in), and the reason is logged.
   const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
@@ -144,7 +144,7 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   // is written before the reply is voiced, so a timeout on the previous reply would be a stale claim (`cloudLast` carries it instead).
   const cloudWhy = cloud && (engine === 'pocket' || engine === 'convai') ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
   const cloudLast = cloud && engine === 'pocket' && !cloudWhy ? voice.cloudLast ?? null : null;
-  const cloudKind = voice.cloud === 'inworld' ? 'inworld' : 'voxtral', CLOUD_LABEL = CLOUD_LABELS[cloudKind];
+  const cloudKind = 'voxtral', CLOUD_LABEL = CLOUD_LABELS[cloudKind];
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,

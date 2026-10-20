@@ -199,7 +199,7 @@ const oldFiles = {
     matureRestore: {conversationProvider: {before: 'convai', set: 'local'}}},
   'Multilingual with Pocket TTS and Natural speech': {version: 2, multilingualConversations: true, voiceProvider: 'pocket', naturalSpeech: true},
   'a tag setting beside the Convai cloud voice': {version: 2, voiceProvider: 'convai', naturalSpeech: true, expressiveEmotions: true},
-  'the Inworld voice without Developer mode': {version: 2, voiceProvider: 'inworld'},
+  'the removed Inworld voice': {version: 2, voiceProvider: 'inworld'},
   'the removed Groq provider': {version: 2, conversationProvider: 'groq'},
   'the first version defaults saved as false': {version: 2, holocallLiveImage: false, vVoice: false},
   'false chosen by the player for those two': {version: 2, holocallLiveImage: false, holocallLiveImageChosen: true, vVoice: false, vVoiceChosen: true},

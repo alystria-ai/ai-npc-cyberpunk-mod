@@ -28,7 +28,7 @@ const STATIC_OPTIONS = [
   'Custom (OpenAI-compatible)', 'Default', 'Eyes only', 'Gentle (default)', 'Local AI', 'Mistral (free plan)', 'No model installed', 'Service not running', 'Service starting',
   'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'Rare', 'Normal',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
-  'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key', 'Inworld · Cloud voice', 'Inworld · needs key',
+  'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
 ];
 
 function localeTable(code) {

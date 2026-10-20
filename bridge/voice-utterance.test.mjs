@@ -23,14 +23,14 @@ test('anything that is not the cloud voice is Pocket, and a finished head result
   assert.equal(decided.settle({provider: 'pocket'}), 'voxtral', 'a head that already played in the cloud voice stays decided');
 });
 
-test('every cloud voice can decide, and anything else is Pocket', () => {
-  assert.equal(new Utterance().decide('inworld'), 'inworld');
-  assert.equal(new Utterance().settle({provider: 'inworld'}), 'inworld');
-  assert.equal(new Utterance().settle({engine: 'inworld'}), 'inworld');
-  assert.equal(new Utterance().settle({timing: {voiceEngine: 'inworld'}}), 'inworld');
-  const decided = new Utterance(); decided.decide('inworld');
-  assert.equal(decided.decide('voxtral'), 'inworld', 'one reply, one cloud voice');
-  assert.equal(decided.decide('pocket'), 'inworld');
+test('the cloud voice can decide, and anything else is Pocket', () => {
+  assert.equal(new Utterance().decide('voxtral'), 'voxtral');
+  assert.equal(new Utterance().settle({provider: 'voxtral'}), 'voxtral');
+  assert.equal(new Utterance().settle({engine: 'voxtral'}), 'voxtral');
+  assert.equal(new Utterance().settle({timing: {voiceEngine: 'voxtral'}}), 'voxtral');
+  assert.equal(new Utterance().decide('somethingelse'), 'pocket');
+  const decided = new Utterance(); decided.decide('voxtral');
+  assert.equal(decided.decide('pocket'), 'voxtral', 'one reply, one voice');
 });
 
 test('a later part waits for the decision and follows it', async () => {
@@ -53,6 +53,6 @@ test('a part that is cancelled while waiting stops waiting', async () => {
   const already = new AbortController(); already.abort();
   await assert.rejects(new Utterance().wait(already.signal));
   // A later decision does not resurrect or throw for the cancelled waiter.
-  utterance.decide('inworld');
-  assert.equal(await utterance.wait(new AbortController().signal), 'inworld');
+  utterance.decide('voxtral');
+  assert.equal(await utterance.wait(new AbortController().signal), 'voxtral');
 });

@@ -72,8 +72,8 @@ Tests: `npm run test:reference-picker`.
 
 **Menu** (Settings > Voices > Companion voices, in this order, fastest to best): Pocket · Performance (default),
 OmniVoice · Balanced (16 steps, short reference), OmniVoice · Quality (16 steps, long reference), OmniVoice · High Quality
-(32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Voxtral · Mistral cloud, Convai · Cloud voice,
-and, in Developer mode only, Inworld · Cloud voice (see docs/CLOUD_VOICE_VOXTRAL.md and docs/CLOUD_VOICE_INWORLD.md). Without the Omni pack
+(32 steps, short reference), OmniVoice · Ultra Quality (32 steps, long reference), Voxtral · Mistral cloud, Convai · Cloud voice
+(see docs/CLOUD_VOICE_VOXTRAL.md). Without the Omni pack
 the four OmniVoice entries are greyed out (the shown text is dimmed and the arrows skip them; they no longer end in "· needs pack"), the row name gains " (no Omni pack)"
 and Apply refuses them. There is no Pocket base. Settings store `voiceProvider` (`pocket`, `omni`, `convai`), `omniSteps` (16 or
 32), `omniReference` (`short` up to 10 s of reference audio, `long` up to 18 s) and `keepPreparedVoices` (default on). A fresh

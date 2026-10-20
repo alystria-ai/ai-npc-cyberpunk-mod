@@ -8,7 +8,6 @@ import {AddonHost, inspectReference} from './addons.mjs';
 import {PLAYER_REFERENCE_PREFIX, createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {validatePocketConfig} from './pocket-voice.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
-import {InworldVoice} from './inworld-voice.mjs';
 import {cloudReferenceOf, describeVoiceRoute, formatVoiceRoute, referenceOf} from './voice-routing-log.mjs';
 
 // The player's own reference clip for a character (a story character, or one the player made): it stays in the player's data folder
@@ -298,24 +297,6 @@ test('Voxtral: an entry that escapes or splits the player folder, a wrong hash a
   // The next registry still gets its turn, exactly as for shipped entries.
   const fallback = voxtral({registry: [registryOf('runtime/player-voices/sam-hill.wav', tone(0.4, 999)), registryOf('runtime/voice-references/sam-hill.wav')], files});
   assert.equal((await fallback.voice.reference('sam-hill')).source, 'omni-short');
-});
-
-test('Inworld: the same player resolution (parity), through its reference reader', async () => {
-  const work = await mkdtemp(resolve(tmpdir(), 'convai-player-inworld-'));
-  try {
-    const player = resolve(work, 'player-voices');
-    await mkdir(player, {recursive: true});
-    await writeFile(resolve(player, 'sam-hill.wav'), CLIP);
-    const voice = new InworldVoice({getKey: () => KEY, referenceRoot: resolve(work, 'voice-references'), playerRoot: player,
-      registry: registryOf('runtime/player-voices/sam-hill.wav')});
-    const reference = await voice.library.reference('sam-hill');
-    assert.equal(reference.source, 'player');
-    assert.equal(reference.base64, CLIP.toString('base64'));
-    assert.equal(voice.hasReference('sam-hill'), true);
-    const without = new InworldVoice({getKey: () => KEY, referenceRoot: resolve(work, 'voice-references'), registry: registryOf('runtime/player-voices/sam-hill.wav')});
-    assert.equal(await without.library.reference('sam-hill'), null, 'no playerRoot: no reference');
-    assert.equal(without.hasReference('sam-hill'), false);
-  } finally { await rm(work, {recursive: true, force: true}); }
 });
 
 // ---- the routing log ----------------------------------------------------------------------------------------------------------

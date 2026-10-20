@@ -1,5 +1,7 @@
 # Fully free cloud option: measurements and research
 
+> Inworld was removed 2026-10-20; the Inworld parts below are kept as history.
+
 > Groq was removed as a conversation provider by the user on 2026-10-14 (route, key handling, prompt shaping, scripts). The Groq parts below are history and describe code that no longer exists.
 
 Measured and researched on 2026-10-12 for the "fully free cloud" player option (TODO.md, "Requested 2026-10-12", option 3).
@@ -14,7 +16,7 @@ marked (headers). Third-party figures are marked (unverified).
 | Fastest text route | Groq. `qwen/qwen3.8-27b` answered in about 0.45 s, `openai/gpt-oss-20b` and `-120b` in about 0.7 s (Mistral `ministral-14b` is 1.8 s, `ministral-8b` 1.05 s). |
 | Best free limits for many turns | Mistral. Groq's free token budget is small (8,000 tokens a minute, 200,000 a day per model) and a real turn for a named character is 4,300 to 4,700 tokens. |
 | Recommended text route | Keep Mistral as the default; offer `ministral-8b-latest` as the fast model and `ministral-14b-latest` as the quality model. Groq `openai/gpt-oss-20b` is an optional faster route for a player who adds a Groq key. |
-| Voice cloning | Both clone Judy from the OmniVoice "long" reference (13.4 s). Inworld: first audio 0.74 s, 70 free minutes (about 290 to 700 replies; monthly or once is not documented, see `docs/CLOUD_VOICE_INWORLD.md`), saved voice persists, text steering works on the clone. Mistral Voxtral on the free key: first audio 1.2 s median, no published monthly cap (only 12,000 characters a minute), no saved voices on the free plan (reference sent every call), no emotion control, and its streaming PCM is already the format the bridge uses (24 kHz float32). |
+| Voice cloning | Both clone Judy from the OmniVoice "long" reference (13.4 s). Inworld: first audio 0.74 s, 70 free minutes (about 290 to 700 replies; monthly or once is not documented, see the removed Inworld voice doc), saved voice persists, text steering works on the clone. Mistral Voxtral on the free key: first audio 1.2 s median, no published monthly cap (only 12,000 characters a minute), no saved voices on the free plan (reference sent every call), no emotion control, and its streaming PCM is already the format the bridge uses (24 kHz float32). |
 | Prompt caching | Mistral: pass `prompt_cache_key`; 2,816 of 2,868 tokens cached and not counted against the token budget. Groq: automatic on `gpt-oss`, hits about half the time, cached tokens not counted. Real turns are 4,300 to 4,700 tokens for a named character, so Groq's 200,000 a day is only about 44 turns until the prompt is trimmed (section 3b). |
 | Embeddings and vector store | Local beats cloud for players: no key, offline, no VRAM, about 10 ms per chunk, no monthly cap. Cloud keys are worth testing only as a fallback. |
 

@@ -6,17 +6,6 @@ import {warmMatureGuard, analyse} from './mature-guard.mjs';
 // Source-level regressions for fixes of the 2026-10-14 review (the behaviour tests sit beside each module's own tests).
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
-test('the settings page redraws when the Inworld key state changes (the signature reads it, as it does Mistral)', () => {
-  const page = read('../mod/manager-ui.lua');
-  const body = page.slice(page.indexOf('local function pageSignature(snapshot)'));
-  const settings = body.slice(body.indexOf("if view == 'settings' then"), body.indexOf('-- The Local AI model row'));
-  assert.match(settings, /local inworld = type\(mistral\.inworld\) == 'table' and mistral\.inworld or \{\}/);
-  assert.match(settings, /tostring\(inworld\.saved\), inworld\.tail or '', inworld\.result or ''/);
-  // The characters view labels a voice "needs Inworld key" from the same state.
-  const characters = body.slice(body.indexOf("if view == 'characters' then"), body.indexOf("if view == 'models' then"));
-  assert.match(characters, /\(snapshot\.mistral or \{\}\)\.inworld or \{\}\)\.saved/);
-});
-
 test('every status the phone shows for a provider failure is translated by the phone style layer', () => {
   const chat = read('../mod/phone-chat.lua');
   const table = chat.slice(chat.indexOf('local MISTRAL_STATUS = {'), chat.indexOf('local function copy'));

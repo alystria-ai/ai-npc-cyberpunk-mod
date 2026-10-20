@@ -34,7 +34,6 @@ local OMNI_LABELS = {
 }
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
-local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Development)'
 -- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
 local V_VOICE_ENGINES = {'pocket', 'voxtral'}
 local V_ENGINE_MATURE = 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.'
@@ -376,35 +375,6 @@ function M.removeMistralKey()
     return true, 'Your key was removed.'
 end
 
--- The Inworld cloud voice's key (docs/CLOUD_VOICE_INWORLD.md): the same shape again, on its own command file and ids. Its status
--- (saved, last four characters, the latest paste or remove) rides in the same status file, under `inworld`.
-local inworldCommand, inworldSequence = nil, 0
-
-local function sendInworldCommand(action)
-    memorySession = memorySession or memorySessionUUID()
-    inworldSequence = inworldSequence + 1
-    local command = {version = 1, id = memorySession .. ':ikey:' .. inworldSequence, action = action,
-        issuedAt = os.time() * 1000.0}
-    if not writeCommandFile('runtime/inworld-key-command.json', command) then
-        return false, 'The request could not be sent. Try again.'
-    end
-    inworldCommand = command.id
-    mistralReadAt = nil
-    return true
-end
-
-function M.pasteInworldKey()
-    local ok, reason = sendInworldCommand('paste')
-    if not ok then return false, reason end
-    return true, 'Checking…'
-end
-
-function M.removeInworldKey()
-    local ok, reason = sendInworldCommand('clear')
-    if not ok then return false, reason end
-    return true, 'Your key was removed.'
-end
-
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
 local mistralLimits = {rate = true, daily = true, invalid = true, model = true, credits = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
@@ -422,13 +392,13 @@ end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
 --   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
---    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral'|'inworld',
+--    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral',
 --   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
 -- dropped, and nil is returned when nothing is left. Returns a new table.
 local function cleanMatureVoice(value)
     if type(value) ~= 'table' then return nil end
     local provider = value.provider
-    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' and provider ~= 'inworld' then return nil end
+    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' then return nil end
     if provider ~= 'omni' then return {provider = provider} end
     if (value.steps ~= 16 and value.steps ~= 32) or (value.reference ~= 'short' and value.reference ~= 'long') then return nil end
     return {provider = provider, steps = value.steps, reference = value.reference}
@@ -531,12 +501,8 @@ function M.mistral()
     local result = type(state.result) == 'table' and state.result.id == mistralCommand and state.result.state or nil
     local tail = type(state.tail) == 'string' and #state.tail <= 8 and state.tail or nil
     local model = type(state.model) == 'string' and #state.model <= 80 and state.model:match('^[%w%.%-_:/]+$') and state.model or nil
-    local inworld = type(state.inworld) == 'table' and state.inworld or {}
-    local inworldResult = type(inworld.result) == 'table' and inworld.result.id == inworldCommand and inworld.result.state or nil
-    local inworldTail = type(inworld.tail) == 'string' and #inworld.tail <= 8 and inworld.tail or nil
     local localModels = localModelList(state.localModels)
     return {provider = providerName(state.provider),
-        inworld = {saved = inworld.saved == true, tail = inworldTail, result = mistralResults[inworldResult] and inworldResult or nil},
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
         -- Why a failed Local AI could not start, when the settings page can say what to do: 'mature-off' (only Mature models, Mature content off).
@@ -620,13 +586,14 @@ end
 -- Maps any saved engine name to the nearest current choice. Unknown values
 -- take the default (Pocket TTS). Provider names stay stable so older saves keep
 -- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
--- Convai 'convai', the Mistral cloud voice (Voxtral) 'voxtral', the Inworld cloud voice 'inworld'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- Convai 'convai', the Mistral cloud voice (Voxtral) 'voxtral'. Any Pocket variant name resolves to the one Pocket TTS entry.
+-- A saved name of a voice that no longer exists (the removed Inworld cloud voice, 'inworld') is unknown too, so it takes the default.
 -- A save from before the short/long choice has no omniReference and migrates to
 -- 'long': whoever chose OmniVoice chose quality, and long is the better match.
 local function normalizeVoiceProvider(value)
     if type(value) ~= 'string' then return DEFAULT_VOICE_PROVIDER end
     local name = value:lower()
-    if name == 'convai' or name == 'voxtral' or name == 'inworld' then return name end
+    if name == 'convai' or name == 'voxtral' then return name end
     if name:find('pocket', 1, true) then return 'pocket' end
     if name:find('omni', 1, true) or name == 'hybrid' then return 'omni' end
     return DEFAULT_VOICE_PROVIDER
@@ -734,8 +701,6 @@ local function loadSettings()
         settings.headFollowStrength, settingsNeedSave = 1, true
     end
     local provider = normalizeVoiceProvider(settings.voiceProvider)
-    -- The Inworld cloud voice is listed only in developer mode (Settings > Development); without it a saved Inworld voice is Pocket TTS.
-    if provider == 'inworld' and settings.developerMode ~= true then provider = 'pocket' end
     if provider ~= settings.voiceProvider then settings.voiceProvider, settingsNeedSave = provider, true end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
         settings.omniSteps, settingsNeedSave = DEFAULT_OMNI_STEPS, true
@@ -800,7 +765,7 @@ local function loadSettings()
     -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
     -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
-    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral' or settings.voiceProvider == 'inworld') then
+    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
     -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
@@ -982,7 +947,6 @@ function M.voiceLabel(provider, steps, reference)
     if provider == 'pocket' then return ui.t('Pocket · Performance') end
     if provider == 'convai' then return ui.t('Convai · Cloud voice') end
     if provider == 'voxtral' then return ui.t('Mistral cloud voice (Voxtral)') end
-    if provider == 'inworld' then return ui.t('Inworld cloud voice') end
     return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
 end
 
@@ -1110,10 +1074,6 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
     end
     if values.voiceProvider ~= nil and after.voiceProvider == 'voxtral' then
         result.error = ui.t('The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
-        return result
-    end
-    if values.voiceProvider ~= nil and after.voiceProvider == 'inworld' then
-        result.error = ui.t('The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
         return result
     end
     local effects = after.naturalSpeech == true or after.expressiveEmotions == true
@@ -1349,13 +1309,13 @@ local function updateLocalVoice()
     for _, key in ipairs(state.routedProfiles or {}) do
         if type(key) == 'string' and byKey[key] then localVoices[key] = true end
     end
-    -- cloudVoice is in it: Voxtral and Inworld both report 'remote' on the Pocket route, and the status row names which one speaks.
+    -- cloudVoice is in it: Voxtral reports 'remote' on the Pocket route, and the status row names the cloud voice that speaks.
     local signature = tostring(state.provider) .. ':' .. tostring(state.state) .. ':' .. tostring(state.steps)
         .. ':' .. tostring(state.routeRevision) .. ':' .. tostring(state.cloudVoice)
     -- The bridge reports a fallback only after it committed the lower voice.
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
-    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
+    if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
@@ -1619,7 +1579,7 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and (localVoiceState.cloudVoice == 'voxtral' or localVoiceState.cloudVoice == 'inworld') then
+        if localVoices[profile.key] and localVoiceState.cloudVoice == 'voxtral' then
             body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.cloudVoice)
         elseif localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
             body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
@@ -1931,13 +1891,11 @@ function M.applySettings(player, values)
             nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
             if value == 'hybrid' then value = 'omni' end
-            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' and value ~= 'voxtral' and value ~= 'inworld' then
+            if value ~= 'pocket' and value ~= 'omni' and value ~= 'convai' and value ~= 'voxtral' then
                 return false, 'Choose one of the listed companion voices.'
             end
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
-            -- The Inworld cloud voice speaks with the player's own Inworld key (its own key, pasted in Settings > Development).
-            if value == 'inworld' and not (M.mistral().inworld or {}).saved then return false, INWORLD_KEY_MISSING end
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
             nextSettings.voiceProvider = value
@@ -1969,14 +1927,11 @@ function M.applySettings(player, values)
         else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
     -- Mature content needs Local AI: with a cloud provider in the saved result it is off (the page already stages that; this keeps
-    -- any other caller to the same rule). The Inworld voice goes with developer mode: turning that off leaves Pocket TTS.
-    -- Both change what an open page shows, so the caller is asked to reload it quietly.
+    -- any other caller to the same rule). Turning developer mode on or off
+    -- also changes what an open page shows, so the caller is asked to reload it quietly.
     local rulesReload = false
     if nextSettings.matureContent == true and nextSettings.conversationProvider ~= 'local' then
         nextSettings.matureContent, rulesReload = false, true
-    end
-    if nextSettings.voiceProvider == 'inworld' and nextSettings.developerMode ~= true then
-        nextSettings.voiceProvider, rulesReload = 'pocket', true
     end
     -- Mature content keeps the player's words off the cloud: V's line is never spoken by Voxtral beside it. Choosing Voxtral while it is
     -- on is refused; turning it on moves V to Pocket (the page reloads to show it).

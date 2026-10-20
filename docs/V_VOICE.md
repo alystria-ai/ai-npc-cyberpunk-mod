@@ -133,8 +133,7 @@ the sections below that still describe "the voice you already chose" are history
 | **Pocket** (default) | Cloned by a Pocket worker on the CPU. When the companions use Pocket, their worker speaks V (one job at a time, as before); with any other companion voice (OmniVoice, Voxtral, the Convai voice) V has a **Pocket worker of its own** (`bridge/v-helper-voice.mjs`) | Pocket worker, only when V needs it |
 | **Voxtral** | One HTTPS request to the Mistral Voxtral voice with the player's Mistral key, cloned from V's reference | Nothing |
 
-Not offered: OmniVoice (its GPU worker cannot serve V in time and cannot cancel a started render), the Convai voice (it cannot clone)
-and Inworld (developer-only, never named to players). The engine is independent of the companions' voice, so every mix works.
+Not offered: OmniVoice (its GPU worker cannot serve V in time and cannot cancel a started render), and the Convai voice (it cannot clone). The engine is independent of the companions' voice, so every mix works.
 Both engines are English only: a turn in another language gets no V line (subtitle still shows).
 
 **What the choice does to the pipeline.**
@@ -207,8 +206,7 @@ Until 2026-10-17 the voice was the one **you had chosen** for companions:
 | Pocket TTS | cloned by the local Pocket worker (a lazy voice entry, prepared on first use) |
 | OmniVoice | spoken by a **Pocket worker on the CPU that loads beside OmniVoice** (see "OmniVoice companions" below); V is never rendered on OmniVoice. English only |
 | Mistral (Voxtral) | cloned by the Mistral cloud voice with the player's Mistral key; **no local voice model is loaded** |
-| Inworld | cloned (once) by the Inworld cloud voice with the player's own key; **no local voice model is loaded** |
-| Convai cloud voice | **cannot clone, so the setting stays on but is inactive beside it:** no V line plays, nothing is refused, no notice is shown at load or Apply, and nothing is switched off. The setting row shows one short note ("Works with the Pocket, OmniVoice, Voxtral or Inworld voices."). Choosing a cloning voice makes it work at once. |
+| Convai cloud voice | **cannot clone, so the setting stays on but is inactive beside it:** no V line plays, nothing is refused, no notice is shown at load or Apply, and nothing is switched off. The setting row shows one short note ("Works with the Pocket, OmniVoice or Voxtral voices."). Choosing a cloning voice makes it work at once. |
 
 A cloud voice with no key, or a turn in a language the chosen voice cannot speak (Pocket speaks English only), gives no V line.
 Inactive beside the Convai voice costs nothing: `bridge/v-voice.mjs` starts no V line, warms no renderer page, prepares no voice
@@ -279,7 +277,7 @@ worker is ready** (never beside OmniVoice's own load), and stays resident (RAM a
 here) while OmniVoice is the committed voice and the V setting is on. Idle it costs nothing per frame; a V line is a short burst on
 its threads. A player who wants no extra process turns the V setting off: the helper is then released.
 
-**The rule "cloud voice loads no local model" is untouched:** the helper never exists beside Mistral (Voxtral), Inworld or the Convai
+**The rule "cloud voice loads no local model" is untouched:** the helper never exists beside Mistral (Voxtral) or the Convai
 voice, nor beside the Pocket voice (V then uses the chosen worker), nor while voice playback is off.
 
 **How it works** (`bridge/v-helper-voice.mjs`, `VoiceSelection.tickVHelper`):
