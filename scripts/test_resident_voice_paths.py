@@ -434,5 +434,154 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertFalse((self.app / 'runtime').exists())
 
 
+class UsvfsVoicePaths(unittest.TestCase):
+    """Mod Organizer 2 (USVFS): the OmniVoice pack is its own mod, so its model and adapter really live outside the Runtime's app folder, and Path.resolve()
+    of a file answers with the mod that holds it. USVFS does not exist here: the pack is a real folder beside the app, and where a merged folder is needed
+    Path.resolve() is patched to answer as USVFS does. The decision logic is tested: the flag (CYBERPUNK_CONVAI_USVFS) and the pack folder the service names
+    (CYBERPUNK_CONVAI_OMNI_PACK) make the pack acceptable, links never are, and without the flag nothing changes."""
+
+    def setUp(self):
+        PortableVoicePaths.setUp(self)
+        self.pack = self.root / 'mods' / 'Omni pack' / 'omni'
+        self.pack_paths = {'modelDirectory': self.pack / 'model', 'adapterDirectory': self.pack / 'voicestudio/backend'}
+        self.pack_paths['modelDirectory'].mkdir(parents=True)
+        (self.pack_paths['modelDirectory'] / 'model.safetensors').write_bytes(b'fixture-weights-not-loadable')
+        adapter = self.pack_paths['adapterDirectory'] / 'services/tts_backend.py'
+        adapter.parent.mkdir(parents=True)
+        adapter.write_text('# fixture adapter, never imported\n', encoding='utf-8')
+
+    def environment(self, pack=True, flag='1'):
+        environment = {worker.PATH_OVERRIDES[field]: str(path) for field, path in {**self.paths, **self.pack_paths}.items()}
+        if flag is not None:
+            environment[worker.USVFS_VARIABLE] = flag
+        if pack:
+            environment[worker.PACK_VARIABLE] = str(self.pack)
+        return environment
+
+    def resolved(self, environment=None, config=None):
+        environment = self.environment() if environment is None else environment
+        with patch.dict(os.environ, environment, clear=True):
+            paths = worker.resolve_worker_paths(self.app, environment)
+            return paths, worker.validate_config(config or self.config, self.app, paths=paths)
+
+    def test_the_pack_outside_the_app_folder_is_accepted_inside_usvfs(self):
+        paths, registry = self.resolved()
+        self.assertTrue(paths['portable'])
+        self.assertEqual(paths['packDirectory'], self.pack)
+        self.assertEqual(paths['modelDirectory'], self.pack_paths['modelDirectory'])
+        self.assertEqual(paths['adapterDirectory'], self.pack_paths['adapterDirectory'])
+        self.assertEqual(registry['model'], self.pack_paths['modelDirectory'])
+        self.assertEqual(registry['refs']['johnny-silverhand'][0], str(self.paths['referenceDirectory'] / 'johnny.wav'))
+        self.assertEqual(paths['applicationDirectory'], self.app)
+
+    def test_the_same_layout_is_refused_without_the_flag_or_without_the_pack_folder(self):
+        for label, environment in (('no flag', self.environment(flag=None)), ('flag off', self.environment(flag='0')),
+                                   ('no pack folder', self.environment(pack=False))):
+            with self.subTest(label), self.assertRaisesRegex(ValueError, 'must remain in the application directory'):
+                self.resolved(environment)
+
+    def test_the_model_and_adapter_must_still_be_inside_the_app_or_the_named_pack(self):
+        for field, place in (('modelDirectory', self.data / 'model'), ('adapterDirectory', self.root / 'mods' / 'Other mod' / 'backend'),
+                             ('modelDirectory', self.pack), ('adapterDirectory', self.pack.parent)):
+            with self.subTest(field=field, place=str(place)), self.assertRaisesRegex(ValueError, 'must remain in the application directory'):
+                self.resolved({**self.environment(), worker.PATH_OVERRIDES[field]: str(place)})
+
+    def test_persistent_data_stays_apart_from_the_app_and_the_pack(self):
+        for field, place in (('referenceDirectory', self.pack / 'voices'), ('cacheDirectory', self.pack / 'cache'),
+                             ('referenceDirectory', self.pack.parent), ('cacheDirectory', self.pack_paths['modelDirectory'] / 'cache')):
+            with self.subTest(field=field, place=str(place)), self.assertRaisesRegex(ValueError, 'separate from application files'):
+                self.resolved({**self.environment(), worker.PATH_OVERRIDES[field]: str(place)})
+        _, registry = self.resolved()
+        self.assertFalse(registry['paths']['cacheDirectory'].is_relative_to(self.pack))
+
+    def test_a_link_in_the_pack_is_refused_as_it_is_outside_usvfs(self):
+        real = Path.is_symlink
+        for linked in (self.pack_paths['modelDirectory'], self.pack, self.pack.parent):
+            with self.subTest(linked=str(linked)), patch.object(Path, 'is_symlink', lambda path, linked=linked: path == linked or real(path)):
+                with self.assertRaisesRegex(ValueError, 'Linked'):
+                    self.resolved()
+        with patch.object(Path, 'is_symlink', lambda path: path.name == 'model.safetensors' or real(path)):
+            with self.assertRaisesRegex(ValueError, 'Linked'):
+                self.resolved()
+
+    def test_a_pack_folder_that_is_not_an_absolute_plain_path_is_refused(self):
+        for value in ('omni', '..\\omni', ' ' + str(self.pack), str(self.pack) + '\n'):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'absolute'):
+                self.resolved({**self.environment(), worker.PACK_VARIABLE: value})
+
+    def test_files_that_resolve_to_other_mods_are_found_where_the_virtual_folder_shows_them(self):
+        # USVFS answers Path.resolve() of a folder with the winning mod's folder and of a file with the mod that holds that file.
+        real = Path.resolve
+        mods = real(self.root) / 'mods'
+        folders = [real(self.paths['referenceDirectory']), real(self.pack_paths['modelDirectory'])]
+        for folder in folders:
+            for source in folder.iterdir():
+                target = mods / 'B' / folder.name / source.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+
+        def resolve(path, strict=False):
+            found = real(path, strict=strict)
+            for folder in folders:
+                if found == folder:
+                    return mods / 'A' / folder.name
+                if found.is_relative_to(folder):
+                    return mods / 'B' / folder.name / found.relative_to(folder)
+            return found
+        with patch.object(Path, 'resolve', resolve):
+            _, registry = self.resolved()
+            self.assertIn('johnny-silverhand', registry['refs'], 'the reference is read from the file the virtual folder shows')
+            self.assertEqual(registry['unavailableProfiles'], {})
+            self.assertTrue(registry['model'].is_dir())
+            # Without the flag the same simulated view is refused: outside USVFS the resolved paths decide, as before.
+            with patch.dict(os.environ, {}, clear=True), self.assertRaisesRegex(ValueError, 'Local asset'):
+                worker.asset_file(self.pack_paths['modelDirectory'], 'model.safetensors')
+
+    def test_the_packaged_source_may_live_in_the_pack_inside_usvfs_only(self):
+        package = self.pack / 'python/Lib/site-packages/omnivoice'
+        (package / 'models').mkdir(parents=True)
+        origin = package / '__init__.py'
+        origin.write_text('# source fixture\n', encoding='utf-8')
+        (package / 'models/omnivoice.py').write_text('# model source fixture\n', encoding='utf-8')
+        paths, _ = self.resolved()
+        with patch.dict(os.environ, self.environment(), clear=True):
+            with patch.object(worker.importlib.util, 'find_spec', return_value=SimpleNamespace(origin=str(origin))):
+                worker.validate_portable_source(paths)
+            elsewhere = self.root / 'developer/omnivoice/__init__.py'
+            with patch.object(worker.importlib.util, 'find_spec', return_value=SimpleNamespace(origin=str(elsewhere))):
+                with self.assertRaises(RuntimeError):
+                    worker.validate_portable_source(paths)
+        # A layout that has no pack folder has no such place: the same package is outside the application directory.
+        without_pack = {**paths, 'packDirectory': None}
+        with patch.dict(os.environ, self.environment(), clear=True):
+            with patch.object(worker.importlib.util, 'find_spec', return_value=SimpleNamespace(origin=str(origin))):
+                with self.assertRaisesRegex(RuntimeError, 'outside the application directory'):
+                    worker.validate_portable_source(without_pack)
+
+    def test_the_player_folder_stays_out_of_the_pack_too(self):
+        player = self.data / 'player voices'
+        _, registry = self.resolved(config={**self.config, 'playerVoiceDirectory': str(player)})
+        self.assertEqual(registry['playerRoot'], player)
+        for place in (self.pack, self.pack / 'player', self.pack.parent):
+            with self.subTest(place=str(place)), self.assertRaisesRegex(ValueError, 'separate'):
+                self.resolved(config={**self.config, 'playerVoiceDirectory': str(place)})
+
+    def test_an_asset_path_cannot_step_out_of_its_folder_inside_usvfs(self):
+        with patch.dict(os.environ, self.environment(), clear=True):
+            for relative in ('../model.safetensors', 'a/../../x', 'a\\b', 'C:x'):
+                with self.subTest(relative=relative), self.assertRaises(ValueError):
+                    worker.asset_file(self.pack_paths['modelDirectory'], relative)
+            self.assertTrue(worker.asset_file(self.pack_paths['modelDirectory'], 'model.safetensors').is_file())
+
+    def test_without_the_flag_nothing_changed_for_a_physical_install(self):
+        plain = {worker.PATH_OVERRIDES[field]: str(path) for field, path in self.paths.items()}
+        with patch.dict(os.environ, {}, clear=True):
+            paths = worker.resolve_worker_paths(self.app, plain)
+            registry = worker.validate_config(self.config, self.app, paths=paths)
+        self.assertIsNone(paths['packDirectory'])
+        self.assertEqual(paths['applicationDirectory'], self.app.resolve())
+        self.assertEqual(registry['model'], self.paths['modelDirectory'].resolve())
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -44,6 +44,20 @@ PATH_OVERRIDES = {
 }
 
 
+# Mod Organizer 2 runs the game, and every process it starts, inside USVFS (a virtual file system); the service sets USVFS_VARIABLE to "1" in each
+# (packaging/runtime/usvfs-compat.mjs). A folder of the app is then the merge of several mod folders, and Path.resolve() of a file answers with the
+# real place of that one file, the mod that holds it. The OmniVoice pack is usually a mod of its own, so its model and adapter really live outside
+# the Runtime's folder, and a file may live in another mod than its folder's real place. Inside USVFS the paths are therefore compared as spelled
+# (absolute, normalised, never resolved), the pack's folder is a second approved root (the service names it in PACK_VARIABLE), and every component
+# of every path is still refused when it is a symlink or junction. Outside USVFS none of this applies and the checks are exactly as before.
+USVFS_VARIABLE = 'CYBERPUNK_CONVAI_USVFS'
+PACK_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_PACK'
+
+
+def usvfs_active(environ=None):
+    return (os.environ if environ is None else environ).get(USVFS_VARIABLE) == '1'
+
+
 class ReferenceUnavailable(ValueError):
     """A structurally valid reference cannot be used from this installation."""
 
@@ -88,7 +102,7 @@ def linked_path(path):
             or (hasattr(path, 'is_junction') and path.is_junction()))
 
 
-def checked_absolute_directory(value, name):
+def checked_absolute_directory(value, name, *, usvfs=None):
     """Explicit package paths must be absolute and cannot redirect through links."""
     if (not isinstance(value, str) or not value or value != value.strip()
             or re.search(r'[\x00-\x1f\x7f]', value) or not Path(value).is_absolute()):
@@ -97,10 +111,16 @@ def checked_absolute_directory(value, name):
     for part in reversed((candidate, *candidate.parents)):
         if linked_path(part):
             raise ValueError('Linked runtime directories are not supported')
-    resolved = candidate.resolve()
+    # Inside USVFS the folder stays as spelled: its resolved form is only where one mod happens to hold it.
+    resolved = Path(os.path.abspath(candidate)) if (usvfs_active() if usvfs is None else usvfs) else candidate.resolve()
     if resolved.exists() and not resolved.is_dir():
         raise ValueError('Expected a runtime directory')
     return resolved
+
+
+def approved_roots(paths):
+    """The folders the packaged assets may live in: the application directory, and inside USVFS also the OmniVoice pack's own folder."""
+    return [base for base in (paths['applicationDirectory'], paths.get('packDirectory')) if base is not None]
 
 
 def validate_portable_source(paths):
@@ -112,7 +132,7 @@ def validate_portable_source(paths):
     if not isinstance(origin, str) or not Path(origin).is_absolute():
         raise RuntimeError('The packaged OmniVoice source is unavailable')
     package = checked_absolute_directory(str(Path(origin).parent), 'OmniVoice source directory')
-    if not package.is_relative_to(paths['applicationDirectory']):
+    if not any(package.is_relative_to(base) for base in approved_roots(paths)):
         raise RuntimeError('The packaged OmniVoice source is outside the application directory')
     asset_file(package, Path(origin).name)
     asset_file(package, 'models/omnivoice.py')
@@ -127,7 +147,8 @@ def resolve_worker_paths(root=ROOT, environ=None):
     environ = os.environ if environ is None else environ
     values = {field: environ.get(name) for field, name in PATH_OVERRIDES.items()}
     supplied = [value is not None for value in values.values()]
-    root = root.resolve()
+    usvfs = usvfs_active(environ)
+    root = Path(os.path.abspath(root)) if usvfs else root.resolve()
     if not any(supplied):
         return {'portable': False, 'applicationDirectory': root,
                 'modelDirectory': None,
@@ -136,13 +157,19 @@ def resolve_worker_paths(root=ROOT, environ=None):
                 'hfDirectory': root / 'vendor/voice-models'}
     if not all(supplied):
         raise ValueError('Portable OmniVoice requires model, adapter, reference and cache paths together')
-    paths = {field: checked_absolute_directory(value, PATH_OVERRIDES[field])
+    paths = {field: checked_absolute_directory(value, PATH_OVERRIDES[field], usvfs=usvfs)
              for field, value in values.items()}
+    # The pack's own folder (USVFS only): where the service says the pack is. The model and the adapter must be inside it, as they otherwise
+    # must be inside the application directory; it never overlaps the persistent data either.
+    pack = None
+    if usvfs and environ.get(PACK_VARIABLE):
+        pack = checked_absolute_directory(environ[PACK_VARIABLE], PACK_VARIABLE, usvfs=True)
+    bases = [root] if pack is None else [root, pack]
     for field in ('modelDirectory', 'adapterDirectory'):
-        if paths[field] == root or not paths[field].is_relative_to(root):
+        if any(paths[field] == base for base in bases) or not any(paths[field].is_relative_to(base) for base in bases):
             raise ValueError('Portable voice assets must remain in the application directory')
     for field in ('referenceDirectory', 'cacheDirectory'):
-        if paths[field].is_relative_to(root) or root.is_relative_to(paths[field]):
+        if any(paths[field].is_relative_to(base) or base.is_relative_to(paths[field]) for base in bases):
             raise ValueError('Persistent voice data must be separate from application files')
     if (paths['referenceDirectory'].is_relative_to(paths['cacheDirectory'])
             or paths['cacheDirectory'].is_relative_to(paths['referenceDirectory'])):
@@ -150,22 +177,27 @@ def resolve_worker_paths(root=ROOT, environ=None):
     # Fail before importing any fallback adapter or allocating CUDA. The
     # complete module/dependency/hash closure is checked by the package launcher.
     asset_file(paths['adapterDirectory'], 'services/tts_backend.py')
-    return {'portable': True, 'applicationDirectory': root, **paths,
-            'hfDirectory': checked_absolute_directory(str(paths['cacheDirectory'] / 'huggingface'), 'voice hub cache')}
+    return {'portable': True, 'applicationDirectory': root, 'packDirectory': pack, **paths,
+            'hfDirectory': checked_absolute_directory(str(paths['cacheDirectory'] / 'huggingface'), 'voice hub cache', usvfs=usvfs)}
 
 
 def asset_file(root, relative, prefix=''):
     """Resolve a prevalidated relative asset without following linked children."""
-    root = root.resolve()
+    usvfs = usvfs_active()
+    root = Path(os.path.abspath(root)) if usvfs else root.resolve()
     candidate = root
     for part in PurePosixPath(relative).parts:
+        # Inside USVFS containment is by spelling (see USVFS_VARIABLE), so no part may step out of the folder.
+        if usvfs and (part in ('', '.', '..') or re.search(r'[\\/:\x00-\x1f\x7f]', part)):
+            raise ValueError('Local asset is outside its approved directory')
         candidate /= part
         if linked_path(candidate):
             raise ValueError('Linked local assets are not supported')
     resolved = candidate.resolve()
-    approved = (root / prefix).resolve()
-    if not approved.is_relative_to(root) or not resolved.is_relative_to(approved):
-        raise ValueError('Local asset is outside its approved directory')
+    if not usvfs:
+        approved = (root / prefix).resolve()
+        if not approved.is_relative_to(root) or not resolved.is_relative_to(approved):
+            raise ValueError('Local asset is outside its approved directory')
     if not resolved.is_file():
         raise ReferenceUnavailable('Local asset is missing')
     return resolved
@@ -195,7 +227,7 @@ def checked_player_directory(value, root, paths):
         others = [paths[field] for field in ('referenceDirectory', 'cacheDirectory') if paths.get(field) is not None]
         # A development checkout keeps its data under the application directory; a package must not.
         if paths['portable']:
-            others.append(paths['applicationDirectory'])
+            others.extend(approved_roots(paths))
     if any(player.is_relative_to(other) or other.is_relative_to(player) for other in others):
         raise ValueError('Player voice clips must be separate from application files, references and cache')
     return player

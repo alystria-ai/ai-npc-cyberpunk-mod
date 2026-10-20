@@ -196,11 +196,11 @@ export async function prepareState(layout, {log = () => {}} = {}) {
 // executable and asset path is explicit; nothing is looked up on PATH. The one exception is the hidden browser: the mod does not
 // ship one, so the bridge uses the system's Edge, else Chrome (bridge/system-browser.mjs). A developer's CYBERPUNK_CONVAI_BROWSER
 // passes through unchanged and names the executable instead.
-export function serviceEnvironment(layout, {omni, keyFile}, source = process.env) {
+export function serviceEnvironment(layout, {omni, keyFile, usvfs = false}, source = process.env) {
   const env = {...source};
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
-    'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_RHUBARB',
+    'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_OMNI_PACK', 'CYBERPUNK_CONVAI_RHUBARB',
     'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT', 'CYBERPUNK_CONVAI_GAME_STATE',
     // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
     'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
@@ -226,6 +226,9 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
     CYBERPUNK_CONVAI_OMNI_MODEL: layout.omniModel,
     CYBERPUNK_CONVAI_OMNI_ADAPTER: layout.omniAdapter,
     CYBERPUNK_CONVAI_OMNI_CACHE: resolve(layout.state, 'voice-studio-data'),
+    // Under Mod Organizer 2 (usvfs) the OmniVoice pack is usually a mod of its own, so its model and adapter lie outside the Runtime's folder: the worker
+    // (bridge/resident-voice-worker.py) accepts them inside this one folder, as well as inside the application directory. A physical install sets nothing.
+    ...(usvfs ? {CYBERPUNK_CONVAI_OMNI_PACK: layout.omni} : {}),
   });
   return env;
 }
