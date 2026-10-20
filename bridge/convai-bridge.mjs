@@ -900,8 +900,8 @@ const warmTurnConnections = options => options?.provider === 'custom'
   ? (customEndpoint.warmOrigin ? warmConnection({...options, origin: customEndpoint.warmOrigin, connections: 2}) : Promise.resolve(false))
   : warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
-// Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
-// one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
+// Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
+// local AI, whatever the player's conversation provider is: one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
 const addonTextHosts = new Map();
 function addonTextHost(route, profileKey) {
@@ -922,16 +922,18 @@ function addonTextHost(route, profileKey) {
   }
   return host;
 }
-// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack.
+// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack,
+// the Custom provider's endpoint once it is set up.
 const addonRouteState = () => {
   const local = addonHost.active ? localAiStatus() : 'not-installed';
   return {applied: mistral.applied, mistralKey: !!mistral.apiKey && mistral.limit?.kind !== 'invalid',
-    localReady: !['not-installed', 'no-memory', 'failed'].includes(local)};
+    localReady: !['not-installed', 'no-memory', 'failed'].includes(local), customReady: customEndpoint.ready === true};
 };
 // The game asked to warm a speaker (handle:prepare): open the Mistral connection, or load the speaker's prompt into the local AI.
 addonHost.onWarm = profileKey => {
   const route = addonHost.routeFor(profileKey, addonRouteState());
   if (route === 'mistral') void warmConnection({provider: 'mistral'}).catch(() => {});
+  else if (route === 'custom') void warmTurnConnections({provider: 'custom'}).catch(() => {});
   else if (route === 'local') void addonTextHost(route, profileKey).prewarm({local: {profileKey}});
 };
 function localTurn(input, prepared = preparedInputs.get(input)) {
@@ -2424,8 +2426,8 @@ async function withTurnClock(request, run) {
   try { return await withClock(clock, () => run(clock)); } finally { ended(); }
 }
 
-// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
-// AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
+// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from the player's Custom
+// provider, Mistral or the local AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
 // of the speaker's recent lines is dropped silently (addon-duplicate). The voice is the speaker's local voice when there is one.
 function addonTurnConfig(input, profile) {
   noteTurn(input);

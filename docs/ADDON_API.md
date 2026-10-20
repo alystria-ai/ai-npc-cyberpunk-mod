@@ -15,7 +15,7 @@ AI NPC Cyberpunk Mod."
 - **With no add-on installed, nothing changes.** `convaiAddons.live` stays false and `init.lua` skips every add-on call.
   `AddonHost.active` stays false and the bridge adds no roster rows, blocks, files, watchers or timers. The tests prove this:
   `bridge/addons.test.mjs` ("inert") and `bridge/addons-lua.test.mjs` ("loading the module touches nothing").
-- **No Convai, ever.** An add-on speaker's text comes only from **Mistral** or the **local AI**.
+- **No Convai, ever.** An add-on speaker's text comes only from **Mistral**, the **local AI** or the player's own **Custom** provider.
   - It never uses Convai: neither the free tier nor a player's own key.
   - It never counts toward the shared key's 100 conversations a day.
   - It never opens a Convai connection, memory or warm-up.
@@ -33,7 +33,7 @@ add-on folder (its own CET mod)              main mod
                                                         │ the same request / reply / lease files every automatic turn uses
   convai-addon.json  ── read at bridge start ──────> bridge/addons.mjs (AddonHost: persona rows, modes, blocks, journal)
   bridge.mjs (optional hooks) ─────────────────────> runAddonTurn in bridge/convai-bridge.mjs
-                                                        └─ TextProviderHost on Mistral or the local AI → voice → subtitles
+                                                        └─ TextProviderHost on Custom, Mistral or the local AI → voice → subtitles
 ```
 
 Each speaker becomes the profile `addon-<addon id>-<speaker id>`, for example `addon-skippy-gun`. The roster, the persona
@@ -119,7 +119,7 @@ Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod<Name
 | `version` | `1.0` or `1.0.0` (an optional `-beta.1` suffix is allowed). |
 | `requires.api` | The add-on API version the add-on was written for, `"1.0"`. |
 | `bridge` | Optional `.mjs` inside the folder (see Bridge module). |
-| `providers` | Optional. `["mistral", "local"]` (the default), `["mistral"]` or `["local"]`. Anything else is refused. A speaker may set its own `providers`. |
+| `providers` | Optional. `["mistral", "local"]` (the default), `["mistral"]` or `["local"]`. Anything else is refused. A speaker may set its own `providers`. `"custom"` is not a value here: the player's Custom provider is followed by every speaker (see Text providers). |
 | `speakers[]` | At most 4. `id` uses the same characters as the add-on id (1–24); `name` at most 60 characters. |
 | `persona.backstory` | Required. At most 12,000 characters. Who the speaker is. |
 | `persona.intro` / `identityRule` | Optional. Replace the opening line ("You are X, a real person…") and the "you are a real person" rule. A voice that is not a person should set both. |
@@ -529,18 +529,28 @@ digits, `_ . : -`, at most 48). `spec`:
   is a copy of the speaker's context blocks (at most 4, 3,000 characters) so the lines are written in its voice. A save load, death
   or shutdown clears the stock: ask again from `combatStarted`.
 
-## Text providers: Mistral or the local AI only
+## Text providers: Custom, Mistral or the local AI
 
 The bridge chooses the route for each add-on turn (`AddonHost.routeFor`), from what the speaker allows:
 
-1. The player's own conversation provider, when it is Mistral or the local AI and is working.
-2. Otherwise **Mistral**, when the player has saved a Mistral key that was not refused.
-3. Otherwise the **local AI**, when the Local AI pack is installed and has not failed.
-4. Otherwise nothing.
+1. The player's **Custom** provider (an OpenAI-compatible endpoint), when it is the conversation provider in use and its endpoint is
+   set up (address and model; decision 2026-10-20). Every speaker follows it, like the companions, so no add-on needs an edit: the
+   manifest's `providers` list names only `mistral` and `local` and does not need a `custom` entry (it is refused there).
+2. Otherwise the player's own conversation provider, when it is Mistral or the local AI, the speaker allows it and it is working.
+3. Otherwise **Mistral**, when the speaker allows it and the player has saved a Mistral key that was not refused.
+4. Otherwise the **local AI**, when the speaker allows it and the Local AI pack is installed and has not failed.
+5. Otherwise nothing.
+
+A Custom provider chosen but not set up falls through to 3 and 4 like any other state; Custom is never picked when another provider
+is the player's choice. On Custom the turn is the companions' Custom path: the same text host, memory, prompt layout and Custom
+route (no pacing of its own, the endpoint's own limits apply). With Mature content on the hard-limit guard runs on it as on every
+add-on route (the guard lines in the prompt, the input and output screens; never the crude Mature persona layer, which companions
+get). Stock lines (see Stock) are written only on Mistral, never on Custom.
 
 When nothing can answer, the reply carries `errorCode: 'addon-provider'`. The game then shows one notice: "Skippy needs a free
 Mistral key or the Local AI pack. Set it up under Conversation provider in AI NPC Cyberpunk Mod's settings." The add-on's remarks
-pause for two minutes. For remarks the notice is shown once per session; a message V typed always gets it.
+pause for two minutes. For remarks the notice is shown once per session; a message V typed always gets it. A player on a working
+Custom provider never gets it.
 
 **The default and the budget.**
 - The default route is Mistral for a Convai player who has saved a key. That player keeps Convai for companions, and Skippy and
@@ -550,6 +560,8 @@ pause for two minutes. For remarks the notice is shown once per session; a messa
   (4 s) means about one request every 6 to 8 seconds, and never two remarks at once.
 - Mistral requests are paced by the same scheduler as the companions' requests on that key (about one a second on the free plan),
   so a remark and a companion reply share that second and nothing is refused for rate.
+- On Custom a remark is one request to the player's endpoint, with no scheduler of the mod's (a server on this computer or the home
+  network answers one request at a time).
 - On the local AI a remark uses the GPU only while it is written. If the pack is installed but not running, the first remark starts
   it, so call `handle:prepare` when a fight or ride begins.
 - An add-on turn never touches Convai and never counts toward the shared key's 100 conversations a day.
@@ -680,7 +692,7 @@ export function onSettings(values) {}
   speech inside its own session, which an add-on speaker never opens, so V's recording is recognised on this computer by the
   recogniser the Mistral route already uses (`bridge/local-stt.mjs`, `bridge/local-stt-capture.mjs`, the Moonshine model in the
   hidden voice browser; `docs/LOCAL_STT.md`). It is the same whichever conversation provider the player chose, Convai included,
-  because it does not need the provider. The words then go to the add-on turn route (`runAddonTurn`: Mistral or the local AI,
+  because it does not need the provider. The words then go to the add-on turn route (`runAddonTurn`: Custom, Mistral or the local AI,
   never Convai), and the reply is voiced and captioned as any add-on reply. No Convai connection, memory or warm-up is opened.
   The microphone lease, cancel and finish handling accept a profile key that is not in the character roster, and the live words
   appear while V speaks. The recording's context blocks are added at the start and again at the finish (`microphone.decorate`).
@@ -827,7 +839,8 @@ check the list of calls.
    Delamain dialogue plays (scene tier above 1, or dialogue).
 6. The Local AI pack starts when a remark needs it and no FPS is lost outside the request. Measure the frame time during a
    remark at the local AI's default (about 20 s) and at a 10 s gap; shorten `LOCAL_REMARK_GAP_S` only if both are clean.
-7. The provider notice appears once with no Mistral key and no Local AI pack.
+7. The provider notice appears once with no Mistral key, no Local AI pack and no ready Custom provider. With Custom chosen and set up,
+   Skippy and Delamain answer through it and the notice never appears.
 8. Remarks feel right at the defaults (10 s, 30 a fight): frequent but never piled up, and none plays after its moment.
 9. Replacing the game's own lines: the log shows `muted game line: Skippy ...` for "new message detected" / "provocation" and the beeps
    are not heard (`audio=stop-sent(vo_3d_important)` and then silence); if the voice still plays, the stop does not work for scene

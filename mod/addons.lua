@@ -12,7 +12,7 @@
 -- and "Most remarks per fight" (5 to 50 or no limit, default 30; outside combat per five minutes), with the last remark of the cap kept
 -- for a moment of priority 4 or 5. One remark at a time: nothing new starts while one is written or spoken, and a remark whose moment
 -- has passed (about 3 s) is dropped, unless it asked for patience (2026-10-14): such a remark waits out a game scene or game dialogue line
--- and goes a short gap after it (see "Patience" in docs/ADDON_API.md). Add-on speakers' text comes only from Mistral or the local AI.
+-- and goes a short gap after it (see "Patience" in docs/ADDON_API.md). Add-on speakers' text comes only from the player's Custom provider, Mistral or the local AI.
 --
 -- An add-on may also replace the game's own lines of its character (2026-10-14, "Replacing the game's own lines" in docs/ADDON_API.md):
 -- handle:replaceGameLines declares which subtitle lines are its character's; while the player's "Replace the game's own lines" is on,

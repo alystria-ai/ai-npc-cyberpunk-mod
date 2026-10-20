@@ -4,13 +4,16 @@ import {mkdtemp, mkdir, writeFile, readFile, rm, stat} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
-import {ADDON_API_VERSION, ADDON_ENV, ADDON_PROVIDERS, AddonHost, CET_MODS, LOCAL_REMARK_GAP_S, addonRoots, apiCompatible, discoverAddons, fixedProvider,
+import {ADDON_API_VERSION, ADDON_ENV, ADDON_PROVIDERS, ADDON_ROUTES, AddonHost, CET_MODS, LOCAL_REMARK_GAP_S, addonRoots, apiCompatible, discoverAddons, fixedProvider,
   inspectReference, isAddonProfile, isNearDuplicate, lineSimilarity, parseAddonInput, parseAddonReaction, parseAddonSettings,
   parseAddonState, parseApiVersion, sampleLine, sharedMemory, speakerProfileKey, validateManifest} from './addons.mjs';
 import {parseInput} from './protocol.mjs';
 import {PersonaBook, systemHead} from './mistral-prompt.mjs';
-import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
+import {TextProviderHost, customRoute, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
+import {MistralProvider} from './mistral-key.mjs';
+import {CustomEndpoint, parseEndpointUrl} from './custom-endpoint.mjs';
+import {MatureContent, guardLayer} from './mature-content.mjs';
 
 // Line endings normalised: a Windows checkout (core.autocrlf) has CRLF, and the source checks below match on \n.
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -607,4 +610,89 @@ test('the runtime packages and the main manifests ship the add-on host but never
     assert.match(text, /"source": "mod\/addons\.lua"/);
     assert.doesNotMatch(text, /"addons\//, 'an add-on file is listed in a main mod manifest');
   }
+});
+
+// ---- The player's Custom provider (decision 2026-10-20) -------------------------------------------------------------------------
+
+test('Custom: an add-on speaker follows the player\'s Custom provider like a companion, while its endpoint is ready; the manifest list stays Mistral and the local AI', () => {
+  assert.deepEqual(ADDON_PROVIDERS, ['mistral', 'local'], 'a manifest still lists only these two');
+  assert.deepEqual(ADDON_ROUTES, ['mistral', 'local', 'custom']);
+  assert.throws(() => validateManifest(manifest({providers: ['custom']}), tmpdir()), /must list "mistral" and\/or "local"/, 'Custom is never listed: every speaker follows it');
+  const host = new AddonHost({addons: [skippy(), validateManifest(manifest({id: 'cab', name: 'Delamain', providers: ['local'],
+    speakers: [{id: 'delamain', name: 'Delamain', persona: {backstory: 'A cab AI.'}}]}), tmpdir())]});
+  const route = (key, state) => host.routeFor(key, state);
+  for (const key of ['addon-skippy-gun', 'addon-cab-delamain']) {
+    // Custom chosen and ready: Custom, whatever else is set up.
+    for (const mistralKey of [false, true]) for (const localReady of [false, true]) {
+      assert.equal(route(key, {applied: 'custom', customReady: true, mistralKey, localReady}), 'custom', `${key} ${mistralKey} ${localReady}`);
+    }
+    // Custom chosen but the endpoint is not ready: the fallback order of before (Mistral key, then Local AI, as the speaker allows), never Custom.
+    assert.equal(route(key, {applied: 'custom', customReady: false, mistralKey: false, localReady: false}), null);
+    assert.equal(route(key, {applied: 'custom', customReady: false, mistralKey: false, localReady: true}), 'local');
+    // Custom set up but another provider is the player's choice: unchanged, Custom is never picked on its own.
+    assert.equal(route(key, {applied: 'convai', customReady: true, mistralKey: false, localReady: false}), null);
+    assert.equal(route(key, {applied: 'local', customReady: true, mistralKey: true, localReady: true}), 'local');
+  }
+  assert.equal(route('addon-skippy-gun', {applied: 'custom', customReady: false, mistralKey: true, localReady: true}), 'mistral');
+  assert.equal(route('addon-cab-delamain', {applied: 'custom', customReady: false, mistralKey: true, localReady: false}), null, 'a local-only speaker never uses a Mistral key');
+  assert.equal(route('addon-skippy-gun', {applied: 'mistral', customReady: true, mistralKey: true, localReady: true}), 'mistral');
+  assert.equal(route('addon-skippy-gun', {applied: 'custom', mistralKey: true, localReady: true}), 'mistral', 'a state with no customReady is not ready');
+  assert.equal(route('judy-alvarez', {applied: 'custom', customReady: true}), null, 'not an add-on speaker');
+  // The notice for a player with nothing set up is unchanged; a Custom player never gets it.
+  assert.equal(host.providerNotice('addon-skippy-gun'), "Skippy needs a free Mistral key or the Local AI pack. Set it up under Conversation provider in AI NPC Cyberpunk Mod's settings.");
+  const fixed = fixedProvider({apiKey: 'k'}, 'custom');
+  assert.deepEqual([fixed.route, fixed.applied, fixed.active], ['custom', 'custom', true]);
+  assert.throws(() => fixedProvider({}, 'convai'), /cannot use convai/);
+  // The bridge feeds the state from the endpoint, warms its connection, and keeps stock lines on Mistral only.
+  const bridge = read('./convai-bridge.mjs');
+  assert.match(bridge, /customReady: customEndpoint\.ready === true/);
+  assert.match(bridge, /else if \(route === 'custom'\) void warmTurnConnections\(\{provider: 'custom'\}\)/);
+  assert.match(bridge, /route: profileKey => \{ const route = addonHost\.routeFor\(profileKey, addonRouteState\(\)\); return route === 'mistral' \? route : null; \}/, 'stock stays on Mistral');
+});
+
+test('Custom: an add-on turn runs through the Custom route of the shared text host, guarded like a companion when Mature content is on', async () => {
+  const host = new AddonHost({addons: [skippy({defaultMode: 'killer'})], startedAt: 0});
+  const roster = [];
+  host.extend(roster, {});
+  const custom = new CustomEndpoint({path: null});
+  await custom.setUrl(parseEndpointUrl('http://127.0.0.1:11434')); await custom.setModel('local-model');
+  assert.equal(custom.ready, true);
+  const provider = new MistralProvider({keyPath: 'k', readText: async () => { throw Error('none'); }, writeText: async () => {}, custom});
+  await provider.load();
+  provider.setPreference('custom'); provider.apply();
+  assert.equal(provider.applied, 'custom');
+  const route = host.routeFor('addon-skippy-gun', {applied: provider.applied, customReady: custom.ready, mistralKey: false, localReady: false});
+  assert.equal(route, 'custom');
+  const FLAGGED_REPLY = 'Alright, V. That kid was nude in the picture. We should get going.';
+  const seen = [];
+  let answer = 'Headshot. He never saw it coming.';
+  const chat = async options => { seen.push({system: options.messages[0].content, endpoint: options.endpoint, model: options.model}); return {text: answer, model: 'm', finishReason: 'stop', usage: {}}; };
+  const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: true});
+  // The options the bridge gives an add-on host (addonTextHost): the chosen route only, the guard and never the crude layer.
+  const text = new TextProviderHost({provider: fixedProvider(provider, route), memory: sharedMemory(await MistralMemory.open({path: null})),
+    personas: new PersonaBook(roster), routes: {custom: customRoute({provider, custom, chat})}, matureContent, guardOnly: true, stripPlayerEcho: true});
+  const input = {profileKey: 'addon-skippy-gun', reaction: {kind: 'addon'}, addon: {id: 'skippy', speaker: 'gun', event: 'headshot', maxWords: 8, text: 'V landed a headshot.', facts: {}}};
+  const blocks = host.blocks(input);
+  const parts = Object.fromEntries(['now', 'notes', 'world', 'volatile'].map(tier => [tier, blocks.filter(b => b.tier === tier).map(b => b.text).join('\n\n')]));
+  const config = {text: host.trigger(input), reaction: input.reaction, context: '', contextParts: {...parts, worldBlocks: []},
+    local: {profileKey: 'addon-skippy-gun', name: 'Skippy', channel: 'private'}};
+  try {
+    const reply = await text.reply(config);
+    assert.equal(reply.text, 'Headshot. He never saw it coming.');
+    assert.equal(seen.length, 1, 'one request, to the player\'s endpoint');
+    assert.match(seen[0].endpoint, /^http:\/\/127\.0\.0\.1:11434\//);
+    assert.equal(seen[0].model, 'local-model');
+    assert.match(seen[0].system, /Cold, clipped/, 'the mode persona');
+    assert.ok(seen[0].system.includes(guardLayer()), 'the hard-limit lines are in the prompt with Mature content on');
+    assert.doesNotMatch(seen[0].system, /MATURE CONTENT IS ON|Swear freely|palette/, 'never the crude Mature layer for an add-on');
+    // The output screen holds on Custom as it does for a companion.
+    answer = FLAGGED_REPLY;
+    const screened = await text.reply({...config, text: 'Another one.'});
+    assert.notEqual(screened.text, FLAGGED_REPLY);
+    // Mature content off with a normal model: no guard lines at all.
+    matureContent.update({matureContent: false});
+    answer = 'Plain line.';
+    await text.reply({...config, text: 'And again.'});
+    assert.ok(!seen.at(-1).system.includes(guardLayer()));
+  } finally { text.close(); }
 });
