@@ -26,6 +26,9 @@ let previousContinuous = null, previousAnalysis = null;
 const sessions = new SessionBindings();
 const companionActions = new CompanionActionWindow();
 let actionContextConfigured = false;
+// The connection was closed (or replaced) while a turn was still being set up: the turn was cancelled, not broken. An AbortError whose words say "cancelled", so the bridge neither
+// reports it nor shows it as a failure (bridge/error-events.mjs reportableTurnFailure), where a TypeError from a connection that is no longer there was reported (0.2.5 report).
+const cancelledTurn = (message = 'Conversation cancelled') => Object.assign(Error(message), {name: 'AbortError'});
 // The game owns its 30-second recording finish and supplies fresh context.
 // This later ceiling is cancellation only if that finish never reaches us.
 const MICROPHONE_CANCEL_AFTER_MS = 35000;
@@ -716,12 +719,17 @@ async function reply(config) {
   const admission = admitting = {};
   try {
     const timing = await connect(config);
+    // close() can run during any wait below (the world changed, a new talk began, the settings changed): the connection is then gone and the turn is cancelled, not failed.
+    const connected = epoch, gone = () => !client || epoch !== connected;
+    if (gone()) throw cancelledTurn();
     // The picture is usually on the session already (staged while V typed); then this costs nothing. Otherwise the wait for
     // Convai to buffer it runs beside the context update and is capped (visionWaitMs).
     const seen = config.reaction ? false : await stageTurnVision(config);
+    if (gone()) throw cancelledTurn();
     const buffered = seen ? awaitTurnVision(config) : null;
     await updateContext(config, true, seen);
     if (buffered) await buffered;
+    if (gone()) throw cancelledTurn();
     const current = beginTurn(timing, config);
     // collect() owns every later failure path. Until it runs, a failed send must
     // not leave the standby output device open.
@@ -819,6 +827,7 @@ async function beginVoice(config) {
 
 async function updateContext(config, allowActions = false, seen = false) {
   const connection = client, contextEpoch = epoch;
+  if (!connection) throw cancelledTurn('Conversation context update cancelled');
   const context = {mode: 'replace', run_llm: 'false',
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
@@ -842,12 +851,12 @@ async function updateContext(config, allowActions = false, seen = false) {
   if (armed || actionContextConfigured) {
     try {
       await publishCompanionActionContext(connection, context, armed ? offered : null);
-      if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
+      if (client !== connection || epoch !== contextEpoch) throw cancelledTurn('Conversation context update cancelled');
       actionContextConfigured = true;
       observed.actionContextsPublished = (observed.actionContextsPublished ?? 0) + 1;
       return;
     } catch {
-      if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
+      if (client !== connection || epoch !== contextEpoch) throw cancelledTurn('Conversation context update cancelled');
       // An unavailable action adapter cannot break ordinary conversation or
       // authorize an unconfigured proposal. Its old one-use target is revoked.
       companionActions.clear();
@@ -855,6 +864,7 @@ async function updateContext(config, allowActions = false, seen = false) {
       context.text = baseContext + CompanionActionWindow.unavailableText(armed ? offered : null);
     }
   }
+  if (client !== connection || epoch !== contextEpoch) throw cancelledTurn('Conversation context update cancelled');
   connection.updateContext(context);
 }
 
