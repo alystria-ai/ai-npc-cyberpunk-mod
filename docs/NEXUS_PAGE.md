@@ -73,7 +73,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [b]Make it yours[/b]
 [list]
 [*][b]Character editor.[/b] Edit any character's bio, speaking style and memories in your browser, or make characters of your own for anyone who has no profile (Mistral or Local AI).
-[*][b]World rules.[/b] Write rules for the whole of Night City in the editor, and the characters follow them (Local AI, Mistral and Custom).
+[*][b]World rules.[/b] Write rules for the whole of Night City on the editor's World rules page, for example "nobody knows V's name unless V says it", and every character follows them from the next reply, on every provider.
 [*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
 [*][b]Bring your own AI.[/b] The Custom provider works with OpenRouter, Nano-GPT, Ollama, LM Studio or any OpenAI-compatible service, and Local AI can run your own model files (see below).
 [*][b]Any language.[/b] Menus in sixteen languages, a Multilingual setting to talk in any language, and microphone packs for European and Asian languages.
