@@ -116,6 +116,7 @@ Checked and consistent: `inworld`/`hybrid`/unknown voice and `groq`/unknown prov
 - 75d48d11 Settings rules: Mature content can always be turned off, V's engine follows it, Restore defaults wins, Multilingual rules only on the free tier (`mod/manager.lua`, `mod/manager-ui.lua`, new `bridge/settings-matrix-lua.test.mjs`: 6 tests, written failing first)
 - 9eb4f081 Bridge settings poll reads a settings.json saved with a byte-order mark (`bridge/convai-bridge.mjs`; test in `bridge/startup-saved-choices.test.mjs`, written failing first)
 - adfbf89b Help text names Custom, the free tier for Multilingual and Local AI for V's Voxtral rule (15 locales, catalogue regenerated; tests updated to the new wording)
+- d0880438 Custom provider test: the provider help now names Custom once (an earlier rule kept it out for space; description-fit passes in every language)
 
 ## 5. Live checks for the fixed ones
 
