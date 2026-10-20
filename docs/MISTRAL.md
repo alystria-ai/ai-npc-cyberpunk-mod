@@ -233,6 +233,29 @@ Hook contract (the object `mistralSpeech` in `bridge/convai-bridge.mjs`): `avail
 answers it with `reply(config, options)`, the Mistral route. While the provider is Mistral and `available()` is false,
 `host.voiceChannel()` returns a channel that refuses with `[mistral:voice]`, which the game turns into the notice.
 
+### Voxtral 3 (2026-10-21)
+
+Mistral released Voxtral 3 on 2026-10-20 (Public Preview, "Premier" label). Facts read from the official docs and the models list on 2026-10-21:
+
+| | id (alias) | notes |
+| --- | --- | --- |
+| Voxtral TTS 3 (Voxtral Speech 3) | `voxtral-mini-tts-3-0` (`voxtral-mini-tts-3`) | `POST /v1/audio/speech`, the same fields and event stream as before (`input`, `ref_audio`, `response_format: pcm`, `stream`); no language field (the model speaks the language of the text); 34 emotion tags and 2 pace tags are claimed but their syntax is not documented, so none is used; $13 per million characters; context 4,096 |
+| Voxtral Mini Transcribe 3 | `voxtral-mini-transcribe-3-0` (`voxtral-mini-transcribe-3`) | `POST /v1/audio/transcriptions`; 50 languages claimed, 45 printed; $0.0035 per minute |
+| Voxtral Small Transcribe 3 | `voxtral-small-transcribe-3-0` | the most accurate; $0.004 per minute; not used (the microphone wants the fast one) |
+| Voxtral Mini Transcribe Realtime 3 | `voxtral-mini-transcribe-realtime-3-0` | streaming; not used |
+
+The `-latest` aliases did NOT move: `voxtral-mini-tts-latest` is still `voxtral-mini-tts-2603` ("TTS v1 final checkpoint", 9 languages) and `voxtral-mini-latest` is still `voxtral-mini-2602`
+(Transcribe 2). The mod therefore asks for the v3 ids by name (`bridge/voxtral-languages.mjs`). If an account refuses them (404, 402, a 400 about the model, or a 403 that repeats; for
+transcription also a 429 with an allowance of 0) the same request goes at once to the alias, and when the alias answers it is the model for ten minutes (one log line says so), then v3 is
+tried again. A limit, a server fault, a guardrail refusal and a 401 are never treated as a refused model. One test call with the developer's key on 2026-10-21 got audio from the v3 TTS id
+(HTTP 200, the usual event stream, 24 kHz float32 PCM). Whether the free "Experiment" plan includes the v3 models is NOT stated anywhere in the docs; the transcription ids were not called.
+
+Voxtral TTS 3 languages (Mistral's announcement names 21: English, French, Spanish, Catalan, Dutch, German, Hungarian, Italian, Norwegian, Polish, Romanian, Russian, Turkish, Ukrainian, Portuguese,
+Arabic, Chinese, Hindi, Japanese, Korean, Vietnamese; the voice presets add Greek; "35+" is claimed). The mod speaks only those 22 and shows a reply in any other language (Czech, Swedish, Hebrew,
+Thai) as text. The model's own page says "9 languages", which matches the older model; the models list says "35+ languages and 50+ dialects", and so does the announcement.
+Sources: https://docs.mistral.ai/getting-started/models/models_overview/, https://docs.mistral.ai/models/voxtral-mini-tts-3-0, https://docs.mistral.ai/models/voxtral-mini-transcribe-3-0,
+https://docs.mistral.ai/api/endpoint/audio/speech, https://mistral.ai/news/voxtral-3, `GET /v1/models`.
+
 ## What works and what does not
 
 Works: text talk, Phone Chat, group conversations, battle and loot reactions, subtitles, Pocket/Omni voices, lip sync, emotions,

@@ -211,7 +211,7 @@ test('Multilingual conversations acts only where the bridge uses it (Convai free
   assert(refused == false and message == 'Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.', tostring(message))
 `));
 
-test('a saved Multilingual pairing with Voxtral beside Mistral is kept on load; beside Convai free tier it moves to the cloud voice', () => run(`${harness()}
+test('a saved Multilingual pairing with Voxtral is kept on load, beside Mistral and beside the Convai free tier alike (Voxtral TTS 3 speaks the language of the text); Pocket still moves to the cloud voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   local function load(values)
     local file = {version = 2, enabledByKey = {}}
@@ -224,5 +224,7 @@ test('a saved Multilingual pairing with Voxtral beside Mistral is kept on load; 
   local loadedSettings = load({conversationProvider = 'mistral', voiceProvider = 'voxtral', multilingualConversations = true})
   assert(loadedSettings.voiceProvider == 'voxtral', tostring(loadedSettings.voiceProvider))
   loadedSettings = load({conversationProvider = 'convai', voiceProvider = 'voxtral', multilingualConversations = true})
+  assert(loadedSettings.voiceProvider == 'voxtral', tostring(loadedSettings.voiceProvider))
+  loadedSettings = load({conversationProvider = 'convai', voiceProvider = 'pocket', multilingualConversations = true})
   assert(loadedSettings.voiceProvider == 'convai', tostring(loadedSettings.voiceProvider))
 `));

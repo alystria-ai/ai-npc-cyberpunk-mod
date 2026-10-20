@@ -1,6 +1,6 @@
 # Mistral cloud voice (Voxtral)
 
-Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's text-to-speech (`voxtral-mini-tts-latest`),
+Added 2026-10-12. An optional Companion voice that speaks a reply with Mistral's text-to-speech (since 2026-10-21 Voxtral TTS 3, `voxtral-mini-tts-3-0`; the `-latest` alias, still the March 2026 model, when the account refuses it),
 cloned from the character's own reference clip (the OmniVoice long set first; see "Which clip is cloned"), on the player's free Mistral key. It works with any
 conversation provider (Convai free tier, Mistral or Local), because it only needs the key. Research and measurements behind the
 choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
@@ -27,9 +27,13 @@ Apply refuses it ("Requires a Mistral key (add it in Settings > Conversation pro
 the pack (those are greyed out). The key is the one used for the Mistral text option (`player-mistral-key.txt`, pasted with the Mistral key row's Paste button in Settings > Conversation provider); the
 bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved`).
 
-It speaks English only here (it uses Pocket's English route): with Multilingual conversations on, choosing it is refused
-("The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it."), and turning Multilingual on
-beside a saved Voxtral choice moves the voice to OmniVoice (pack installed) or the Convai cloud voice, with the usual notice.
+**Languages (since 2026-10-21, Voxtral TTS 3).** The API has no language field: the model speaks the language the text is written in, in the cloned voice
+(a reference clip in English still speaks French). Mistral names 21 languages for Voxtral TTS 3 and its voice presets add Greek; those 22 are the list the mod
+uses (`bridge/voxtral-languages.mjs`; "35+ languages" is claimed, but only these are written down). The older alias model speaks 9 (English, French, Spanish,
+Portuguese, Italian, Dutch, German, Hindi, Arabic) and is the list used while it is the model in use. A reply in a listed language is spoken by Voxtral
+(on a text provider and with Multilingual conversations alike); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text on a text provider and goes
+to the Convai voice with Multilingual conversations. An English conversation keeps the chosen voice untouched. Multilingual conversations keeps a saved Voxtral
+choice (it no longer refuses it) and still refuses Pocket. See docs/MISTRAL.md, "Voxtral 3".
 Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
 limited to pauses, as with Pocket). Voxtral is not used with Mature content (since 2026-10-20, after Voxtral refused Mature lines in a live test): turning it on moves the voices to Pocket, turning it off puts Voxtral back. V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
 
@@ -354,7 +358,7 @@ scheduler is paused or slowed.
 
 ## Limits
 
-- English only (see above); the face and lip sync follow the audio, so a different voice speed is handled by the same packets.
+- The languages of the model in use (see above); the face and lip sync follow the audio, so a different voice speed is handled by the same packets.
 - The audio style comes from the reference clip (Voxtral has no tags or style field), so Natural speech is limited to pauses
   and Expressive emotions use the usual text-based expression.
 - A reply is one voice from start to end; nothing is cross-faded. A reply whose rest the cloud could not deliver (after two asks)

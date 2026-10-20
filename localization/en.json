@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1066,
+    "strings": 1065,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -593,7 +593,7 @@
     "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
-    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
+    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
     "Preparing connection to {name}…": "Preparing connection to {name}…",
     "Preparing to drive": "Preparing to drive",
     "Preparing {count} more companions…": "Preparing {count} more companions…",
@@ -632,7 +632,7 @@
     "Remove the voice clip? {name} goes back to the shipped voice.": "Remove the voice clip? {name} goes back to the shipped voice.",
     "Reopen the manager; that action is no longer available.": "Reopen the manager; that action is no longer available.",
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
-    "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.": "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.",
+    "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.": "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.",
     "Report for the developer": "Report for the developer",
     "Report path copied to the clipboard.": "Report path copied to the clipboard.",
     "Report saved: {path}": "Report saved: {path}",
@@ -734,7 +734,7 @@
     "Support report saved: {path}": "Support report saved: {path}",
     "TALK TO {character}": "TALK TO {character}",
     "TEXT  >": "TEXT  >",
-    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech turns off.": "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech turns off.",
+    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket speaks English only, so this switches that voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Voxtral speaks many languages and stays. Without the pack and Voxtral, Natural speech turns off.": "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket speaks English only, so this switches that voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Voxtral speaks many languages and stays. Without the pack and Voxtral, Natural speech turns off.",
     "Talk to ordinary NPCs": "Talk to ordinary NPCs",
     "Talk to story characters": "Talk to story characters",
     "Test": "Test",
@@ -763,7 +763,6 @@
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
     "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.": "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.",
     "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
-    "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
     "The Mistral model is unavailable right now. Try again in a minute.": "The Mistral model is unavailable right now. Try again in a minute.",
     "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.": "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.": "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.",
@@ -1003,7 +1002,7 @@
     "Warming up": "Warming up",
     "What to do": "What to do",
     "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.": "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.",
-    "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped.": "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped.",
+    "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nWhichever you pick, a line that is not ready in time is skipped.": "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nWhichever you pick, a line that is not ready in time is skipped.",
     "Where the logs are": "Where the logs are",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
@@ -1596,7 +1595,7 @@
       "Natural speech",
       "Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.",
       "Page",
-      "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
+      "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
       "React to battles",
       "React to collected loot",
       "Send error reports automatically",
@@ -1605,7 +1604,7 @@
       "Starts with",
       "Subtitle display",
       "Subtitles",
-      "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech turns off.",
+      "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket speaks English only, so this switches that voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Voxtral speaks many languages and stays. Without the pack and Voxtral, Natural speech turns off.",
       "Talk to ordinary NPCs",
       "Talk to story characters",
       "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.",
@@ -1614,7 +1613,7 @@
       "Voice volume (%)",
       "V’s voice for typed lines",
       "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.",
-      "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped."
+      "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nWhichever you pick, a line that is not ready in time is skipped."
     ],
     "page.validation": [
       "Choose 16 or 32 voice steps.",
@@ -2072,7 +2071,7 @@
       "Remove the voice clip? The character goes back to a generic voice.",
       "Remove the voice clip? {name} goes back to the shipped voice.",
       "Reopen the manager; that action is no longer available.",
-      "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.",
+      "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.",
       "Report path copied to the clipboard.",
       "Report saved: {path}",
       "Requires a Mistral key (add it in Settings > Conversation provider)",
@@ -2144,7 +2143,6 @@
       "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
       "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.",
       "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
-      "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
       "The Mistral model is unavailable right now. Try again in a minute.",
       "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
       "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.",
@@ -2419,7 +2417,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1612"
+        "mod/manager.lua:1613"
       ]
     },
     "10 cm higher": {
@@ -2660,8 +2658,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1562",
-        "mod/manager.lua:1570"
+        "mod/manager.lua:1563",
+        "mod/manager.lua:1571"
       ]
     },
     "Add a copy, then use Party to choose its conversation profile.": {
@@ -2669,7 +2667,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1569"
+        "mod/manager.lua:1570"
       ]
     },
     "Add a display name": {
@@ -2973,7 +2971,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1543"
+        "mod/manager.lua:1544"
       ]
     },
     "Back to settings": {
@@ -3207,7 +3205,7 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager.lua:1545"
+        "mod/manager.lua:1546"
       ]
     },
     "Characters and party": {
@@ -3267,7 +3265,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1496"
+        "mod/manager.lua:1497"
       ]
     },
     "Chat on": {
@@ -3275,7 +3273,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1496"
+        "mod/manager.lua:1497"
       ]
     },
     "Check": {
@@ -3320,7 +3318,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager.lua:1867"
+        "mod/manager.lua:1868"
       ]
     },
     "Choose Check my plan to ask Convai.": {
@@ -3385,7 +3383,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1684"
+        "mod/manager.lua:1685"
       ]
     },
     "Choose a copy from your party first.": {
@@ -3393,7 +3391,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1691"
+        "mod/manager.lua:1692"
       ]
     },
     "Choose a gender": {
@@ -3417,7 +3415,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1876"
+        "mod/manager.lua:1877"
       ]
     },
     "Choose a memory clear action from Settings.": {
@@ -3433,7 +3431,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1561"
+        "mod/manager.lua:1562"
       ]
     },
     "Choose a ready companion from your party.": {
@@ -3451,7 +3449,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager.lua:1870"
+        "mod/manager.lua:1871"
       ]
     },
     "Choose a voice volume from 50 to 200 percent.": {
@@ -3461,7 +3459,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1754",
-        "mod/manager.lua:1843"
+        "mod/manager.lua:1844"
       ]
     },
     "Choose an active or invited copy.": {
@@ -3486,7 +3484,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1873"
+        "mod/manager.lua:1874"
       ]
     },
     "Choose an interface language.": {
@@ -3497,7 +3495,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1784",
-        "mod/manager.lua:1849"
+        "mod/manager.lua:1850"
       ]
     },
     "Choose any character from the list below. They do not need to be in your current party.": {
@@ -3515,7 +3513,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1827",
-        "mod/manager.lua:1831"
+        "mod/manager.lua:1832"
       ]
     },
     "Choose one of the listed Local AI models.": {
@@ -3525,7 +3523,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1775",
-        "mod/manager.lua:1811"
+        "mod/manager.lua:1812"
       ]
     },
     "Choose one of the listed companion voices.": {
@@ -3536,7 +3534,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1798",
-        "mod/manager.lua:1854"
+        "mod/manager.lua:1855"
       ]
     },
     "Choose one of the listed conversation providers.": {
@@ -3546,7 +3544,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1768",
-        "mod/manager.lua:1836"
+        "mod/manager.lua:1837"
       ]
     },
     "Choose one of the listed lip sync delays.": {
@@ -3556,7 +3554,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1759",
-        "mod/manager.lua:1839"
+        "mod/manager.lua:1840"
       ]
     },
     "Choose one of the listed relationship options.": {
@@ -3566,8 +3564,8 @@
       ],
       "references": [
         "mod/manager-ui.lua:1820",
-        "mod/manager.lua:1814",
-        "mod/manager.lua:1817"
+        "mod/manager.lua:1815",
+        "mod/manager.lua:1818"
       ]
     },
     "Choose one of the listed subtitle displays.": {
@@ -3578,7 +3576,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1778",
-        "mod/manager.lua:1846"
+        "mod/manager.lua:1847"
       ]
     },
     "Choose one of the listed voices for V.": {
@@ -3588,7 +3586,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1790",
-        "mod/manager.lua:1862"
+        "mod/manager.lua:1863"
       ]
     },
     "Choose profile": {
@@ -3596,7 +3594,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1579"
+        "mod/manager.lua:1580"
       ]
     },
     "Choose the mod interface language independently of character voices and conversation language.": {
@@ -3611,7 +3609,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1535"
+        "mod/manager.lua:1536"
       ]
     },
     "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.": {
@@ -3692,7 +3690,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1538"
+        "mod/manager.lua:1539"
       ]
     },
     "Clear the summary?": {
@@ -3855,8 +3853,8 @@
       "references": [
         "mod/manager-ui.lua:1445",
         "mod/manager-ui.lua:556",
-        "mod/manager.lua:1090",
-        "mod/manager.lua:1954"
+        "mod/manager.lua:1089",
+        "mod/manager.lua:1955"
       ]
     },
     "Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.": {
@@ -4047,7 +4045,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:961"
+        "mod/manager.lua:962"
       ]
     },
     "Convai: Local AI is not ready": {
@@ -4122,7 +4120,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1693"
+        "mod/manager.lua:1694"
       ]
     },
     "Conversation profile not assigned": {
@@ -4130,7 +4128,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1512"
+        "mod/manager.lua:1513"
       ]
     },
     "Conversation profile not assigned.": {
@@ -4138,8 +4136,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1568",
-        "mod/manager.lua:1576"
+        "mod/manager.lua:1569",
+        "mod/manager.lua:1577"
       ]
     },
     "Conversation profile set to {name}.": {
@@ -4147,7 +4145,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1686"
+        "mod/manager.lua:1687"
       ]
     },
     "Conversation provider": {
@@ -4245,7 +4243,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1555"
+        "mod/manager.lua:1556"
       ]
     },
     "Copy": {
@@ -4366,7 +4364,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1650"
+        "mod/manager.lua:1651"
       ]
     },
     "Creating the report…": {
@@ -4400,7 +4398,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1584"
+        "mod/manager.lua:1585"
       ]
     },
     "Custom (OpenAI-compatible)": {
@@ -4673,7 +4671,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1546"
+        "mod/manager.lua:1547"
       ]
     },
     "Dismiss": {
@@ -4689,7 +4687,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1578"
+        "mod/manager.lua:1579"
       ]
     },
     "Display names": {
@@ -5327,7 +5325,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1808"
+        "mod/manager.lua:1809"
       ]
     },
     "Invalid conversation settings.": {
@@ -5335,7 +5333,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1879"
+        "mod/manager.lua:1880"
       ]
     },
     "Invite": {
@@ -5419,7 +5417,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1513"
+        "mod/manager.lua:1514"
       ]
     },
     "Keep memories": {
@@ -5435,7 +5433,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1483"
+        "mod/manager.lua:1484"
       ]
     },
     "Kept until forgotten": {
@@ -5867,7 +5865,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:962"
+        "mod/manager.lua:963"
       ]
     },
     "Mistral did not accept that key.": {
@@ -6018,7 +6016,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1545"
+        "mod/manager.lua:1546"
       ]
     },
     "More than one owned car is nearby. Select or summon the car you want to use.": {
@@ -6058,7 +6056,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1092"
+        "mod/manager.lua:1091"
       ]
     },
     "Multilingual: replies in your language": {
@@ -6108,8 +6106,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1094",
-        "mod/manager.lua:1955"
+        "mod/manager.lua:1093",
+        "mod/manager.lua:1956"
       ]
     },
     "Natural speech needs the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read its tags aloud.": {
@@ -6117,7 +6115,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1099"
+        "mod/manager.lua:1100"
       ]
     },
     "Natural speech was turned off: the Convai cloud voice would read its tags aloud. With the OmniVoice pack, both work together.": {
@@ -6125,7 +6123,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1108"
+        "mod/manager.lua:1109"
       ]
     },
     "Needs Local AI or Custom.": {
@@ -6214,7 +6212,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1549"
+        "mod/manager.lua:1550"
       ]
     },
     "No entries yet.\nTry another search or tab.": {
@@ -6246,7 +6244,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1549"
+        "mod/manager.lua:1550"
       ]
     },
     "No model installed": {
@@ -6295,7 +6293,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1788"
+        "mod/manager.lua:1789"
       ]
     },
     "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.": {
@@ -6472,7 +6470,7 @@
         "mod/manager-ui.lua:1439",
         "mod/manager-ui.lua:1469",
         "mod/manager-ui.lua:367",
-        "mod/manager.lua:1522"
+        "mod/manager.lua:1523"
       ]
     },
     "Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.": {
@@ -6539,7 +6537,7 @@
       "references": [
         "mod/manager-ui.lua:1406",
         "mod/manager-ui.lua:367",
-        "mod/manager.lua:1522"
+        "mod/manager.lua:1523"
       ]
     },
     "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.": {
@@ -6728,7 +6726,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1612"
+        "mod/manager.lua:1613"
       ]
     },
     "Parts of the character": {
@@ -6744,7 +6742,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1620"
+        "mod/manager.lua:1621"
       ]
     },
     "Paste": {
@@ -6832,7 +6830,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1582"
+        "mod/manager.lua:1583"
       ]
     },
     "Playback settings updated.": {
@@ -6840,7 +6838,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1989"
+        "mod/manager.lua:1990"
       ]
     },
     "Player memory": {
@@ -6872,7 +6870,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1081"
+        "mod/manager.lua:1084"
       ]
     },
     "Pocket could not load. See Help in Settings.": {
@@ -6913,10 +6911,10 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:960"
+        "mod/manager.lua:961"
       ]
     },
-    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": {
+    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": {
       "contexts": [
         "page.setting"
       ],
@@ -7144,7 +7142,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1614"
+        "mod/manager.lua:1615"
       ]
     },
     "Record names": {
@@ -7243,7 +7241,7 @@
         "mod/manager-ui.lua:671"
       ]
     },
-    "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.": {
+    "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.": {
       "contexts": [
         "ui.localized"
       ],
@@ -7646,7 +7644,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1158",
-        "mod/manager.lua:1545"
+        "mod/manager.lua:1546"
       ]
     },
     "Settings are active, but could not be saved for next time.": {
@@ -7654,7 +7652,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1333"
+        "mod/manager.lua:1334"
       ]
     },
     "Settings saved.": {
@@ -7662,7 +7660,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1962"
+        "mod/manager.lua:1963"
       ]
     },
     "Setup check": {
@@ -7734,7 +7732,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1583"
+        "mod/manager.lua:1584"
       ]
     },
     "Show only the models whose name starts with this letter.": {
@@ -7807,7 +7805,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1449"
+        "mod/manager.lua:1450"
       ]
     },
     "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.": {
@@ -7929,7 +7927,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1574"
+        "mod/manager.lua:1575"
       ]
     },
     "Step out and wait for the previous driver cleanup to finish.": {
@@ -8092,7 +8090,7 @@
         "r6/scripts/CyberpunkConvai/Manager.reds:224"
       ]
     },
-    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech turns off.": {
+    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket speaks English only, so this switches that voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Voxtral speaks many languages and stays. Without the pack and Voxtral, Natural speech turns off.": {
       "contexts": [
         "page.setting"
       ],
@@ -8205,8 +8203,8 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1662",
-        "mod/manager.lua:1882"
+        "mod/manager.lua:1663",
+        "mod/manager.lua:1883"
       ]
     },
     "That copy is no longer in your party.": {
@@ -8217,8 +8215,8 @@
       "references": [
         "mod/manager-party.lua:561",
         "mod/manager-party.lua:592",
-        "mod/manager.lua:1656",
-        "mod/manager.lua:1678"
+        "mod/manager.lua:1657",
+        "mod/manager.lua:1679"
       ]
     },
     "That dismissal is no longer pending.": {
@@ -8258,7 +8256,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1646"
+        "mod/manager.lua:1647"
       ]
     },
     "That setting is read-only.": {
@@ -8300,7 +8298,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1131"
+        "mod/manager.lua:1132"
       ]
     },
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": {
@@ -8333,14 +8331,6 @@
       ],
       "references": [
         "mod/manager-ui.lua:821"
-      ]
-    },
-    "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/manager.lua:1085"
       ]
     },
     "The Mistral model is unavailable right now. Try again in a minute.": {
@@ -8393,7 +8383,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1646",
-        "mod/manager.lua:1981",
+        "mod/manager.lua:1982",
         "mod/nsui.lua:440"
       ]
     },
@@ -8821,7 +8811,7 @@
       ],
       "references": [
         "mod/manager-party.lua:772",
-        "mod/manager.lua:1658"
+        "mod/manager.lua:1659"
       ]
     },
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": {
@@ -9122,7 +9112,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1365"
+        "mod/manager.lua:1366"
       ]
     },
     "The key could not be saved.": {
@@ -9148,7 +9138,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1710"
+        "mod/manager.lua:1711"
       ]
     },
     "The manager could not refresh: {reason}": {
@@ -9156,7 +9146,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:2002"
+        "mod/manager.lua:2003"
       ]
     },
     "The memory clear request could not be sent. Check the memory service before trying again.": {
@@ -9255,7 +9245,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1341"
+        "mod/manager.lua:1342"
       ]
     },
     "The profile could not be assigned.": {
@@ -9263,7 +9253,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1687"
+        "mod/manager.lua:1688"
       ]
     },
     "The profile could not be cleared.": {
@@ -9271,7 +9261,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1694"
+        "mod/manager.lua:1695"
       ]
     },
     "The provider said: {detail}": {
@@ -9383,7 +9373,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1939"
+        "mod/manager.lua:1940"
       ]
     },
     "The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.": {
@@ -9545,7 +9535,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1537"
+        "mod/manager.lua:1538"
       ]
     },
     "This copy could not be created.": {
@@ -9553,7 +9543,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1651"
+        "mod/manager.lua:1652"
       ]
     },
     "This copy could not join.": {
@@ -9561,7 +9551,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1351"
+        "mod/manager.lua:1352"
       ]
     },
     "This is a short report: the conversation service was not available to build the full one.": {
@@ -9602,7 +9592,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1699"
+        "mod/manager.lua:1700"
       ]
     },
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": {
@@ -9628,11 +9618,11 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1801",
-        "mod/manager.lua:1804",
-        "mod/manager.lua:1822",
-        "mod/manager.lua:1825",
-        "mod/manager.lua:1828"
+        "mod/manager.lua:1802",
+        "mod/manager.lua:1805",
+        "mod/manager.lua:1823",
+        "mod/manager.lua:1826",
+        "mod/manager.lua:1829"
       ]
     },
     "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -9712,7 +9702,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1564"
+        "mod/manager.lua:1565"
       ]
     },
     "Turn chat on": {
@@ -9720,7 +9710,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1564"
+        "mod/manager.lua:1565"
       ]
     },
     "Turn off": {
@@ -9728,7 +9718,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1585"
+        "mod/manager.lua:1586"
       ]
     },
     "Turn on": {
@@ -9736,7 +9726,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1585"
+        "mod/manager.lua:1586"
       ]
     },
     "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.": {
@@ -9835,7 +9825,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1886"
+        "mod/manager.lua:1887"
       ]
     },
     "Unnamed model {index}": {
@@ -9845,7 +9835,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1275",
-        "mod/manager.lua:1431"
+        "mod/manager.lua:1432"
       ]
     },
     "Unselect": {
@@ -9902,7 +9892,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1541"
+        "mod/manager.lua:1542"
       ]
     },
     "Use the base URL only: no password, query or #.": {
@@ -9926,7 +9916,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1488"
+        "mod/manager.lua:1489"
       ]
     },
     "Use {key} to finish this recording.": {
@@ -10365,7 +10355,7 @@
         "mod/manager-ui.lua:1512"
       ]
     },
-    "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped.": {
+    "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nWhichever you pick, a line that is not ready in time is skipped.": {
       "contexts": [
         "page.setting"
       ],
@@ -10757,7 +10747,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1545"
+        "mod/manager.lua:1546"
       ]
     },
     "Your party is empty": {
@@ -10773,7 +10763,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1548"
+        "mod/manager.lua:1549"
       ]
     },
     "Your plan could not be read right now. Try again in a moment.": {
@@ -10957,7 +10947,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1208"
+        "mod/manager.lua:1209"
       ]
     },
     "{names} joined your group.": {
@@ -11114,7 +11104,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1352"
+        "mod/manager.lua:1353"
       ]
     },
     "{name} is no longer nearby.": {
@@ -11158,7 +11148,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1350"
+        "mod/manager.lua:1351"
       ]
     },
     "{name} selected for memory controls.": {
@@ -11226,7 +11216,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1668"
+        "mod/manager.lua:1669"
       ]
     },
     "{name}: conversation profile cleared.": {
@@ -11326,7 +11316,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:985"
+        "mod/manager.lua:986"
       ]
     },
     "{requested} is unavailable. Companions are using {voice} instead.": {
@@ -11334,7 +11324,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:988"
+        "mod/manager.lua:989"
       ]
     },
     "{voice} · needs Mistral key": {
@@ -11436,7 +11426,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1686"
+        "mod/manager.lua:1687"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11461,7 +11451,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1555"
+        "mod/manager.lua:1556"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11473,7 +11463,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1650"
+        "mod/manager.lua:1651"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11485,7 +11475,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1584"
+        "mod/manager.lua:1585"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11574,7 +11564,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1612"
+        "mod/manager.lua:1613"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11586,7 +11576,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1620"
+        "mod/manager.lua:1621"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11599,7 +11589,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1614"
+        "mod/manager.lua:1615"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11623,7 +11613,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1574"
+        "mod/manager.lua:1575"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11647,7 +11637,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1981"
+        "mod/manager.lua:1982"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11659,7 +11649,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1710"
+        "mod/manager.lua:1711"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11671,7 +11661,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:2002"
+        "mod/manager.lua:2003"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11695,7 +11685,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1886"
+        "mod/manager.lua:1887"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11707,7 +11697,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1431"
+        "mod/manager.lua:1432"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11779,7 +11769,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1208"
+        "mod/manager.lua:1209"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11845,7 +11835,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1352"
+        "mod/manager.lua:1353"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11881,7 +11871,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1350"
+        "mod/manager.lua:1351"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11942,7 +11932,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1668"
+        "mod/manager.lua:1669"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
