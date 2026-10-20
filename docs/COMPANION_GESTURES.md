@@ -5,8 +5,8 @@ reply, nod while V talks to them, and now and then take a signature idle while
 settled (their own vanilla idle where one exists, a labelled generic stance
 otherwise; see Round 4). The
 **Body gestures** setting (Companion behavior) was Off by default until it was
-qualified in game; it is **On by default since October 11, 2026** (a missing
-`bodyGestures` key means on, a saved choice is kept). `mod/companion-gestures.lua` is the controller; the
+qualified in game, On by default from October 11, 2026, and **removed on October 20, 2026**: gestures are
+always on and there is no row (a saved `bodyGestures` key is ignored and dropped from the file once). `mod/companion-gestures.lua` is the controller; the
 Stage 0 probe (`mod/gesture-probe.lua`) remains a development tool.
 
 ## What the game offers (October 6 research)
@@ -377,7 +377,7 @@ components, 42 in all) from `runtime/gestures/package/`; CET reload for
 `mod/gesture-selection.lua`, `companion-gestures.lua`, `gesture-catalog.lua`,
 `init.lua`.
 
-**In-game checks** (Body gestures On, Developer mode for `Gestures gesture`
+**In-game checks** (Developer mode for `Gestures gesture`
 lines in probe.log):
 1. Judy, a long reply (15 s+): no clip twice in a row, no two nods or two
    "what" back to back, no pointing or hand flung to a side, no turning away;
@@ -810,7 +810,7 @@ Built (Lua only, CET reload; no archive, nothing per frame):
 
 Tests: `bridge/gesture-selection.test.mjs` (pacing, bounds, short reply, phrase window, restart per speaker), `bridge/companion-gestures.test.mjs` (three copies: listeners keep one stance, only nod, 1-3 nods in a 24 s reply 8 s or more apart; the speaker still gestures; two listeners 2 s apart over 110 s; short reply, no nod and no exit; between speakers no exit and no re-entry, then one exit each after the round; microphone: all three nod after 3 s; outside copy and Off), `bridge/group-chat.test.mjs` (`roleOf` across text and voice rounds and an add-on voice).
 
-To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.log`; two or three companions standing within 4 m of V, hands-at-sides or any catalogued ones; a group chat by text, then by voice):
+To check live (Developer mode for `Gestures` lines in `probe.log`; two or three companions standing within 4 m of V, hands-at-sides or any catalogued ones; a group chat by text, then by voice):
 1. Send one group message: each member enters the talk stance once (`begin`), the first speaker gestures, the others only nod (`gesture` lines with `group: true`, category `nod`), about one nod per listener per reply, never together.
 2. A reply of one sentence: nobody nods; nobody leaves the stance between that speaker and the next.
 3. The round ends: each leaves with `reply ended` about 2.5 s later, no second `begin` in between.
@@ -880,7 +880,7 @@ The new idles go through Round 11's drift exit like every other idle: a flavour 
 
 Archive rebuilt into `E:\CyberpunkConvai-offload\work\gesture-assets-p3\package\convai_gestures.archive` (nothing installed): **game restart** is needed for the new idle workspots. CET reload for `mod/companion-gestures.lua`, `mod/gesture-workspot.lua`, `mod/gesture-catalog.lua`. All committed `mod/` files get installed; `diagnostics.lua` never.
 
-### To check live (Body gestures On, Developer mode for `Gestures` lines in `probe.log`; Johnny, Judy and Panam as companions, one at a time, standing within 4 m of V)
+### To check live (Developer mode for `Gestures` lines in `probe.log`; Johnny, Judy and Panam as companions, one at a time, standing within 4 m of V)
 
 1. Johnny, a cigarette idle (`flavour-begin` with `convai_idle_johnny_smoke`): is a cigarette in his left hand, does it glow, and is he puffing? About 2.5 s in, `props-seen`. When the idle ends: is the hand empty (nothing stuck to it, no floating cigarette)? `props-clear` lines are only for a removal; none means the engine had already despawned it.
 2. Johnny, the sunglasses idle: specs in the right hand, `props-seen`, gone afterwards. Then the crossed-arms and aggressive idles: pose, shuffles, and that none of them ends by itself before 45-90 s (`flavour ended` should be the only reason).
@@ -902,7 +902,7 @@ Changed:
 - A flavour, signature or prop idle starts only `conversationHold + flavourAfterTalk` (25 s) after the last conversation activity (`s.talkedAt`, one number set in `observe`), short replies included. The talk stance itself is not an idle, so it never brings a folded-arms or prop idle back. The drift exit, the prop cleanup and the travelling-idle ban are unchanged; nothing runs per frame beyond the existing tick.
 - Test: `m.policy.conversationHold = 2.5` in the fixture keeps the older tests' timing; new tests set 20 (one stance across two turns and the grace, only clips or the loop jumped to, an idle giving way once, short replies, catalog: no character talks from an ambient loop, Judy and Alex on `arms_crossed`).
 
-To check live (Body gestures On, Developer mode; Alex, then Judy): 1. Talk to her over several turns: she goes into the arms-crossed stance once (`begin`), gestures start from and return to the same upright pose, no sinking in between. 2. Stay quiet after a reply: she keeps the stance about 20 s, leaves it (`reply ended`), and an idle starts no sooner than about 5 s after that. 3. Watch the entry and exit of the stance for a sideways shift or step towards V (it is once per conversation now); if it is bad, say so and the family can be switched back (one catalog line) while a fitted loop is built.
+To check live (Developer mode; Alex, then Judy): 1. Talk to her over several turns: she goes into the arms-crossed stance once (`begin`), gestures start from and return to the same upright pose, no sinking in between. 2. Stay quiet after a reply: she keeps the stance about 20 s, leaves it (`reply ended`), and an idle starts no sooner than about 5 s after that. 3. Watch the entry and exit of the stance for a sideways shift or step towards V (it is once per conversation now); if it is bad, say so and the family can be switched back (one catalog line) while a fitted loop is built.
 
 ## Round 14 (October 16): interesting idles come up early and often; Johnny's worn glasses hide during his glasses idle
 
@@ -972,4 +972,4 @@ What changed:
 
 Tests (`bridge/companion-gestures.test.mjs`): the groups cover every idle and match the data file; Johnny over thousands of picks never plays two look-alikes in a row and his two arms-crossed idles never follow each other; the same with a busy hand; the all-one-group fallback keeps the earlier rules and keeps turning; an older catalog behaves as before; Judy alternates; `idleBlend` is 0.6-1.0 s, longer than vanilla and passed through as set; the build (skipped when the extracted data is not on the machine) writes the blends into every idle copy and leaves stances and seats alone; the hold after an exit follows the catalog's blend-out (0.8 s, 1.5 s, none); the exit signal stays at the cycle end whatever the blend and the copy is held for the blend that follows. Three older tests changed (the hold after an exit is 0.8 s in two of them, prop removal waits for the blend-out in one).
 
-To check live (after the archive rebuild and a game restart; Body gestures On, Developer mode): 1. Johnny over ten minutes: no two arms-crossed idles in a row (`flavour-begin` lines: `convai_idle_johnny_crossed` and `convai_idle_generic_arms_crossed` never adjacent). 2. The start and end of each idle: the pose should ease in and out over about a second with no snap to the base stance; say if the end is still abrupt (the forced blend can go to 1.0-1.2 s) or the start still lurches. 3. The cigarette and glasses idles: the item leaves the hand after the blend-out, not during it.
+To check live (after the archive rebuild and a game restart; Developer mode): 1. Johnny over ten minutes: no two arms-crossed idles in a row (`flavour-begin` lines: `convai_idle_johnny_crossed` and `convai_idle_generic_arms_crossed` never adjacent). 2. The start and end of each idle: the pose should ease in and out over about a second with no snap to the base stance; say if the end is still abrupt (the forced blend can go to 1.0-1.2 s) or the start still lurches. 3. The cigarette and glasses idles: the item leaves the hand after the blend-out, not during it.

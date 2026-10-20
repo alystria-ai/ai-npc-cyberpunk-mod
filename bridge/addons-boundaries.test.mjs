@@ -582,7 +582,7 @@ test('bridge module: activate or import that never settles must not hold up the 
 
 // ---- Routes, requests and voices ----------------------------------------------------------------------------------------------
 
-test('routes: for every provider set and player state the route is never Convai, always one the speaker allows and can use, and the player\'s own choice wins', () => {
+test('routes: for every provider set and player state the route is never Convai, always one the speaker allows and can use (or the player\'s ready Custom provider), and the player\'s own choice wins', () => {
   const sets = [['mistral', 'local'], ['mistral'], ['local'], ['local', 'mistral']];
   const addons = sets.map((providers, index) => validateManifest(manifest({id: `set${index}`, name: `Set ${index}`, providers: index === 3 ? undefined : providers,
     speakers: [speaker('voice', index === 3 ? {providers} : {})]}), tmpdir()));
@@ -590,22 +590,27 @@ test('routes: for every provider set and player state the route is never Convai,
   let checked = 0;
   for (const [index, providers] of sets.entries()) {
     const key = `addon-set${index}-voice`;
-    for (const applied of ['convai', 'mistral', 'local', 'groq', undefined, null, '']) {
-      for (const mistralKey of [false, true]) for (const localReady of [false, true]) {
-        const route = host.routeFor(key, {applied, mistralKey, localReady});
+    for (const applied of ['convai', 'mistral', 'local', 'custom', 'groq', undefined, null, '']) {
+      for (const mistralKey of [false, true]) for (const localReady of [false, true]) for (const customReady of [false, true]) {
+        const route = host.routeFor(key, {applied, mistralKey, localReady, customReady});
         const usable = name => providers.includes(name) && (name === 'mistral' ? mistralKey : localReady);
-        const label = JSON.stringify({providers, applied, mistralKey, localReady, route});
+        const label = JSON.stringify({providers, applied, mistralKey, localReady, customReady, route});
         checked++;
         assert.notEqual(route, 'convai', label);
-        assert.ok(route === null || providers.includes(route), label);
+        // Custom only when it is the player's chosen provider and its endpoint is ready, for every speaker; otherwise one the speaker allows.
+        const custom = applied === 'custom' && customReady;
+        assert.equal(route === 'custom', custom, label);
+        assert.ok(route === null || route === 'custom' || providers.includes(route), label);
         if (route === 'mistral') assert.ok(mistralKey, label);
         if (route === 'local') assert.ok(localReady, label);
-        assert.equal(route === null, !usable('mistral') && !usable('local'), `it never gives up while something allowed works: ${label}`);
-        if (usable(applied)) assert.equal(route, applied, `the player's own provider first: ${label}`);
+        if (!custom) {
+          assert.equal(route === null, !usable('mistral') && !usable('local'), `it never gives up while something allowed works: ${label}`);
+          if (usable(applied)) assert.equal(route, applied, `the player's own provider first: ${label}`);
+        }
       }
     }
   }
-  assert.equal(checked, 4 * 7 * 4);
+  assert.equal(checked, 4 * 8 * 8);
   assert.equal(host.routeFor('addon-set0-voice'), null, 'no state at all means no route');
   assert.equal(host.routeFor('addon-set0-voice', {}), null);
   for (const key of ['judy-alvarez', 'addon-set0-other', '', undefined, null, 5, {}]) assert.equal(host.routeFor(key, {applied: 'mistral', mistralKey: true, localReady: true}), null, String(key));

@@ -49,8 +49,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
-import {VTalkLedger} from './v-talks.mjs';
-import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
+import {MatureContent} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
@@ -900,8 +899,8 @@ const warmTurnConnections = options => options?.provider === 'custom'
   ? (customEndpoint.warmOrigin ? warmConnection({...options, origin: customEndpoint.warmOrigin, connections: 2}) : Promise.resolve(false))
   : warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
-// Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
-// one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
+// Add-on speakers (docs/ADDON_API.md) answer through the player's Custom provider when it is the one in use and ready, else through Mistral or the
+// local AI, whatever the player's conversation provider is: one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
 const addonTextHosts = new Map();
 function addonTextHost(route, profileKey) {
@@ -922,16 +921,18 @@ function addonTextHost(route, profileKey) {
   }
   return host;
 }
-// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack.
+// What an add-on speaker's turn may use right now: the player's provider, a saved Mistral key that was not refused, a working Local AI pack,
+// the Custom provider's endpoint once it is set up.
 const addonRouteState = () => {
   const local = addonHost.active ? localAiStatus() : 'not-installed';
   return {applied: mistral.applied, mistralKey: !!mistral.apiKey && mistral.limit?.kind !== 'invalid',
-    localReady: !['not-installed', 'no-memory', 'failed'].includes(local)};
+    localReady: !['not-installed', 'no-memory', 'failed'].includes(local), customReady: customEndpoint.ready === true};
 };
 // The game asked to warm a speaker (handle:prepare): open the Mistral connection, or load the speaker's prompt into the local AI.
 addonHost.onWarm = profileKey => {
   const route = addonHost.routeFor(profileKey, addonRouteState());
   if (route === 'mistral') void warmConnection({provider: 'mistral'}).catch(() => {});
+  else if (route === 'custom') void warmTurnConnections({provider: 'custom'}).catch(() => {});
   else if (route === 'local') void addonTextHost(route, profileKey).prewarm({local: {profileKey}});
 };
 function localTurn(input, prepared = preparedInputs.get(input)) {
@@ -1115,8 +1116,7 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   // pacing or pausing requests (a limit was hit, an allowance is nearly used up) V is skipped.
   cloud: {
     problem: key => {
-      // Mature content with the text on this computer keeps V's line off the cloud; with Mistral or Custom text the line is sent there anyway (matureAllowsCloudVoice).
-      if (!matureAllowsCloudVoice(matureContent.enabled, mistral.preference)) return 'Mature content with Local AI keeps your lines off the cloud';
+      // Mature content never changes or refuses a voice (owner decision 2026-10-20): Voxtral for V is allowed with it on, with any text provider.
       if (!voxtralVoice.hasKey) return 'no Mistral key';
       if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
       if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;
@@ -1133,9 +1133,6 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       void measure(input, {vVoice: summary}).catch(() => {});
     } catch { /* a log line never affects a reply */ }
   }});
-// V talks on their own (bridge/v-talks.mjs, docs/V_TALKS.md): the lines of an exchange between its two parts, so the second part's companion
-// hears what was said in the first. In memory only, a few at a time.
-const vTalkLedger = new VTalkLedger();
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
@@ -2352,7 +2349,7 @@ async function tick() {
     if (requestFileEmpty(raw)) { observedIdentity = stampIdentity; return; }
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
     if (signature === observed) { observedIdentity = stampIdentity; return; }
-    const input = vTalkLedger.attach(parseInput(raw));
+    const input = parseInput(raw);
     if (!input) {
       // The game rewrites this file in place, so a read can land in the middle of the write. A partial read is not a
       // finished request, a cancel or an error: it is read again on the next poll, and its identity (size, time) is not
@@ -2424,8 +2421,8 @@ async function withTurnClock(request, run) {
   try { return await withClock(clock, () => run(clock)); } finally { ended(); }
 }
 
-// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
-// AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
+// An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from the player's Custom
+// provider, Mistral or the local AI only (AddonHost.routeFor); with neither set up the game is told once (errorCode addon-provider). A remark that nearly repeats one
 // of the speaker's recent lines is dropped silently (addon-duplicate). The voice is the speaker's local voice when there is one.
 function addonTurnConfig(input, profile) {
   noteTurn(input);
@@ -2680,20 +2677,7 @@ async function runInput(request, prepared, clock) {
     vVoice.noteGender(input);
     let vLine = null;
     current.vLine = () => vLine;
-    if (input.reaction?.kind === 'vtalk') {
-      // V talks on their own (docs/V_TALKS.md): V's line is the turn. The allowance is asked first, so a refused exchange never has V speak
-      // to no answer (a daily cap or a rate limit throws here and the exchange just stops, as a reaction does). A line that cannot be
-      // spoken now (no voice ready, no clip, another language) ends the exchange here, quietly and without a model request: a companion
-      // would answer a line nobody heard. The second part also needs the first part's lines (the ledger lost them on a restart).
-      if (!mistral.active) hostGuard.check({reaction: input.reaction});
-      vLine = input.reaction.step > 1 && !input.reaction.heard ? null : vVoice.start(input, {signal: controller.signal, clock});
-      if (!vLine) {
-        console.error(`[VTalks] profile=${input.profileKey} exchange=${input.reaction.exchange} step=${input.reaction.step}: not started, V's line cannot be spoken now`);
-        await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-          error: 'V cannot speak this line now.', errorCode: 'vtalk-silent'}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync});
-        return;
-      }
-    } else if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
+    if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
     stages.knowledgePreparedMs = performance.now() - preparationStarted;
     clock.mark('knowledge');
@@ -2746,10 +2730,6 @@ async function runInput(request, prepared, clock) {
     if (ahead) { ahead.markReady(); await ahead.waitClaimed(controller.signal); }
     // Do not show a late reply to a different target or a newer turn.
     if (!await current()) return;
-    // The first part's lines are kept for the second part's companion; the last part closes the exchange.
-    if (input.reaction?.kind === 'vtalk') {
-      if (input.reaction.step < input.reaction.steps) vTalkLedger.remember(input, result.text); else vTalkLedger.forget(input.reaction.exchange);
-    }
     if (!result.liveDelivery?.generated) {
       await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
       stagedKnowledgeTurn(knowledgeTurn, {replyText: result.text});
@@ -2973,7 +2953,7 @@ const initial = await stat(inputPath).catch(() => null);
 if (initial) {
   const raw = await readFile(inputPath, 'utf8');
   observed = `${initial.mtimeMs}:${initial.size}:${raw}`; observedIdentity = fileIdentity(initial);
-  const input = vTalkLedger.attach(parseInput(raw)); if (input) lastAcceptedIdentity = parsedInputIdentity(input);
+  const input = parseInput(raw); if (input) lastAcceptedIdentity = parsedInputIdentity(input);
 }
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
@@ -3229,7 +3209,10 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
+    // V's voice row is one list (Off / Pocket / Voxtral): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
+    // is Voxtral again as soon as a key is saved; the poll runs this every time).
+    const vSettings = settings?.vVoiceEngine === 'voxtral' && !voxtralVoice.hasKey ? {...settings, vVoiceEngine: 'pocket'} : settings;
+    if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));

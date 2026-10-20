@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
@@ -703,7 +703,7 @@ do
 end
 `;
 
-test('with Auto-connect off, starting a conversation with a world character that is not connected explains the wait briefly, never mentioning the setting', () => run(`${worldCharacterFixture}
+test('starting a conversation with a world character that is not connected explains the wait briefly, never mentioning any setting (auto-connect is always on)', () => run(`${worldCharacterFixture}
 local function talk()
     hotkeys.cyberpunk_convai_text(); assert(player.composerOpen)
     player.composerOpen = false; events.onUpdate(0.1); clock = clock + 1
@@ -735,8 +735,8 @@ talk()
 assert(#feedback() == 1, 'a ready party copy showed the wait notice')
 `));
 
-test('with Auto-connect on, looking at a world character publishes it for the bridge and releasing publishes an empty list', () => run(`${worldCharacterFixture}
-manager.autoConnectNearby = function() return true end
+test('looking at a world character publishes it for the bridge without any setting or manager getter, and looking away publishes an empty list', () => run(`${worldCharacterFixture}
+assert(manager.autoConnectNearby == nil, 'the manager has no auto-connect getter any more')
 -- The fixture's json.encode returns tokens, so read the hand-written document directly.
 local function published()
     local raw = files['runtime/nearby-connections.json']
@@ -750,19 +750,18 @@ for _ = 1, 12 do events.onUpdate(0.1) end
 local list = assert(published(), 'no nearby-connections publication')
 assert(#list.profiles == 1 and list.profiles[1] == 'judy-alvarez')
 assert(list.updated == clock * 1000)
--- With Auto-connect on a talk before the warm-up finishes shows the same wait notice (no hint, no warm-up notice).
+-- A talk before the warm-up finishes shows the same wait notice (no hint, no warm-up notice).
 local noticesBefore = #feedback()
 hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
 assert(#feedback() == noticesBefore + 1 and feedback()[#feedback()] == 'Preparing connection to Judy…',
     'a talk before the warm-up showed no wait notice: ' .. table.concat(feedback(), ' | '))
--- The setting off releases it at once.
-manager.autoConnectNearby = function() return false end
-events.onUpdate(0.1)
+-- Looking away releases it.
+targeting.GetObjectClosestToCrosshair = function() return nil end
+for _ = 1, 12 do events.onUpdate(0.1); clock = clock + 0.1 end
 assert(#published().profiles == 0)
 `));
 
-test('with Auto-connect on, looking at a world character and warming her posts no notice, and a talk before she is ready posts exactly one', () => run(`${worldCharacterFixture}
-manager.autoConnectNearby = function() return true end
+test('looking at a world character and warming her posts no notice, and a talk before she is ready posts exactly one', () => run(`${worldCharacterFixture}
 for _ = 1, 60 do events.onUpdate(0.1); clock = clock + 0.1 end
 assert(#feedback() == 0, 'the gaze or the warm-up posted a notice: ' .. table.concat(feedback(), ' | '))
 hotkeys.cyberpunk_convai_text(); assert(player.composerOpen); player.composerOpen = false; events.onUpdate(0.1)
@@ -771,8 +770,7 @@ for _ = 1, 60 do events.onUpdate(0.1); clock = clock + 0.1 end
 assert(#feedback() == 1, 'a notice was posted after the talk start without a new talk: ' .. table.concat(feedback(), ' | '))
 `));
 
-test('with Auto-connect on, a talk with a character who is already connected posts no notice', () => run(`${worldCharacterFixture}
-manager.autoConnectNearby = function() return true end
+test('a talk with a character who is already connected posts no notice', () => run(`${worldCharacterFixture}
 for _ = 1, 30 do events.onUpdate(0.1); clock = clock + 0.1 end
 files['runtime/party-connection-state.json'] = json.encode({connections = {{profile = 'judy-alvarez', scope = 'private', state = 'ready'}}})
 clock = clock + 2
@@ -1241,4 +1239,28 @@ tearingDown = true; before['PlayerPuppet.OnDetach'](); tearingDown = false
 after['PlayerPuppet.OnGameAttached'](); after['PlayerSystem.OnGameRestored']()
 for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
 assert(#registrations == 5)
+`));
+
+// Settings removed on 2026-10-20 (always on): init.lua passes constants, and no mod file asks the manager for them.
+test('auto-connect, the game-dialogue recorder, the gesture service and the live holocall picture are on without any manager getter', () => {
+  const removedGetters = /manager\.(autoConnectNearby|expressiveEmotions|gameDialogueContext|holocallLiveImage|bodyGestures|johnnyHologram|vTalks)\b/;
+  for (const name of readdirSync(new URL('../mod/', import.meta.url)).filter(file => file.endsWith('.lua'))) {
+    const text = readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
+    if (name !== 'manager.lua') assert.doesNotMatch(text, /autoConnectNearby|gameDialogueContext|holocallLiveImage|bodyGestures|expressiveEmotions|johnnyHologram|vTalks/, `${name} still names a removed setting`);
+  }
+  assert.doesNotMatch(source, removedGetters);
+  assert.match(source, /module\.new, \{\s*enabled = function\(\) return true end,/, 'auto-connect: constant on');
+  assert.match(source, /liveImage = function\(\) return true end/, 'holocall live picture: constant on');
+  const gameDialogue = source.slice(source.indexOf("pcall(dofile, 'game-dialogue.lua')"), source.indexOf('convaiGameDialogue = gameDialogue'));
+  assert.doesNotMatch(gameDialogue, /\benabled\s*=/, 'the recorder has no enabled option');
+  const gestures = source.slice(source.indexOf("-- Body gestures (docs/COMPANION_GESTURES.md)"), source.indexOf('convaiGestures = controller'));
+  assert.match(gestures, /enabled = function\(\) return true end/, 'gestures: constant on');
+});
+
+test('the world runs with a manager that has none of the removed getters: auto-connect publishes without a setting', () => run(`${worldCharacterFixture}
+for _, name in ipairs({'autoConnectNearby', 'expressiveEmotions', 'gameDialogueContext', 'holocallLiveImage', 'bodyGestures'}) do
+    assert(manager[name] == nil, name)
+end
+for _ = 1, 12 do events.onUpdate(0.1) end
+assert(files['runtime/nearby-connections.json'], 'auto-connect did not publish without a setting')
 `));

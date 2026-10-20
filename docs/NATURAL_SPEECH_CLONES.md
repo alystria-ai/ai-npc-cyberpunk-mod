@@ -488,7 +488,7 @@ Modelled on the Multilingual twins (`bridge/multilingual.mjs`, `bridge/relations
    argument omitted and with `false`.
 5. The voice decides as well: the clone is used only when the turn's planned engine is local (`planTurnVoice` result
    `omni` or `pocket`). A Multilingual turn that goes to the Convai cloud voice keeps the original or twin, because the
-   cloud voice would read a tag aloud. Natural speech already moves the voice off the cloud voice, so this is a safety net.
+   cloud voice would read a tag aloud. The manager already keeps Natural speech and the Convai cloud voice apart where Convai is the provider (since 2026-10-20 it turns Natural speech off instead of moving the voice; beside Mistral, Local AI or Custom the bridge plays Pocket for the Convai voice selection, so Natural speech works there), so this is a safety net.
 6. Context on a clone turn: no `naturalSpeechContext` offer. OmniVoice gets only the repeat guard (after a reply with a
    device); Pocket gets the "no sounds, pauses only" rule on every turn. A profile without a clone keeps the current block
    unchanged. Tag stripping (display, memory, subtitles, Omni's seven tags, Pocket strips all) is unchanged.

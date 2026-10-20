@@ -197,7 +197,7 @@ decode), and none of the code below runs, loads or opens a connection for it.
 1. **Evidence from the player**: the language of the last text they typed (`detectLanguage`, `bridge/reply-language.mjs`; a short or mixed line says
    nothing; automatic reactions are not counted) or the language Mistral reported for the last recording. Both live in memory for the life of
    the bridge. English evidence wins like any other, so an English speaker with a Russian game keeps the English path.
-2. **The interface language**: the explicit "Interface language" setting (`settings.json` `uiLanguage`), else the language the mod resolved from
+2. **The interface language** (the Interface language row's help says so since 2026-10-20: "The microphone uses this language as a hint for non-English speech"): the explicit "Interface language" setting (`settings.json` `uiLanguage`), else the language the mod resolved from
    the game (`runtime/ui-language.txt`, written by `mod/microphone.lua publishLanguage` from the one place in `mod/init.lua` that already learns
    of a change; nothing per frame). The bridge reads the file when a recording opens, at most once in 3 s.
 3. **English.** A game language the mod does not support (Arabic, Thai) counts as English.

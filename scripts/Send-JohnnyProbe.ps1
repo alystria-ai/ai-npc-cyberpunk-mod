@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory = $true, Position = 0)][ValidateSet('place', 'relic', 'hologram', 'feats')][string]$Feature,
+    [Parameter(Mandatory = $true, Position = 0)][ValidateSet('place', 'relic', 'feats')][string]$Feature,
     [Parameter(Mandatory = $true, Position = 1)][string]$Action,
     [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod',
     [int]$TimeoutSeconds = 10
@@ -13,7 +13,6 @@ param(
 # It never sends input to the game. Features and actions:
 #   place    read | note:<place key>         (what the district sample reads now; queue one test arrival at that place)
 #   relic    start | status | stop | snapshot
-#   hologram spawn:<variant> | despawn | status
 #   feats    start | status | stop
 # Usage: powershell -File scripts\Send-JohnnyProbe.ps1 place read
 $ErrorActionPreference = 'Stop'

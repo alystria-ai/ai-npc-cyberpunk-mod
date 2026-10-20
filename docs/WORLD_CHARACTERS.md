@@ -12,7 +12,7 @@ So: the game's own named characters can be talked to where they stand, with thei
 
 ## What a player can do
 
-Face the game's own Judy (or Jackie, Panam, Rogue, or anyone on the roster) and use the talk keys, text or voice. She answers in her own voice, from her own body, with her lips moving to the words and her face showing the feelings she marks (the Expressive emotions setting decides whether she marks them). Her memory is the same as our Judy's: one profile, one memory.
+Face the game's own Judy (or Jackie, Panam, Rogue, or anyone on the roster) and use the talk keys, text or voice. She answers in her own voice, from her own body, with her lips moving to the words and her face showing the feelings she marks (the feeling tags are always on and need a local voice). Her memory is the same as our Judy's: one profile, one memory.
 
 Settings > Conversations > **Talk to story characters** (off by default; turn it on to use this). It takes effect for a character that spawns after the change, so reload the save after switching it.
 
@@ -66,7 +66,7 @@ A running `face_rig` cannot change its graph (measured, docs/FACIAL_ANIMATION.md
 - **A look change after the spawn** (a quest script, or another mod swapping the character's model or outfit): the rebuild replaces `face_rig` with the vanilla graph again, so the face is prepared again by the same rules (`OnReassemble`, `PrepareGameFace`; `docs/FACIAL_ANIMATION.md`, "October 19: a replaced model"). Until 2026-10-19 such a character stayed silent-faced and the log read `status=stale:...` with every counter at zero (the game's own Judy in her apartment, a 0.2.0 report). The same section lists every status the log can show and what each means.
 - After the screen-face step (the Delamain add-on's screen NPC is a named character on a crowd graph and needs its own slot) and before the "not a crowd graph" return.
 
-Emotions: nothing new. The reply's emotion timeline (the Expressive emotions setting, `bridge/expression-timeline.mjs`) is written by the same writer as for any speaker (`facial-playback.lua`, `applyFeature`). Two differences for a story speaker, both through `M.storyEntity` (set on the key press for that one entity):
+Emotions: nothing new. The reply's emotion timeline (the emotion tags, always on since 2026-10-20, `bridge/expression-timeline.mjs`) is written by the same writer as for any speaker (`facial-playback.lua`, `applyFeature`). Two differences for a story speaker, both through `M.storyEntity` (set on the key press for that one entity):
 
 - The writer's "is this face safe to write" check (`safeExpressionActor`) uses the Lua checks without the broad scene flag (autonomous AI, dialogue, combat and injury stay). The native check reads the scene flag, so it is not used for this speaker.
 - The idle writer (blinks, resting face, listening and thinking faces) stays companion-only (`owns`), so a story character's face is written only while it speaks.
@@ -118,7 +118,7 @@ Installing needs a CET reload for the Lua and a game restart for the reds. The f
 
 ## Live check owed (needs the Scripts install, a game restart and a save reload)
 
-1. Stand next to the game's own Judy (or Jackie, Panam, Rogue) where she is in the world with Expressive emotions on. Press the text key and say hello, then the voice key. She answers in her voice from her own body. `probe.log` has `World conversation: profile=judy-alvarez (voice and face only)` and `Face request` shows `prepared:...` (or says why not). Her lips move and her face shows the feeling. The scene tier does not change.
+1. Stand next to the game's own Judy (or Jackie, Panam, Rogue) where she is in the world (a local voice speaks, so the emotion tags are asked for). Press the text key and say hello, then the voice key. She answers in her voice from her own body. `probe.log` has `World conversation: profile=judy-alvarez (voice and face only)` and `Face request` shows `prepared:...` (or says why not). Her lips move and her face shows the feeling. The scene tier does not change.
 2. While she talks, nothing else of hers changes: she does not turn to V, her idle or work animation goes on, no hold, no bark muting beyond what she says, no gesture. `probe.log` has no `Focus ownership` line for her and the scanner still shows her normal name.
 3. Walk away and wait: the reply ends with her face going back to her own animation (no frozen mouth, no stuck expression). Start a second reply and trigger a fight or let a quest scene start: the reply stops, the log says `World conversation ended: ... reason=...`.
 4. Face a quest character who is in a scene or a dialogue choice hub, or sits in a vehicle: the talk key shows "{name} is busy right now." and nothing starts. Face a quest NPC with no roster profile: the old notice.

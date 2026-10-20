@@ -30,7 +30,7 @@ const clockLua = `
   local function newRestore() return (function() ${restoreSource} end)() end
 `;
 const customised = {...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
-  voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyRemarks: 'rare', subtitleStyle: 'overhead'};
+  voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead'};
 
 // --------------------------------------------------------------------------------------------------------- the module
 test('a finished restore from this game session ends the wait, and the answer then stays', () => {

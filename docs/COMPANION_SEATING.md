@@ -335,13 +335,13 @@ seat and nothing else.
    timeout, refused route) cools that companion down for 30 s.
 
 Talking while seated is fine: lip sync and expressions are facial and keep
-working. Body gestures do not run in a seat yet (the gesture controller never
+working. Body gestures (always on) do not run in a seat yet (the gesture controller never
 starts in a workspot it did not open). Seated talk clips exist for some seats:
 `generic_female_average__sit_chair__2h_on_lap__01.anims` has 146 clips (talk,
 yes/no, shrug, describe, what, ...), the bar-stool counter pose 5 `talk__0N`,
 the couch pose almost none (`rh_flick`, `this_or_that`). Next stage: a seated
 chair/stool talk family built from the sit workspot (its entries and exits
-kept) and clip jumps while seated, behind the Body gestures setting.
+kept) and clip jumps while seated (a setting of its own would be needed: Body gestures has none since 2026-10-20).
 
 ## Ownership
 

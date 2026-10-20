@@ -27,9 +27,9 @@
 --    the purple off while defaults still count, and rowFontSize sizes setting, action and read-only rows alike; see applyPresentation.)
 --    So: no row is given a default (nothing is purple; MCM's own Defaults button and Modified counter go with it), and this host
 --    offers its own Restore defaults button in the footer instead (the rows' defaults are manager-ui.lua's M.defaults; MCM's public API
---    has no confirmation, so the button asks to be pressed twice). The read-only lines of the Settings page (Voice status, Johnny's
---    standing) are drawn as status buttons (an action: size 22 like every other row, the value as the button's text, pressing it
---    does nothing), so no line of that page is another size. The previous and next page buttons and the letter group of a long list
+--    has no confirmation, so the button asks to be pressed twice). The Settings page has no read-only line (Voice status and Johnny's
+--    standing were removed 2026-10-20, and with them the status buttons that drew such lines at the size of the other rows); the read-only
+--    lines of the other pages are MCM's own lines. The previous and next page buttons and the letter group of a long list
 --    (which have no draft in MCM) are footer buttons, beside the way back, so they never move with the list; the page number is in
 --    the heading.
 --  * The line under the way back (the result of the last action) is MCM's status line (api.ui.setStatus).
@@ -71,8 +71,10 @@ local CAPABILITIES = {
     text = {read = true, write = false, draft = false, reset = false},
 }
 
--- The footer button that puts the settings back to their defaults (manager-ui.lua M.defaults), and the ids of status buttons.
-local DEFAULTS_ID, STATUS_PREFIX = 'defaults:restore', 'status:'
+-- The footer button that puts the settings back to their defaults (manager-ui.lua M.defaults).
+local DEFAULTS_ID = 'defaults:restore'
+-- The ids of the rows whose choice states (greyed-out entries) MCM holds from the last build of the schema.
+local choiceStatesHeld = {}
 local core, options
 local restoreArmed, restorePage = false, nil
 local api, provider, version
@@ -206,16 +208,6 @@ local function convert(row)
     elseif kind == 'action' then
         return {action(id, row.label, row.value, row.description)}
     end
-    -- A line of text of the Settings page: a status button (the value is its text; pressing it does nothing). MCM draws a read-only
-    -- line at size 26, the other rows at 22.
-    local value = tostring(row.value or '')
-    if core.view() == 'settings' and value ~= '' then
-        -- The button is narrow: it shows the first part of a long value ("Voxtral cloud voice" of "Voxtral cloud voice · Local
-        -- backup"), and the whole value heads its description.
-        local short = value:match('^(.-) · ') or value
-        local description = short ~= value and (value .. '\n\n' .. (row.description or '')) or row.description
-        return {action(STATUS_PREFIX .. id, row.label, short, description)}
-    end
     -- A line of text: the label and its value, nothing to change.
     return {{id = id, type = 'string', label = row.label, description = row.description or '', value = tostring(row.value or ''),
         capabilities = CAPABILITIES.text}}
@@ -227,7 +219,7 @@ local function isBack(id) return id:match(':back$') ~= nil or id == 'memory:sett
 -- cannot be chosen). Runs in loadMod: MCM asks for it when the screen opens, after an Apply and on reloadMod.
 local function schema()
     local model = core.model()
-    local categories, disabledChoices, footer = {}, {}, {}
+    local categories, disabledChoices, disabledReasons, footer = {}, {}, {}, {}
     currentBack = nil
     -- The confirmation of Restore defaults is for the page it was asked on.
     if restoreArmed and core.pageId() ~= restorePage then restoreArmed = false end
@@ -242,7 +234,7 @@ local function schema()
                 else settings[#settings + 1] = item end
                 if item.type == 'action' and isBack(item.id) then currentBack = item end
             end
-            if row.disabledElements then disabledChoices[row.id] = row.disabledElements end
+            if row.disabledElements then disabledChoices[row.id], disabledReasons[row.id] = row.disabledElements, row.disabledReason end
         end
         local name, description = category.name, category.description or ''
         -- A paged list says its page in its heading, which MCM draws like every other heading (a line of the list would be drawn in
@@ -289,19 +281,36 @@ local function schema()
         pageSeen = core.pageId()
         pcall(api.ui.setNavigation, MOD_KEY, {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true})
         pcall(api.ui.setFooterActions, MOD_KEY, footerIds)
-        for id, disabled in pairs(disabledChoices) do
-            local states, size = {}, 0
+        local function entriesOf(id, disabled)
+            local size = 0
             for index in pairs(disabled) do size = math.max(size, index) end
             for _, category in ipairs(model.categories) do
                 for _, row in ipairs(category.settings) do
                     if row.id == id then size = math.max(size, #(row.elements or {})) end
                 end
             end
-            for index = 1, size do
-                states[index] = {enabled = not disabled[index], reason = ui.t('Requires the optional OmniVoice pack (GPU)')}
+            return size
+        end
+        local held = {}
+        for id, disabled in pairs(disabledChoices) do
+            local states = {}
+            for index = 1, entriesOf(id, disabled) do
+                -- The row says why an entry is greyed out (the OmniVoice pack, the Mistral key); the pack is the reason of the voice list.
+                states[index] = {enabled = not disabled[index], reason = disabledReasons[id] or ui.t('Requires the optional OmniVoice pack (GPU)')}
             end
             pcall(api.ui.setChoiceStates, MOD_KEY, id, states, {wrap = false})
+            held[id] = true
         end
+        -- A row that had greyed-out entries and has none now (a Mistral key was saved, the OmniVoice pack was installed): MCM keeps the states it
+        -- was given, so every entry is sent as enabled again.
+        for id in pairs(choiceStatesHeld) do
+            if not held[id] then
+                local states = {}
+                for index = 1, entriesOf(id, {}) do states[index] = {enabled = true} end
+                pcall(api.ui.setChoiceStates, MOD_KEY, id, states, {wrap = false})
+            end
+        end
+        choiceStatesHeld = held
     end
     return {name = model.name, description = model.description, categories = categories}
 end
@@ -411,11 +420,9 @@ local function buildProvider()
                 end
                 return {ok = true, schemaChanged = false}
             end
-            -- Any other button drops a first press of Restore defaults (the button is drawn again); a status button shows its text
-            -- (MCM's description panel) and does nothing.
+            -- Any other button drops a first press of Restore defaults (the button is drawn again);.
             local wasArmed = restoreArmed
             restoreArmed = false
-            if actionId:sub(1, #STATUS_PREFIX) == STATUS_PREFIX then return {ok = true, schemaChanged = wasArmed} end
             if actionId:sub(1, 3) == 'ui:' then
                 -- At the first or last page the button does nothing: the page is not drawn again.
                 return {ok = true, schemaChanged = pageControl(actionId) == true or wasArmed}

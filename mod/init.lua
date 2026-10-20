@@ -159,15 +159,6 @@ journalHistory.onFinished = function(quests)
     for _, quest in ipairs(quests) do convaiJohnnyRemarkNote('quest', quest) end
 end
 relationshipState.onFact = function(fact) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('romance', fact) end end
--- V talks on their own (docs/V_TALKS.md): a finished job is one of its events too. convaiVTalkNote is defined further down and returns at once
--- while the setting is off (one settings read).
-do
-    local johnnyFinished = journalHistory.onFinished
-    journalHistory.onFinished = function(quests)
-        johnnyFinished(quests)
-        if convaiVTalkNote then convaiVTalkNote('job', quests) end
-    end
-end
 -- Requests name the world and journal parts by revision; each part is written once (docs/PERFORMANCE_NATIVE_PLAN.md 1b).
 local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
 if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
@@ -736,8 +727,6 @@ local function profileIdentity(npc, forceFacts)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
     if owned and not managedKey then return nil, name, body end
-    -- Our own glitching copy of Johnny (mod/johnny-hologram.lua) is a picture, not a character: no profile, no talk.
-    if convaiJohnnyHologram and convaiJohnnyHologram.visit and convaiJohnnyHologram:owns(tostring(npc:GetEntityID().hash)) then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
     -- spawned: a character another mod or a spawner created (mod/spawned-characters.lua, docs/SPAWNED_CHARACTERS.md). It is
@@ -798,11 +787,6 @@ function convaiJohnnyHeadService()
     end
     return convaiJohnnyHead or nil
 end
--- His standing for the settings page (mod/manager-ui.lua johnnyStandingRow), read once per draw of that page.
-function convaiJohnnyStanding()
-    local service = convaiJohnnyHeadService()
-    return service and service:standing() or nil
-end
 -- Johnny speaks up (phase 2, mod/johnny-remarks.lua): loaded on the first event that finds both settings on (Johnny in your head, and
 -- Johnny speaks up at Rare or Normal). The collectors that hand events over already run; with either setting off an event costs two
 -- boolean reads here and nothing is loaded.
@@ -816,7 +800,7 @@ function convaiJohnnyRemarksService()
     end
     return convaiJohnnyRemarks or nil
 end
--- The optional Johnny features that ride the 0.5 s battle sample (places, the fight watch, the hologram) run under pcall: updateBattles
+-- The optional Johnny features that ride the 0.5 s battle sample (places, the fight watch) run under pcall: updateBattles
 -- itself is called under pcall and a fault there would reset the battle sample and cancel automatic reactions every frame. A fault is
 -- logged once per feature and the feature carries on at its next call.
 function convaiJohnnyGuarded(name, work, ...)
@@ -892,24 +876,6 @@ function convaiJohnnyFightSample(sample)
         convaiJohnnyRemarkNote('fight', event)
     end
 end
--- Johnny's hologram (phase 3, mod/johnny-hologram.lua): loaded on the first sit that finds both settings on (Johnny in your head, and
--- Johnny's hologram); with either off a sit costs two boolean reads. The look is Johnny's (M.DEFAULT_LOOK, his own glitch effects).
-function convaiJohnnyHologramService()
-    if not manager.johnnyHologram() or not manager.johnnyInHead() then return nil end
-    if convaiJohnnyHologram == nil then
-        local loaded, module = pcall(dofile, 'johnny-hologram.lua')
-        convaiJohnnyHologram = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
-            enabled = function() return manager.johnnyHologram() and manager.johnnyInHead() end,
-            story = function() local head = convaiJohnnyHeadService(); return head and head:story() or 'unreadable' end,
-            lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end,
-            -- He stays while V sits: the seat hook's own answer (nil while V stands), asked on the 0.5 s sample only while he is there.
-            seated = function() return convaiSeatedLook ~= nil and convaiSeatedLook.sitting ~= nil end,
-            log = function(line) if convaiLogLine then convaiLogLine(line) end end}) or false
-        if convaiJohnnyHologram then pcall(convaiJohnnyHologram.sweep, convaiJohnnyHologram)
-        else print('[CyberpunkConvai] johnny-hologram.lua unavailable: ' .. tostring(module)) end
-    end
-    return convaiJohnnyHologram or nil
-end
 -- Is V seated in an ordinary seat right now? For the manager's shortcut (mod/nsui-entry.lua, mod/mcm-host.lua): asked only when the game's
 -- scene tier is 3 or above, on a key press, one fresh observer sample. An answer of no is logged (at most every 5 s) with the controller's
 -- verdict and the sample's scene facts, so a refusal on a seat that should have counted shows why in probe.log.
@@ -926,14 +892,6 @@ function convaiPlainSitting()
         if convaiLogLine then convaiLogLine('Plain sit check: no (seated-look sitting=' .. tostring(controller and controller.sitting) .. facts .. ')') end
     end
     return plain
-end
--- V sat down (the seated-look module's onSit): one table write in the service. V stood up (onStand): he goes at once.
-function convaiJohnnyHologramMoment(kind, seat)
-    local service = convaiJohnnyHologramService()
-    if service then service:moment('sit', kind, seat) end
-end
-function convaiJohnnyHologramStand()
-    if convaiJohnnyHologram then convaiJohnnyHologram:stand() end
 end
 -- Places (Johnny speaks up, step 2): the existing 0.5 s battle sample calls this. It reads at most every PLACE_SECONDS, and only while
 -- both settings are on (two boolean reads otherwise): the id of the district V is in (three native calls). The record and its parents
@@ -1246,7 +1204,7 @@ convaiSpawnedPeople = {
 local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua')
 local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
-    enabled = function() return type(manager.gameDialogueContext) ~= 'function' or manager.gameDialogueContext() == true end,
+    -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
     onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
@@ -1793,7 +1751,7 @@ do
         for _, profile in ipairs(profiles) do catalogued[profile.key] = profile end
         for key in pairs(archetypes.keys) do catalogued[key] = {key = key, kind = 'archetype'} end
         local built, value = pcall(module.new, {
-            enabled = function() return type(manager.autoConnectNearby) == 'function' and manager.autoConnectNearby() == true end,
+            enabled = function() return true end,   -- always on (the setting was removed 2026-10-20)
             scan = scanNearbyCharacters,
             -- Tier-1 named, other named, generic: the tie-breaker before distance for nearby characters.
             prominence = function(key) return module.prominence(catalogued[key]) end,
@@ -1836,8 +1794,7 @@ do
     else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(module)) end
 end
 
--- Body gestures (docs/COMPANION_GESTURES.md): the controller is always loaded
--- and does nothing while the setting is Off (the default). The development
+-- Body gestures (docs/COMPANION_GESTURES.md): always on (the setting was removed 2026-10-20); the controller is always loaded. The development
 -- probe, when installed, takes precedence for copies it is driving.
 do
     local function speechFor(entity)
@@ -1855,7 +1812,7 @@ do
             phrases = type(track) == 'table' and type(track.segments) == 'table' and track.segments or nil}
     end
     local options = {
-        enabled = function() return manager.bodyGestures() end,
+        enabled = function() return true end,   -- always on (the setting was removed 2026-10-20)
         speech = speechFor,
         listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
         thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
@@ -2890,7 +2847,7 @@ if convaiHolocall then
         warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
         -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
-        liveImage = function() return type(manager.holocallLiveImage) == 'function' and manager.holocallLiveImage() end,
+        liveImage = function() return true end,   -- always on (the setting was removed 2026-10-20); the call still goes on with the portrait when the picture cannot be shown
         -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
         busy = function()
             return (active ~= nil and active.holocall ~= nil) or (pending ~= nil and pending.holocall ~= nil)
@@ -3079,15 +3036,6 @@ cancelAutomatic = function(reason, abandoning)
     if automatic.reaction.kind == 'head' and convaiJohnnyRemarks then
         pcall(convaiJohnnyRemarks.release, convaiJohnnyRemarks, convaiJohnnyRemarks.current, automatic.playbackAt ~= nil)
     end
-    -- A V talk step nobody heard gives its rate slot back and takes V's subtitle down; one that was heard to its end lets the exchange go on
-    -- to its second part (mod/v-talks.lua stepEnded). A world change (abandoning) ends the exchange with the queue (reset).
-    if automatic.reaction.kind == 'vtalk' then
-        if not abandoning and not automatic.shown then pcall(subtitles.clear) end
-        if convaiVTalks then
-            pcall(convaiVTalks.stepEnded, convaiVTalks, automatic.reaction.exchange, automatic.playbackAt ~= nil,
-                reason == 'completed' and automatic.playbackAt ~= nil, os.time())
-        end
-    end
     if lastAutomatic and lastAutomatic.requestId == automatic.requestId then
         lastAutomatic.finishedAt = os.time()
     end
@@ -3154,16 +3102,6 @@ local function captureLootContext(player)
         people = reactionPeople(player, observation)}
 end
 
--- Johnny's hologram on the 0.5 s battle sample, only while a sit is waiting or he is there. A global, so updateBattles gains no
--- upvalue. talking: V types, records, talks in a group or on the phone, or any reply or reaction is playing.
-function convaiJohnnyHologramTick(player, sample, worldReady)
-    local service = convaiJohnnyHologram
-    if not service then return end
-    local talking = active ~= nil or groupChat.round ~= nil or microphone.context ~= nil or phoneChat.pending ~= nil
-        or automatic ~= nil or speech.requestId ~= nil
-    service:tick(player, sample, worldReady, talking)
-end
-
 -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
 -- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
 -- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
@@ -3208,194 +3146,12 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
     return true
 end
 
--- V talks on their own (docs/V_TALKS.md, mod/v-talks.lua). The service exists only while the setting is Rare or Normal and V's voice for typed
--- lines is on (V's lines are spoken with it; without it the feature stays silent), and is dropped when either goes off. Globals, so
--- updateBattles and its callers gain no upvalue.
-function convaiVTalksService()
-    if manager.vTalks() == 'off' or not manager.vVoiceActive() then
-        convaiVTalks = nil
-        return nil
-    end
-    if convaiVTalks == nil then
-        local loaded, module = pcall(dofile, 'v-talks.lua')
-        convaiVTalksModule = loaded and type(module) == 'table' and type(module.new) == 'function' and module or nil
-        -- The service says why it does not start (one line per reason and waiting spell: probe.log).
-        convaiVTalks = convaiVTalksModule and module.new({level = function() return manager.vTalks() end,
-            log = function(line) log('V talks on their own: ' .. line) end}) or false
-        if not convaiVTalks then print('[CyberpunkConvai] v-talks.lua unavailable: ' .. tostring(module)) end
-    end
-    return convaiVTalks or nil
-end
--- V's place, read only when a calm spell begins and when a calm talk is about to be offered (a handful of times an hour).
-function convaiVTalkWhere()
-    local position = Game.GetPlayer():GetWorldPosition()
-    return {x = position.x, y = position.y, z = position.z}
-end
--- One event from a collector: 'job' (the jobs the history scan newly found finished).
-function convaiVTalkNote(kind, value)
-    if manager.vTalks() == 'off' then return end
-    local talks, module = convaiVTalksService(), convaiVTalksModule
-    if not talks or not module or kind ~= 'job' then return end
-    for _, quest in ipairs(value) do
-        local subject, facts = module.jobEvent(quest)
-        if subject and talks:note('job', subject, facts, os.time()) then log('V talks on their own: noted ' .. subject) end
-    end
-end
--- The fresh 0.5 s observer sample (updateBattles): the service is made or dropped here, a calm spell is followed and a fight that ended is
--- noted. One settings read per sample while the setting is off.
-function convaiVTalkObserve(sample)
-    local talks, module = convaiVTalksService(), convaiVTalksModule
-    if not talks or not module or not sample then return end
-    local now = os.time()
-    talks:watch(module.busy(sample) == nil, now, convaiVTalkWhere)
-    local status = battles.status()
-    if status.state == 'ended' and status.encounter ~= talks.fightSeen then
-        talks.fightSeen = status.encounter
-        -- A fight that does not count says why, once per encounter (fightSeen is set above).
-        local subject, facts, prefer = module.fightEvent(battles.capture())
-        if subject then
-            if talks:note('fight', subject, facts, now, prefer) then log('V talks on their own: noted ' .. subject) end
-        elseif type(facts) == 'string' then log('V talks on their own: fight ' .. facts) end
-    end
-end
--- Under pcall, like the tick: a fault is logged once and never reaches updateBattles.
-function convaiVTalkSample(sample)
-    local ok, result = pcall(convaiVTalkObserve, sample)
-    if not ok and not convaiVTalkFaulted then convaiVTalkFaulted = true; log('V talks on their own failed (carrying on): ' .. tostring(result)) end
-end
-
--- On the 0.1 s game tick inside updateBattles. With nothing waiting it is a few comparisons. owned: a V talk step is the automatic turn now (keep
--- it or release it, once per tick, by the first call); otherwise an exchange or its next step may start when nothing else is going on.
-function convaiVTalkRun(player, now, worldReady, outputs, manual, busy, mayFollow)
-    local talks, module = convaiVTalksService(), convaiVTalksModule
-    local owned = automatic ~= nil and automatic.reaction.kind == 'vtalk'
-    if not talks or not module then
-        if owned then cancelAutomatic('vtalk-off') end
-        return false
-    end
-    if owned then
-        if busy ~= nil then return false end
-        local speaker
-        for _, person in ipairs(battlePeople) do
-            if person.entity == automatic.entity and person.profileKey == automatic.profileKey then speaker = person; break end
-        end
-        captureReactionGuard(worldReady, outputs, speaker)
-        local waiting = reactionSpeakerWait(speaker)
-        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
-            or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
-            or not speaker and 'speaker-missing' or (not speaker.available and not waiting) and 'speaker-unavailable'
-            or module.busy(battleSample)
-        if reason then cancelAutomatic('vtalk-' .. reason)
-        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
-        elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
-        return true
-    end
-    -- Nothing waiting: the spell of waiting (and what was said about it) is over. A decline below is logged once per reason and spell, so
-    -- an event that has to wait says why it waits and never fills the log (docs/V_TALKS.md, "Why it did not start").
-    if not talks:waiting(now) then talks:settled(); return false end
-    if busy then return talks:decline('another turn is in progress (a reply, a reaction, or V typing or talking)') end
-    if not talks.exchange then
-        local allowed, limit = talks:allowed(now)
-        if not allowed then return talks:decline(limit) end
-    end
-    -- The game has the floor, or a game line is still going on: an exchange between its parts is over, an event waits for its time to live.
-    local theFloor = module.busy(battleSample)
-    if theFloor then talks:finish(); return talks:decline('the game has the floor (' .. theFloor .. ')') end
-    if module.recentLine(convaiGameDialogue and convaiGameDialogue.lines, now, module.LINE_SECONDS) then
-        return talks:decline('a game line was shown in the last ' .. module.LINE_SECONDS .. ' s')
-    end
-    local exchange = talks:continuing(now)
-    local entry
-    if exchange then
-        -- The next part, only when nothing else spoke since the last one.
-        if not lastAutomatic or lastAutomatic.requestId ~= exchange.requestId then
-            talks:finish()
-            return talks:decline('something else spoke between the two parts: the exchange is over')
-        end
-    else
-        if talks.exchange then return false end
-        -- Not right after another automatic reaction (a battle line, a pickup, a remark of Johnny's), and only with a companion in reach.
-        if lastAutomatic and now - (lastAutomatic.finishedAt or lastAutomatic.at) < module.AFTER_REACTION then
-            return talks:decline('another automatic reaction (' .. tostring(lastAutomatic.kind) .. ') ended less than ' .. module.AFTER_REACTION .. ' s ago')
-        end
-        if not mayFollow(true, 'vtalk') then return talks:decline('the previous reaction is still being handed over') end
-        if not module.pickSpeaker(battlePeople) then
-            return talks:decline('no party companion within ' .. module.SPEAKER_RANGE .. ' m who can speak')
-        end
-        local why
-        entry, why = talks:offer(now, {ride = battleSample.vehicle == true, where = convaiVTalkWhere})
-        if not entry then
-            if why then talks:decline(why) end
-            return false
-        end
-    end
-    local person = module.pickSpeaker(battlePeople, exchange and {keep = exchange.speaker}
-        or {prefer = entry.prefer, last = talks.lastSpeaker})
-    if not person then
-        if exchange then talks:finish() end
-        return false
-    end
-    exchange = exchange or talks:open(entry, now)
-    generation = generation + 1
-    local snapshot = convaiTurnContext and convaiTurnContext:capture() or nil
-    local line = talks:line(exchange, module.tone(snapshot))
-    local context = {generation = generation, entity = person.entity, name = person.name, bodyType = person.bodyType,
-        profileKey = person.profileKey, sentAt = now, text = line, turnContext = snapshot,
-        reaction = {kind = 'vtalk', exchange = exchange.id, step = exchange.step, steps = exchange.steps, event = exchange.kind,
-            facts = exchange.facts, expiresAt = math.floor((now + module.SEND_SECONDS) * 1000)}}
-    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
-    automatic = context
-    captureReactionGuard(worldReady, outputs, person)
-    if reactionLease(true) and sendRequest(context) then
-        talks:started(exchange, now, {entity = person.entity, profileKey = person.profileKey}, context.requestId)
-        talks.lastSpeaker = person.profileKey
-        speech.target = person.npc
-        lastAutomatic = {at = now, requestId = context.requestId, kind = 'vtalk'}
-        -- V's line shows as V's subtitle at once, as a typed line does (the bridge speaks it; the reply's caption replaces it).
-        pcall(subtitles.showTyped, line)
-        log('V talks on their own: ' .. exchange.kind .. ' part ' .. exchange.step .. ' of ' .. exchange.steps .. ' speaker=' .. person.profileKey)
-    else
-        talks:abandon(exchange)
-        cancelAutomatic('request-write-failed')
-    end
-    return true
-end
--- The tick under pcall: updateBattles is itself called under pcall, and a fault here must neither reset the battle sample nor cancel the
--- other automatic reactions every tick. It is logged once and the feature carries on at its next call.
-function convaiVTalkTick(player, now, worldReady, outputs, manual, busy, mayFollow)
-    local ok, result = pcall(convaiVTalkRun, player, now, worldReady, outputs, manual, busy, mayFollow)
-    if ok then return result end
-    if not convaiVTalkFaulted then convaiVTalkFaulted = true; log('V talks on their own failed (carrying on): ' .. tostring(result)) end
-    if automatic and automatic.reaction.kind == 'vtalk' then cancelAutomatic('vtalk-error') end
-    return false
-end
--- The reply of a step is about to be heard: the game must still have left the floor to V (read fresh: a scene, a call or a fight can start
--- between samples), the service must still be on, and the companion must still be there and able to speak. A vehicle is fine.
-function convaiVTalkCanDeliver(context, player)
-    local talks, module = convaiVTalksService(), convaiVTalksModule
-    local why = (not talks or not module) and 'off' or module.busy(battleObserver.sample(player))
-    if why then cancelAutomatic('vtalk-' .. why); return false end
-    for _, person in ipairs(battlePeople) do
-        if person.entity == context.entity and person.profileKey == context.profileKey then
-            person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, 'end')
-            captureReactionGuard(true, reactionOutputs(player), person)
-            local waiting = reactionSpeakerWait(person)
-            if not person.available and not waiting then cancelAutomatic('speaker-unavailable') end
-            return person.available == true
-        end
-    end
-    cancelAutomatic('speaker-missing')
-    return false
-end
-
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
         battlePoll = 0
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
-        -- V talks on their own: one settings read per sample while it is off (the service is made, followed and dropped inside).
-        if convaiVTalkSample then convaiVTalkSample(battleSample) end
         if convaiSpawnedPeople then
             convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
         end
@@ -3403,9 +3159,6 @@ local function updateBattles(player, elapsed, worldReady)
         battleOutputs = reactionOutputs(player)
         if convaiJohnnyPlaceSample then convaiJohnnyGuarded('place sample', convaiJohnnyPlaceSample, worldReady, battleSample.vehicle == true) end
         if convaiJohnnyFight then convaiJohnnyGuarded('fight watch', convaiJohnnyFightSample, battleSample) end
-        if convaiJohnnyHologram and convaiJohnnyHologram:active() then
-            convaiJohnnyGuarded('hologram', convaiJohnnyHologramTick, player, battleSample, worldReady)
-        end
         -- A Johnny probe acting over time (Developer mode, mod/johnny-probe.lua); nil otherwise.
         if convaiJohnnyProbeTick then pcall(convaiJohnnyProbeTick) end
     end
@@ -3429,9 +3182,7 @@ local function updateBattles(player, elapsed, worldReady)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
-    if automatic and automatic.reaction.kind == 'vtalk' then
-        convaiVTalkTick(player, now, worldReady, outputs, manual)
-    elseif automatic and automatic.reaction.kind == 'head' then
+    if automatic and automatic.reaction.kind == 'head' then
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
     elseif automatic then
         local speaker
@@ -3499,9 +3250,6 @@ local function updateBattles(player, elapsed, worldReady)
         event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt,
             batch = event.loot and event.loot.batch or nil}
     end
-    -- V talks on their own, when no battle or loot reaction is due (an owned turn of any kind is `busy` here); a Johnny remark due on the same tick
-    -- waits behind it (mod/v-talks.lua), and starts after it. One nil check while the setting is off.
-    if not event and convaiVTalks then convaiVTalkTick(player, now, worldReady, outputs, manual, busy, mayFollow) end
     -- Battle and loot reactions first; then a waiting Johnny remark (one length check while nothing is queued).
     if not event then
         if convaiJohnnyRemarks then convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow) end
@@ -3714,8 +3462,6 @@ local function reactionCanDeliver(context, player)
         if why then cancelAutomatic('head-' .. why); return false end
         return true
     end
-    -- A V talk step: the game must have left the floor to V (a vehicle is fine), read fresh; the companion must still be there.
-    if context.reaction.kind == 'vtalk' then return convaiVTalkCanDeliver(context, player) end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
     for _, person in ipairs(battlePeople) do
@@ -4129,7 +3875,6 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     cancelAutomatic(reason, true)
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
-    if convaiVTalks then convaiVTalks:reset() end
     battleSample, battlePeople, battlePoll = nil, {}, 0
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
@@ -4166,7 +3911,6 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     if convaiJohnnyRelic then convaiJohnnyRelic:reset() end
     convaiJohnnyFight = nil
-    if convaiJohnnyHologram then convaiJohnnyHologram:abandon(reason) end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())
@@ -4239,9 +3983,6 @@ registerForEvent('onInit', function()
         convaiSeatedLookModule = dofile('seated-look.lua')
         return convaiSeatedLookModule.install({
             classify = dofile('companion-seating.lua').classify,
-            -- Johnny's hologram hears of a sit and of V standing up (both do nothing while its setting is off).
-            onSit = function(kind, seat) convaiJohnnyHologramMoment(kind, seat) end,
-            onStand = function() convaiJohnnyHologramStand() end,
             -- False from the player's detach until the next session is up: the exit hooks then make no native call.
             live = function() return not worldSuspended end,
             log = function(kind, fields)
@@ -4784,12 +4525,9 @@ registerForEvent('onUpdate', function(delta)
                     if reply.error then
                         gameplayActions.revoke('reply-error', pending.requestId)
                         local keyId, keyText = keyReplyNotice(reply)
-                        -- V's line could not be spoken (bridge/convai-bridge.mjs, V talks on their own): no notice, and no new exchange for a while.
-                        if type(reply.errorCode) == 'string' and reply.errorCode:find('^vtalk%-') then
-                            if convaiVTalks then pcall(convaiVTalks.silenced, convaiVTalks, os.time()) end
                         -- An add-on speaker's turn (docs/ADDON_API.md): no Mistral key or Local AI pack (one notice), or a remark
                         -- that repeated a recent line (silent). The add-on file decides; nothing else is shown.
-                        elseif type(reply.errorCode) == 'string' and reply.errorCode:find('^addon%-') then
+                        if type(reply.errorCode) == 'string' and reply.errorCode:find('^addon%-') then
                             if convaiAddons and convaiAddons.live then convaiAddons.replyError(pending, reply, player) end
                         elseif keyId == 'key-memory' then convaiNotices.send(player, 'key-memory', keyText)
                         -- The daily allowance: a turn V asked for says so once; an automatic reaction just stops.

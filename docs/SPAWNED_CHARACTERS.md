@@ -238,7 +238,7 @@ Live result (2026-10-17, the user): the first talk to a spawned character waited
 
 **Tests.** `bridge/party-connections.test.mjs` (role ranking, limit 3, dedupe, plan table, single-session with and without room), `bridge/nearby-warm.test.mjs` (`parseSpawned`, apply, voices, release), `bridge/auto-connect.test.mjs` (the lane, its cap and release rules, partner handoff, party overlap, source checks), `bridge/spawned-preconnect-bridge.test.mjs` (the real bridge: the first talk finds the page open on a paid plan and on the shared key; the free plan opens nothing; one page for a shared profile; three on a paid plan, one on a plan of two).
 
-**Live check owed** (needs the Scripts install, a bridge restart and a spawner; "Auto-connect nearby characters" on):
+**Live check owed** (needs the Scripts install, a bridge restart and a spawner; auto-connect is always on since 2026-10-20):
 1. Spawn Judy near V (within about 5 m) and wait 5 s without talking. `runtime/party-connection-state.json` lists `judy-alvarez` with role `spawned` and state `ready`; probe.log says `Auto-connect warming judy-alvarez (spawned)`.
 2. Talk to her. The first reply starts without the connection wait: `runtime/bridge-latency.json` shows `connectionWarm` true for that turn.
 3. Own key on a free plan: nothing opens ahead and the first talk takes as long as before. Own key on the paid plan: as in 1 and 2.
@@ -258,7 +258,7 @@ Written 2026-10-17. Unit-tested; NOT merged, NOT installed, not seen in the game
 
 | Source | When | Cost |
 |---|---|---|
-| The once-a-second auto-connect scan (`scanNearbyCharacters`, any spawned character it reports, roster or generic) | every scan, while "Auto-connect nearby characters" is on | the entity ID of a character the scan already classified (the classification is cached by `profileIdentity`) |
+| The once-a-second auto-connect scan (`scanNearbyCharacters`, any spawned character it reports, roster or generic) | every scan, always (no setting since 2026-10-20) | the entity ID of a character the scan already classified (the classification is cached by `profileIdentity`) |
 | Every group key press (`convaiSpawnedPeople.nearby`): what its scan and its native candidates found, with the profile key | key press | nothing extra |
 | Every talk key press, private or group (`convaiSpawnedPeople.noteNative`): the spawned characters among the native candidates | key press | cached classification, a handful of candidates |
 | A spawned character V talks to (`selectConversation`) | key press | one table write |
@@ -273,7 +273,7 @@ Group candidates: companions=1 spawned=2 (found=2 generic=0 noProfile=0 unsuppor
 
 `via` is `scan`, `native` or `remembered`. A left-out entry reads `<profile> d=<metres> <reason>` with the reason `out-of-range`, `gone`, `dead`, `not-spawned`, `detached`, `noProfile`, `unsupported` or `disabled` (at most six of each, then "+N more").
 
-**Limit.** A spawned character that no query has ever reported (spawned behind V and never in view since, with the auto-connect setting off and no key press that saw it) cannot be found: no list of ours holds another mod's characters, and the engine has no query that does not depend on the camera. The first key press or scan that sees it fixes this. With the default settings the scan sees it as soon as it is in view of V within 5 m, and V has to look at a character to talk to it anyway. The log line shows `spawned=0 ... counted: none` for this case, and `left out` for every other.
+**Limit.** A spawned character that no query has ever reported (spawned behind V and never in view since, and no key press that saw it) cannot be found: no list of ours holds another mod's characters, and the engine has no query that does not depend on the camera. The first key press or scan that sees it fixes this. The scan (always on since 2026-10-20) sees it as soon as it is in view of V within 5 m, and V has to look at a character to talk to it anyway. The log line shows `spawned=0 ... counted: none` for this case, and `left out` for every other.
 
 **Bug 2: her connection went away.** `probe.log`: Judy was warmed as `spawned` at 09:10:38, became the partner when V talked to her (`Auto-connect partner judy-alvarez`, 09:10:42), then `Auto-connect partner released judy-alvarez (no exchange)` at 09:13:54 while she still stood beside V. The bridge closed her connection; at 09:14:14 she was warmed again by gaze and the F6 at 09:14:36 showed "Preparing connection". Causes, confirmed in the code:
 
@@ -293,7 +293,7 @@ Group candidates: companions=1 spawned=2 (found=2 generic=0 noProfile=0 unsuppor
 
 **Files.** `mod/spawned-characters.lua` (`remember`, `recall`, sources and `report` in `nearby`), `mod/init.lua` (`convaiSpawnedRange`, `convaiRoundKeys`, `nearby`, `describe`, `noteNative`, the scan, the auto-connect options), `mod/auto-connect.lua`, `bridge/party-connections.mjs`, `bridge/nearby-warm.mjs`. Tests: `bridge/spawned-characters.test.mjs`, `bridge/auto-connect.test.mjs`, `bridge/party-connections.test.mjs`, `bridge/nearby-warm.test.mjs`. Needs a CET reload for the Lua and a bridge restart for the bridge files; no redscript.
 
-**Live check owed** (the Lua install and a bridge restart, "Auto-connect nearby characters" on, a spawner):
+**Live check owed** (the Lua install, a bridge restart and a spawner; auto-connect is always on since 2026-10-20):
 1. Spawn Jackie (about 5 m) and Judy (about 1.7 m) with our companion Alex beside V. Look at each for a second, then face Alex and press the group key (F7), text or voice. Three people answer. `probe.log` reads `Group candidates: companions=1 spawned=2 ... counted: judy-alvarez d=1.x via remembered, jackie-welles d=5.x via scan` (or `native`).
 2. Face a spawned character and press F7: three people, the faced one first.
 3. Walk one spawned character beyond 8 m and press F7 facing Alex: two people, and the line says `left out: <profile> d=<metres> out-of-range`. Despawn one: `gone`.
@@ -317,7 +317,7 @@ Group candidates: companions=1 spawned=2 (found=2 generic=0 noProfile=0 unsuppor
 
 **Cost.** None per frame: the gaze classification is one cached lookup at the existing 5 Hz look sample, the scene fields are two comparisons in the 0.1 s poll, the lane refresh is a boolean in the existing loop, the drop log runs inside the once-a-second scan.
 
-**Live re-check** (Scripts install of the four changed `mod/` files, CET reload; "Auto-connect nearby characters" on):
+**Live re-check** (Scripts install of the four changed `mod/` files, CET reload; auto-connect is always on since 2026-10-20):
 1. Recruit Lucy, Rita and NCA's Judy with NCA, stand with them, do not look at them. Within a few seconds `probe.log` shows `Auto-connect warming <key> (spawned)` for each, never `(gaze)` or `(near)` for Rita.
 2. Face each in turn, with NCA's menu showing, for a minute; talk to two of them. No `partner released ... (scene)`, no `released ... (idle)`; `runtime/party-connection-state.json` keeps their connections `ready`.
 3. Ride in V's car with them for a minute, then get out: the same, no `released`.

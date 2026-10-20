@@ -721,7 +721,9 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   assert.match(bridge, /holdSound: \(\) => current\.vLine\?\.\(\)\?\.blocking === true/);
   assert.match(bridge, /current\.vLine\?\.\(\)\?\.whenNearEnd\?\.\(\(\) => speech\.wakeUp\(\)\)/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
-  assert.match(bridge, /if \(vVoice\.update\(settings\)\)/);
+  // A saved Voxtral without a Mistral key is Pocket for V (the one row of V's voice offers Voxtral only with a key).
+  assert.match(bridge, /const vSettings = settings\?\.vVoiceEngine === 'voxtral' && !voxtralVoice\.hasKey \? \{\.\.\.settings, vVoiceEngine: 'pocket'\} : settings;/);
+  assert.match(bridge, /if \(vVoice\.update\(vSettings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
   assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)/);
 });
@@ -744,7 +746,8 @@ test('V\'s own Pocket worker is the voice selection\'s, and the settings poll te
   assert.match(block, /localVoice\.vHelperStream\(/);
   assert.match(block, /localVoice\.vHelperPrepare\(/);
   assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.wantsPocket\)/);
-  assert.match(block, /matureAllowsCloudVoice\(matureContent\.enabled, mistral\.preference\)/, 'Mature content with Local AI keeps V\'s line off the cloud; Mistral and Custom text allow it');
+  assert.doesNotMatch(block, /matureContent|matureAllows|off the cloud/, 'Mature content never changes or refuses V\'s voice (2026-10-20): Voxtral is allowed with Mature on and Local AI text');
+  assert.doesNotMatch(bridge, /matureAllowsCloudVoice/);
   assert.match(block, /mistralScheduler\.stats\(\)/, 'V never takes a Mistral start from the reply');
 });
 

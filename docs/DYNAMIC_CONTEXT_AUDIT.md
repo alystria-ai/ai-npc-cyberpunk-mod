@@ -199,7 +199,7 @@ context.
 | Naming the speaker | `resolve` then `resolveName` | A game-placed named character resolves to no profile (the world-policy rule), but the name fallback uses `characterCatalog.resolve` without `world`, so a vanilla Judy line still gets `judy-alvarez`. The code comment says so. |
 | Reaching the turn | `sendRequest` (F6), `microphone.lua` (F7), `group-chat.lua` (F8), `phone-chat.lua` | Wired for manual turns; skipped for reactions. |
 | Bridge scoping | `bridge/game-dialogue.mjs` `selectGameDialogue` | An episode is used when the addressed character spoke, was the hub of V's choice, or (in person only) was in `present`. So a spawned Panam standing beside V during V's talk with a vanilla River receives the whole exchange, V's lines included, labelled as being in the game. Her own lines are marked "You". |
-| Setting | Settings > Conversations > Continue from game dialogue, On by default | Present. |
+| Setting | none: it was Settings > Conversations > Continue from game dialogue (on by default) and was removed on 2026-10-20, so the recording is always on | Removed. |
 
 Limits that bear on the user's goal:
 

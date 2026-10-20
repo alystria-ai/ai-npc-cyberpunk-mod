@@ -451,8 +451,7 @@ test('every manual send path captures the block (in person, microphone and phone
   assert.equal(phoneSource.match(/captureTurnContext/g).length, 1, 'one read, on the send path');
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
-  // The third is V's own opener of an exchange V started (V talks on their own): V's gender and the dialogue volume, once per step.
-  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 3, 'the send path, the microphone wrapper and the V talks tick');
+  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
 });
 
 test('the new files ship: the development install list, the release plan and the bridge layout', () => {

@@ -11,7 +11,6 @@ import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
-import {parseVTalkReaction} from './v-talks.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
@@ -62,9 +61,7 @@ function parseRequest(raw) {
   const head = group ? null : parseHead(value.head);
   const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
-      // V talks on their own (docs/V_TALKS.md): V's line is the request text; the reaction names the exchange, its step and the event.
-      : value.reaction?.kind === 'vtalk' ? parseVTalkReaction(value.reaction, {text, profileKey, group})
-        : parseReaction(value.reaction, battle, loot);
+      : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.

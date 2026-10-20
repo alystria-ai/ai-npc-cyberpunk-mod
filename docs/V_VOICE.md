@@ -5,8 +5,7 @@ for typed lines** on, whatever you type to a companion is also spoken aloud, in 
 lines in the game. Then the companion answers.
 
 **On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
-remarks and the later speakers of a group round never get a V line. The one exception is V's own opener of an exchange V started by itself
-(V talks on their own, `docs/V_TALKS.md`): that line is the text of an automatic reaction, and it is required (the companion's answer waits for it). A line typed to an add-on's voice (the Delamain cab, Skippy) does
+remarks and the later speakers of a group round never get a V line. A line typed to an add-on's voice (the Delamain cab, Skippy) does
 (2026-10-16; before it did not, and V was silent in the cab): `runAddonTurn` starts V's line beside the add-on's text request exactly as for a
 companion, in V's own voice page, and the add-on's reply waits for it. The composer of an add-on's voice leaves a voice-only hint in
 `conversation-prewarm.json` (`voiceOnly`), so V's voice page is warm; it opens no connection. V's words are never part of the add-on speaker's
@@ -125,7 +124,7 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 
 ## V's voice engine (2026-10-17, branch `v-voice-engine`, not merged)
 
-V's line no longer follows the companions' voice. **Settings > Voices > V's voice engine** picks the engine for V alone, and
+V's line no longer follows the companions' voice. **Settings > Voices > V's voice for typed lines** (one list since 2026-10-20: Off, Pocket · On your PC, Voxtral · Mistral cloud; it writes both stored keys, `vVoice` and `vVoiceEngine`, and Off keeps the saved engine) picks the engine for V alone, and
 the sections below that still describe "the voice you already chose" are history: this section is current.
 
 | Engine | How V's line is made | Loads locally |
@@ -166,13 +165,12 @@ Both engines are English only: a turn in another language gets no V line (subtit
 | Convai voice | Pocket | V's own Pocket worker only | V now speaks beside the Convai voice |
 | Convai voice | Voxtral | none | V now speaks beside the Convai voice |
 
-**Missing key, Mature content, language.** Voxtral for V needs a Mistral key: the row reads "Voxtral · needs Mistral key" and the
-manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). If the key
-is removed later, the bridge skips V's line (one log line, subtitle still shown); there is **no silent fallback to Pocket**, because
-that would load a model the player did not choose. Mature content with Local AI keeps V's lines off the cloud: the manager refuses Voxtral while
-Mature is on and Local AI is the text provider, turning Mature on (or choosing Local AI beside it) moves V to Pocket (with the page reload Mature already does, no notice), a hand-edited pairing is
-normalized at load, and the bridge refuses a cloud V line then (`matureAllowsCloudVoice`). With Mistral or Custom text (Mature may be on there since 2026-10-20) the line goes to the cloud
-for the reply anyway, so Voxtral is allowed.
+**Missing key, Mature content, language.** Voxtral for V needs a Mistral key: the Voxtral entry reads "Voxtral · needs Mistral key" and is greyed out, and the
+manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). **Changed 2026-10-20:** if the key
+is removed later (or an old file holds Voxtral with no key), the row shows Pocket and the bridge speaks V's line with Pocket (its settings poll reads a saved Voxtral without a key as Pocket); it is
+Voxtral again as soon as a key is saved. Removing the key says so in its Remove help ("V's voice switches from Voxtral to Pocket."). Before that change the bridge skipped V's line with
+no fallback, so as not to load a model the player did not choose. Mature content never changes or refuses V's voice (decision 2026-10-20; the old rule that kept V's lines off the cloud with Mature on and Local AI text is removed):
+Voxtral stays available beside Mature on any text provider, and the bridge no longer has a check for it.
 
 **Measured (simulated providers, `scripts/Measure-VVoice.mjs`, real `VVoice`/`VLine`/`TurnClock`; prep 180 ms, companion text 900 ms,
 5 runs; milliseconds).** "Delay" is when the reply's audio starts, minus when it would start without V.
@@ -454,7 +452,7 @@ libraries is the slow part and is made slower by a virus scanner looking at the 
 
 ## Live check
 
-See TODO.md, "Live checks still to run" (including the V's voice engine check of 2026-10-17: Pocket and Voxtral each audible, the reply start with each, the process list per combination, Voxtral refused without a key and with Mature on): V's gender follows the V voice, the clip sounds like V, V is heard before the
+See TODO.md, "Live checks still to run" (including the V's voice engine check of 2026-10-17: Pocket and Voxtral each audible, the reply start with each, the process list per combination, Voxtral refused without a key; Mature on no longer refuses it, 2026-10-20): V's gender follows the V voice, the clip sounds like V, V is heard before the
 companion on Pocket (and on a cloud voice), the companion starts right after V ends, the dropped line on a cold start, the
 volume follows the game's Dialogue volume, and, since 2026-10-17, V speaking beside the Convai voice.
 

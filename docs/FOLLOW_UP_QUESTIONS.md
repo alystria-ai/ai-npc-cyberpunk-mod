@@ -4,9 +4,9 @@ October 8 and 9, 2026. A new, optional setting that makes a conversation feel tw
 in V and drives the conversation a little, like a tug where each side keeps the other engaged. It replaces the retired
 toggle of the same name (see "History" at the end), which asked every reply to end with a question.
 
-**Companion Manager > Settings > Voices > Follow-up questions**, next to Natural speech and Expressive emotions. **On by
+**Companion Manager > Settings > Voices > Follow-up questions**, next to Natural speech. **On by
 default since October 11, 2026** (a missing `followUpInterest` key means on, a saved choice is kept; it was off by default
-until then). Unlike those two it needs no local voice: it works with Pocket, OmniVoice and the Convai cloud voice, in private
+until then). Unlike Natural speech it needs no local voice: it works with Pocket, OmniVoice and the Convai cloud voice, in private
 text and microphone conversations and in phone Chat.
 
 October 9 (live test with Judy: "follow-up seems fine", and the user wants her to lean toward driving, so that V also has
@@ -100,7 +100,7 @@ Why "the note above ... does not apply": since October 5 every ordinary turn alr
 `bridge/conversation-style.mjs`). The block has to lift that note for the offered turn, or the model follows the older and
 more specific-sounding rule. That policy stays in force on every turn that is not offered.
 
-**Order in the context.** The paragraph sits before Natural speech and Expressive emotions and before the reply-language
+**Order in the context.** The paragraph sits before Natural speech and the emotion tags (Expressive emotions, always on since 2026-10-20) and before the reply-language
 line (which must stay last). With all of them on and the paragraph after the voice notes, pulls fell to 13 of 41 offered
 turns over three runs (Judy and Panam), possibly because Natural speech ends with "Keep the same length and content you
 would give otherwise". Before them it was 16 of 26. Each of the three alone was fine (Natural speech 8 of 9, Expressive

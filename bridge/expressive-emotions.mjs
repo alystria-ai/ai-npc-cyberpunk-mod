@@ -1,7 +1,6 @@
-// "Expressive emotions" (Settings > Voices, off by default).
+// "Expressive emotions" (always on since 2026-10-20; it had a Settings > Voices row).
 //
-// Off: a local voice's face follows our text-based expression plan (bridge/emotion-analysis.mjs), exactly as before.
-// On: each spoken turn's dynamic context asks the character to mark where its feeling changes, inline, with a small
+// Without marks a local voice's face follows our text-based expression plan (bridge/emotion-analysis.mjs). Each spoken turn's dynamic context asks the character to mark where its feeling changes, inline, with a small
 // fixed set of curly-brace tags that map onto the mod's own emotion families. Everything after that reuses the
 // pipeline that already exists:
 //   - the tags are removed where the reply leaves Convai (bridge/natural-speech.mjs `parseTagged`), so subtitles,
@@ -11,7 +10,7 @@
 //     aligner (expression-timeline.mjs) places each segment at its real time in the audio, so the face changes when
 //     that part is SPOKEN: per phrase for OmniVoice (each phrase is its own audio file, so a mark at a phrase start
 //     is exact), by stream position for Pocket (pauses in the mouth timeline, then a syllable estimate).
-//   - a reply with no marks, or the setting off, keeps the text-based plan.
+//   - a reply with no marks keeps the text-based plan.
 // Pure functions plus one small state holder: no I/O.
 import {EMOTION_TAG_BLOCK} from './emotion-tags.mjs';
 
@@ -45,30 +44,22 @@ export function plannedMarks(marks, length = Infinity) {
 export const EXPRESSIVE_TEXT = EMOTION_TAG_BLOCK;
 
 /**
- * The setting plus the two places it acts. `enabled` follows runtime/settings.json (a missing or unreadable file
- * leaves it as it was). On by default, like mod/manager.lua: a settings file without the key counts as on; only a saved
- * `false` turns it off. (Without a local voice nothing is asked for, whatever this says.)
+ * Expressive emotions is always on (the Settings row was removed 2026-10-20; a saved `expressiveEmotions` key in settings.json is ignored).
+ * It acts in two places, both only where a local voice speaks (the block asks for nothing else; the Convai cloud voice and text-only
+ * turns get none).
  */
 export class ExpressiveEmotions {
   constructor() {
     this.enabled = true;
   }
-  /** True while the marks are asked for and kept: the setting. */
-  get active() { return this.enabled; }
-  update(settings) {
-    if (!settings || typeof settings !== 'object') return false;
-    const next = settings.expressiveEmotions !== false, changed = next !== this.enabled;
-    this.enabled = next;
-    return changed;
-  }
+  /** True while the marks are asked for and kept: always. */
+  get active() { return true; }
+  /** Settings no longer switch it: nothing ever changes, so the settings poll never has a change to report. */
+  update(_settings) { return false; }
   /** The block for one turn. `engine` is the voice that will speak it; text-only turns and the Convai cloud voice get none. */
   contextFor({engine, spoken = true} = {}) {
     return this.active && spoken && (engine === 'omni' || engine === 'pocket') ? EXPRESSIVE_TEXT : '';
   }
-  /** A finished reply (already cleaned by NaturalSpeech.process): marks are kept only while the marks are wanted. */
-  process(result) {
-    if (!result || result.emotionMarks === undefined || this.active) return result;
-    const {emotionMarks: _dropped, ...rest} = result;
-    return rest;
-  }
+  /** A finished reply (already cleaned by NaturalSpeech.process): its marks are always kept. */
+  process(result) { return result; }
 }

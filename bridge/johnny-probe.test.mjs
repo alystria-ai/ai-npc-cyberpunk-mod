@@ -39,8 +39,8 @@ const world = code => run(`
 ${code}`);
 
 test('parse: johnny-probe:<feature>:<action...>:<stamp>; anything else is malformed', () => world(`
-  local feature, action = P.parse('johnny-probe:hologram:spawn:A:20261019120000000')
-  assert(feature == 'hologram' and action == 'spawn:A')
+  local feature, action = P.parse('johnny-probe:feats:spawn:A:20261019120000000')
+  assert(feature == 'feats' and action == 'spawn:A')
   feature, action = P.parse('johnny-probe:relic:start:1')
   assert(feature == 'relic' and action == 'start')
   assert(P.parse('johnny-probe:relic:1') == nil, 'no action')
@@ -68,7 +68,7 @@ test('run: Developer mode only; a feature file is loaded once and answers; the r
 
 test('tick: only while a probe asks for it, then the global is gone', () => world(`
   assert(convaiJohnnyProbeTick == nil)
-  P.run('johnny-probe:hologram:spawn:A:5')
+  P.run('johnny-probe:feats:spawn:A:5')
   assert(type(convaiJohnnyProbeTick) == 'function')
   convaiJohnnyProbeTick()
   assert(fake.ticks == 1 and convaiJohnnyProbeTick ~= nil)
@@ -99,7 +99,7 @@ test('place: what the sample reads now, and a test arrival queued with its coold
 test('wiring: the mailbox runs it in Developer mode only; the tick rides the 0.5 s battle sample; nothing per frame', () => {
   assert.match(init, /if nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/);
   assert.match(init, /function convaiJohnnyProbeRun\(request\)\s+if not manager\.developerMode\(\) then return false end\s+local ok, probe = pcall\(dofile, 'johnny-probe\.lua'\)/);
-  assert.match(init, /if convaiJohnnyPlaceSample then convaiJohnnyGuarded\('place sample'[^\n]*\s+if convaiJohnnyFight then[^\n]*\s+if convaiJohnnyHologram and[\s\S]*?end\s+-- [^\n]*\s+if convaiJohnnyProbeTick then pcall\(convaiJohnnyProbeTick\) end/);
+  assert.match(init, /if convaiJohnnyPlaceSample then convaiJohnnyGuarded\('place sample'[^\n]*\s+if convaiJohnnyFight then[^\n]*\s+-- [^\n]*\s+if convaiJohnnyProbeTick then pcall\(convaiJohnnyProbeTick\) end/);
   assert.doesNotMatch(probeSource, /registerForEvent|onUpdate|Observe|Override/, 'no hook of its own');
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-probe\.lua"/, plan);

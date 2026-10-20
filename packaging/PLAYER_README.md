@@ -29,7 +29,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 
 - **The manager is back in Mod Configuration Menu**: with Mod Configuration Menu 0.10.5 or newer the Companion Manager is a page of its own there (Esc, Mods, or your manager shortcut). Native Settings UI works as the other choice. Both show the same settings.
 - **V speaks your typed lines sooner**: V's voice is prepared ahead, so a line you type is heard in V's own voice before the reply.
-- **Your own AI service**: a new conversation provider, **Custom**, works with any OpenAI-compatible service: OpenRouter, Nano-GPT, or Ollama or LM Studio on your own PC. Set it up in Settings > Conversation provider and press Test connection.
+- **Your own AI service**: a new conversation provider, **Custom**, works with any OpenAI-compatible service: OpenRouter, Nano-GPT, or Ollama or LM Studio on your own PC. Set it up in Settings > Conversation provider > Custom endpoint and press Test connection.
 - **Voice clips for characters**: in the character editor, give a story character or a character you made a voice of their own from a short recording. Pocket, OmniVoice and Voxtral copy it, from that character's next line: no restart.
 - **Make your own characters**: create and edit characters of your own in the editor, with a profile, a way of speaking and memories.
 - **The microphone in other languages**: with Mistral, speak in your own language and it is understood. With Local AI or a Custom endpoint, two optional Microphone packs add Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian, Portuguese, Mandarin Chinese, Japanese and Korean, on your own computer. English stays on the fast local path.
@@ -99,13 +99,13 @@ If your graphics card is short of memory the mod steps down by itself and keeps 
 
 ## Custom provider (advanced, optional)
 
-Settings > Conversation provider > **Custom (OpenAI-compatible)** uses any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. The Custom rows sit under the Mistral row. Use their three Paste buttons in order, each after copying the value from your provider:
+Settings > Conversation provider > **Custom (OpenAI-compatible)** uses any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. Press **Open** on the **Custom endpoint** row, under the Mistral row; its page holds the rows. Use the three Paste buttons in order, each after copying the value from your provider:
 
 1. **Paste endpoint URL**, the endpoint's base address. OpenRouter: `https://openrouter.ai/api/v1`. Nano-GPT: `https://nano-gpt.com/api/v1`. Ollama: `http://localhost:11434/v1`. LM Studio: `http://localhost:1234/v1`.
 2. The second button, for the access code of your account. A server on your own computer needs none.
 3. **Paste model ID**, a model name from the provider's list: for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter, or `llama3.2` on Ollama.
 4. Press **Test connection**. It sends one tiny request and says OK, or what the provider answered.
-5. Choose **Custom (OpenAI-compatible)** as the provider.
+5. Go back with **Back to settings** and choose **Custom (OpenAI-compatible)** as the provider.
 
 Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. Only the last four characters of the access code are ever shown, and it goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. A server on your own PC must be running before the game starts. Nothing is sent until you choose the provider or press Test connection. Without an address and a model ID, conversations use Convai and one notice says so. The replies, their price and their limits are your provider's, and your lines go to it. The values are kept in `player-custom-endpoint.txt` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`; its three lines are described in docs/CUSTOM_PROVIDER.md in the mod's repository.
 

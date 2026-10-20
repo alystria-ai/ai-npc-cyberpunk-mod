@@ -1,5 +1,5 @@
--- Developer probes for Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, phases 2 and 3): the live evidence the offline tests cannot
--- give (the Relic's status effects, the hologram's look, the cost of combat hooks, the district V is read in).
+-- Developer probes for Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): the live evidence the offline tests cannot
+-- give (the Relic's status effects, the cost of combat hooks, the district V is read in).
 --
 -- Dispatched from init.lua's developer mailbox (runtime/diagnostic-request.txt, its existing poll) as
 -- "johnny-probe:<feature>:<action>:<stamp>", in Developer mode only; scripts/Send-JohnnyProbe.ps1 writes the request and prints
@@ -9,7 +9,7 @@
 local M = convaiJohnnyProbe or {modules = {}, ticking = {}}
 convaiJohnnyProbe = M
 
-M.FEATURES = {relic = 'johnny-relic-probe.lua', hologram = 'johnny-hologram-probe.lua', feats = 'combat-feats-probe.lua'}
+M.FEATURES = {relic = 'johnny-relic-probe.lua', feats = 'combat-feats-probe.lua'}
 M.RESPONSE = 'runtime/johnny-probe.json'
 local MAX_REQUEST, MAX_REPORT = 200, 262144
 

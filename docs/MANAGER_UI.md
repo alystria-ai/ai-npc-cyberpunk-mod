@@ -46,10 +46,11 @@ Mods screen (Esc > Mods)
 | Memory | Settings | Memory, Whose memories |
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
+| Custom endpoint | Settings | Custom endpoint (the endpoint URL, API key and model ID rows and Test connection) |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other four (Memory, Relationships, Help, paid tier). It is the first row of
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other five (Memory, Relationships, Help, paid tier, Custom endpoint). It is the first row of
 the first section, so it is always the first row of the page. Memory (Manage) and Relationships (Open) are rows of Settings > Conversations, Help and support is
-the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row. The Help
+the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row, and Custom endpoint (Open, since 2026-10-20) a row of the same section right after the Mistral key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
 behind `pcall`). Relationships is absent when no character has a relationship setting.
 
@@ -61,7 +62,7 @@ A row of the page is one of four kinds, built by `setting(...)`, `action(...)` a
 | `setting`, type `select` | string selector |
 | `setting`, type `int` | integer slider |
 | `action` | button (its text is the `value`) |
-| `readonly` | a line of text with nothing to press. In NSUI it is a button whose frame is hidden (`hideFrames` in `mod/nsui.lua`): a short value is the button text ("Johnny's standing" ... "Grudging respect"), a long or missing value leaves the label alone, "Label: value" |
+| `readonly` | a line of text with nothing to press. In NSUI it is a button whose frame is hidden (`hideFrames` in `mod/nsui.lua`): a short value is the button text, a long or missing value leaves the label alone, "Label: value". The Settings page has no read-only line any more (Voice status and Johnny's standing were removed 2026-10-20); the others are the Memory, Help, list and paging lines |
 
 **The first page.** The manager always opens on Home: after the player leaves the tab for another one, after the Mods screen closes,
 and on the shortcut. A hook on `SettingsMainGameController.OnInitialize` makes the tab ready on its first page before NSUI builds a
@@ -83,31 +84,28 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 - **Model browser:** every Character record in the game, so any model can be invited, including characters without conversation
   support, which join as followers and do not talk. Each row's help names the record and the conversation profile, if any.
 - **Settings:** the sections of the page table above, in that order. Rows by section:
-  - Interface: Interface language.
-  - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (with a
-    read-only "Johnny's standing" line under it while it is on), Johnny speaks up, Multilingual conversations, Auto-connect nearby
-    characters, Continue from game dialogue, Live holocall picture.
+  - Interface: Interface language. Its help says the setting changes this mod's menus and notices only, that character voices and the language the
+    player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
+  - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
+    rarely, Speaks up often; default Off), Multilingual conversations.
   - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
-  - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, the Custom
-    (OpenAI-compatible) rows, Convai API key, Convai paid tier, Edit characters.
-  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), Body gestures
-    (on by default since 2026-10-11, no longer called experimental).
-  - Voices: Voice playback, Companion voices, Voice status, Lip sync delay (Bluetooth), Voice volume (%), Natural speech, Expressive
-    emotions, Follow-up questions, V's voice for typed lines (on by default, `docs/V_VOICE.md`) and V's voice engine (Pocket by
-    default, or Voxtral).
-  - Subtitles; Automatic reactions (React to battles, React to collected loot); one section per installed add-on that has settings
+  - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, Custom endpoint (a button that
+    opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
+  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
+  - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
+    Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud; default Pocket,
+    `docs/V_VOICE.md`).
+  - Subtitles; Automatic reactions (React to battles, React to collected loot; both on by default since 2026-10-20); one section per installed add-on that has settings
     (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
 
   Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
   OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
   · Cloud voice**. Without the optional OmniVoice pack the
   entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
-  Voice status names the voice service state, the voice in use when the chosen one cannot run ("Ready · Using Pocket · Performance,
-  OmniVoice · Balanced unavailable"; one gameplay notice says so once), "Changing after the current reply" while a change waits, and,
-  for a voice that loads no local model (bridge state `remote`, named from `cloudVoice`), "Voxtral cloud voice · Local model
-  unloaded" or "Convai voices · ...".
+  The Voice status row was removed on 2026-10-20: the voice state shows through the fallback notices (when the chosen voice cannot run, one gameplay
+  notice names the voice in use, e.g. "OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.") and the Help page.
 - **Memory:** the memory controls (player memory, service state, how many characters the player has talked to, the selected character,
   Forget selected character, Forget all memories with an inline confirmation) and, in the second section, **Whose memories**, a paged
   list that selects the character. Selecting does not invite anyone or change conversation settings.
@@ -127,11 +125,19 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
 - **One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
   status is in brackets in the row name: "Convai API key (...a1F9)" (the last four characters, the only part of a key ever shown),
   "(Added)", "(Checking...)" or "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help.
+- **What the Mistral key's Remove says.** The help starts with the fixed sentence "Deletes the saved key." and then names what the key powers now:
+  "Conversations go back to Convai free tier." (the provider is Mistral), "Companions switch from Voxtral to the Convai voice." (the companion voice
+  is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on and its engine is Voxtral). With none of them: "Nothing you use now depends on
+  it." The Convai key's Remove help stays "Deletes the saved key. Conversations go back to Convai free tier."
+- **Battle and loot reactions are on by default** (since 2026-10-20). A saved off counts only when the player chose it (`battleReactionsChosen`,
+  `lootReactionsChosen`, set when an Apply carries the row); an old file's unchosen off becomes on once, and one the player switched off stays off.
+  Restore defaults turns both on. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
 - **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
   memory)", "(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted
   or model unavailable; the Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room;
   "Waiting for the conversation to end"; fallbacks such as "Convai: Local AI is not ready") are the first paragraph of the Conversation
   provider row's help.
+- **Gone (2026-10-20, the behaviour stays and is always on, with no row):** Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture and Body gestures. **Gone completely:** Johnny's hologram and V talks on their own. A saved key of any of these is ignored and removed from `settings.json` once; an old file with one of the five set to off behaves as on.
 - **Gone:** Prepared voices (always kept; a saved `keepPreparedVoices = false` is read as on and written back as on;
   `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`), the "Who can talk" page, the OmniVoice pack row,
   and Groq as a provider (a saved `groq` reads as `convai`; `player-groq-key.txt` is never read).
@@ -165,22 +171,31 @@ After every apply the page is drawn again. **What the rules did is shown on the 
 - A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
   Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI, Mistral or Custom."). The other changes of the same moment are kept.
 - A rule that **moves other rows** corrects them in place, and the line names what moved:
-  - **Mature content** works with Local AI, Mistral and Custom (since 2026-10-20) and never stands beside Convai (free tier or API key). Turning it on
-    beside Convai, or beside Local AI, also selects, in the same transaction, the Local AI provider (from Convai), the largest uncensored model that fits
-    (when one is installed) and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it is; with Multilingual conversations
-    on, OmniVoice Balanced is used instead, and nothing moves when its pack is missing). Without the Local AI pack it cannot be on beside Convai and the
-    switch goes back to off ("Needs Local AI, Mistral or Custom."). Beside Mistral or Custom it just turns on and changes nothing else (no way back is kept).
-    What it changed is kept in `settings.json` (`matureRestore`: `{conversationProvider, localModel, voice}` each as `{before, set}`),
-    so turning it off puts back what it changed, except anything the player changed since; choosing Convai turns it off the
-    same way; choosing Mistral or Custom leaves it on. The line reads "Also changed: ...".
-  - **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice keeps
-    it and turns Natural speech and Expressive emotions off (they would be read aloud). One notice ("The Convai cloud voice cannot use
-    Natural speech or Expressive emotions, so they were turned off.") shows only when the player had set one of them
-    (`expressiveEmotionsChosen` in `runtime/settings.json`). Turning a tag setting on while the cloud voice is saved moves the voice to
-    Pocket · Performance with the "needs a local voice" notice. If one batch picks the cloud voice and turns a tag setting on, the voice
-    wins. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
+  - **Mature content** works with Local AI, Mistral and Custom (since 2026-10-20) and never stands beside Convai (free tier or API key). It
+    changes no voice: the lines may go to a cloud voice with any provider (since 2026-10-20). Turning it on beside Convai selects, in the same
+    transaction, **Local AI** when its pack is installed (with the largest uncensored model that fits, when one is installed), else
+    **Mistral** when a Mistral key is saved, else **Custom** when its endpoint is set up. With none of the three the switch goes back to off
+    ("Needs Local AI, Mistral or Custom."); if the same batch picks Convai, the player's provider stays and the switch goes back to off. Beside
+    Local AI it selects the uncensored model the same way; beside Mistral or Custom it turns on and changes nothing else.
+    What it changed is kept in `settings.json` (`matureRestore`: `{conversationProvider, localModel}` each as `{before, set}`; the voice parts an
+    older record carried are dropped when it loads), so turning it off puts back what it changed, except anything the player changed since;
+    choosing Convai turns it off the same way; choosing Mistral or Custom leaves it on. The line reads "Also changed: ..." and names the
+    provider ("Local AI", "Mistral (free plan)" or "Custom (OpenAI-compatible)") and the uncensored model.
+  - **Cloud voice and Natural speech** (`manager.applySettings`, `honourCloudVoice`; rule changed 2026-10-20): Natural speech and the
+    Convai · Cloud voice exclude each other only where that voice is what speaks: the voice is Convai **and** the provider is Convai (free tier
+    or own key). With Mistral, Local AI or Custom and the Convai voice selection the bridge plays Pocket, so Natural speech works there and
+    stays. An Apply that makes the pairing (it chooses the voice, or chooses a Convai provider while the voice is Convai) keeps the choice and
+    turns Natural speech off with "The Convai cloud voice cannot use Natural speech, so it was turned off." Turning Natural speech on beside an
+    existing pairing moves the voice to Pocket · Performance with the "needs a local voice" notice. An older save with the pairing loads with
+    Natural speech off. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
     Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
-  - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on with Local AI as the text provider (with Mistral or Custom text it is allowed: the lines are in the cloud for the reply anyway).
+  - V's voice is one list (2026-10-20): Off, Pocket, Voxtral. The row writes both stored keys (`vVoice`, `vVoiceEngine`); Off keeps the saved engine. Voxtral is greyed out
+    until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and
+    speaks as Pocket until a key is saved. Mature content does not touch it.
+  - Johnny is one list (2026-10-20): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (at most twice an hour), Speaks up often (at most
+    six times an hour, never closer than five minutes). The row writes both stored keys (`johnnyInHead`, `johnnyRemarks`): Off means no remarks, and an old file with
+    `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only
+    "Johnny's standing" line was removed.
 - **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
   page and the Relationships page it applies every saved row of both pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
@@ -315,8 +330,8 @@ MCM 0.10.6 added (`close`, `setActionVisibility`, three presentation options) ar
 look alike without it; MCM's own Defaults button and Modified counter go with the defaults, so the host has its own **Restore defaults**
 footer button on Settings and Relationships, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
 `M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
-without write, except on the Settings page where Voice status and Johnny's standing are status buttons (an action with the value as its
-text that does nothing: MCM draws a read-only line at size 26 and every other row at 22). Two alignments remain that no public option
+without write; the Settings page has no read-only line (Voice status and Johnny's standing were removed 2026-10-20, and with them the
+status-button workaround that drew such lines at the size of the other rows), so the other pages' lines are plain MCM text rows. Two alignments remain that no public option
 changes in MCM 0.10.5: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20); MCM 0.10.6 moves the first with `labelIndent` (see "MCM 0.10.6" below).
 Relationships is a page of its own (view `relationships`, back to Settings), opened by a Relationships button in Conversations. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
@@ -328,10 +343,10 @@ group, the last one goes round to All).
 
 **Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
 Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
-`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content beside Convai or Local AI turns on Local AI,
-the uncensored model and a local voice with it; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
+`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content beside Convai turns on Local AI with its
+uncensored model, else Mistral, else Custom; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
 asked for, not the extra ones the rules saved. MCM loads the page again and the rows show what was saved. If the rules did not keep a
-requested value (Mature content beside Convai without Local AI), MCM would keep that draft as unapplied: the host reverts it from the next tick and
+requested value (Mature content beside Convai with no Local AI pack, Mistral key or ready Custom endpoint), MCM would keep that draft as unapplied: the host reverts it from the next tick and
 the status line gives the reason. MCM refuses a button while changes are pending ("Apply or revert pending changes ..."); that is MCM's
 own rule.
 
@@ -384,8 +399,7 @@ options are not tried again. What changes with 0.10.6:
 - Not changed (follow-up, see TODO.md): the page still gives no row a default, so MCM's own Defaults button, Modified counter and filter
   stay unused and this host's Restore defaults remains. With `highlightModifiedValues = false` real defaults would no longer paint rows
   purple, but they would bring MCM's own Defaults button (whose semantics, confirmation and interaction with the rules of `M.apply` and
-  with disabled voice entries cannot be checked without the game) beside ours. The Voice status and Johnny's standing status buttons are
-  kept for the same reason (with one `rowFontSize` they could be plain read-only lines again).
+  with disabled voice entries cannot be checked without the game) beside ours.
 
 Tests: `bridge/mcm-host.test.mjs` over `bridge/mcm-fake.mjs`, a fake MCM that keeps the rules of MCM's own modules for providers,
 schemas, drafts, Apply (including the exact `appliedIds` check), actions and the public UI extension (given version 0.10.6 or newer it also has
@@ -453,8 +467,8 @@ remain are resource guards that scale with the party instead of refusing it:
 
 - **Setup check** (below): the **Conversation service** row first (Running, Starting, Not running, Needs a browser or Unknown), then one
   line per check. "Needs a browser" is shown when the service never started because no Chromium browser (Edge, Chrome, Brave, Opera and
-  others) is installed (`bridge-service.json` code `browser-missing`); the row's help, the in-game notice, the help of the Voice status
-  row (whose value reads "Needs a browser") and the first lines of the short report then say "The conversation service needs a
+  others) is installed (`bridge-service.json` code `browser-missing`); the row's help, the in-game notice, the Help page
+  (whose service line reads "Needs a browser") and the first lines of the short report then say "The conversation service needs a
   Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game." While the service is not
   running or starting and no model is listed, the Local AI model row reads "Service not running" or "Service starting" instead of "No
   model installed", which stays for a service whose state is unknown.
@@ -650,18 +664,18 @@ is open shows on the feedback line, and the notice is posted once when gameplay 
 never inside a native callback. The popup tests cover deduplication, Developer mode on and off, immediate and asynchronous failures,
 cancellation, phone ownership and already joined tickets; their visibility in the running game remains the live acceptance gate.
 
-## Auto-connect nearby characters
+## Connecting nearby characters ahead of the talk
 
-**Settings, Conversations, Auto-connect nearby characters** (default **On**, silent). The talk key already works on any NPC within 8 m
+**Always on since 2026-10-20: the setting "Auto-connect nearby characters" was removed, so there is no row and nothing to switch.** The talk key already works on any NPC within 8 m
 whose record or name resolves to a profile (`profileIdentity`, `characterCatalog.resolve`), so the game's own Judy met in the world can
 talk. The connection used to open only when the chat did (`warmConversation`, `runtime/conversation-prewarm.json`), which costs a wait
 on the first reply.
 
-- **Off:** connect on talk. Starting a chat with a world character that is not connected yet shows `Preparing connection to Judy...`
+- **Notice:** starting a chat with a world character that is not connected yet shows `Preparing connection to Judy...`
   (a party copy that is still connecting included); with a voice chat the line is joined to `Connecting microphone - wait for
-  Listening`. With the setting **On** the same notice shows at the start of the conversation only; looking at a character and her
-  warm-up are silent. A character already connected shows nothing. Group chat shows no wait notice.
-- **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s, or stands within 5 m of (a 1 Hz `GetTargetParts`
+  Listening`. It shows at the start of the conversation only; looking at a character and her warm-up are silent. A character already
+  connected shows nothing. Group chat shows no wait notice.
+- **Warm-up** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s, or stands within 5 m of (a 1 Hz `GetTargetParts`
   scan), is warmed: the Lua side publishes up to **two** profile keys to `runtime/nearby-connections.json` (rewritten on change and every
   2 s) and `bridge/nearby-warm.mjs` opens their private connection (`PartyConnections.setNearby`, role `nearby`, the lowest priority: it
   never evicts a party, invitation or composer connection) and prepares their local voice (`localVoice.prepareProfile`: one voice at a
@@ -677,7 +691,7 @@ on the first reply.
   when they part: more than 15 m away for 20 s, 3 minutes without an exchange, the character despawns, or a scene or game dialogue
   starts (`partnerRange`, `partnerAway`, `partnerIdle`). Talking to someone else gives the previous one 30 s (`partnerGrace`); at most 2 at
   once. Ambient residents keyed per entity cannot be warmed without their entity.
-- **Release:** the setting turned off, a world change and CET shutdown publish an empty list at once; the bridge also treats a list not
+- **Release:** a world change and CET shutdown publish an empty list at once; the bridge also treats a list not
   refreshed for 8 s as empty. The composer hint (`conversation-prewarm.json`) is untouched and still wins for the character being talked
   to. It sends no message, creates no memory and records no contact.
 - Tests: `bridge/auto-connect.test.mjs`, `bridge/nearby-warm.test.mjs`, `bridge/conversation-partner.test.mjs`,

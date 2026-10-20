@@ -194,7 +194,7 @@ test('wiring: one nil check on the 0.5 s sample; a world change drops the tracke
   assert.match(init, /if convaiJohnnyRelic then convaiJohnnyRelic:reset\(\) end\s+convaiJohnnyFight = nil/);
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
   assert.doesNotMatch(update, /convaiJohnnyFight/);
-  const feed = between('function convaiJohnnyFightCounters()', '-- Johnny\'s hologram (phase 3');
+  const feed = between('function convaiJohnnyFightCounters()', '-- Is V seated in an ordinary seat right now?');
   assert.doesNotMatch(feed, /Observe|registerForEvent|OnHit|OnDeath|DamageSystem/, 'no hook of any kind: nothing per hit');
   // The shipped feed reads quest facts only, the same four the cost study lists.
   assert.equal([...feed.matchAll(/GetFactStr/g)].length, 1);

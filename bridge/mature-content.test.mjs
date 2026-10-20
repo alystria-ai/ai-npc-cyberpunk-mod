@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GENERIC_REFUSALS, REFUSALS} from './mature-guard.mjs';
-import {MATURE_LIMITS, MATURE_MARK, guardLayer, MATURE_PROVIDERS, matureAllowsCloudVoice, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, maturePalette, matureWorld, screenMinors} from './mature-content.mjs';
+import {MATURE_LIMITS, MATURE_MARK, guardLayer, MATURE_PROVIDERS, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, maturePalette, matureWorld, screenMinors} from './mature-content.mjs';
 import {ROMANCE_LIMITS, ROMANCE_USE, relationshipContext} from './romance-context.mjs';
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
@@ -80,13 +80,9 @@ test('the local AI, Mistral and Custom may have it; Convai never does (nor does 
   for (const provider of ['local', 'mistral', 'custom']) assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, `off: nothing for ${provider} either`);
 });
 
-test('the voice rule: with Mature on, V\'s cloud voice is kept off while the text stays on this computer (or Convai), and allowed with Mistral or Custom text', () => {
-  assert.equal(matureAllowsCloudVoice(false, 'local'), true, 'off: no restriction');
-  assert.equal(matureAllowsCloudVoice(false, 'convai'), true);
-  assert.equal(matureAllowsCloudVoice(true, 'local'), false, 'Local AI: the lines stay local');
-  assert.equal(matureAllowsCloudVoice(true, 'convai'), false, 'as before');
-  assert.equal(matureAllowsCloudVoice(true, 'mistral'), true, 'the lines are in the cloud already');
-  assert.equal(matureAllowsCloudVoice(true, 'custom'), true);
+test('Mature content never changes or refuses a voice (2026-10-20): the old cloud-voice rule is gone', async () => {
+  const mature = await import('./mature-content.mjs');
+  assert.equal('matureAllowsCloudVoice' in mature, false, 'no voice rule is exported any more');
 });
 
 test('the allowance is per model family from the loaded model name; an unknown model gets the restrained one', () => {

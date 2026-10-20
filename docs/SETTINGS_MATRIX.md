@@ -2,9 +2,11 @@
 
 The audit write-up of branch `audit/settings-matrix` (from main 2c19ac29). It was meant for `deliverables/settings-audit-2026-10-20.md`; the file tool there was refused, so it lives here. Committed, NOT merged, NOT pushed, NOT installed, game not launched, no live cloud or Convai turn. `mod/` needs a CET reload (all committed Lua and the 15 locales), `bridge/` a bridge restart.
 
+**Update 2026-10-20 (branch `feat/settings-decisions`):** the owner decided D1 to D8 (section 3) and removed five settings; this file now describes the code after those changes. Rows and findings that changed say so. Old saved keys of every removed setting are ignored and dropped from the file once.
+
 Scope: every player setting on Settings and Relationships, the credentials, the hidden keys of `runtime/settings.json`, and the install states that feed them. Method: read both rule sets (Lua `mod/manager.lua`, `mod/manager-ui.lua`; the bridge's settings poll in `bridge/convai-bridge.mjs` and the modules it feeds), list every pair of settings where one reads, forces or refuses the other, and walk each pair plus the triples provider × voice × Mature and provider × Multilingual × voice through the page, the load path (an old or hand-edited file) and the bridge. Left to other branches: the Mature pin and the Local AI model row (`fix/mature-off-models`, `bridge/local-model-choice.mjs`) and the free-VRAM fit (`bridge/local-llm-server.mjs`).
 
-Counts: **36 page settings** (35 keys, the 5 relationship rows under one key), **3 credentials** (Mistral key, Convai key, Custom endpoint URL/key/model), **4 rows per add-on with speakers** plus its own items, **9 hidden file keys**, **31 interacting pairs**.
+Counts (before the 2026-10-20 changes): **36 page settings** (35 keys, the 5 relationship rows under one key); after them **27 page rows**: `johnnyHologram`, `vTalks`, `autoConnectNearby`, `expressiveEmotions`, `gameDialogueContext`, `holocallLiveImage` and `bodyGestures` are gone (`naturalSpeech` and `followUpInterest` stay), Johnny in your head and Johnny speaks up are one list row, V's voice for typed lines and V's voice engine are one list row (each of those two rows writes both of its file keys), and the read-only Johnny standing line is gone, **3 credentials** (Mistral key, Convai key, Custom endpoint URL/key/model), **4 rows per add-on with speakers** plus its own items, **9 hidden file keys**, **31 interacting pairs**.
 
 ## 1. Inventory
 
@@ -15,40 +17,38 @@ Read sites: the Lua getter or rule in `mod/manager.lua`, and the bridge reader. 
 | `uiLanguage` | `auto` or 15 codes | `auto` | `ui.configure`; unknown → `auto` | `speech-language.mjs` `update` (mic language hint) | hint for non-English mic recognition | none | Interface language (see D5) |
 | `archetypeConversations` | bool | on | `M.archetypeConversations`, `profileEnabled` | – | npc-* profiles talk | none | Talk to ordinary NPCs |
 | `storyConversations` | bool | off | `M.storyConversations` | – | game characters talk (talk, face and audio only) | none | Talk to story characters |
-| `johnnyInHead` | bool | off | `M.johnnyInHead` | – | gates the next two (`init.lua` 791, 810, 898) | none | Johnny in your head |
-| `johnnyRemarks` | off/rare/normal | off | `M.johnnyRemarks` | – | needs Johnny in your head | free-tier turns | Johnny speaks up |
-| `johnnyHologram` | bool | off | `M.johnnyHologram`; row only in developer mode | – | needs Johnny in your head | none | Johnny’s hologram (dev) |
-| `vTalks` | off/rare/normal | off | `M.vTalks`; row only in developer mode | – | needs `vVoice` (`init.lua` 3215) | turns | V talks on their own (dev) |
+| `johnnyInHead` + `johnnyRemarks` | one list row (2026-10-20): Off / On / Speaks up rarely / Speaks up often; file keys bool + off/rare/normal | Off | `M.johnnyInHead`, `M.johnnyRemarks`; the row writes both (1 = false + off, 2 = true + off, 3 = true + rare, 4 = true + normal); load puts remarks to `off` when Johnny in your head is off | – | remarks need Johnny in your head (`init.lua` gates) | free-tier turns for remarks | Johnny in your head (the "Johnny’s standing" status line is removed) |
+| ~~`johnnyHologram`~~ | – | – | **removed** (D2): code, rows, strings, docs, tests; an old saved value is ignored | – | – | – | – |
+| ~~`vTalks`~~ | – | – | **removed** (D2), as above | – | – | – | – |
 | `multilingualConversations` | bool | off | `M.multilingualActive` (new), `resolveMultilingualVoice`, load rule | `multilingual.mjs` `update`, `voice-selection.mjs` `request`; forced off for a player key (`convai-bridge.mjs` 3184) and on text providers (3206) | in use only on the Convai free tier: voice never Pocket/Voxtral; without the Omni pack the tag settings are off | Omni or Convai voice instead of Pocket | Multilingual conversations |
-| `autoConnectNearby` | bool | on | `M.autoConnectNearby` | – (connections: `party-connections.mjs` deferWarm) | pre-opens connections on the free tier | local voice prep | Auto-connect nearby characters |
-| `gameDialogueContext` | bool | on | `M.gameDialogueContext` | – | records game dialogue | none | Continue from game dialogue |
-| `holocallLiveImage` (+Chosen) | bool | on | an unchosen false becomes true | – | – | none | Live holocall picture |
+| ~~`autoConnectNearby`~~ | – | – | **removed**, always on (the Convai free tier pre-opens connections as before; nothing changes elsewhere, `party-connections.mjs` deferWarm) | – | – | – | – (D7 is settled by this) |
+| ~~`gameDialogueContext`~~ | – | – | **removed**, always on (the recorder has no `enabled` option in `init.lua`) | – | – | – | – |
+| ~~`holocallLiveImage`~~ (+Chosen) | – | – | **removed**, always on (`init.lua` passes `liveImage = true`; the call still goes on with the portrait when the picture cannot be shown) | – | – | – | – |
 | `relationshipModes.*` (5) | auto/on/off | auto | unknown keys dropped | `relationship-routing.mjs` | – | none | Relationships page |
 | `conversationProvider` | convai/mistral/local/custom | convai | unknown (`groq`) → convai | `mistral-key.mjs` `setPreference` (same; mistral needs the key, custom an endpoint, local falls back) | Mature only on local/mistral/custom; Multilingual off off the free tier; Convai voice → Pocket on text providers | Local AI server starts on `local`, stops when unused | Conversation provider (5 entries) |
 | `useOwnConvaiKey` (+`convaiProviderChoice`) | bool | off | entry 2 of the provider select; old switch migrated once | `convai-key.mjs` | single session: Multilingual off, nothing pre-opened | none | "Convai API key" entry |
-| `matureContent` | bool | off | off beside Convai on load and Apply; `stageMature` | `mature-content.mjs` `update` | on from Convai selects Local AI, the uncensored model, Pocket for a cloud voice, V engine Pocket (new); Convai turns it off | guard compile; model choice | Mature content |
-| `matureRestore` | record | none | `cleanMatureRestore` (provider, model, voice, V engine: new) | – | the way back on Mature off | – | – |
+| `matureContent` | bool | off | off beside Convai on load and Apply; `stageMature` | `mature-content.mjs` `update` | on from Convai selects Local AI and the uncensored model; without the Local AI pack Mistral (key saved), else Custom (endpoint ready), else refused (D3); changes no voice (D1); Convai turns it off | guard compile; model choice | Mature content |
+| `matureRestore` | record | none | `cleanMatureRestore`: provider and model only (D1); the `voice` and `vVoiceEngine` parts of an old record are dropped at load | – | the way back on Mature off | – | – |
 | `localModel` | auto, standard, lite, `mature:…`, `custom:…` | auto | `validModelId`, `goneLocalModelReplacement`; Apply pins the shown default | `local-model-choice.mjs` `normalisePin` | – | which model llama-server loads | Local AI model |
 | `eyeContactHeight`, `headFollowStrength` | lists | 0, 1 | `M.gazeSettings` | – | – | none | Eye contact height, Head tracking strength |
-| `bodyGestures` | bool | on | getter | – | – | none | Body gestures |
+| ~~`bodyGestures`~~ | – | – | **removed**, always on (`init.lua` passes `enabled = true` to the gesture service) | – | – | – | – |
 | `voice` | bool | on | native SetVoice | `voice-selection.mjs` `request` | off releases companion workers (Pocket kept for V) | releases | Voice playback |
 | `voiceProvider` | pocket/omni/voxtral/convai | pocket | `normalizeVoiceProvider` (`inworld`, unknown → pocket; `hybrid` → omni); Omni needs the pack, Voxtral the key | `canonicalVoiceProvider` (same mapping) | tag settings off beside the Convai voice; Multilingual refuses Pocket/Voxtral | one worker (Pocket CPU or Omni GPU), none for cloud | Companion voices |
 | `omniSteps`, `omniReference` | 16/32, short/long | 16, long | load rule | `voice-selection.mjs` | – | Omni variant | in the voice list |
 | `audioDelay` | auto, 0…250 ms | auto | load rule | `audio-delay.mjs` | – | none | Lip sync delay (Bluetooth) |
 | `voiceVolume` | 50…200 | 100 | `cleanVoiceVolume` | `dialogue-level.mjs` | – | none | Voice volume (%) |
-| `naturalSpeech` | bool | off | off beside the Convai voice; on moves the Convai voice to Pocket | `natural-speech.mjs` (tags for local engines only) | – | none | Natural speech |
-| `expressiveEmotions` (+Chosen) | bool | on | same | `expressive-emotions.mjs` (missing = on) | – | none | Expressive emotions |
-| `followUpInterest` | bool | on | getter | `follow-up.mjs` | – | none | Follow-up questions |
-| `vVoice` (+Chosen) | bool | on | an unchosen false becomes true | `v-voice.mjs` | – | V's own Pocket helper when the companions use another voice | V’s voice for typed lines |
-| `vVoiceEngine` | pocket/voxtral | pocket | Voxtral needs the key; Pocket beside Mature + Local AI | `v-voice.mjs`; cloud refused by `matureAllowsCloudVoice` (`convai-bridge.mjs` 1119) | – | nothing for Voxtral | V’s voice engine |
+| `naturalSpeech` | bool | off | off only beside the Convai voice AND the Convai provider (`cloudVoiceBlocksTags`, D8); on there moves the Convai voice to Pocket; on Mistral, Local AI and Custom the Convai voice selection plays Pocket in the bridge, so it works | `natural-speech.mjs` (tags for local engines only) | – | none | Natural speech |
+| ~~`expressiveEmotions`~~ (+Chosen) | – | – | **removed**, always on: `ExpressiveEmotions` in the bridge is always active, asked for only where a local voice (Omni, Pocket) speaks; the Lua tag-setting rules for it are gone | `expressive-emotions.mjs` (the key is ignored) | – | none | – |
+| `followUpInterest` | bool | on | getter (stays a setting, owner 2026-10-20) | `follow-up.mjs` | – | none | Follow-up questions |
+| `vVoice` (+Chosen) + `vVoiceEngine` | one list row (2026-10-20): Off / Pocket / Voxtral; file keys bool + pocket/voxtral | Pocket (on) | the row writes both (1 = false, 2 = true + pocket, 3 = true + voxtral); an unchosen false becomes true once; Voxtral needs the key (greyed out without it); a saved Voxtral without a key shows as Pocket; Mature never changes it (D1) | `v-voice.mjs`; the settings poll maps a keyless Voxtral to Pocket (`matureAllowsCloudVoice` is gone) | – | V's own Pocket helper when the companions use another voice and V is on with Pocket; Off releases it | V’s voice for typed lines |
 | `subtitles`, `subtitleStyle` | bool, dialogue/overhead | on, dialogue | native / load rule | – | – | none | Subtitles, Subtitle display |
-| `battleReactions`, `lootReactions` | bool | off | getters | – | – | turns | React to battles / collected loot |
+| `battleReactions`, `lootReactions` (+Chosen) | bool | **on** (owner, 2026-10-20) | an unchosen false becomes true once (`battleReactionsChosen`, `lootReactionsChosen`, set when an Apply carries the key) | – | – | turns | React to battles / collected loot |
 | `errorReports` (+Noticed) | bool | on | `M.errorReports` | `error-events.mjs` (missing = on) | – | none | Send error reports automatically |
-| `developerMode` | bool | off | `M.developerMode` | support report only | shows the two dev rows | movement trace | Developer mode |
-| Mistral key | bridge file | none | commands only | `mistral-key.mjs` | Mistral provider; Voxtral for companions and V | none | Mistral free API key |
+| `developerMode` | bool | off | `M.developerMode` | support report only | no row is hidden behind it any more (D2) | movement trace | Developer mode |
+| Mistral key | bridge file | none | commands only | `mistral-key.mjs` | Mistral provider; Voxtral for companions and V; the Remove help says which of these it powers now (D4) | none | Mistral free API key |
 | Convai key | bridge file | none | commands only | `convai-key.mjs` | provider entry 2, paid tier | none | Convai API key, Convai paid tier page |
-| Custom endpoint | bridge file | none | `custom-provider.lua` | `custom-endpoint.mjs` | Custom provider | none | Custom endpoint URL, API key, model ID, Test connection |
-| Add-on rows | remarkGap, remarkCap, replaceGameLines, markLines, own items | add-on's | `addons.lua` `settingsSections` | `addons.mjs` (`addon-settings.json`) | – | route: the player's Mistral/Local AI, else the Mistral key, else Local AI | per add-on section (author's English) |
+| Custom endpoint | bridge file | none | `custom-provider.lua`; its four rows are a page of their own (button "Custom endpoint" after the Mistral key row, page `custom-endpoint`, Back to Settings; 2026-10-20) | `custom-endpoint.mjs` | Custom provider | none | Custom endpoint (page): URL, API key, model ID, Test connection |
+| Add-on rows | remarkGap, remarkCap, replaceGameLines, markLines, own items | add-on's | `addons.lua` `settingsSections` | `addons.mjs` (`addon-settings.json`) | – | route: the player's Mistral/Local AI/Custom, else the Mistral key, else Local AI (D6) | per add-on section (author's English) |
 | Hidden keys | `decisionLedger`, `witnessReceipts`, `keepPreparedVoices` (always true), `enabledByKey` (Lua); `emotionSelector`, `replyStreaming`, `visionTransport`, `visionWaitMs`, `visionDebugLastSent` (bridge) | – | – | – | – | – | none |
 
 Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni entries greyed once it is known missing), Local AI Standard/Lite and Mature Standard/Lite (`localAi`, `maturePack`), mic packs (bridge only, no setting), the Runtime missing (model row "Service not running"), MCM or Native Settings UI (one page model; MCM applies a batch atomically, NSUI retries a refused batch row by row), card memory (model choice by free memory: other branch).
@@ -65,29 +65,29 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | 6 | provider × localModel | the model is used on Local AI (and as the add-on fallback). |
 | 7 | provider × Mistral key | Mistral needs the key; without it Convai answers and the provider help says so. |
 | 8 | provider × Custom endpoint | Custom needs a ready endpoint, else Convai with a note. |
-| 9 | provider × add-on route | the player's Mistral/Local AI, else the Mistral key, else Local AI; never Custom (D6). |
+| 9 | provider × add-on route | the player's Mistral/Local AI, or Custom when it is chosen and its endpoint is ready; else the Mistral key, else Local AI (D6). |
 | 10 | provider × character editor | edits apply on Mistral, Local AI and Custom. Was F6 (texts). |
-| 11 | provider × autoConnectNearby | connections pre-open on the shared free tier only (D7). |
+| 11 | provider × connections | connections pre-open on the shared free tier only; the Auto-connect setting is gone (D7). |
 | 12 | Mature × localModel | on selects the uncensored model; off puts the old one back (record). |
-| 13 | Mature × companion voice | on beside Local AI moves a cloud voice to Pocket; off puts it back only if it is still Pocket and the old voice can be chosen now. Was F1. Later cloud choices allowed (D1). |
-| 14 | Mature × V engine | beside Local AI, V moves to Pocket, named and recorded; off puts Voxtral back with a key. Was F4. |
-| 15 | Mature × Mistral key | key removed: a Voxtral restore is skipped (F1). |
-| 16 | Mature × Omni pack | an Omni restore is skipped while the pack is missing (F1). |
+| 13 | Mature × companion voice | none (D1, 2026-10-20): Mature changes no voice, with any provider. Was F1. |
+| 14 | Mature × V engine | none (D1). Was F4. |
+| 15 | Mature × Mistral key | key removed: Mature stays as it is (the voice rows are not touched any more); a Mature on from Convai picks Mistral only while a key is saved (D3). |
+| 16 | Mature × Omni pack | none any more (no voice record). |
 | 17 | Mature × Restore defaults | rows the batch sets are never put back. Was F5. |
 | 18 | Multilingual × companion voice | in use: never Pocket/Voxtral; turning on moves to Omni Balanced or the Convai voice. |
 | 19 | Multilingual × Omni pack | in use without the pack: the Convai voice. |
-| 20 | Multilingual × tag settings | in use without the pack: both off, turning one on refused. |
+| 20 | Multilingual × Natural speech | in use without the pack: Natural speech off, turning it on refused. |
 | 21 | Multilingual × V voice | a V line in another language is skipped (`v-voice.mjs`); the V engine help says English only. |
-| 22 | companion voice × tag settings | the Convai voice turns both off; turning one on moves the Convai voice to Pocket (Omni with Multilingual in use). |
+| 22 | companion voice × Natural speech | the Convai voice on a Convai provider turns it off (choosing the voice, or the provider, keeps that choice and turns Natural speech off with a notice); turning it on beside that pairing moves the voice to Pocket (Omni with Multilingual in use); beside Mistral, Local AI or Custom nothing happens (D8). Expressive emotions has no rule: it is always on and asked for only where a local voice speaks. |
 | 23 | companion voice × Omni pack | Omni refused without the pack; a saved Omni without it falls back to Pocket with a notice. |
 | 24 | companion voice × Mistral key | Voxtral refused without the key; key removed later: the Convai voice (or text) with a notice. |
 | 25 | companion voice × V voice | Pocket companions speak V on their worker; any other voice loads V's own Pocket helper. |
-| 26 | vVoice × vVoiceEngine × key | Voxtral needs the key; a saved Voxtral without one skips V (log only; the row reads "needs Mistral key"). |
-| 27 | vVoice × vTalks | V talks needs V's voice. |
+| 26 | vVoice × vVoiceEngine × key | one row; Voxtral needs the key (greyed out without it); a saved Voxtral without a key shows as Pocket and the bridge speaks V with Pocket until a key is saved. |
+| 27 | – | (V talks removed, D2) |
 | 28 | voice playback × subtitles | both off: reactions silent (the help says so). |
 | 29 | voice playback × local workers | off releases the companion workers, keeps Pocket for V. |
-| 30 | johnnyInHead × remarks / hologram | both gated on it. |
-| 31 | developerMode × hologram / vTalks | rows hidden without developer mode, values still active (D2). |
+| 30 | johnnyInHead × remarks | one list row; Off is no remarks; remarks are gated on it (the hologram is gone, D2). |
+| 31 | developerMode × hologram / vTalks | both removed (D2); developer mode no longer hides any row. |
 
 ## 3. Findings, by player impact
 
@@ -99,14 +99,14 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | F4 | **V's voice engine changed silently and never came back.** Mature + Local AI moved V from Voxtral to Pocket with a quiet reload, no "Also changed", no record; Mature off left Pocket; Mistral → Local AI with Mature on did the same. | `mod/manager.lua` applySettings (the rulesReload branch); stageMature had no V part | **Fixed** 75d48d11: staged, named, recorded, restored with a key | V on Voxtral, Mature on: V speaks Pocket; Mature off: still Pocket |
 | F5 | **Restore defaults with Mature on gave the pre-Mature voice.** Defaults skip rows already at default, so the Mature way back restored the Convai cloud voice (and turned Expressive emotions off). | `mod/manager-ui.lua` M.defaults + `turnedOff` | **Fixed** 75d48d11: rows a batch sets are never put back; defaults name the Mature-touched rows | Convai voice, Mature on, Restore defaults: Convai cloud voice instead of Pocket |
 | F6 | **Help text wrong for combos.** Custom missing from Edit characters, the editor page (3 lines), the own-characters notice, the bridge refusal and the provider help; the V engine help said Voxtral is "not with Mature content on" (allowed on Mistral/Custom since feat/mature-cloud); the Multilingual help did not say free tier only. | `mod/manager-ui.lua`, `mod/init.lua` 2376, `mod/character-editor.lua` 116/159/163, `bridge/character-editor-page.mjs` 456/579/595, `bridge/convai-bridge.mjs` 2594 | **Fixed** adfbf89b, 15 locales | Custom player reads that edits need Mistral or Local AI; Mistral player with Mature reads that Voxtral is unavailable |
-| D1 | Companion cloud voice with Mature + Local AI: V's Voxtral is refused (Lua and bridge); the companions' Voxtral is moved only when Mature turns on; choosing it later, or Mistral → Local AI with Mature on, keeps it. | `manager.lua` applySettings Mature rule; `convai-bridge.mjs` 1119 (V only) | **Decision** | (a) refuse companion Voxtral beside Mature + Local AI and move it on the provider switch, like V; (b) allow Voxtral for V too; (c) keep and say so in the Mature help |
-| D2 | Hidden dev rows stay active: Johnny’s hologram and V talks keep running after developer mode is turned off, with no row to see them; Restore defaults skips them. | `manager-ui.lua` (the `if not developer` removal); `init.lua` 898, 3215 | **Decision** | (a) the getters read Off unless developer mode is on; (b) turning developer mode off sets both to Off; (c) keep |
-| D3 | Mature from Convai without the Local AI pack is refused even with a Mistral key saved. | stageMature `refusal` | **Decision** | (a) select Mistral when Local AI is missing and a key is saved; (b) keep |
-| D4 | The Mistral key's Remove help says conversations go back to the Convai free tier also when the provider is Local AI or Custom and the key only feeds Voxtral. | `manager-ui.lua` Mistral key row | **Decision** | (a) provider-dependent help; (b) one line naming Voxtral; (c) keep |
-| D5 | The Interface language help says the talk language is separate, but the mic uses an explicit interface language as its hint for non-English recognition when nothing else is known. | `bridge/speech-language.mjs` `current` | **Decision** | (a) reword the help; (b) stop using the setting as a hint; (c) keep |
-| D6 | Add-on speakers never use the Custom endpoint; a Custom-only player gets "needs a free Mistral key or the Local AI pack". | `docs/ADDON_API.md` "Text providers", `AddonHost.routeFor` | **Decision** | (a) add Custom after the player's own provider; (b) keep |
-| D7 | The Auto-connect help promises a ready conversation; connections pre-open only on the shared free tier. | `party-connections.mjs` deferWarm | **Decision** | (a) one line in the help; (b) keep |
-| D8 | Convai voice + tag settings beside a text provider: Lua turns them off or moves the voice, the bridge plays Pocket there (tags would work). | `convai-bridge.mjs` 3206; `manager.lua` honourCloudVoice | **Decision** (low) | (a) the cloud-voice rule only on Convai providers; (b) keep one rule |
+| D1 | Companion cloud voice with Mature + Local AI: V's Voxtral is refused (Lua and bridge); the companions' Voxtral is moved only when Mature turns on; choosing it later, or Mistral → Local AI with Mature on, keeps it. | `manager.lua` applySettings Mature rule; `convai-bridge.mjs` 1119 (V only) | **Decided and done 2026-10-20: (b)** allow Voxtral for V too, and drop the "Mature keeps lines off the cloud" rule completely: `matureAllowsCloudVoice`, the V-to-Pocket move, the voice move, the load normalisation and the bridge refusal are removed; Mature on changes no voice; `matureRestore` keeps provider and model only, and an old record's voice parts are dropped at load | – |
+| D2 | Hidden dev rows stay active: Johnny’s hologram and V talks keep running after developer mode is turned off, with no row to see them; Restore defaults skips them. | `manager-ui.lua` (the `if not developer` removal); `init.lua` 898, 3215 | **Decided and done 2026-10-20: remove both completely** (modules, rows, keys, bridge code, strings in 15 locales, docs, tests; Johnny in your head and Johnny speaks up stay). An old saved value is ignored and dropped from the file once. The init.lua gates the audit cited belonged to the two features; developer mode only gated the two rows and a movement trace, so it stays as it is. | – |
+| D3 | Mature from Convai without the Local AI pack is refused even with a Mistral key saved. | stageMature `refusal` | **Decided and done 2026-10-20:** Local AI when its pack is installed; else Mistral when a key is saved; else Custom when an endpoint is set up; else refused as before. "Also changed" names the provider chosen. | – |
+| D4 | The Mistral key's Remove help says conversations go back to the Convai free tier also when the provider is Local AI or Custom and the key only feeds Voxtral. | `manager-ui.lua` Mistral key row | **Decided and done 2026-10-20: (a)** the help names what the key powers now (the text provider, the companions' Voxtral voice, V's typed lines, or nothing) and what changes | – |
+| D5 | The Interface language help says the talk language is separate, but the mic uses an explicit interface language as its hint for non-English recognition when nothing else is known. | `bridge/speech-language.mjs` `current` | **Decided and done 2026-10-20: (a)** the help now says the microphone uses it as a hint for non-English speech; the hint behaviour is kept | – |
+| D6 | Add-on speakers never use the Custom endpoint; a Custom-only player gets "needs a free Mistral key or the Local AI pack". | `docs/ADDON_API.md` "Text providers", `AddonHost.routeFor` | **Decided and done 2026-10-20: (a)** an add-on speaker follows the player's Custom provider when it is chosen and ready, with the companions' Custom path (memory, Mature guard, rate scheduler); every speaker allows it (the manifest `providers` list is unchanged); the fallback after the player's own provider stays the Mistral key, then Local AI | – |
+| D7 | The Auto-connect help promises a ready conversation; connections pre-open only on the shared free tier. | `party-connections.mjs` deferWarm | **Settled by removal 2026-10-20:** Auto-connect nearby characters is no longer a setting (always on, nothing changes) | – |
+| D8 | Convai voice + tag settings beside a text provider: Lua turns them off or moves the voice, the bridge plays Pocket there (tags would work). | `convai-bridge.mjs` 3206; `manager.lua` honourCloudVoice | **Decided and done 2026-10-20: (a)** Natural speech is off only for the Convai voice on the Convai provider (`cloudVoiceBlocksTags`); on Mistral, Local AI and Custom it works and stays; Lua and bridge agree (the bridge already maps the Convai voice to Pocket there). Expressive emotions is always on and asked for only where a local voice speaks | – |
 | D9 | Any Apply pins `localModel` to the shown default; with Mature on that is the uncensored model, so Mature off without a record leaves a Mature pin. | `manager.lua` applySettings (`localModel == 'auto'`) | for `fix/mature-off-models` | – |
 
 Checked and consistent: `inworld`/`hybrid`/unknown voice and `groq`/unknown provider map the same in Lua and the bridge; Mature beside Convai is turned off on load and Apply and never layered by the bridge; `errorReports` missing = on on both sides; Omni unknown counts as installed and the fallback notice covers it; Voice playback Off releases workers (Pocket kept for V); the Johnny rows are gated; an old `matureRestore` naming a removed provider or voice drops that part.
@@ -118,6 +118,15 @@ Checked and consistent: `inworld`/`hybrid`/unknown voice and `groq`/unknown prov
 - adfbf89b Help text names Custom, the free tier for Multilingual and Local AI for V's Voxtral rule (15 locales, catalogue regenerated; tests updated to the new wording)
 - d0880438 Custom provider test: the provider help now names Custom once (an earlier rule kept it out for space; description-fit passes in every language)
 
+Commits of 2026-10-20 (branch `feat/settings-decisions`, on main cd534f4f):
+
+- 55a361dc D6: add-ons follow the Custom provider (`bridge/addons.mjs`, `bridge/convai-bridge.mjs`, `mod/addons.lua`, `docs/ADDON_API.md`, tests)
+- 662b49be D2 and the bridge half of D1: hologram and V talks removed completely; `matureAllowsCloudVoice` and V's cloud refusal removed
+- 71043d5f Lua and bridge for D1 (Lua half), D3, D4, D5, D8, the five removed settings, battle and loot on by default, the merged Johnny and V rows, the Custom endpoint page, the removed Voice status and Johnny standing lines, the MCM disabled-entry fixes
+- 1ac384fc strings: 15 locales and the catalogue
+- bfdf061d tests
+- ec724c20 docs (MANAGER_UI, README, player README, per-feature docs)
+
 ## 5. Live checks for the fixed ones
 
 1. Mistral key saved, Companion voices Voxtral, Convai free tier, Local AI pack installed. Turn Mature content on: Local AI, Pocket, "Also changed" names them. Remove the Mistral key. Turn Mature content off: it stays off, provider Convai free tier, voice Pocket.
@@ -127,3 +136,29 @@ Checked and consistent: `inworld`/`hybrid`/unknown voice and `groq`/unknown prov
 5. Mistral, voice Voxtral, turn Multilingual on: voice stays Voxtral, no notice, Pocket can be chosen. Switch to Convai free tier: OmniVoice · Balanced (Convai cloud voice without the pack) with the usual notice. The Characters sidebar line shows only on the free tier.
 6. Game closed: edit `runtime/settings.json` to `"conversationProvider": "mistral"` and save it as UTF-8 with BOM (Windows PowerShell 5 `Set-Content -Encoding UTF8`). Start the game: the bridge log says `Conversation provider: mistral`.
 7. Read the new texts in two languages (German, Japanese): Edit characters, the provider help, V’s voice engine, Multilingual; with Custom chosen, the character editor's header line and the own-characters help.
+
+## 6. Decisions of 2026-10-20 and their live checks
+
+Built on `feat/settings-decisions` (committed, NOT merged, NOT pushed, NOT installed, game not launched; `mod/` needs a CET reload with all committed Lua and the 15 locales, `bridge/` a bridge restart). D1 to D8 are decided and done (section 3). Besides them the owner decided, in the same pass:
+
+- **Removed settings (always on, no row, old keys ignored and dropped from the file once):** Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures. "Follow-up questions" and "Natural speech" stay.
+- **Removed developer features:** Johnny’s hologram, V talks on their own (D2). The 30 % reserve of the shared key's day that V talks held next to Johnny's remarks went with them: Johnny's remarks are back to their own tenth.
+- **Battle and loot reactions are on by default.** An unchosen saved false becomes true once (`battleReactionsChosen`, `lootReactionsChosen`); a player who switched one off after the update keeps it off. Cost: each reaction on the shared Convai key counts as one of the day's turns (bounded by the game-side cooldowns: one opening and closing pair per ten minutes of fighting, ten minutes between ordinary loot comments, two for newly acquired Legendary gear; refused silently once the day's 100 are used; the token bucket still applies); there is no separate share like Johnny's tenth, and no cap was changed.
+- **One list row for Johnny:** "Johnny in your head": Off / On / Speaks up rarely / Speaks up often. The two file keys stay (`johnnyInHead`, `johnnyRemarks`; the row writes both), so `init.lua`, the bridge and the add-on code are unchanged. An old file with Johnny in your head off reads as Off whatever the remarks key held (the key is put to `off` at load); true + off is On, rare is rarely, normal is often. The "Johnny’s standing" status line is gone (`service:standing()` in `mod/johnny-head.lua` stays, tested, unused by the page).
+- **One list row for V:** "V’s voice for typed lines": Off / Pocket / Voxtral (greyed out without a Mistral key in MCM through `disabledElements`; Native Settings UI shows "needs Mistral key" and refuses it). The two file keys stay (`vVoice` with its Chosen flag, `vVoiceEngine`) so `v-voice.mjs` and its unload rule are unchanged (Off releases V's Pocket helper when nothing else needs it). A saved Voxtral without a key shows as Pocket, and the settings poll hands `v-voice.mjs` Pocket then (Voxtral again once a key is saved). Nothing refers to the Mature rule for V any more.
+- **Custom endpoint page:** the four Custom rows (URL, API key, model ID, Test connection) are a page of their own, opened by one button after the Mistral key row, with Back to Settings, like the Convai paid tier page; both hosts.
+- **Removed read-only lines on Settings:** "Voice status" and "Johnny’s standing". The Settings page has no read-only line any more, so the status-button workaround of `mod/mcm-host.lua` (it drew such lines as buttons because of the row font size) is removed; the read-only lines of the Memory, Help and Convai paid tier pages are MCM's own text rows as before (0.10.5 and 0.10.6 presentation handling is unchanged).
+
+Live checks (every line is something to look at in the game; none was done):
+
+1. Mistral key saved, no Local AI pack, Convai free tier: turn Mature content on. The line reads "Also changed: Mistral (free plan)." and the provider is Mistral. Turn it off: Convai free tier again. With no key but a set-up Custom endpoint it selects Custom ("Custom (OpenAI-compatible)"); with neither it says "Needs Local AI, Mistral or Custom." and stays off. With the Local AI pack installed it still selects Local AI.
+2. Companions on Voxtral, V on Voxtral, Local AI, Mature content on: both voices stay as chosen and V speaks in the cloud voice.
+3. Natural speech on, provider Mistral (or Local AI, Custom), companion voice "Convai": it stays on, the voice plays Pocket with the pauses and sounds. Switch to Convai free tier: Natural speech turns off with the notice "The Convai cloud voice cannot use Natural speech, so it was turned off."
+4. An old `runtime/settings.json` with `autoConnectNearby`, `bodyGestures`, `holocallLiveImage`, `gameDialogueContext`, `expressiveEmotions`, `johnnyHologram`, `vTalks` all false: start the game. None of those rows exist; connections pre-open on the free tier, companions gesture, a holocall shows the live picture, characters mark their feelings with a local voice; after the first save the file has none of those keys.
+5. An old settings file with battle and loot reactions never touched: both are on after the first load. Switch one off, restart: it stays off. A fight on the free tier costs two turns of the day's count at most (Settings shows the turns left).
+6. Johnny in your head: the one row, four entries. An old save with Johnny in your head off but remarks on reads Off. On: he answers the talk keys, no remarks. Speaks up rarely and often: remarks as before. No standing line, no hologram, no "V talks" anywhere.
+7. V’s voice: Off / Pocket / Voxtral. Without a Mistral key the Voxtral entry is greyed out in MCM (refused in Native Settings UI). Off: the service log shows V's Pocket helper released when the companions use another voice. Remove the Mistral key while Voxtral is chosen: the row shows Pocket and V speaks with Pocket.
+8. Custom endpoint: in MCM 0.10.5 or 0.10.6 and in Native Settings UI, Settings has one "Custom endpoint" button after the Mistral key row; it opens the page with the four rows; Test connection works there; Back returns to Settings. Pending changes on Settings stay pending while the page is open.
+9. Settings page in MCM: no line is another size (there is no read-only line); the Memory and Help pages still show their text lines.
+10. Mistral key row: with Mistral chosen and Voxtral voices, Remove names both; with only Voxtral companions it names the Convai voice; with only V on Voxtral it names Pocket; with neither it says nothing depends on it. Read the interface-language help and the new texts in German and Japanese.
+11. Skippy or Delamain with the Custom provider chosen and ready: the add-on speaks through the custom endpoint (probe log shows the Custom route); with Mature on the guard still screens it.

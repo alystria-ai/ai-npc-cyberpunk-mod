@@ -62,7 +62,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
-[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up.
+[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up (on by default; switch them off under Automatic reactions).
 [*][b]Night City Allies followers talk.[/b] NCA followers who are characters here talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [/list]
 [b]Faces and voices[/b]
@@ -76,7 +76,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
-[*][b]Johnny in your head.[/b] Turn it on (off by default) and, with nobody in front of you, talk and Johnny answers in V's head. He knows your jobs, his own history and how things stand between you. With Johnny speaks up he also comments on people you meet, jobs you finish and romances.
+[*][b]Johnny in your head.[/b] Turn it on (off by default) and, with nobody in front of you, talk and Johnny answers in V's head. He knows your jobs, his own history and how things stand between you. Choose Speaks up rarely or Speaks up often and he also comments on people you meet, jobs you finish and romances.
 [/list]
 [b]Make it yours[/b]
 [list]

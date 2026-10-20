@@ -245,8 +245,7 @@ export function capContext(context, limit = LIMITS.context) {
  *   contextParts   {now, notes, world, volatile} strings (layout v2): the context split by how often it changes
  *   remembered     [{text}] what the memory store retrieved for this turn (layout v2 only; ambient and group turns pass none)
  *   text           V's message, or for a reaction the event text
- *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said; 'said' for V's own unprompted
- *                  line in an exchange V started (docs/V_TALKS.md): `text` then says what V said, and the message is headed accordingly
+ *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said
  */
 // The first sentence of the right-now block (bridge/turn-context.mjs): "you are with V in person ..." or, in a phone chat, "you are
 // messaging V by text ... you are somewhere else ..." or, on a holocall (docs/HOLOCALL.md), "you are on a voice call / holocall ...", or for
@@ -262,7 +261,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     messages.push({role: 'user', content: v}, {role: 'assistant', content: r});
   }
   const message = reaction
-    ? `[${reaction === 'said' ? 'V SPEAKS TO YOU, unprompted' : 'EVENT, not spoken by V'}]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
+    ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
     : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name, persona.talkWords, mature)}`;
   if (!v2) {
     const fitted = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);

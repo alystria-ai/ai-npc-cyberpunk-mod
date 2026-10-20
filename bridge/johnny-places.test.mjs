@@ -258,13 +258,13 @@ test('guard: a fault in an optional Johnny feature on the battle sample is logge
     convaiJohnnyGuarded('fight watch', function() error('other') end)
     assert(#logged == 2 and not logged[1]:find('update failed', 1, true) and not logged[1]:find('observation skipped', 1, true))
     convaiLogLine = nil
-    convaiJohnnyGuarded('hologram', function() error('no logger') end)
+    convaiJohnnyGuarded('relic', function() error('no logger') end)
   `);
   const battles = between('local function updateBattles(player, elapsed, worldReady)', 'local now = os.time()');
-  for (const call of ['convaiJohnnyPlaceSample', 'convaiJohnnyFightSample', 'convaiJohnnyHologramTick']) {
+  for (const call of ['convaiJohnnyPlaceSample', 'convaiJohnnyFightSample']) {
     assert.ok(new RegExp(`convaiJohnnyGuarded\\('[a-z ]+', ${call},`).test(battles), `${call} runs guarded`);
   }
-  assert.doesNotMatch(battles, /(?<!convaiJohnnyGuarded\('[a-z ]+', )convaiJohnnyPlaceSample\(|convaiJohnnyFightSample\(|convaiJohnnyHologramTick\(/);
+  assert.doesNotMatch(battles, /(?<!convaiJohnnyGuarded\('[a-z ]+', )convaiJohnnyPlaceSample\(|convaiJohnnyFightSample\(/);
 });
 
 test('wiring: the sample rides the 0.5 s battle sample, a load resets it, and the Johnny functions above log use convaiLogLine', () => {

@@ -14,7 +14,7 @@
 //
 // A speaker becomes a conversation profile ("addon-<addon>-<speaker>"): a roster row the text providers' persona book reads (its
 // active personality mode decides the style, example lines and rules), and a voice entry in merged copies of the voice
-// configurations. Its text comes only from Mistral or the local AI, never Convai (routeFor): an add-on speaker never has a Convai
+// configurations. Its text comes only from Mistral, the local AI or the player's Custom provider, never Convai (routeFor): an add-on speaker never has a Convai
 // character ID and never counts toward the Convai allowance. The bridge also keeps each speaker's recent lines and its memories of
 // earlier fights or rides (runtime/addon-journal.json), shows both to the speaker, and drops a remark that repeats a recent one.
 import {readFile, readdir, writeFile, mkdir, copyFile} from 'node:fs/promises';
@@ -34,6 +34,12 @@ export const ADDON_SETTINGS_FILE = 'addon-settings.json';
 export const ADDON_JOURNAL_FILE = 'addon-journal.json';
 /** The only text providers an add-on speaker may use (the user's decision, 2026-10-13: never Convai). */
 export const ADDON_PROVIDERS = Object.freeze(['mistral', 'local']);
+/**
+ * The routes an add-on speaker's turn can run on: the two its manifest may list, plus the player's own Custom provider (an OpenAI-compatible
+ * endpoint; decision 2026-10-20). Custom is never listed in a manifest: every speaker follows it when it is the player's chosen provider and
+ * its endpoint is ready, like the companions, so no add-on needs an edit.
+ */
+export const ADDON_ROUTES = Object.freeze([...ADDON_PROVIDERS, 'custom']);
 /**
  * Seconds between two remark starts of one add-on on the local AI while the player keeps the default "Time between remarks"
  * (10 s). Each remark is a GPU burst of about 0.3 to 0.7 s beside the game (docs/LOCAL_MODEL_CHOICE.md: 79 to 143 tokens/s,
@@ -476,10 +482,10 @@ function startupWithout(config, pocket, skip) {
 
 /**
  * The provider state an add-on speaker's text host (bridge/text-provider-host.mjs) sees: always active, its route fixed to the one
- * routeFor chose ('mistral' or 'local'), the player's saved Mistral key.
+ * routeFor chose ('mistral', 'local' or 'custom'), the player's saved Mistral key.
  */
 export function fixedProvider(provider, route) {
-  if (!ADDON_PROVIDERS.includes(route)) throw Error(`add-on speakers cannot use ${route}`);
+  if (!ADDON_ROUTES.includes(route)) throw Error(`add-on speakers cannot use ${route}`);
   return {get route() { return route; }, get applied() { return route; }, get active() { return true; },
     get apiKey() { return provider?.apiKey ?? null; }};
 }
@@ -745,16 +751,19 @@ export class AddonHost {
   }
 
   /**
-   * The text provider of an add-on speaker's turn: the player's own provider when the speaker allows it, else Mistral when a key is
-   * saved, else the local AI when its pack is installed and working; null when none can serve it (the game then tells the player once
-   * that the add-on needs a free Mistral key or the Local AI pack).
-   *   applied        the conversation provider in use ('convai', 'mistral', 'local')
+   * The text provider of an add-on speaker's turn: the player's Custom provider when it is the one in use and its endpoint is ready (every
+   * speaker follows it, like the companions; the manifest's `providers` list names only Mistral and the local AI), else the player's own
+   * provider when the speaker allows it, else Mistral when a key is saved, else the local AI when its pack is installed and working; null
+   * when none can serve it (the game then tells the player once that the add-on needs a free Mistral key or the Local AI pack).
+   *   applied        the conversation provider in use ('convai', 'mistral', 'local', 'custom')
    *   mistralKey     a Mistral key is saved and was not refused
    *   localReady     the Local AI pack is installed and has not failed to start
+   *   customReady    the Custom provider's endpoint is set up (address and model)
    */
-  routeFor(profileKey, {applied, mistralKey = false, localReady = false} = {}) {
+  routeFor(profileKey, {applied, mistralKey = false, localReady = false, customReady = false} = {}) {
     const owner = this.speakers.get(profileKey);
     if (!owner) return null;
+    if (applied === 'custom' && customReady) return 'custom';
     const allowed = owner.speaker.providers;
     const usable = route => allowed.includes(route) && (route === 'mistral' ? mistralKey : localReady);
     if (usable(applied)) return applied;

@@ -718,7 +718,7 @@ export class TextProviderHost {
     const build = nudge => buildMessages({persona, memory: recalled.summary, history,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
-      remembered, text: nudge ? text + nudge : text, reaction: reaction && config.reaction?.kind === 'vtalk' ? 'said' : reaction, limits: this.limits,
+      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits,
       ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
     // decision says otherwise it is cancelled and the reply is written again with the right notes.
