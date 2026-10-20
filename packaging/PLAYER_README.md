@@ -4,7 +4,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 
 ## What's new in 0.2.6
 
-- **A talk can have consequences**: clearly threaten or insult an ordinary passer-by (not a joke) and they may rarely walk or run off, call the police, or, if they are a ganger, merc or guard, fight back, depending on who they are and where you are. Story and quest characters are never affected.
+- **A talk can have consequences**: clearly threaten or insult an ordinary passer-by (not a joke) and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back, depending on who they are and where you are. Story and quest characters are never affected.
 - **Quest crowds talk**: extras such as the patrons of the Afterlife answer like any resident, with a speaking face.
 - **Languages are automatic**: characters answer in the language you write in, short lines included. The Multilingual setting is gone; there is nothing to switch on. Convai picks the right character twin for each message, and add-ons follow your language too.
 - **Voxtral 3**: the Voxtral voice and transcription use Mistral's new version, with the older ones as a fallback. On the Voxtral voice a passer-by now keeps one steady voice.
