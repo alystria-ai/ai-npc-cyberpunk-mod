@@ -45,6 +45,17 @@ do anything:
 If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
 Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
 
+The game can also take the graphics memory after the model is loaded (a big scene, high textures). The card then moves the model into shared
+system memory, where it reads a prompt at a crawl. When two requests in a row get no usable answer (a turn or a persona warm-up with no reply, a
+prompt read that stops, a reply that goes quiet) and none was answered in between, the mod steps down for the rest of the session, in the same
+family: **standard to lite**, and for the Mature models **Mature good to Mature lite** (an uncensored model never gives way to a censored one). You
+see one notice, once: "Local AI switched to {model}: the game is using most of your graphics memory." When no smaller model is installed, or the
+lite model does not fit the memory that is free then, a cloud provider takes the text (Mistral with a saved key, otherwise Convai), with one notice,
+once: "Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used." Your saved model choice is not
+changed; choosing Local AI again, or another model, tries the whole choice again. A model you added yourself and a server you run never step down.
+On a card of about 8 GB or less the default choice (no model saved) keeps 3 GB of the card for the game, so it takes the lite model; a model you pick
+in the row is loaded as you chose it (and steps down only if it stalls).
+
 Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
 stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
 Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
@@ -618,6 +629,39 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 - Tests: `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_GO_DEAF_AT` answers the Nth request with HTTP 500 and stops listening while the process lives on).
 - Live check owed: with Local AI on, end `llama-server.exe` in Task Manager right as a reply starts (or before the next turn): the turn is answered after a pause, the log says
   `stopped unexpectedly` or `stopped answering` and `was started again; asking once more`, and the game shows the restart notice once.
+
+### Stalled turns step down (2026-10-20: "the mod steps down by itself" did not, on an 8 GB card)
+
+**Why it did not.** The only step-down there was happened when a model was loaded: `chooseLocalModel` takes the largest model that fits the free
+graphics memory *at that moment*, and a model that does not start is replaced. Nothing looked at the turns afterwards. A 5,088 MiB Mature good model loaded
+on an 8 GB card with 7,174 MiB free (the game had not filled the card yet); then the game took the memory, the driver moved the model into shared system
+memory, and every request stalled (persona warm-ups with no answer in 60 s, a turn with no response, a prompt read stuck at 3,071 of 5,472 tokens). Those
+failures only decided that one turn went to Mistral when a key was saved (`fallsBack`, notice `local-turn-fallback`), or failed with `local-failed`.
+Free graphics memory was never read at turn time, and the Mature family was never stepped at all (the older fallbacks apply at load only).
+
+**What happens now.**
+- `LocalLlmServer.noteTurn` (the host reports every local turn) and the persona warm-up count stalls: a failure with `slow` and a reason of
+  `no-response`, `prefill-stalled`, `no-first-token` or `stalled` (not `loading`, `thinking-only`, an empty answer or a refused prompt), or a warm-up that
+  got no answer in its whole wait. An answered turn or warm-up clears the count, and so does every new load. `LOCAL_LLM_LIMITS.stallStepDown` (2) stalls
+  step down. Work happens only on those failures: one `nvidia-smi` free-memory reading for the log, then a stop and a start. Nothing per frame, nothing
+  per turn.
+- `stepDown`: the model id goes into an in-memory set (`#stalled`; cleared by `reset()`, which choosing Local AI again calls, and by `reselect()`, a changed
+  model choice or Mature setting), the server is stopped (the memory goes back to the game), and the next start chooses without it. `chooseLocalModel`
+  treats `model.stalled` like `broken`; `stepDownTarget` is the next smaller installed model of the same family (same `uncensored` flag, a pack model, never a
+  custom one or a server). A pinned model that stalled gets `fellBack: 'too-slow'`: its family's next model (a Mature one is loaded with layers on the CPU
+  when it does not fit, like the rest of the Mature pack; an ordinary one only when it fits), else the default rule. The saved pin is never written.
+- The start that follows emits `model-stepdown {from, model, free}` (once; `model` is the new model's name). With no model left, or no room for it, the
+  event has `model: null` and the server fails with `low-memory`, which hands the turns to the cloud text provider as any other failed start does.
+  `MistralProvider.noteLocalStepDown` turns the event into the `local-stepdown` notice (`keyNoticeModel` carries the name; without a name the notice is the
+  cloud text and replaces `local-fallback`, which says "could not start").
+- `diagnostics().steppedDown` lists the models left out, for the support report; the log has `[local] ... stalled (1 of 2)` and `[local] stepping down from ...`.
+- On a card of 8,704 MiB or less (`SMALL_CARD_MAX_MIB`) the default rule (no pin; the settings page's default uses the same function) needs
+  `SMALL_CARD_GAME_RESERVE_MIB` (3,000) of the card's total memory to stay free beside the model: the model's need must be at most total minus 3,000, else the next
+  smaller one is taken (and, when none passes, the largest that fits as before). A pin is not changed by this. The log says when the reserve changed the pick.
+
+Tests: `bridge/local-llm-server.test.mjs` (the stall count, standard to lite, the Mature family, a pin inside its family, no smaller model, a lite model that does not
+fit, a model the player added), `bridge/local-model-choice.test.mjs` (`stepDownTarget`, `stalled`, the small-card reserve), `bridge/mistral-key.test.mjs` (the notice),
+`bridge/local-turn-diagnostics.test.mjs` (two stalled turns through the host).
 
 ### The knowledge status file (EPERM in the bridge log)
 

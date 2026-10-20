@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "설치된 모델이 없습니다",
     ["another model"] = "다른 모델",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "선택한 Local AI 모델이 없거나, 여유 그래픽 메모리에 맞지 않거나, 시작되지 않아 대신 {model}이(가) 사용되었습니다.",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI가 {model} 모델로 전환되었습니다: 게임이 그래픽 메모리의 대부분을 사용하고 있습니다.",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "게임이 그래픽 메모리의 대부분을 사용하고 있어서 Local AI가 너무 느려 클라우드 제공업체를 사용합니다.",
     ["Choose one of the listed Local AI models."] = "나열된 Local AI 모델 중 하나를 선택하세요.",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "저장된 키를 삭제합니다. 키를 다시 추가할 때까지 Inworld 클라우드 음성이 중지됩니다.",
     ["Inworld cloud voice"] = "Inworld 클라우드 음성",

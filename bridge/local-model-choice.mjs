@@ -26,6 +26,12 @@
 // default choice only as the last resort of its group: the default is an installed file model when there is one (an uncensored one first with
 // Mature content on), and a server only when the group has none, or when it is chosen (pinned). A pinned server that is unreachable counts as
 // broken (it failed to start) and falls back like a model that did not start.
+// A model that stalled the turns of this session (the game took the graphics memory and the driver moved the model into shared system memory, so the prompt
+// is read at a crawl) is marked `stalled` by the server (bridge/local-llm-server.mjs, stepDown) and is left out like a broken one: the choice then steps down to the
+// next smaller installed model of the same family (Mature good -> Mature lite, standard -> lite; stepDownTarget), never across the Mature line, and with none left
+// the caller falls back to the cloud text provider. The saved choice (`pin`) is never changed: the mark lives in memory for the session.
+// On a card of about 8 GB or less the default rule (no pin) also keeps room for the game: a model must fit the card's total memory minus
+// SMALL_CARD_GAME_RESERVE_MIB, else the next smaller one that does is taken (the largest that merely fits when none does). A pinned model is the player's word.
 // Pure functions: no I/O, no timers. The caller supplies the file sizes and the free memory, and runs this only when a model is about to
 // be loaded and when the settings poll sees the choice change (never per frame, never per turn).
 import {basename} from 'node:path';
@@ -33,6 +39,9 @@ import {LocalAiUnavailable, tierNeedMiB} from './local-llm-server.mjs';
 import {MATURE_TIERS} from './mature-pack.mjs';
 
 export const AUTO_MODEL = 'auto';
+/** A card of this size or less (MiB; the 8 GB class reports 8,000 to 8,200) leaves the game little room beside a chat model: the default rule keeps SMALL_CARD_GAME_RESERVE_MIB of it for the game. */
+export const SMALL_CARD_MAX_MIB = 8704;
+export const SMALL_CARD_GAME_RESERVE_MIB = 3000;
 const UNCENSORED_NAME = /uncensored|abliterat|heretic|hauhau/i;   // the names mature-content.mjs allowanceFor() recognises
 const BIG_MODEL_MIB = 3000;                                      // a mature model this big gets the standard tier's headroom, else the lite one's
 
@@ -105,6 +114,21 @@ const byName = (a, b) => { const x = String(a.name).toLowerCase(), y = String(b.
 export const sortLocalModels = (models, sizeOf = () => 0) => models.map(model => ({model, size: model.external ? 0 : Number(sizeOf(model.file)) || 0}))
   .sort((a, b) => a.size - b.size || byName(a.model, b.model)).map(entry => entry.model);
 
+/**
+ * The next smaller installed model of the same family to step down to from `from` (a model of listLocalModels): a Local AI pack model steps from
+ * standard to lite, a Mature pack model (or any uncensored one) from good to lite, and the family never changes (an uncensored model never gives way to a
+ * censored one). It is the largest model of the family that is smaller than `from` and neither stalled nor broken. A model the player added, and a server the
+ * player runs, never step down (their choice is theirs). Null when there is none: the cloud text provider is the next step.
+ */
+export function stepDownTarget({models = [], from, sizeOf = () => 0} = {}) {
+  if (!from || from.custom === true || from.external === true) return null;
+  const size = model => Number(sizeOf(model.file)) || 0;
+  const fromSize = size(from);
+  const smaller = models.filter(model => model.id !== from.id && model.custom !== true && model.external !== true && model.stalled !== true && model.broken !== true
+    && (model.uncensored === true) === (from.uncensored === true) && size(model) < fromSize);
+  return smaller.sort((a, b) => size(b) - size(a))[0] ?? null;
+}
+
 /** Sizes, memory fit and the two ways of picking, shared by the choice and by the defaults the settings page shows. */
 function prepare({models, freeMiB, totalMiB, sizeOf}) {
   const sized = models.map(model => { const sizeMiB = model.external ? 0 : Number(sizeOf(model.file)) || 0; return {model, sizeMiB, profile: profileOf(model, sizeMiB)}; });
@@ -112,22 +136,28 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
   const tooLarge = item => item.model.external !== true && item.model.custom === true
     && (item.model.tooLarge === true || (known(totalMiB) && totalMiB > 0 && modelNeedMiB(item.model, item.sizeMiB) > totalMiB));
   const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB)));
+  // The default rule on a small card keeps room for the game (SMALL_CARD_GAME_RESERVE_MIB); `reserved.applied` says that it changed the pick.
+  const smallCard = known(totalMiB) && totalMiB > 0 && totalMiB <= SMALL_CARD_MAX_MIB;
+  const roomForGame = item => item.model.external === true || !smallCard || modelNeedMiB(item.model, item.sizeMiB) <= totalMiB - SMALL_CARD_GAME_RESERVE_MIB;
+  const reserved = {applied: false};
   // Largest file first; an equal size keeps the order of the list (standard before lite before the Mature models).
   const bySize = list => list.map((item, index) => ({item, index})).sort((a, b) => b.item.sizeMiB - a.item.sizeMiB || a.index - b.index).map(entry => entry.item);
   const pick = list => {
     if (!list.length) return null;
     if (!known(freeMiB)) return bySize(list).at(-1);   // free memory unknown: the smallest, like the old rule that took the lite model
-    return bySize(list).find(fits) ?? null;
+    const ordered = bySize(list), roomy = ordered.find(item => fits(item) && roomForGame(item)), plain = ordered.find(fits) ?? null;
+    if (roomy && roomy !== plain) reserved.applied = true;
+    return roomy ?? plain;
   };
   // The Mature pack never gives way to a censored model: the largest uncensored model that fits, else the smallest model of the Mature pack
   // anyway (the caller offloads layers). A custom uncensored model is never forced: with none of them fitting and no pack model, null.
   const pickMature = list => pick(list) ?? bySize(list.filter(item => item.model.matureTier)).at(-1) ?? null;
-  const candidates = sized.filter(item => item.model.broken !== true && !tooLarge(item));
+  const candidates = sized.filter(item => item.model.broken !== true && item.model.stalled !== true && !tooLarge(item));
   // A group's candidates are its file models; the servers the player runs only when the group has no file model (the last resort).
   const group = wanted => { const own = candidates.filter(item => item.model.external !== true && wanted(item)); return own.length ? own : candidates.filter(item => item.model.external === true && wanted(item)); };
   // The last resort when no file model fits: a server the player runs (an uncensored one only with Mature content on, like any uncensored model).
   const externals = candidates.filter(item => item.model.external === true);
-  return {sized, fits, pick, pickMature, externals, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
+  return {sized, fits, pick, pickMature, externals, reserved, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
 }
 
 /**
@@ -139,15 +169,16 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
  *   sizeOf     file => size in MiB (0 when unknown)
  *   totalMiB   the graphics card's total memory when known: a custom model that needs more is never chosen (by the default or a pin)
  * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when a Mature model is loaded though it does not fit the
- * free graphics memory (some of its layers then run on the CPU); `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' when the pin could
- * not be used and the default rule chose instead (`model.broken`, set by the server, marks a custom model that failed to start). Throws
+ * free graphics memory (some of its layers then run on the CPU); `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' / 'too-slow' when the pin could
+ * not be used and another model was chosen instead (`model.broken`, set by the server, marks a custom model that failed to start; `model.stalled` a model that
+ * stalled this session's turns); `gameReserve` is true when the room kept for the game on a small card changed the default pick. Throws
  * LocalAiUnavailable('not-installed') with no model, ('mature-off') when only Mature pack models are installed and Mature content is off,
  * ('low-memory') when nothing fits.
  */
 export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
-  const {sized, fits, pick, pickMature, externals, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
+  const {sized, fits, pick, pickMature, externals, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
     let item = sized.find(candidate => candidate.model.id === want);
@@ -163,7 +194,14 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
     if (want !== AUTO_MODEL) {
       if (!item) fellBack = 'missing';
       else if (item.model.broken === true) fellBack = 'start-failed';
-      else if (!fits(item)) fellBack = 'low-memory';
+      else if (item.model.stalled === true) {
+        // It stalled the turns of this session: the next smaller model of its family (a Mature one stays in the Mature pack, loaded with layers on the CPU
+        // when it does not fit; another one only when it fits), else the default rule below.
+        const next = stepDownTarget({models, from: item.model, sizeOf});
+        const target = next ? sized.find(candidate => candidate.model.id === next.id) : null;
+        if (target && (target.model.uncensored || fits(target))) return {...target, pinned: false, fellBack: 'too-slow', offload: target.model.uncensored === true && !fits(target)};
+        fellBack = 'too-slow';
+      } else if (!fits(item)) fellBack = 'low-memory';
       else return {...item, pinned: true, fellBack: null, offload: false};
     }
   }
@@ -173,7 +211,7 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   if (!chosen) throw new LocalAiUnavailable('low-memory');
   // A silent migration, or the pinned model itself loaded anyway (it did not fit): nothing was replaced, so nothing is announced.
   if (silent || chosen.model.id === pin) fellBack = null;
-  return {...chosen, pinned: false, fellBack, offload: chosen.model.uncensored && !fits(chosen)};
+  return {...chosen, pinned: false, fellBack, offload: chosen.model.uncensored && !fits(chosen), ...(reserved.applied ? {gameReserve: true} : {})};
 }
 
 /** The installed model a saved `mature:*` id that is in no pack any more stands for: the Mature pack's good model if it fits, else its lite one; null when the pack has none. */

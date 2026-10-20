@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "Yüklü model yok",
     ["another model"] = "başka bir model",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "Seçtiğin Local AI modeli yok, boş grafik belleğine sığmıyor ya da başlamadı; bu yüzden bunun yerine {model} kullanıldı.",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI {model} modeline geçti: oyun grafik belleğinin çoğunu kullanıyor.",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "Oyun grafik belleğinin çoğunu kullandığı için Local AI çok yavaştı, bu yüzden bir bulut sağlayıcısı kullanıldı.",
     ["Choose one of the listed Local AI models."] = "Listelenen Local AI modellerinden birini seç.",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "Kayıtlı anahtarı siler. Anahtarı yeniden ekleyene kadar Inworld bulut sesi durur.",
     ["Inworld cloud voice"] = "Inworld bulut sesi",
