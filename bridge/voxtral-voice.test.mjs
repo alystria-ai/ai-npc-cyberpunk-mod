@@ -504,6 +504,78 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
   } finally { await server.close(); }
 });
 
+test('a first ask that times out and a second one that speaks never announce a switch to the Convai voice (the false "Mistral cloud voice is not ready, using Convai" notice of the 2026-10-20 live test)', async () => {
+  let mode = 'slow-once';
+  const server = await serve(async (request, response) => {
+    if (mode === 'slow-once') { mode = 'ok'; return; }          // the first request is never answered: only the limit ends it
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+  });
+  try {
+    const timers = manualTimers();
+    const h = selection(server, {voxtral: {...timers.hooks, limits: {firstAudioMs: 60, drainMs: 5000}}, retryMs: 120});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const packets = [];
+    const spoken = track(h.voice.synthesizeStream('judy-alvarez', 'A slow first ask.', {onPcm: packet => { packets.push(packet); }}));
+    await until(() => server.requests.length === 1, 'the first ask to reach the server');
+    await timers.clock.advance(60);
+    await until(() => spoken.done, 'the second ask to be answered');
+    assert.equal(spoken.error, undefined, String(spoken.error)); assert.equal(spoken.value.provider, 'voxtral'); assert.equal(server.requests.length, 2);
+    // The first ask's failure was published (the cloud voice became degraded for a moment), and none of what was published says the companions
+    // are on the Convai voice: the game reads `fallback` of every state and turns it into the notice.
+    assert.equal(h.states.some(state => state.voxtral?.degraded === 'timeout'), true, 'the hiccup itself was reported to the state');
+    assert.equal(h.states.some(state => state.fallback), false, 'no published state announced a fallback');
+    h.voice.publish();
+    assert.equal(h.states.at(-1).fallback, null); assert.equal(h.states.at(-1).voxtral.degraded, null);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('what really blocks the cloud voice (no key, a refused key, a limit cooling down) is still published as the fallback to the Convai voice', async () => {
+  const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '30'}); response.end(); });
+  try {
+    let key = null;
+    const h = selection(server); h.cloud.getKey = () => key;
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    h.voice.publish();
+    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'no-key'});
+    key = KEY;
+    h.voice.publish();
+    assert.equal(h.states.at(-1).fallback, null, 'the key is back');
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Limited.', {onPcm() {}}), {kind: 'limit'});
+    assert.equal(h.states.at(-1).fallback?.reason, 'limit', 'a limit cooling down is a real block');
+    assert.equal(h.states.at(-1).fallback?.to, 'convai');
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('Mature content bars the cloud voice: a saved Voxtral choice is Pocket, nothing reaches the server, a committed cloud voice refuses a reply (the written reply stands), and Voxtral returns when the bar goes', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    let barred = true;
+    const h = selection(server, {extra: {cloudBarred: () => barred}});
+    // Barred from the start: Voxtral is saved, Pocket is the voice, and no worker or request is for the cloud.
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    assert.equal(h.voice.cloud, null); assert.equal(h.voice.cloudWanted, false); assert.equal(h.voice.cloudActive, false);
+    assert.equal(h.voice.requestedProvider, 'pocket'); assert.equal(h.voice.provider, 'pocket');
+    const local = await h.voice.synthesizeStream('judy-alvarez', 'Pocket speaks.', {onPcm() {}});
+    assert.equal(local.audio, 'pocket'); assert.equal(h.calls.length, 1); assert.equal(server.requests.length, 0);
+    // The bar goes (Mature content off): the saved choice is Voxtral again, at the next idle moment.
+    barred = false;
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(h.voice.cloud, 'voxtral'); assert.equal(h.voice.cloudActive, true);
+    const cloud = await h.voice.synthesizeStream('judy-alvarez', 'Voxtral speaks.', {onPcm() {}});
+    assert.equal(cloud.provider, 'voxtral'); assert.equal(server.requests.length, 1);
+    // The bar comes back while the cloud voice is committed (before the next idle moment): a reply that still reaches it is not sent.
+    barred = true;
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Not to the cloud.', {onPcm() {}}), /Mature content/);
+    assert.equal(server.requests.length, 1, 'no request left the computer');
+    // The next idle moment commits Pocket.
+    h.voice.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(h.voice.cloud, null); assert.equal(h.voice.cloudActive, false);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
 test('a cloud reply that is late is asked again once with a longer wait; one that still fails is a written reply, never a local voice; the report names why and clears itself', async () => {
   // The two limits (60 ms, then 120 ms) are timers of the voice, moved by a manual clock only after the ask they must cut has reached the server:
   // on a loaded machine a real 60 ms limit can cut an ask before it is even sent, and the server would never see it.
@@ -533,7 +605,10 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
     assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0, 'no local worker was ever created');
     assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
     h.voice.publish();
-    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
+    // Not announced as a switch to the Convai voice: the next reply asks the cloud voice again (the 2026-10-20 live test showed "Companions are using
+    // Convai for now" after one slow first ask). The reason stays in the state for the support report.
+    assert.equal(h.states.at(-1).fallback, null);
+    assert.equal(h.states.some(state => state.fallback), false, 'no state published during this test announced a fallback');
     assert.equal(h.states.at(-1).cloudVoice, 'voxtral'); assert.equal(h.states.at(-1).voxtral.degraded, 'timeout');
     // The first ask is late but the longer second one is answered: the reply is spoken, and the report clears.
     mode = 'slow-once'; const before = server.requests.length;

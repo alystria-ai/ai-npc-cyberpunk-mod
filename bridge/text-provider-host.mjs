@@ -364,7 +364,7 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
    *                without it the turn offers no actions (bridge/text-actions.mjs)
-   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI, Mistral or Custom when it is on, and
+   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI or Custom when it is on, and
    *                for the local AI also when the loaded model is an uncensored one (the guard follows the model that answers, not only the setting)
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
    * spokenLines  (profileKey) => the speaker's own recent lines (an add-on's journal, remarks included): a conversation reply that says one
@@ -449,13 +449,17 @@ export class TextProviderHost {
     } finally { try { lease.release?.(); } catch { /* best effort */ } }
   }
 
-  /** The routes a turn may use, in order: the provider's own, then (the local AI only) Mistral when the player has a Mistral key. */
+  /**
+   * The routes a turn may use, in order: the provider's own, then (the local AI only) Mistral when the player has a Mistral key. Not with Mature
+   * content on (owner decision 2026-10-20: Mistral gets no Mature turn, and a fallback would send it the character's crude history and V's words): the
+   * turn then fails with the local AI's own reason, as it does when there is no Mistral key.
+   */
   #candidates() {
     const first = this.routes[this.provider.route];
     if (!first) throw new MistralError('request', 'has no route for this provider');
     const list = [first];
     // The local AI: Mistral answers a turn it could not when the player has a Mistral key saved.
-    if (first.name === 'local' && this.routes.mistral && this.provider.apiKey) list.push(this.routes.mistral);
+    if (first.name === 'local' && this.routes.mistral && this.provider.apiKey && this.matureContent?.enabled !== true) list.push(this.routes.mistral);
     return list;
   }
 
@@ -497,7 +501,7 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
-    // The guard is on (Mature content on with the local AI, Mistral or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
+    // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
     if (!reaction && await this.#guardOn(firstRoute, signal)) {
@@ -675,8 +679,8 @@ export class TextProviderHost {
 
   /**
    * The Mature content level for a turn on `route` ('full' or 'suggestive'), or null: the setting is off, or the route is not one that may
-   * have it (MATURE_PROVIDERS: not Convai). The model decides the level (its licence): on the local AI it is read from the loaded model (the server
-   * is started for it when it is not up yet, as the request would); on Mistral and Custom it is the first model the route will ask (no await).
+   * have it (MATURE_PROVIDERS: not Convai, not Mistral). The model decides the level (its licence): on the local AI it is read from the loaded model (the server
+   * is started for it when it is not up yet, as the request would); on Custom it is the first model the route will ask (no await).
    * Nothing is awaited while the setting is off.
    */
   async #matureLevel(route, signal) {

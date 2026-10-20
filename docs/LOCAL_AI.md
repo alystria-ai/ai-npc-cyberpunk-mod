@@ -1111,12 +1111,12 @@ with Mature content on the default choice and the fallback prefer the largest on
 
 Settings > Conversation provider, right under the provider row: "Mature content" (key `matureContent`, off by default, an ordinary Apply setting; the
 bridge reads it from `runtime/settings.json` when the file changes, never per turn, and drops prepared replies when it flips). It exists
-for the providers in `MATURE_PROVIDERS` (`{local: true, mistral: true, custom: true, convai: false}` since 2026-10-20, see "Mature content on Mistral and Custom"; Local AI only
-before): the layer is built in `bridge/mature-content.mjs`. The host asks for the layer per route (`TextProviderHost#matureLevel`). The settings page keeps it off while Convai
-(free tier or API key) is chosen: choosing Convai turns Mature content off in the drafts and puts back what turning it on changed, and load and Apply force it off (2026-10-14;
-docs/MANAGER_UI.md, the Mature content rule).
+for the providers in `MATURE_PROVIDERS` (`{local: true, custom: true, mistral: false, convai: false}` since 2026-10-20, see "Mature content on Custom, never Mistral"; Local AI only
+before 2026-10-20): the layer is built in `bridge/mature-content.mjs`. The host asks for the layer per route (`TextProviderHost#matureLevel`). The settings page keeps it off while Convai
+(free tier or API key) or Mistral is chosen: choosing either turns Mature content off in the drafts and puts back what turning it on changed, and load and Apply force it off (2026-10-14,
+Mistral 2026-10-20; docs/MANAGER_UI.md, the Mature content rule). No Voxtral voice is used beside it, for the companions or V (2026-10-20, below).
 Turning it on shows no notice, neither on Apply nor in the status line (removed 2026-10-14); the help text (all 15 locales) says it is for adults (18+),
-that it works with Local AI, Mistral and Custom and that some things are never allowed.
+that it needs Local AI or Custom and that some things are never allowed.
 
 What it adds: one block of about 430 tokens (o200k count) at the END of the system head (`systemHead({mature})`), after the output rules and before
 the format notes. That is the stable early text, so llama-server's prefix cache is kept (the layer is the same every turn for a given
@@ -1272,42 +1272,50 @@ tuned against). On a stress set of 47 harmless messages that put a child word be
 the rule itself (the Mature help text, "children" next to "romanticizing" in research notes). With a model, one benign reply was dropped by the
 output screen in each run (`b-nervous` on Gemma, `minor-hate-kids` on Qwen 4B).
 
-#### Mature content on Mistral and Custom (2026-10-20)
+#### Mature content on Custom, never on Mistral (2026-10-20)
 
-Owner decision of 2026-10-20, after `deliverables/mature-cloud-check-2026-10-20.md` (terms read and 54 live turns on two Mistral models: no refusal, the tone
-clearly changed): the setting now also works with the **Mistral** and **Custom** (OpenAI-compatible) text providers. **Convai never gets it** (its prompting cannot
-take the layer). The Mature **models** (the Mature pack) stay Local AI only, and the model-row gating of Local AI (Mature models listed and loaded only with the
-setting on, the Mature-only install failing with `mature-off` while it is off) is unchanged.
-- **One layer, one builder.** `MATURE_PROVIDERS` is `{local: true, mistral: true, custom: true, convai: false}`. The host asks per route (`TextProviderHost#matureLevel`),
-  so Mistral and Custom turns get exactly the text the Local AI gets, built by the same `buildMessages`/`systemPrompt` in `bridge/mistral-prompt.mjs`: the layer (with the
+Owner decisions of 2026-10-20. After `deliverables/mature-cloud-check-2026-10-20.md` (terms read and 54 live turns on two Mistral models: no refusal, the tone clearly
+changed) the setting was first built for the **Mistral** and **Custom** (OpenAI-compatible) providers (`feat/mature-cloud`). In the first live test Mistral's **Voxtral voice
+refused Mature lines** ("[Voxtral] refused the rest of this reply (guardrail)", the reply was cut off), and the owner said: "let's not risk their API key then, don't let mature work for
+mistral text or voxtral". So it is now **Local AI and Custom only**. Convai never gets it (its prompting cannot take the layer), Mistral never gets it, and no Voxtral voice
+speaks beside it. The Mature **models** (the Mature pack) stay Local AI only, and the model-row gating of Local AI (Mature models listed and loaded only with the setting on, the
+Mature-only install failing with `mature-off` while it is off) is unchanged.
+- **One layer, one builder.** `MATURE_PROVIDERS` is `{local: true, custom: true, mistral: false, convai: false}`. The host asks per route (`TextProviderHost#matureLevel`),
+  so a Custom turn gets exactly the text the Local AI gets, built by the same `buildMessages`/`systemPrompt` in `bridge/mistral-prompt.mjs`: the layer (with the
   word palette) ends the system head, then the player's world rules, the format notes, the world block (`matureWorld`, a partner's relationship text leans in), the memory
-  summary and the right-now block; the closing sentence of the user message carries the Mature sentence. Every turn, as on Local AI. Convai's context carries none of it. Order and
-  sameness are pinned in `bridge/mature-content.test.mjs`.
-- **The level** comes from the model name like on Local AI (`allowanceFor`): a Mistral model (ministral, mistral, mixtral) is in no row, so it gets `suggestive` (crude and
-  forward, the act cut away); a Custom model is read by its name (a Qwen or Gemma 4 model gets `full`, an unlisted one `suggestive`). Mistral and Custom ask for no model
-  start, so nothing is awaited (the model is the first one the route will ask).
-- **The guard follows.** With the setting on, the hard-limit guard runs on those two routes too: the input screen (before any request), the output screen, the first-sentence
+  summary and the right-now block; the closing sentence of the user message carries the Mature sentence. Every turn, as on Local AI. Convai's context and a Mistral prompt carry none of it
+  (a Mistral prompt with the setting on is byte for byte the one with it off). Order and sameness are pinned in `bridge/mature-content.test.mjs`.
+- **The level** comes from the model name like on Local AI (`allowanceFor`): a Custom model is read by its name (a Qwen or Gemma 4 model gets `full`, an unlisted one `suggestive`: crude and
+  forward, the act cut away). Custom asks for no model start, so nothing is awaited (the model is the first one the route will ask).
+- **The guard follows.** With the setting on, the hard-limit guard runs on Custom too: the input screen (before any request), the output screen, the first-sentence
   screen for the voice, and the adults-only and hard-limit lines. With the setting off nothing runs there (only the Local AI also screens an uncensored model with the setting off).
   Add-on hosts (guard only) follow the same route rule.
-- **A Local AI turn that falls back to Mistral** is now answered with the layer on both routes (Mistral has it), where before the fallback went without it.
-- **The setting page:** it is no longer forced off by Mistral or Custom, and choosing them leaves it on and changes nothing else. Turning it on beside Convai selects Local AI when its pack is installed
-  (with the uncensored model; no voice is changed), else Mistral when a Mistral key is saved, else Custom when it is set up ("Also changed" names the provider), else it goes back to off
-  with "Needs Local AI, Mistral or Custom." Choosing Convai turns it off.
-  Turning it on beside Mistral or Custom changes no provider, model or voice and keeps no way back (`matureRestore`). Loading or applying a saved Convai + Mature pairing saves it as off.
-- **Voice rule dropped (2026-10-20).** Mature content no longer changes or refuses any voice, for V or the companions, on any provider. The earlier rule (with Mature on and the text
-  on Local AI, V's line stayed off the cloud, Voxtral was refused and moved to Pocket, and the bridge logged "keeps your lines off the cloud") is removed completely: `matureAllowsCloudVoice`
-  is gone from `bridge/mature-content.mjs` and the manager no longer touches V's voice engine when Mature changes.
-- **What the player is told.** The row's help says it works with Local AI, Mistral and Custom, that the Mature pack's uncensored models are for Local AI, and what is never
-  allowed. No warning popup and no notice (unchanged). With Mistral or Custom the player's lines go to that service as every turn does, and its own terms apply
-  (docs/MISTRAL.md, docs/CUSTOM_PROVIDER.md).
-- **Policy.** The 2026-10-13 verdict for Mistral (ambiguous) stands as a reading of the terms; the owner decided to offer the setting anyway, with the hard limits and the
-  guard on, and the level capped by the model name (suggestive for Mistral's own models).
+- **A Local AI turn that fails is not handed to Mistral while the setting is on** (`TextProviderHost#candidates`). With it off the fallback to a Mistral key works as before, with no layer.
+  A fallback would otherwise send the character's crude history and V's words to the Mistral key the owner chose not to risk; the turn now fails with Local AI's own reason, as with no key.
+- **No Voxtral voice beside it, for the companions and for V, with any provider.**
+  - Bridge: `matureAllowsCloudVoice(enabled)` (`bridge/mature-content.mjs`) is false while the setting is on. `VoiceSelection` takes `cloudBarred` (the bridge: `!matureAllowsCloudVoice(matureContent.enabled)`):
+    a saved Voxtral companion voice is read as Pocket (`request`), a reply that still reaches a committed cloud voice before the idle switch is not sent (the written reply stands), and the
+    choice is Voxtral again when the setting goes off. V: the settings poll reads a saved Voxtral engine as Pocket (`vSettings`, as it does without a key) and V's cloud `problem` answers "Mature content is on".
+  - Page (`mod/manager-ui.lua` `stageMature`, `mod/manager.lua`): turning it on moves a Voxtral companion voice and V's Voxtral engine to Pocket in the same save, named in the "Also changed" line
+    ("Pocket · Performance", "V’s voice for typed lines"), and records them (`matureRestore.voice`, `matureRestore.vVoiceEngine`, the parts D1 had dropped; an old record keeps loading).
+    Turning it off puts them back, only while the Mistral key is saved, the voice is still Pocket (not a voice the player chose since) and the batch did not set it. A saved file with Voxtral and
+    Mature content on (an older file, a hand edit) loads as Pocket for both. Choosing Voxtral while it is on is refused ("Voxtral is not used with Mature content."), by `M.apply` and by `manager.applySettings`.
+    In Mod Configuration Menu the Voxtral entries of Companion voices and V's voice are greyed out (`setChoiceStates`) with that sentence as the reason; Native Settings UI has no greyed entries, so the label says
+    "Voxtral · not with Mature" and a click is refused with the same sentence.
+- **The setting page:** it is off beside Convai and Mistral. Turning it on beside either selects Local AI when its pack is installed (with the uncensored model; "Also changed" names it),
+  else Custom when it is set up, else it goes back to off with "Needs Local AI or Custom." (never Mistral, key or not); turning it off puts the provider back (Mistral again if it was Mistral).
+  Choosing Convai or Mistral while it is on turns it off. Beside Local AI or Custom it just stays on. Loading or applying a saved Convai or Mistral + Mature pairing saves it as off.
+- **What the player is told.** The row's help says it needs Local AI or Custom, that the Mature pack's uncensored models are for Local AI, that choosing Convai or Mistral turns it off, and that a voice on Voxtral moves to
+  Pocket and comes back when it is turned off, and what is never allowed. No warning popup and no notice (unchanged). With Custom the player's lines go to that endpoint as every turn does,
+  and its own terms apply (docs/CUSTOM_PROVIDER.md).
+- **Policy.** The 2026-10-13 verdict for Mistral (ambiguous) stands as a reading of the terms; the 2026-10-20 live test settled it for the product: not offered, to keep the player's key safe.
+
 
 Provider policies (read 2026-10-13; the pages were summarised by a small model, so re-read them before the release):
 - Mistral, Usage Policy (legal.mistral.ai/terms/usage-policy, effective June 11, 2026): no sentence permits or bans adult sexual
   content as such. It bars "Content that enables or exploits individuals, including through human trafficking or sexual services." and
   intimate images "without the explicit consent of all individuals involved." Its Commercial Terms add no content line. `safe_prompt`:
-  "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stayed off; the owner turned it on on 2026-10-20 (see "Mature content on Mistral and Custom").
+  "Whether to inject a safety prompt before all conversations.", default `false`. Verdict: ambiguous, so Mistral stayed off; the owner turned it on on 2026-10-20 and off again the same day after Voxtral refused Mature lines in a live test (see "Mature content on Custom, never on Mistral").
 - Groq (Acceptable Use and Responsible AI Policy, read 2026-10-13): ambiguous, so it stayed off; Groq was removed as a provider on 2026-10-14.
 - Convai: never (a hosted service; the player's own key changes nothing).
 

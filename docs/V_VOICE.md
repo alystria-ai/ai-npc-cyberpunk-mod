@@ -169,8 +169,10 @@ Both engines are English only: a turn in another language gets no V line (subtit
 manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). **Changed 2026-10-20:** if the key
 is removed later (or an old file holds Voxtral with no key), the row shows Pocket and the bridge speaks V's line with Pocket (its settings poll reads a saved Voxtral without a key as Pocket); it is
 Voxtral again as soon as a key is saved. Removing the key says so in its Remove help ("V's voice switches from Voxtral to Pocket."). Before that change the bridge skipped V's line with
-no fallback, so as not to load a model the player did not choose. Mature content never changes or refuses V's voice (decision 2026-10-20; the old rule that kept V's lines off the cloud with Mature on and Local AI text is removed):
-Voxtral stays available beside Mature on any text provider, and the bridge no longer has a check for it.
+no fallback, so as not to load a model the player did not choose. **Mature content never uses Voxtral** (decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a live test; it replaces the same-day
+rule that allowed it beside Mature on any text provider): turning Mature content on moves V's Voxtral to Pocket in the same save (the line says "V’s voice for typed lines" changed, and the record `matureRestore.vVoiceEngine`
+keeps the way back), turning it off puts Voxtral back while the key is saved and V still speaks with Pocket, the Voxtral entry is greyed out ("Voxtral is not used with Mature content.", label "Voxtral · not with Mature" in Native Settings UI, which
+has no greyed entries) and refused while it is on, and a saved file with both loads as Pocket. The bridge has two nets behind the page: the settings poll reads a saved Voxtral as Pocket while the setting is on, and V's cloud `problem` answers "Mature content is on".
 
 **Measured (simulated providers, `scripts/Measure-VVoice.mjs`, real `VVoice`/`VLine`/`TurnClock`; prep 180 ms, companion text 900 ms,
 5 runs; milliseconds).** "Delay" is when the reply's audio starts, minus when it would start without V.

@@ -129,19 +129,21 @@ test('Manager settings apply as one saved transaction and leave playback unchang
       assert(noticeNoPack == nil, 'no notice with or without the pack')
       assert(saved.matureContent == true, 'Local AI is still the provider')
       assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
-      -- Mistral and Custom keep it (they take the layer too); choosing Convai in the same save turns it off, so does a save that leaves it in place.
+      -- Custom keeps it (it takes the layer too); Mistral and Convai never do (owner decision 2026-10-20): a save that puts either beside it turns it off, quietly, with a reload.
       assert(manager.applySettings(player, {matureContent = true}) and saved.matureContent == true)
       local _, _, _, providerReload = manager.applySettings(player, {conversationProvider = 'mistral'})
-      assert(saved.conversationProvider == 'mistral' and saved.matureContent == true and providerReload ~= true)
-      assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.conversationProvider == 'custom' and saved.matureContent == true)
+      assert(saved.conversationProvider == 'mistral' and saved.matureContent == false and providerReload == true, 'Mistral turns it off')
+      assert(manager.applySettings(player, {matureContent = true}) and saved.matureContent == false, 'and it cannot be turned on beside Mistral')
+      assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.conversationProvider == 'custom' and saved.matureContent == false)
+      assert(manager.applySettings(player, {matureContent = true}) and saved.matureContent == true, 'Custom takes it')
       assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
       _, _, _, providerReload = manager.applySettings(player, {conversationProvider = 'convai'})
       assert(saved.matureContent == false and providerReload == true)
       assert(manager.applySettings(player, {conversationProvider = 'local'}) and saved.matureContent == false, 'Local alone does not turn it back on')
       os.clock = realClock
     end
-    assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions == true, 'battle reactions default on')
-    assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions == true, 'loot reactions default on')
+    assert(not manager.battleReactions() and manager.snapshot(player).settings.battleReactions == false, 'battle reactions default off')
+    assert(not manager.lootReactions() and manager.snapshot(player).settings.lootReactions == false, 'loot reactions default off')
     assert(manager.followUpQuestions == nil and manager.snapshot(player).settings.followUpQuestions == nil)
     assert(manager.applySettings(player, {lootReactions = true}))
     assert(manager.lootReactions() and saved.lootReactions == true)
@@ -195,7 +197,7 @@ test('a saved retired follow-up setting loads fine, is dropped from the file and
       local state = manager.snapshot(player).settings
       assert(state.followUpQuestions == nil)
       assert(not state.voice and not state.subtitles and state.voiceProvider == 'convai' and state.omniSteps == 16)
-      assert(state.battleReactions and state.lootReactions and state.disappearingMessages == nil, 'an unchosen saved false is the old default: both reactions load as on')
+      assert(not state.battleReactions and not state.lootReactions and state.disappearingMessages == nil)
       if savedValue ~= 'missing' then
         assert(saved and saved.followUpQuestions == nil and saved.future.keep == 'unchanged', 'the retired key must be dropped and re-saved')
       end
@@ -323,7 +325,7 @@ test('subtitle style defaults to dialogue and preserves explicit overhead, Conva
       assert(not state.subtitles and not player.subtitles, 'migration enabled the master switch')
       assert(state.voiceProvider == 'convai' and saved.voiceProvider == 'convai')
       assert(not state.voice and state.omniSteps == 16 and saved.omniSteps == 16 and state.disappearingMessages == nil)
-      assert(state.battleReactions and state.lootReactions, 'an unchosen saved false is the old default: both reactions load as on')
+      assert(not state.battleReactions and not state.lootReactions)
       assert(saved.future.keep == 'unchanged')
       assert(manager.applySettings(player, {subtitleStyle = 'overhead'}))
       manager.reset()
@@ -1204,11 +1206,14 @@ test('Mature content is a settings row with or without the Mature pack: the help
     assert(row('conversationProvider') ~= nil)
     assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
     assert(tostring(noPack.description):find('Pack: not installed', 1, true), 'the help says the uncensored models are not installed')
-    assert(tostring(noPack.description):find('From Convai, turning it on selects Local AI, or Mistral or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices. Choosing Convai turns it off.', 1, true),
-      'the help names what turning it on from Convai selects, and no voice change')
+    assert(tostring(noPack.description):find('From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices. Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.', 1, true),
+      'the help names what turning it on from Convai or Mistral selects, never Mistral, and what happens to a Voxtral voice')
+    assert(not tostring(noPack.description):find('Mistral or Custom when Local AI', 1, true), 'Mistral is never selected')
     assert(not tostring(noPack.description):find('local voice instead of a cloud one', 1, true), 'the old voice sentence is gone')
+    assert(not tostring(noPack.description):find('recommended', 1, true))
     assert(tostring(noPack.description):find('Hugging Face page', 1, true), 'and where to get them')
-    assert(tostring(noPack.description):find('Choosing Convai turns it off.', 1, true), 'the help says Convai turns it off')
+    assert(tostring(noPack.description):find('Choosing Convai or Mistral turns it off.', 1, true), 'the help says Convai and Mistral turn it off')
+    assert(tostring(noPack.description):find('Needs Local AI or Custom.', 1, true), 'the help names the two providers')
     assert(not tostring(noPack.description):find('no effect yet', 1, true))
     -- Usable without the pack, beside the Local AI provider (index 4); beside a cloud provider it is saved as off.
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == false, 'not on beside Convai')
@@ -1227,8 +1232,9 @@ test('Mature content is a settings row with or without the Mature pack: the help
     state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true, localAi = 'ready'})
     loaded = registered.loadMod('manager')
     assert(not tostring(row('matureContent').description):find('Not using Local AI', 1, true), 'the retired warning is gone')
-    assert(tostring(row('matureContent').description):find('Choosing Convai turns it off.', 1, true))
-    assert(tostring(row('matureContent').description):find('Works with Local AI, Mistral and Custom.', 1, true), 'the help names the three providers')
+    assert(tostring(row('matureContent').description):find('Choosing Convai or Mistral turns it off.', 1, true))
+    assert(tostring(row('matureContent').description):find('Needs Local AI or Custom.', 1, true), 'the help names the two providers')
+    assert(not tostring(row('matureContent').description):find('Works with Local AI, Mistral and Custom.', 1, true), 'Mistral is not named as a provider for it')
     assert(not tostring(row('matureContent').description):find('Local AI only', 1, true))
     -- The pack goes away: the row stays, the setting stays on, and the help says the pack is not installed.
     state('gone', {provider = 'local', effective = 'local', saved = false, maturePack = false})
@@ -1246,8 +1252,11 @@ test('the saved way back is checked on load and on Apply, and is dropped with Ma
     assert(ok)
     local way = manager.snapshot(player).settings.matureRestore
     assert(way.conversationProvider.before == 'convai' and way.localModel == nil, 'a malformed part was kept')
-    assert(way.voice == nil, 'Mature content changes no voice any more: the voice part of an old record is dropped')
+    assert(way.voice and way.voice.before.provider == 'pocket' and way.voice.set.provider == 'omni' and way.voice.set.steps == 16 and way.voice.set.reference == 'short', 'the voice part is kept (Voxtral is not used beside Mature content, so the way back names the voice again)')
     assert(not manager.applySettings(player, {matureRestore = {junk = true}}), 'a record with nothing valid was accepted')
+    assert(not manager.applySettings(player, {matureRestore = {voice = {before = {provider = 'groq'}, set = {provider = 'pocket'}}}}), 'a voice part with an unknown provider is no record')
+    assert(manager.applySettings(player, {matureRestore = {vVoiceEngine = {before = 'voxtral', set = 'pocket'}}}) and manager.snapshot(player).settings.matureRestore.vVoiceEngine.before == 'voxtral', 'the V part is kept')
+    assert(not manager.applySettings(player, {matureRestore = {vVoiceEngine = {before = 'pocket', set = 'pocket'}}}), 'a V part that changes nothing is no record')
     -- 'convai-key' (Convai with the player's own key, its own selector entry) is a provider a way back can name; anything else is dropped.
     assert(manager.applySettings(player, {matureRestore = {conversationProvider = {before = 'convai-key', set = 'local'}}}))
     assert(manager.snapshot(player).settings.matureRestore.conversationProvider.before == 'convai-key')
@@ -1432,10 +1441,10 @@ test('the old Use my own Convai API key switch migrates once: on with a saved ke
   `);
 });
 
-test('Mature content and a cloud provider exclude each other in loaded settings and in Apply (Convai free tier and Convai API key turn it off; Local, Mistral and Custom keep it)', () => {
+test('Mature content and a cloud provider exclude each other in loaded settings and in Apply (Convai free tier, Convai API key and Mistral turn it off; Local and Custom keep it)', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    for _, case in ipairs({{'local', false, true}, {'convai', false, false}, {'convai', true, false}, {'mistral', false, true}, {'custom', false, true}, {'groq', false, false}, {nil, false, false}}) do
+    for _, case in ipairs({{'local', false, true}, {'convai', false, false}, {'convai', true, false}, {'mistral', false, false}, {'custom', false, true}, {'groq', false, false}, {nil, false, false}}) do
       seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = case[1], useOwnConvaiKey = case[2], enabledByKey = {}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
@@ -1448,13 +1457,13 @@ test('Mature content and a cloud provider exclude each other in loaded settings 
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
     assert(manager.snapshot(player).settings.matureContent == false and manager.snapshot(player).settings.matureRestore == nil and saved.matureRestore == nil)
-    -- Apply: Mature content beside Local, Mistral or Custom stays; beside Convai in the result it is saved as off.
+    -- Apply: Mature content beside Local or Custom stays; beside Convai or Mistral in the result it is saved as off (a reload is asked for quietly).
     assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
-    for _, provider in ipairs({'mistral', 'custom'}) do
+    for _, provider in ipairs({'custom'}) do
       assert(manager.applySettings(player, {matureContent = true, conversationProvider = provider}) and saved.matureContent == true, provider)
       assert(manager.applySettings(player, {conversationProvider = 'local'}) and saved.matureContent == true)
     end
-    for _, provider in ipairs({'convai'}) do
+    for _, provider in ipairs({'convai', 'mistral'}) do
       assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
       local ok, _, _, reload = manager.applySettings(player, {conversationProvider = provider})
       assert(ok and saved.matureContent == false and reload == true, provider)
@@ -2252,8 +2261,8 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(row('keepPreparedVoices') == nil)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
     assert(row('disappearingMessages') == nil)
-    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == true and row('battleReactions').defaultValue == true)
-    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == true and row('lootReactions').defaultValue == true)
+    assert(row('battleReactions').type == 'bool' and row('battleReactions').value == false and row('battleReactions').defaultValue == false)
+    assert(row('lootReactions').type == 'bool' and row('lootReactions').value == false and row('lootReactions').defaultValue == false)
     -- The retired follow-up question toggle is no longer offered.
     assert(row('followUpQuestions') == nil)
     assert(registered.applyBatch('manager', {{id = 'lootReactions', value = false}}).ok)
@@ -2756,7 +2765,7 @@ test('Pocket TTS is the default while saved choices migrate to the nearest voice
       -- A save from before the short/long choice has no reference: OmniVoice players land on the long one.
       assert(state.omniReference == 'long' and saved.omniReference == 'long' and state.keepPreparedVoices == true)
       assert(not state.voice and not state.subtitles and state.subtitleStyle == 'overhead')
-      assert(state.followUpQuestions == nil and state.battleReactions and state.lootReactions, 'an unchosen saved false is the old default: on now')
+      assert(state.followUpQuestions == nil and not state.battleReactions and not state.lootReactions)
       assert(not state.enabledByKey['johnny-silverhand'] and saved.future.keep == 'unchanged')
       manager.reset(); manager.prepare(player)
       assert(manager.snapshot(player).settings.voiceProvider == expected)
@@ -3285,15 +3294,15 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
   `);
 });
 
-test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept, and Mature content never moves it', () => {
+test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept, and a saved file with Mature content on never keeps Voxtral (it is Pocket)', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(saved.vVoiceEngine == 'pocket' and manager.vVoiceEngine() == 'pocket' and manager.snapshot(player).settings.vVoiceEngine == 'pocket')
     -- A case is {saved engine, saved Mature content, expected engine}. Mature content needs Local AI, so the seed carries it; a hand-edited
-    -- file with Mature content, Local AI and Voxtral loads unchanged (Mature content changes no voice, 2026-10-20).
+    -- file with Mature content, Local AI and Voxtral loads as Pocket and is saved so (Voxtral is not used beside Mature content, 2026-10-20).
     for _, case in ipairs({{'missing', false, 'pocket'}, {'pocket', false, 'pocket'}, {'voxtral', false, 'voxtral'},
         {'omni', false, 'pocket'}, {'inworld', false, 'pocket'}, {'convai', false, 'pocket'}, {7, false, 'pocket'}, {true, false, 'pocket'},
-        {'voxtral', true, 'voxtral'}, {'pocket', true, 'pocket'}}) do
+        {'voxtral', true, 'pocket'}, {'pocket', true, 'pocket'}}) do
       seed = {version = 2, voiceProvider = 'pocket', matureContent = case[2], conversationProvider = case[2] and 'local' or 'convai', enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.vVoiceEngine = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
@@ -3305,7 +3314,7 @@ test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept,
   `);
 });
 
-test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral key and is greyed out without it, applies beside any companion voice, Off keeps the engine, and Mature content neither moves it nor refuses it', () => {
+test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral key and is greyed out without it, applies beside any companion voice, Off keeps the engine, and with Mature content on it is greyed out, moved to Pocket and refused', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function key(tag, value)
@@ -3373,36 +3382,44 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     key('c', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 3)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket')
-    -- Mature content changes no voice (2026-10-20): turning it on beside Local AI leaves V on Voxtral, and Voxtral can be chosen with it on.
+    -- Mature content (2026-10-20, after Voxtral refused Mature lines in a live test): V's Voxtral is not used beside it, with any provider. A caller
+    -- that turns it on beside a saved Voxtral gets Pocket (quietly, with a reload; the page stages and names it instead).
     assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
-    local ok, err, notice = manager.applySettings(player, {conversationProvider = 'local', matureContent = true})
-    assert(ok and saved.matureContent == true and saved.vVoiceEngine == 'voxtral' and notice == nil, tostring(err))
-    assert(manager.applySettings(player, {vVoiceEngine = 'pocket'}) and saved.vVoiceEngine == 'pocket')
+    local ok, err, notice, reload = manager.applySettings(player, {conversationProvider = 'local', matureContent = true})
+    assert(ok and saved.matureContent == true and saved.vVoiceEngine == 'pocket' and notice == nil and reload == true, tostring(err))
+    -- Choosing Voxtral while it stays on is refused and nothing is saved.
     local chosen, why = manager.applySettings(player, {vVoiceEngine = 'voxtral'})
-    assert(chosen == true and saved.vVoiceEngine == 'voxtral' and saved.matureContent == true, 'Voxtral is not refused beside Mature content and Local AI: ' .. tostring(why))
-    assert(manager.applySettings(player, {matureContent = false}) and saved.vVoiceEngine == 'voxtral', 'turning it off changes no voice either')
-    -- Both in one Apply: V is Voxtral, and Mature content is on.
-    assert(manager.applySettings(player, {vVoiceEngine = 'pocket'}))
-    assert(manager.applySettings(player, {matureContent = true, vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral' and saved.matureContent == true)
-    -- Mistral and Custom text: the same.
-    assert(manager.applySettings(player, {conversationProvider = 'mistral', matureContent = true, vVoiceEngine = 'voxtral'}))
-    assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.vVoiceEngine == 'voxtral')
-    assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.matureContent == true and saved.vVoiceEngine == 'voxtral')
-    -- Back to Local AI with Mature content on: V stays on Voxtral, and the page is not asked to reload for it.
-    local _, _, _, backReload = manager.applySettings(player, {conversationProvider = 'local'})
-    assert(saved.matureContent == true and saved.vVoiceEngine == 'voxtral' and backReload ~= true)
+    assert(chosen == false and why == 'Voxtral is not used with Mature content.' and saved.vVoiceEngine == 'pocket' and saved.matureContent == true, tostring(why))
+    -- The page: with the key saved the entry is still greyed out, says why, and the row is refused.
+    loaded = registered.loadMod('manager')
+    local mature = row('vVoice')
+    assert(mature.elements[3] == 'Voxtral · not with Mature' and mature.disabledElements and mature.disabledElements[3] == true and mature.value == 2, tostring(mature.elements[3]))
+    assert(mature.disabledReason == 'Voxtral is not used with Mature content.', tostring(mature.disabledReason))
+    local refused = registered.applyBatch('manager', {{id = 'vVoice', value = 3}})
+    assert(refused.ok == false and refused.error == 'Voxtral is not used with Mature content.' and saved.vVoiceEngine == 'pocket', tostring(refused.error))
+    for _, element in ipairs(mature.elements) do assert(core.optionUnits(element) <= core.OPTION_BUDGET, element) end
+    -- Turned off, Voxtral can be chosen again.
+    assert(manager.applySettings(player, {matureContent = false}) and saved.vVoiceEngine == 'pocket')
+    assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
+    -- Both in one Apply: Mature content is on and V is Pocket.
+    assert(manager.applySettings(player, {matureContent = true, vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'pocket' and saved.matureContent == true)
+    -- Custom text is the same; Mistral text takes Mature content off instead (the voice then stays as it was).
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.matureContent == true and saved.vVoiceEngine == 'pocket')
+    assert(not manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'pocket')
+    assert(manager.applySettings(player, {conversationProvider = 'mistral', vVoiceEngine = 'voxtral'}))
+    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.vVoiceEngine == 'voxtral')
   `);
 });
 
-test('V’s voice engine with Mature content in a saved file: Voxtral stays with Local AI, Mistral and Custom text alike', () => {
+test('V’s voice engine with Mature content in a saved file: Voxtral is Pocket with Local AI and Custom text; beside Mistral Mature content is off and Voxtral stays', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    -- A case is {conversation provider, expected engine} with Mature content on and Voxtral saved.
-    for _, case in ipairs({{'local', 'voxtral'}, {'mistral', 'voxtral'}, {'custom', 'voxtral'}}) do
+    -- A case is {conversation provider, expected engine, expected Mature content} with Mature content on and Voxtral saved.
+    for _, case in ipairs({{'local', 'pocket', true}, {'mistral', 'voxtral', false}, {'custom', 'pocket', true}}) do
       seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = case[1], vVoiceEngine = 'voxtral', enabledByKey = {}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.vVoiceEngine() == case[2] and saved.vVoiceEngine == case[2] and saved.matureContent == true, case[1])
+      assert(manager.vVoiceEngine() == case[2] and saved.vVoiceEngine == case[2] and saved.matureContent == case[3], case[1])
     end
   `);
 });
@@ -4741,74 +4758,127 @@ const matureStateFixture = `
   local function matureOff() assert(manager.applySettings(player, {matureContent = false})) end
 `;
 
-test('Mature content changes no voice: from Convai it selects Local AI and its model only, and a companion or V on Voxtral, or the Convai cloud voice, stays; Voxtral can be chosen with it on', () => {
+test('Mature content and Voxtral: turning it on moves a companion voice and V from Voxtral to Pocket (named in the line, recorded), whatever the provider; the Convai cloud voice and OmniVoice stay; turning it off puts Voxtral back while the key is saved', () => {
   run(`${nsuiFixture}${matureStateFixture}
     withLocalAi(true)
     assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
-    -- Companion and V on Voxtral, Convai text, Local AI installed: Mature content on selects Local AI and the uncensored model, nothing else.
+    -- The page's way of turning it off puts back what turning it on changed (applySettings alone does not).
+    local function pageOff() assert(core.apply({{id = 'matureContent', value = false}}).ok) end
+    -- Companion and V on Voxtral, Convai text, Local AI installed: Mature content on selects Local AI and the uncensored model, and both voices move to Pocket.
     assert(manager.applySettings(player, {voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
     local result = core.apply({{id = 'matureContent', value = true}})
     assert(result.ok and result.refusal == nil, tostring(result.error))
     assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc')
-    assert(saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', 'no voice moved: ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
-    assert(table.concat(result.names, ', ') == 'Local AI, Uncensored model', table.concat(result.names, ', '))
-    assert(shown() == 'Also changed: Local AI, Uncensored model.', tostring(shown()))
-    -- The way back names the provider and the model, never a voice.
+    assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
+    assert(table.concat(result.names, ', ') == 'Local AI, Uncensored model, Pocket · Performance, V’s voice for typed lines', table.concat(result.names, ', '))
+    assert(shown() == 'Also changed: Local AI, Uncensored model, Pocket · Performance, V’s voice for typed lines.', tostring(shown()))
+    -- The way back names all four.
     local way = saved.matureRestore
     assert(way.conversationProvider.before == 'convai' and way.conversationProvider.set == 'local', 'provider part')
     assert(way.localModel.before == 'standard' and way.localModel.set == 'mature:unc', 'model part')
-    assert(way.voice == nil and way.vVoiceEngine == nil, 'no voice part in the record')
-    local keys = 0
-    for _ in pairs(way) do keys = keys + 1 end
-    assert(keys == 2, 'the record holds exactly the provider and the model')
-    -- Turning it off puts the provider and the model back and moves no voice.
+    assert(way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'pocket', 'voice part')
+    assert(way.vVoiceEngine.before == 'voxtral' and way.vVoiceEngine.set == 'pocket', 'V part')
+    -- Turning it off puts all four back (the key is saved).
     result = core.apply({{id = 'matureContent', value = false}})
-    assert(result.ok and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.localModel == 'standard')
-    assert(saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral' and saved.matureRestore == nil)
-    for _, name in ipairs(result.names) do assert(name ~= 'Companion voices' and name ~= 'V’s voice engine', name) end
-    assert(not tostring(shown() or ''):lower():find('voice', 1, true), tostring(shown()))
-    -- The Convai cloud voice stays too, from Convai text and on Local AI, Mistral and Custom.
-    assert(manager.applySettings(player, {voiceProvider = 'convai', vVoiceEngine = 'pocket'}))
+    assert(result.ok and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.localModel == 'standard', tostring(result.error))
+    assert(saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.matureRestore == nil)
+    assert(table.concat(result.names, ', '):find('Companion voices', 1, true) and table.concat(result.names, ', '):find('V’s voice for typed lines', 1, true), table.concat(result.names, ', '))
+    -- The Convai cloud voice and OmniVoice stay where they are, from any provider.
+    for _, voice in ipairs({'convai', 'omni'}) do
+      assert(manager.applySettings(player, {voiceProvider = voice, vVoiceEngine = 'pocket'}), voice)
+      result = core.apply({{id = 'matureContent', value = true}})
+      assert(result.ok and saved.matureContent == true and saved.voiceProvider == voice and saved.vVoiceEngine == 'pocket', voice)
+      assert(table.concat(result.names, ', ') == 'Local AI, Uncensored model' and saved.matureRestore.voice == nil and saved.matureRestore.vVoiceEngine == nil, voice .. ' ' .. table.concat(result.names, ', '))
+      pageOff()
+    end
+    -- Local AI and Custom text, a companion on Voxtral and V on Voxtral: both move; Pocket and V Off are left alone.
+    for _, provider in ipairs({'local', 'custom'}) do
+      assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}), provider)
+      result = core.apply({{id = 'matureContent', value = true}})
+      assert(result.ok and saved.matureContent == true and saved.conversationProvider == provider, provider)
+      assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', provider)
+      pageOff()
+      assert(saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', provider .. ' back')
+    end
+    assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'pocket', vVoice = false, vVoiceEngine = 'voxtral'}))
     result = core.apply({{id = 'matureContent', value = true}})
-    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'pocket')
-    assert(table.concat(result.names, ', ') == 'Local AI, Uncensored model' and saved.matureRestore.voice == nil)
-    matureOff()
-    for _, provider in ipairs({'local', 'mistral', 'custom'}) do
-      for _, voice in ipairs({'convai', 'voxtral'}) do
-        assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = voice, vVoiceEngine = 'voxtral'}), provider)
-        result = core.apply({{id = 'matureContent', value = true}})
-        assert(result.ok and saved.matureContent == true and saved.conversationProvider == provider, provider .. ' ' .. voice)
-        assert(saved.voiceProvider == voice and saved.vVoiceEngine == 'voxtral', provider .. ' ' .. voice)
-        for _, name in ipairs(result.names) do assert(name ~= 'Companion voices' and name ~= 'V’s voice engine' and not name:find('Pocket', 1, true), name) end
-        assert(saved.matureRestore == nil or (saved.matureRestore.voice == nil and saved.matureRestore.vVoiceEngine == nil))
-        matureOff()
-      end
-    end
-    -- Choosing Voxtral for V or for the companions with Mature content on beside Local AI is not refused.
-    assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'pocket', vVoiceEngine = 'pocket'}))
-    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
-    local CLOUD, VOXTRAL
-    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
-      if choice.provider == 'convai' then CLOUD = index end
-      if choice.provider == 'voxtral' then VOXTRAL = index end
-    end
-    result = core.apply({{id = 'vVoice', value = 3}})
-    assert(result.ok and saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and saved.matureContent == true, tostring(result.error))
-    result = core.apply({{id = 'voiceProvider', value = VOXTRAL}})
-    assert(result.ok and saved.voiceProvider == 'voxtral' and saved.matureContent == true and saved.conversationProvider == 'local', tostring(result.error))
-    result = core.apply({{id = 'voiceProvider', value = CLOUD}})
-    assert(result.ok and saved.voiceProvider == 'convai' and saved.matureContent == true, tostring(result.error))
-    assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral', 'the manager does not refuse it either')
-    -- A save that carries both in one Apply: Mature content on, Voxtral for V and for the companions.
-    matureOff()
-    assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
-    assert(saved.matureContent == true and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral')
+    assert(result.ok and saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.voiceProvider == 'pocket', 'V Off: the saved engine still moves, V stays off')
+    pageOff()
+    -- Mistral text with Mature content: it is Local AI (the pack is installed) that Mature content selects, and the voices move with it.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral', voiceProvider = 'voxtral', vVoice = true, vVoiceEngine = 'voxtral'}))
+    result = core.apply({{id = 'matureContent', value = true}})
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket')
+    assert(saved.matureRestore.conversationProvider.before == 'mistral')
+    pageOff()
+    assert(saved.conversationProvider == 'mistral' and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', 'turning it off puts Mistral and Voxtral back')
+    -- The key is removed while it is on: turning it off still works (no refusal loop) and the voices stay on Pocket.
+    assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
+    assert(core.apply({{id = 'matureContent', value = true}}).ok)
+    withLocalAi(false)
+    result = core.apply({{id = 'matureContent', value = false}})
+    assert(result.ok and saved.matureContent == false and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(result.error))
+    withLocalAi(true)
+    -- A voice the player changed while it was on is not put back; a voice chosen in the same batch wins.
+    assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
+    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.voiceProvider == 'pocket')
+    assert(manager.applySettings(player, {voiceProvider = 'omni'}))
+    result = core.apply({{id = 'matureContent', value = false}})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', 'the companion voice stays on what the player chose; V goes back')
+    local OMNI
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'convai' then OMNI = index end end
+    assert(manager.applySettings(player, {conversationProvider = 'local', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'}))
+    assert(core.apply({{id = 'matureContent', value = true}}).ok)
+    result = core.apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = OMNI}, {id = 'vVoice', value = 2}})
+    assert(result.ok and saved.voiceProvider == 'convai' and saved.vVoiceEngine == 'pocket', 'what the batch asks for wins')
   `);
 });
 
-test('Mature content and the way back: an old saved record keeps its provider and model parts and loses its voice parts, Mature content off then moves no voice, and Restore defaults names no voice', () => {
+test('Mature content refuses a Voxtral choice (companions and V), greys the entry out with its own reason and says so in its label; with it off Voxtral is chosen as before', () => {
   run(`${nsuiFixture}${matureStateFixture}
-    -- A record from before 2026-10-20 carries what turning Mature content on did to the voices; a hand-edited or old file loads cleanly.
+    withLocalAi(true)
+    assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
+    local VOXTRAL
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'voxtral' then VOXTRAL = index end end
+    -- Off: Voxtral is a plain, enabled entry (the key is saved).
+    assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral (recommended)' and (row('voiceProvider').disabledElements == nil or row('voiceProvider').disabledElements[VOXTRAL] == nil))
+    assert(row('vVoice').elements[3] == 'Voxtral · Mistral cloud' and row('vVoice').disabledElements == nil)
+    assert(core.apply({{id = 'voiceProvider', value = VOXTRAL}}).ok and saved.voiceProvider == 'voxtral')
+    assert(core.apply({{id = 'vVoice', value = 3}}).ok and saved.vVoiceEngine == 'voxtral')
+    assert(core.apply({{id = 'voiceProvider', value = 1}, {id = 'vVoice', value = 2}}).ok)
+    -- On (Local AI): both entries are greyed out with the reason, and their labels say so, whatever the key.
+    assert(core.apply({{id = 'matureContent', value = true}}).ok and saved.matureContent == true)
+    loaded = registered.loadMod('manager')
+    local companions, engine = row('voiceProvider'), row('vVoice')
+    assert(companions.elements[VOXTRAL] == 'Voxtral · not with Mature' and engine.elements[3] == 'Voxtral · not with Mature', companions.elements[VOXTRAL])
+    assert(companions.disabledElements[VOXTRAL] == 'Voxtral is not used with Mature content.', tostring(companions.disabledElements[VOXTRAL]))
+    assert(engine.disabledElements[3] == true and engine.disabledReason == 'Voxtral is not used with Mature content.', tostring(engine.disabledReason))
+    for _, element in ipairs(companions.elements) do assert(core.optionUnits(element) <= core.OPTION_BUDGET, element) end
+    for _, element in ipairs(engine.elements) do assert(core.optionUnits(element) <= core.OPTION_BUDGET, element) end
+    for _, banned in ipairs({'recommended', 'antivirus'}) do assert(not companions.elements[VOXTRAL]:lower():find(banned, 1, true)) end
+    -- The page refuses them and saves nothing; so does the manager for a caller of its own.
+    for _, change in ipairs({{id = 'voiceProvider', value = VOXTRAL}, {id = 'vVoice', value = 3}}) do
+      local result = core.apply({change})
+      assert(result.ok == false and result.error == 'Voxtral is not used with Mature content.', change.id .. ' ' .. tostring(result.error))
+    end
+    assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.matureContent == true)
+    local refused, why = manager.applySettings(player, {voiceProvider = 'voxtral'})
+    assert(refused == false and why == 'Voxtral is not used with Mature content.')
+    refused, why = manager.applySettings(player, {vVoiceEngine = 'voxtral'})
+    assert(refused == false and why == 'Voxtral is not used with Mature content.')
+    -- A batch that turns Mature content off and chooses Voxtral at once is fine.
+    assert(core.apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = VOXTRAL}}).ok and saved.voiceProvider == 'voxtral' and saved.matureContent == false)
+    -- A batch that turns it on and chooses Voxtral at once moves it to Pocket instead of refusing, and names it.
+    local result = core.apply({{id = 'matureContent', value = true}, {id = 'voiceProvider', value = VOXTRAL}, {id = 'vVoice', value = 3}})
+    assert(result.ok and saved.matureContent == true and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', tostring(result.error))
+    -- The key is not what decides it: without a key the entry says the key is missing when Mature content is off.
+    matureOff()
+    withLocalAi(false)
+    assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral · needs Mistral key' and row('vVoice').elements[3] == 'Voxtral · needs Mistral key')
+  `);
+});
+
+test('Mature content and the way back: an old saved record keeps its voice parts, a Voxtral voice beside Mature content in a saved file is Pocket, Mature content off puts Voxtral back only while the key is saved and the voice is still Pocket, and Restore defaults wins', () => {
+  run(`${nsuiFixture}${matureStateFixture}
     local function load(extra)
       seed = {version = 2, subtitleStyle = 'dialogue', omniSteps = 16, enabledByKey = {}, matureContent = true, conversationProvider = 'local',
         localModel = 'mature:unc', voiceProvider = 'pocket', vVoiceEngine = 'pocket'}
@@ -4821,51 +4891,54 @@ test('Mature content and the way back: an old saved record keeps its provider an
     local state = load({matureRestore = {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = 'standard', set = 'mature:unc'},
       voice = VOICES.voice, vVoiceEngine = VOICES.vVoiceEngine}})
     local way = state.matureRestore
-    assert(way and way.conversationProvider.before == 'convai' and way.conversationProvider.set == 'local', 'the provider part is kept')
-    assert(way.localModel.before == 'standard' and way.localModel.set == 'mature:unc', 'the model part is kept')
-    assert(way.voice == nil and way.vVoiceEngine == nil, 'the voice parts are dropped')
+    assert(way and way.conversationProvider.before == 'convai' and way.localModel.before == 'standard', 'provider and model parts are kept')
+    assert(way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'pocket' and way.vVoiceEngine.before == 'voxtral', 'the voice parts are kept')
     assert(state.matureContent == true and state.voiceProvider == 'pocket' and state.vVoiceEngine == 'pocket')
-    -- A record with only voice parts reads as no record at all, and the file is mended.
+    -- A record with only voice parts is a record.
     state = load({matureRestore = {voice = VOICES.voice, vVoiceEngine = VOICES.vVoiceEngine}})
-    assert(state.matureRestore == nil and saved.matureRestore == nil and state.matureContent == true)
-    -- Only the engine part, or only the voice part: the same.
-    assert(load({matureRestore = {vVoiceEngine = VOICES.vVoiceEngine}}).matureRestore == nil)
-    assert(load({matureRestore = {voice = VOICES.voice}}).matureRestore == nil)
-    -- Mature content off with such a record: the provider and the model come back, the voices stay exactly as they are.
+    assert(state.matureRestore and state.matureRestore.voice and state.matureRestore.vVoiceEngine)
+    -- A saved Voxtral beside Mature content (an older file, a hand edit) loads as Pocket, for the companions and for V, and the file is mended.
+    state = load({voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'})
+    assert(state.voiceProvider == 'pocket' and state.vVoiceEngine == 'pocket' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and state.matureContent == true)
+    -- With Mature content off the same file keeps Voxtral.
+    state = load({matureContent = false, conversationProvider = 'convai', voiceProvider = 'voxtral', vVoiceEngine = 'voxtral'})
+    assert(state.voiceProvider == 'voxtral' and state.vVoiceEngine == 'voxtral')
+    -- Mature content off with the record: Voxtral comes back when the key is saved and the voices are still Pocket.
     withLocalAi(true)
-    load({matureRestore = {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = 'standard', set = 'mature:unc'},
-      voice = VOICES.voice, vVoiceEngine = VOICES.vVoiceEngine}})
-    assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager')
-    local result = core.apply({{id = 'matureContent', value = false}})
-    assert(result.ok and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.localModel == 'standard', tostring(result.error))
-    assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', 'the old record put no voice back')
-    for _, name in ipairs(result.names) do assert(name ~= 'Companion voices' and name ~= 'V’s voice engine', name) end
-    -- The same with the player's voices on Voxtral by now: still not touched.
-    load({voiceProvider = 'voxtral', vVoiceEngine = 'voxtral', matureRestore = {voice = {before = {provider = 'convai'}, set = {provider = 'voxtral'}},
-      conversationProvider = {before = 'convai', set = 'local'}}})
-    result = core.apply({{id = 'matureContent', value = false}})
-    assert(result.ok and saved.conversationProvider == 'convai' and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral')
-    -- Restore defaults with Mature content on: the batch names the provider and the model, no voice row of the way back.
-    load({voiceProvider = 'voxtral', vVoiceEngine = 'voxtral', matureRestore = {conversationProvider = {before = 'mistral', set = 'local'}}})
+    local opened = false
+    local function turnOff(extra, changes)
+      load(extra)
+      if not opened then opened = true; assert(invoke('tab:settings').ok); loaded = registered.loadMod('manager') end
+      local batch = {{id = 'matureContent', value = false}}
+      for _, change in ipairs(changes or {}) do batch[#batch + 1] = change end
+      return core.apply(batch)
+    end
+    local RECORD = {conversationProvider = {before = 'convai', set = 'local'}, localModel = {before = 'standard', set = 'mature:unc'}, voice = VOICES.voice, vVoiceEngine = VOICES.vVoiceEngine}
+    local result = turnOff({matureRestore = RECORD})
+    assert(result.ok and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'voxtral' and saved.vVoiceEngine == 'voxtral', tostring(result.error))
+    withLocalAi(false)
+    result = turnOff({matureRestore = RECORD})
+    assert(result.ok and saved.matureContent == false and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket', 'no key: Voxtral stays off and Mature content still turns off')
+    withLocalAi(true)
+    result = turnOff({matureRestore = RECORD, voiceProvider = 'omni'})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'voxtral', 'a voice the player changed is not put back')
+    result = turnOff({matureRestore = RECORD, vVoice = false, vVoiceChosen = true})
+    assert(result.ok and saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.voiceProvider == 'voxtral', 'V Off stays off')
+    -- Restore defaults with Mature content on and such a record: the rows it names are at their defaults (Pocket), Voxtral does not come back.
+    load({matureRestore = RECORD})
     local changes = core.defaults()
     local at = {}
     for index, change in ipairs(changes) do at[change.id] = index end
-    assert(at.matureContent and at.conversationProvider, 'Mature content and the provider go back to their defaults')
-    assert(changes[at.matureContent].value == false)
-    assert(changes[at.conversationProvider].value == 1)
-    for _, change in ipairs(changes) do
-      if change.id == 'voiceProvider' or change.id == 'vVoice' then
-        -- Restore defaults restores every row to its default, the voices as any other row; the Mature record adds no extra entry for them.
-        local count = 0
-        for _, other in ipairs(changes) do if other.id == change.id then count = count + 1 end end
-        assert(count == 1, change.id .. ' is named once')
-      end
-    end
+    assert(at.matureContent and at.conversationProvider and at.voiceProvider and at.vVoice, 'the rows the way back would put back are named at their default')
+    assert(changes[at.matureContent].value == false and changes[at.conversationProvider].value == 1 and changes[at.voiceProvider].value == 1 and changes[at.vVoice].value == 2)
+    assert(core.apply(changes).ok)
+    assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     local ids = {}
     for _, change in ipairs(changes) do ids[#ids + 1] = change.id end
     assert(not table.concat(ids, ','):find('vVoiceEngine', 1, true), 'no separate engine entry')
   `);
 });
+
 
 test('Johnnys hologram and V talks on their own are gone: an old saved value is ignored and dropped from the file once, there is no row (not even with Developer mode), no getter, and an Apply that carries them is ignored', () => {
   run(`${managerFixture}
@@ -4934,52 +5007,49 @@ const customReadyFixture = `
   end
 `;
 
-test('Mature content on from Convai without the Local AI pack: a saved Mistral key selects Mistral, else a ready Custom endpoint selects Custom, else it is refused; Local AI still comes first; choosing Convai in the same batch is refused', () => {
+test('Mature content on from Convai or Mistral without the Local AI pack: a ready Custom endpoint selects Custom, else it is refused, never Mistral, whatever key is saved; Local AI still comes first; choosing Convai or Mistral in the same batch is refused', () => {
   run(`${nsuiHarness({modules: {'custom-provider.lua': moduleSource('custom-provider.lua')}})}${matureStateFixture}${customReadyFixture}
     assert(invoke('tab:settings').ok)
-    local REFUSED = 'Needs Local AI, Mistral or Custom.'
+    local REFUSED = 'Needs Local AI or Custom.'
     local function mature(value) return core.apply({{id = 'matureContent', value = value}}) end
-    -- Convai free tier, a Mistral key saved, no Local AI pack: Mistral.
+    -- Convai free tier, a Mistral key saved, no Local AI pack and no Custom endpoint: refused (Mistral is never selected).
     withoutLocalAi(true); custom(false)
     local result = mature(true)
-    assert(result.ok and result.refusal == nil, tostring(result.error))
-    assert(saved.matureContent == true and saved.conversationProvider == 'mistral', tostring(saved.conversationProvider))
-    assert(saved.matureRestore.conversationProvider.before == 'convai' and saved.matureRestore.conversationProvider.set == 'mistral')
-    assert(saved.matureRestore.localModel == nil and saved.matureRestore.voice == nil)
-    assert(table.concat(result.names, ', ') == 'Mistral (free plan)' and shown() == 'Also changed: Mistral (free plan).', tostring(shown()))
-    -- Turning it off puts the provider back.
-    result = mature(false)
-    assert(result.ok and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == false and saved.matureRestore == nil)
-    -- The own-key entry of Convai (Convai API key): the record says so, and the own key comes back.
-    assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = true}))
+    assert(result.ok and result.refusal == REFUSED, tostring(result.refusal))
+    assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.matureRestore == nil, tostring(saved.conversationProvider))
+    assert(shown() == REFUSED, tostring(shown()))
+    loaded = registered.loadMod('manager'); assert(row('matureContent').value == false)
+    -- The same from Mistral itself: refused, and it stays on Mistral.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
     result = mature(true)
-    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'mistral')
-    assert(saved.matureRestore.conversationProvider.before == 'convai-key' and saved.matureRestore.conversationProvider.set == 'mistral')
-    assert(shown() == 'Also changed: Mistral (free plan).')
-    result = mature(false)
-    assert(result.ok and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true and saved.matureContent == false)
-    assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false}))
-    -- No Mistral key but a ready Custom endpoint: Custom.
-    withoutLocalAi(false); custom(true)
+    assert(result.refusal == REFUSED and saved.matureContent == false and saved.conversationProvider == 'mistral')
+    assert(manager.applySettings(player, {conversationProvider = 'convai'}))
+    -- A ready Custom endpoint: Custom, whether or not a key is saved. Turning it off puts the provider back.
+    withoutLocalAi(true); custom(true)
     result = mature(true)
     assert(result.ok and result.refusal == nil and saved.matureContent == true and saved.conversationProvider == 'custom', tostring(saved.conversationProvider))
     assert(saved.matureRestore.conversationProvider.before == 'convai' and saved.matureRestore.conversationProvider.set == 'custom')
     assert(table.concat(result.names, ', ') == 'Custom (OpenAI-compatible)' and shown() == 'Also changed: Custom (OpenAI-compatible).', tostring(shown()))
     result = mature(false)
-    assert(result.ok and saved.conversationProvider == 'convai' and saved.matureContent == false)
-    -- A Mistral key wins over a ready Custom endpoint.
-    withoutLocalAi(true); custom(true)
-    assert(mature(true).ok and saved.conversationProvider == 'mistral')
-    assert(mature(false).ok and saved.conversationProvider == 'convai')
-    -- Neither: refused, and the switch stays off.
-    withoutLocalAi(false); custom(false)
+    assert(result.ok and saved.conversationProvider == 'convai' and saved.matureContent == false and saved.matureRestore == nil)
+    -- The own-key entry of Convai (Convai API key): the record says so, and the own key comes back.
+    assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = true}))
     result = mature(true)
-    assert(result.ok and result.refusal == REFUSED, tostring(result.refusal))
-    assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.matureRestore == nil)
-    assert(shown() == REFUSED, tostring(shown()))
-    loaded = registered.loadMod('manager'); assert(row('matureContent').value == false)
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom')
+    assert(saved.matureRestore.conversationProvider.before == 'convai-key' and saved.matureRestore.conversationProvider.set == 'custom')
+    result = mature(false)
+    assert(result.ok and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true and saved.matureContent == false)
+    assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false}))
+    -- From Mistral with a ready Custom endpoint: Custom, and turning it off goes back to Mistral.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+    result = mature(true)
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom')
+    assert(saved.matureRestore.conversationProvider.before == 'mistral' and saved.matureRestore.conversationProvider.set == 'custom')
+    result = mature(false)
+    assert(result.ok and saved.conversationProvider == 'mistral' and saved.matureContent == false, 'back to Mistral')
+    assert(manager.applySettings(player, {conversationProvider = 'convai'}))
     -- An endpoint that is not ready (no address or model ID) counts as none; the Convai API key entry is refused the same way.
-    custom(false)
+    withoutLocalAi(true); custom(false)
     assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = true}))
     result = mature(true)
     assert(result.refusal == REFUSED and saved.matureContent == false and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true)
@@ -4990,23 +5060,32 @@ test('Mature content on from Convai without the Local AI pack: a saved Mistral k
     assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'local', tostring(saved.conversationProvider))
     assert(saved.matureRestore.conversationProvider.set == 'local' and table.concat(result.names, ', ') == 'Local AI, Uncensored model')
     assert(mature(false).ok and saved.conversationProvider == 'convai')
-    -- The same batch choosing Convai: the player's choice stays and Mature content is refused, whatever else is set up.
+    -- The same batch choosing Convai or Mistral: the player's choice stays and Mature content is refused, whatever else is set up.
     for _, case in ipairs({{true, 'key + Local AI'}, {false, 'Custom only'}}) do
       if case[1] then withLocalAi(true) else withoutLocalAi(false); custom(true) end
-      for _, entry in ipairs({1, 2}) do
+      for _, entry in ipairs({1, 2, 3}) do
         result = core.apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = entry}})
         assert(result.ok and result.refusal == REFUSED, case[2] .. ' ' .. entry .. ': ' .. tostring(result.refusal))
-        assert(saved.matureContent == false and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == (entry == 2), case[2] .. ' ' .. entry)
-        assert(manager.applySettings(player, {useOwnConvaiKey = false}))
+        assert(saved.matureContent == false and saved.conversationProvider == (entry == 3 and 'mistral' or 'convai') and saved.useOwnConvaiKey == (entry == 2), case[2] .. ' ' .. entry)
+        assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false}))
       end
     end
-    -- Beside Mistral or Custom already chosen, it changes nothing else.
+    -- Beside Custom already chosen, it changes nothing else.
     withoutLocalAi(true)
-    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}))
     result = mature(true)
-    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'mistral' and #result.names == 0 and result.refusal == nil)
+    assert(result.ok and saved.matureContent == true and saved.conversationProvider == 'custom' and #result.names == 0 and result.refusal == nil)
+    -- Choosing Mistral while it is on turns it off, and puts nothing else back it did not change.
+    result = core.apply({{id = 'conversationProvider', value = 3}})
+    assert(result.ok and saved.conversationProvider == 'mistral' and saved.matureContent == false)
+    -- Choosing Convai (either entry) while it is on turns it off as before.
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}))
+    assert(mature(true).ok and saved.matureContent == true)
+    result = core.apply({{id = 'conversationProvider', value = 1}})
+    assert(result.ok and saved.conversationProvider == 'convai' and saved.matureContent == false)
   `);
 });
+
 
 test('the Mistral key row\'s Remove help says what the key still powers: the conversations on Mistral, the companions on Voxtral, V on Voxtral, both, or nothing; the Convai key rows keep their old help', () => {
   run(`${nsuiFixture}${matureStateFixture}
@@ -5293,76 +5372,65 @@ test('an old settings.json with a removed setting set to false loads fine as if 
   `);
 });
 
-test('Battle and loot reactions are on by default: a saved false counts only once the player chose it (battleReactionsChosen, lootReactionsChosen), Restore defaults sets both back on', () => {
+test('Battle and loot reactions are off by default; the short-lived on-by-default rule and its once-only migration are gone (no Chosen key is written or read); Restore defaults sets both back off', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == true and manager.lootReactions() == true)
-    assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == false and saved.lootReactionsChosen == false, 'a fresh file')
+    assert(manager.battleReactions() == false and manager.lootReactions() == false)
+    assert(saved.battleReactions == false and saved.lootReactions == false, 'a fresh file')
+    assert(saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil, 'no Chosen flag is written')
     local snapshot = manager.snapshot(player).settings
-    assert(snapshot.battleReactions == true and snapshot.lootReactions == true)
+    assert(snapshot.battleReactions == false and snapshot.lootReactions == false)
     local function load(extra)
       seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'pocket', omniSteps = 16, enabledByKey = {}}
       for key, value in pairs(extra) do seed[key] = value end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.reset(); manager.configure(api, profiles); manager.prepare(player)
     end
-    -- A case is {saved value, saved Chosen, loaded value}: the old default false (never chosen) is true now, saved once; a chosen false stays.
-    for _, case in ipairs({{false, nil, true}, {false, false, true}, {false, true, false}, {true, nil, true}, {true, true, true},
-        {nil, nil, true}, {'no', nil, true}, {'no', true, true}, {false, 'yes', true}}) do
+    -- A saved value is read as it is, with or without a leftover Chosen key (the old migration never shipped): an unchosen false stays false.
+    for _, case in ipairs({{false, nil, false}, {false, false, false}, {false, true, false}, {true, nil, true}, {true, true, true}, {true, false, true},
+        {nil, nil, false}, {'no', nil, false}, {'no', true, false}}) do
       for _, key in ipairs({'battleReactions', 'lootReactions'}) do
         local chosen = key .. 'Chosen'
         load({[key] = case[1], [chosen] = case[2]})
         local label = key .. ' ' .. tostring(case[1]) .. ' chosen ' .. tostring(case[2])
         assert(manager[key]() == case[3] and saved[key] == case[3], label)
-        assert(saved[chosen] == (case[2] == true), label)
         assert(manager.snapshot(player).settings[key] == case[3], label)
-        -- The other one is untouched by this case: its file value was absent, so it is the default.
+        -- The other one was absent from the file: it is the default, off.
         local other = key == 'battleReactions' and 'lootReactions' or 'battleReactions'
-        assert(manager[other]() == true, label)
+        assert(manager[other]() == false, label)
       end
     end
-    -- The unchosen false is mended once: the next load saves nothing.
-    load({battleReactions = false, lootReactions = false})
-    local mended = saved
-    manager.reset(); manager.configure(api, profiles); manager.snapshot(player)
-    assert(saved == mended and saved.battleReactions == true and saved.lootReactions == true)
-    -- An Apply that turns one off marks it chosen, and the value stays off on the next load.
+    -- An Apply that turns one on writes the value and no Chosen flag; it survives a reload; a refused Apply changes nothing.
     load({})
-    assert(manager.applySettings(player, {battleReactions = false}))
-    assert(saved.battleReactions == false and saved.battleReactionsChosen == true and saved.lootReactions == true and saved.lootReactionsChosen == false)
+    assert(manager.applySettings(player, {battleReactions = true}))
+    assert(saved.battleReactions == true and saved.lootReactions == false and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
     manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == false and manager.lootReactions() == true, 'a chosen off survives a reload')
-    assert(saved.battleReactions == false and saved.battleReactionsChosen == true)
-    assert(manager.applySettings(player, {lootReactions = false}))
-    assert(saved.lootReactionsChosen == true and manager.lootReactions() == false)
-    manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == false and manager.lootReactions() == false)
-    -- An Apply that does not carry them leaves the flags alone; one that turns a chosen off back on keeps it chosen and on.
-    load({})
-    assert(manager.applySettings(player, {voice = false}))
-    assert(saved.battleReactionsChosen == false and saved.lootReactionsChosen == false and saved.battleReactions == true)
+    assert(manager.battleReactions() == true and manager.lootReactions() == false, 'a chosen on survives a reload')
     assert(manager.applySettings(player, {lootReactions = true}))
-    assert(saved.lootReactions == true and saved.lootReactionsChosen == true)
-    assert(not manager.applySettings(player, {battleReactions = 'on'}) and saved.battleReactionsChosen == false, 'a refused Apply sets no flag')
+    manager.reset(); manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.battleReactions() == true and manager.lootReactions() == true)
+    assert(manager.applySettings(player, {battleReactions = false, lootReactions = false}))
+    assert(manager.battleReactions() == false and manager.lootReactions() == false and saved.battleReactionsChosen == nil)
+    assert(not manager.applySettings(player, {battleReactions = 'on'}) and manager.battleReactions() == false, 'a refused Apply changes nothing')
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local battle, loot = row('battleReactions'), row('lootReactions')
-    assert(battle.type == 'bool' and battle.defaultValue == true and battle.value == true and battle.label == 'React to battles')
-    assert(loot.type == 'bool' and loot.defaultValue == true and loot.value == true and loot.label == 'React to collected loot')
-    assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}, {id = 'lootReactions', value = false}}).ok)
-    assert(saved.battleReactions == false and saved.lootReactions == false and saved.battleReactionsChosen == true and saved.lootReactionsChosen == true)
+    assert(battle.type == 'bool' and battle.defaultValue == false and battle.value == false and battle.label == 'React to battles')
+    assert(loot.type == 'bool' and loot.defaultValue == false and loot.value == false and loot.label == 'React to collected loot')
+    assert(registered.applyBatch('manager', {{id = 'battleReactions', value = true}, {id = 'lootReactions', value = true}}).ok)
+    assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
     loaded = registered.loadMod('manager')
-    assert(row('battleReactions').value == false and row('lootReactions').value == false)
-    -- Restore defaults sets both back on.
+    assert(row('battleReactions').value == true and row('lootReactions').value == true)
+    -- Restore defaults sets both back off.
     local changes = core.defaults()
     local back = {}
     for _, change in ipairs(changes) do back[change.id] = change.value end
-    assert(back.battleReactions == true and back.lootReactions == true, 'both are named, at their default')
+    assert(back.battleReactions == false and back.lootReactions == false, 'both are named, at their default')
     assert(registered.applyBatch('manager', changes).ok)
-    assert(saved.battleReactions == true and saved.lootReactions == true and manager.battleReactions() and manager.lootReactions())
+    assert(saved.battleReactions == false and saved.lootReactions == false and not manager.battleReactions() and not manager.lootReactions())
     manager.reset(); manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.battleReactions() == true and manager.lootReactions() == true, 'a reload keeps the restored defaults')
+    assert(manager.battleReactions() == false and manager.lootReactions() == false, 'a reload keeps the restored defaults')
   `);
 });
 

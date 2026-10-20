@@ -31,7 +31,7 @@ It speaks English only here (it uses Pocket's English route): with Multilingual 
 ("The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it."), and turning Multilingual on
 beside a saved Voxtral choice moves the voice to OmniVoice (pack installed) or the Convai cloud voice, with the usual notice.
 Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
-limited to pauses, as with Pocket). Mature content changes no voice: Voxtral stays available beside it with any text provider (since 2026-10-20). V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
+limited to pauses, as with Pocket). Voxtral is not used with Mature content (since 2026-10-20, after Voxtral refused Mature lines in a live test): turning it on moves the voices to Pocket, turning it off puts Voxtral back. V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
 
 ## How it speaks
 

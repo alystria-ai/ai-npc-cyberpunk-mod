@@ -34,8 +34,8 @@ local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- The Companion voices list of the page on screen: how many entries it has and their texts.
 local voiceMenuSize, voiceLabelsShown = 0, {}
--- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing), by position: M.apply refuses them. A host
--- that can grey an entry out reads them from the row (`disabledElements`).
+-- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing, Voxtral beside Mature content), by position: M.apply refuses
+-- them. A host that can grey an entry out reads them from the row (`disabledElements`); a value that is a string is that entry's own reason.
 local voiceDisabledShown = {}
 -- Help page: log locations and the shareable support report. Optional: the manager works without it, and a load failure only hides
 -- the Help entry.
@@ -390,7 +390,7 @@ end
 -- The select's labels, in menu order.
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
-local function voiceMenuLabels(pack, mistral)
+local function voiceMenuLabels(pack, mistral, matureOn)
     local elements, disabled = {}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
         -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
@@ -398,7 +398,13 @@ local function voiceMenuLabels(pack, mistral)
         -- (Voxtral)") stays for sentences.
         local label
         if choice.provider == 'voxtral' then
-            label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
+            -- Not beside Mature content (the entry is greyed out and M.apply refuses it, whatever the key): the label says so, for hosts that cannot grey it.
+            if matureOn then
+                label = ui.t('Voxtral · not with Mature')
+                disabled[#elements + 1] = ui.t('Voxtral is not used with Mature content.')
+            else
+                label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
+            end
         else
             label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
             if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
@@ -408,21 +414,22 @@ local function voiceMenuLabels(pack, mistral)
     voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
 end
--- Mature content works with the Local AI, Mistral and Custom providers and never stands beside Convai (free tier or API key). It changes no
--- voice (2026-10-20): the lines may go to a cloud voice with any provider. Turning it ON beside Convai selects, in the same saved transaction,
--- the Local AI provider (and its uncensored model) when the Local AI pack is installed; without the pack it selects Mistral when a Mistral key is
--- saved, else Custom when a custom endpoint is set up, else it cannot be on beside Convai and the switch goes back to off. Beside Local AI it
--- selects the uncensored model the same way; beside Mistral or Custom it changes nothing else (the model is the player's). Picking Convai
--- while it is on turns it OFF.
--- Turning it OFF puts back what turning it on changed, unless the player changed it since. What was changed is kept in the saved
--- settings (manager: matureRestore). stageMature computes all of it from the saved settings and the batch of changes; it runs when a
--- change is applied and costs nothing otherwise.
+-- Mature content works with the Local AI and Custom providers only (owner decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a
+-- live test: "let's not risk their API key"); Convai (free tier or API key) and Mistral never take it. Turning it ON beside Convai or Mistral selects,
+-- in the same saved transaction, the Local AI provider (and its uncensored model) when the Local AI pack is installed; without the pack it selects Custom
+-- when a custom endpoint is set up, else it cannot be on there and the switch goes back to off (never Mistral). Beside Local AI it selects the uncensored
+-- model the same way; beside Custom it changes nothing else (the model is the player's). Picking Convai or Mistral while it is on turns it OFF.
+-- No Voxtral voice beside it either (MATURE_VOXTRAL in mod/manager.lua): turning it ON moves a Voxtral companion voice and V's Voxtral engine to Pocket
+-- (any provider), named in the "Also changed" line, and the choice is greyed out and refused while it is on.
+-- Turning it OFF puts back what turning it on changed, unless the player changed it since (a Voxtral voice only when the Mistral key is still saved).
+-- What was changed is kept in the saved settings (manager: matureRestore). stageMature computes all of it from the saved settings and the batch of
+-- changes; it runs when a change is applied and costs nothing otherwise.
 -- The provider list in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
 local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local', 'custom'}
 local LOCAL_PROVIDER = 4
-local MISTRAL_PROVIDER, CUSTOM_PROVIDER = 3, 5
--- Positions of the providers that take Mature content as they are (Mistral, Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) never does.
-local MATURE_CLOUD_PROVIDERS = {[3] = true, [5] = true}
+local CUSTOM_PROVIDER = 5
+-- Positions of the providers that take Mature content as they are (Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) and Mistral (3) never do.
+local MATURE_CLOUD_PROVIDERS = {[5] = true}
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
 local function customProblemText(reason)
     if reason == 'missing' then return ui.t('file not found') end
@@ -432,6 +439,24 @@ local function customProblemText(reason)
 end
 
 local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
+
+-- A companion voice as the restore record keeps it ({provider, steps, reference}) and its position in the Companion voices list.
+local function voiceRecord(index)
+    local choice = VOICE_CHOICES[index]
+    if not choice then return nil end
+    return {provider = choice.provider, steps = choice.steps, reference = choice.reference}
+end
+
+local function voiceIndexOf(record)
+    if type(record) ~= 'table' then return nil end
+    return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
+end
+
+-- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral) for the saved settings. With Mature content on a Voxtral engine reads as Pocket (it is not used).
+local function savedVIndex(settings, keySaved)
+    if settings.vVoice ~= true then return 1 end
+    return settings.vVoiceEngine == 'voxtral' and keySaved and settings.matureContent ~= true and 3 or 2
+end
 
 -- Is the custom endpoint set up (an address and a model ID, mod/custom-provider.lua state `ready`)? Read from the file the bridge writes, at most
 -- every few seconds; a fault or a missing module reads as no.
@@ -497,6 +522,8 @@ local function stageMature(changes, snapshot)
         end
     end
     local keySaved = (snapshot.mistral or {}).saved == true
+    -- V's voice row as the batch leaves it: 1 Off, 2 Pocket, 3 Voxtral.
+    local vNow = now('vVoice', savedVIndex(saved, keySaved))
     local function turnedOff()
         local restore = saved.matureRestore
         if type(restore) ~= 'table' then leaveUncensoredModel(); return end
@@ -518,29 +545,44 @@ local function stageMature(changes, snapshot)
                 stage('localModel', back); names[#names + 1] = ui.t('Local AI model')
             end
         end
+        part = restore.voice
+        if part and not explicit.voiceProvider then
+            local current, back = now('voiceProvider', savedVoiceIndex(saved)), voiceIndexOf(part.before)
+            -- Only a voice that can be chosen now: Voxtral needs the Mistral key, OmniVoice its pack (M.apply refuses either without, and the
+            -- refusal would keep Mature content on). Otherwise the voice stays where it is.
+            local choice = back and VOICE_CHOICES[back]
+            local usable = choice and (choice.provider ~= 'voxtral' or keySaved) and (choice.provider ~= 'omni' or manager.omniPack().installed == true)
+            if current == voiceIndexOf(part.set) and usable then
+                stage('voiceProvider', back); names[#names + 1] = ui.t('Companion voices')
+            end
+        end
+        part = restore.vVoiceEngine
+        -- V's engine goes back to Voxtral only if V still speaks with Pocket (not Off, not changed by the player in this batch) and the key is saved.
+        if part and part.before == 'voxtral' and not explicit.vVoice and vNow == 2 and keySaved then
+            stage('vVoice', 3); vNow = 3
+            names[#names + 1] = ui.t('V’s voice for typed lines')
+        end
         leaveUncensoredModel()
     end
     if mature and mature.value == true and not savedMature then
         local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
         local usingLocal = providerNow == LOCAL_PROVIDER
         local cloudText = MATURE_CLOUD_PROVIDERS[providerNow] == true
-        -- Beside Convai (which cannot take it): the Local AI pack when installed, else the player's Mistral key, else a ready custom endpoint. When the
-        -- same change picks Convai, the provider the player chose stays and the switch goes back to off.
+        -- Beside Convai or Mistral (which cannot take it): the Local AI pack when installed, else a ready custom endpoint, never Mistral. When the
+        -- same change picks Convai or Mistral, the provider the player chose stays and the switch goes back to off.
         local target
         if not usingLocal and not cloudText and not by.conversationProvider then
             if installed then target = LOCAL_PROVIDER
-            elseif keySaved then target = MISTRAL_PROVIDER
             elseif customEndpointReady() then target = CUSTOM_PROVIDER end
         end
         if not usingLocal and not cloudText and not target then
-            mature.value, refusal = false, ui.t('Needs Local AI, Mistral or Custom.')
+            mature.value, refusal = false, ui.t('Needs Local AI or Custom.')
         else
             record = {}
             if target and PROVIDER_IDS[providerNow] then
                 stage('conversationProvider', target)
                 record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = PROVIDER_IDS[target]}
-                names[#names + 1] = target == LOCAL_PROVIDER and ui.t('Local AI')
-                    or target == MISTRAL_PROVIDER and ui.t('Mistral (free plan)') or ui.t('Custom (OpenAI-compatible)')
+                names[#names + 1] = target == LOCAL_PROVIDER and ui.t('Local AI') or ui.t('Custom (OpenAI-compatible)')
                 usingLocal = target == LOCAL_PROVIDER
             end
             if usingLocal then
@@ -555,13 +597,27 @@ local function stageMature(changes, snapshot)
                     names[#names + 1] = ui.t('Uncensored model')
                 end
             end
+            -- No Voxtral voice beside it (any provider): the companions and V move to Pocket, named below, and come back when it is turned off.
+            local voiceNow = now('voiceProvider', savedVoiceIndex(saved))
+            local voiceChoice = VOICE_CHOICES[voiceNow]
+            if voiceChoice and voiceChoice.provider == 'voxtral' then
+                stage('voiceProvider', 1)
+                record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(1)}
+                local chosen = VOICE_CHOICES[1]
+                names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
+            end
+            if vNow == 3 then
+                stage('vVoice', 2); vNow = 2
+                record.vVoiceEngine = {before = 'voxtral', set = 'pocket'}
+                names[#names + 1] = ui.t('V’s voice for typed lines')
+            end
             record = next(record) and record or nil
         end
     elseif mature and mature.value == false and savedMature then
         turnedOff()
     elseif savedMature and not mature and by.conversationProvider and providerNow ~= LOCAL_PROVIDER
         and not MATURE_CLOUD_PROVIDERS[providerNow] and providerNow ~= providerIndexOf(saved) then
-        -- Convai picked while Mature content is on turns it off, with the same way back.
+        -- Convai or Mistral picked while Mature content is on turns it off, with the same way back.
         stage('matureContent', false)
         turnedOff()
     end
@@ -752,19 +808,19 @@ local function ownKeyRows(snapshot)
         or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
-    -- Mature content is part of the main mod (off by default). It works with Local AI, Mistral and Custom: turning it on beside Convai selects
-    -- Local AI, and choosing Convai turns it off. The help says whether the optional Mature pack (uncensored models, Local AI) is installed
+    -- Mature content is part of the main mod (off by default). It works with Local AI and Custom only: turning it on beside Convai or Mistral selects
+    -- Local AI (else Custom), and choosing Convai or Mistral turns it off. Voxtral voices are not used with it. The help says whether the optional Mature pack (uncensored models, Local AI) is installed
     -- (the bridge reports its marker).
     local matureRow
     do
-        local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Works with Local AI, Mistral and Custom.')
+        local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.')
         -- The rules come before the pack: the description area holds only so much, and those are what has to be read.
         matureHelp = matureHelp .. '\n\n' .. ui.t('Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.')
         matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
             and ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.')
             or ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
-        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai, turning it on selects Local AI, or Mistral or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.')
-            .. ' ' .. ui.t('Choosing Convai turns it off.')
+        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.')
+            .. ' ' .. ui.t('Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.')
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
     -- Which installed Local AI model loads: each installed model by its manifest name, smallest file first (the bridge reports the list); the sizes
@@ -1392,7 +1448,7 @@ local function schema()
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
             setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
                 'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
-                voiceMenuLabels(pack, snapshot.mistral), {elements = true, label = true}),
+                voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true), {elements = true, label = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
@@ -1408,16 +1464,20 @@ local function schema()
             -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved).
             -- A saved Voxtral without a key reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
             setting('vVoice', 'V’s voice for typed lines', 'select',
-                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved) and 3 or 2, 2,
+                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved and snapshot.settings.matureContent ~= true) and 3 or 2, 2,
                 'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped.',
-                {ui.t('Off'), ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
+                {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
+                    or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
             end
-            if voiceRow.id == 'vVoice' and not (snapshot.mistral or {}).saved then
+            if voiceRow.id == 'vVoice' and snapshot.settings.matureContent == true then
+                -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
+                voiceRow.disabledElements, voiceRow.disabledReason = {[3] = true}, ui.t('Voxtral is not used with Mature content.')
+            elseif voiceRow.id == 'vVoice' and not (snapshot.mistral or {}).saved then
                 voiceRow.disabledElements, voiceRow.disabledReason = {[3] = true}, ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')
             end
         end
@@ -1429,9 +1489,9 @@ local function schema()
                 {'Cinematic subtitles', 'Above the speaker'}),
         })
         categories[#categories + 1] = category('reactions', 'Automatic reactions', {
-            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
+            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, false,
                 'A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.'),
-            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
+            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
                 'Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.'),
         })
         -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
@@ -1656,7 +1716,7 @@ function M.defaults()
     -- Turning Mature content off puts back what turning it on changed (stageMature). Here the defaults are wanted instead: the rows it would put
     -- back are named in the batch at their default, so they stay there.
     if turningMatureOff then
-        for _, id in ipairs({'conversationProvider', 'localModel'}) do
+        for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoice'}) do
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
@@ -1773,6 +1833,13 @@ function M.apply(changes)
             addonChanges = addonChanges + 1
         else return refused('That setting is read-only.') end
         applied[#applied + 1] = key
+    end
+    -- No Voxtral voice beside Mature content: choosing one while the setting is on (or stays on) is refused and nothing is saved. A batch that turns
+    -- the setting on never gets here with one: stageMature moved it to Pocket.
+    local matureFinal = values.matureContent
+    if matureFinal == nil then matureFinal = snapshot.settings.matureContent == true end
+    if matureFinal == true and (values.voiceProvider == 'voxtral' or values.vVoiceEngine == 'voxtral') then
+        return refused('Voxtral is not used with Mature content.')
     end
     -- Turning Mature content on in this batch: what that staged is kept in the settings, so turning it off can undo it.
     if values.matureContent == true and record then values.matureRestore = record end

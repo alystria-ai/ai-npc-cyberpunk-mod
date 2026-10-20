@@ -5,15 +5,17 @@
 // uncensored models of the Mature pack (bridge/mature-pack.mjs, packaging/MATURE_PACK_README.md; a separate download on the project's
 // GitHub releases only) give the full effect. Whatever the model, the hard-limit guard (bridge/mature-guard.mjs) runs while the setting is on.
 // Off: nothing here runs and the prompt is byte for byte the one built without it.
-// On: the text providers that may have it (MATURE_PROVIDERS: the local AI, Mistral and the Custom provider; owner decision 2026-10-20) get one
+// On: the text providers that may have it (MATURE_PROVIDERS: the local AI and the Custom provider; owner decision 2026-10-20) get one
 // short layer at the end of the system head, right after the output rules, so it sits in the stable early part of the prompt (the llama-server
 // prefix cache and Mistral's prompt cache keep working) and the prompt budget never cuts it (bridge/prompt-budget.mjs only trims the world,
 // memory, history, notes and example lines). It is the same layer, word bank and closing line on every one of them, built in one place
 // (bridge/mistral-prompt.mjs), so the world rules, the world block and the right-now block follow it exactly as they do on the local AI.
 // Every other provider is refused here:
 //   convai    never (a hosted service with its own rules; the player's own key does not change that)
-// With Mistral or Custom the player's lines go to that service as they do for every turn; its own terms apply (docs/MISTRAL.md,
-// docs/CUSTOM_PROVIDER.md). A provider is removed from the layer by setting its flag below to false.
+//   mistral   never (owner decision 2026-10-20, after a live test in which Mistral's Voxtral voice refused Mature lines: "let's not risk their
+//             API key"): no layer, no word bank, and no Voxtral voice beside the setting either (the bridge speaks Pocket instead)
+// With Custom the player's lines go to the endpoint the player named, as they do for every turn; its own terms apply (docs/CUSTOM_PROVIDER.md).
+// A provider is removed from the layer by setting its flag below to false.
 //
 // What the layer allows depends on the model that is loaded, because a model's licence can forbid what the layer would otherwise
 // invite. `MODEL_ALLOWANCE` is a small table keyed by model family; the family is read from the loaded model's name (the pack
@@ -24,8 +26,15 @@
 // The hard limits are in both. Pure functions and one small state holder: no I/O.
 import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 
-/** Providers that may get the layer (the route names of bridge/text-provider-host.mjs; Convai prompting cannot take it). */
-export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: true, custom: true, convai: false});
+/** Providers that may get the layer (the route names of bridge/text-provider-host.mjs; Convai prompting cannot take it, and Mistral is kept out on purpose: see above). */
+export const MATURE_PROVIDERS = Object.freeze({local: true, custom: true, mistral: false, convai: false});
+
+/**
+ * May a cloud voice (Voxtral, a request to Mistral) speak while the setting is on? Never (owner decision 2026-10-20): Mistral's voice refused Mature
+ * lines in a live test, and a refusal risks the player's Mistral key. `enabled` is MatureContent#enabled. The bridge speaks Pocket instead
+ * (companions: bridge/voice-selection.mjs, V: bridge/v-voice.mjs through the settings poll).
+ */
+export const matureAllowsCloudVoice = enabled => enabled !== true;
 
 /** The allowance per model family, first match wins. `licence` is the reason, for the log and the docs. */
 export const MODEL_ALLOWANCE = Object.freeze([
