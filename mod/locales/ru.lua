@@ -432,6 +432,7 @@ return {
     ["RED4ext logs"] = "Журналы RED4ext",
     ["RED4ext writes its logs in {path}"] = "RED4ext записывает свои журналы в {path}",
     ["Redscript log"] = "Журнал redscript",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "Ответы на других языках показываются текстом: этот голос говорит только по-английски. OmniVoice их озвучит.",
     ["Report for the developer"] = "Отчёт для разработчика",
     ["Report path copied to the clipboard."] = "Путь к отчёту скопирован в буфер обмена.",
     ["Report saved: {path}"] = "Отчёт сохранён: {path}",

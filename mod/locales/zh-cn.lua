@@ -432,6 +432,7 @@ return {
     ["RED4ext logs"] = "RED4ext 日志",
     ["RED4ext writes its logs in {path}"] = "RED4ext 会将其日志写入 {path}",
     ["Redscript log"] = "Redscript 日志",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "其他语言的回复将以文字显示：此语音只会说英语。OmniVoice 可以朗读这些回复。",
     ["Report for the developer"] = "提交给开发者的报告",
     ["Report path copied to the clipboard."] = "报告路径已复制到剪贴板。",
     ["Report saved: {path}"] = "报告已保存：{path}",

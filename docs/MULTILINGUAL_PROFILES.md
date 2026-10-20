@@ -50,6 +50,26 @@ ignores any `<key>-romantic` row left in `runtime/multilingual-profiles.json`, a
 setting (Auto / On / Off) only decides whether a romance block is added to the turn's dynamic context.
 Deleting the retired Convai characters is a separate manual step, see docs/ROMANCE_DYNAMIC_CONTEXT.md.
 
+## Text providers (Mistral, Local AI, Custom): the player's language, no twins
+
+Added 2026-10-20 after a Local AI player with the European microphone pack and OmniVoice reported that characters always answered in English.
+The cause: on every text provider the bridge forced Multilingual conversations off (the twins are Convai characters), and with it the
+reply-language block, so an English persona answered in English whatever the player wrote.
+
+Now there is no setting and no twin: while a text provider answers (`mistral.active`), `MultilingualConversations.textProvider` is on and
+- the dynamic context ends with the same `languageContext` block as the twins get ("answer in the language of the player's latest message,
+  which is French ..."), but only when it changes something (`textProviderLanguageContext`): nothing for an English conversation (the context is
+  byte-identical to before, no extra tokens), the player's language when the message is in another language, English again when the player
+  switches back, and "the language the player is using (so far X)" for a turn with no text of its own (a recording, a reaction) once the
+  conversation is in another language. A recording with nothing said yet follows the language the microphone last heard or the one remembered
+  from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
+- the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Pocket and Voxtral, which speak
+  English only, keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`), with one `voice-language` notice per game
+  session ("Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."). No voice model is loaded for it.
+  A text provider has no Convai cloud voice to fall back on, so the plan never hands such a turn to `convai`.
+
+The Convai Multilingual setting is unchanged (twins, the Convai free tier only).
+
 ## Archetype twins (npc-*)
 
 The 44 archetype profiles (docs/NPC_ARCHETYPES.md) have twins made by the same script and the same rules: a faithful

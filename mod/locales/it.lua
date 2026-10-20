@@ -256,6 +256,7 @@ return {
     ["Remove only this copy from your group."] = "Rimuovi solo questa copia dal tuo gruppo.",
     ["Reopen the manager; that action is no longer available."] = "Riapri Gestione compagni; questa azione non è più disponibile.",
     ["Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result."] = "Riapri questa pagina dopo la riconnessione del servizio di memoria. Una cancellazione in sospeso continua ad attendere il proprio risultato.",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "Le risposte in altre lingue appaiono come testo: questa voce parla solo inglese. OmniVoice le pronuncia.",
     ["Report for the developer"] = "Report per lo sviluppatore",
     ["Report path copied to the clipboard."] = "Percorso del report copiato negli appunti.",
     ["Report saved: {path}"] = "Report salvato: {path}",

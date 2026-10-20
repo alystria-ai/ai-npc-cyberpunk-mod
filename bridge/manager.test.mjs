@@ -4318,6 +4318,10 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(id == 'mistral-no-key' and text:find('no key yet', 1, true) and text:find('Convai is used', 1, true), text)
     id, text = notice({keyNotice = 'mistral-voice', text = 'Hello'})
     assert(id == 'mistral-voice' and text:find('local voice', 1, true), text)
+    -- A text provider answered in a language the English-only voice cannot speak: shown as text; OmniVoice is named.
+    id, text = notice({keyNotice = 'voice-language', text = 'Salut'})
+    assert(id == 'voice-language' and text:find('English only', 1, true) and text:find('OmniVoice', 1, true) and not text:find('Recommended', 1, true), text)
+    sendProviderNotice({}, 'voice-language', 'v'); assert(sent[#sent] == 'voice-language=v', table.concat(sent, ';')); sent[#sent] = nil
     -- The one-time notices go through the gate under their own ids; anything else sends nothing.
     -- Local AI fell back to Convai: the same line on the first reply (keyNotice) and on a failed turn (errorCode).
     local expected = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'

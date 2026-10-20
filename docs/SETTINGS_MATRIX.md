@@ -59,7 +59,7 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 |---|---|---|
 | 1 | provider × Mature | only local/mistral/custom; on from Convai selects Local AI (refused without the pack); Convai turns it off. Bridge: never a layer on Convai. Agree. |
 | 2 | provider × useOwnConvaiKey | one select; the key choice is kept while on another provider. |
-| 3 | provider × Multilingual | in use only on the Convai free tier (bridge 3184, 3206); Lua now the same (`multilingualActive`). Was F2. |
+| 3 | provider × Multilingual | the twins and the voice rules are in use only on the Convai free tier (bridge 3184, 3206); Lua the same (`multilingualActive`). Was F2. Since 2026-10-20 the text providers (Mistral, Local AI, Custom) answer in the player's language without this setting: the bridge keeps the twins off but adds the language note to the context (nothing while the conversation is English), OmniVoice speaks the reply, Pocket and Voxtral show it as text with one notice (`MultilingualConversations.textProvider`, `docs/MULTILINGUAL_PROFILES.md` "Text providers"). |
 | 4 | provider × companion voice | the Convai voice on a text provider plays Pocket (bridge 3206); the saved choice stays. |
 | 5 | provider × V engine | Voxtral refused beside Mature + Local AI (Lua and bridge). |
 | 6 | provider × localModel | the model is used on Local AI (and as the add-on fallback). |
@@ -74,7 +74,7 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | 15 | Mature × Mistral key | key removed: Mature stays as it is (the voice rows are not touched any more); a Mature on from Convai picks Mistral only while a key is saved (D3). |
 | 16 | Mature × Omni pack | none any more (no voice record). |
 | 17 | Mature × Restore defaults | rows the batch sets are never put back. Was F5. |
-| 18 | Multilingual × companion voice | in use: never Pocket/Voxtral; turning on moves to Omni Balanced or the Convai voice. |
+| 18 | Multilingual × companion voice | in use (Convai free tier): never Pocket/Voxtral; turning on moves to Omni Balanced or the Convai voice. On a text provider the setting stays out of it: the chosen voice is kept, OmniVoice speaks another language, Pocket and Voxtral show a non-English reply as text (one `voice-language` notice per session), and no other model is loaded. |
 | 19 | Multilingual × Omni pack | in use without the pack: the Convai voice. |
 | 20 | Multilingual × Natural speech | in use without the pack: Natural speech off, turning it on refused. |
 | 21 | Multilingual × V voice | a V line in another language is skipped (`v-voice.mjs`); the V engine help says English only. |

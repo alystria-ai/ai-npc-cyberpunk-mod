@@ -3,7 +3,9 @@
 // The local recogniser for English (Moonshine Tiny, bridge/local-stt.mjs) hears English only. For any other language the
 // recording is recognised by another engine, chosen here from what the bridge already knows, with no new work per frame:
 //   1. Evidence from the player: the language of the last text they typed, or of the last recording an engine placed
-//      (Mistral's transcription answers with the language it heard). Both are in memory for the life of the bridge.
+//      (Mistral's transcription answers with the language it heard). Both are in memory for the life of the bridge, and the language
+//      is also written to a small file in the state folder whenever it changes (player-language.json), read once at the start as the
+//      first evidence: a French player with an English game gets the French recogniser from the first recording of the next launch.
 //   2. The interface language: the explicit "Interface language" setting, else the game's own language as the game side wrote it
 //      into runtime/ui-language.txt when it last changed (mod/init.lua). The file is read when a recording opens, never per frame.
 //   3. English. Nothing is known: today's path, unchanged.
@@ -77,13 +79,32 @@ export function planRecording({language = 'en', source = 'default', provider = '
   return {mode: 'english', language, source, note: packThatHears(language) ? 'pack-available' : 'english-only'};
 }
 
-/** What the bridge knows about the player's language. `readUiFile` (async, optional) returns the text of runtime/ui-language.txt. */
+/** The file that remembers the player's language between launches (state folder). */
+export const PLAYER_LANGUAGE_FILE = 'player-language.json';
+
+/** The text of the file for a language, and the language a file's text holds ('fr') or null (missing, unreadable or invalid: ignored). */
+export const playerLanguageText = language => JSON.stringify({version: 1, language});
+export function parsePlayerLanguage(raw) {
+  if (typeof raw !== 'string' || raw.length > 400) return null;
+  let value; try { value = JSON.parse(raw.replace(/^﻿/, '')); } catch { return null; }
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.version !== 1 || typeof value.language !== 'string') return null;
+  // Only a plain two or three letter code the bridge itself writes: nothing else is trusted as a language.
+  return /^[a-z]{2,3}$/.test(value.language) ? value.language : null;
+}
+
+/**
+ * What the bridge knows about the player's language. `readUiFile` (async, optional) returns the text of runtime/ui-language.txt.
+ * `remembered` is the language of the previous launch (parsePlayerLanguage of the saved file); `remember(language)` is called, with no wait,
+ * each time the evidence changes to a new language: the caller writes the file in the background. Neither is read or written per frame.
+ */
 export class SpeechLanguage {
-  constructor({readUiFile = null, now = Date.now} = {}) {
-    Object.assign(this, {readUiFile, now});
+  constructor({readUiFile = null, now = Date.now, remembered = null, remember = null} = {}) {
+    Object.assign(this, {readUiFile, now, remember});
     this.setting = 'auto';        // settings.json "uiLanguage": 'auto' or a code
-    this.evidence = null;         // {language, source: 'text' | 'voice', at}
+    this.evidence = null;         // {language, source: 'text' | 'voice' | 'saved', at}
     this.fileText = null; this.fileAt = 0;
+    const saved = baseLanguage(remembered);
+    if (saved) this.evidence = {language: saved, source: 'saved', at: 0};
   }
   /** The settings object the bridge polls (only `uiLanguage` is read). */
   update(settings) {
@@ -102,6 +123,7 @@ export class SpeechLanguage {
     if (!language) return false;
     const changed = this.evidence?.language !== language;
     this.evidence = {language, source, at: this.now()};
+    if (changed && typeof this.remember === 'function') { try { this.remember(language); } catch { /* remembering is a convenience */ } }
     return changed;
   }
   async #ui() {

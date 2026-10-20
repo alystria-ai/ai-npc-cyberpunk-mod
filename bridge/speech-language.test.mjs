@@ -1,10 +1,11 @@
 // Which language the microphone expects and which engine hears it (bridge/speech-language.mjs). Pure logic: no network, no model.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readdirSync} from 'node:fs';
+import {readdirSync, readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
-import {baseLanguage, packFor, packThatHears, planRecording, SpeechLanguage, LOCAL_PACKS, MOD_LANGUAGES, VOXTRAL_LANGUAGES} from './speech-language.mjs';
+import {baseLanguage, packFor, packThatHears, planRecording, SpeechLanguage, LOCAL_PACKS, MOD_LANGUAGES, VOXTRAL_LANGUAGES,
+  PLAYER_LANGUAGE_FILE, parsePlayerLanguage, playerLanguageText} from './speech-language.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -124,4 +125,52 @@ test('no file, no setting, no evidence: English by default; an unreadable file i
   assert.deepEqual(await broken.current(), {language: 'en', source: 'default'});
   const unsupported = new SpeechLanguage({readUiFile: async () => 'ar'});
   assert.deepEqual(await unsupported.current(), {language: 'en', source: 'ui'}, 'a game language the mod does not support is English');
+});
+
+// ---- The player's language between launches (player-language.json in the state folder) ---------------------------------------
+
+test('the remembered language is the first evidence at start: a French player with an English game gets the French route from the first recording', async () => {
+  const language = new SpeechLanguage({readUiFile: async () => 'en', remembered: parsePlayerLanguage(playerLanguageText('fr'))});
+  assert.deepEqual(await language.current(), {language: 'fr', source: 'saved'});
+  const plan = planRecording({...(await language.current()), provider: 'local', installed: ['parakeet-tdt-0.6b-v3-int8']});
+  assert.equal(plan.mode, 'pack');
+  assert.equal(plan.pack.id, 'parakeet-tdt-0.6b-v3-int8');
+  // Without the memory the same player starts in English (the bug).
+  assert.deepEqual(await new SpeechLanguage({readUiFile: async () => 'en'}).current(), {language: 'en', source: 'ui'});
+  // The saved language counts as the player's own: Mistral's transcription gets it as a hint.
+  assert.equal(planRecording({language: 'fr', source: 'saved', provider: 'mistral', voxtralReady: true}).hint, 'fr');
+});
+
+test('the language is written only when it changes, with no wait: the first text, a different language, English; never the same one twice', () => {
+  const written = [];
+  const language = new SpeechLanguage({remembered: 'fr', remember: code => written.push(code)});
+  assert.equal(language.observeText("Salut, ça va? Qu'est-ce que tu fais ce soir?"), false, 'French again: nothing changed, nothing written');
+  assert.equal(language.observeVoice('French'), false);
+  assert.deepEqual(written, []);
+  assert.equal(language.observeText('Hallo, wie geht es dir heute Abend?'), true);
+  assert.equal(language.observeVoice('de'), false);
+  assert.equal(language.observeText('What do you need, choom?'), true, 'English evidence overwrites it');
+  assert.equal(language.observeText('Not clear: ok'), false, 'a line with no clear language changes nothing');
+  assert.deepEqual(written, ['de', 'en']);
+  // A writer that throws never breaks the conversation.
+  const broken = new SpeechLanguage({remember: () => { throw Error('disk full'); }});
+  assert.equal(broken.observeText('Hallo, wie geht es dir heute Abend?'), true);
+  assert.equal(broken.evidence.language, 'de');
+});
+
+test('the saved file is read only when it is valid: anything else is ignored', async () => {
+  assert.equal(parsePlayerLanguage(playerLanguageText('pt')), 'pt');
+  for (const raw of ['', 'not json', '[]', 'null', '{}', '{"version":2,"language":"fr"}', '{"version":1,"language":"french"}', '{"version":1,"language":42}',
+    '{"version":1,"language":"F R"}', undefined, 7, 'x'.repeat(500)]) assert.equal(parsePlayerLanguage(raw), null, String(raw).slice(0, 30));
+  assert.equal(parsePlayerLanguage('﻿' + playerLanguageText('ru')), 'ru', 'a byte-order mark from a hand edit is dropped');
+  // An invalid file leaves the start exactly as before: the interface language, else English.
+  assert.deepEqual(await new SpeechLanguage({remembered: parsePlayerLanguage('garbage')}).current(), {language: 'en', source: 'default'});
+  assert.equal(PLAYER_LANGUAGE_FILE, 'player-language.json');
+});
+
+test('the bridge reads the file once at start and writes it in the background', () => {
+  const bridge = readFileSync(resolve(here, 'convai-bridge.mjs'), 'utf8');
+  assert.match(bridge, /remembered: parsePlayerLanguage\(await readFile\(playerLanguageFile, 'utf8'\)\.catch\(\(\) => ''\)\)/);
+  assert.match(bridge, /remember: language => \{ void atomic\(playerLanguageFile, playerLanguageText\(language\)\)\.catch\(\(\) => \{\}\); \}/);
+  assert.match(bridge, /const playerLanguageFile = resolve\(stateDirectory, PLAYER_LANGUAGE_FILE\);/);
 });

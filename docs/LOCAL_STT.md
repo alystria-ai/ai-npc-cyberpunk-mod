@@ -195,8 +195,13 @@ decode), and none of the code below runs, loads or opens a connection for it.
 `bridge/speech-language.mjs` (pure logic; `SpeechLanguage` holds the little state). At the moment a recording opens, in this order:
 
 1. **Evidence from the player**: the language of the last text they typed (`detectLanguage`, `bridge/reply-language.mjs`; a short or mixed line says
-   nothing; automatic reactions are not counted) or the language Mistral reported for the last recording. Both live in memory for the life of
-   the bridge. English evidence wins like any other, so an English speaker with a Russian game keeps the English path.
+   nothing; automatic reactions are not counted) or the language the engine reported for the last recording. Both live in memory for the life of
+   the bridge, and the language is also **remembered between launches** (2026-10-20): when it changes, the bridge writes
+   `player-language.json` (`{"version":1,"language":"fr"}`, state folder, one small background write, only on a change, never per frame) and
+   reads it once at start as the first evidence (source `saved`, which Mistral's hint accepts like typed text). Before this a French player with
+   an English game started every launch in English and got Moonshine for the first recordings. English evidence wins like any other (and
+   overwrites the file with `en`), so an English speaker with a Russian game keeps the English path. A missing or invalid file is ignored.
+   The same evidence feeds the language note on the text providers (`docs/MULTILINGUAL_PROFILES.md`, "Text providers").
 2. **The interface language** (the Interface language row's help says so since 2026-10-20: "The microphone uses this language as a hint for non-English speech"): the explicit "Interface language" setting (`settings.json` `uiLanguage`), else the language the mod resolved from
    the game (`runtime/ui-language.txt`, written by `mod/microphone.lua publishLanguage` from the one place in `mod/init.lua` that already learns
    of a change; nothing per frame). The bridge reads the file when a recording opens, at most once in 3 s.

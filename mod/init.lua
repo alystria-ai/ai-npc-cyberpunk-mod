@@ -3424,6 +3424,10 @@ local function keyReplyNotice(reply)
         end
         return 'local-stepdown', ui.t('Local AI switched to {model}: the game is using most of your graphics memory.', {model = used})
     end
+    -- A text provider answered in a language the chosen voice cannot speak (Pocket and Voxtral are English only): the reply showed as text. Said once per game session.
+    if reply.keyNotice == 'voice-language' then
+        return 'voice-language', ui.t('Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.')
+    end
     if reply.keyNotice == 'mistral-no-key' then
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
@@ -3447,6 +3451,7 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
+    elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText)
     elseif keyId == 'local-stepdown' then convaiNotices.send(player, 'local-stepdown', keyText) end
 end
