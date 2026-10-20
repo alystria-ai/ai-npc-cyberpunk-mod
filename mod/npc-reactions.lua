@@ -164,15 +164,24 @@ function M.nativeAdapter()
     end
     -- The game's own answer to "would the police react to a crime now": the system is on and unlocked, V is in no scene, and V is in no security
     -- area (safe zone). Public static functions of PreventionSystem (preventionSystem.script); read, never changed.
+    -- CET fills a static function's leading GameInstance parameter itself ("requires 0 parameter(s)" live, 2026-10-21), so the call
+    -- goes without it first; the explicit form stays as the fallback for a CET build that does not fill it.
+    local function static(fn, game, ...)
+        local ok, value = pcall(fn, ...)
+        if ok then return value end
+        if not tostring(value):find('parameter', 1, true) then error(value, 0) end
+        return fn(game, ...)
+    end
     function N.preventionReady(player)
         local game = player:GetGame()
-        return PreventionSystem.CanPreventionReact(game) == true and PreventionSystem.ShouldReactionBeAgressive(game) == true
+        return static(PreventionSystem.CanPreventionReact, game) == true
+            and static(PreventionSystem.ShouldReactionBeAgressive, game) == true
     end
     -- The police call: the request the game's own CallPolice behavior task sends when a pedestrian reports a crime
     -- (aiStimReactionTask.script CallPolice.Activate): PreventionSystem queues a crime witness at V's position and, when V is not wanted yet,
     -- raises the heat stage by exactly one (HeatPipeline("CrimeWitness")). Nothing else is touched.
     function N.callPolice(player)
-        PreventionSystem.CrimeWitnessRequestToPreventionSystem(player:GetGame(), player:GetWorldPosition())
+        static(PreventionSystem.CrimeWitnessRequestToPreventionSystem, player:GetGame(), player:GetWorldPosition())
     end
     -- Hostile to V at the agent level (never the attitude group), as the companion tactic does for its target.
     function N.makeHostile(npc, player)

@@ -479,9 +479,10 @@ Game = {
   end} end,
 }
 PreventionSystem = {
-  CanPreventionReact = function(game) note('can', game); return true end,
-  ShouldReactionBeAgressive = function(game) note('aggressive', game); return true end,
-  CrimeWitnessRequestToPreventionSystem = function(game, position) note('crime', game, position.x, position.y) end,
+  -- As CET calls them: it fills the leading GameInstance itself, and passing it raises "requires 0 parameter(s)" (live, 2026-10-21).
+  CanPreventionReact = function(...) if select('#', ...) > 0 then error("Function 'CanPreventionReact' requires 0 parameter(s).") end note('can'); return true end,
+  ShouldReactionBeAgressive = function(...) if select('#', ...) > 0 then error("Function 'ShouldReactionBeAgressive' requires 0 parameter(s).") end note('aggressive'); return true end,
+  CrimeWitnessRequestToPreventionSystem = function(position, extra) if extra ~= nil then error("Function 'CrimeWitnessRequestToPreventionSystem' requires 1 parameter(s).") end note('crime', position.x, position.y) end,
 }
 AIActionHelper = {TryStartCombatWithTarget = function(a, b) note('helper'); return true end}
 local attitude = {value = 'EAIAttitude.AIA_Neutral'}
@@ -506,9 +507,15 @@ const withNatives = code => withModule(fakeGame + code);
 
 test('natives: the police call is the request the game\'s own CallPolice task sends, behind the game\'s own two readiness checks', () => withNatives(`
   assert(N.preventionReady(player) == true)
-  assert(log[1] == 'can GAME' and log[2] == 'aggressive GAME', 'the static functions get the game instance')
+  assert(log[1] == 'can' and log[2] == 'aggressive', 'CET fills the game instance: the static functions are called without it')
   N.callPolice(player)
-  assert(log[#log] == 'crime GAME 0 0', log[#log])
+  assert(log[#log] == 'crime 0 0', log[#log])
+  -- A CET build that wants the GameInstance passed explicitly: the second form is used.
+  local before = PreventionSystem.CanPreventionReact
+  PreventionSystem.CanPreventionReact = function(game) if game == nil then error("Function 'CanPreventionReact' requires 1 parameter(s).") end note('can', game); return true end
+  assert(N.preventionReady(player) == true)
+  assert(log[#log - 1] == 'can GAME', log[#log - 1])
+  PreventionSystem.CanPreventionReact = before
   -- The wanted stage: the integer getter, else the enum.
   heatStage = 2; assert(N.heat() == 2)
   heatThrows = true; assert(N.heat() == 2, 'falls back to GetHeatStage')
