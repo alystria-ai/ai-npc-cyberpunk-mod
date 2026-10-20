@@ -1025,6 +1025,33 @@ test('a model loaded with almost none of its layers on the card steps down at it
   assert.deepEqual([mostly.steps.length, mostly.calls.length], [0, 1]);
 });
 
+test('a model loaded after a step-down with layers on the CPU steps down at its first stall (the 3060 Ti report: Gemma, then Qwen part on the CPU, two more failed turns); with room it takes two', async t => {
+  const small = `Available devices:
+  Vulkan0: NVIDIA GeForce RTX 3060 Ti (8188 MiB, 7600 MiB free)
+`;
+  const free = {value: 7600};
+  const h = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free, listDevices: async () => small});
+  assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  free.value = 1500;                                       // the game took the card after the load
+  stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.steps.length > 0), true, 'the oversize model steps down at its first stall');
+  const lite = await h.server.ensure();
+  assert.equal(lite.model, 'Qwen3.5-2B-Uncensored');
+  assert.ok(!h.calls.at(-1).args.includes('-ngl'), 'the lite model is loaded with layers on the CPU: it does not fit the 1500 MiB');
+  stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.failures.length > 0), true, 'its first stall was enough: no smaller model, the cloud takes over');
+  assert.ok(h.logs.some(line => /Qwen3.5-2B-Uncensored stalled \(1 of 1\)/.test(line)), h.logs.filter(line => /stalled/.test(line)).join('|'));
+  // The same on a card that leaves room for the lite model: whole on the card, two stalls as anywhere.
+  const roomy = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 7600}, listDevices: async () => small});
+  await roomy.server.ensure();
+  stall(roomy.server, 'prefill-stalled');
+  assert.equal(await until(() => roomy.steps.length > 0), true);
+  await roomy.server.ensure();
+  stall(roomy.server, 'prefill-stalled');
+  await sleep(150);
+  assert.deepEqual([roomy.failures.length, roomy.server.status().state], [0, 'ready']);
+});
+
 test('a model that spilled into shared memory is unloaded and loaded again fitted to the memory that is free now, once; a second spill steps down; healthy counters and a recent reading do nothing', async t => {
   const spill = {value: {dedicatedMiB: 3200, sharedMiB: 95}};
   const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill});

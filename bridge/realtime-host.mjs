@@ -83,6 +83,11 @@ export async function installConvaiAudioRoute(page, getOwner) {
   });
 }
 
+// Errors that say the hidden browser, the context or the conversation page is gone (Playwright's wording): a crashed or killed browser, a page closed
+// under a running call, a page that navigated. The same turn can be asked again on a fresh page; any other error is not retried here.
+export const pageGone = error => /has been closed|Target closed|Target crashed|Page crashed|Execution context was destroyed|browser has disconnected/i
+  .test(String(error?.message ?? ''));
+
 const connectOwner = config => ({characterId: config.characterId,
   endUserId: config.endUserId ?? null, ttsEnabled: config.ttsEnabled !== false});
 
@@ -119,10 +124,16 @@ export class RealtimeHost {
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
     // `node --test` child) or with CYBERPUNK_CONVAI_MUTE_BROWSER=1 it stays muted, so tests never reach the player's speakers.
     muteBrowser = process.env.CYBERPUNK_CONVAI_MUTE_BROWSER === '1' || !!process.env.NODE_TEST_CONTEXT,
-    launchBrowser = options => chromium.launch(options)} = {}) {
+    launchBrowser = options => chromium.launch(options),
+    // One line a retry of a lost page writes (no character, player or text in it).
+    log = line => console.error(`[CyberpunkConvai] ${line}`)} = {}) {
     this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
     this.clientAssetsDirectory = absoluteRuntimeOverride(clientAssetsDirectory, 'CYBERPUNK_CONVAI_CLIENT_ASSETS');
-    this.launchBrowser = launchBrowser; this.muteBrowser = !!muteBrowser;
+    this.launchBrowser = launchBrowser; this.muteBrowser = !!muteBrowser; this.log = log;
+    // The page keys a running turn or microphone turn owns (key -> how many). The party plan's retain() never closes these: a page that is not in
+    // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
+    // its turn is over, not out from under the call it is running.
+    this.pinned = new Map();
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -313,7 +324,7 @@ export class RealtimeHost {
           return page;
         } catch (error) { await page.close().catch(() => {}); throw error; }
       }, dispose: page => this.disposePage(page)});
-      if (this.retained) await this.pool.retain(this.retained.keys, this.retained.options);
+      if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
@@ -376,11 +387,23 @@ export class RealtimeHost {
     const attempt = async () => {
       // One admission per turn; the recovery retries below repeat the same turn.
       if (method !== 'warm' && this.guard) { this.guard.check(config); this.guard.consume(config); }
-      let current = config, waited = false;
+      let current = config, waited = false, lost = false;
       for (let retries = 0; ; retries++) {
+        const epoch = this.epoch;
         try { return await this.runOnce(current, method, options); }
         catch (error) {
           if (retries >= 2 || options.signal?.aborted) throw error;
+          // The page (or the whole hidden browser) went away under the call. If this host closed it on purpose (a world reset, a key or provider change)
+          // the turn was cancelled, not broken. Otherwise it was a crash, a kill or a close we did not ask for (2026-10-20 report 94bc8efa4ebda288, two
+          // turns in a row failed 2 s in): the failed page is already discarded and a lost browser starts again, so the same turn is asked once more.
+          if (pageGone(error)) {
+            if (epoch !== this.epoch || this.closing) throw cancelled();
+            if (!lost) {
+              lost = true;
+              try { this.log('The conversation page closed during a turn; opening it again and asking once more'); } catch { /* a log line never fails a turn */ }
+              continue;
+            }
+          }
           if (!waited && this.exclusive?.enabled?.() && /concurrency limit/i.test(String(error?.message))) {
             waited = true;
             await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
@@ -412,7 +435,9 @@ export class RealtimeHost {
     const startupMs = performance.now() - started, epoch = this.epoch;
     await this.yieldOtherSessions(key);
     throwIfCancelled(signal);
-    const waiting = performance.now(), lease = await this.pool.acquire(key, {signal});
+    const waiting = performance.now(), unpin = this.pin(key);
+    let lease;
+    try { lease = await this.pool.acquire(key, {signal}); } catch (error) { unpin(); throw error; }
     const poolWaitMs = performance.now() - waiting;
     const cancel = () => { this.connectOwners.delete(lease.value); void lease.release({discard: true}).catch(() => {}); };
     signal?.addEventListener('abort', cancel, {once: true});
@@ -435,7 +460,7 @@ export class RealtimeHost {
       return method === 'warm' ? {...result, ...host} : this.transformReply({...result, timing: {...result.timing, ...host}});
     } finally {
       signal?.removeEventListener('abort', cancel);
-      await lease.release({discard: discard || failed || signal?.aborted});
+      try { await lease.release({discard: discard || failed || signal?.aborted}); } finally { unpin(); }
     }
   }
   reply(config, options) { return this.run(config, 'reply', options); }
@@ -527,9 +552,20 @@ export class RealtimeHost {
     // the pool. Only the bridge can commit its result after exact submission.
     return this.run({...config, sessionId: '-1', freshSession: true}, 'reply', {...options, discard: true});
   }
+  pin(key) {
+    this.pinned.set(key, (this.pinned.get(key) ?? 0) + 1);
+    let done = false;
+    return () => {
+      if (done) return; done = true;
+      const left = (this.pinned.get(key) ?? 1) - 1;
+      if (left > 0) this.pinned.set(key, left); else this.pinned.delete(key);
+    };
+  }
+  // What the pool keeps: the plan's keys and the keys of the calls running now.
+  keepKeys() { return [...new Set([...this.retained.keys, ...this.pinned.keys()])]; }
   async retain(configs, options) {
     this.retained = {keys: configs.map(pageKey), options};
-    await this.pool?.retain(this.retained.keys, options);
+    await this.pool?.retain(this.keepKeys(), options);
   }
   async readiness(config, {keepAlive = false} = {}) {
     const entry = this.pool?.entries.get(pageKey(config));
@@ -589,7 +625,10 @@ export class RealtimeHost {
     const epoch = this.epoch;
     await this.yieldOtherSessions(key);
     throwIfCancelled(signal);
-    const lease = await this.pool.acquire(key, {signal});
+    const unpin = this.pin(key);
+    let lease;
+    try { lease = await this.pool.acquire(key, {signal}); } catch (error) { unpin(); throw error; }
+    lease.unpin = unpin;
     try {
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
@@ -609,7 +648,7 @@ export class RealtimeHost {
       lease.sessionID = result.sessionID;
       return result;
     } catch (error) {
-      await lease.release({discard: true});
+      try { await lease.release({discard: true}); } finally { lease.unpin(); }
       if (this.voiceLease === lease) this.voiceLease = null;
       throw error;
     }
@@ -643,7 +682,7 @@ export class RealtimeHost {
     }
     finally {
       await lease.value.context().clearPermissions().catch(() => {});
-      await lease.release({discard: failed});
+      try { await lease.release({discard: failed}); } finally { lease.unpin?.(); }
       if (this.voiceLease === lease) this.voiceLease = null;
     }
   }
@@ -652,7 +691,7 @@ export class RealtimeHost {
     if (!lease || lease.owner !== owner) return;
     this.voiceLease = null;
     await lease.value.context().clearPermissions().catch(() => {});
-    await lease.release({discard: true});
+    try { await lease.release({discard: true}); } finally { lease.unpin?.(); }
   }
   close() {
     if (this.closing) return this.closing;

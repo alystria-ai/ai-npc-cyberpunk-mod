@@ -1368,7 +1368,9 @@ export class LocalLlmServer extends EventEmitter {
       // 75 s turn the player waits through for a model that cannot run beside the game.
       // The same for a model loaded with so few layers on the card that the CPU does the work (the fit said under hopelessShare: 2026-10-20 report of a 5 GB model on an 8 GB card
       // with 123 to 314 MiB free, 60 s twice): the second stall is another turn lost for nothing.
-      const needed = this.#oversizeForCard() || this.#hopelessOffload() ? 1 : LOCAL_LLM_LIMITS.stallStepDown;
+      // And a model loaded after a step-down, again with layers on the CPU (the card has no room for it either, now that the game holds it): its second stall is another
+      // 60 to 75 s turn for a model the game leaves no room for (2026-10-20 reports of a 3060 Ti: Gemma stepped down to Qwen "part on the CPU", and its two stalls were two more failed turns).
+      const needed = this.#oversizeForCard() || this.#hopelessOffload() || this.#offloadedAfterStep() ? 1 : LOCAL_LLM_LIMITS.stallStepDown;
       this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + needed + '): ' + what);
       if (this.#stalls < needed) { void this.#checkSpill('a stall'); return false; }
       this.#stepping = true;
@@ -1389,6 +1391,9 @@ export class LocalLlmServer extends EventEmitter {
       return size > 0 && modelNeedMiB(from, size) > total - SMALL_CARD_GAME_RESERVE_MIB;
     } catch { return false; }
   }
+
+  // This session already stepped a model down, and the one loaded now has part of its layers on the CPU.
+  #offloadedAfterStep() { return this.#stalled.size > 0 && this.#loaded?.offload === true; }
 
   #hopelessOffload() {
     const loaded = this.#loaded;

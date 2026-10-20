@@ -57,6 +57,9 @@ export function abortable(promise, signal) {
   });
 }
 
+// A browser page that reports itself closed (Playwright's `isClosed()`); anything else (a test double, a page with no such method) is taken as open.
+const pageClosed = page => { try { return page?.isClosed?.() === true; } catch { return false; } };
+
 export class TransportPool {
   constructor({create, dispose, limit = 3}) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 11) throw Error('Transport pool must contain one to eleven pages');
@@ -83,7 +86,11 @@ export class TransportPool {
       const outcome = await this.lock(async () => {
         throwIfCancelled(signal);
         if (this.closed) throw cancelled('Transport pool closed');
-        let entry = this.entries.get(key), reused = !!entry;
+        let entry = this.entries.get(key);
+        // A page that closed while it sat idle (a crashed renderer, a killed browser) is not a connection: it is disposed and a new one opens, so the
+        // next turn does not start on a dead page and fail (2026-10-20 report "Target page, context or browser has been closed").
+        if (entry && !entry.busy && !entry.removed && pageClosed(entry.value)) { await this.remove(entry); this.stats.evicted++; entry = undefined; }
+        let reused = !!entry;
         if (entry?.busy) return {wait: this.changed};
         if (!entry) {
           if (this.entries.size >= this.limit) {

@@ -1035,3 +1035,11 @@ test('a loaded background Omni for a reference the player no longer wants is rel
   assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.omniReference, 'short'); assert.equal(h.voice.client, h.omniWorkers()[2]);
   await h.voice.close(); assert.equal(h.live(), 0);
 });
+
+test('a failure that carries the worker graphics memory passes it on to the observer; one without it stays as it was', () => {
+  const h = retryFixture({omni: ['hold']});
+  h.voice.noteFailure('omni', 'Local voice generation timed out', {dedicatedMiB: 2100, sharedMiB: 1650});
+  h.voice.noteFailure('pocket', 'Pocket student runtime is unavailable');
+  assert.deepEqual(h.failures, [{engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100, sharedMiB: 1650}},
+    {engine: 'pocket', reason: 'Pocket student runtime is unavailable'}]);
+});

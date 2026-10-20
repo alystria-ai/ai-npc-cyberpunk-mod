@@ -209,6 +209,20 @@ test('a voice that could not start is recorded with its engine and reason, once 
   } finally { await f.cleanup(); }
 });
 
+test('a voice that ran out of time carries its worker graphics memory as two numbers and nothing else of the reading', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100.4, sharedMiB: 1650, adapter: 'C:\\secret', extra: 'x'}});
+    events.voiceFailed({engine: 'omni', reason: 'Local voice preparation timed out', gpu: {dedicatedMiB: 'many', sharedMiB: 5}});
+    await new Promise(done => setTimeout(done, 100));
+    const queue = await readQueue(f.state, {now: START});
+    const byMessage = Object.fromEntries(queue.map(record => [record.message, record.detail]));
+    assert.deepEqual(byMessage['omni: Local voice generation timed out'], {engine: 'omni', gpuDedicatedMiB: 2100, gpuSharedMiB: 1650});
+    assert.deepEqual(byMessage['omni: Local voice preparation timed out'], {engine: 'omni'}, 'an unreadable reading adds nothing');
+  } finally { await f.cleanup(); }
+});
+
 // ------------------------------------------------------------------ the payload
 
 test('no planted secret, conversation text or account name gets out, and the payload stays small', async () => {
