@@ -11,7 +11,7 @@
 Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)
 [list]
-[*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left; Convai's paid plans give more (their plan page is in the Convai settings).
+[*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
 [*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
 [*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
 [/list]
