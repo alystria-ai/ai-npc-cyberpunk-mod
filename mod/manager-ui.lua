@@ -1293,7 +1293,7 @@ local function schema()
             local profile = profiles[index]
             local key = profile.key
             rows[#rows + 1] = action('memory:select:' .. key, profile.name,
-                snapshot.memory.selectedKey == key and 'Selected' or 'Choose',
+                snapshot.memory.selectedKey == key and 'Unselect' or 'Choose',
                 ui.t('Select {name} for memory controls. This does not invite them or change their conversation settings.',{name=profile.name}),
                 function() return manager.selectMemoryCharacter(key) end)
         end

@@ -108,7 +108,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   notice names the voice in use, e.g. "OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.") and the Help page.
 - **Memory:** the memory controls (player memory, service state, how many characters the player has talked to, the selected character,
   Forget selected character, Forget all memories with an inline confirmation) and, in the second section, **Whose memories**, a paged
-  list that selects the character. Selecting does not invite anyone or change conversation settings.
+  list that selects the character (one at a time; the chosen row's button says Unselect, and pressing it again unchooses it; the choice is cleared when a character clear is confirmed). Selecting does not invite anyone or change conversation settings.
 - **Convai paid tier** (`docs/CONVAI_PAID_TIER.md`): the player's plan, sign-in and key rows, one row per plan, Check my plan and
   Manage or cancel plan. The status of a purchase being followed is the feedback line for up to seven minutes.
 - **Help and support:** see "Help and support report".

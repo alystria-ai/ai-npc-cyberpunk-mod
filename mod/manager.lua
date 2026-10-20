@@ -179,6 +179,10 @@ local function updateMemory()
             -- Provider messages can contain IDs or raw errors. The page uses
             -- its own player-facing text and never displays those messages.
             memoryCommand.state = result.state
+            -- The character whose memories were just forgotten is no longer the selected one: the next Forget starts from a fresh choice.
+            if result.state == 'succeeded' and memoryCommand.scope == 'character' and memorySelected == memoryCommand.profileKey then
+                memorySelected = nil
+            end
         end
     end
 end
@@ -227,8 +231,13 @@ local function memorySnapshot()
     return result
 end
 
+-- Choosing the chosen character again unchooses it (one character at a time; a review waiting for Confirm is dropped either way).
 function M.selectMemoryCharacter(key)
     if not byKey[key] then return false, 'Choose a character from the catalogue.' end
+    if memorySelected == key then
+        memorySelected, memoryConfirmation, memoryNotice = nil, nil, ''
+        return true, ui.t('{name} unselected.', {name=byKey[key].name})
+    end
     memorySelected, memoryConfirmation, memoryNotice = key, nil, ''
     return true, ui.t('{name} selected for memory controls.', {name=byKey[key].name})
 end
