@@ -248,6 +248,60 @@ test('a wrong sample rate or channel count still fails, with the numbers in the 
   assert.throws(() => feed(wrongChannels, stats({total_audio_duration_ms: 400})), /declared duration \(6400 bytes, 400 ms declared against 200\.0 ms counted, 8000 Hz, 2 channels/);
 });
 
+// 2026-10-21 reports (Multilingual on): packets that say 24 kHz carrying 44.1 kHz audio. 5,733 ms declared against 10,535 ms counted at the declared rate is exactly 44100 / 24000.
+const mislabelled = ({bytes = 505652, ms = 5733, said = 24000, frames = 344} = {}) => {
+  const c = new ConvaiDataAudio(), data = Buffer.alloc(bytes);
+  for (let index = 0; index < bytes / 2; index++) data.writeInt16LE([-3000, -1, 0, 1, 3000][index % 5], index * 2);
+  const half = Math.floor(bytes / 4) * 2;
+  feed(c, face(0, frames), 10);
+  feed(c, pcm(data.subarray(0, half), {sample_rate: said}), 20); feed(c, pcm(data.subarray(half), {sample_rate: said}), 30);
+  return {c, data, finish: () => { feed(c, stats({total_audio_bytes: bytes, total_blendshapes: frames, total_audio_duration_ms: ms}), 40); feed(c, terminal(), 41); return c; }};
+};
+
+test('packets that say 24 kHz but carry 44.1 kHz audio (the declared duration and the bytes agree on it) are written and played at 44.1 kHz, and the clip is complete', () => {
+  const {c, data, finish} = mislabelled();
+  assert.equal(c.sampleRate, 24000, 'until the statistics arrive the packets\' own rate stands');
+  finish();
+  assert.equal(c.ready, true); assert.equal(c.error, null);
+  assert.deepEqual(c.rateCorrected, {declared: 24000, actual: 44100});
+  assert.equal(c.progress().sampleRate, 44100);
+  const result = c.finish(), decoded = readPcmWav(Buffer.from(result.audio, 'base64'));
+  assert.equal(decoded.sampleRate, 44100); assert.deepEqual(decoded.data, data);
+  assert(Math.abs(result.duration - 5.733) < 0.001, 'the duration of the audio, not 10.5 s');
+  assert.deepEqual(result.sampleRateCorrected, {declared: 24000, actual: 44100});
+  assert.equal(result.faces.length, 344, 'the faces stay valid');
+});
+
+test('the same for 48 kHz audio labelled 24 kHz, and a clip whose label is right is untouched (no correction recorded)', () => {
+  const {c, finish} = mislabelled({bytes: 288000, ms: 3000, frames: 180});
+  finish();
+  assert.deepEqual(c.rateCorrected, {declared: 24000, actual: 48000});
+  assert.equal(readPcmWav(Buffer.from(c.finish().audio, 'base64')).sampleRate, 48000);
+  const right = mislabelled({bytes: 288000, ms: 6000, frames: 360, said: 24000});
+  right.finish();
+  assert.equal(right.c.rateCorrected, null); assert.equal(right.c.finish().sampleRateCorrected, undefined);
+  assert.equal(right.c.finish().sampleRate, 24000);
+});
+
+test('a rate that is not a standard one, or off by more than half a percent, is still a fault, flagged as a format fault; faults of ownership are not', () => {
+  // 32 kHz data labelled 24 kHz, and 44.1 kHz data declared 1 percent too long: not mislabelling.
+  for (const options of [{bytes: 384000, ms: 6000, frames: 360}, {bytes: 505652, ms: 5790, frames: 347}]) {
+    const {c} = mislabelled(options);
+    assert.throws(() => feed(c, stats({total_audio_bytes: options.bytes, total_blendshapes: options.frames, total_audio_duration_ms: options.ms}), 40), /declared duration/);
+    assert.equal(c.error.formatFault, true);
+    assert.equal(c.rateCorrected, null);
+  }
+  const unsupported = new ConvaiDataAudio();
+  assert.throws(() => feed(unsupported, pcm(samples, {sample_rate: 0})), /Unsupported/);
+  assert.equal(unsupported.error.formatFault, true);
+  const owners = new ConvaiDataAudio(); feed(owners, face(), 1);
+  assert.throws(() => feed(owners, terminal({...other}), 3), /replaced/);
+  assert.equal(owners.error.formatFault, undefined);
+  const unreliable = new ConvaiDataAudio();
+  assert.throws(() => feed(unreliable, pcm(), 0, 1), /reliable ordered/);
+  assert.equal(unreliable.error.formatFault, undefined);
+});
+
 test('declared bytes that are not a whole number of samples fail clearly', () => {
   const c = new ConvaiDataAudio(); feed(c, pcm());
   assert.throws(() => feed(c, stats({total_audio_bytes: 6401})), /not a whole number of samples \(6401 bytes/);

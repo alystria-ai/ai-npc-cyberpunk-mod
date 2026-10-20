@@ -13,7 +13,7 @@ import {fileURLToPath} from 'node:url';
 import fengari from 'fengari';
 import {streamChat, MistralError, failureDetail, stallReason, newTrace, errorCodeFor, retryable, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {constants as osConstants} from 'node:os';
-import {LlamaProcess, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
+import {LlamaProcess, LocalAiUnavailable, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
 import {TextProviderHost, localRoute, describeLocalTurn, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
@@ -164,7 +164,8 @@ test('the turn\'s deadline: an attempt is cut to what is left and none starts wi
   assert.equal(calls, 0);
   assert.equal(late.deadline, true); assert.equal(late.reason, 'no-response');
   assert.match(late.message, /ran out of time before the model could be asked/);
-  assert.match(failureDetail(late), /^ran out of the turn's time: the model server gave no answer$/);
+  assert.equal(late.noAttempt, true);
+  assert.match(failureDetail(late), /^ran out of the turn's time before the model could be asked \(it was loading or busy\)$/);
   // An attempt whose own limits are generous is cut at the deadline (the clock is the real one here: the remaining time is about 150 ms).
   const real = () => performance.now();
   const began = real();
@@ -343,7 +344,7 @@ const turn = (text, extra = {}) => ({text, context: 'CURRENT PERSON\nQuest facts
 
 // preload: the model is loaded before the first turn, so the turn's own budget is not spent on starting the fake server (a computer with no CPU to spare takes minutes
 // for that); the test of a model that is still loading turns it off.
-async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions = {}, preload = true} = {}) {
+async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions = {}, preload = true, now} = {}) {
   const {server, logs, directory} = rig(t, {env, names, ...serverOptions});
   if (preload) await server.ensure();
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
@@ -351,7 +352,7 @@ async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions
   const route = localRoute({server, provider, log: line => logs.push(line)});
   route.chatDefaults = {...route.chatDefaults, retries: 1, backoffMs: [1], ...limits};
   if (budgetMs !== undefined) route.turnBudgetMs = budgetMs;
-  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: route}, log: line => logs.push(line)});
+  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: route}, log: line => logs.push(line), ...(now ? {now} : {})});
   t.after(() => host.close());
   return {host, server, route, logs, directory, provider};
 }
@@ -996,4 +997,55 @@ test('end to end: two stalled turns in a row step Local AI down; with no smaller
   assert.equal(provider.takeNotice(), 'local-stepdown');
   assert.equal(provider.noticeModel, '');
   assert.equal(provider.takeNotice(), undefined);
+});
+
+// ---- 2026-10-21, round 3: the first turn after the idle stop, and a turn that was never sent is not a stall ----------------------------------------------------------
+
+test('the first turn after the idle stop: the model load does not use up the turn\'s budget, so the model is asked once it is up (and the load started with the turn)', async t => {
+  let clock = 0;
+  const {host, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_REPLY: 'Up again, V.'}, now: () => clock});
+  await server.stop();   // the idle stop: the model is out of the graphics memory
+  assert.equal(server.status().state, 'stopped');
+  // The load takes 78 s of the turn's 80 s (the turn's clock is faked: it jumps when the model is ready). Counted from the turn's start, 2 s are left, under the 3 s no attempt
+  // starts with: before this change the model was never asked ("ran out of time before the model could be asked") and the turn counted as a stall.
+  server.on('state', state => { if (state.state === 'ready') clock += 78_000; });
+  const reply = await host.reply(turn('hello after a long pause'));
+  assert.equal(reply.text, 'Up again, V.');
+  assert.equal(server.diagnostics().steppedDown, undefined);
+  assert.ok(!logs.some(entry => /stalled \(/.test(entry)), logs.join('\n'));
+});
+
+test('a turn that never reached the model (its time was spent before any request) is not a stall: three of them do not step the model down or fail Local AI', async t => {
+  const {host, route, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_REPLY: 'Fine, V.'}});
+  route.turnBudgetMs = 1;   // the budget is gone before the model is asked
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const error = await host.reply(turn('hello there ' + attempt)).catch(e => e);
+    assert.equal(error.deadline, true); assert.equal(error.noAttempt, true);
+  }
+  assert.ok(!logs.some(entry => /stalled \(/.test(entry)), logs.join('\n'));
+  assert.equal(server.status().state, 'ready', 'with one model and two stalls the server would have failed (low-memory)');
+  // The server's own count, directly: no request time at all is no stall, a request that waited its whole time is one.
+  const stalled = Object.assign(new Error('x'), {slow: true, reason: 'no-response', provider: 'local'});
+  server.noteTurn({ok: false, error: Object.assign(new Error('x'), {slow: true, reason: 'no-response', provider: 'local', noAttempt: true})});
+  server.noteTurn({ok: false, error: stalled, trace: {...newTrace(), elapsedMs: 0}});
+  assert.ok(!logs.some(entry => /stalled \(/.test(entry)));
+  server.noteTurn({ok: false, error: stalled, trace: {...newTrace(), elapsedMs: 60_000}});
+  assert.ok(logs.some(entry => /stalled \(1 of 2\)/.test(entry)), logs.join('\n'));
+});
+
+test('a start that was ended on purpose ("stopped") is not a failure of Local AI: the provider is not told, any other reason is', () => {
+  const told = [];
+  const route = localRoute({server: {ensure: async () => ({}), status: () => ({state: 'ready'})}, provider: {noteLocalFailure: reason => told.push(reason)}});
+  route.failure(new LocalAiUnavailable('stopped'));
+  route.failure(new LocalAiUnavailable('crashed'));
+  route.failure(new LocalAiUnavailable('start-failed'));
+  assert.deepEqual(told, ['crashed', 'start-failed']);
+});
+
+test('the route reports whether the model is down, and prepares it on demand; a failed load is a plain false, never a throw', async () => {
+  const states = ['ready', 'stopped', 'starting', 'warming', 'failed'];
+  const route = state => localRoute({server: {status: () => ({state}), ensure: async () => { if (state === 'failed') throw new LocalAiUnavailable('crashed'); return {}; }}});
+  assert.deepEqual(states.map(state => route(state).loadPending()), [false, true, true, true, false]);
+  assert.equal(await route('stopped').prepare(), true);
+  assert.equal(await route('failed').prepare(), false);
 });

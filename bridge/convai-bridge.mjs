@@ -1212,7 +1212,10 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
-  ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input)});
+  ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input),
+  // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai speaks only a turn in another language that an English-only voice cannot, and a fault in the
+  // format of its audio then leaves the written reply instead of failing the turn (bridge/realtime-client.mjs, audioOptional).
+  audioOptional: localChoice(input.profileKey).uses});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 // The exact private route of one physical ambient NPC (a generic resident or npc-* archetype has no route without

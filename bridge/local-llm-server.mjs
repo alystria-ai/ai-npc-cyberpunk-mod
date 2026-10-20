@@ -237,6 +237,9 @@ export function chooseContext({tier, freeMiB, sizeMiB, ladder = LOCAL_LLM_LIMITS
 // The failures of a local turn that mean the model is reading or writing at a crawl, as the stream showed them (stallReason in bridge/mistral-client.mjs).
 // 'loading' (the first start is still compiling), 'thinking-only', an empty answer or a refused prompt are not among them.
 const STALL_REASONS = new Set(['no-response', 'prefill-stalled', 'no-first-token', 'stalled']);
+// A turn that ended before any request went out (its time was spent on something else, such as the model loading after the idle stop: "ran out of time before the model could be asked",
+// 2026-10-21) says nothing about how the model reads or writes: its error has noAttempt, or a record with no request time at all. It is never a stall.
+const noRequestMade = (error, trace) => error?.noAttempt === true || (typeof trace?.elapsedMs === 'number' && trace.elapsedMs <= 0);
 
 const defaultFileSizeMiB = file => { try { return statSync(file).size / 1048576; } catch { return 0; } };
 
@@ -493,12 +496,15 @@ export class LocalLlmServer extends EventEmitter {
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
+  // While a step runs (#beginStep .. #endStep) the model is about to change: ensure() waits on this gate instead of starting a load the step would cancel (a turn that came
+  // during #spillAct's free-memory read and fit probe started the large model again, #stepDown then stopped it, and the turn failed with 'stopped': 2026-10-21 reports).
+  #stepGate = null;
   // Lost graphics device (noteDeviceLost): the losses since the session began (or the last step), the process the last one was seen on (one process counts once),
   // and the pause the next start makes first, so the driver has reset the device.
   #deviceLosses = 0; #lostProc = null; #coolDownMs = 0;
   // Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs): the device of the last start, the models already reloaded once after a spill (a second spill
   // steps down), the one-shot fit a spill reload brings to the next start, and the rate limit of the counter reads.
-  #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false;
+  #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false; #headerWatch = new Set();
   // The ready server runs below normal priority so the game keeps its CPU, but a request in flight (and priorityHoldMs after the last one) runs at normal:
   // the server's own thread feeds the graphics card and streams the reply, and a game that keeps every core busy starved it for seconds.
   priorityHoldMs = 5000; #raised = false; #holdTimer = null;
@@ -586,14 +592,49 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // Starts the server if needed; resolves when it is ready. Concurrent callers share one start.
+  // A step-down or spill action under way (#stepping) is waited for first: it is about to stop the model and start another, and a start begun now would be cancelled by it.
+  // A start this caller awaits that ends with 'stopped' because a newer start took its place (a step-down, a reload) is not a failure: the newer start is awaited instead, as
+  // long as the caller's signal is not aborted and the server has not failed. A plain stop() (nothing started again) still ends the wait with 'stopped'.
   async ensure({signal} = {}) {
     signal?.throwIfAborted();
+    await this.#settleStep(signal);
     if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason);
     if (this.#state === 'ready' && (this.#proc?.running || this.#info?.external)) { this.touch(); return this.#handle(); }
-    if (!this.#starting) this.#launch(false);
-    const handle = await abortable(this.#starting, signal);
+    let awaited = this.#starting ?? this.#launch(false), handle;
+    for (let superseded = 0; ; superseded++) {
+      try { handle = await abortable(awaited, signal); break; }
+      catch (error) {
+        if (!(error instanceof LocalAiUnavailable) || error.reason !== 'stopped' || superseded >= 4) throw error;
+        signal?.throwIfAborted();
+        await this.#settleStep(signal);
+        if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason);
+        if (this.#state === 'ready' && (this.#proc?.running || this.#info?.external)) { this.touch(); return this.#handle(); }
+        const newer = this.#starting;
+        if (!newer || newer === awaited) throw error;
+        awaited = newer;
+      }
+    }
     this.touch();
     return handle;
+  }
+
+  // The start a step (#stepDown, #spillAct) makes after it stopped the model: no wait for the step itself (it is the step), and none when a model is up or being started.
+  #kick() {
+    if (this.#state === 'failed' || this.#starting || (this.#state === 'ready' && this.#proc?.running)) return;
+    this.#launch(false);
+  }
+
+  #beginStep() {
+    this.#stepping = true;
+    if (!this.#stepGate) { let release; const promise = new Promise(resolveGate => { release = resolveGate; }); this.#stepGate = {promise, release}; }
+  }
+  #endStep() {
+    this.#stepping = false;
+    const gate = this.#stepGate; this.#stepGate = null;
+    gate?.release();
+  }
+  async #settleStep(signal) {
+    while (this.#stepGate) await abortable(this.#stepGate.promise, signal);
   }
 
   #launch(recovering) {
@@ -1111,7 +1152,7 @@ export class LocalLlmServer extends EventEmitter {
         this.#stalls = 0;
         // A reply that came but was written slowly is not a stall; the counters tell whether the model sits in shared memory (a spill answers at 1 to 5 tokens a second, so it is acted on).
         if (slowReply({tokensPerSecond: t?.timings?.tokensPerSecond, pieces: t?.pieces})) void this.#checkSpill('a slow reply (' + Math.round(t.timings.tokensPerSecond * 10) / 10 + ' tokens a second)');
-      } else if (error?.slow === true && STALL_REASONS.has(error?.reason)) this.noteStall('a turn: ' + (detail ? oneLine(detail, 100) : error.reason));
+      } else if (error?.slow === true && STALL_REASONS.has(error?.reason) && !noRequestMade(error, t)) this.noteStall('a turn: ' + (detail ? oneLine(detail, 100) : error.reason));
       return {first};
     } catch { return {first: false}; }
   }
@@ -1245,8 +1286,8 @@ export class LocalLlmServer extends EventEmitter {
       this.#coolDownMs = this.deviceLostPauseMs;
       if (this.#deviceLosses >= needed && from && from.custom !== true) {
         this.#deviceLosses = 0;
-        this.#stepping = true;
-        try { await this.#stepDown(); } finally { this.#stepping = false; }
+        this.#beginStep();
+        try { await this.#stepDown(); } finally { this.#endStep(); }
         return 'step';
       }
       if (this.#deviceLosses >= needed + 2) {
@@ -1275,15 +1316,47 @@ export class LocalLlmServer extends EventEmitter {
     this.#disarm();
     if (!background) { this.#foreground++; this.#raise(); }
     else if (typeof cancel === 'function') this.#yieldable.add(cancel);
+    // The first request the model gets after a load, and a turn that has had no answer after SPILL_LIMITS.noHeadersMs, read the memory counters once (nothing per frame, nothing per turn).
+    this.#lookAfterLoad(background ? 'the first persona warm-up after the load' : 'the first turn after the load');
+    const watch = background ? null : this.#watchHeaders();
     let released = false;
     return () => {
       if (released) return;
       released = true;
+      this.#unwatch(watch);
       if (!background) { this.#foreground = Math.max(0, this.#foreground - 1); this.#foregroundEndedAt = this.now(); }
       else if (typeof cancel === 'function') this.#yieldable.delete(cancel);
       this.end();
     };
   }
+  /** The route calls this when a request's response headers arrive: the turn is being answered, so the wait for them (#watchHeaders) ends. */
+  noteHeaders() { for (const timer of this.#headerWatch) this.clearTimer(timer); this.#headerWatch.clear(); }
+
+  // One look at the memory counters at the first request of a load (a model that spilled at the load, or was moved while it sat idle, is found now, not 60 to 75 s into the first turn).
+  #lookAfterLoad(why) {
+    try {
+      const loaded = this.#loaded;
+      if (!loaded || loaded.looked === true || this.#state !== 'ready' || this.#info?.external || typeof this.gpuMemory !== 'function') return;
+      loaded.looked = true;
+      void this.#checkSpill(why, {every: 0});
+    } catch { /* a look is best effort */ }
+  }
+
+  // A foreground request that has had no response headers after SPILL_LIMITS.noHeadersMs: the model may be reading at a crawl from shared memory, so the counters are read once now.
+  #watchHeaders() {
+    try {
+      if (this.#info?.external || typeof this.gpuMemory !== 'function' || !(SPILL_LIMITS.noHeadersMs > 0)) return null;
+      const timer = this.setTimer(() => {
+        this.#headerWatch.delete(timer);
+        void this.#checkSpill('no answer from the model server after ' + Math.round(SPILL_LIMITS.noHeadersMs / 1000) + ' s', {every: SPILL_LIMITS.earlyCheckEveryMs});
+      }, SPILL_LIMITS.noHeadersMs);
+      timer?.unref?.();
+      this.#headerWatch.add(timer);
+      return timer;
+    } catch { return null; }
+  }
+  #unwatch(timer) { if (timer === null || timer === undefined) return; this.clearTimer(timer); this.#headerWatch.delete(timer); }
+
   end() {
     if (this.#inflight > 0) this.#inflight--;
     if (this.#inflight === 0) { this.#holdThenLower(); this.touch(); if (this.#reselectPending) void this.#reloadIfIdle(); }
@@ -1433,8 +1506,8 @@ export class LocalLlmServer extends EventEmitter {
       const needed = this.#stallsNeeded();
       this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + needed + '): ' + what);
       if (this.#stalls < needed) { void this.#checkSpill('a stall'); return false; }
-      this.#stepping = true;
-      void this.#stepDown().catch(() => {}).finally(() => { this.#stepping = false; });
+      this.#beginStep();
+      void this.#stepDown().catch(() => {}).finally(() => { this.#endStep(); });
       return true;
     } catch { return false; }
   }
@@ -1496,12 +1569,13 @@ export class LocalLlmServer extends EventEmitter {
 
   /**
    * The driver moved part of the loaded model into shared system memory (the game took the card): the counters of the server's process say it, from one reading. Looked at after a slow
-   * reply or a stall, at most every SPILL_LIMITS.checkEveryMs, never otherwise. A spill is acted on at once: see #spillAct. Never throws, never blocks the caller.
+   * reply or a stall, at most every SPILL_LIMITS.checkEveryMs (the `every` option: a shorter gap, for the two early looks of #lookAfterLoad and #watchHeaders), never otherwise. A spill is
+   * acted on at once: see #spillAct. Never throws, never blocks the caller.
    */
-  async #checkSpill(why) {
+  async #checkSpill(why, {every = SPILL_LIMITS.checkEveryMs} = {}) {
     try {
       if (this.#checking || this.#state !== 'ready' || this.#info?.external || !this.#proc?.pid || typeof this.gpuMemory !== 'function') return false;
-      if (this.now() - this.#spillAt < SPILL_LIMITS.checkEveryMs) return false;
+      if (this.now() - this.#spillAt < every) return false;
       this.#checking = true; this.#spillAt = this.now();
       const generation = this.#generation, proc = this.#proc;
       const memory = await this.gpuMemory(proc.pid);
@@ -1511,8 +1585,8 @@ export class LocalLlmServer extends EventEmitter {
       this.log('[local] graphics memory of the model server after ' + why + ': ' + memory.dedicatedMiB + ' MiB on the card, ' + memory.sharedMiB + ' MiB in shared system memory'
         + (verdict.spilled ? ' (spilled: ' + verdict.spilledMiB + ' MiB beyond the usual)' : ''));
       if (!verdict.spilled || this.#stepping) return false;
-      this.#stepping = true;
-      try { await this.#spillAct(verdict); } finally { this.#stepping = false; }
+      this.#beginStep();
+      try { await this.#spillAct(verdict); } finally { this.#endStep(); }
       return true;
     } catch { return false; } finally { this.#checking = false; }
   }
@@ -1538,7 +1612,7 @@ export class LocalLlmServer extends EventEmitter {
       this.#refitPlan = {id: fromId, fit};
       this.#stepFrom = null;
       this.emit('diagnostics', this.diagnostics());
-      void this.ensure({background: true}).catch(() => {});
+      this.#kick();
       return;
     }
     this.log('[local] ' + this.#model + ' does not fit whole in the ' + (Number.isFinite(free) ? Math.round(free) + ' MiB' : 'memory') + ' that is free now: stepping down');
@@ -1560,7 +1634,7 @@ export class LocalLlmServer extends EventEmitter {
       + (next ? next.name + ' is the next smaller model' : 'no smaller model is installed, the cloud text provider takes over'));
     this.#stepFrom = fromId; this.#stepFree = free;
     await this.stop();   // its graphics memory goes back to the game before the smaller model is chosen
-    if (next) { void this.ensure({background: true}).catch(() => {}); return; }
+    if (next) { this.#kick(); return; }
     this.#stepFrom = null;
     this.emit('model-stepdown', {from: fromName, model: null, free});
     this.#fail('low-memory');
@@ -1581,7 +1655,7 @@ export class LocalLlmServer extends EventEmitter {
   async stop() {
     this.#generation++;
     this.#reselectPending = false;   // the next start reads the current choice itself
-    this.#disarm(); this.#dropHold();
+    this.#disarm(); this.#dropHold(); this.noteHeaders();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#setState('stopped');
     this.#starting = null;

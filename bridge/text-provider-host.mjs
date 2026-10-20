@@ -64,6 +64,12 @@ export const CLOUD_CHAT_LIMITS = Object.freeze({firstByteMs: 6000, retryFirstByt
 //   thinkingPieces  this many pieces of the model's thinking with no reply: it would spend its whole allowance thinking; stop it and say so
 // A timeout is never retried (it would only repeat the wait); a refusal or an empty reply is, once.
 export const LOCAL_TURN_BUDGET_MS = 80_000;
+// The turn's clock may be pushed past that budget by the time the model needed to load (the idle stop unloads it): the model is then given this long to be asked, but the turn
+// ends at LOCAL_TURN_HARD_CAP_MS at the latest, which still leaves the game a moment for its explanation before its own 90 s. A load that is not done LOCAL_ATTEMPT_ROOM_MS before
+// that cap is not waited for in the turn's name: it goes on, and the turn ends with its own "still loading" words.
+export const LOCAL_TURN_HARD_CAP_MS = 86_000;
+export const LOCAL_TURN_STRETCH_MS = LOCAL_TURN_HARD_CAP_MS - LOCAL_TURN_BUDGET_MS;   // how far past its budget a turn may go (the route's own budget is what it is counted from)
+export const LOCAL_ATTEMPT_ROOM_MS = 15_000;
 export const LOCAL_CHAT_LIMITS = Object.freeze({retries: 1, backoffMs: [400], firstByteMs: 60_000, promptStallMs: 60_000, stallMs: 25_000, totalMs: 75_000, thinkingPieces: 160});
 // Strings that end a reply on a server of ours whatever the model is (a fine-tune whose end-of-turn token the server does not know would run on to the
 // token limit): the end-of-turn and start-of-turn markers of the families the packs use (Gemma 4, Gemma 3, Qwen). Never part of a character's words.
@@ -275,6 +281,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     },
     // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
     cacheBody: () => ({stream_options: {include_usage: true}}),
+    // A response arrived (the request is answered): the supervisor stops waiting for it (its spill look at the first turn that has had no answer for SPILL_LIMITS.noHeadersMs).
+    noteHeaders: () => { try { server.noteHeaders?.(); } catch { /* a look at the memory counters is best effort */ } },
     // Only our own llama-server gets the fields below (a server the player runs may refuse a field it does not know): llama-server reports how far it has
     // read the prompt (`return_progress`, so a slow prompt is not mistaken for a hung server and a stuck one is named), stops a reply at the end-of-turn
     // strings whatever the model is, and is told again, per request, not to think (the same as its `--reasoning off`, for a template that ignores that).
@@ -295,7 +303,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     fellBack(error) { if (!isLocalUnavailable(error)) provider?.noteLocalTurnFallback?.(); },
     success() { /* nothing to clear */ },
     failure(error) {
-      if (isLocalUnavailable(error)) provider?.noteLocalFailure?.(error.reason ?? 'start-failed');
+      // 'stopped': the start this turn waited for was ended on purpose (a step-down, a reload, the player's own change). That is not a failure of Local AI, and marking
+      // it one left Local on the cloud provider for the rest of the session (RETRY_ON_CHOICE does not list it; 2026-10-21 reports).
+      if (isLocalUnavailable(error)) { if (error.reason !== 'stopped') provider?.noteLocalFailure?.(error.reason ?? 'start-failed'); }
       // A server the player runs that did not answer (stopped, moved, asleep) is looked at again before the next turn: one short request, no polling.
       else if (failureKind(error) === 'network') { try { server.externalLost?.(); } catch { /* best effort */ } }
       // A refused key on a server whose first look could not tell (KoboldCpp guards only its chat requests): named once in the log.
@@ -313,6 +323,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
     modelName: () => { const status = server.status?.(); return ['stopped', 'failed', 'starting'].includes(status?.state) ? null : status?.model ?? null; },
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
+    // The model is down or on its way up (the idle stop, a reload), so the first request of a turn waits for it; `prepare` starts that load (and waits for it) at the start of the turn.
+    loadPending: () => { try { const state = server.status?.()?.state; return state === 'stopped' || state === 'starting' || state === 'warming'; } catch { return false; } },
+    prepare: async signal => { try { await server.ensure({signal}); return true; } catch { return false; } },
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
     modelHints: () => server.modelHints ?? null,
     label: 'The local AI'};
@@ -485,6 +498,18 @@ export class TextProviderHost {
     }
   }
 
+  /**
+   * The first route's model is down (the idle stop, a reload): ask it to load now, bounded by the turn's hard cap less the room it needs to answer. Resolves the moment (this.now())
+   * the model was up, or null when there was nothing to wait for or the load did not finish in time or failed (the normal path then reports it). Never rejects, never throws.
+   */
+  #startLoading(route, signal) {
+    try {
+      if (!(route?.turnBudgetMs > 0) || route.loadPending?.() !== true || typeof route.prepare !== 'function') return null;
+      const cap = AbortSignal.timeout(Math.max(1, Math.ceil(route.turnBudgetMs + LOCAL_TURN_STRETCH_MS - LOCAL_ATTEMPT_ROOM_MS)));
+      return Promise.resolve(route.prepare(signal ? AbortSignal.any([signal, cap]) : cap)).then(ok => ok === true ? this.now() : null, () => null);
+    } catch { return null; }
+  }
+
   async #reply(config, {signal, stream, confirmed} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
@@ -492,6 +517,8 @@ export class TextProviderHost {
     const text = typeof config.text === 'string' ? config.text : '';
     if (!text.trim()) throw new MistralError('request', 'turn has no message');
     const started = this.now();
+    // The local AI's model may be down (the idle stop, a reload): the load starts now, beside the memory work below, and the turn's clock gives it room (see the deadline below).
+    const loading = this.#startLoading(this.routes[this.provider.route], signal);
     // A turn starts: background memory work (fact extraction) gives way to it.
     try { this.memory?.interrupt?.(); } catch { /* best effort */ }
     for (const stopper of [...this.stoppable]) { this.stoppable.delete(stopper); try { stopper.abort(); } catch { /* already over */ } }
@@ -535,7 +562,14 @@ export class TextProviderHost {
       try {
         // The local AI keeps the whole turn inside its budget (LOCAL_TURN_BUDGET_MS), counted from the start of the turn, so the game still has the
         // bridge's own explanation to show when it gives up on the request.
-        const deadlineAt = route.turnBudgetMs > 0 ? started + route.turnBudgetMs : undefined;
+        let deadlineAt = route.turnBudgetMs > 0 ? started + route.turnBudgetMs : undefined;
+        // The first turn after the model was unloaded waits for the load, and the load used up the budget: a model that came up with a few seconds left was never asked
+        // ("ran out of time before the model could be asked", 2026-10-21: a first turn after the idle stop, on a fast card). The load is capped separately (#startLoading) and
+        // the turn keeps LOCAL_ATTEMPT_ROOM_MS to ask the model once it is up, never past LOCAL_TURN_HARD_CAP_MS (the game gives up on the request 90 s after it wrote it).
+        if (deadlineAt !== undefined && index === 0 && loading) {
+          const readyAt = await loading;
+          if (readyAt !== null) deadlineAt = Math.max(deadlineAt, Math.min(readyAt + LOCAL_ATTEMPT_ROOM_MS, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
+        }
         const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);

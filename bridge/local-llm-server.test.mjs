@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
   pickDevice} from './local-llm-server.mjs';
+import {SPILL_LIMITS} from './gpu-memory.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
 const DEVICES = `Available devices:
@@ -1211,4 +1212,133 @@ test('the server\'s own log saying the device was lost is enough: recover() rest
   const next = await h.server.recover();
   assert.ok(next && next.endpoint !== first.endpoint, 'restarted on the log line alone');
   assert.equal(h.calls.length, 2);
+});
+
+// ---- 2026-10-21, round 3: a step-down race, and an early look for a spill --------------------------------------------------------------------------------------------------
+
+test('a turn that comes while a spill is being acted on waits for the step and is answered by the smaller model: no start the step would cancel, no "stopped", Local AI stays up', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  const free = {value: 24000};
+  const gate = {on: false, open: null};
+  gate.promise = new Promise(resolve => { gate.open = resolve; });
+  // The free-memory read that #spillAct makes after it stopped the model is held, as it is for real while nvidia-smi runs.
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free, freeVramMiB: async () => { if (gate.on) await gate.promise; return free.value; }});
+  await h.server.ensure();
+  free.value = 3000;   // the game holds the card: the large model does not fit whole any more, so the step ends in a step-down
+  gate.on = true;
+  h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});   // a slow reply: the counters are read, the model spilled
+  assert.equal(await until(() => h.logs.some(line => /unloading it and loading it again fitted/.test(line))), true);
+  await sleep(40);   // #spillAct is at its free-memory read; the model is stopped
+  assert.equal(h.server.status().state, 'stopped');
+  // The retried turn calls ensure() now. Before the fix it started the large model again here, and #stepDown's stop() cancelled that start: the turn failed with 'stopped'.
+  const turn = h.server.ensure();
+  await sleep(200);
+  assert.deepEqual([h.calls.length, h.server.status().state], [1, 'stopped'], 'the large model was not started again while the step runs');
+  gate.open();
+  const handle = await turn;
+  assert.equal(handle.model, 'Qwen3.5-2B');
+  assert.deepEqual([h.loaded(), h.failures, h.server.status().state, h.steps.map(step => step.model)], [['q4.gguf', 'q2.gguf'], [], 'ready', ['Qwen3.5-2B']]);
+});
+
+test('ensure(): a start that a newer start took the place of is not a failure (the newer one is awaited), a plain stop still ends the wait with "stopped", and an aborted caller still stops waiting', async t => {
+  const h = harness(t, {env: {FAKE_LLAMA_DELAY_MS: '500'}});
+  const first = h.server.ensure();
+  await sleep(100);
+  const stopping = h.server.stop();   // a reload or a step-down: the start in flight is ended ...
+  const second = h.server.ensure();   // ... and a newer one begins at once
+  const [one, two] = await Promise.all([first, second]);
+  await stopping;
+  assert.equal(one.endpoint, two.endpoint, 'the first caller got the newer server');
+  assert.equal(h.calls.length, 2);
+  // Nothing started again: the caller's wait ends with 'stopped', and no server is begun on its behalf.
+  await h.server.stop();
+  const lone = h.server.ensure();
+  await sleep(100);
+  await h.server.stop();
+  await assert.rejects(lone, error => error instanceof LocalAiUnavailable && error.reason === 'stopped');
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.server.status().state, 'stopped');
+  // A caller whose signal is aborted stops waiting whatever happens to the start.
+  const controller = new AbortController();
+  const aborted = h.server.ensure({signal: controller.signal});
+  controller.abort();
+  await assert.rejects(aborted, error => error.name === 'AbortError');
+});
+
+test('the memory counters are read once at the first request after each load (a persona warm-up or a turn), and not again while that load serves requests', async t => {
+  const spill = {value: {dedicatedMiB: 3200, sharedMiB: 95}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill});
+  const readings = () => h.logs.filter(line => /graphics memory of the model server after/.test(line));
+  await h.server.ensure();
+  assert.equal(readings().length, 0, 'nothing is read at the load itself');
+  h.server.begin({background: true})();   // the persona warm-up of the character the player is about to talk to
+  assert.equal(await until(() => readings().length === 1), true);
+  assert.match(readings()[0], /after the first persona warm-up after the load: 3200 MiB on the card, 95 MiB in shared system memory$/);
+  h.server.begin()(); h.server.begin()();
+  await sleep(100);
+  assert.equal(readings().length, 1, 'healthy and looked at: not again');
+  // A new load is looked at again.
+  await h.server.stop();
+  await h.server.ensure();
+  h.server.begin()();
+  assert.equal(await until(() => readings().length === 2), true);
+  assert.match(readings()[1], /after the first turn after the load/);
+  // No counters (not Windows, no tool): nothing is read and nothing changes.
+  const blind = fitHarness(t, {selected: {pin: 'standard'}, mature: false});
+  await blind.server.ensure();
+  blind.server.begin()();
+  await sleep(100);
+  assert.equal(blind.logs.filter(line => /graphics memory of the model server/.test(line)).length, 0);
+});
+
+test('a spill found at the first request after the load is acted on before the turn is lost to it: the same model is loaded again fitted, and its own first request is looked at too (then it steps down)', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free: {value: 4500}});
+  await h.server.ensure();
+  assert.equal(argValue(h.calls[0], '-c'), '16384');
+  const turn = h.server.begin();   // the first turn: no slow reply, no stall yet
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  turn();
+  assert.equal(argValue(h.calls[1], '-c'), '8192', 'fitted to the 4,500 MiB that are free now');
+  assert.ok(h.logs.some(line => /after the first turn after the load: 2200 MiB on the card, 1100 MiB in shared system memory \(spilled: 972 MiB/.test(line)), h.logs.join('\n'));
+  // The load it made is looked at once as well; it spilled again, so the model steps down.
+  h.server.begin()();
+  assert.equal(await until(() => h.steps.length > 0), true);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+});
+
+test('a turn with no answer after 10 s reads the counters once (not three minutes after the last reading: 20 s), and an answered turn never does', async t => {
+  const timers = [];
+  const setTimer = (callback, ms) => { if (ms === SPILL_LIMITS.noHeadersMs) { const entry = {callback, cleared: false}; timers.push(entry); return {entry, unref() {}}; } return setTimeout(callback, ms); };
+  const clearTimer = handle => { if (handle?.entry) handle.entry.cleared = true; else clearTimeout(handle); };
+  const spill = {value: {dedicatedMiB: 3200, sharedMiB: 95}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, setTimer, clearTimer});
+  const readings = () => h.logs.filter(line => /graphics memory of the model server after/.test(line));
+  await h.server.ensure();
+  // An answered turn: the headers come (noteHeaders) and the wait ends; the first request after the load was looked at (healthy).
+  const answered = h.server.begin();
+  assert.equal(await until(() => readings().length === 1), true);
+  assert.equal(timers.length, 1);
+  h.server.noteHeaders();
+  assert.equal(timers[0].cleared, true, 'the wait for the headers ended');
+  answered();
+  // A turn with no answer: the timer fires. The model spilled meanwhile, but the last reading was a moment ago: the shorter limit holds first.
+  const stuck = h.server.begin();
+  assert.equal(timers.length, 2);
+  spill.value = {dedicatedMiB: 2200, sharedMiB: 1100}; h.free.value = 4500;
+  timers[1].callback();
+  await sleep(100);
+  assert.equal(readings().length, 1, 'read 0 s ago: not again');
+  h.clock.now += 25_000;
+  timers[1].callback();
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.equal(readings().length, 2);
+  assert.match(readings()[1], /after no answer from the model server after 10 s/);
+  stuck();
+  // Not Windows / no counters: no timer is made at all.
+  const blind = fitHarness(t, {selected: {pin: 'standard'}, mature: false, setTimer, clearTimer});
+  await blind.server.ensure();
+  const before = timers.length;
+  blind.server.begin()();
+  assert.equal(timers.length, before);
 });

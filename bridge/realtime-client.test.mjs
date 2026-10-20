@@ -940,6 +940,54 @@ test('party keepalive resets only the service idle timer without dialogue or mic
   assert.deepEqual(events, ['idle-reset']);
 });
 
+// A turn of Convai's cloud voice whose audio arrives at 44.1 kHz in packets that say 24 kHz (2026-10-21 reports, Multilingual on): the declared duration and the byte count agree on the
+// real rate. `declared` is what the packets say; `statsMs` is what the final statistics declare.
+async function mislabelledTurn(extra, {declared = 24000, statsMs = 2000} = {}) {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply({...config, ...extra}); pending.catch(() => {});
+  await flush();
+  const client = clients[0], real = audioFixture({seconds: 2, sampleRate: 44100});
+  finalText(client, 'Hello V.');
+  client.data(real.faces);
+  client.data(wire({type: 'audio-data', audio: real.samples.toString('base64'), sample_rate: declared, channels: 1, includes_wav_header: false}));
+  client.data(wire({type: 'blendshape-turn-stats', ...real.owner, sequence: 19, stats: {total_audio_bytes: real.samples.length, total_audio_duration_ms: statsMs, total_blendshapes: 120, fps: 60, was_interrupted: false}}));
+  client.data(real.terminal);
+  return {api, client, pending, real};
+}
+
+test('Convai audio that arrives at 44.1 kHz in packets labelled 24 kHz is written at its real rate, and the turn is not failed', async () => {
+  const {api, pending, real} = await mislabelledTurn({});
+  const result = await pending;
+  const wav = Buffer.from(result.audio, 'base64');
+  assert.equal(wav.readUInt32LE(24), 44100); assert.deepEqual(wav.subarray(44), real.samples);
+  assert.equal(result.sampleRate, 44100); assert.equal(result.duration, 2); assert.deepEqual(result.sampleRateCorrected, {declared: 24000, actual: 44100});
+  assert.equal(result.text, 'Hello V.');
+  await api.close();
+});
+
+test('a Convai audio format fault fails the turn, unless the player\'s own voice is not Convai\'s (audioOptional): then the written reply stands, the audio is dropped and the connection is retired', async () => {
+  // 3 s declared for 2 s of audio at 44.1 kHz: no standard rate explains it, so it is a fault.
+  const strict = await mislabelledTurn({}, {statsMs: 3000});
+  await assert.rejects(strict.pending, /declared duration/);
+  await strict.api.close();
+  const lenient = await mislabelledTurn({audioOptional: true}, {statsMs: 3000});
+  const result = await lenient.pending;
+  assert.equal(result.text, 'Hello V.'); assert.equal(result.audio, undefined); assert.equal(result.faces.length, 0);
+  assert.match(result.audioError, /showing the written reply/); assert.equal(result.timing.audioFormatFault, true);
+  assert.equal(lenient.client.isBotReady, false, 'the connection was retired: nothing of this response can reach another turn');
+  // Anything that is not a format fault (the owner of the speech changed) still fails an optional-audio turn.
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply({...config, audioOptional: true}); pending.catch(() => {});
+  await flush();
+  const audio = audioFixture(), other = audioFixture({sequence: 2});
+  finalText(clients[0], 'Hello V.');
+  clients[0].data(audio.faces); clients[0].data(other.stats);
+  await assert.rejects(pending, /replaced the active speech owner/);
+  await api.close();
+});
+
 test('text-only replies finish on LLM completion without audio, lipsync or microphone', async () => {
   const {api, clients, events} = fixture();
   await api.warm({...config, ttsEnabled: false});

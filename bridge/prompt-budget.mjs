@@ -43,6 +43,7 @@ export const BUDGET = Object.freeze({
   maxBias: 2.5,
   mismatchLog: 1.15,     // a gap this large is written to the log
   keepExchanges: 2,      // older exchanges are dropped down to this many before anything else of the conversation is cut
+  trimBlock: 3,          // older exchanges are dropped in blocks of this many (never below keepExchanges): the history then starts at the same exchange for several turns (see fitMessages)
 });
 
 // Text outside plain Latin is counted separately: the ratio learned from English prose does not apply to it. Measured 2026-10-20 with the tokenizers of both model
@@ -435,6 +436,21 @@ export async function fitMessages({args, build = defaultBuild, budget, shrinkPer
       if (tokens <= limit && tokens >= limit * BUDGET.verifyBand) {
         const counted = await verify(messages);
         if (counted !== null) { tokens = counted; exact = true; }
+      }
+    }
+    // Older exchanges go in blocks (BUDGET.trimBlock), not one at a time. One at a time, a conversation that is at the limit adds an exchange every turn and drops the oldest
+    // every turn: the history then starts one exchange later each turn, so the server's prompt cache (a prefix; a model with sliding-window layers resumes only from a saved
+    // checkpoint) breaks at the first exchange and reads the whole history again, with the same persona and world blocks in front of it (2026-10-21: an RX 6700 XT re-read
+    // about 4,650 tokens with 0 cached on several turns; simulated here: the start of the history moved on every turn). The count dropped is rounded up to a whole block, so the
+    // history starts at the same exchange for up to trimBlock turns while it grows, and moves once per block. Never below keepExchanges; the prompt only gets shorter.
+    const older = trimmed.filter(name => name === 'older-exchanges').length;
+    if (older > 0 && tokens <= limit && state.history?.length > BUDGET.keepExchanges) {
+      const extra = Math.min(Math.ceil(older / BUDGET.trimBlock) * BUDGET.trimBlock - older, state.history.length - BUDGET.keepExchanges);
+      if (extra > 0) {
+        state = {...state, history: state.history.slice(extra)};
+        messages = build(state);
+        tokens = Math.min(tokens, Math.ceil(estimate(messages) * scale)); exact = false;
+        trimmed.push('older-exchanges:block');
       }
     }
     // Nothing optional is left and the prompt is still over: the persona is shortened, the largest level that fits.
