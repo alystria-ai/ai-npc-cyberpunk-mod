@@ -2,6 +2,22 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.2.6
+
+- **A talk can have consequences**: clearly threaten or insult an ordinary passer-by (not a joke) and they may rarely walk or run off, call the police, or, if they are a ganger, merc or guard, fight back, depending on who they are and where you are. Story and quest characters are never affected.
+- **Quest crowds talk**: extras such as the patrons of the Afterlife answer like any resident, with a speaking face.
+- **Languages are automatic**: characters answer in the language you write in, short lines included. The Multilingual setting is gone; there is nothing to switch on. Convai picks the right character twin for each message, and add-ons follow your language too.
+- **Voxtral 3**: the Voxtral voice and transcription use Mistral's new version, with the older ones as a fallback. On the Voxtral voice a passer-by now keeps one steady voice.
+- **Local stays local**: if your local voice or Local AI fails, the mod says so or shows text. It never switches to a cloud voice or cloud text on its own.
+- **Local AI on small graphics cards**: when the model does not fit next to the game, part of it runs on your processor instead of failing, after a check that there is enough system memory. You get one notice when replies will be slow, with the advice to pick a smaller model or the Custom provider.
+- **Your own models**: the Nexus page points to running your own model files or model server. On your own server, "no thinking" is asked from the very first request.
+- **Companions understand plain requests better**: slang, typos and other languages in "follow me", "drive me" and the like.
+- **Less weather talk**: the weather and the time of day are mentioned once per conversation instead of on every turn.
+- **Memory page**: press the chosen character again to unselect it.
+- **Settings text fits small screens**: the row text in Mod Configuration Menu scales with the resolution, so labels are not cut off.
+- **Mod Organizer 2**: the Pocket and OmniVoice voices start under Mod Organizer 2.
+- **Fixes from error reports**: Local AI restarts after a lost graphics device, a Convai connection closed mid-turn no longer errors, a reply that repeats a line is trimmed instead of asked again, and a Runtime of two different versions gets a clear message naming the update zips to apply in order.
+
 ## What's new in 0.2.5
 
 - **Local AI on busy graphics cards**: when the game pushes the model out of video memory, the mod notices after a slow reply and reloads it to fit, or switches to the lite model. Before loading it now checks the real fit, so cards with 4 to 5 GB free get the whole model.
@@ -156,7 +172,7 @@ With Mistral or Local AI as the Conversation provider, you can give a person who
 
 Close the game and extract the new Scripts and Runtime over the old ones (the same version for both), then any optional packs you use, in that order: the OmniVoice pack goes after the Runtime. Your conversations, memories and settings are kept. The first start after updating moves your memories, conversation history and logs out of the game folder into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
 
-**A smaller download for the Runtime.** If you have the previous version of the Runtime installed, you can skip the full Runtime and download the small **Runtime update** instead, from the same Hugging Face page: `AI-NPC-Cyberpunk-Mod-Runtime-Update-<your version>-to-<new version>.zip` (for example `...-Update-0.2.4-to-0.2.5.zip`). It holds only the files that changed. The page keeps the updates for the last few versions: if you are more than one version behind, extract them one after the other, oldest first (for example 0.2.3-to-0.2.4, then 0.2.4-to-0.2.5). Extract it into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have the previous version, or are not sure which one you have, use the full Runtime; it works for new installs and for any update.
+**A smaller download for the Runtime.** If you have the previous version of the Runtime installed, you can skip the full Runtime and download the small **Runtime update** instead, from the same Hugging Face page: `AI-NPC-Cyberpunk-Mod-Runtime-Update-<your version>-to-<new version>.zip` (for example `...-Update-0.2.5-to-0.2.6.zip`). It holds only the files that changed. The page keeps the updates for the last few versions: if you are more than one version behind, extract them one after the other, oldest first (for example 0.2.4-to-0.2.5, then 0.2.5-to-0.2.6). Extract it into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have the previous version, or are not sure which one you have, use the full Runtime; it works for new installs and for any update.
 
 ## Uninstall
 

@@ -17,18 +17,19 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
 [*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
 [/list][b]2. Local: no internet, no account, no limit[/b][list]
-[*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card, use cloud text instead.
+[*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
 [*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
 [*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Already run models in KoboldCpp, LM Studio or Ollama, or have your own GGUF file? The mod can use them: see [b]Use your own AI model or model server[/b] below.
 [*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 12 GB of video memory or more, for voices that sound like the game characters and for other languages.
 [*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
+[*]Local stays local: if your local voice or Local AI fails, you get a message or text only. The mod never switches to a cloud voice or cloud text on its own.
 [*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [b]How much video memory?[/b]
 The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at 1440p or with ray tracing, and 12 GB or more at 4K or with path tracing. Local AI and OmniVoice need room on top of that:[list]
-[*][b]8 GB card:[/b] cloud text (Convai or Mistral) with Pocket or Voxtral. Local AI and OmniVoice will be slow or step down.
+[*][b]8 GB card:[/b] cloud text (Convai or Mistral) with Pocket or Voxtral is the fastest. Local AI still starts: whatever does not fit next to the game runs on your processor, so replies are slower, and the mod says so once. OmniVoice will be slow or step down.
 [*][b]10 to 12 GB:[/b] Local AI lite with Pocket at 1080p without ray tracing, or OmniVoice with cloud text.
 [*][b]12 to 16 GB:[/b] Local AI standard with Pocket at 1080p, or lite with ray tracing or 1440p.
 [*][b]16 GB or more:[/b] Local AI standard with ray tracing or 1440p and up, or Local AI with OmniVoice.
@@ -45,7 +46,8 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Talk to anyone[/b][list]
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
 [*][b]The game's named cast.[/b] Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
-[*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers you come back to remember you.
+[*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers you come back to remember you. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
+[*][b]Talk has consequences.[/b] Clearly threaten or insult an ordinary passer-by (not a joke) and they may, rarely, walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
 [*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
 [*][b]Group chat.[/b] Talk to two or three companions at once; they take turns and pick up from each other.
 [*][b]Phone Chat and holocalls.[/b] Text any supported contact from a Chat tab on V's phone, or call them and watch them pick up live on screen.
@@ -61,7 +63,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [/list][b]Faces and voices[/b][list]
 [*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
 [*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
-[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral makes each voice in the cloud with a free Mistral key, and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
+[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a free Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
 [*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
@@ -72,7 +74,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*][b]World rules.[/b] Write rules for the whole of Night City on the editor's World rules page, for example "nobody knows V's name unless V says it", and every character follows them from the next reply, on every provider.
 [*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
 [*][b]Bring your own AI.[/b] The Custom provider works with OpenRouter, Nano-GPT, Ollama, LM Studio or any OpenAI-compatible service, and Local AI can run your own model files (see below).
-[*][b]Any language.[/b] Menus in sixteen languages, characters that answer in the language you write in, and microphone packs for European and Asian languages.
+[*][b]Any language.[/b] Menus in sixteen languages, characters that answer in the language you write in (picked automatically, even for short lines), and microphone packs for European and Asian languages.
 [/list][b]Light on your game[/b][list]
 [*]The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory.
 [*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory.
@@ -92,14 +94,14 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
-[*]Download [b]Scripts 0.2.5[/b] from this page (Vortex or by hand) and the [b]Runtime 0.2.5[/b] from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Use the same version for both.
+[*]Download [b]Scripts 0.2.6[/b] from this page (Vortex or by hand) and the [b]Runtime 0.2.6[/b] from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Use the same version for both.
 [*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
 
 [b]Updating[/b]
-From 0.2.4, download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.4-to-0.2.5.zip) instead of the full Runtime, and extract both over your install. From an older version, extract the updates one after the other, oldest first (0.2.2-to-0.2.3, 0.2.3-to-0.2.4, then 0.2.4-to-0.2.5; all on the same page). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
+From 0.2.5, download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.5-to-0.2.6.zip) instead of the full Runtime, and extract both over your install. From an older version, extract the updates one after the other, oldest first (0.2.2-to-0.2.3, 0.2.3-to-0.2.4, 0.2.4-to-0.2.5, then 0.2.5-to-0.2.6; all on the same page). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own; install none, some or all, the same way as the Runtime.[list]
@@ -173,8 +175,8 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 ## 2. File description (Scripts upload)
 
 ```text
-AI NPC Cyberpunk Mod, the Scripts file for version 0.2.5 (Cyberpunk 2077 2.31). Small and text only. Install it with Vortex or by hand, after the mods listed on this page.
-The Runtime for version 0.2.5 is also needed. Get it from the Hugging Face page linked on this page (AI-NPC-Cyberpunk-Mod-Runtime.zip; its version is shown beside it). It holds the voice service and the Pocket TTS voices.
+AI NPC Cyberpunk Mod, the Scripts file for version 0.2.6 (Cyberpunk 2077 2.31). Small and text only. Install it with Vortex or by hand, after the mods listed on this page.
+The Runtime for version 0.2.6 is also needed. Get it from the Hugging Face page linked on this page (AI-NPC-Cyberpunk-Mod-Runtime.zip; its version is shown beside it). It holds the voice service and the Pocket TTS voices.
 ```
 
 ## 3. Short summary (brief overview field)
