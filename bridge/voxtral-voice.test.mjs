@@ -570,6 +570,23 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
   } finally { await server.close(); }
 });
 
+test('cloud to cloud is the only fallback that leaves the computer: Voxtral chosen with no usable Pocket route falls to the Convai voice, and a local voice never does', async () => {
+  const server = await serve((request, response) => { response.end(); });
+  try {
+    // Voxtral chosen, but this installation has no Pocket route to ride on at all: the Convai voice (cloud to cloud), as before.
+    const rideless = new VoiceSelection({}, {voxtral: new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), endpoint: server.endpoint,
+      read: async () => REFERENCE, scheduler: fastScheduler()})});
+    rideless.update({voiceProvider: 'voxtral'}, null, false);
+    assert.equal(rideless.provider, 'convai'); assert.equal(rideless.convaiVoiceAllowed, true);
+    await rideless.close();
+    // The same installation with a LOCAL voice chosen: text, and the Convai voice is not allowed.
+    const local = new VoiceSelection({});
+    local.update({voiceProvider: 'pocket'}, null, false);
+    assert.equal(local.provider, 'text'); assert.equal(local.convaiVoiceAllowed, false);
+    await local.close();
+  } finally { await server.close(); }
+});
+
 test('a first ask that times out and a second one that speaks never announce a switch to the Convai voice (the false "Mistral cloud voice is not ready, using Convai" notice of the 2026-10-20 live test)', async () => {
   let mode = 'slow-once';
   const server = await serve(async (request, response) => {

@@ -257,24 +257,93 @@ test('local: a turn goes to the supervised server with its session key, unpaced,
   } finally { await close(); }
 });
 
-test('local: a server that cannot start fails the turn once, asks for Convai and queues the single notice', async () => {
+test('local: a server that cannot start fails the turn with its own reason; Local AI stays the provider, no notice is queued and nothing moves to Convai', async () => {
   const fail = () => { const error = new Error('The local AI is not available [local:unavailable]'); error.reason = 'low-memory'; throw error; };
   const {host, provider, close} = await localHarness(() => 'x', {ensure: async () => fail()});
   try {
     const error = await host.reply(turn('hi')).catch(caught => caught);
     assert(isLocalUnavailable(error));
     assert.equal(provider.localBroken, 'low-memory');
-    assert.equal(provider.requested, 'convai');
-    assert.equal(provider.pending, true);
-    provider.apply();
-    assert.equal(provider.takeNotice(), 'local-fallback');
+    assert.equal(provider.requested, 'local');
+    assert.equal(provider.pending, false);
+    assert.equal(provider.apply(), false);
     assert.equal(provider.takeNotice(), undefined);
     provider.noteLocalFailure('low-memory'); // the same failure again says nothing more
     assert.equal(provider.takeNotice(), undefined);
-    // Choosing the provider again tries again.
+    // The next turn asks the server to start again (it fails again here) and the provider is still Local AI.
+    const again = await host.reply(turn('hi again')).catch(caught => caught);
+    assert(isLocalUnavailable(again));
+    assert.equal(provider.route, 'local');
+    // Choosing the provider again clears the record.
     provider.setPreference('convai'); provider.setPreference('local');
+    assert.equal(provider.localBroken, null);
     assert.equal(provider.requested, 'local');
   } finally { await close(); }
+});
+
+// A failed Local AI is started again by the next turn that needs it (localRoute retryFailed): at most once every LOCAL_RETRY_MS, only for the reasons a new start
+// can cure (not 'not-installed' or 'mature-off', which the install and the Mature setting cure), never for background work.
+function retryServer(state) {
+  const calls = {reset: 0, ensure: 0};
+  const server = {calls, state,
+    status: () => server.state,
+    reset() { calls.reset++; server.state = {state: 'stopped'}; },
+    ensure: async () => { calls.ensure++; return {endpoint: 'http://127.0.0.1:9/v1/chat/completions', apiKey: 'session-key-abcdef123456', model: 'qwen-test'}; },
+    touch() {}};
+  return server;
+}
+
+test('local: a turn after a failed start (low memory, start failed, crashed) resets the server once, then waits ten seconds before it does so again', async () => {
+  for (const reason of ['low-memory', 'start-failed', 'crashed']) {
+    const server = retryServer({state: 'failed', reason});
+    let clock = 50_000;
+    const logs = [];
+    const route = localRoute({server, provider: {noteLocalFailure() {}}, now: () => clock, log: line => logs.push(line)});
+    (await route.connect(undefined, {})).release();
+    assert.equal(server.calls.reset, 1, reason);
+    assert.equal(server.calls.ensure, 1, `${reason}: the ensure that follows starts the model`);
+    assert.equal(logs.filter(line => line.includes(reason)).length, 1, reason);
+    // It failed again straight away: a turn within the ten seconds does not reset again.
+    server.state = {state: 'failed', reason};
+    clock += 9_999;
+    (await route.connect(undefined, {})).release();
+    assert.equal(server.calls.reset, 1, `${reason}: not twice within ten seconds`);
+    server.state = {state: 'failed', reason};
+    clock += 1;
+    (await route.connect(undefined, {})).release();
+    assert.equal(server.calls.reset, 2, `${reason}: ten seconds later it is tried again`);
+    // A server that is not failed is left alone, and so is a prepare of a failed one before the ten seconds are over.
+    server.state = {state: 'ready'};
+    clock += 60_000;
+    (await route.connect(undefined, {})).release();
+    assert.equal(server.calls.reset, 2);
+    server.state = {state: 'failed', reason};
+    clock += 10_000;
+    assert.equal(await route.prepare(), true);
+    assert.equal(server.calls.reset, 3, `${reason}: prepare (the start of a turn) retries too`);
+  }
+});
+
+test('local: not-installed and mature-off failures are never reset by a turn, and background work never starts or resets the server', async () => {
+  for (const reason of ['not-installed', 'mature-off', 'no-gpu']) {
+    const server = retryServer({state: 'failed', reason});
+    const route = localRoute({server, provider: {noteLocalFailure() {}}, now: () => 1_000_000});
+    (await route.connect(undefined, {})).release();
+    await route.prepare();
+    assert.equal(server.calls.reset, 0, reason);
+  }
+  const server = retryServer({state: 'failed', reason: 'low-memory'});
+  const route = localRoute({server, provider: {noteLocalFailure() {}}, now: () => 1_000_000});
+  await assert.rejects(route.connect(undefined, {background: true}), /not loaded/);
+  assert.equal(server.calls.reset, 0, 'a summary never starts the server');
+  assert.equal(server.calls.ensure, 0);
+});
+
+test('local: the route never falls back and has no hook that tells the provider a cloud provider answered', () => {
+  const route = localRoute({server: retryServer({state: 'ready'}), provider: {noteLocalFailure() {}}});
+  assert.equal(route.fallsBack(new Error('x')), false);
+  assert.equal(route.fallsBack(Object.assign(new Error('The local AI is not available [local:unavailable]'), {reason: 'low-memory'})), false);
+  assert.equal(route.fellBack, undefined);
 });
 
 test('local: summaries and fact extraction wait for the gate (no combat, nothing speaking) and the server is never started for them', async () => {
@@ -723,4 +792,16 @@ test('a reply that merely opens like a recent line for a word or two is shown as
     assert.equal(result.text, 'Ah, Arroyo. It is not so bad once you are used to the smell, V.');
     assert.match(stream.text ?? '', /^Ah, Arroyo. It is not so bad/, 'shown as written once it moved on');
   } finally { await close(); }
+});
+
+test('a server the player runs is asked for no thinking from its very first request (its adaptation starts as one that thinks, kept per address and model); our own llama-server gets neither the fields nor an adaptation', async () => {
+  const lease = extra => ({apiKey: 'no-key-needed', endpoint: 'http://127.0.0.1:1234/v1/chat/completions', model: 'LM Studio', requestModel: 'laptop-ai', trustedOrigin: 'http://127.0.0.1:1234', ...extra});
+  const serverFor = connection => ({ensure: async () => connection, status: () => ({state: 'ready'}), begin: () => () => {}, touch() {}});
+  const route = localRoute({server: serverFor(lease({external: true}))});
+  const first = await route.connect(undefined, {});
+  assert.equal(first.adapt.thinks, true, 'the fields go with the first request');
+  assert.deepEqual(first.noThinking, {reasoning_effort: 'none', chat_template_kwargs: {enable_thinking: false}, think: false});
+  assert.equal((await route.connect(undefined, {})).adapt, first.adapt, 'one adaptation per address and model: a refusal learned once is kept');
+  const own = await localRoute({server: serverFor(lease({external: false}))}).connect(undefined, {});
+  assert.deepEqual([own.adapt, own.noThinking], [undefined, undefined], 'the packaged models never think');
 });

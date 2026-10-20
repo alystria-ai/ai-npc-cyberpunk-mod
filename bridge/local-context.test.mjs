@@ -1,6 +1,6 @@
 // The local AI never gets a prompt longer than its context (docs/LOCAL_AI.md, "Context budget"): the context size comes from the
-// server, the prompt is fitted to it, a turn the local AI still cannot answer goes to the player's cloud provider or says so, and the
-// game is told once. These tests run the real LocalLlmServer supervisor against the fake llama-server; no model, no game, no sound.
+// server, the prompt is fitted to it, and a turn the local AI still cannot answer fails and says so (it is never handed to a cloud provider, whether
+// or not a Mistral key is saved; owner rule 2026-10-21). These tests run the real LocalLlmServer supervisor against the fake llama-server; no model, no game, no sound.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
@@ -175,17 +175,17 @@ test('a server that counts denser than the estimate refuses once; the count is l
 
 // ---- A turn the local AI cannot answer ----------------------------------------------------------------------------------------
 
-test('with a Mistral key a turn the local AI cannot answer is answered by Mistral, once, with one notice, and Local AI stays selected', async t => {
+test('with a Mistral key saved a turn the local AI cannot answer still fails with local-failed: Mistral is never asked, and Local AI stays selected', async t => {
   // A context far too small for any prompt: every local request is "too large".
   const handle = supervisor(t, {contextSize: 2048, env: {FAKE_LLAMA_REPLY: 'never used'}}).server;
   const {host, provider, cloud, logs} = await hostFor(t, {server: handle, mistralKey: MISTRAL_KEY, mistralScript: () => 'Mistral here, V.'});
-  const reply = await host.reply(bigTurn('Hello?'));
-  assert.equal(reply.text, 'Mistral here, V.');
-  assert.equal(cloud.requests.length, 1);
+  const error = await host.reply(bigTurn('Hello?')).catch(caught => caught);
+  assert(error instanceof Error);
+  assert.equal(errorCodeFor(error), 'local-failed');
+  assert.equal(cloud.requests.length, 0, 'nothing went to Mistral');
   assert.equal(provider.route, 'local', 'the player\'s choice is not changed by one failed turn');
-  assert.equal(provider.takeNotice(), 'local-turn-fallback');
-  assert.equal(provider.takeNotice(), undefined, 'said once');
-  assert(logs.some(line => /could not answer/.test(line)));
+  assert.equal(provider.takeNotice(), undefined, 'no notice says a cloud provider answered');
+  assert(!logs.some(line => /using Mistral/.test(line)));
   const seen = (await stats(await handle.ensure())).requests.filter(request => request.path === '/v1/chat/completions');
   assert.equal(seen.length, 0, 'the local server was never sent a prompt that cannot fit');
 });
@@ -212,24 +212,21 @@ test('a 4096-token server the player runs: with no cloud key the persona is shor
   assert(logs.some(line => /cut:.*persona:\d+/.test(line)), 'the log names the persona cut');
 });
 
-test('a 4096-token server with a Mistral key saved: the turn goes to Mistral with the full persona, the persona is not shortened for the local server', async t => {
-  const {server: handle} = supervisor(t, {contextSize: 4096, env: {FAKE_LLAMA_REPLY: 'never used'}});
+test('a 4096-token server with a Mistral key saved: the persona is shortened to fit like without a key, and Mistral is never asked', async t => {
+  const {server: handle} = supervisor(t, {contextSize: 4096, env: {FAKE_LLAMA_REPLY: 'Sure thing, V.'}});
   const {host, cloud, logs} = await hostFor(t, {server: handle, mistralKey: MISTRAL_KEY, mistralScript: () => 'Mistral here, V.'});
-  const reply = await host.reply(bigTurn('Hello?'));
-  assert.equal(reply.text, 'Mistral here, V.');
-  assert.equal(cloud.requests.length, 1);
-  assert.equal((await stats(await handle.ensure())).requests.filter(request => request.path === '/v1/chat/completions').length, 0, 'the local server was sent nothing');
-  assert(!logs.some(line => /persona:\d+/.test(line)));
+  const reply = await host.reply(bigTurn('What are you up to right now?'));
+  assert.equal(reply.text, 'Sure thing, V.');
+  assert.equal(cloud.requests.length, 0, 'nothing went to Mistral');
+  const seen = (await stats(await handle.ensure())).requests.filter(request => request.path === '/v1/chat/completions');
+  assert.equal(seen.length, 1); assert.equal(seen.filter(request => request.refused).length, 0);
+  assert(logs.some(line => /cut:.*persona:\d+/.test(line)), 'the log names the persona cut');
 });
 
-test('the fallback notice is only for a local route: it is not queued while another provider is applied', async t => {
+test('the provider has no per-turn fallback notice any more', async t => {
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load();
-  provider.setPreference('mistral'); provider.apply();
-  provider.noteLocalTurnFallback();
-  assert.equal(provider.takeNotice(), undefined);
   provider.setPreference('local'); provider.apply();
-  provider.noteLocalTurnFallback();
-  assert.equal(provider.takeNotice(), 'local-turn-fallback');
+  assert.equal(typeof provider.noteLocalTurnFallback, 'undefined');
   assert.equal(provider.takeNotice(), undefined);
 });

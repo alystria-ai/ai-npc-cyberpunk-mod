@@ -76,7 +76,7 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | 18 | language × companion voice | no voice is moved or refused for it: the chosen voice is kept, OmniVoice speaks every language, Voxtral the languages its model lists, and Pocket (and Voxtral for an unlisted one) show a non-English reply as text (one `voice-language` notice per session); no other model is loaded. |
 | 21 | language × V voice | a V line in another language is spoken on Voxtral when its model lists the language, and skipped otherwise and on Pocket (`v-voice.mjs`). |
 | 22 | companion voice × Natural speech | the Convai voice on a Convai provider turns it off (choosing the voice, or the provider, keeps that choice and turns Natural speech off with a notice); turning it on beside that pairing moves the voice to Pocket; beside Mistral, Local AI or Custom nothing happens (D8). Expressive emotions has no rule: it is always on and asked for only where a local voice speaks. |
-| 23 | companion voice × Omni pack | Omni refused without the pack; a saved Omni without it falls back to Pocket with a notice. |
+| 23 | companion voice × Omni pack | Omni refused without the pack; a saved Omni without it shows the replies as text with a notice (no Pocket, no cloud voice). |
 | 24 | companion voice × Mistral key | Voxtral refused without the key; key removed later: the Convai voice (or text) with a notice. |
 | 25 | companion voice × V voice | Pocket companions speak V on their worker; any other voice loads V's own Pocket helper. |
 | 26 | vVoice × vVoiceEngine × key | one row; Voxtral needs the key (greyed out without it); a saved Voxtral without a key shows as Pocket and the bridge speaks V with Pocket until a key is saved. |

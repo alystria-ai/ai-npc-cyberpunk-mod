@@ -419,7 +419,7 @@ export class ResidentVoice {
     }
   }
   prepareProfile(profile, {signal} = {}) {
-    if (!this.usesProfile(profile)) return Promise.resolve({provider: 'convai', ready: true,
+    if (!this.usesProfile(profile)) return Promise.resolve({provider: 'text', ready: true,
       reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
     const operation = this.tail.then(async () => {
       await this.ensurePrepared(profile, signal);

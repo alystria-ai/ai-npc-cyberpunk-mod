@@ -30,7 +30,8 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
-  const selectedVoice = voiceSelection ?? {provider:'pocket',usesProfile: () => local};
+  // Not local: the player chose the Convai voice (`convaiVoiceAllowed`). A local voice that cannot run is a different fixture (voiceSelection with provider 'text').
+  const selectedVoice = voiceSelection ?? {provider: local ? 'pocket' : 'convai', usesProfile: () => local, convaiVoiceAllowed: !local};
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
   const sandbox = {addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
     localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
@@ -55,7 +56,8 @@ function fixture({local = false, available = true, audioFailure = false, continu
       async fail() { calls.push('live-failed'); }
       wakeUp() {}
     },
-    realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !selectedVoice.usesProfile(input.profileKey)}),
+    // Convai sends audio only when the Convai voice is the one speaking: a local voice speaks, or (a local voice that cannot run) nothing does.
+    realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !selectedVoice.usesProfile(input.profileKey) && selectedVoice.convaiVoiceAllowed === true}),
     realtime: {reply: async (config, options) => {
       calls.push(['send', config]);
       if (options?.liveSpeech) {
@@ -207,7 +209,7 @@ test('failure after cached local admission cannot re-submit the same dialogue pr
   assert.equal(f.calls.filter(value=>Array.isArray(value)&&value[0]==='send').length,0);
 });
 
-test('the validated wider registry selects Pocket only for the matching reference; unprepared cast stays continuous Convai', async () => {
+test('the validated wider registry selects Pocket only for the matching reference; an unprepared character is written, never given to the Convai voice', async () => {
   const voices = new VoiceSelection({version: 1, provider: 'pocket', engine: 'pocket-tts',
     runtime:Object.fromEntries(['sourceDirectory','exportDirectory','referenceDirectory','workDirectory'].map(key=>[key,absolutePath('fixture',key)])),
     model:{sha256:'a'.repeat(64),configSha256:'b'.repeat(64),tokenizerSha256:'c'.repeat(64),receiptSha256:'d'.repeat(64),
@@ -224,10 +226,30 @@ test('the validated wider registry selects Pocket only for the matching referenc
   const remote = fixture({voiceSelection: voices, continuous: true});
   remote.input.profileKey = 'blue-moon'; remote.profile.key = 'blue-moon';
   const response = await remote.api.respond(remote.input, remote.profile, {current: async () => true});
-  assert.equal(remote.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, true);
-  assert.equal(response.continuous, true); assert.equal(remote.calls.includes('split'), false);
+  assert.equal(remote.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, false, 'Convai sends no audio for a character the chosen local voice does not speak');
+  assert.equal(response.audio, undefined); assert.match(response.audioError, /unavailable right now/);
+  assert.equal(response.timing.voiceProvider, 'none');
+  assert.equal(response.continuous, undefined); assert.equal(remote.calls.includes('split'), false);
   assert.equal(response.streamPlan, undefined);
   assert.equal(remote.calls.filter(value => Array.isArray(value) && value[0] === 'send').length, 1);
+});
+
+test('a chosen local voice that cannot run: Convai sends no audio, no Convai live speech starts, and the written reply says why (owner rule 2026-10-21)', async () => {
+  const dead = {provider: 'text', usesProfile: () => false, convaiVoiceAllowed: false};
+  for (const continuous of [false, true]) {
+    const f = fixture({voiceSelection: dead, continuous});
+    const result = await f.api.respond(f.input, f.profile, {current: async () => true});
+    const sends = f.calls.filter(value => Array.isArray(value) && value[0] === 'send');
+    assert.equal(sends.length, 1); assert.equal(sends[0][1].ttsEnabled, false, 'Convai is asked for text only');
+    assert.equal(f.calls.includes('live-frame'), false, 'no Convai live speech');
+    assert.equal(result.audio, undefined); assert.equal(result.timing.voiceProvider, 'none');
+    assert.match(result.audioError, /unavailable right now/);
+    assert.equal(result.text, f.remote.text, 'the written reply is intact');
+  }
+  // The Convai voice chosen on purpose still speaks.
+  const chosen = fixture({voiceSelection: {provider: 'convai', usesProfile: () => false, convaiVoiceAllowed: true}, continuous: false});
+  const spoken = await chosen.api.respond(chosen.input, chosen.profile, {current: async () => true});
+  assert.equal(chosen.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, true); assert.equal(spoken.audio, chosen.remote.audio);
 });
 
 // A group look-ahead turn is generated while the previous speaker is audible and
@@ -565,6 +587,16 @@ test('stored Invite voice receipts are invalid during pending selection, page re
   assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false); f.localVoice.availabilityPending = false;
   f.localVoice.profileReady = () => false; assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false);
   f.local.delete('alex'); assert.equal(f.api.invitedVoiceCurrent('alex', {provider: 'convai', ready: true}), true);
+  // A chosen local voice that cannot run answers with the 'text' route (replies are written): a valid receipt while the character has no local voice.
+  assert.equal(f.api.invitedVoiceCurrent('alex', {provider: 'text', ready: true, reason: 'unavailable'}), true);
+  f.local.add('alex'); assert.equal(f.api.invitedVoiceCurrent('alex', {provider: 'text', ready: true}), false, 'stale once the local voice speaks the character again');
+});
+
+test('an Invite is ready with a written-reply receipt when the chosen local voice cannot run, and never needs the Convai voice', async () => {
+  const f = invitationVoiceFixture({prepare: async () => ({provider: 'text', ready: true, reason: 'unavailable'})});
+  f.local.delete('alex');
+  const receipt = await f.api.prepareInvitedVoice('alex');
+  assert.equal(receipt.provider, 'text'); assert.notEqual(receipt.provider, 'convai');
 });
 
 test('Natural speech: OmniVoice voices the tags the model wrote while every shown or stored text stays clean',async()=>{

@@ -83,14 +83,16 @@ export function cloudReferenceOf(voice, key, sources = {}) {
 /**
  * Why the voice that spoke is not the one chosen in Settings; null when they agree. Pure over the voice selection's
  * state. `plan` is the turn plan (bridge/multilingual.mjs planTurnVoice), `engine` the voice that actually speaks:
- * 'pocket' | 'omni' | 'convai' | 'none' (written reply only).
+ * 'pocket' | 'omni' | 'convai' | 'none' (written reply only). A failed local voice is 'none' with its reason here, never 'convai'.
  */
 export function fallbackReason(voice, profile, {plan, engine} = {}) {
   const requested = voice.requestedProvider;
   const multilingualWhy = plan?.reason === 'english-only-voice'
     ? 'Multilingual non-English reply: Pocket speaks English only'
     : plan?.reason === 'voice-language-unsupported' ? 'Multilingual non-English reply: the Voxtral voice does not speak this language' : null;
-  if (engine === 'none') return multilingualWhy ?? 'Multilingual non-English reply: this voice speaks English only';
+  // A written reply because the chosen local voice cannot run (or has no clip for this character) is explained by the checks below; any other
+  // written reply is a language the chosen voice does not speak.
+  if (engine === 'none' && plan?.reason !== 'local-voice-unavailable') return multilingualWhy ?? 'Multilingual non-English reply: this voice speaks English only';
   if (engine === requested) {
     // Same voice, but the tier committed lags the choice (applied at the next conversation boundary).
     if (engine === 'omni' && (voice.omniSteps !== voice.requestedOmniSteps

@@ -583,6 +583,29 @@ test('the provider state: chosen without an address or model Convai answers and 
   assert.equal(provider.preference, 'convai');
 });
 
+test('a failing Custom endpoint (also one on this computer) never hands a turn to another provider: no fallback, Custom stays the provider, a saved Mistral key is not used (owner rule 2026-10-21)', async () => {
+  const mock = await startOpenAiMock();
+  const {provider, custom, route, memory} = await harness(mock);
+  provider.key = 'mistralFixtureKey0123456789abcdefgh';   // a Mistral key is saved too
+  let mistralAsked = 0;
+  const routes = {custom: route, mistral: mistralRoute({provider, gapMs: 0, chat: async () => { mistralAsked++; return {text: 'From mistral.', model: 'm', finishReason: 'stop', usage: {}}; }})};
+  const host = new TextProviderHost({provider, memory, personas: new PersonaBook(roster), routes});
+  try {
+    assert.equal(custom.local, true, 'the mock listens on this computer');
+    for (const plan of [{status: 503, body: 'down'}, {status: 401, body: {error: {message: 'bad key'}}}, {status: 402, body: {error: {message: 'no credits'}}}, {status: 429, body: {error: {message: 'Rate limit exceeded'}}}]) {
+      mock.behave(() => plan);
+      const error = await host.reply(turn('hello')).catch(caught => caught);
+      assert.ok(error instanceof MistralError, String(plan.status));
+      assert.equal(route.fallsBack(error), false, 'the custom route never falls back');
+      assert.deepEqual([provider.requested, provider.applied, provider.route], ['custom', 'custom', 'custom'], `after ${plan.status}`);
+    }
+    assert.equal(mistralAsked, 0, 'Mistral was never asked');
+    // The one provider-level move away from Custom is a missing setup (address or model id), with its own notice.
+    await custom.clearUrl();
+    assert.equal(provider.requested, 'convai');
+  } finally { host.close(); await mock.close(); }
+});
+
 test('Mistral\'s route and the custom route keep apart: the same host serves both, each with its own key and models', async () => {
   const mock = await startOpenAiMock();
   const {provider, custom} = await harness(mock);

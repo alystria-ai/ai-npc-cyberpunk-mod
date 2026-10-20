@@ -35,18 +35,19 @@ function fixture({fail = []} = {}) {
 }
 const tick = () => new Promise(done => setImmediate(done));
 
-test('an OmniVoice choice that cannot run falls back to Pocket in the usual order; a reply Pocket cannot speak is shown as text (bridge/multilingual.mjs replyVoice), never handed to the cloud voice', async () => {
+test('an OmniVoice choice that cannot run shows text: never Pocket in its place and never the cloud voice (an old multilingualConversations changes nothing)', async () => {
   const h = fixture({fail: ['omni']});
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.voice.start().catch(() => {}); await tick();
   h.voice.update({voiceProvider: 'omni'}, null, false);
-  assert.equal(h.voice.provider, 'pocket');
+  assert.equal(h.voice.provider, 'text', 'text; Pocket is not loaded in place of OmniVoice');
   await h.voice.close();
   // An old settings file that still says multilingualConversations: true changes nothing here: the key is no longer read.
   const old = fixture({fail: ['omni']});
   old.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
   await old.voice.start().catch(() => {}); await tick();
   old.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
-  assert.equal(old.voice.provider, 'pocket');
+  assert.equal(old.voice.provider, 'text'); assert.deepEqual(old.voice.fallback, {from: 'omni', to: 'text', temporary: true}); // Omni is retried in the background
+  assert.equal(old.workers.filter(worker => worker.backend === 'pocket').length, 0);
   assert.equal(old.voice.multilingual, undefined);
   await old.voice.close();
 });

@@ -304,30 +304,62 @@ async function hostFor(t, server) {
 }
 const turn = text => ({text, context: 'CURRENT PERSON\nQuest facts here.', sessionId: 'session-1', local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private'}});
 
-test('end to end on a model server of the player: a turn that only thinks is answered by the retry, the next turn asks for no thinking at once, and the server stays up', async t => {
+test('end to end on a model server of the player: the very first request already asks for no thinking, so a model that would have thought through its allowance answers the first turn', async t => {
   const lines = ['Over here, V. What do you need?', 'Still here, choom. The noodles are getting cold.', 'Where else would I be?'];
-  const api = await scripted(t, (body, index) => ('think' in body ? {thinking: 1, text: lines[Math.min(index, 2)]} : {thinking: 200}));
+  const api = await scripted(t, (body, index) => ('think' in body ? {thinking: 1, text: lines[index]} : {thinking: 200}));
   const {server, logs} = supervisor(t, api);
   const host = await hostFor(t, server);
   const first = await host.reply(turn('Where are you?'));
-  assert.match(first.text, /Still here/);
+  assert.match(first.text, /Over here/);
+  assert.equal(api.chats().length, 1, 'one request: no wasted try that only thinks');
+  assert.deepEqual(asked(api.chats()[0].body), NO_THINKING);
+  const second = await host.reply(turn('And now?'));
+  assert.match(second.text, /Still here/);
   assert.equal(api.chats().length, 2);
   assert.deepEqual(asked(api.chats()[1].body), NO_THINKING);
-  const second = await host.reply(turn('And now?'));
-  assert.match(second.text, /Where else/);
-  assert.equal(api.chats().length, 3, 'one request: the endpoint is remembered ' + JSON.stringify(api.chats().map(chat => [chat.body.max_tokens, 'think' in chat.body, chat.body.messages.length])));
-  assert.deepEqual(asked(api.chats()[2].body), NO_THINKING);
   assert.equal(server.status().state, 'ready');
   assert(logs.every(line => !/stopped answering/.test(line)), logs.join('\n'));
 });
 
-test('end to end: a model that thinks whatever it is asked fails the turn with the notice code local-thinking, and nothing is remembered', async t => {
+test('end to end: a server that refuses a no-thinking field by name loses just that field on the first turn (one request sent again at once), and the next turns do not send it', async t => {
+  const api = await scripted(t, body => ('think' in body ? {status: 400, body: {error: {message: 'Unrecognized request argument supplied: think', type: 'invalid_request_error'}}} : {thinking: 0, text: 'Right here, V.'}));
+  const {server} = supervisor(t, api);
+  const host = await hostFor(t, server);
+  const first = await host.reply(turn('Where are you?'));
+  assert.match(first.text, /Right here/);
+  assert.equal(api.chats().length, 2, 'the refused request and the same one without the field');
+  assert.deepEqual(asked(api.chats()[0].body), NO_THINKING);
+  const {think: _dropped, ...kept} = NO_THINKING;
+  assert.deepEqual(asked(api.chats()[1].body), kept);
+  await host.reply(turn('And now?'));
+  assert.equal(api.chats().length, 3, 'the refusal is remembered: one request');
+  assert.deepEqual(asked(api.chats()[2].body), kept);
+  assert.equal(server.status().state, 'ready');
+});
+
+test('end to end: a strict server that refuses the extra fields without naming them loses all three on the first turn (one request sent again at once) and answers every turn after that', async t => {
+  const api = await scripted(t, body => (('think' in body || 'chat_template_kwargs' in body || 'reasoning_effort' in body)
+    ? {status: 400, body: {error: {message: 'Extra inputs are not permitted', type: 'invalid_request_error'}}} : {thinking: 0, text: 'Right here, V.'}));
+  const {server} = supervisor(t, api);
+  const host = await hostFor(t, server);
+  const first = await host.reply(turn('Where are you?'));
+  assert.match(first.text, /Right here/);
+  assert.equal(api.chats().length, 2, 'the refused request and the same one without the three fields');
+  assert.deepEqual(asked(api.chats()[0].body), NO_THINKING);
+  assert.deepEqual(asked(api.chats()[1].body), {});
+  await host.reply(turn('And now?'));
+  assert.equal(api.chats().length, 3, 'remembered: one request');
+  assert.deepEqual(asked(api.chats()[2].body), {});
+  assert.equal(server.status().state, 'ready');
+});
+
+test('end to end: a model that thinks whatever it is asked fails the turn with the notice code local-thinking after one request (it was asked not to think from the start), and nothing is remembered', async t => {
   const api = await scripted(t, () => ({thinking: 200}));
   const {server} = supervisor(t, api);
   const host = await hostFor(t, server);
   const error = await host.reply(turn('Where are you?')).catch(caught => caught);
   assert.equal(errorCodeFor(error), 'local-thinking', String(error));
-  assert.equal(api.chats().length, 2);
+  assert.equal(api.chats().length, 1);
   assert.deepEqual(host.memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns, []);
   assert.equal(server.status().state, 'ready');
 });

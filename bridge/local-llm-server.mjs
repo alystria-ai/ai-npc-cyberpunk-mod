@@ -11,7 +11,7 @@
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
 //   server.on('model-fallback', ({pin, reason, model}) => ...)                 // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead
 //   server.on('model-stepdown', ({from, model, free}) => ...)                  // turns stalled (the game took the graphics memory): `model` (its name) was loaded instead, or null when none is
-//                                                                              // left and the cloud text provider takes over (a 'failed' event with reason 'low-memory' follows at once)
+//                                                                              // left (none to step to: the same model is loaded with part of its layers on the CPU, or a 'failed' event with reason 'low-memory' and detail 'too-small' follows)
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   server.diagnostics()                                                       // what is loaded and how the turns went (model file, family, template, timings); for the log and the support report
 //   server.noteTurn({ok, trace, error, detail})                                // the host reports each local turn: kept in diagnostics(), a 'diagnostics' event on a failure and on the first turn after a start
@@ -32,10 +32,10 @@ import {spawn, execFile} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
 import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:net';
-import {tmpdir, freemem, totalmem, setPriority, constants as osConstants} from 'node:os';
+import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadThreads, probeProjectedMiB} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
@@ -48,6 +48,9 @@ const REASON_TEXT = Object.freeze({
   crashed: 'the local model server stopped working',
   stopped: 'the local model server was stopped',
 });
+
+/** The `detail` of a 'low-memory' failure after the model could not be placed even with part of its layers on the CPU (too few of them would stay on the card): Local AI is down, with no cloud fallback. */
+export const TOO_SMALL = 'too-small';
 
 export class LocalAiUnavailable extends Error {
   // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
@@ -71,6 +74,8 @@ const PLAYER_REASON = Object.freeze({
   crashed: 'the model server stopped working and did not start again',
 });
 export function unavailableDetail(reason, detail) {
+  // A model that cannot stay on the card even with part of it on the CPU (TOO_SMALL): the sentence says what to do about it, locally (no cloud provider is suggested).
+  if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
@@ -140,15 +145,20 @@ export function describeProps(body) {
 
 // The llama-server command line for the chat model. Pure; the key goes in a file, never on the command line.
 // `chatTemplate` (a model the player added, bridge/custom-models.mjs) is the name of a llama.cpp built-in template: `--chat-template`.
-// `offload` (a Mature model that does not fully fit the free graphics memory, bridge/local-model-choice.mjs): no layer count is given and the fit
-// pass is on, so llama-server keeps as many layers on the card as fit and runs the rest on the CPU (the context is given, so it stays).
+// `offload` (a model that does not fully fit the free graphics memory, bridge/local-model-choice.mjs; the caller gives it the context 8,192, the 8-bit cache, `fitTargetMiB` and `threads`
+// below): no layer count is given and the fit pass is on, so llama-server keeps as many layers on the card as fit, leaves `fitTargetMiB` of it free for the game and runs the rest on
+// the CPU (the context is given, so it stays).
 // `kvType` ('q8_0'): the KV cache type, only when the free-memory fit (bridge/local-vram-fit.mjs) needed the smaller cache to keep the whole model on the card.
-export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false, kvType = null}) {
+// `fitTargetMiB` / `threads` (an offloaded load only; nothing changes for a model that is wholly on the card): `-fitt`, the free memory the fit pass leaves on the card for the game
+// (llama-server's own default is 1,024), and `-t`, the CPU threads (about half the physical cores, so the game's CPU is not starved by the layers that run on it).
+export function buildServerArgs({model, port, keyFile, device, contextSize = LOCAL_LLM_LIMITS.contextSize, cacheRamMiB = 1024, host = '127.0.0.1', chatTemplate = null, offload = false, kvType = null,
+    fitTargetMiB = null, threads = null}) {
   if (!model || !port || !keyFile || !device) throw TypeError('model, port, keyFile and device are required');
   return ['-m', model, ...(offload ? [] : ['-ngl', '99']), '-fa', 'on', '-c', String(contextSize), ...(kvType ? ['-ctk', String(kvType), '-ctv', String(kvType)] : []), '-np', '1', '--reasoning', 'off',
     // -fit off: the layers, context and device are all given, so llama-server's fit pass (which loads the model a second time to
     // measure the devices) only costs start time (see bridge/local-embed.mjs).
-    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', offload ? 'on' : 'off', '--device', device, '--no-webui',
+    '--cache-ram', String(cacheRamMiB), '--ctx-checkpoints', '32', '-fit', offload ? 'on' : 'off',
+    ...(offload && fitTargetMiB ? ['-fitt', String(Math.round(fitTargetMiB))] : []), ...(offload && threads ? ['-t', String(Math.round(threads))] : []), '--device', device, '--no-webui',
     ...(chatTemplate ? ['--chat-template', String(chatTemplate)] : []),
     '--host', host, '--port', String(port), '--api-key-file', keyFile];
 }
@@ -496,6 +506,10 @@ export class LocalLlmServer extends EventEmitter {
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
+  // The model the next start loads with part of its layers on the CPU (a step-down with no smaller model, bridge/local-vram-fit.mjs offloadPlan), and the word that says why Local AI is
+  // 'failed' beyond its reason (TOO_SMALL: the model cannot stay on the card even with part of it on the CPU).
+  // `#offloadTried`: the models already reloaded once with part of their layers on the CPU after a step (a second time Local AI is unavailable instead: no loop of reloads).
+  #forcedOffload = null; #reasonDetail = null; #offloadTried = new Set();
   // While a step runs (#beginStep .. #endStep) the model is about to change: ensure() waits on this gate instead of starting a load the step would cancel (a turn that came
   // during #spillAct's free-memory read and fit probe started the large model again, #stepDown then stopped it, and the turn failed with 'stopped': 2026-10-21 reports).
   #stepGate = null;
@@ -525,12 +539,12 @@ export class LocalLlmServer extends EventEmitter {
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
-      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory} = {}) {
+      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, argsPrefix, processOptions, freeMemMiB,
-      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs});
+      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     this.command = command ?? pack?.server;
@@ -546,6 +560,7 @@ export class LocalLlmServer extends EventEmitter {
     const status = {state: this.#state, tier: this.#tier, model: this.#model};
     if (this.#contextSize && (this.#state === 'ready' || this.#state === 'warming')) status.contextSize = this.#contextSize;
     if (this.#reason) status.reason = this.#reason;
+    if (this.#reason && this.#reasonDetail) status.detail = this.#reasonDetail;
     if (this.#firstTime) status.firstTime = true;
     if (this.#info?.external && this.#state === 'ready') status.external = true;
     return status;
@@ -598,7 +613,7 @@ export class LocalLlmServer extends EventEmitter {
   async ensure({signal} = {}) {
     signal?.throwIfAborted();
     await this.#settleStep(signal);
-    if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason);
+    if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason, this.#reasonDetail ?? undefined);
     if (this.#state === 'ready' && (this.#proc?.running || this.#info?.external)) { this.touch(); return this.#handle(); }
     let awaited = this.#starting ?? this.#launch(false), handle;
     for (let superseded = 0; ; superseded++) {
@@ -607,7 +622,7 @@ export class LocalLlmServer extends EventEmitter {
         if (!(error instanceof LocalAiUnavailable) || error.reason !== 'stopped' || superseded >= 4) throw error;
         signal?.throwIfAborted();
         await this.#settleStep(signal);
-        if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason);
+        if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason, this.#reasonDetail ?? undefined);
         if (this.#state === 'ready' && (this.#proc?.running || this.#info?.external)) { this.touch(); return this.#handle(); }
         const newer = this.#starting;
         if (!newer || newer === awaited) throw error;
@@ -648,9 +663,11 @@ export class LocalLlmServer extends EventEmitter {
       error => {
         if (this.#starting === promise) this.#starting = null;
         if (error instanceof LocalAiUnavailable && error.reason !== 'stopped') {
-          // The start after a step-down found no room for the smaller model (the game took the card): the cloud text provider takes over, and the step says so.
-          if (this.#stepFrom) { this.#stepFrom = null; this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason);
+          // The start after a step-down found no room for the smaller model (the game took the card). A model that is too small a card for even with part of it on the CPU (TOO_SMALL) says so
+          // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
+          const tooSmall = error.detail === TOO_SMALL;
+          if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
+          this.#fail(error.reason, tooSmall ? TOO_SMALL : null);
         }
         throw error;
       });
@@ -660,14 +677,15 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // One failure episode: state 'failed', one 'failed' event, ensure() throws until reset().
-  #fail(reason) {
+  #fail(reason, detail = null) {
     if (this.#state === 'failed') return;
     this.#disarm();
     const proc = this.#proc; this.#proc = null; this.#info = null;
+    this.#reasonDetail = detail;
     this.#setState('failed', reason);
     if (proc) proc.stop().catch(() => {});
-    this.log('[local] the local model server is unavailable (' + reason + ')');
-    this.emit('failed', {reason});
+    this.log('[local] the local model server is unavailable (' + reason + (detail ? ': ' + detail : '') + ')');
+    this.emit('failed', {reason, ...(detail ? {detail} : {})});
   }
 
   // Clears a failure so the next ensure() tries again (the settings screen / a new session).
@@ -675,9 +693,9 @@ export class LocalLlmServer extends EventEmitter {
     this.#broken.clear();   // a custom model that failed to start gets another chance
     this.#deviceLosses = 0; this.#lostProc = null;
     this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
-    this.#refitted.clear(); this.#refitPlan = null;   // and a model that spilled into shared memory may be fitted again
+    this.#refitted.clear(); this.#refitPlan = null; this.#forcedOffload = null; this.#offloadTried.clear();   // and a model that spilled into shared memory may be fitted again
     if (this.#state !== 'failed') return;
-    this.#reason = null; this.#state = 'stopped';
+    this.#reason = null; this.#reasonDetail = null; this.#state = 'stopped';
     this.emit('state', this.status());
   }
 
@@ -791,6 +809,19 @@ export class LocalLlmServer extends EventEmitter {
     return result;
   }
 
+  // Where a model that does not fit whole goes (bridge/local-vram-fit.mjs offloadPlan): the projection of the offload placement (context 8,192, the 8-bit cache) from the fit that was
+  // already looked at, else from one llama-fit-params run (1 to 3 s, nothing allocated; none without the tool: the file size stands in), against the free memory. Never throws.
+  async #placeOffload(choice, freeMiB, device, fit) {
+    const {offloadContext: contextSize, offloadKvType: kvType} = FIT_LIMITS, model = choice.model;
+    let projectedMiB = fit?.projections?.find(rung => rung.contextSize === contextSize && rung.kvType === kvType)?.projectedMiB ?? null;
+    if (projectedMiB === null && typeof this.fitProbe === 'function' && model.file && device?.id) {
+      try { projectedMiB = await this.fitProbe({model: model.file, contextSize, kvType, device: device.id}); } catch { /* the file size stands in */ }
+    }
+    // A file whose size is unknown stands in with the fixed need of its tier (the same figure the file-size rule falls back to), so a card with next to nothing free is still refused.
+    const size = Number(choice.sizeMiB) || 0;
+    return offloadPlan({projectedMiB, sizeMiB: size > 0 ? size : tierNeedMiB(choice.profile, 0) - FIT_LIMITS.offloadEstimateExtraMiB, freeMiB});
+  }
+
   // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
   #announce(choice, selected) {
     // 'too-slow' is the step-down (noteStall): it has its own event and notice, emitted when the smaller model is loaded.
@@ -799,7 +830,8 @@ export class LocalLlmServer extends EventEmitter {
       this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
     }
     if (choice.gameReserve) this.log('[local] a small graphics card (' + (this.#totalMiB ?? '?') + ' MiB): room is kept for the game, so ' + choice.model.name + ' was chosen');
-    if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory: it is loaded with part of its layers on the CPU (Mature content never uses a censored model)');
+    if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory whole: it is loaded with part of its layers on the CPU if enough of them can stay on the card'
+      + (choice.model.uncensored ? ' (Mature content never uses a censored model)' : ''));
   }
 
   // The models to choose from now. Without an installed pack there is no llama-server of ours, so only the servers the player runs can answer.
@@ -856,7 +888,7 @@ export class LocalLlmServer extends EventEmitter {
    * reads the new choice itself). Returns whether a reload was done or queued.
    */
   async reselect() {
-    this.#stalled.clear(); this.#refitted.clear();   // a changed choice is tried whole: nothing stays left out for slow turns
+    this.#stalled.clear(); this.#refitted.clear(); this.#forcedOffload = null; this.#offloadTried.clear();   // a changed choice is tried whole: nothing stays left out for slow turns
     if (this.#state !== 'ready' && this.#state !== 'warming' && this.#state !== 'starting') return false;
     if (this.tierSetting === 'standard' || this.tierSetting === 'lite') return false;
     this.#reselectPending = true;
@@ -900,18 +932,37 @@ export class LocalLlmServer extends EventEmitter {
     this.#guard(generation);
     const realFit = await this.#probeFits(selected, freeMiB, device);
     this.#guard(generation);
-    const choice = this.#choose(pack, freeMiB, selected, realFit);
+    let choice = this.#choose(pack, freeMiB, selected, realFit);
+    // The model a step-down or a spill found no smaller model for: the same model, with part of its layers on the CPU (this start only).
+    const forced = this.#forcedOffload; this.#forcedOffload = null;
+    if (forced !== null && forced === choice.model.id && choice.model.external !== true && choice.offload !== true) choice = {...choice, offload: true};
     // With the card's numbers a file model turned out too large for it, and a server the player runs is the last resort: use it.
     if (choice.model.external === true) return this.#startExternal(choice.model, failedPin, generation);
+    // Part of the model on the CPU: where the fit pass would put it, and whether enough stays on the card to be worth it. Under FIT_LIMITS.hopelessShare the model would be CPU-bound (the 8 GB
+    // RTX 4060 report: 36 to 54 prompt tokens a second): it is not loaded, and Local AI says the card is too small (smaller model or Custom provider; never a cloud provider).
+    let placement = null;
+    if (choice.offload === true) {
+      placement = await this.#placeOffload(choice, freeMiB, device, realFit[choice.model.id] ?? null);
+      this.#guard(generation);
+      if (placement.hopeless) {
+        this.log('[local] ' + choice.model.name + ' is too large for this graphics card beside the game: only about ' + Math.round(placement.share * 100) + '% of its layers would stay on the card with '
+          + placement.targetMiB + ' MiB kept free for the game (' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free, ' + Math.round(FIT_LIMITS.hopelessShare * 100) + '% is the least): choose a smaller model in Settings, or use the Custom provider');
+        throw new LocalAiUnavailable('low-memory', TOO_SMALL);
+      }
+    }
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
     this.#announceStep(choice.model.id, choice.model.name);
     const tierKey = choice.profile, tier = choice.model;
     // The free-memory fit, when it was looked at (the file-size rule said no room): its context and cache type keep the whole model on the card; with no rung that fits the model is
-    // loaded with layers on the CPU as before and the fit says how many can stay (gpuShare).
+    // loaded with layers on the CPU (the offload placement below: context 8,192, the 8-bit cache).
     const fit = realFit[tier.id] ?? null;
     const fitted = fit?.pick && !tier.contextSize && !this.contextSize && choice.offload !== true ? fit.pick : null;
-    const kvType = fitted?.kvType ?? null;
-    const contextSize = tier.contextSize ?? this.contextSize ?? fitted?.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB});
+    const kvType = placement ? placement.kvType : fitted?.kvType ?? null;
+    const contextSize = tier.contextSize ?? this.contextSize ?? (placement ? placement.contextSize : fitted?.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB}));
+    const threads = placement ? offloadThreads(Number(this.cpuCount())) : null;
+    if (placement) this.log('[local] partial offload: ' + (tier.loadedName ?? tier.name) + ', ' + (placement.share === null ? 'the share of its layers on the card is unknown' : 'about ' + Math.round(placement.share * 100) + '% of its layers on the card')
+      + (placement.projectedMiB === null ? '' : ' (' + (placement.estimated ? 'estimated from the file, ' : 'projected ') + placement.projectedMiB + ' MiB at ' + placement.contextSize + ' ' + placement.kvType + ' against ' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free)')
+      + ', context ' + contextSize + ', ' + kvType + ' cache, fit target ' + placement.targetMiB + ' MiB kept free for the game, ' + threads + ' CPU threads');
     this.#tier = tierKey; this.#model = tier.loadedName ?? tier.name; this.#modelId = tier.id; this.#contextSize = contextSize;
     this.#hints = tier.custom ? {uncensored: tier.uncensored === true, family: tier.family ?? null} : null;
     const cacheRamMiB = this.cacheRamMiB ?? defaultCacheRamMiB(Number(this.freeMemMiB()));
@@ -925,12 +976,15 @@ export class LocalLlmServer extends EventEmitter {
       contextSize, cacheRamMiB, priority: 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null,
       kvType, fit: fit ? {pick: fit.pick ? {contextSize: fit.pick.contextSize, kvType: fit.pick.kvType, projectedMiB: fit.pick.projectedMiB} : null, share: fit.share ?? null, marginMiB: fit.marginMiB ?? null} : null,
-      gpuShare: choice.offload === true && Number.isFinite(fit?.share) ? fit.share : null};
+      gpuShare: choice.offload === true && Number.isFinite(placement?.share) ? placement.share : null,
+      forcedOffload: forced !== null && forced === choice.model.id,
+      offloadPlan: placement ? {share: placement.share === null ? null : Math.round(placement.share * 100) / 100, projectedMiB: placement.projectedMiB, estimated: placement.estimated, fitTargetMiB: placement.targetMiB, threads} : null};
     this.#turns.sinceStart = 0; this.#stalls = 0;
     const began = this.now();
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
-      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType}),
+      buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true, kvType,
+        fitTargetMiB: placement?.targetMiB ?? null, threads}),
       ...this.processOptions});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
@@ -1095,6 +1149,7 @@ export class LocalLlmServer extends EventEmitter {
       loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.kvType ? `${loaded.kvType} cache` : null, loaded.offload ? 'part on the CPU' : null,
       loaded.fit?.pick ? `whole model on the card by the free-memory fit (${loaded.fit.pick.projectedMiB} MiB projected)` : null,
       loaded.offload && Number.isFinite(loaded.gpuShare) ? `about ${Math.round(loaded.gpuShare * 100)}% of the layers on the card` : null,
+      loaded.offloadPlan ? `fit target ${loaded.offloadPlan.fitTargetMiB} MiB free for the game, ${loaded.offloadPlan.threads} CPU threads` : null,
       loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
       loaded.priority === 'below-normal' ? 'process priority normal while it loaded, below normal now (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
       loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
@@ -1121,7 +1176,7 @@ export class LocalLlmServer extends EventEmitter {
         custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
       engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
         contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null,
-        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.spill ? {spill: loaded.spill} : {})},
+        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {})},
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
@@ -1270,7 +1325,7 @@ export class LocalLlmServer extends EventEmitter {
    * A request failed because the graphics device was lost (Vulkan ErrorDeviceLost: a driver reset, the game taking the card). llama-server stays alive and its /health keeps
    * answering, so recover()'s health check would call it fine while every turn fails. The first loss of a session ends the server and starts it again (after
    * deviceLostPauseMs, which gives the driver time to reset); the second (deviceLostStepDown) steps down one model size as after stalled turns (#stepDown: its notice, the model
-   * left out for the session, the cloud text provider when none is smaller) and the count starts again for the model loaded then. A model the player added is only restarted, and
+   * left out for the session, the same model with part of it on the CPU when none is smaller) and the count starts again for the model loaded then. A model the player added is only restarted, and
    * after two more losses with nowhere to step down Local AI is marked failed rather than restarted for ever. One process counts once. Returns 'restart', 'step', 'failed' or
    * null when nothing was done (a server the player runs, a start already under way). Never throws. Only after a failed request: nothing runs per frame.
    */
@@ -1489,7 +1544,7 @@ export class LocalLlmServer extends EventEmitter {
    * warm-up is counted here). The game takes the graphics memory after the model was loaded, the driver moves the model into shared system memory and the
    * prompt is then read at a crawl; a second stall (stallStepDown; the first on a small card the model does not leave room on), with no answer in between, steps down: the model is left out for this session and the next
    * smaller installed model of the same family is loaded (Mature good to lite, standard to lite; never a censored model for an uncensored one), and when there is
-   * none the server fails with 'low-memory' so the cloud text provider takes over. The saved choice stays. Models the player added and servers the player runs
+   * none the same model is loaded with part of its layers on the CPU, or the server fails with 'low-memory' (detail 'too-small', a local notice; #stepDown). The saved choice stays. Models the player added and servers the player runs
    * never step down. One free-memory reading (nvidia-smi) goes into the log, only now. Never throws, never blocks the caller. Returns whether a step was started.
    */
   noteStall(what = 'a request') {
@@ -1540,7 +1595,7 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // This session already stepped a model down, and the one loaded now has part of its layers on the CPU.
-  #offloadedAfterStep() { return this.#stalled.size > 0 && this.#loaded?.offload === true; }
+  #offloadedAfterStep() { return (this.#stalled.size > 0 || this.#loaded?.forcedOffload === true) && this.#loaded?.offload === true; }
 
   #hopelessOffload() {
     const loaded = this.#loaded;
@@ -1595,13 +1650,15 @@ export class LocalLlmServer extends EventEmitter {
    * A model spilled into shared memory: it reads at a crawl (83 to 3.9 generated tokens a second measured). The card the game leaves is smaller than it was at the load, so the model is
    * unloaded (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to what is free now, once per model per session: the largest context
    * of the ladder whose projection plus FIT_LIMITS.refitMarginMiB fits, with the 8-bit KV cache as the last rung (the whole model on the card: a model half on the CPU reads prompts
-   * no faster). When no rung fits, or the refit spilled again, the model steps down as after two stalls (#stepDown). The saved choice is never changed.
+   * no faster). When no rung fits, or the refit spilled again, the next smaller model of its family is loaded (#stepDown), and with none the same model is loaded with part of its
+   * layers on the CPU if enough of them can stay on the card (FIT_LIMITS.hopelessShare), else Local AI is unavailable ('low-memory', TOO_SMALL: no cloud provider takes the turns).
+   * The saved choice is never changed. A model the player added is handled the same way (it was left alone before: a spilled one stayed at 1 to 5 tokens a second).
    */
   async #spillAct(verdict) {
     const fromId = this.#modelId, selected = this.#selected(this.pack);
     const from = selected.models.find(model => model.id === fromId);
-    if (!from || from.custom === true) return;
-    if (this.#refitted.has(fromId)) { this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down'); return this.#stepDown(); }
+    if (!from || from.external === true) return;
+    if (this.#refitted.has(fromId)) { this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down'); return this.#stepDown({spill: true}); }
     this.#refitted.add(fromId);
     this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory): unloading it and loading it again fitted to what is free');
     await this.stop();
@@ -1616,28 +1673,50 @@ export class LocalLlmServer extends EventEmitter {
       return;
     }
     this.log('[local] ' + this.#model + ' does not fit whole in the ' + (Number.isFinite(free) ? Math.round(free) + ' MiB' : 'memory') + ' that is free now: stepping down');
-    return this.#stepDown();
+    return this.#stepDown({free: Number.isFinite(free) ? free : null, spill: true});
   }
 
-  async #stepDown() {
+  /**
+   * The loaded model has to leave the card (stalled turns, a lost device twice, a spill that could not be fitted). The next smaller installed model of its family is loaded when there is one.
+   * With none, the same model is loaded again with part of its layers on the CPU (`-fit on`, context 8,192, the 8-bit cache, FIT_LIMITS.offloadGameRoomMiB kept free for the game; the start
+   * refuses it when under FIT_LIMITS.hopelessShare of the layers would stay on the card), and a model that already runs that way, or is too large, makes Local AI unavailable with the
+   * 'low-memory' reason and the TOO_SMALL detail: its notice says the card is too small and points to a smaller model or the Custom provider. No cloud provider takes the turns.
+   * `spill` lets a model the player added through (a stall never steps one of those down). `free`: the free memory already read.
+   */
+  async #stepDown({free: known = null, spill = false} = {}) {
     const fromId = this.#modelId, fromName = this.#model;
     const selected = this.#selected(this.pack);
     const from = selected.models.find(model => model.id === fromId);
-    // Only a model of a pack (standard, lite, Mature good, Mature lite) steps down; one the player added is theirs to change.
-    if (!from || from.custom === true) return;
-    let free = null;
-    try { free = Number(await this.freeVramMiB()); } catch { /* the reading is for the log */ }
-    if (!Number.isFinite(free)) free = null;
+    // Only a model of a pack (standard, lite, Mature good, Mature lite) steps down on a stall; one the player added is theirs to change (a spill is the exception: see #spillAct).
+    if (!from || (from.custom === true && !spill)) return;
+    let free = Number.isFinite(known) ? known : null;
+    if (free === null) {
+      try { free = Number(await this.freeVramMiB()); } catch { /* the reading is for the log */ }
+      if (!Number.isFinite(free)) free = null;
+    }
     const next = stepDownTarget({models: selected.models, from, sizeOf: file => this.fileSizeMiB(file)});
-    this.#stalled.add(fromId);
-    this.log('[local] stepping down from ' + fromName + (free === null ? '' : ' (' + Math.round(free) + ' MiB of graphics memory free now)') + ': '
-      + (next ? next.name + ' is the next smaller model' : 'no smaller model is installed, the cloud text provider takes over'));
-    this.#stepFrom = fromId; this.#stepFree = free;
-    await this.stop();   // its graphics memory goes back to the game before the smaller model is chosen
-    if (next) { this.#kick(); return; }
+    const freeText = free === null ? '' : ' (' + Math.round(free) + ' MiB of graphics memory free now)';
+    if (next) {
+      this.#stalled.add(fromId);
+      this.log('[local] stepping down from ' + fromName + freeText + ': ' + next.name + ' is the next smaller model');
+      this.#stepFrom = fromId; this.#stepFree = free;
+      await this.stop();   // its graphics memory goes back to the game before the smaller model is chosen
+      this.#kick();
+      return;
+    }
     this.#stepFrom = null;
-    this.emit('model-stepdown', {from: fromName, model: null, free});
-    this.#fail('low-memory');
+    if ((this.#loaded?.id === fromId && this.#loaded.offload === true) || this.#offloadTried.has(fromId)) {
+      // Already part on the CPU (now or earlier this session) and still too slow, spilled or lost: nothing smaller, nothing more to give up. The saved choice stays; reset() or a changed choice tries again.
+      this.#stalled.add(fromId);
+      this.log('[local] stepping down from ' + fromName + freeText + ': it already ran with part of its layers on the CPU and no smaller model is installed, so Local AI is unavailable (the card is too small for the model beside the game)');
+      await this.stop();
+      this.#fail('low-memory', TOO_SMALL);
+      return;
+    }
+    this.log('[local] stepping down from ' + fromName + freeText + ': no smaller model is installed, so the same model is loaded again with part of its layers on the CPU if enough of them can stay on the card');
+    this.#forcedOffload = fromId; this.#offloadTried.add(fromId);
+    await this.stop();   // its graphics memory goes back to the game before the placement is worked out
+    this.#kick();
   }
 
   // The start that follows a step names the model it loaded instead (once): the host tells the player.

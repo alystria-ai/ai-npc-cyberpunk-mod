@@ -443,6 +443,8 @@ message and checked against the finished reply (`planTurnVoice`, `replyVoice`; t
 - Pocket TTS (English only) and Voxtral for a language it does not list keep the plan; a reply in another language is shown as text, with one
   `voice-language` notice per game session. The Convai cloud voice is only the voice when the player chose it (the twins have Azure multilingual voices).
   A local voice never hands a reply to a cloud voice.
+- An OmniVoice choice that cannot run shows the replies as text, never Pocket in its place and never a cloud voice (`VoiceSelection.resolve`, route `text`;
+  changed 2026-10-21, before it fell to the cloud voice). Only a chosen Voxtral voice that cannot be asked falls to the Convai voice (cloud to cloud).
 - A turn the cloud voice speaks gets no Natural speech or Expressive emotions (emotion tag) instructions.
 - The expected language is the player's message (detector above), else the language of the last exchange (reactions, the microphone placeholder, warm
   connections), else English. A reaction's reply does not set the conversation's language.

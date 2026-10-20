@@ -406,14 +406,12 @@ test('the host: a local turn that fails with Mature content on is never handed t
   } finally { harness.close(); }
 });
 
-test('the host: with Mature content off a failed local turn still falls back to Mistral, and that prompt has no layer', async () => {
+test('the host: with Mature content off a failed local turn is not handed to Mistral either (owner rule 2026-10-21), and turned on in between nothing changes', async () => {
   const harness = await hostWith({preference: 'local', enabled: false, localFails: true});
   try {
-    await harness.host.reply(turn('hello'));
+    await assert.rejects(harness.host.reply(turn('hello')));
     const routes = harness.seen.map(call => call.route);
-    assert.equal(routes[0], 'local'); assert(routes.includes('mistral'), routes.join(','));
-    assert.doesNotMatch(JSON.stringify(harness.seen.find(call => call.route === 'mistral').all), /MATURE|HARD LIMITS/);
-    // Turned on in between: the next failed turn stays on the local route.
+    assert(routes.length >= 1 && routes.every(route => route === 'local'), 'only the local AI was asked: ' + routes.join(','));
     harness.matureContent.update({matureContent: true});
     const before = harness.seen.length;
     await assert.rejects(harness.host.reply(turn('again')));

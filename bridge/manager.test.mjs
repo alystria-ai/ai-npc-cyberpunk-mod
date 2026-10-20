@@ -3094,9 +3094,15 @@ test('a voice that could not run is announced once in gameplay, again only after
     state.fallback, state.provider = nil, 'omni'
     for _ = 1, 3 do popupTick(true) end
     assert(#popups == 1)
-    state.fallback, state.provider, state.routedProfiles = {from = 'pocket', to = 'convai'}, 'convai', {}
+    -- A local voice that cannot run is never replaced by a cloud voice: the replies are shown as text (the bridge's route 'text').
+    state.fallback, state.provider, state.routedProfiles = {from = 'pocket', to = 'text'}, 'text', {}
     for _ = 1, 3 do popupTick(true) end
-    assert(#popups == 2 and popups[2] == 'Pocket · Performance is unavailable. Companions are using Convai · Cloud voice instead.', popups[2])
+    assert(#popups == 2 and popups[2] == 'Pocket · Performance is unavailable right now. Replies show as text until it is back.', #popups .. ' ' .. tostring(popups[2]))
+    assert(not popups[2]:find('Convai') and not popups[2]:find('Mistral'), 'the notice suggests no cloud voice')
+    -- The same wording while the voice is being loaded again in the background (temporary), once.
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'text', temporary = true}, 'text', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 3 and popups[3] == 'OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.', #popups .. ' ' .. tostring(popups[3]))
     assert(manager.voiceLabel('omni', 32, 'short') == 'OmniVoice · High Quality')
     assert(manager.voiceLabel('omni', 32, 'long') == 'OmniVoice · Ultra Quality')
     assert(manager.voiceLabel('omni', 16, 'short') == 'OmniVoice · Balanced')
@@ -4335,17 +4341,24 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(id == 'voice-language' and text:find('does not speak', 1, true) and text:find('Voxtral', 1, true) and text:find('OmniVoice', 1, true) and not text:find('Recommended', 1, true), text)
     sendProviderNotice({}, 'voice-language', 'v'); assert(sent[#sent] == 'voice-language=v', table.concat(sent, ';')); sent[#sent] = nil
     -- The one-time notices go through the gate under their own ids; anything else sends nothing.
-    -- Local AI fell back to Convai: the same line on the first reply (keyNotice) and on a failed turn (errorCode).
-    local expected = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'
+    -- Local AI never hands its turns to a cloud provider (owner rule 2026-10-21): an older bridge's local-fallback (on the first reply or on a failed turn) reads as
+    -- Local AI's own sentence under the local-unavailable id, and there is no per-turn cloud notice.
+    local expected = 'Local AI could not start. Check Local AI in Settings > Conversation provider.'
     id, text = notice({keyNotice = 'local-fallback', text = 'Hello'})
-    assert(id == 'local-fallback' and text == expected, text)
+    assert(id == 'local-unavailable' and text == expected, text)
     id, text = notice({errorCode = 'local-fallback', error = 'x'})
-    assert(id == 'local-fallback' and text == expected, text)
-    assert(not text:lower():find('mistral', 1, true) and not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
+    assert(id == 'local-unavailable' and text == expected, text)
+    assert(not text:lower():find('cloud', 1, true) and not text:lower():find('mistral', 1, true) and not text:lower():find('paid', 1, true) and not text:lower():find('text only', 1, true))
+    assert(notice({keyNotice = 'local-turn-fallback', text = 'Hello'}) == nil, 'no notice says a cloud provider answered')
+    -- Local AI stepped down: the model is named; an older bridge's step-down without a name reads 'another model', never a cloud provider.
+    id, text = notice({keyNotice = 'local-stepdown', keyNoticeModel = 'Qwen3.5-2B', text = 'Hello'})
+    assert(id == 'local-stepdown' and text == 'Local AI switched to Qwen3.5-2B: the game is using most of your graphics memory.', text)
+    id, text = notice({keyNotice = 'local-stepdown', text = 'Hello'})
+    assert(id == 'local-stepdown' and text == 'Local AI switched to another model: the game is using most of your graphics memory.', text)
     sendProviderNotice({}, 'mistral-no-key', 'a'); sendProviderNotice({}, 'mistral-voice', 'b'); sendProviderNotice({}, 'key-memory', 'c')
     assert(#sent == 2 and sent[1] == 'mistral-no-key=a' and sent[2] == 'mistral-voice=b', table.concat(sent, ';'))
-    sendProviderNotice({}, 'local-fallback', 'd')
-    assert(#sent == 3 and sent[3] == 'local-fallback=d', table.concat(sent, ';'))
+    sendProviderNotice({}, 'local-fallback', 'd'); sendProviderNotice({}, 'local-turn-fallback', 'd')
+    assert(#sent == 2, 'the retired cloud notices send nothing: ' .. table.concat(sent, ';'))
     -- The Local AI model the player chose is missing or does not fit: one line on the reply that follows, under its own id.
     -- It names the model that was used instead (the reply carries its name); a missing or odd name reads 'another model'.
     id, text = notice({keyNotice = 'local-model-fallback', keyNoticeModel = 'Qwen3.5-2B', text = 'Hello'})
@@ -4360,7 +4373,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(id == 'local-model-fallback' and text == 'The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so another model was used instead.', text)
     assert(not text:find('Auto', 1, true))
     sendProviderNotice({}, 'local-model-fallback', 'e')
-    assert(#sent == 4 and sent[4] == 'local-model-fallback=e', table.concat(sent, ';'))
+    assert(#sent == 3 and sent[3] == 'local-model-fallback=e', table.concat(sent, ';'))
     assert(notice({errorCode = 'quota-shared'}) == 'quota-exhausted', 'the Convai refusals keep their own notice')
     assert(notice({text = 'Hello'}) == nil and notice({keyNotice = 'other'}) == nil)
   `);

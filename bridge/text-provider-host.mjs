@@ -93,6 +93,9 @@ export const CUSTOM_SERVER_LIMITS = Object.freeze({firstByteMs: 90_000, retryFir
 const LOCAL_UNAVAILABLE =/\[local:unavailable\]/;
 /** Is this error "the local AI cannot be used" (not installed, not enough graphics memory, would not start)? */
 export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.message === 'string' ? error.message : '');
+/** Failures of the local model server the next turn may start again (localRoute); not 'not-installed' or 'mature-off', which the install and the Mature setting cure. */
+export const LOCAL_RETRY_REASONS = Object.freeze(new Set(['low-memory', 'start-failed', 'crashed']));
+export const LOCAL_RETRY_MS = 10_000;
 
 // ---- Routes ------------------------------------------------------------------------------------------------------------------
 
@@ -178,7 +181,23 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
  * first turn after an idle unload). Background work (summaries, facts) never starts the server: it runs only while it is loaded.
  */
-export function localRoute({server, chat = streamChat, provider, onFailure, log = () => {}} = {}) {
+export function localRoute({server, chat = streamChat, provider, onFailure, log = () => {}, now = () => Date.now()} = {}) {
+  // A Local AI that failed for a reason the next start may not meet again (not enough free graphics memory, a start that failed, a crash) is started again by
+  // the next turn that needs it, at most once every LOCAL_RETRY_MS, so a later turn recovers without the player touching Settings. Not 'not-installed' and
+  // not 'mature-off': the install and the Mature setting have their own polls. No timer: it runs only when a turn comes. Turns are never handed to another provider.
+  // A start this route's own turn just made and lost counts as the last try too (one turn never starts the model twice).
+  let lastRetry = -Infinity;
+  const retryFailed = () => {
+    try {
+      const status = server.status?.();
+      if (status?.state !== 'failed' || !LOCAL_RETRY_REASONS.has(status.reason)) return;
+      const at = now();
+      if (at - lastRetry < LOCAL_RETRY_MS) return;
+      lastRetry = at;
+      log('The local AI failed earlier (' + status.reason + '); this turn starts it again');
+      server.reset?.();
+    } catch { /* a retry is best effort */ }
+  };
   // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
   // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
   const meters = new Map();
@@ -201,7 +220,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   const adaptations = new Map();
   const adaptation = connection => {
     const key = `${connection.trustedOrigin}|${connection.requestModel ?? ''}`;
-    if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
+    // `thinks: true` from the start: a server the player runs (LM Studio, Ollama, KoboldCpp) gets the fields that ask for no thinking on its FIRST request, not after a reply of only thinking
+    // (one wasted turn); one that refuses a field by name loses just that field and the request is sent again at once (bridge/mistral-client.mjs learnRefusal).
+    if (!adaptations.has(key)) adaptations.set(key, {...newAdaptation(), thinks: true});
     return adaptations.get(key);
   };
   chat = budgetedChat(survivingLoss(chat, {server, log}), {
@@ -242,9 +263,10 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     models: () => [{id: 'local'}],
     // waitMs: the most this turn can still wait (its budget, LOCAL_TURN_BUDGET_MS). A model that is still loading then (a first start compiles shaders for a
     // minute or two; a reload after a changed choice) ends the turn with its own explanation instead of the game's silent timeout; the load itself goes on, so
-    // the next turn finds the model ready. With a cloud key saved the cloud provider answers that turn (fallsBack).
+    // the next turn finds the model ready. No other provider ever answers that turn.
     async connect(signal, {background = false, waitMs, profileKey, persona = null} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
+      if (!background) retryFailed();
       // The server has one slot: a warm-up of another character's persona that is still being read must not stand in this request's way, and neither
       // may a summary or memory work (nobody waits for those). (A warm-up of this character's own persona is the prefix this request needs, so it is waited for.)
       let stopped = false;
@@ -253,6 +275,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       const bounded = Number.isFinite(waitMs) ? AbortSignal.timeout(Math.max(0, Math.ceil(waitMs))) : null;   // a whole number of milliseconds, or it throws
       try { connection = await server.ensure({signal: bounded ? (signal ? AbortSignal.any([signal, bounded]) : bounded) : signal, background}); }
       catch (error) {
+        lastRetry = now();
         if (bounded?.aborted && !signal?.aborted && error?.name === 'TimeoutError') {
           throw new MistralError('network', 'is still loading the model', {provider: 'local', slow: true, reason: 'loading', noRetry: true, trace: {...newTrace(), elapsedMs: Math.round(waitMs)}});
         }
@@ -272,8 +295,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (!background) { try { server.noteSlot?.(typeof persona === 'string' ? persona : null); } catch { /* the warm-up is best effort */ } }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
       const done = typeof server.begin === 'function' ? server.begin({background, cancel: stopper ? () => stopper.abort() : null}) : null;
-      // A server the player runs: what it has refused, and the fields that ask for no thinking, sent once a request came back with nothing but thinking (a model of a
-      // name nobody listed is not asked for less thinking from the start). Our own llama-server never thinks and has neither.
+      // A server the player runs: what it has refused, and the fields that ask for no thinking, sent from its first request (the adaptation above starts with `thinks`). Our own llama-server never thinks and has neither.
       let hostname = ''; try { hostname = new URL(connection.endpoint).hostname; } catch { /* no address: nothing to ask */ }
       const own = connection.external === true ? {adapt: adaptation(connection), noThinking: noThinkingFields({hostname, local: true})} : {};
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
@@ -297,11 +319,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     stepDownNear: () => { try { return server.stepDownNear?.() === true; } catch { return false; } },
     jsonBody: () => ({response_format: {type: 'json_schema', json_schema: {name: 'facts', strict: true, schema: FACT_SCHEMA}}}),
     summarizeAllowed: () => true,
-    // Any failure of a local turn (a refused prompt, no answer, a server that went away) hands the turn to the player's cloud provider
-    // when there is one (TextProviderHost#candidates); without one the turn fails and the game says so (local-failed).
-    fallsBack: () => true,
-    // The turn is about to be answered by the cloud: the game tells the player once (a start that failed has its own notice).
-    fellBack(error) { if (!isLocalUnavailable(error)) provider?.noteLocalTurnFallback?.(); },
+    // A failed local turn (a refused prompt, no answer, a server that went away, a start that failed) is never handed to another provider (owner rule 2026-10-21):
+    // it fails and the game says so (local-failed, local-unavailable, local-no-memory); the next turn tries Local AI again.
+    fallsBack: () => false,
     success() { /* nothing to clear */ },
     failure(error) {
       // 'stopped': the start this turn waited for was ended on purpose (a step-down, a reload, the player's own change). That is not a failure of Local AI, and marking
@@ -326,7 +346,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
     // The model is down or on its way up (the idle stop, a reload), so the first request of a turn waits for it; `prepare` starts that load (and waits for it) at the start of the turn.
     loadPending: () => { try { const state = server.status?.()?.state; return state === 'stopped' || state === 'starting' || state === 'warming'; } catch { return false; } },
-    prepare: async signal => { try { await server.ensure({signal}); return true; } catch { return false; } },
+    prepare: async signal => { retryFailed(); try { await server.ensure({signal}); return true; } catch { lastRetry = now(); return false; } },
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
     modelHints: () => server.modelHints ?? null,
     label: 'The local AI'};
@@ -469,17 +489,13 @@ export class TextProviderHost {
   }
 
   /**
-   * The routes a turn may use, in order: the provider's own, then (the local AI only) Mistral when the player has a Mistral key. Not with Mature
-   * content on (owner decision 2026-10-20: Mistral gets no Mature turn, and a fallback would send it the character's crude history and V's words): the
-   * turn then fails with the local AI's own reason, as it does when there is no Mistral key.
+   * The routes a turn may use: the provider's own, and no other. A failing Local AI never hands a turn to Mistral or Convai, with or without a saved key, with
+   * Mature content on or off (owner rule 2026-10-21, after a player's surprise cloud use): the turn fails with the local AI's own reason and the next one tries again.
    */
   #candidates() {
     const first = this.routes[this.provider.route];
     if (!first) throw new MistralError('request', 'has no route for this provider');
-    const list = [first];
-    // The local AI: Mistral answers a turn it could not when the player has a Mistral key saved.
-    if (first.name === 'local' && this.routes.mistral && this.provider.apiKey && this.matureContent?.enabled !== true) list.push(this.routes.mistral);
-    return list;
+    return [first];
   }
 
   /**
@@ -620,7 +636,6 @@ export class TextProviderHost {
         this.#noteLocalTurn(route, {ok: false, error});
         if (index < candidates.length - 1 && route.fallsBack(error) && !feed.committed) {
           this.log(`${route.label} could not answer (${failureKind(error) ?? 'error'}); using ${candidates[index + 1].label}`);
-          try { route.fellBack?.(error); } catch { /* a notice never fails the turn */ }
           continue;
         }
         if (confirmed) await confirmed;

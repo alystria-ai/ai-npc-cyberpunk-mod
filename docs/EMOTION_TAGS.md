@@ -38,7 +38,7 @@ The parser is lenient about what a model writes: aliases (`{angry}`, `{Joy}`, `{
 The block is sent only when **both** of these hold: the turn is spoken (not phone chat, not silent
 playback), and the voice that will speak it is a local one (OmniVoice or Pocket). With the Convai cloud voice nothing is sent,
 because Convai would read the braces aloud. There is no setting and no pairing rule in the manager since 2026-10-20: the bridge
-decides per turn from the engine that speaks (`contextFor({engine})`), so a fallback to the cloud voice mid-session sends no block.
+decides per turn from the engine that speaks (`contextFor({engine})`), so a fallback to text (or to the cloud voice the player chose) mid-session sends no block.
 (Natural speech, which writes square-bracket sounds, still excludes the Convai cloud voice where Convai is the provider: `docs/MANAGER_UI.md`.)
 
 Mid-session safety (a character that wrote tags for a while, then the voice switches to Convai and the block stops): in a

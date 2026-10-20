@@ -73,6 +73,7 @@ test('VoiceSelection.preparesOnGpu: OmniVoice speaking the companions with playb
   assert.equal(selection({provider: 'omni', closed: true}).preparesOnGpu, false);
   assert.equal(selection({provider: 'pocket'}).preparesOnGpu, false, 'Pocket prepares on the CPU');
   assert.equal(selection({provider: 'convai'}).preparesOnGpu, false);
+  assert.equal(selection({provider: 'text'}).preparesOnGpu, false, 'a local voice that cannot run prepares nothing');
 });
 
 test('the local AI does not load the persona of a character that is only near; the composer and the other roles still do', async () => {
