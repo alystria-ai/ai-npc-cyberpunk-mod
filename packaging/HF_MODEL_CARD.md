@@ -17,22 +17,23 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 
 **Mod page:** [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436), with the full description, requirements and support.
 
-Every file sits in the version folder (`0.2.3/`) with its `SHA256SUMS-*.txt` checksum.
+Every file sits in the version folder (`0.2.4/`) with its `SHA256SUMS-*.txt` checksum.
 
 ## Which files do I need?
 
 | File | Size | What it is | Need it? |
 |---|---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.3.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.3.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip` | 23 MB | The Runtime update: only the files that changed between 0.2.2 and 0.2.3. Extract it over your existing 0.2.2 Runtime instead of downloading the full Runtime; choose Replace if Windows asks. Files 0.2.3 no longer needs are removed by the mod at the next start. | Optional: only if you have the 0.2.2 Runtime installed (otherwise use the full Runtime) |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.3.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.3.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
-| `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.3.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
-| `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.3.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
-| `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.3.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
-| `AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip` | about 0.67 GB | Microphone in Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, for Local AI and Custom endpoints (NVIDIA Parakeet TDT 0.6B v3, int8). Runs on the processor. | Optional |
-| `AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.3.zip` | about 0.24 GB | Microphone in Mandarin Chinese, Japanese and Korean for Local AI and Custom endpoints (SenseVoice Small, int8). Runs on the processor. | Optional |
+| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.4.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.4.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.3-to-0.2.4.zip` | SIZE_024 | The Runtime update: only the files that changed between 0.2.3 and 0.2.4. Extract it over your existing 0.2.3 Runtime instead of downloading the full Runtime; choose Replace if Windows asks. Files 0.2.4 no longer needs are removed by the mod at the next start. | Optional: only if you have the 0.2.3 Runtime installed |
+| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip` | 23 MB | The earlier step, kept for players on 0.2.2: extract it first, then the 0.2.3-to-0.2.4 update. | Optional: only if you have the 0.2.2 Runtime installed |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.4.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.4.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
+| `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.4.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
+| `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.4.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
+| `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.4.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
+| `AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.4.zip` | about 0.67 GB | Microphone in Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, for Local AI and Custom endpoints (NVIDIA Parakeet TDT 0.6B v3, int8). Runs on the processor. | Optional |
+| `AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.4.zip` | about 0.24 GB | Microphone in Mandarin Chinese, Japanese and Korean for Local AI and Custom endpoints (SenseVoice Small, int8). Runs on the processor. | Optional |
 
 **You can skip every optional pack.** The mod works without them with Mistral (cloud, your own free key) or the Convai free tier (cloud, the default, nothing to set up), both at no cost to your frame rate. Local AI can also use a model server you already run (KoboldCpp, LM Studio, Ollama or any OpenAI-compatible one) with no pack; the steps are on the Nexus Mods page. The packs only add local options that run on your own graphics card.
 
