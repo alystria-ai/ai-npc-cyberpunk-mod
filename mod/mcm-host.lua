@@ -87,7 +87,8 @@ local reloadWanted, reloadAfter, revertWanted = false, 0, false
 local statusSent, lastError = nil, ''
 local currentBack, pageSeen
 -- The page controls of the page last loaded: the page of its long list and how many there are, the letter group and how many.
-local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil}
+-- `status` holds the status lines of the category being converted ({text, help}), which the heading says (see STATUS_ROWS).
+local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil, status = {}}
 local configured = false
 
 local function log(message)
@@ -171,6 +172,15 @@ local function action(id, label, value, description)
         capabilities = CAPABILITIES.action}
 end
 
+-- The status lines of manager-ui.lua's pages: what the row above a list says. MCM draws a read-only line (McmUiAddReadonly) as a surface at
+-- x 20 with its text inset by 16 (MCMLayout.ListRowTextLeftInset; 4 when the list selection is text-only), while the label of an action
+-- row starts at x 20 and labelIndent does not reach a read-only line. So a status line above a list of buttons sat 16 px to the right of
+-- the names under it and read as a stray heading. The heading of the category says it instead ("Characters to invite · Load a save first ·
+-- Page 1 / 11"), like the page number, and the help of the line is the page's description (the schema's, which MCM's description panel
+-- shows while no row is hovered: MCM's own heading has no hover text). Native Settings UI draws the rows as they are.
+-- Each entry names the part of the row the heading says: its value, its label, or both (the label, then the value).
+local STATUS_ROWS = {['needs-save'] = 'value', ['empty-party'] = 'label', ['model-status'] = 'label', ['chauffeur-state'] = 'both'}
+
 -- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes
 -- footer buttons (the second value is 'footer': they go in the footer, beside the way back, and not in the list).
 local function convert(row)
@@ -189,6 +199,14 @@ local function convert(row)
         controls.group, controls.groups = group, math.max(1, #elements)
         local current = ui.t('Starts with: {letter}', {letter = elements[group] or ''})
         return {action('ui:group:next', current, current, row.description)}, 'footer'
+    elseif STATUS_ROWS[id] then
+        local part = STATUS_ROWS[id]
+        local text = part == 'value' and tostring(row.value or '') or tostring(row.label or '')
+        if part == 'both' and tostring(row.value or '') ~= '' then text = text .. ' · ' .. tostring(row.value) end
+        -- `row` is the line as a line: it stays one when nothing is listed under it (see schema).
+        controls.status[#controls.status + 1] = {text = text, help = tostring(row.description or ''), row = {{id = id, type = 'string',
+            label = row.label, description = row.description or '', value = tostring(row.value or ''), capabilities = CAPABILITIES.text}}}
+        return nil
     elseif id == 'list-range' then
         -- The page number and the names the page runs between: the heading of the list says them (see schema).
         controls.range = {label = row.label, names = tostring(row.value or '')}
@@ -220,13 +238,14 @@ local function isBack(id) return id:match(':back$') ~= nil or id == 'memory:sett
 local function schema()
     local model = core.model()
     local categories, disabledChoices, disabledReasons, footer = {}, {}, {}, {}
+    local pageHelp = {}
     currentBack = nil
     -- The confirmation of Restore defaults is for the page it was asked on.
     if restoreArmed and core.pageId() ~= restorePage then restoreArmed = false end
     controls.page, controls.pages, controls.group, controls.groups, controls.range = 1, 1, 1, 1, nil
     for _, category in ipairs(model.categories) do
         local settings = {}
-        controls.range = nil
+        controls.range, controls.status = nil, {}
         for _, row in ipairs(category.settings) do
             local converted, placed = convert(row)
             for _, item in ipairs(converted or {}) do
@@ -236,9 +255,23 @@ local function schema()
             end
             if row.disabledElements then disabledChoices[row.id], disabledReasons[row.id] = row.disabledElements, row.disabledReason end
         end
+        -- Nothing is listed under a status line (no save and no party, the models still being read): MCM draws no heading for a
+        -- category without rows, so the line stays a line, with nothing under it to be out of line with.
+        if #settings == 0 then
+            for _, status in ipairs(controls.status) do
+                for _, item in ipairs(status.row) do settings[#settings + 1] = item end
+            end
+            controls.status = {}
+        end
         local name, description = category.name, category.description or ''
-        -- A paged list says its page in its heading, which MCM draws like every other heading (a line of the list would be drawn in
-        -- another size and place than the buttons of the list).
+        -- A status line (a save is needed, the party is empty, how many models match) is said by the heading, then the page of a paged
+        -- list; the help of each line is the page's description. A heading is drawn like every other heading, where a line of the list
+        -- would be drawn in another size and place than the buttons of the list.
+        for _, status in ipairs(controls.status) do
+            if status.text ~= '' then name = name .. ' · ' .. status.text end
+            local help = status.help:gsub('%s+$', '')
+            if help ~= '' then pageHelp[#pageHelp + 1] = help end
+        end
         if controls.range and controls.pages > 1 then
             name = name .. ' · ' .. controls.range.label
             description = controls.range.names
@@ -314,7 +347,7 @@ local function schema()
         end
         choiceStatesHeld = held
     end
-    return {name = model.name, description = model.description, categories = categories}
+    return {name = model.name, description = #pageHelp > 0 and table.concat(pageHelp, '\n\n') or model.description, categories = categories}
 end
 
 -- ---- What MCM asks of the provider --------------------------------------------------------------------------------------------------

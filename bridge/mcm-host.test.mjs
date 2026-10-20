@@ -410,6 +410,10 @@ const footer = `
   local function listed(label)
     for _, row in ipairs(mcm.layout().rows) do if row.label == label then return row end end
   end
+  local function headingOf(prefix)
+    for _, row in ipairs(mcm.layout().rows) do if row.kind == 'heading' and row.label:sub(1, #prefix) == prefix then return row end end
+    error('no heading starting with ' .. prefix .. ': ' .. headings())
+  end
 `;
 
 test('a long list is turned with footer buttons beside the way back (never rows of the list), the page number is in the heading, and the letter group cycles', () => withScreen(`
@@ -910,13 +914,67 @@ test('the rule: MCM 0.10.5 or newer and Native Settings UI both installed means 
   `);
 });
 
-test('at the main menu the pages that need a save say so in a row, the same row as in Native Settings UI', () => withScreen(`
+test('at the main menu the pages that need a save say so in their heading, not in a line above the list (Native Settings UI keeps the row)', () => withScreen(`
+  ${footer}
   player = nil
   frames(4)
+  -- A list of buttons: the status is in the heading and its help is the heading's description. A line of the list would be drawn 16 px
+  -- right of the names under it (MCM's read-only line has an inset of its own; labelIndent does not reach it).
   press('Characters to invite')
-  assert(labels():find('Characters and party', 1, true), labels())
+  assert(headings():find('^Characters to invite · Load a save first · Page 1 / %d+$'), headings())
+  assert(not listed('Characters and party') and not mcm.row('needs-save'), labels())
+  assert(mcm.description() == 'Inviting characters and managing your party need a loaded game.', mcm.description())
+  for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
+  press('Back to Companion Manager')
+  -- Nothing listed under the status (no party without a save): MCM draws no heading for a category without rows, so it stays a line.
+  press('Current party')
+  assert(mcm.row('needs-save') and mcm.row('needs-save').type == 'string' and mcm.row('needs-save').value == 'Load a save first', labels())
+  assert(headings() == 'Current party', headings())
+  press('Back to Companion Manager')
+  press('Model browser'); frames(140)
+  assert(headings():find('^Installed character models · Load a save first · %d+ matching models · Page 1 / %d+$'), headings())
+  assert(not mcm.row('needs-save') and not mcm.row('model-status'), labels())
+  for _, drawn in ipairs(mcm.layout().rows) do assert(drawn.kind == 'heading' or drawn.kind == 'action', drawn.label .. ' is drawn as ' .. drawn.kind) end
   press('Back to Companion Manager'); press('Settings')
   assert(labels():find('Interface language', 1, true) and not labels():find('Characters and party', 1, true), labels())
+`));
+
+test('the state of a companion driver is said by the heading of its group, above the Stop trip button, not by a line indented against it', () => withScreen(`
+  ${footer}
+  press('Current party')
+  -- manager-ui.lua's party page with a trip under way (its own test is in manager.test.mjs): a state line and the button that stops it.
+  local original = core.model
+  core.model = function(...)
+    local model = original(...)
+    table.insert(model.categories, 2, {id = 'party-status', name = 'Your group', description = '', settings = {
+      {id = 'chauffeur-state', type = 'string', label = 'Companion driver', value = 'Driving', description = 'Get into the passenger seat when they are ready.'},
+      {id = 'chauffeur:stop', type = 'action', label = 'Companion driver', value = 'Stop trip', description = 'Stop the trip.'},
+    }})
+    return model
+  end
+  press('Back to Companion Manager'); press('Current party')
+  assert(headings():find('Your group · Companion driver · Driving', 1, true), headings())
+  assert(not mcm.row('chauffeur-state') and mcm.row('chauffeur:stop').type == 'action', labels())
+  assert(mcm.description() == 'Get into the passenger seat when they are ready.', mcm.description())
+  core.model = original
+`));
+
+test('with a save loaded the model browser says how many models match in its heading, an empty party stays a line, and no read-only line sits above a list of buttons', () => withScreen(`
+  ${footer}
+  press('Current party')
+  assert(mcm.row('empty-party') and mcm.row('empty-party').type == 'string' and headings() == 'Current party', headings() .. ' | ' .. labels())
+  press('Back to Companion Manager')
+  press('Model browser'); frames(140)
+  local heading = headings()
+  assert(heading:find('^Installed character models · %d+ matching models · Page 1 / %d+$'), heading)
+  assert(not mcm.row('needs-save') and not mcm.row('model-status'), labels())
+  assert(mcm.description():find('^%d+ of them can talk%.$'), mcm.description())
+  -- A letter group changes the list, and the heading keeps saying its count.
+  press('Starts with: All')
+  assert(headings():find('^Installed character models · %d+ matching models'), headings())
+  for _, drawn in ipairs(mcm.layout().rows) do
+    assert(drawn.kind == 'heading' or (drawn.kind == 'action' and drawn.x == 20), drawn.label .. ' is drawn as ' .. drawn.kind .. ' at ' .. tostring(drawn.x))
+  end
 `));
 
 // ---- MCM 0.10.6 UI API (private preview from MCM's author, 2026-10-20): close, setActionVisibility, labelIndent, highlightModifiedValues,

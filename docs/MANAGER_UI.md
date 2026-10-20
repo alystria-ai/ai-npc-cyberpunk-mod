@@ -273,7 +273,7 @@ manager (see "The MCM host"). This is the case whether or not Native Settings UI
 **At the main menu** `init.lua`'s update has no world, and it still runs `managerUi.update(nil, false)` there (the manager's slow
 tick and a few comparisons), so a button of the page is answered with no save loaded: Settings, Help and Memory open. The pages that
 need a save (Characters to invite, Current party, Model browser) show a read-only row, "Characters and party: Load a save first",
-instead of working invite buttons; the same row is in MCM, which shares `manager-ui.lua`.
+instead of working invite buttons; the same row is in NSUI. In MCM the heading says it ("Characters to invite · Load a save first · Page 1 / 11"): see "Status lines in the heading".
 
 **Without any host** (no MCM 0.10.5 or newer, and no NSUI, or an NSUI that lacks one of the functions the host calls: `addTab`,
 `addSubcategory`, `removeSubcategory`, `removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`,
@@ -341,6 +341,16 @@ the top of a new page. The OmniVoice entries of Companion voices are disabled ch
 OmniVoice pack (GPU)") while its pack is missing. A long list is turned with buttons, because MCM has no setting that changes the page
 without a draft: **Previous page**, **Next page** (disabled at the ends) and, in the model browser, **Starts with: B** (the next letter
 group, the last one goes round to All).
+
+**Status lines in the heading (2026-10-20).** MCM draws a read-only line (`McmUiAddReadonly`) as a surface at x 20 whose text is inset by 16
+(`MCMLayout.ListRowTextLeftInset`; 4 with text-only list selection), while the label of an action row starts at x 20, and `labelIndent` reaches only
+setting labels. A status line above a list of buttons therefore sat 16 px right of the names under it and looked like a stray heading. In MCM
+`mod/mcm-host.lua` (`STATUS_ROWS`) takes those rows out of the list and the heading of the category says them, like the page number:
+`Characters to invite · Load a save first · Page 1 / 11`, `Installed character models · 6000 matching models · Page 1 / 500`, and the state of
+a companion driver (`Your group · Companion driver · Driving`). Their help text becomes the description of the mod (the schema's), which MCM's
+description panel shows while no row is hovered (MCM's heading has no hover text). With no row under the status (no save and an empty party, models
+still being read) MCM draws no heading for a category without rows, so the line stays a line. NSUI keeps every row, and the model in
+`manager-ui.lua` is unchanged. Other read-only rows (Memory, Help, Convai plan) are label and value lines and keep MCM's inset.
 
 **Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
 Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
