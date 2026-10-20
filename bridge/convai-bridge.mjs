@@ -393,6 +393,14 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
 // Turns stalled (the game uses most of the graphics memory and the model reads at a crawl): the server stepped down to the next smaller model of its family, or, with
 // none left, Local AI fails with 'low-memory' (its 'failed' follows; no cloud takes over). The game says so once, with the next reply (mod/init.lua, 'local-stepdown'). The saved choice is untouched.
 localServer.on('model-stepdown', ({model}) => { mistral.noteLocalStepDown(model); });
+// A model loaded with under 35% of its layers on the graphics card (the game holds the rest) runs mostly on the processor: slow, but allowed. The game says so once per model, with the next
+// reply (mod/init.lua, 'local-cpu'; the game also shows it at most once per session). Smaller model or Custom provider is the cure it names; no cloud provider.
+const cpuHeavyNoted = new Set();
+localServer.on('offload-slow', ({id, model, share}) => {
+  if (cpuHeavyNoted.has(id)) return;
+  cpuHeavyNoted.add(id); mistral.noteLocalCpuHeavy();
+  console.error(`[LocalAI] ${model} runs mostly on the processor (about ${Math.round((share ?? 0) * 100)}% of its layers on the graphics card): replies will be slow`);
+});
 localServer.on('state', status => {
   // The model server is running: whatever failed before is over (a later turn found memory again, or the retry of a turn started it), so turns stop failing with the old reason.
   if (status?.state === 'ready') mistral.clearLocalFailureAny();
@@ -492,8 +500,11 @@ const voiceLanguageNotice = new VoiceLanguageNotice();
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take();
   // The fallback notice names the model that was used instead.
-  return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
+  return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
+    // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
+    ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
 };
+const LOCAL_CPU_DETAIL = 'a smaller model or the Custom provider is faster';
 // The game's code for a turn Local AI could not take (never a hand-over to another provider): not enough free graphics memory, or any other reason it could not start.
 const localUnavailableCode = error => error?.reason === 'low-memory' ? 'local-no-memory' : 'local-unavailable';
 // A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
@@ -516,14 +527,8 @@ const turnFailure = (error, input) => {
   // Local AI could not start (or would not start again after it stopped working): the game's sentence says that, and these few words say why
   // (the pack is missing, no graphics card, the model server stopped working), shown after it like a local turn's detail.
   if ((errorCode === 'local-unavailable' || errorCode === 'local-no-memory' || errorCode === 'local-fallback') && !corrected.errorDetail) {
-    const detail = unavailableDetail(isLocalUnavailable(error) ? error.reason : mistral.localBroken, isLocalUnavailable(error) ? error.detail : undefined);
+    const detail = unavailableDetail(isLocalUnavailable(error) ? error.reason : mistral.localBroken, isLocalUnavailable(error) ? error.detail : localServer.status().detail);
     if (detail) return {...corrected, errorDetail: detail};
-  }
-  // The model cannot stay on the card even with part of it on the CPU (bridge/local-llm-server.mjs TOO_SMALL): the game's "not enough free graphics memory" sentence gets the reason that
-  // says what to do (a smaller model, or the Custom provider) after it, as data like a local turn's detail.
-  if (errorCode === 'local-no-memory' && !corrected.errorDetail) {
-    const detail = unavailableDetail('low-memory', isLocalUnavailable(error) ? error.detail : localServer.status().detail);
-    if (detail && /too small/.test(detail)) return {...corrected, errorDetail: detail};
   }
   return corrected;
 };

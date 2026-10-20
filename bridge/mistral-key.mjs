@@ -56,7 +56,7 @@ export class MistralProvider {
     Object.assign(this, {keyPath, readText, writeText, removeFile, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localRestartNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
+    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; // why the local AI cannot be used right now (null: it can); it decides the failure code and the status, never the provider
     this.localStepNoticePending = false; this.localStepNoticeName = '';   // turns stalled: a smaller model was loaded (its name)
     // The bridge holds the status file until its first settings poll has applied the saved provider, so the game never reads the defaults
@@ -84,7 +84,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localStepNoticePending = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localStepNoticePending = false;
     }
     return changed;
   }
@@ -145,6 +145,8 @@ export class MistralProvider {
   }
   /** The local model server stopped by itself and was started again (bridge/local-llm-server.mjs 'restarted'): one notice ('local-restarted') with the next reply. */
   noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
+  /** Local AI's model runs mostly on the processor (bridge/local-llm-server.mjs 'offload-slow': under FIT_LIMITS.hopelessShare of its layers on the card): one notice ('local-cpu') with the next reply. */
+  noteLocalCpuHeavy() { if (this.applied === 'local' || this.preference === 'local') this.localCpuNoticePending = true; }
   /** The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name. */
   noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
   /**
@@ -181,6 +183,7 @@ export class MistralProvider {
     if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; return 'local-stepdown'; }
     if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
     if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }
+    if (this.localCpuNoticePending && this.applied === 'local') { this.localCpuNoticePending = false; return 'local-cpu'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.noSetupPending && this.applied === 'convai') { this.noSetupPending = false; return 'custom-no-setup'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }

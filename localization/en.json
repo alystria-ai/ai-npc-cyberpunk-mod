@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1056,
+    "strings": 1057,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -442,6 +442,7 @@
     "Local AI is still loading its model. Try again in a moment.": "Local AI is still loading its model. Try again in a moment.",
     "Local AI is warming up…": "Local AI is warming up…",
     "Local AI model": "Local AI model",
+    "Local AI runs mostly on your processor here, so replies will be slow.": "Local AI runs mostly on your processor here, so replies will be slow.",
     "Local AI stopped working and was restarted.": "Local AI stopped working and was restarted.",
     "Local AI switched to {model}: the game is using most of your graphics memory.": "Local AI switched to {model}: the game is using most of your graphics memory.",
     "Male": "Male",
@@ -1933,6 +1934,7 @@
       "Local AI is still loading its model. Try again in a moment.",
       "Local AI is warming up…",
       "Local AI model",
+      "Local AI runs mostly on your processor here, so replies will be slow.",
       "Local AI stopped working and was restarted.",
       "Local AI switched to {model}: the game is using most of your graphics memory.",
       "Male",
@@ -2592,7 +2594,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3900"
+        "mod/init.lua:3905"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2600,7 +2602,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3858"
+        "mod/init.lua:3863"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2608,7 +2610,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3899"
+        "mod/init.lua:3904"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2616,7 +2618,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3857"
+        "mod/init.lua:3862"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2624,7 +2626,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3898"
+        "mod/init.lua:3903"
       ]
     },
     "Above the speaker": {
@@ -4440,7 +4442,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3494"
+        "mod/init.lua:3498"
       ]
     },
     "Custom: free daily limit reached": {
@@ -5631,6 +5633,14 @@
         "mod/manager-ui.lua:880"
       ]
     },
+    "Local AI runs mostly on your processor here, so replies will be slow.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3472"
+      ]
+    },
     "Local AI stopped working and was restarted.": {
       "contexts": [
         "ui.localized"
@@ -5644,7 +5654,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3481"
+        "mod/init.lua:3485"
       ]
     },
     "Male": {
@@ -5858,7 +5868,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3488"
+        "mod/init.lua:3492"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -5866,7 +5876,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3490"
+        "mod/init.lua:3494"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6193,7 +6203,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4548"
+        "mod/init.lua:4553"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7155,7 +7165,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3485"
+        "mod/init.lua:3489"
       ]
     },
     "Report for the developer": {
@@ -7796,7 +7806,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3684"
+        "mod/init.lua:3689"
       ]
     },
     "Starting": {
@@ -8207,7 +8217,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3474"
+        "mod/init.lua:3478"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -8757,7 +8767,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3492"
+        "mod/init.lua:3496"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -10715,8 +10725,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3473",
-        "mod/init.lua:3480"
+        "mod/init.lua:3477",
+        "mod/init.lua:3484"
       ]
     },
     "could not be read": {
@@ -11024,7 +11034,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3749"
+        "mod/init.lua:3754"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -11757,7 +11767,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3749"
+        "mod/init.lua:3754"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

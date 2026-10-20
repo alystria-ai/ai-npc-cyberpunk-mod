@@ -1041,6 +1041,7 @@ return {
     ["Defaults"] = "預設值",
     ["Press Confirm to put every setting back to its default."] = "按下「確認」，即可將每項設定還原為預設值。",
     ["Local AI stopped working and was restarted."] = "Local AI 停止運作，已重新啟動。",
+    ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI 在這裡主要靠處理器運行，所以回覆會很慢。",
     ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "缺少 TweakXL。請從 Nexus Mods 安裝 TweakXL（nexusmods.com/cyberpunk2077/mods/4197），解壓縮到 Cyberpunk 2077 資料夾，然後重新啟動遊戲。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "本模組只會變更選單和提示。\n\n角色語音與你的對話語言是分開設定的。麥克風會把這個語言作為非英語語音的提示。",
     ["Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works."] = "夥伴會不時停頓、猶豫、笑或嘆氣，符合各自的個性。每個角色自行決定何時發生，這種情況很少見。\n\nOmniVoice 可以發出笑聲和嘆氣；其他語音只會加入停頓。\n\nConvai 回覆時無法與 Convai 雲端語音同時使用：選擇雲端語音會關閉此功能，開啟此功能則會把語音切換為 Pocket。使用 Mistral、Local AI 或 Custom 時可用。",

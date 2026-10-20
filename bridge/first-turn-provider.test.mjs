@@ -113,7 +113,8 @@ const standardPack = {
   [FAKE_SERVER]: 'fake server',
   'models/standard.gguf': 'x'.repeat(4000), 'models/lite.gguf': 'x'.repeat(2000),
 };
-// A card whose free memory no model fits beside its headroom: the start fails with 'low-memory' (the game holding the graphics memory).
+// A card whose free memory no model fits beside its headroom, and a computer with no system memory to spare for the part that would run on the processor: the start fails
+// ('start-failed', detail 'low-ram'; since 2026-10-21 a model that does not fit the card is loaded part on the CPU instead of failing 'low-memory').
 const FULL_CARD = 'Available devices:\n  Vulkan0: AMD Radeon Test Card (8000 MiB, 10 MiB free)\n';
 const status = bridge => bridge.read('mistral-state.json');
 const listings = async bridge => (await bridge.llama()).filter(event => event.event === 'list-devices').length;
@@ -129,34 +130,34 @@ function usedUpToday(limit) {
 
 test('a real bridge whose Local AI cannot start for want of graphics memory, with Convai\'s free turns left: the turns stay on Local AI', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', voice: false}, localAi: standardPack, fakeLlama: FAKE_SERVER,
-    env: {CYBERPUNK_TEST_DEVICES: FULL_CARD}});
+    env: {CYBERPUNK_TEST_DEVICES: FULL_CARD, CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: '500'}});
   try {
     await bridge.ready();
-    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'no-memory', 'the failed start was not reported');
+    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'failed', 'the failed start was not reported');
     await bridge.idle(1200);   // two polls: a switch to Convai would have been applied by now
     const after = await status(bridge);
     assert.deepEqual({provider: after.provider, effective: after.effective, pending: after.pending}, {provider: 'local', effective: 'local', pending: false}, bridge.errors());
     assert.equal(settled.provider, 'local');
     assert.doesNotMatch(bridge.errors(), /Conversation provider: convai/);
-    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(low-memory\): turns stay on Local AI/);
+    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(start-failed\): turns stay on Local AI/);
   } finally { await bridge.cleanup(); }
 });
 
 test('the same bridge with the shared key\'s day used up changes nothing: the turns stay on Local AI, which says why, and choosing another model tries the start again', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', voice: false}, localAi: standardPack, fakeLlama: FAKE_SERVER,
     stateFiles: {'daily-usage.json': usedUpToday(1)},
-    env: {CYBERPUNK_TEST_DEVICES: FULL_CARD, CYBERPUNK_CONVAI_DAILY_LIMIT: '1', LOCALAPPDATA: folder => `${folder}\\appdata`}});
+    env: {CYBERPUNK_TEST_DEVICES: FULL_CARD, CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: '500', CYBERPUNK_CONVAI_DAILY_LIMIT: '1', LOCALAPPDATA: folder => `${folder}\\appdata`}});
   try {
     await bridge.ready();
     assert.match(bridge.errors(), /Shared conversation allowance: 1 turns a day, 0 left today/);
-    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'no-memory', 'the failed start was not reported');
+    const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'failed', 'the failed start was not reported');
     await bridge.idle(1200);   // two polls: a switch to Convai would have been applied by now
     const after = await status(bridge);
     assert.deepEqual({provider: after.provider, effective: after.effective, pending: after.pending}, {provider: 'local', effective: 'local', pending: false},
       `Local AI keeps the turns (main sent them to Convai, where each met the daily limit)\n${bridge.errors()}`);
     assert.equal(settled.provider, 'local');
     assert.doesNotMatch(bridge.errors(), /Conversation provider: convai/);
-    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(low-memory\): turns stay on Local AI/);
+    assert.match(bridge.errors(), /\[LocalAI\] Local AI is unavailable \(start-failed\): turns stay on Local AI/);
     const own = await bridge.read('own-key-state.json');
     assert.equal(own?.daily?.blocked, true, 'the settings page says the free tier is used up');
 
