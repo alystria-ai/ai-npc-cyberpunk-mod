@@ -129,11 +129,7 @@ const reviewed = {
     'Your companions, character models and conversation settings.',
     ],
   'page.voice-status': [
-    'Convai voice', 'On', 'Off', 'Ready', 'Loading', 'Preparing voices', 'Preparing a reply',
-    'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
-    'Releasing local voice memory', 'Convai voices · Local model unloaded',
-    'Voxtral cloud voice · Local model unloaded',
-    'Changing after the current reply', 'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
+    'Convai voice', 'On', 'Off', 'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
   ],
   'page.memory': [
     'Choose a character', 'Unavailable', 'Memories can be managed here.',
@@ -290,7 +286,6 @@ const reviewed = {
 const templates = [
   ['page.voice-status', 'Voice: {voice}', 'mod/manager-ui.lua', '\n\nVoice: '],
   ['page.voice-status', 'Conversation: {state}', 'mod/manager-ui.lua', '\nConversation: '],
-  ['page.voice-status', '{status} · After current reply', 'mod/manager-ui.lua', ' · After current reply'],
   ['page.memory', '{count} · Last reported', 'mod/manager-ui.lua', ' · Last reported'],
   ['page.memory', 'Clear memories about you for all {count} characters you have talked to?', 'mod/manager-ui.lua', 'Clear memories about you for all ', ' characters you have talked to?'],
   ['page.memory', 'Clear {name}’s memories about conversations with you?', 'mod/manager-ui.lua', 'Clear ', '’s memories about conversations with you?'],
