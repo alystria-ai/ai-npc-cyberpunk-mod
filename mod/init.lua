@@ -787,11 +787,6 @@ function convaiJohnnyHeadService()
     end
     return convaiJohnnyHead or nil
 end
--- His standing for the settings page (mod/manager-ui.lua johnnyStandingRow), read once per draw of that page.
-function convaiJohnnyStanding()
-    local service = convaiJohnnyHeadService()
-    return service and service:standing() or nil
-end
 -- Johnny speaks up (phase 2, mod/johnny-remarks.lua): loaded on the first event that finds both settings on (Johnny in your head, and
 -- Johnny speaks up at Rare or Normal). The collectors that hand events over already run; with either setting off an event costs two
 -- boolean reads here and nothing is loaded.
@@ -1209,7 +1204,7 @@ convaiSpawnedPeople = {
 local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua')
 local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
-    enabled = function() return type(manager.gameDialogueContext) ~= 'function' or manager.gameDialogueContext() == true end,
+    -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
     onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
@@ -1756,7 +1751,7 @@ do
         for _, profile in ipairs(profiles) do catalogued[profile.key] = profile end
         for key in pairs(archetypes.keys) do catalogued[key] = {key = key, kind = 'archetype'} end
         local built, value = pcall(module.new, {
-            enabled = function() return type(manager.autoConnectNearby) == 'function' and manager.autoConnectNearby() == true end,
+            enabled = function() return true end,   -- always on (the setting was removed 2026-10-20)
             scan = scanNearbyCharacters,
             -- Tier-1 named, other named, generic: the tie-breaker before distance for nearby characters.
             prominence = function(key) return module.prominence(catalogued[key]) end,
@@ -1799,8 +1794,7 @@ do
     else print('[CyberpunkConvai] auto-connect.lua unavailable: ' .. tostring(module)) end
 end
 
--- Body gestures (docs/COMPANION_GESTURES.md): the controller is always loaded
--- and does nothing while the setting is Off (the default). The development
+-- Body gestures (docs/COMPANION_GESTURES.md): always on (the setting was removed 2026-10-20); the controller is always loaded. The development
 -- probe, when installed, takes precedence for copies it is driving.
 do
     local function speechFor(entity)
@@ -1818,7 +1812,7 @@ do
             phrases = type(track) == 'table' and type(track.segments) == 'table' and track.segments or nil}
     end
     local options = {
-        enabled = function() return manager.bodyGestures() end,
+        enabled = function() return true end,   -- always on (the setting was removed 2026-10-20)
         speech = speechFor,
         listening = function() return convaiFacialPlayback and convaiFacialPlayback.listeningEntity end,
         thinking = function() return convaiFacialPlayback and convaiFacialPlayback.thinkingEntity end,
@@ -2853,7 +2847,7 @@ if convaiHolocall then
         warm = function(key, entity) generation = generation + 1; warmConversation(nil, key, entity) end,
         -- The caller's conversation is ready: the same check as the "Preparing connection" notice (mod/auto-connect.lua).
         ready = function(key) return autoConnect == nil or autoConnect.ready(key) end,
-        liveImage = function() return type(manager.holocallLiveImage) == 'function' and manager.holocallLiveImage() end,
+        liveImage = function() return true end,   -- always on (the setting was removed 2026-10-20); the call still goes on with the portrait when the picture cannot be shown
         -- A turn with the caller is being typed, recorded, answered or spoken: the call is not idle.
         busy = function()
             return (active ~= nil and active.holocall ~= nil) or (pending ~= nil and pending.holocall ~= nil)

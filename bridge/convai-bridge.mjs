@@ -3209,7 +3209,10 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
+    // V's voice row is one list (Off / Pocket / Voxtral): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
+    // is Voxtral again as soon as a key is saved; the poll runs this every time).
+    const vSettings = settings?.vVoiceEngine === 'voxtral' && !voxtralVoice.hasKey ? {...settings, vVoiceEngine: 'pocket'} : settings;
+    if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));

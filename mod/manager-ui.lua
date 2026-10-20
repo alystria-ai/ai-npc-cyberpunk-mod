@@ -322,14 +322,12 @@ end
 local function sharedCharacterLines(snapshot)
     local settings, speech, behavior = snapshot.settings, {}, {}
     if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
-    if settings.expressiveEmotions then speech[#speech + 1] = ui.t('Expressive emotions') end
     if settings.followUpInterest then speech[#speech + 1] = ui.t('Follow-up questions') end
     if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
     -- Only where it is in use (the Convai free tier, manager.multilingualActive): beside another provider the switch does nothing.
     if manager.multilingualActive(settings) then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
-    if settings.bodyGestures then behavior[#behavior + 1] = ui.t('Body gestures') end
     if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
     if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
     return {talk = talk,
@@ -385,55 +383,6 @@ local function profileDescription(profile, snapshot, shared, count)
     return table.concat(lines, '\n')
 end
 
-local function voiceServiceLabel(state)
-    local labels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
-        error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
-        releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded',
-        remoteVoxtral = 'Voxtral cloud voice · Local model unloaded'}
-    -- The bridge reports 'remote' for every voice that loads no local model; cloudVoice says which one is speaking.
-    local function labelKey()
-        if state.state == 'remote' and state.cloudVoice == 'voxtral' then return 'remoteVoxtral' end
-        return state.state
-    end
-    if state.pending then
-        if state.preparationOnly then
-            return ui.t('{status} · After current reply', {status=ui.t(labels[labelKey()] or 'Waiting for voice service')})
-        end
-        return ui.t('Changing after the current reply')
-    end
-    local fallback = state.fallback
-    if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
-        and (fallback.to == 'pocket' or fallback.to == 'convai') then
-        local values = {
-            -- A cloud voice that fell back is not the one speaking: the plain state names the Convai voice.
-            status = ui.t(labels[state.state] or 'Waiting for voice service'),
-            voice = manager.voiceLabel(fallback.to, state.omniSteps, state.omniReference),
-            requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps, state.requestedOmniReference)}
-        -- A temporary fallback is an Omni being loaded again in the background: it is coming back, not unavailable.
-        if fallback.temporary == true then return ui.t('{status} · Using {voice}, {requested} not ready yet', values) end
-        return ui.t('{status} · Using {voice}, {requested} unavailable', values)
-    end
-    return ui.t(labels[labelKey()] or 'Waiting for voice service')
-end
-
--- Johnny's standing in this save's story (docs/JOHNNY_IN_YOUR_HEAD.md): a read-only row under his setting while it is on, or nil.
--- convaiJohnnyStanding (init.lua) loads mod/johnny-head.lua only then and reads a few quest facts once per draw of the page.
-local function johnnyStandingRow(snapshot)
-    if snapshot.settings.johnnyInHead ~= true or type(convaiJohnnyStanding) ~= 'function' then return nil end
-    local ok, stage = pcall(convaiJohnnyStanding)
-    stage = ok and stage or 'unknown'
-    local value
-    if stage == 'before' then value = ui.t('Not in your head yet')
-    elseif stage == 'wary' then value = ui.t('Wary')
-    elseif stage == 'grudging' then value = ui.t('Grudging respect')
-    elseif stage == 'friends' then value = ui.t('Friends')
-    elseif stage == 'close' then value = ui.t('Close friends')
-    elseif stage == 'after' then value = ui.t('Gone after the ending')
-    else value = ui.t('Unknown') end
-    return readonly('johnnyStanding', 'Johnny’s standing', value,
-        'Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.',
-        {value = true})
-end
 local function savedVoiceIndex(settings)
     return voicePreviewModule.indexOf(settings)
 end
@@ -459,16 +408,11 @@ local function voiceMenuLabels(pack, mistral)
     voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
 end
-local function voiceStatusText(snapshot)
-    -- The service never started because no browser can run its conversation page: say that, not "Waiting for voice service".
-    if support and support.serviceFault() == 'browser' then return ui.t('Needs a browser') end
-    return voiceServiceLabel(snapshot.localVoice)
-end
--- Mature content works with the Local AI, Mistral and Custom providers and never stands beside Convai (free tier or API key). With Local AI its
--- replies must not go to a cloud voice. So turning it ON beside Convai selects, in the same saved transaction, the Local AI provider, the
--- uncensored model and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it is); without the Local AI pack it
--- cannot be on beside Convai and the switch goes back to off. Beside Local AI it selects the uncensored model and Pocket TTS the same way; beside
--- Mistral or Custom it changes nothing else (the lines go to that service anyway, and the model and voice are the player's). Picking Convai
+-- Mature content works with the Local AI, Mistral and Custom providers and never stands beside Convai (free tier or API key). It changes no
+-- voice (2026-10-20): the lines may go to a cloud voice with any provider. Turning it ON beside Convai selects, in the same saved transaction,
+-- the Local AI provider (and its uncensored model) when the Local AI pack is installed; without the pack it selects Mistral when a Mistral key is
+-- saved, else Custom when a custom endpoint is set up, else it cannot be on beside Convai and the switch goes back to off. Beside Local AI it
+-- selects the uncensored model the same way; beside Mistral or Custom it changes nothing else (the model is the player's). Picking Convai
 -- while it is on turns it OFF.
 -- Turning it OFF puts back what turning it on changed, unless the player changed it since. What was changed is kept in the saved
 -- settings (manager: matureRestore). stageMature computes all of it from the saved settings and the batch of changes; it runs when a
@@ -476,6 +420,7 @@ end
 -- The provider list in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
 local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local', 'custom'}
 local LOCAL_PROVIDER = 4
+local MISTRAL_PROVIDER, CUSTOM_PROVIDER = 3, 5
 -- Positions of the providers that take Mature content as they are (Mistral, Custom); Local AI is LOCAL_PROVIDER. Convai (1, 2) never does.
 local MATURE_CLOUD_PROVIDERS = {[3] = true, [5] = true}
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
@@ -487,17 +432,14 @@ local function customProblemText(reason)
 end
 
 local LOCAL_AI_PRESENT = {ready = true, warming = true, ['no-memory'] = true, failed = true}
-local CLOUD_VOICES = {voxtral = true, convai = true}
 
-local function voiceRecord(index)
-    local choice = VOICE_CHOICES[index]
-    if not choice then return nil end
-    return {provider = choice.provider, steps = choice.steps, reference = choice.reference}
-end
-
-local function voiceIndexOf(record)
-    if type(record) ~= 'table' then return nil end
-    return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
+-- Is the custom endpoint set up (an address and a model ID, mod/custom-provider.lua state `ready`)? Read from the file the bridge writes, at most
+-- every few seconds; a fault or a missing module reads as no.
+local function customEndpointReady()
+    local instance = customProvider.instance
+    if not instance then return false end
+    local ok, state = pcall(instance.state)
+    return ok and type(state) == 'table' and state.ready == true
 end
 
 -- The position of a model in the row. 'auto' (an older version's Mature record) is the model shown as the default.
@@ -555,16 +497,6 @@ local function stageMature(changes, snapshot)
         end
     end
     local keySaved = (snapshot.mistral or {}).saved == true
-    -- V's voice engine as the row holds it: 1 Pocket, 2 Voxtral.
-    local vEngineNow = now('vVoiceEngine', saved.vVoiceEngine == 'voxtral' and 2 or 1)
-    -- With Local AI, Mature content keeps V's line off the cloud (manager.lua refuses Voxtral there): V moves to Pocket in the same batch, so
-    -- the player is told, and turning Mature content off can put Voxtral back.
-    local function vToPocket()
-        if vEngineNow ~= 2 then return false end
-        stage('vVoiceEngine', 1); vEngineNow = 1
-        names[#names + 1] = ui.t('V’s voice engine')
-        return true
-    end
     local function turnedOff()
         local restore = saved.matureRestore
         if type(restore) ~= 'table' then leaveUncensoredModel(); return end
@@ -586,62 +518,42 @@ local function stageMature(changes, snapshot)
                 stage('localModel', back); names[#names + 1] = ui.t('Local AI model')
             end
         end
-        part = restore.voice
-        if part and not explicit.voiceProvider then
-            local current, back = now('voiceProvider', savedVoiceIndex(saved)), voiceIndexOf(part.before)
-            -- Only a voice that can be chosen now: Voxtral needs the Mistral key, OmniVoice its pack (M.apply refuses either without, and the
-            -- refusal would keep Mature content on). Otherwise the voice stays where it is.
-            local choice = back and VOICE_CHOICES[back]
-            local usable = choice and (choice.provider ~= 'voxtral' or keySaved) and (choice.provider ~= 'omni' or manager.omniPack().installed == true)
-            if current == voiceIndexOf(part.set) and usable then
-                stage('voiceProvider', back); names[#names + 1] = ui.t('Companion voices')
-            end
-        end
-        part = restore.vVoiceEngine
-        if part and part.before == 'voxtral' and not explicit.vVoiceEngine and vEngineNow == 1 and keySaved then
-            stage('vVoiceEngine', 2); vEngineNow = 2
-            names[#names + 1] = ui.t('V’s voice engine')
-        end
         leaveUncensoredModel()
     end
     if mature and mature.value == true and not savedMature then
         local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
         local usingLocal = providerNow == LOCAL_PROVIDER
         local cloudText = MATURE_CLOUD_PROVIDERS[providerNow] == true
-        if not usingLocal and not cloudText and (not installed or by.conversationProvider) then
-            -- Without the Local AI pack Mature content cannot be on beside Convai: the switch goes back to off. The same
-            -- when the same change picks Convai: the provider the player chose stays.
+        -- Beside Convai (which cannot take it): the Local AI pack when installed, else the player's Mistral key, else a ready custom endpoint. When the
+        -- same change picks Convai, the provider the player chose stays and the switch goes back to off.
+        local target
+        if not usingLocal and not cloudText and not by.conversationProvider then
+            if installed then target = LOCAL_PROVIDER
+            elseif keySaved then target = MISTRAL_PROVIDER
+            elseif customEndpointReady() then target = CUSTOM_PROVIDER end
+        end
+        if not usingLocal and not cloudText and not target then
             mature.value, refusal = false, ui.t('Needs Local AI, Mistral or Custom.')
         else
             record = {}
-            if not usingLocal and not cloudText and PROVIDER_IDS[providerNow] then
-                stage('conversationProvider', LOCAL_PROVIDER)
-                record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = 'local'}
-                names[#names + 1] = ui.t('Local AI')
-                usingLocal = true
+            if target and PROVIDER_IDS[providerNow] then
+                stage('conversationProvider', target)
+                record.conversationProvider = {before = PROVIDER_IDS[providerNow], set = PROVIDER_IDS[target]}
+                names[#names + 1] = target == LOCAL_PROVIDER and ui.t('Local AI')
+                    or target == MISTRAL_PROVIDER and ui.t('Mistral (free plan)') or ui.t('Custom (OpenAI-compatible)')
+                usingLocal = target == LOCAL_PROVIDER
             end
             if usingLocal then
                 -- The largest uncensored model that fits, when one is installed; otherwise the model is left alone.
                 local choices = manager.localModelChoices()
                 local modelNow = now('localModel', modelIndexOf(saved.localModel))
                 local uncensoredId = manager.localModelMatureId()
-                local target = uncensoredId and modelIndexOf(uncensoredId) or nil
-                if target and type(modelNow) == 'number' and modelNow ~= target and choices[modelNow] then
-                    stage('localModel', target)
+                local modelTarget = uncensoredId and modelIndexOf(uncensoredId) or nil
+                if modelTarget and type(modelNow) == 'number' and modelNow ~= modelTarget and choices[modelNow] then
+                    stage('localModel', modelTarget)
                     record.localModel = {before = choices[modelNow].id, set = uncensoredId}
                     names[#names + 1] = ui.t('Uncensored model')
                 end
-                local voiceNow = now('voiceProvider', savedVoiceIndex(saved))
-                local choice = VOICE_CHOICES[voiceNow]
-                if choice and CLOUD_VOICES[choice.provider] then
-                    -- A local voice (Pocket, OmniVoice) is left exactly as it is; only a cloud voice moves, and it moves to Pocket TTS.
-                    -- (Multilingual conversations, which refuses Pocket, is never in use beside Local AI: manager.multilingualActive.)
-                    stage('voiceProvider', 1)
-                    record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(1)}
-                    local chosen = VOICE_CHOICES[1]
-                    names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
-                end
-                if vToPocket() then record.vVoiceEngine = {before = 'voxtral', set = 'pocket'} end
             end
             record = next(record) and record or nil
         end
@@ -652,9 +564,6 @@ local function stageMature(changes, snapshot)
         -- Convai picked while Mature content is on turns it off, with the same way back.
         stage('matureContent', false)
         turnedOff()
-    elseif savedMature and not mature and by.conversationProvider and providerNow == LOCAL_PROVIDER and providerIndexOf(saved) ~= LOCAL_PROVIDER then
-        -- Mistral or Custom to Local AI while Mature content is on: V's line leaves the cloud, and the player is told.
-        vToPocket()
     end
     return batch, record, names, refusal
 end
@@ -752,7 +661,8 @@ local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastP
     elseif key.message then info = ui.t('Not added') end
     local help
     if key.saved then
-        help = ui.t(removeHelp) .. '\n\n' .. ui.t('Saved on this computer only. Only the last four characters are ever shown.')
+        -- `key.removeMore` (already translated) says what else the removal changes, after the one fixed sentence (the Mistral key's row).
+        help = ui.t(removeHelp) .. (key.removeMore and (' ' .. key.removeMore) or '') .. '\n\n' .. ui.t('Saved on this computer only. Only the last four characters are ever shown.')
     else
         help = ui.t(pasteHelp)
     end
@@ -760,6 +670,35 @@ local function keyRow(name, pasteHelp, removeHelp, id, key, paste, remove, lastP
     if lastParagraph then help = help .. '\n\n' .. lastParagraph end
     return action(id, ui.t(name) .. (info and (' (' .. info .. ')') or ''), key.saved and ui.t('Remove') or ui.t('Paste'), help,
         key.saved and remove or paste, nil, {label = true, value = true, description = true})
+end
+
+-- Settings > Conversation provider > Custom endpoint: the endpoint URL, API key and model ID rows and the connection test of the Custom
+-- provider. Everything they say comes from mod/custom-provider.lua; this only draws them (a row is one action row). A fault there never costs
+-- the page: the page is then empty.
+local function customEndpointRows()
+    local rows = {}
+    if not customProvider.instance then return rows end
+    local made, items = pcall(customProvider.instance.rows)
+    if made and type(items) == 'table' then
+        for _, item in ipairs(items) do
+            rows[#rows + 1] = action(item.id, item.label, item.value, item.help,
+                function() return customProvider.instance.request(item.action) end, item.enabled,
+                {label = true, value = true, description = true})
+        end
+    end
+    return rows
+end
+
+-- What removing the Mistral key changes, as the sentences after "Deletes the saved key." (the row's Remove help): the key powers the text
+-- provider when Mistral is chosen, the companions' Voxtral voice when that is the voice, and V's voice when it is set to Voxtral (V then
+-- speaks with Pocket). Only what is in use now is named; a key nothing depends on says so.
+local function mistralRemoval(snapshot)
+    local settings, parts = snapshot.settings, {}
+    if settings.conversationProvider == 'mistral' then parts[#parts + 1] = ui.t('Conversations go back to Convai free tier.') end
+    if settings.voiceProvider == 'voxtral' then parts[#parts + 1] = ui.t('Companions switch from Voxtral to the Convai voice.') end
+    if settings.vVoice == true and settings.vVoiceEngine == 'voxtral' then parts[#parts + 1] = ui.t('V’s voice switches from Voxtral to Pocket.') end
+    if #parts == 0 then parts[1] = ui.t('Nothing you use now depends on it.') end
+    return table.concat(parts, ' ')
 end
 
 -- Settings > Conversation provider: the provider, Mature content, the Local AI model and the key rows of Convai and Mistral
@@ -824,7 +763,7 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
             and ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.')
             or ui.t('The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
-        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai, turning it on selects Local AI. With Local AI it also selects the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
+        matureHelp = matureHelp .. '\n\n' .. ui.t('From Convai, turning it on selects Local AI, or Mistral or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.')
             .. ' ' .. ui.t('Choosing Convai turns it off.')
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
@@ -903,8 +842,8 @@ local function ownKeyRows(snapshot)
         modelRow,
         keyRow('Mistral free API key',
             'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.',
-            'Deletes the saved key. Conversations go back to Convai free tier.',
-            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage},
+            'Deletes the saved key.',
+            'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage, removeMore = mistralRemoval(snapshot)},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
         keyRow('Convai API key',
             'Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.',
@@ -912,20 +851,17 @@ local function ownKeyRows(snapshot)
             'own-key', {saved = own.saved, tail = own.tail, checking = result == 'checking', message = ownMessage},
             function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
     }
-    -- Custom (OpenAI-compatible): its endpoint URL, API key and model ID rows and the connection test, right under the Mistral key row.
-    -- Everything they say comes from mod/custom-provider.lua; this only draws them (a row is one action row). A fault there never
-    -- costs the page.
+    -- Custom (OpenAI-compatible): its endpoint URL, API key, model ID and the connection test are a page of their own (customEndpointRows,
+    -- opened from this one button), right under the Mistral key row, like the Convai paid tier below. Shown whenever the module is there.
     if customProvider.instance then
-        local made, items = pcall(customProvider.instance.rows)
-        if made and type(items) == 'table' then
-            local at = #rows + 1
-            for index, item in ipairs(rows) do if item.id == 'mistral-key' then at = index + 1 end end
-            for offset, item in ipairs(items) do
-                table.insert(rows, at + offset - 1, action(item.id, item.label, item.value, item.help,
-                    function() return customProvider.instance.request(item.action) end, item.enabled,
-                    {label = true, value = true, description = true}))
-            end
-        end
+        local at = #rows + 1
+        for index, item in ipairs(rows) do if item.id == 'mistral-key' then at = index + 1 end end
+        table.insert(rows, at, action('custom-endpoint', 'Custom endpoint', 'Open', 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.',
+            function()
+                -- The page reads the bridge's answer again at once, not at the next poll.
+                pcall(customProvider.instance.state, true)
+                return navigate('custom-endpoint')
+            end))
     end
     -- Convai paid tier: right under the Convai API key row, whose key a plan is bought for.
     if paidTier then
@@ -1087,13 +1023,16 @@ local function pageSignature(snapshot)
         local own = snapshot.ownKey
         add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
     end
+    if view == 'custom-endpoint' and customProvider.instance then
+        local read, signature = pcall(customProvider.instance.signature)
+        add('custom-page:' .. (read and signature or ''))
+    end
     if view == 'relationships' then add(settingsDigest(snapshot.settings)) end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
         -- when the voice service changes state; every row when its saved value changes.
         add(settingsDigest(snapshot.settings))
-        add('voice:' .. voiceStatusText(snapshot))
         local own, pack, mistral = snapshot.ownKey, manager.omniPack(), snapshot.mistral or {}
         add(table.concat({'key', tostring(own.saved), own.tail or '', own.active, tostring(own.pending),
             own.result or '', own.limit or '', tostring(own.limitOwn), tostring(own.memoryOff),
@@ -1157,7 +1096,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the four destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings'}
+        ['paid-tier'] = 'settings', relationships = 'settings', ['custom-endpoint'] = 'settings'}
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
@@ -1379,11 +1318,12 @@ local function schema()
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
     elseif view == 'paid-tier' and paidTier then
         for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
+    elseif view == 'custom-endpoint' and customProvider.instance then
+        categories[#categories + 1] = category('custom-endpoint', 'Custom endpoint', customEndpointRows(), 'The address, API key and model ID of your OpenAI-compatible provider, and a connection test. Used when Custom is the Conversation provider.')
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
     elseif view == 'settings' then
-        local developer = snapshot.settings.developerMode == true
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
             languageElements[index] = choice.label
@@ -1391,7 +1331,7 @@ local function schema()
         end
         categories[#categories + 1] = category('interface', 'Interface', {
             setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
-                'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.',
+                'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.',
                 languageElements, {elements=true}),
         })
         local conversations = category('conversation-controls', 'Conversations', {
@@ -1402,48 +1342,20 @@ local function schema()
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.'),
-            setting('johnnyInHead', 'Johnny in your head', 'bool', snapshot.settings.johnnyInHead == true, false,
-                'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.'),
-            setting('johnnyRemarks', 'Johnny speaks up', 'select',
-                snapshot.settings.johnnyRemarks == 'normal' and 3 or snapshot.settings.johnnyRemarks == 'rare' and 2 or 1, 1,
-                'Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
-                {'Off', 'Rare', 'Normal'}),
-            setting('johnnyHologram', 'Johnny’s hologram', 'bool', snapshot.settings.johnnyHologram == true, false,
-                'Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes.'),
-            setting('vTalks', 'V talks on their own', 'select',
-                snapshot.settings.vTalks == 'normal' and 3 or snapshot.settings.vTalks == 'rare' and 2 or 1, 1,
-                'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
-                {'Off', 'Rare', 'Normal'}),
+            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up often.
+            setting('johnnyInHead', 'Johnny in your head', 'select',
+                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 4
+                    or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
+                'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
+                {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
             setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
-            setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
-                'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
-            setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
-                'Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.'),
-            -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
-            setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
-                'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
+                'Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech turns off.'),
         })
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
             table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
                 'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
                 function() return navigate('relationships') end))
-        end
-        -- Johnny's standing in this save's story, right under his setting while it is on (read from the save as the page is drawn).
-        local standing = johnnyStandingRow(snapshot)
-        if standing then
-            for index, row in ipairs(conversations.settings) do
-                if row.id == 'johnnyInHead' then table.insert(conversations.settings, index + 1, standing); break end
-            end
-        end
-        -- Not released yet (the user, 2026-10-20: the next update ships without them): Johnny's hologram and V talks on their own are
-        -- shown only in developer mode. Both are Off by default, so a player never meets them.
-        if not developer then
-            for index = #conversations.settings, 1, -1 do
-                local id = conversations.settings[index].id
-                if id == 'johnnyHologram' or id == 'vTalks' then table.remove(conversations.settings, index) end
-            end
         end
         categories[#categories + 1] = conversations
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys.
@@ -1461,13 +1373,7 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
-            setting('bodyGestures', 'Body gestures', 'bool', snapshot.settings.bodyGestures, true,
-                'Companions gesture while they speak longer replies and nod while you talk, with the game’s own animations in their usual stance.\n\nThey stop at once when anyone moves or a fight starts.'),
         })
-        local voiceStatus = voiceStatusText(snapshot)
-        local voiceStatusHelp = support and support.serviceFault() == 'browser'
-            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
-            or ui.t('A change takes effect after the current reply. No game restart is needed.')
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
@@ -1487,7 +1393,6 @@ local function schema()
             setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
                 'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
                 voiceMenuLabels(pack, snapshot.mistral), {elements = true, label = true}),
-            readonly('voice-status', 'Voice status', voiceStatus, voiceStatusHelp, {description = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
@@ -1497,20 +1402,24 @@ local function schema()
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
-            setting('expressiveEmotions', 'Expressive emotions', 'bool', snapshot.settings.expressiveEmotions, true,
-                'Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
+                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
-            setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
-                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nThe voice that speaks it is chosen in the next row.'),
-            setting('vVoiceEngine', 'V’s voice engine', 'select', snapshot.settings.vVoiceEngine == 'voxtral' and 2 or 1, 1,
-                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.',
-                {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
+            -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved).
+            -- A saved Voxtral without a key reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
+            setting('vVoice', 'V’s voice for typed lines', 'select',
+                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved) and 3 or 2, 2,
+                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only.\n\nWhichever you pick, a line that is not ready in time is skipped.',
+                {ui.t('Off'), ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do
-            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then voiceRow.disabledElements = voiceDisabledShown end
+            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
+                voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
+            end
+            if voiceRow.id == 'vVoice' and not (snapshot.mistral or {}).saved then
+                voiceRow.disabledElements, voiceRow.disabledReason = {[3] = true}, ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')
+            end
         end
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
@@ -1520,9 +1429,9 @@ local function schema()
                 {'Cinematic subtitles', 'Above the speaker'}),
         })
         categories[#categories + 1] = category('reactions', 'Automatic reactions', {
-            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, false,
+            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.'),
-            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, false,
+            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
                 'Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.'),
         })
         -- One section per installed add-on that has settings (docs/ADDON_API.md). The add-on wrote its own labels.
@@ -1613,7 +1522,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true}
+    relationships = true, ['custom-endpoint'] = true}
 
 function M.view() return view end
 
@@ -1623,7 +1532,8 @@ function M.pageId() return view .. '|' .. tostring(listPage) .. '|' .. tostring(
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
-    if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier) then name = 'home' end
+    if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
+        or (name == 'custom-endpoint' and not customProvider.instance) then name = 'home' end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1
     view, listPage, listGroup = name, 1, 1
     if changed then actionFeedback, preparationActionFeedback = nil, false; refreshQueued = true end
@@ -1746,7 +1656,7 @@ function M.defaults()
     -- Turning Mature content off puts back what turning it on changed (stageMature). Here the defaults are wanted instead: the rows it would put
     -- back are named in the batch at their default, so they stay there.
     if turningMatureOff then
-        for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoiceEngine'}) do
+        for _, id in ipairs({'conversationProvider', 'localModel'}) do
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
@@ -1777,10 +1687,8 @@ function M.apply(changes)
     for _, change in ipairs(batch) do
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures'
-            or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
-            or key == 'gameDialogueContext'
-            or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
+            or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
+            or key == 'followUpInterest' or key == 'multilingualConversations'
             or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
@@ -1816,13 +1724,15 @@ function M.apply(changes)
                 return refused('Choose an interface language.')
             end
             values.uiLanguage = choices[change.value].value
-        elseif key == 'vVoiceEngine' then
-            -- Order: 1 Pocket (stored 'pocket'), 2 Voxtral (stored 'voxtral', needs the Mistral key).
-            if change.value ~= 1 and change.value ~= 2 then return refused('Choose one of the listed voices for V.') end
-            if change.value == 2 and not manager.mistral().saved then
+        elseif key == 'vVoice' then
+            -- Order: 1 Off, 2 Pocket (stored 'pocket'), 3 Voxtral (stored 'voxtral', needs the Mistral key). One row writes both stored settings;
+            -- Off keeps the engine that was saved.
+            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose one of the listed voices for V.') end
+            if change.value == 3 and not manager.mistral().saved then
                 return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
             end
-            values.vVoiceEngine = change.value == 2 and 'voxtral' or 'pocket'
+            values.vVoice = change.value ~= 1
+            if change.value ~= 1 then values.vVoiceEngine = change.value == 3 and 'voxtral' or 'pocket' end
         elseif key == 'voiceProvider' then
             local choice = type(change.value) == 'number' and VOICE_CHOICES[change.value] or nil
             if not choice then return refused('Choose one of the listed companion voices.') end
@@ -1852,16 +1762,11 @@ function M.apply(changes)
             values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
-        elseif key == 'johnnyInHead' then values.johnnyInHead = change.value
-        elseif key == 'johnnyRemarks' then
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often Johnny speaks up.') end
-            -- Order: 1 Off, 2 Rare, 3 Normal.
-            values.johnnyRemarks = ({'off', 'rare', 'normal'})[change.value]
-        elseif key == 'johnnyHologram' then values.johnnyHologram = change.value
-        elseif key == 'vTalks' then
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often V talks on their own.') end
-            -- Order: 1 Off, 2 Rare, 3 Normal.
-            values.vTalks = ({'off', 'rare', 'normal'})[change.value]
+        elseif key == 'johnnyInHead' then
+            -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
+            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose how often Johnny speaks up.') end
+            values.johnnyInHead = change.value ~= 1
+            values.johnnyRemarks = ({'off', 'off', 'rare', 'normal'})[change.value]
         elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
             local staged, problem = convaiAddons.stageSetting(key, change.value)
             if not staged then convaiAddons.discardSettings(); return refused(problem) end

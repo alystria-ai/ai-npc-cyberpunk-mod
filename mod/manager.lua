@@ -38,9 +38,17 @@ local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conver
 local V_VOICE_ENGINES = {'pocket', 'voxtral'}
 -- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI, Mistral and Custom text providers may have it, Convai never.
 local function matureProvider(provider) return provider == 'local' or provider == 'mistral' or provider == 'custom' end
--- With the text on this computer (Local AI) Mature content keeps V's line off the cloud (no Voxtral); with Mistral or Custom text the line goes there anyway.
-local function matureKeepsLinesLocal(settings) return settings.matureContent == true and settings.conversationProvider == 'local' end
-local V_ENGINE_MATURE = 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.'
+-- Settings the page no longer has (2026-10-20): their behaviour is fixed (always on) or the feature is gone. An old saved value is dropped at
+-- load (once, from the file) and an Apply that still carries one ignores it; nothing reads them.
+local RETIRED_SETTINGS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
+    'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks'}
+local RETIRED_SET = {}
+for _, key in ipairs(RETIRED_SETTINGS) do RETIRED_SET[key] = true end
+-- The Convai cloud voice cannot carry Natural speech's tags (they would be read aloud), and it is only the voice that speaks on the Convai
+-- providers: beside Mistral, Local AI or Custom the bridge plays Pocket for it (bridge/convai-bridge.mjs, the settings poll), so the tags work there.
+local function cloudVoiceBlocksTags(settings)
+    return settings.voiceProvider == 'convai' and settings.conversationProvider == 'convai'
+end
 -- Multilingual conversations is in use only on the Convai free tier: the bridge turns it off on a player's own Convai key (one session, no twins)
 -- and while Mistral, Local AI or Custom answers (bridge/convai-bridge.mjs, the settings poll). Its voice rules (never Pocket or Voxtral, the tag
 -- settings without the OmniVoice pack) hold only there; elsewhere the saved switch waits, and the rules apply when the player returns to the free tier.
@@ -49,8 +57,8 @@ local function multilingualActive(settings)
 end
 M.multilingualActive = multilingualActive
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
--- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
--- pending notice, once, after an Apply that switched the voice or turned the two settings off.
+-- Natural speech needs a local voice (the Convai cloud voice would read its tags aloud). The
+-- pending notice, once, after an Apply that switched the voice or turned the setting off.
 local naturalSpeechNotice = nil
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 -- Lip sync delay (Bluetooth), in ms; 'auto' lets the bridge detect a Bluetooth
@@ -402,20 +410,11 @@ local function validModelId(value)
 end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
---   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
---    voice = {before = <voice>, set = <voice>}, vVoiceEngine = {before = 'voxtral', set = 'pocket'}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral',
---   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
--- dropped, and nil is returned when nothing is left. Returns a new table.
-local function cleanMatureVoice(value)
-    if type(value) ~= 'table' then return nil end
-    local provider = value.provider
-    if provider ~= 'pocket' and provider ~= 'omni' and provider ~= 'convai' and provider ~= 'voxtral' then return nil end
-    if provider ~= 'omni' then return {provider = provider} end
-    if (value.steps ~= 16 and value.steps ~= 32) or (value.reference ~= 'short' and value.reference ~= 'long') then return nil end
-    return {provider = provider, steps = value.steps, reference = value.reference}
-end
-
--- A provider as the restore record names it: the three stored values, or 'convai-key' (Convai with the player's own key, which the
+--   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local' | 'mistral' | 'custom'},
+--    localModel = {before = <model id>, set = <the uncensored model id>}}
+-- Each part is optional; anything malformed is dropped, and nil is returned when nothing is left. Returns a new table. Turning Mature content on
+-- changes no voice any more (2026-10-20): the 'voice' and 'vVoiceEngine' parts an older save carries are dropped here and read as nothing.
+-- A provider as the restore record names it: the stored values, or 'convai-key' (Convai with the player's own key, which the
 -- selector lists as its own entry; stored as 'convai' plus useOwnConvaiKey).
 local function restoreProviderName(value)
     return value == 'convai-key' and value or providerName(value)
@@ -431,17 +430,6 @@ local function cleanMatureRestore(value)
     part = value.localModel
     if type(part) == 'table' and validModelId(part.before) and validModelId(part.set) then
         result.localModel, any = {before = part.before, set = part.set}, true
-    end
-    part = value.voice
-    if type(part) == 'table' then
-        local before, set = cleanMatureVoice(part.before), cleanMatureVoice(part.set)
-        if before and set then result.voice, any = {before = before, set = set}, true end
-    end
-    -- V's voice engine: Mature content with Local AI moves V off Voxtral (the only change it makes there).
-    part = value.vVoiceEngine
-    local function engine(name) return name == 'pocket' or name == 'voxtral' end
-    if type(part) == 'table' and engine(part.before) and engine(part.set) and part.before ~= part.set then
-        result.vVoiceEngine, any = {before = part.before, set = part.set}, true
     end
     return any and result or nil
 end
@@ -692,21 +680,23 @@ local function loadSettings()
         and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'custom' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
-    if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
-    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = false, true end
-    -- On by default (a missing key); an explicitly saved choice is kept.
-    if type(settings.bodyGestures) ~= 'boolean' then settings.bodyGestures, settingsNeedSave = true, true end
-    -- On by default (a missing key); an explicitly saved choice is kept.
-    if type(settings.autoConnectNearby) ~= 'boolean' then settings.autoConnectNearby, settingsNeedSave = true, true end
-    -- Experimental, on by default (a missing key): the live picture in a holocall (mod/holocall.lua). The first version
-    -- saved false as its default, so a saved false counts only once the player has set it (an Apply that carried it,
-    -- holocallLiveImageChosen); an unchosen false becomes the default, true.
-    if type(settings.holocallLiveImageChosen) ~= 'boolean' then settings.holocallLiveImageChosen = false end
-    if type(settings.holocallLiveImage) ~= 'boolean' or (not settings.holocallLiveImage and not settings.holocallLiveImageChosen) then
-        settings.holocallLiveImage, settingsNeedSave = true, true
+    -- React to battles and to collected loot: on by default since 2026-10-20 (they were off). Until then the file saved false as the default, so a
+    -- saved false counts only once the player has set it themselves (an Apply that carried it: battleReactionsChosen, lootReactionsChosen);
+    -- an unchosen false becomes the new default, true, once. Whoever switched one off keeps it off from then on.
+    if type(settings.battleReactionsChosen) ~= 'boolean' then settings.battleReactionsChosen = false end
+    if type(settings.battleReactions) ~= 'boolean' or (not settings.battleReactions and not settings.battleReactionsChosen) then
+        settings.battleReactions, settingsNeedSave = true, true
     end
-    -- On by default: recent subtitled game dialogue is attached to the next manual turn (mod/game-dialogue.lua).
-    if type(settings.gameDialogueContext) ~= 'boolean' then settings.gameDialogueContext, settingsNeedSave = true, true end
+    if type(settings.lootReactionsChosen) ~= 'boolean' then settings.lootReactionsChosen = false end
+    if type(settings.lootReactions) ~= 'boolean' or (not settings.lootReactions and not settings.lootReactionsChosen) then
+        settings.lootReactions, settingsNeedSave = true, true
+    end
+    -- Settings that are gone (RETIRED_SETTINGS): auto-connect, expressive emotions, game dialogue, the live holocall picture and body
+    -- gestures are always on, and the two developer-only features are removed. A saved value, a false included, is ignored; the key is dropped
+    -- from the file once.
+    for _, key in ipairs(RETIRED_SETTINGS) do
+        if settings[key] ~= nil then settings[key], settingsNeedSave = nil, true end
+    end
     -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
     if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
     -- Off by default: witness receipts (section 4.3) let a companion who stood beside V hear `witnessed` rules. No menu entry.
@@ -733,28 +723,16 @@ local function loadSettings()
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
-    -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal.
+    -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
+    -- list for both settings (Off, On, Speaks up rarely, Speaks up often); Off means not in V's head, so remarks are off with it (an older file
+    -- with remarks set but Johnny in your head off reads as Off, and the remarks key is put right).
     if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
-    -- Off by default: now and then Johnny shows himself beside V as a glitching hologram (docs/JOHNNY_IN_YOUR_HEAD.md, phase 3).
-    if type(settings.johnnyHologram) ~= 'boolean' then settings.johnnyHologram, settingsNeedSave = false, true end
-    -- Off by default: how often V starts a short talk with a companion unprompted (docs/V_TALKS.md): off, rare or normal.
-    if settings.vTalks ~= 'off' and settings.vTalks ~= 'rare' and settings.vTalks ~= 'normal' then
-        settings.vTalks, settingsNeedSave = 'off', true
-    end
-    -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
-    -- player's voice) and the setting is turned off below.
+    if settings.johnnyInHead ~= true and settings.johnnyRemarks ~= 'off' then settings.johnnyRemarks, settingsNeedSave = 'off', true end
+    -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
+    -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
-    -- Expressive emotions (the character marks its own feelings; on by default) needs a local voice for the same reason.
-    -- A missing key defaults to on, except beside a saved Convai cloud voice, which can never use it (the new-install
-    -- default voice is Pocket, so a new install gets it on).
-    if type(settings.expressiveEmotions) ~= 'boolean' then
-        settings.expressiveEmotions, settingsNeedSave = settings.voiceProvider ~= 'convai', true
-    end
-    -- Whether the player ever set Expressive emotions themselves (an Apply that carried it). Only that makes turning it
-    -- off, for the cloud voice, worth a notice; the default being switched off is silent.
-    if type(settings.expressiveEmotionsChosen) ~= 'boolean' then settings.expressiveEmotionsChosen = false end
     -- Follow-up questions (on by default, key followUpInterest: the retired followUpQuestions key above is a different, dropped
     -- setting): characters sometimes show interest in the player. Works with any voice.
     if type(settings.followUpInterest) ~= 'boolean' then settings.followUpInterest, settingsNeedSave = true, true end
@@ -769,7 +747,7 @@ local function loadSettings()
     -- loads the largest model that fits the free graphics memory, the settings page shows that model as selected, and the next Apply saves its
     -- id. The bridge falls back to the same model, with one notice, when the chosen one is missing, does not fit or does not start.
     if not validModelId(settings.localModel) then settings.localModel, settingsNeedSave = 'auto', true end
-    -- What turning Mature content on changed (provider, model, voice), so turning it off can put them back (see cleanMatureRestore).
+    -- What turning Mature content on changed (provider, model), so turning it off can put them back (see cleanMatureRestore; an old record's voice parts are dropped).
     -- Only meaningful while Mature content is on.
     do
         local restore = cleanMatureRestore(settings.matureRestore)
@@ -785,10 +763,10 @@ local function loadSettings()
     if multilingualActive(settings) and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
-    -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
+    -- A saved cloud voice with Natural speech on, on a Convai provider (an older save): the voice is kept and Natural speech is turned off,
     -- with Multilingual conversations on or off alike. Apply never writes this pairing.
-    if (settings.naturalSpeech or settings.expressiveEmotions) and settings.voiceProvider == 'convai' then
-        settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
+    if settings.naturalSpeech and cloudVoiceBlocksTags(settings) then
+        settings.naturalSpeech, settingsNeedSave = false, true
     end
     -- V's voice for typed lines (on by default, key vVoice): the bridge speaks what the player types in V's cloned voice. Only an
     -- explicit false (the player turned it off) is kept off. Which engine speaks it is its own setting (vVoiceEngine: 'pocket', the default,
@@ -798,9 +776,6 @@ local function loadSettings()
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
     if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
-    -- Mature content with Local AI keeps the player's words off the cloud: a saved Voxtral engine beside it (hand-edited) is Pocket. With Mistral or
-    -- Custom text the lines go to the cloud for the reply anyway, so the cloud voice may stay.
-    if matureKeepsLinesLocal(settings) and settings.vVoiceEngine == 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -924,20 +899,6 @@ function M.johnnyRemarks()
     return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
 end
 
--- Johnny's hologram: a short glitching appearance beside V when V sits down (mod/johnny-hologram.lua). Read when V sits and while the
--- appearance is waiting or showing, on the 0.5 s battle sample, never per frame.
-function M.johnnyHologram()
-    loadSettings()
-    return settings.johnnyHologram == true
-end
-
--- V talks on their own: 'off', 'rare' or 'normal' (mod/v-talks.lua). Read once per 0.5 s observer sample and when a collector hands over an
--- event, never per frame.
-function M.vTalks()
-    loadSettings()
-    return settings.vTalks == 'rare' and 'rare' or settings.vTalks == 'normal' and 'normal' or 'off'
-end
-
 -- Is Mistral or the Local AI answering conversations right now (the bridge's applied provider)? Asked when a character the player made is
 -- looked at or talked to, never per frame: the bridge status is re-read at most once every 1.5 s and nothing else is built.
 function M.textProviderActive()
@@ -1031,13 +992,6 @@ function M.naturalSpeech()
     return settings.naturalSpeech == true
 end
 
--- On by default. On, the character marks where its feeling changes and the face follows those marks, timed to the voice;
--- off, a local voice's face follows our text-based reading of the reply. Needs a local voice, like Natural speech.
-function M.expressiveEmotions()
-    loadSettings()
-    return settings.expressiveEmotions == true
-end
-
 -- On by default. On, the conversation service sometimes asks each character to show interest in you inside the reply it
 -- is already giving (a question about what you said, a follow-up, a thought that invites an answer). Any voice works.
 function M.followUpInterest()
@@ -1072,18 +1026,19 @@ function M.multilingualConversations()
 end
 
 -- Multilingual conversations needs a voice that speaks every language. Pocket TTS speaks only English; OmniVoice (the
--- optional pack) and the Convai cloud voice speak them all, but the cloud voice would read Natural speech and Expressive
--- emotions tags aloud. Judged on the settings as they will be after this Apply (`after` is changed in place):
+-- optional pack) and the Convai cloud voice speak them all, but the cloud voice would read Natural speech's tags aloud.
+-- Judged on the settings as they will be after this Apply (`after` is changed in place):
 --   - turning it on moves the voice to OmniVoice · Balanced (16 steps, short reference: the lightest Omni) when the pack
 --     is installed, or to the cloud voice otherwise; an OmniVoice tier is kept, and so is a cloud voice chosen in the
---     same Apply (honourCloudVoice has already turned the tag settings off by then);
---   - without the pack, Multilingual wins: the two tag settings are turned off, and turning one on later is refused;
+--     same Apply (honourCloudVoice has already turned Natural speech off by then);
+--   - without the pack, Multilingual wins: Natural speech is turned off, and turning it on later is refused;
 --   - while it is on, choosing Pocket TTS is refused (turning Multilingual off is the player's own choice to make);
---   - with the pack, a tag setting turned on beside a saved cloud voice moves the voice to OmniVoice · Balanced, never to
---     Pocket. (Choosing the cloud voice keeps it and turns the tag settings off, as without Multilingual.)
+--   - with the pack, Natural speech turned on beside a saved cloud voice moves the voice to OmniVoice · Balanced, never to
+--     Pocket. (Choosing the cloud voice keeps it and turns Natural speech off, as without Multilingual.)
 -- Turning it off leaves the voice as it is. Returns an error to refuse the Apply, and the notices to show.
 -- "On" is where it is in use (multilingualActive: the switch on and the Convai free tier), so choosing the free tier with the switch on counts
--- as turning it on, and with any other provider these rules stand aside.
+-- as turning it on, and with any other provider these rules stand aside. (Expressive emotions is always on and needs no rule: the bridge asks
+-- for its marks only when a local voice speaks.)
 local function resolveMultilingualVoice(before, after, values, packInstalled)
     local result = {notices = {}}
     if not multilingualActive(after) then return result end
@@ -1096,21 +1051,18 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
         result.error = ui.t('The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
         return result
     end
-    local effects = after.naturalSpeech == true or after.expressiveEmotions == true
+    local effects = after.naturalSpeech == true
     local function switched(voice)
         local named = {setting = ui.t('Companion voices'), voice = voice}
         if turningOn then
             return ui.t('Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}.', named)
         end
-        return after.naturalSpeech == true
-            and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
-            or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
+        return ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
     end
     if not packInstalled then
-        local newlyOn = (values.naturalSpeech == true and after.naturalSpeech == true and before.naturalSpeech ~= true)
-            or (values.expressiveEmotions == true and after.expressiveEmotions == true and before.expressiveEmotions ~= true)
+        local newlyOn = values.naturalSpeech == true and after.naturalSpeech == true and before.naturalSpeech ~= true
         if newlyOn and not turningOn then
-            result.error = ui.t('Natural speech and Expressive emotions need the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read their tags aloud.')
+            result.error = ui.t('Natural speech needs the OmniVoice pack while Multilingual conversations is on: the Convai cloud voice would read its tags aloud.')
             return result
         end
         if after.voiceProvider ~= 'convai' then
@@ -1118,8 +1070,8 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
             result.notices[#result.notices + 1] = switched(M.voiceLabel('convai'))
         end
         if effects then
-            after.naturalSpeech, after.expressiveEmotions = false, false
-            result.notices[#result.notices + 1] = ui.t('Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together.')
+            after.naturalSpeech = false
+            result.notices[#result.notices + 1] = ui.t('Natural speech was turned off: the Convai cloud voice would read its tags aloud. With the OmniVoice pack, both work together.')
         end
         return result
     end
@@ -1132,23 +1084,17 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
 end
 M.resolveMultilingualVoice = resolveMultilingualVoice
 
--- Choosing the Convai cloud voice honours the voice: Natural speech and Expressive emotions would make it read their tags
--- aloud, so they are turned off instead of the voice being refused or moved (`after` is changed in place). Applies only
--- when this Apply changes the voice to the cloud voice. That includes the same Apply turning a tag setting on: the voice
--- choice wins. If the cloud voice is already saved, the voice is not being chosen, and a tag setting turned on beside it
--- wins instead (the voice moves to a local one, as before). Returns the one notice to show, or nil: only when a setting
--- the player had set themselves was turned off (Natural speech is off by default, so on means chosen; Expressive emotions
--- is on by default, so only when an earlier or this Apply carried it). Turning only the default off is silent, and then
--- the second result is true so the caller can still ask the open page to reload.
-local function honourCloudVoice(before, after, values)
-    if values.voiceProvider ~= 'convai' or before.voiceProvider == 'convai' or after.voiceProvider ~= 'convai' then return nil end
-    local speech, emotions = after.naturalSpeech == true, after.expressiveEmotions == true
-    if not speech and not emotions then return nil end
-    after.naturalSpeech, after.expressiveEmotions = false, false
-    if speech or after.expressiveEmotionsChosen == true then
-        return ui.t('The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.')
-    end
-    return nil, true
+-- Natural speech and the Convai cloud voice exclude each other where that voice is what speaks (cloudVoiceBlocksTags: the Convai voice on a Convai
+-- provider; beside Mistral, Local AI or Custom the bridge plays Pocket for it, so the pairing stands there). An Apply that makes the pairing
+-- (it chooses the voice, or it chooses a Convai provider while the voice is the cloud voice) keeps the choice it made and turns Natural speech
+-- off instead of refusing or moving the voice (`after` is changed in place). If the pairing was already there, Natural speech turned on beside
+-- it wins instead (the voice moves to a local one, as before). Returns the one notice to show, or nil. Natural speech is off by default, so
+-- on means the player chose it: it always gets a notice.
+local function honourCloudVoice(before, after)
+    if cloudVoiceBlocksTags(before) or not cloudVoiceBlocksTags(after) then return nil end
+    if after.naturalSpeech ~= true then return nil end
+    after.naturalSpeech = false
+    return ui.t('The Convai cloud voice cannot use Natural speech, so it was turned off.')
 end
 
 function M.relationshipChoices()
@@ -1173,32 +1119,6 @@ end
 function M.lootReactions()
     loadSettings()
     return settings.lootReactions == true
-end
-
-function M.bodyGestures()
-    loadSettings()
-    return settings.bodyGestures == true
-end
-
--- On by default, silently: the connection and local voice of a character the player looks at or walks up to
--- are prepared ahead (mod/auto-connect.lua). Off, a connection is made when the player starts talking.
-function M.autoConnectNearby()
-    loadSettings()
-    return settings.autoConnectNearby == true
-end
-
--- Experimental, on by default: a holocall shows a live picture of the character instead of the portrait
--- (mod/holocall.lua, docs/HOLOCALL.md). Read once per call, when it starts.
-function M.holocallLiveImage()
-    loadSettings()
-    return settings.holocallLiveImage == true
-end
-
--- On by default: a character addressed right after the game's own dialogue with them knows the last lines that
--- were said (docs/GAME_DIALOGUE_CONTEXT.md). Off, no game dialogue is recorded or sent.
-function M.gameDialogueContext()
-    loadSettings()
-    return settings.gameDialogueContext == true
 end
 
 -- Off by default (settings.json `decisionLedger`): V's picked dialogue options are kept and written to runtime/decision-ledger.json.
@@ -1777,10 +1697,6 @@ function M.snapshot(player)
             relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
-            bodyGestures = settings.bodyGestures,
-            autoConnectNearby = settings.autoConnectNearby,
-            holocallLiveImage = settings.holocallLiveImage,
-            gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
             witnessReceipts = settings.witnessReceipts,
             errorReports = settings.errorReports ~= false,
@@ -1793,7 +1709,6 @@ function M.snapshot(player)
             omniReference = settings.omniReference,
             keepPreparedVoices = settings.keepPreparedVoices,
             naturalSpeech = settings.naturalSpeech,
-            expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
             vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket',
@@ -1806,8 +1721,6 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
-            johnnyHologram = settings.johnnyHologram == true,
-            vTalks = M.vTalks(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1846,14 +1759,12 @@ function M.applySettings(player, values)
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'expressiveEmotions' then nextSettings.expressiveEmotionsChosen = true end
-        if key == 'holocallLiveImage' then nextSettings.holocallLiveImageChosen = true end
+        if key == 'battleReactions' then nextSettings.battleReactionsChosen = true end
+        if key == 'lootReactions' then nextSettings.lootReactionsChosen = true end
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
-            or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
-            or key == 'holocallLiveImage'
-            or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'expressiveEmotions' or key == 'errorReports'
+            or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
+            or key == 'naturalSpeech' or key == 'errorReports'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
@@ -1887,12 +1798,8 @@ function M.applySettings(player, values)
         elseif key == 'johnnyRemarks' then
             if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
-        elseif key == 'johnnyHologram' then
-            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
-            nextSettings.johnnyHologram = value
-        elseif key == 'vTalks' then
-            if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often V talks on their own.' end
-            nextSettings.vTalks = value
+        elseif RETIRED_SET[key] then
+            -- A setting that is gone (RETIRED_SETTINGS): an old caller's value is ignored, nothing is saved for it.
         elseif key == 'conversationProvider' then
             if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'custom' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value
@@ -1953,25 +1860,18 @@ function M.applySettings(player, values)
     if nextSettings.matureContent == true and not matureProvider(nextSettings.conversationProvider) then
         nextSettings.matureContent, rulesReload = false, true
     end
-    -- Mature content with Local AI keeps the player's words off the cloud: V's line is never spoken by Voxtral beside it. Choosing Voxtral while it is
-    -- on is refused; turning it on moves V to Pocket (the page reloads to show it). With Mistral or Custom text the line is sent to the cloud for
-    -- the reply anyway (bridge/mature-content.mjs, matureAllowsCloudVoice), so Voxtral is allowed there.
-    if matureKeepsLinesLocal(nextSettings) and nextSettings.vVoiceEngine == 'voxtral' then
-        if values.vVoiceEngine == 'voxtral' and values.matureContent ~= true then return false, V_ENGINE_MATURE end
-        nextSettings.vVoiceEngine, rulesReload = 'pocket', true
-    end
     if nextSettings.developerMode ~= settings.developerMode then rulesReload = true end
-    -- Natural speech and Expressive emotions need a local voice. They are judged as they will be after this Apply:
-    -- choosing the cloud voice keeps it and turns both off (honourCloudVoice: one notice, only if the player had set one),
-    -- while turning one on beside a saved cloud voice moves the voice to Pocket TTS with a notice. A tag setting turned on
-    -- in the same Apply that changes the voice to the cloud voice loses to the voice.
+    -- Natural speech needs a local voice. It is judged as it will be after this Apply: making the pairing with the Convai cloud voice on a
+    -- Convai provider (choosing the voice, or choosing the provider) keeps the choice and turns Natural speech off (honourCloudVoice, one
+    -- notice), while turning it on beside a saved pairing moves the voice to Pocket TTS with a notice. Natural speech turned on in the same
+    -- Apply that chooses the voice loses to the voice. Beside Mistral, Local AI or Custom the cloud voice selection plays Pocket, so it all works.
     -- With Multilingual conversations in use (multilingualActive), the voice is resolved by its own rules below instead (never Pocket TTS).
-    local cloudNotice, cloudQuiet = honourCloudVoice(settings, nextSettings, values)
+    local cloudNotice = honourCloudVoice(settings, nextSettings)
     local multilingual = resolveMultilingualVoice(settings, nextSettings, values, M.omniPack().installed)
     if multilingual.error then return false, multilingual.error end
     local switchedVoice = not multilingualActive(nextSettings)
-        and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
-        and nextSettings.voiceProvider == 'convai'
+        and nextSettings.naturalSpeech == true
+        and cloudVoiceBlocksTags(nextSettings)
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end
     -- No model chosen yet (or the value an older version saved, 'auto'): the row showed the default model as selected, so Apply saves its id.
     -- Silent. Without a default (no model installed) the value stays 'auto' and the bridge keeps loading the largest model that fits.
@@ -2008,9 +1908,7 @@ function M.applySettings(player, values)
         if cloudNotice then notices[#notices + 1] = cloudNotice end
         if switchedVoice then
             local named = {setting = ui.t('Companion voices'), voice = M.voiceLabel('pocket')}
-            notices[#notices + 1] = nextSettings.naturalSpeech == true
-                and ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
-                or ui.t('Expressive emotions need a local voice, so {setting} was switched to {voice}.', named)
+            notices[#notices + 1] = ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
         end
         for _, notice in ipairs(multilingual.notices) do notices[#notices + 1] = notice end
         naturalSpeechNotice = table.concat(notices, ' ')
@@ -2019,7 +1917,7 @@ function M.applySettings(player, values)
     end
     say('Settings saved.')
     -- A quiet turn-off still changes settings the open page shows: ask for a reload without a notice.
-    return true, nil, nil, cloudQuiet == true or rulesReload
+    return true, nil, nil, rulesReload
 end
 
 function M.update(player, delta)
