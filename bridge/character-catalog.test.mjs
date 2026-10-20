@@ -92,6 +92,15 @@ test('resolve keeps named and managed identities first, then archetypes, then th
       facts={crowd=true,recordName='Character.Mallrat',bodyType='WomanAverage'}})=='resident-female')
     assert(api.resolve(catalog,{name='Ganger',bodyType='ManAverage',crowd=false,
       facts={affiliation='Valentinos',quest='MainQuest',bodyType='ManAverage'}})==nil)
+    -- A quest's crowd extra (the Afterlife patrons) talks as an ordinary person; a named quest actor of the same quest does not.
+    assert(api.resolve(catalog,{world=true,name='Afterlife patron',bodyType='ManAverage',crowd=true,
+      facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male',bodyType='ManAverage'}})=='resident-male')
+    assert(api.resolve(catalog,{world=true,name='Bouncer',bodyType='ManAverage',crowd=false,
+      facts={crowd=false,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male',bodyType='ManAverage'}})==nil)
+    assert(api.resolve(catalog,{world=true,name='Goon',bodyType='ManAverage',crowd=true,
+      facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_bouncer',bodyType='ManAverage'}})==nil)
+    assert(api.questCrowd({crowd=true,recordName='Character.sq021_party_crowd'})==true)
+    assert(api.questCrowd({crowd=true,recordName='Character.crowdrat'})==false)
     -- Without facts (the setting is off) the previous behaviour is unchanged.
     assert(api.resolve(catalog,{name='Pedestrian',bodyType='ManAverage',crowd=true})=='resident-male')
     assert(api.resolve(catalog,{name='Maelstrom',bodyType='ManAverage',crowd=false})==nil)
@@ -303,6 +312,8 @@ test('protectedReason: named, quest-flagged and story-record characters are off 
     assert(why({record='Character.g',name='Ganger',facts={quest='MinorQuest'}})=='quest')
     assert(why({record='Character.g',name='Ganger',facts={recordName='Character.sq023_goon'}})=='story-record')
     assert(why({record='Character.g',name='Ganger',facts={recordName='Character.mq041_x'}})=='story-record')
+    -- a quest crowd extra may talk, but stays protected from every other system (reactions, tactics, names)
+    assert(why({record='Character.g',name='Patron',facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male'}})=='quest')
     assert(why({record='Character.g',name='Ganger',facts={quest='None',recordName='Character.gang_maelstrom_01'}})==nil)
     assert(why({record='Character.g',name='Pedestrian',facts={}})==nil)
     assert(why({record='Character.g',name='Pedestrian'})==nil)

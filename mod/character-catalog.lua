@@ -471,6 +471,16 @@ function M.storyRecord(recordName)
     return bare:match('^q%d%d%d') ~= nil or bare:match('^sq%d%d%d') ~= nil or bare:match('^mq%d%d%d') ~= nil
 end
 
+-- A quest's crowd extra (Character.q005_afterlife_crowd_male): a crowd body whose quest record names it a crowd member. The owner
+-- lets it talk as an ordinary person (2026-10-21); it stays protected (protectedReason), so no other system touches it in the scene.
+function M.questCrowd(facts)
+    if type(facts) ~= 'table' or facts.crowd ~= true then return false end
+    local name = facts.recordName or facts.recordId
+    if type(name) ~= 'string' then return false end
+    local bare = name:gsub('^Character%.', ''):lower()
+    return (bare:find('_crowd_', 1, true) ~= nil or bare:sub(-6) == '_crowd') and (M.storyRecord(name) or facts.quest ~= nil)
+end
+
 -- Which base describes these facts, or nil. Facts (all optional): vendor,
 -- vendorType, affiliation, police, crowd, children, human, quest, recordName,
 -- recordId. A child, a machine and a main/side quest actor are never routed to
@@ -491,7 +501,7 @@ function M.classifyBase(index, facts)
             if has(index.bases[name].vendorTypes, facts.vendorType) then return name, 'vendor' end
         end
     end
-    if STORY_BOUND[facts.quest or ''] or M.storyRecord(recordName) then return nil, 'story-bound' end
+    if (STORY_BOUND[facts.quest or ''] or M.storyRecord(recordName)) and not M.questCrowd(facts) then return nil, 'story-bound' end
     local names = {}
     for name in pairs(index.bases) do names[#names + 1] = name end
     table.sort(names)
