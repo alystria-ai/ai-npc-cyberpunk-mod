@@ -9,14 +9,22 @@
 // server fault, and no word of the reply had been written), it asks the supervisor (LocalLlmServer.recover) whether the server is really gone,
 // waits for the new one within what is left of the turn's own time, and sends the request once more to the new address. Once per request: a server
 // that dies again fails the turn with the usual explanation. Nothing runs unless a request failed that way, and nothing per frame.
+// A lost graphics device (Vulkan ErrorDeviceLost, 2026-10-20: an RX 580 failed seven turns in a row) is not a dead server: llama-server stays alive and its /health answers, so the
+// health check would send the old address back. Those failures go to LocalLlmServer.noteDeviceLost (restart the first time, step down a model size the second).
 // Background work (no turn deadline) never waits for a server: it only runs while one is up.
 import {MistralError, MIN_ATTEMPT_MS} from './mistral-client.mjs';
+import {DEVICE_LOST} from './local-llm-server.mjs';
 
 /** Is this failure of a local request the kind a restarted server fixes? Not a timeout, not a refused prompt, not a reply that had begun. */
 export function lostServer(error) {
   return error instanceof MistralError && error.provider === 'local' && error.kind === 'network'
     && !error.noRetry && !error.partial && !error.deadline && !error.reason && !(error.trace?.pieces > 0)
     && (!Number.isInteger(error.status) || error.status >= 500);
+}
+
+/** Does a failed request's text say the graphics device was lost (Vulkan ErrorDeviceLost)? The server stays alive and healthy then, so only a forced restart helps (LocalLlmServer.noteDeviceLost). */
+export function deviceLost(error) {
+  try { return DEVICE_LOST.test(String(error?.message ?? '') + ' ' + String(error?.providerText ?? '')); } catch { return false; }
 }
 
 /** The error of a turn that ran out of time while the server it was waiting for started again (its own explanation, not the game's silent timeout). */
@@ -29,21 +37,28 @@ export function survivingLoss(chat, {server, log = () => {}} = {}) {
   if (typeof server?.recover !== 'function') return chat;
   return async function chatThroughRestart(options) {
     try { return await chat(options); } catch (error) {
-      if (!lostServer(error) || options?.signal?.aborted || !Number.isFinite(options?.deadlineAt)) throw error;
+      // A lost graphics device: the server answers /health, so it is told (restart, or a smaller model the second time) and recover() skips its health check.
+      const lost = deviceLost(error);
+      const noteLoss = what => { if (lost) try { void Promise.resolve(server.noteDeviceLost?.(what)).catch(() => {}); } catch { /* the note never fails a turn */ } };
+      if (!lostServer(error) || options?.signal?.aborted || !Number.isFinite(options?.deadlineAt)) { noteLoss('a reply that could not go on'); throw error; }
       const clock = typeof options.now === 'function' ? options.now : () => performance.now();
       const began = clock();
       const room = options.deadlineAt - began - (options.minAttemptMs ?? MIN_ATTEMPT_MS);
-      if (!(room > 0)) throw error;
+      if (!(room > 0)) { noteLoss('a turn with no time left to ask again'); throw error; }
       const bounded = AbortSignal.timeout(Math.ceil(room));
       let handle;
-      try { handle = await server.recover({signal: options.signal ? AbortSignal.any([options.signal, bounded]) : bounded}); } catch (failure) {
+      try { handle = await server.recover({signal: options.signal ? AbortSignal.any([options.signal, bounded]) : bounded, deviceLost: lost}); } catch (failure) {
         if (options.signal?.aborted) throw options.signal.reason ?? failure;
         if (bounded.aborted) { log('The local AI: the model server stopped working during the turn and was not ready again in time'); throw stillRestarting(clock() - began); }
         throw failure;
       }
       if (!handle) throw error;   // the server answers: the failure was something else
       log('The local AI: the model server stopped working during the turn and was started again; asking once more');
-      return chat({...options, endpoint: handle.endpoint, apiKey: handle.apiKey});
+      try { return await chat({...options, endpoint: handle.endpoint, apiKey: handle.apiKey}); } catch (again) {
+        // The device was lost again on the new server: the second loss steps the model down now, not at the next turn's failure. This turn fails with its own explanation.
+        if (deviceLost(again)) { try { void Promise.resolve(server.noteDeviceLost?.('the second try of a turn')).catch(() => {}); } catch { /* best effort */ } }
+        throw again;
+      }
     }
   };
 }

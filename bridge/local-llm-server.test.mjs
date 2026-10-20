@@ -1132,3 +1132,73 @@ test('a changed choice that would end on the model already loaded does not reloa
   blind.free.value = 3000; blind.state.pin = 'standard';
   assert.equal(await blind.server.reselect(), true);
 });
+
+// ---- A lost graphics device (Vulkan ErrorDeviceLost): llama-server stays alive and healthy, every request fails --------------------------------------------------------
+// 2026-10-20 report: an RX 580 failed seven turns in a row, 50 to 100 ms each, until llama-server finally crashed. /health still answered, so recover() called it fine.
+
+test('a lost graphics device restarts a server that still answers /health (the first loss); an ordinary failure still finds it fine', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10});
+  const first = await h.server.ensure();
+  assert.equal(await h.server.recover(), null, 'a healthy server is not restarted for an ordinary failure');
+  assert.equal(h.calls.length, 1);
+  const restarted = [];
+  h.server.on('restarted', event => restarted.push(event));
+  const next = await h.server.recover({deviceLost: true});
+  assert.equal(h.calls.length, 2, 'a second llama-server was started');
+  assert.notEqual(next.endpoint, first.endpoint);
+  assert.notEqual(next.apiKey, first.apiKey);
+  assert.equal(next.model, 'Qwen3.5-4B', 'the same model: the first loss only restarts');
+  assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the old server was ended');
+  assert.equal(h.steps.length, 0);
+  assert.equal(restarted.length, 1, 'the player is told once that Local AI was restarted (local-restarted)');
+  assert.ok(h.logs.some(line => /graphics device was lost/.test(line)), h.logs.join('\n'));
+});
+
+test('the second lost device of a session steps the model down one size (its own notice); the count starts again for the smaller model', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10});
+  await h.server.ensure();
+  await h.server.recover({deviceLost: true});
+  assert.equal(h.steps.length, 0);
+  const stepped = await h.server.recover({deviceLost: true});
+  assert.equal(stepped.model, 'Qwen3.5-2B');
+  assert.deepEqual([h.loaded(), h.steps.length, h.steps[0].model], [['q4.gguf', 'q4.gguf', 'q2.gguf'], 1, 'Qwen3.5-2B']);
+  assert.deepEqual(h.server.diagnostics().steppedDown, ['standard']);
+  assert.equal(h.state.pin, 'standard', 'the saved choice is never changed');
+  // The smaller model gets its own first restart, not an immediate second step.
+  await h.server.recover({deviceLost: true});
+  assert.equal(h.calls.length, 4);
+  assert.equal(h.server.modelId, 'lite');
+  assert.equal(h.steps.length, 1);
+});
+
+test('a lost device with no smaller model installed hands the turns to the cloud text provider (low-memory), and never restarts in a loop', async t => {
+  const h = stepHarness(t, {mature: false, lite: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10});
+  await h.server.ensure();
+  await h.server.recover({deviceLost: true});
+  await assert.rejects(h.server.recover({deviceLost: true}), error => error instanceof LocalAiUnavailable && error.reason === 'low-memory');
+  assert.deepEqual([h.failures, h.steps.map(step => step.model)], [[{reason: 'low-memory'}], [null]]);
+  assert.equal(h.calls.length, 2, 'no third server');
+  assert.equal(h.server.status().state, 'failed');
+});
+
+test('one server process counts once: a second report of the same loss (a turn that failed while the restart was starting) does nothing', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10});
+  await h.server.ensure();
+  const [one, two] = await Promise.all([h.server.noteDeviceLost('turn one'), h.server.noteDeviceLost('turn two')]);
+  assert.deepEqual([one, two], ['restart', null]);
+  await h.server.ensure();
+  assert.equal(h.calls.length, 2);
+  assert.equal(h.steps.length, 0);
+});
+
+test('the server\'s own log saying the device was lost is enough: recover() restarts it although the failed request\'s text did not say so', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}, deviceLostPauseMs: 10, envFor: index => (index === 0 ? {FAKE_LLAMA_DEVICE_LOST_FROM: '1'} : {})});
+  const first = await h.server.ensure();
+  const response = await fetch(first.endpoint, {method: 'POST', headers: {'content-type': 'application/json', authorization: 'Bearer ' + first.apiKey},
+    body: JSON.stringify({model: 'x', stream: false, messages: [{role: 'user', content: 'hi'}]})});
+  assert.equal(response.status, 500);
+  await sleep(300);   // the child's stderr reaches the supervisor's tail
+  const next = await h.server.recover();
+  assert.ok(next && next.endpoint !== first.endpoint, 'restarted on the log line alone');
+  assert.equal(h.calls.length, 2);
+});

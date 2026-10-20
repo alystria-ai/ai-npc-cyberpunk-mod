@@ -10,6 +10,8 @@
 //   FAKE_LLAMA_CRASH_AFTER     exit(7) right after answering this many /v1 requests
 //   FAKE_LLAMA_GO_DEAF_AT      the Nth chat request is answered with HTTP 500 and the server then stops listening and drops every connection, while the process stays alive
 //                              (a crashed llama-server that Windows still lists while it writes its crash report: later requests are refused)
+//   FAKE_LLAMA_DEVICE_LOST_FROM  from the Nth chat request on, every one is answered with HTTP 500 "decode() failed: vk::Queue::submit: ErrorDeviceLost" while /health keeps answering
+//                              (a Vulkan device that was lost: llama-server stays alive and healthy and fails every turn)
 //   FAKE_LLAMA_REPLY           the chat reply text (default: an echo of the last user message)
 //   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
 //   FAKE_LLAMA_PRINT_KEY       print the API key to stderr (to test redaction)
@@ -65,6 +67,7 @@ const startedAt = Date.now();
 const delayMs = Number(process.env.FAKE_LLAMA_DELAY_MS || 0);
 const crashAfter = Number(process.env.FAKE_LLAMA_CRASH_AFTER || 0);
 const goDeafAt = Number(process.env.FAKE_LLAMA_GO_DEAF_AT || 0);
+const deviceLostFrom = Number(process.env.FAKE_LLAMA_DEVICE_LOST_FROM || 0);
 let chats = 0;
 const contextSize = Number(process.env.FAKE_LLAMA_CTX || options['-c'] || 4096);
 const charsPerToken = Number(process.env.FAKE_LLAMA_CHARS_PER_TOKEN || 4);
@@ -116,6 +119,11 @@ const server = createServer((request, response) => {
       if (goDeafAt && ++chats >= goDeafAt) {
         response.on('finish', () => { server.close(); server.closeAllConnections(); setInterval(() => {}, 60_000); });
         send(response, 500, {error: {code: 500, message: 'device lost'}});
+        return;
+      }
+      if (deviceLostFrom && ++chats >= deviceLostFrom) {
+        process.stderr.write('ggml_vulkan: vk::Queue::submit: ErrorDeviceLost\n');
+        send(response, 500, {error: {code: 500, message: 'decode() failed: vk::Queue::submit: ErrorDeviceLost'}});
         return;
       }
       const messages = Array.isArray(json.messages) ? json.messages : [];
