@@ -22,6 +22,9 @@ const withoutCustomModule = Object.fromEntries(Object.entries(everything).filter
 const harness = (options = {}) => `
   local logged = {}
   print = function(text) logged[#logged + 1] = tostring(text) end
+  -- CET's GetDisplayResolution(): the game's resolution (a test changes display[1], display[2]); 1080p unless the options say otherwise.
+  local display = {${options.resolution ? options.resolution.join(', ') : '1920, 1080'}}
+  GetDisplayResolution = function() return display[1], display[2] end
 ` + nsuiHarness({modules: everything, mcm: {version: '0.10.5'}, screen: false, ...options}) + `
   convaiNotices.configure(function() return manager.developerMode() end)
   local clock = 1000
@@ -1183,6 +1186,89 @@ test('MCM 0.10.6 by version but refusing the new presentation options: the base 
   mcm.openScreen(); frames(2)
   press('Settings')
   assert(footerLabels() == 'Defaults | Back', 'the 0.10.5 name of the button: ' .. footerLabels())
+`));
+
+test('MCM 0.10.6: rowFontSize follows the screen: 22 from 1080p up, smaller below it, left out where MCM refuses it or the resolution is unreadable', () => run(`${harness({mcm: {version: '0.10.6'}})}
+  local cases = {
+    {1920, 1080, 22}, {2560, 1440, 22}, {3840, 2160, 22}, {3440, 1440, 22}, {1920, 1200, 22}, {1920, 1081, 22},
+    {1600, 900, 18}, {1366, 768, 15}, {1280, 720, 14}, {1280, 1024, 14}, {1152, 648, 13}, {1056, 594, 12}, {1024, 768, nil},
+    {1024, 576, nil}, {800, 600, nil},
+  }
+  for _, case in ipairs(cases) do
+    local got = mcmHost.rowFontFor(case[1], case[2])
+    assert(got == case[3], case[1] .. 'x' .. case[2] .. ': ' .. tostring(got) .. ' instead of ' .. tostring(case[3]))
+    -- The text takes no larger a share of its box than at 1080p: size / scale (scale = min(w / 1920, h / 1080)) is never above 22 canvas units.
+    if got then assert(got / math.min(case[1] / 1920, case[2] / 1080) <= 22 + 1e-6, case[1] .. 'x' .. case[2]) end
+  end
+  assert(mcmHost.rowFontFor(nil, nil) == nil and mcmHost.rowFontFor(0, 1080) == nil and mcmHost.rowFontFor('1920', 1080) == nil)
+`));
+
+test('MCM 0.10.6 at 1366x768: the presentation carries a smaller rowFontSize and the same labelIndent, so the labels of the settings fit the shrunk box', () => run(`${harness({mcm: {version: '0.10.6'}, resolution: [1366, 768]})}
+  frames(10)
+  local presentation = mcm.config().presentation
+  assert(presentation.rowFontSize == 15, tostring(presentation.rowFontSize))
+  assert(presentation.labelIndent == 20 and presentation.highlightModifiedValues == false and presentation.descriptionFontSize == 22)
+  mcm.openScreen(); frames(3)
+  press('tab:settings')
+  for _, row in ipairs(mcm.layout().rows) do
+    if row.kind == 'setting' then assert(row.size == 15, row.label .. ' at ' .. tostring(row.size)); break end
+  end
+`));
+
+test('MCM 0.10.6 with an unreadable resolution or a screen under 1046x589: rowFontSize is left out (MCM keeps its own size) and the rest is sent', () => {
+  for (const [name, setup] of [
+    ['no GetDisplayResolution', 'GetDisplayResolution = nil'],
+    ['GetDisplayResolution raising', 'GetDisplayResolution = function() error("nope") end'],
+    ['zero size', 'display[1], display[2] = 0, 0'],
+    ['800x600', 'display[1], display[2] = 800, 600'],
+  ]) {
+    run(`${harness({mcm: {version: '0.10.6'}, hideMcm: true})}
+      ${setup}
+      mcmHidden = false
+      frames(40)
+      assert(mcmHost.ready(), '${name}')
+      local presentation = mcm.config().presentation
+      assert(presentation and presentation.rowFontSize == nil, '${name}: ' .. tostring(presentation and presentation.rowFontSize))
+      assert(presentation.labelIndent == 20 and presentation.highlightModifiedValues == false and mcmHost.inspect().newUi.presentation == true, '${name}')
+    `);
+  }
+});
+
+test('MCM 0.10.6: the size is worked out again when the page is opened (the shortcut or the MCM list), not while it is closed', () => run(`${harness({mcm: {version: '0.10.6'}})}
+  frames(20)
+  local function count(name) local n = 0; for _, call in ipairs(mcm.calls) do if call == name then n = n + 1 end end; return n end
+  assert(mcm.config().presentation.rowFontSize == 22 and count('ui.setPresentation') == 1)
+  -- A resolution change while closed costs nothing and shows nowhere...
+  display[1], display[2] = 1366, 768
+  frames(40)
+  assert(count('ui.setPresentation') == 1 and mcm.config().presentation.rowFontSize == 22, 'nothing is read or sent while closed')
+  -- ... until the page opens: the player picks the page in MCM.
+  mcm.openScreen(); frames(3)
+  assert(mcm.config().presentation.rowFontSize == 15, 'picked up at the opening: ' .. tostring(mcm.config().presentation.rowFontSize))
+  assert(count('ui.setPresentation') == 2)
+  -- Staying open reads nothing again, even when the resolution moves.
+  display[1], display[2] = 1920, 1080
+  frames(40)
+  assert(count('ui.setPresentation') == 2 and mcm.config().presentation.rowFontSize == 15)
+  mcm.closeScreen(); frames(10)
+  -- Back at 1080p, opened by the shortcut (managerUi.open): the size is 22 again before MCM is asked to open.
+  assert(managerUi.open() == true)
+  assert(mcm.config().presentation.rowFontSize == 22 and count('ui.setPresentation') == 3, tostring(mcm.config().presentation.rowFontSize))
+  frames(5)
+  -- Opening again with nothing changed sends nothing.
+  mcm.closeScreen(); frames(10)
+  assert(managerUi.open() == true); frames(5)
+  assert(count('ui.setPresentation') == 3, 'unchanged size: no call: ' .. count('ui.setPresentation'))
+`));
+
+test('MCM 0.10.5 is untouched by the font rule: no rowFontSize at any resolution, and no presentation call at the opening', () => run(`${harness({mcm: {version: '0.10.5'}, resolution: [1366, 768]})}
+  frames(20)
+  local function count(name) local n = 0; for _, call in ipairs(mcm.calls) do if call == name then n = n + 1 end end; return n end
+  assert(mcm.config().presentation.rowFontSize == nil and mcm.config().presentation.labelIndent == nil)
+  local before = count('ui.setPresentation')
+  display[1], display[2] = 3840, 2160
+  mcm.openScreen(); frames(5)
+  assert(count('ui.setPresentation') == before and mcm.config().presentation.rowFontSize == nil)
 `));
 
 test('MCM 0.10.6 adds no per-frame work: nothing is called while the screen is closed, the new calls are made once per connection, and shutdown clears them', () => run(`${harness({mcm: {version: '0.10.6'}})}

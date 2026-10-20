@@ -501,6 +501,43 @@ end
 -- know, the whole call). MCM 0.10.6: rowFontSize sizes setting, action and read-only rows alike, labelIndent puts a setting's label at the
 -- buttons' x, highlightModifiedValues = false turns the purple of a changed value off (defaults, reset and the Modified counter are
 -- untouched), and Add to favorites is hidden (setActionVisibility replaces the previous map; Apply and Revert stay MCM's).
+-- rowFontSize is worked out from the screen (rowFontFor), not fixed.
+-- The size of every row's text (rowFontSize). MCM does not take it as canvas units: its walk over the finished list (MCMPanelPresentation.Walk)
+-- sets each text to size / (the widget's accumulated scale), so the number is a size on the screen, while the label boxes keep the canvas units
+-- of MCMLayout.reds (980 wide, labels 444) and the whole canvas is shrunk by uniformScale = min(width / 1920, height / 1080) (mcm_host.lua
+-- density) times the profile. A fixed 22 therefore grows relative to the box as the screen gets smaller (windowed 1366x768, live 2026-10-21:
+-- every setting label cut to "(...)", buttons untouched), and at 1080p and above it is the size that was checked to fit. So the size follows
+-- the same density, never above 22: the text then takes the same share of its box as it does at 1080p, in every profile. Below a density of
+-- 12 / 22 (about 1046x589) MCM refuses a size under 12, and the option is left out: MCM's own size, which always fits. When the resolution
+-- cannot be read the option is left out as well (a plain size beats a cut label).
+local ROW_FONT, ROW_FONT_MIN, CANVAS_W, CANVAS_H = 22, 12, 1920, 1080
+
+local function rowFontFor(width, height)
+    if type(width) ~= 'number' or type(height) ~= 'number' or not (width > 0 and height > 0) then return nil end
+    local density = math.min(width / CANVAS_W, height / CANVAS_H)
+    if density >= 1 then return ROW_FONT end
+    local size = math.floor(ROW_FONT * density + 1e-6)
+    if size < ROW_FONT_MIN then return nil end
+    return size
+end
+M.rowFontFor = rowFontFor
+
+-- CET's GetDisplayResolution(): the game's resolution as two numbers (a vector with x and y is taken too). Read when the page is opened or
+-- the presentation is given, never per frame.
+local function displayRowFont()
+    local ok, width, height = pcall(function()
+        if type(GetDisplayResolution) ~= 'function' then return nil end
+        local a, b = GetDisplayResolution()
+        if type(a) == 'number' then return a, b end
+        if type(a) == 'table' or type(a) == 'userdata' then return a.x or a.X, a.y or a.Y end
+        return nil
+    end)
+    if not ok then return nil end
+    return rowFontFor(tonumber(width), tonumber(height))
+end
+
+local sentFont = false  -- what the presentation last carried (a number, or nil for "left out"); false until it was sent
+
 local function applyPresentation()
     local called, policy = pcall(api.ui.setApplyPolicy, MOD_KEY, 'explicit')
     local base = {locale = ui.current(), descriptionFontSize = 22, labelWidthFraction = 0.5, statusPlacement = 'header', quietActions = true}
@@ -508,8 +545,9 @@ local function applyPresentation()
     if newUi.presentation then
         local extended = {}
         for key, value in pairs(base) do extended[key] = value end
-        extended.rowFontSize, extended.labelIndent, extended.highlightModifiedValues = 22, 20, false
+        extended.rowFontSize, extended.labelIndent, extended.highlightModifiedValues = displayRowFont(), 20, false
         shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, extended)
+        if shown and presentation == true then sentFont = extended.rowFontSize end
         if not (shown and presentation == true) then
             -- The mod is not indexed yet (the base call fails too: tried again in a second), or this MCM refuses an option: base only.
             shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, base)
@@ -531,6 +569,12 @@ local function applyPresentation()
     end
     configured = ready
     return configured
+end
+
+-- When the page is opened (the shortcut, or the player picking the page in MCM): the size is worked out again, so a resolution changed since
+-- the last opening is picked up. Nothing is sent when it is the same size (and MCM ignores an unchanged presentation).
+local function refreshRowFont()
+    if api and configured and newUi.presentation and displayRowFont() ~= sentFont then applyPresentation() end
 end
 
 local function connect()
@@ -636,6 +680,7 @@ function M.open()
     local checked, why, kind = pcall(refusal)
     if checked and why then return false, why, true, kind end
     if active() then return true end
+    refreshRowFont()
     core.setView('home')
     local called, request, problem = pcall(api.ui.open, MOD_KEY)
     if not called then request, problem = nil, request end
@@ -691,6 +736,7 @@ function M.update(player, worldReady)
         end
         return
     end
+    if not wasActive then refreshRowFont() end
     wasActive = true
     core.tick(player)
     if core.stale() then reloadWanted = true end
@@ -734,7 +780,7 @@ function M.shutdown()
     if type(api.providers) == 'table' and type(api.providers.unregisterProvider) == 'function' then
         pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey)
     end
-    api, opened, wasActive, newUi = nil, false, false, {}
+    api, opened, wasActive, newUi, sentFont = nil, false, false, {}, false
 end
 
 function M.inspect()
