@@ -16,6 +16,8 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 
 Any other OpenAI-style endpoint (OpenRouter, Nano-GPT, Ollama, LM Studio) is the Custom provider, which shares this route's prompt, memory, streaming and reply checks: see [CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md).
 
+**Mature content works with Mistral** (owner decision 2026-10-20). With the setting on, a Mistral turn gets the same Mature layer, word palette and closing line the Local AI gets, every turn, through the shared text host (`TextProviderHost`), with the hard-limit guard on the input and the reply. A Mistral model is in no row of the allowance table, so it gets the `suggestive` level (crude and forward, the act itself cut away). The lines go to Mistral as every turn does, and Mistral's own terms apply: its Usage Policy neither bans nor permits consensual adult text (read 2026-10-20, `deliverables/mature-cloud-check-2026-10-20.md`), and it may add output filters of its own. With Mature on and Mistral as the text provider, V's Voxtral voice is allowed (the lines are in the cloud already); with Local AI it is not. Details: [LOCAL_AI.md](LOCAL_AI.md), "Mature content on Mistral and Custom".
+
 This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
 is the provider entry "Convai API key" in the same selector; the daily-limit notice and the player documents do not promote it.
 

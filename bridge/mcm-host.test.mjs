@@ -316,7 +316,7 @@ test('Mature content: turned on, Apply saves Local AI and the uncensored model w
   frames(6)
   assert(not next(mcm.drafts()), 'the leftover draft was reverted')
   assert(mcm.row('Mature content').value == false and saved.matureContent ~= true)
-  assert(mcm.status() == 'Needs Local AI.', mcm.status())
+  assert(mcm.status() == 'Needs Local AI, Mistral or Custom.', mcm.status())
 `));
 
 test('the line of the last action is the status line of MCM (info), sent only when it changes', () => withScreen(`

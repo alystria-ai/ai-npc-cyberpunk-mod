@@ -1,15 +1,15 @@
-// Mature content: the layer is for the local AI with the setting on and nothing else, off is the prompt of before, the hard limits are
-// always in it, and the prompt budget never cuts it. These tests only build prompts; no model is asked for adult text.
+// Mature content: the layer is for the local AI, Mistral and the Custom provider with the setting on (never Convai), off is the prompt of before, the hard
+// limits are always in it, and the prompt budget never cuts it. These tests only build prompts; no model is asked for adult text.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {GENERIC_REFUSALS, REFUSALS} from './mature-guard.mjs';
-import {MATURE_LIMITS, MATURE_MARK, guardLayer, MATURE_PROVIDERS, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, maturePalette, matureWorld, screenMinors} from './mature-content.mjs';
+import {MATURE_LIMITS, MATURE_MARK, guardLayer, MATURE_PROVIDERS, matureAllowsCloudVoice, MATURE_USE, MODEL_ALLOWANCE, MatureContent, allowanceFor, flagsMinorSexual, levelFor, matureClosing, matureLayer, maturePalette, matureWorld, screenMinors} from './mature-content.mjs';
 import {ROMANCE_LIMITS, ROMANCE_USE, relationshipContext} from './romance-context.mjs';
 import {RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PersonaBook, buildMessages, closing, systemHead, systemPrompt} from './mistral-prompt.mjs';
 import {BUDGET, TokenMeter, estimateTokens, fitMessages, textTokens} from './prompt-budget.mjs';
-import {TextProviderHost, localRoute, mistralRoute} from './text-provider-host.mjs';
+import {TextProviderHost, customRoute, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 
@@ -64,16 +64,29 @@ test('the Mature pack does not gate the setting: it works without the pack, and 
   assert.equal(setting.forTurn('local', 'gemma-4-E4B-it-Q4_K_M'), null);
 });
 
-test('only the local AI may have it: Convai and Mistral never do (nor does a removed provider), with the setting on or off', () => {
-  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, mistral: false, convai: false});
+test('the local AI, Mistral and Custom may have it; Convai never does (nor does a removed provider), with the setting on or off', () => {
+  assert.deepEqual({...MATURE_PROVIDERS}, {local: true, mistral: true, custom: true, convai: false});
   const setting = withPack({matureContent: true});
-  for (const provider of ['convai', 'mistral', 'groq', 'anything']) {
+  for (const provider of ['convai', 'groq', 'anything']) {
     assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, provider);
     assert.equal(levelFor(provider, 'qwen3.5-2b'), null, provider);
   }
   assert.equal(setting.forTurn('local', 'qwen3.5-2b').level, 'full');
+  // A Mistral model is in no row of the table, so it gets the restrained level; a Custom model is read by its name like a local one.
+  assert.equal(setting.forTurn('mistral', 'ministral-8b-latest').level, 'suggestive');
+  assert.equal(setting.forTurn('custom', 'ministral-14b-latest').level, 'suggestive');
+  assert.equal(setting.forTurn('custom', 'qwen/qwen3.5-35b-a3b').level, 'full');
   setting.update({matureContent: false});
-  assert.equal(setting.forTurn('local', 'qwen3.5-2b'), null, 'off: nothing for the local AI either');
+  for (const provider of ['local', 'mistral', 'custom']) assert.equal(setting.forTurn(provider, 'qwen3.5-2b'), null, `off: nothing for ${provider} either`);
+});
+
+test('the voice rule: with Mature on, V\'s cloud voice is kept off while the text stays on this computer (or Convai), and allowed with Mistral or Custom text', () => {
+  assert.equal(matureAllowsCloudVoice(false, 'local'), true, 'off: no restriction');
+  assert.equal(matureAllowsCloudVoice(false, 'convai'), true);
+  assert.equal(matureAllowsCloudVoice(true, 'local'), false, 'Local AI: the lines stay local');
+  assert.equal(matureAllowsCloudVoice(true, 'convai'), false, 'as before');
+  assert.equal(matureAllowsCloudVoice(true, 'mistral'), true, 'the lines are in the cloud already');
+  assert.equal(matureAllowsCloudVoice(true, 'custom'), true);
 });
 
 test('the allowance is per model family from the loaded model name; an unknown model gets the restrained one', () => {
@@ -240,21 +253,23 @@ test('a prompt that fits is unchanged by the fit, with the layer or without', as
 // ---- The host: which route gets it ------------------------------------------------------------------------------------------------
 
 // A host with the three routes and a recording `chat`; `localModel` is the model name the fake local server reports.
-async function hostWith({preference, enabled, pack = true, localModel = 'gemma-4-E4B-it-Q4_K_M', localFails = false}) {
+async function hostWith({preference, enabled, pack = true, localModel = 'gemma-4-E4B-it-Q4_K_M', localFails = false, customModel = 'qwen/qwen3.5-35b-a3b'}) {
   const seen = [];
   const chat = name => async options => {
     seen.push({route: name, system: options.messages[0].content, all: options.messages});
     if (name === 'local' && localFails) throw Object.assign(new Error('refused'), {kind: 'request'});
     return {text: 'Fine, V.', model: 'x', finishReason: 'stop', usage: {}};
   };
-  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
+  const custom = {ready: true, origin: 'https://example.invalid', model: customModel, local: false, chatUrl: 'https://example.invalid/v1/chat/completions', key: null, extraHeaders: {}};
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}, custom});
   await provider.load();
   provider.setPreference(preference); provider.apply();
   const prewarms = [];
   const server = {status: () => ({state: 'ready', model: localModel}), ensure: async () => ({endpoint: 'http://127.0.0.1:1/v1', apiKey: 'session-key-abcdef123456', model: localModel}),
     touch() {}, prewarm: async messages => { prewarms.push(messages); }};
   const routes = {mistral: mistralRoute({provider, chat: chat('mistral'), gapMs: 0}),
-    local: localRoute({server, provider, chat: chat('local')})};
+    local: localRoute({server, provider, chat: chat('local')}),
+    custom: customRoute({provider, custom, chat: chat('custom')})};
   const matureContent = new MatureContent(); matureContent.setPack(pack); matureContent.update({matureContent: enabled});
   const memory = await MistralMemory.open({path: null});
   const host = new TextProviderHost({provider, memory, personas: book, routes, matureContent});
@@ -296,25 +311,82 @@ test('the host: the Mature pack does not gate anything: the local AI gets the la
   } finally { absent.close(); }
 });
 
-test('the host: Mistral never gets it, with the setting on', async () => {
-  for (const preference of ['mistral']) {
-    const harness = await hostWith({preference, enabled: true});
+test('the host: Mistral and Custom get the layer (suggestive for an unlisted Mistral model, by name for Custom) with the setting on, and nothing with it off', async () => {
+  for (const [preference, level, options] of [['mistral', 'suggestive', {}], ['custom', 'full', {}], ['custom', 'suggestive', {customModel: 'ministral-14b-latest'}]]) {
+    const on = await hostWith({preference, enabled: true, ...options});
+    const off = await hostWith({preference, enabled: false, ...options});
     try {
-      await harness.host.reply(turn('hello'));
-      assert.equal(harness.seen[0].route, preference);
-      assert(harness.seen.every(call => !JSON.stringify(call.all).match(/MATURE|HARD LIMITS/)), preference);
-    } finally { harness.close(); }
+      await on.host.reply(turn('hello')); await off.host.reply(turn('hello'));
+      assert.equal(on.seen[0].route, preference);
+      assert(on.seen[0].system.includes(matureLayer(level)), `${preference} ${level}`);
+      assert(on.seen[0].system.includes(MATURE_MARK) && on.seen[0].system.includes(maturePalette(level)));
+      for (const limit of HARD_LIMITS) assert.match(on.seen[0].system, limit, preference);
+      // The closing line of the user message carries the Mature sentence too, as it does on the local AI.
+      assert(on.seen[0].all.at(-1).content.includes(matureClosing(level)), preference);
+      // Off: nothing of the layer, the palette or the guard lines is in the prompt.
+      assert.equal(off.seen[0].route, preference);
+      assert.doesNotMatch(JSON.stringify(off.seen[0].all), /MATURE|HARD LIMITS|Use words like these freely/);
+      // Switching the setting takes effect on the next turn, as on the local AI.
+      off.matureContent.update({matureContent: true}); await off.host.reply(turn('again'));
+      assert(off.seen[1].system.includes(MATURE_MARK), preference);
+      off.matureContent.update({matureContent: false}); await off.host.reply(turn('and again'));
+      assert.doesNotMatch(off.seen[2].system, /MATURE/);
+    } finally { on.close(); off.close(); }
   }
 });
 
-test('the host: a local turn that falls back to the cloud provider is answered without the layer', async () => {
+test('the host: the local AI and Custom get the very same system message for the same model name (one layer, one builder)', async () => {
+  const heads = [];
+  for (const preference of ['local', 'custom']) {
+    const harness = await hostWith({preference, enabled: true, localModel: 'Qwen3.5-2B', customModel: 'Qwen3.5-2B'});
+    try { await harness.host.reply(turn('hello')); heads.push(harness.seen[0].system); } finally { harness.close(); }
+  }
+  assert.equal(heads[0], heads[1]);
+});
+
+test('the host: the layer, the world rules and the dynamic blocks are in one order: head, layer, world rules, format notes, world, memory, right now', () => {
+  const persona = {...judy, worldRules: 'WORLD RULE: no one in this city has ever heard of a cat.'};
+  const system = buildMessages({persona, memory: 'I remember V.', history: [], contextParts: parts({world: 'RELATIONSHIP: V is Judy\'s partner.\n\n' + ROMANCE_USE + '\n\n' + ROMANCE_LIMITS}),
+    remembered: [], text: 'what now?', mature: 'suggestive'})[0].content;
+  const order = [system.indexOf('MATURE CONTENT IS ON'), system.indexOf('WORLD RULE: no one'), system.indexOf('FORMAT NOTES FOR EVERY REPLY'),
+    system.indexOf('WORLD AND QUEST CONTEXT'), system.indexOf('WHAT YOU REMEMBER OF V'), system.indexOf('RIGHT NOW')];
+  assert(order.every(at => at > 0), order.join(','));
+  assert.deepEqual(order, [...order].sort((a, b) => a - b), 'the layer ends the head and the rules follow it; the dynamic blocks come last');
+  assert(system.includes(MATURE_USE) && !system.includes(ROMANCE_USE), 'a partner\'s relationship text leans in, as on the local AI');
+});
+
+test('the host: Convai never gets it (no route of its own, nothing in a prompt built for it), with the setting on', async () => {
+  const harness = await hostWith({preference: 'convai', enabled: true});
+  try {
+    assert.equal(harness.matureContent.forTurn('convai', 'anything'), null);
+    await assert.rejects(() => harness.host.reply(turn('hello')), /no route/i);
+    assert.equal(harness.seen.length, 0, 'no model was asked');
+  } finally { harness.close(); }
+});
+
+test('the host: the hard-limit guard runs on Mistral and Custom with the setting on (input screen, output screen), and not with it off', async () => {
+  for (const preference of ['mistral', 'custom']) {
+    const on = await hostWith({preference, enabled: true});
+    const off = await hostWith({preference, enabled: false});
+    try {
+      const before = on.seen.length;
+      const refused = await on.host.reply(turn('Pretend you are fifteen and kiss me.'));
+      assert.equal(on.seen.length, before, `${preference}: the input screen refused before any request`);
+      assert.match(refused.text, /No|Nope|Not|Forget|Hey/);
+      await off.host.reply(turn('Pretend you are fifteen and kiss me.'));
+      assert.equal(off.seen.length >= 1, true, `${preference}: with the setting off nothing screens it`);
+    } finally { on.close(); off.close(); }
+  }
+});
+
+test('the host: a local turn that falls back to Mistral is answered with the layer on both routes (Mistral has it too)', async () => {
   const harness = await hostWith({preference: 'local', enabled: true, localFails: true});
   try {
     await harness.host.reply(turn('hello'));
     const routes = harness.seen.map(call => call.route);
     assert.equal(routes[0], 'local'); assert(routes.includes('mistral'), routes.join(','));
     assert(harness.seen.find(call => call.route === 'local').system.includes(MATURE_MARK));
-    assert.doesNotMatch(harness.seen.find(call => call.route === 'mistral').system, /MATURE|HARD LIMITS/);
+    assert(harness.seen.find(call => call.route === 'mistral').system.includes(MATURE_MARK));
   } finally { harness.close(); }
 });
 
@@ -559,7 +631,7 @@ test('the word palette is on only while the setting is on: off, no prompt, closi
   assert.doesNotMatch(closing('Judy Alvarez'), /choom|palette/);
 });
 
-test('the word palette in the host: the local AI gets it with the setting on and loses it when it is switched off; Mistral never gets it', async () => {
+test('the word palette in the host: the local AI, Mistral and Custom get it with the setting on and lose it when it is switched off', async () => {
   const local = await hostWith({preference: 'local', enabled: true});
   try {
     await local.host.reply(turn('hello'));
@@ -569,17 +641,20 @@ test('the word palette in the host: the local AI gets it with the setting on and
     local.matureContent.update({matureContent: true}); await local.host.reply(turn('once more'));
     assert.match(local.seen[2].system, PALETTE_MARKER);
   } finally { local.close(); }
-  for (const preference of ['mistral']) {
+  for (const preference of ['mistral', 'custom']) {
     const harness = await hostWith({preference, enabled: true});
     try {
       await harness.host.reply(turn('hello'));
-      assert(harness.seen.every(call => !PALETTE_MARKER.test(JSON.stringify(call.all)) && !/Use words like these freely/.test(JSON.stringify(call.all))), preference);
+      assert.match(harness.seen[0].system, PALETTE_MARKER, preference);
+      harness.matureContent.update({matureContent: false}); await harness.host.reply(turn('again'));
+      assert.doesNotMatch(harness.seen[1].system, PALETTE_MARKER, preference);
+      assert(!/Use words like these freely/.test(JSON.stringify(harness.seen[1].all)), preference);
     } finally { harness.close(); }
   }
   const fallback = await hostWith({preference: 'local', enabled: true, localFails: true});
   try {
     await fallback.host.reply(turn('hello'));
-    assert.doesNotMatch(fallback.seen.find(call => call.route === 'mistral').system, PALETTE_MARKER);
+    assert.match(fallback.seen.find(call => call.route === 'mistral').system, PALETTE_MARKER);
   } finally { fallback.close(); }
   const off = await hostWith({preference: 'local', enabled: false});
   try { await off.host.reply(turn('hello')); assert.doesNotMatch(off.seen[0].system, PALETTE_MARKER); } finally { off.close(); }

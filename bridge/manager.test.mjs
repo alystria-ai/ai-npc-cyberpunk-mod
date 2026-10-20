@@ -129,12 +129,14 @@ test('Manager settings apply as one saved transaction and leave playback unchang
       assert(noticeNoPack == nil, 'no notice with or without the pack')
       assert(saved.matureContent == true, 'Local AI is still the provider')
       assert(manager.applySettings(player, {matureContent = false}) and saved.matureContent == false)
-      -- Choosing a cloud provider in the same save turns it off; so does a save that leaves one in place.
+      -- Mistral and Custom keep it (they take the layer too); choosing Convai in the same save turns it off, so does a save that leaves it in place.
       assert(manager.applySettings(player, {matureContent = true}) and saved.matureContent == true)
       local _, _, _, providerReload = manager.applySettings(player, {conversationProvider = 'mistral'})
-      assert(saved.conversationProvider == 'mistral' and saved.matureContent == false and providerReload == true)
+      assert(saved.conversationProvider == 'mistral' and saved.matureContent == true and providerReload ~= true)
+      assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.conversationProvider == 'custom' and saved.matureContent == true)
       assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
-      assert(manager.applySettings(player, {conversationProvider = 'convai'}) and saved.matureContent == false)
+      _, _, _, providerReload = manager.applySettings(player, {conversationProvider = 'convai'})
+      assert(saved.matureContent == false and providerReload == true)
       assert(manager.applySettings(player, {conversationProvider = 'local'}) and saved.matureContent == false, 'Local alone does not turn it back on')
       os.clock = realClock
     end
@@ -1295,7 +1297,7 @@ test('Mature content is a settings row with or without the Mature pack: the help
     assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
     assert(tostring(noPack.description):find('not installed', 1, true), 'the help says the uncensored models are not installed')
     assert(tostring(noPack.description):find('Hugging Face page', 1, true), 'and where to get them')
-    assert(tostring(noPack.description):find('Choosing a cloud provider turns it off.', 1, true), 'the help says a cloud provider turns it off')
+    assert(tostring(noPack.description):find('Choosing Convai turns it off.', 1, true), 'the help says Convai turns it off')
     assert(not tostring(noPack.description):find('no effect yet', 1, true))
     -- Usable without the pack, beside the Local AI provider (index 4); beside a cloud provider it is saved as off.
     assert(registered.applyBatch('manager', {{id = 'matureContent', value = true}}).ok and saved.matureContent == false, 'not on beside Convai')
@@ -1314,7 +1316,9 @@ test('Mature content is a settings row with or without the Mature pack: the help
     state('other', {provider = 'mistral', effective = 'mistral', saved = true, maturePack = true, localAi = 'ready'})
     loaded = registered.loadMod('manager')
     assert(not tostring(row('matureContent').description):find('Not using Local AI', 1, true), 'the retired warning is gone')
-    assert(tostring(row('matureContent').description):find('Choosing a cloud provider turns it off.', 1, true))
+    assert(tostring(row('matureContent').description):find('Choosing Convai turns it off.', 1, true))
+    assert(tostring(row('matureContent').description):find('Works with Local AI, Mistral and Custom.', 1, true), 'the help names the three providers')
+    assert(not tostring(row('matureContent').description):find('Local AI only', 1, true))
     -- The pack goes away: the row stays, the setting stays on, and the help says the pack is not installed.
     state('gone', {provider = 'local', effective = 'local', saved = false, maturePack = false})
     loaded = registered.loadMod('manager')
@@ -1338,10 +1342,10 @@ test('the saved way back is checked on load and on Apply, and is dropped with Ma
     assert(not manager.applySettings(player, {matureRestore = {conversationProvider = {before = 'groq', set = 'local'}}}), 'an unknown provider was kept')
     assert(manager.applySettings(player, {matureContent = false}))
     assert(manager.snapshot(player).settings.matureRestore == nil and saved.matureRestore == nil, 'the record outlived Mature content')
-    -- Mature content with a cloud provider in the same save is saved as off, and its way back goes with it.
+    -- Mature content with Convai in the same save is saved as off, and its way back goes with it.
     assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local', matureRestore = {conversationProvider = {before = 'mistral', set = 'local'}}}))
-    assert(manager.applySettings(player, {conversationProvider = 'mistral'}))
-    assert(saved.matureContent == false and saved.matureRestore == nil, 'a cloud provider left a way back behind')
+    assert(manager.applySettings(player, {conversationProvider = 'convai'}))
+    assert(saved.matureContent == false and saved.matureRestore == nil, 'Convai left a way back behind')
   `);
 });
 
@@ -1516,25 +1520,29 @@ test('the old Use my own Convai API key switch migrates once: on with a saved ke
   `);
 });
 
-test('Mature content and a cloud provider exclude each other in loaded settings and in Apply (Convai free tier, Convai API key and Mistral turn it off; Local keeps it)', () => {
+test('Mature content and a cloud provider exclude each other in loaded settings and in Apply (Convai free tier and Convai API key turn it off; Local, Mistral and Custom keep it)', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
-    for _, case in ipairs({{'local', false, true}, {'convai', false, false}, {'convai', true, false}, {'mistral', false, false}, {'groq', false, false}, {nil, false, false}}) do
+    for _, case in ipairs({{'local', false, true}, {'convai', false, false}, {'convai', true, false}, {'mistral', false, true}, {'custom', false, true}, {'groq', false, false}, {nil, false, false}}) do
       seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = case[1], useOwnConvaiKey = case[2], enabledByKey = {}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
       local settings = manager.snapshot(player).settings
       assert(settings.matureContent == case[3] and saved.matureContent == case[3], tostring(case[1]) .. ' ' .. tostring(case[2]))
     end
-    -- A saved way back goes with Mature content when a cloud provider turned it off.
-    seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = 'mistral', enabledByKey = {},
+    -- A saved way back goes with Mature content when Convai turned it off.
+    seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = 'convai', enabledByKey = {},
       matureRestore = {conversationProvider = {before = 'convai-key', set = 'local'}}}
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
     assert(manager.snapshot(player).settings.matureContent == false and manager.snapshot(player).settings.matureRestore == nil and saved.matureRestore == nil)
-    -- Apply: Mature content beside Local stays; beside any cloud provider in the result it is saved as off.
+    -- Apply: Mature content beside Local, Mistral or Custom stays; beside Convai in the result it is saved as off.
     assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
-    for _, provider in ipairs({'convai', 'mistral'}) do
+    for _, provider in ipairs({'mistral', 'custom'}) do
+      assert(manager.applySettings(player, {matureContent = true, conversationProvider = provider}) and saved.matureContent == true, provider)
+      assert(manager.applySettings(player, {conversationProvider = 'local'}) and saved.matureContent == true)
+    end
+    for _, provider in ipairs({'convai'}) do
       assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
       local ok, _, _, reload = manager.applySettings(player, {conversationProvider = provider})
       assert(ok and saved.matureContent == false and reload == true, provider)
@@ -3584,6 +3592,27 @@ test('V’s voice engine: Voxtral needs the Mistral key, applies on its own besi
     assert(manager.applySettings(player, {matureContent = false}) and manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
     -- Both in one Apply while Mature content is on or turns on: Mature content wins and V is Pocket.
     assert(manager.applySettings(player, {matureContent = true, vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'pocket')
+    -- With Mistral or Custom text the line goes to the cloud for the reply anyway: Voxtral may stay (or be chosen) beside Mature content there.
+    assert(manager.applySettings(player, {conversationProvider = 'mistral', matureContent = true, vVoiceEngine = 'voxtral'}))
+    assert(saved.matureContent == true and saved.conversationProvider == 'mistral' and saved.vVoiceEngine == 'voxtral')
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}) and saved.matureContent == true and saved.vVoiceEngine == 'voxtral')
+    -- Back to Local AI with Mature content on: the line stays on this computer again, so V moves to Pocket (the page reloads) and Voxtral is refused.
+    local _, _, _, backReload = manager.applySettings(player, {conversationProvider = 'local'})
+    assert(saved.matureContent == true and saved.vVoiceEngine == 'pocket' and backReload == true)
+    assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) == false and saved.vVoiceEngine == 'pocket')
+  `);
+});
+
+test('V’s voice engine with Mature content in a saved file: Local AI text turns Voxtral to Pocket, Mistral and Custom text keep it', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    -- A case is {conversation provider, expected engine} with Mature content on and Voxtral saved.
+    for _, case in ipairs({{'local', 'pocket'}, {'mistral', 'voxtral'}, {'custom', 'voxtral'}}) do
+      seed = {version = 2, voiceProvider = 'pocket', matureContent = true, conversationProvider = case[1], vVoiceEngine = 'voxtral', enabledByKey = {}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.vVoiceEngine() == case[2] and saved.vVoiceEngine == case[2] and saved.matureContent == true, case[1])
+    end
   `);
 });
 

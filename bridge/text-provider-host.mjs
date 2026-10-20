@@ -23,7 +23,7 @@ import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
-import {allowanceFor} from './mature-content.mjs';
+import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -123,7 +123,7 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * it is short and otherwise answered at once, and no request is made until it has passed (the next turns get the notice without waiting). A request field
  * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). A model that thinks first is asked for no (or little) reasoning where the
  * provider documents a field for it, and a reply it spent on thinking is asked again with more room (bridge/reasoning.mjs). A daily limit (OpenRouter's free models) is
- * not retried and says so. Never the Mature layer: only the local AI has it (#matureLevel).
+ * not retried and says so. The Mature layer follows MATURE_PROVIDERS (the Custom provider has it, #matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
 export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
@@ -354,8 +354,8 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
    *                without it the turn offers no actions (bridge/text-actions.mjs)
-   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI when it is on or when the loaded
-   *                model is an uncensored one (the guard follows the model that answers, not only the setting)
+   * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI, Mistral or Custom when it is on, and
+   *                for the local AI also when the loaded model is an uncensored one (the guard follows the model that answers, not only the setting)
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
    * spokenLines  (profileKey) => the speaker's own recent lines (an add-on's journal, remarks included): a conversation reply that says one
    *                again is held back from the voice while it matches and is written once more when it is one
@@ -487,10 +487,10 @@ export class TextProviderHost {
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
-    // The guard is on (Mature content on, or an uncensored model loaded; the local AI only): it reads V's words before any model is asked (bridge/mature-guard.mjs). A
-    // refusal is the character's own short line; nothing is sent to a model and nothing is stored.
+    // The guard is on (Mature content on with the local AI, Mistral or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
+    // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
     const firstRoute = this.routes[this.provider.route];
-    if (!reaction && firstRoute?.name === 'local' && await this.#guardOn(firstRoute, signal)) {
+    if (!reaction && await this.#guardOn(firstRoute, signal)) {
       const verdict = this.matureGuard.screenInput(text, {history: recalled.turns});
       if (verdict.blocked) return this.#refuse(firstRoute, {config, local, feed, started, where: 'input'});
     }
@@ -665,27 +665,31 @@ export class TextProviderHost {
 
   /**
    * The Mature content level for a turn on `route` ('full' or 'suggestive'), or null: the setting is off, or the route is not one that may
-   * have it (only the local AI). The model decides the level (its licence), so it is read from the loaded model; the server is started
-   * for it when it is not up yet, as the request would. Nothing is awaited while the setting is off.
+   * have it (MATURE_PROVIDERS: not Convai). The model decides the level (its licence): on the local AI it is read from the loaded model (the server
+   * is started for it when it is not up yet, as the request would); on Mistral and Custom it is the first model the route will ask (no await).
+   * Nothing is awaited while the setting is off.
    */
   async #matureLevel(route, signal) {
     if (!this.matureContent?.enabled) return null;
-    if (route.name !== 'local') { this.#noteMature(`layer NOT applied (provider ${route.name} never gets it)`); return null; }
+    if (MATURE_PROVIDERS[route?.name] !== true) { this.#noteMature(`layer NOT applied (provider ${route?.name} never gets it)`); return null; }
     let model = route.modelName?.() ?? null;
     if (!model && route.loadedModel) model = await route.loadedModel(signal);
+    if (!model && route.name !== 'local') model = route.models?.()[0]?.id ?? null;
     const level = this.matureContent.forTurn(route.name, model, route.modelHints?.())?.level ?? null;
     if (level) this.#noteMature(`layer applied (level ${level}, model ${model ?? 'unknown'})`);
     return level;
   }
 
   /**
-   * Does the hard-limit guard run for a turn on `route`? Only the local AI can be uncensored, and only a host that has the Mature setting
-   * (the main hosts and the add-on hosts) has a guard. It runs when the setting is on, or when the loaded model is an uncensored one even with
-   * the setting off. Off with a normal model nothing here is awaited beyond a model-name lookup and the prompt is untouched.
+   * Does the hard-limit guard run for a turn on `route`? Only a host that has the Mature setting (the main hosts and the add-on hosts) has a guard.
+   * It runs for every provider that may have the layer (MATURE_PROVIDERS) when the setting is on. Only the local AI can be uncensored: it also runs
+   * there when the loaded model is an uncensored one even with the setting off. Off with a normal model nothing here is awaited beyond a model-name
+   * lookup and the prompt is untouched.
    */
   async #guardOn(route, signal) {
-    if (!this.matureContent || route?.name !== 'local') return false;
+    if (!this.matureContent || MATURE_PROVIDERS[route?.name] !== true) return false;
     if (this.matureContent.enabled) return true;
+    if (route.name !== 'local') return false;
     let model = route.modelName?.() ?? null;
     if (!model && route.loadedModel) {
       try { model = await route.loadedModel(signal); } catch { return false; }   // the request fails (or falls back) on its own terms

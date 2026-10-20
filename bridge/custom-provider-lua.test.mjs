@@ -810,7 +810,7 @@ test('the provider row starts with the note of the custom provider: its limits, 
   assert(not row('conversationProvider').description:find('custom', 1, true))
 `));
 
-test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content off', () => run(`${pageFixture()}${stateFixture}
+test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content on (it works with Custom)', () => run(`${pageFixture()}${stateFixture}
   local function reload(values)
     seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', battleReactions = false, lootReactions = false, enabledByKey = {}}
     for key, value in pairs(values) do seed[key] = value end
@@ -822,14 +822,15 @@ test('manager settings: custom is a stored provider, survives a reload, is refus
   assert(reload({conversationProvider = 'custom'}).conversationProvider == 'custom' and (saved == nil or saved.conversationProvider == 'custom'), 'a saved custom provider was changed')
   assert(reload({conversationProvider = 'Custom'}).conversationProvider == 'convai' and saved.conversationProvider == 'convai', 'a misspelt provider reads as Convai')
   assert(reload({conversationProvider = 'openai'}).conversationProvider == 'convai')
-  -- Mature content never stands beside Custom, in a saved file or in Apply.
+  -- Mature content stands beside Custom (since 2026-10-20), in a saved file and in Apply; Convai is the one it never stands beside.
   local settings = reload({conversationProvider = 'custom', matureContent = true})
-  assert(settings.conversationProvider == 'custom' and settings.matureContent == false and saved.matureContent == false, 'a saved pairing of Custom and Mature content stood')
+  assert(settings.conversationProvider == 'custom' and settings.matureContent == true and saved.matureContent == true, 'a saved pairing of Custom and Mature content was dropped')
   assert(reload({conversationProvider = 'local', matureContent = true}).matureContent == true, 'Local keeps Mature content')
+  assert(reload({conversationProvider = 'convai', matureContent = true}).matureContent == false, 'Convai does not')
   assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local'}) and saved.matureContent == true)
   local ok, _, _, reloaded = manager.applySettings(player, {conversationProvider = 'custom'})
-  assert(ok and saved.conversationProvider == 'custom' and saved.matureContent == false and reloaded == true, 'choosing Custom did not turn Mature content off')
-  assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'custom'}) and saved.matureContent == false)
+  assert(ok and saved.conversationProvider == 'custom' and saved.matureContent == true and reloaded ~= true, 'choosing Custom turned Mature content off')
+  assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'custom'}) and saved.matureContent == true)
   assert(not manager.applySettings(player, {conversationProvider = 'customs'}) and manager.snapshot(player).settings.conversationProvider == 'custom')
   -- A way back that names Custom is kept; one that names something else is dropped.
   settings = reload({conversationProvider = 'local', matureContent = true, matureRestore = {conversationProvider = {before = 'custom', set = 'local'}}})
@@ -889,43 +890,39 @@ const matureFixture = `
   end
 `;
 
-test('Mature content turned on while Custom is chosen selects Local AI and the uncensored model in the same save, with the way back to Custom; turning it off brings Custom back', () => run(`${pageFixture()}${stateFixture}${matureFixture}
+test('Mature content turned on while Custom is chosen just turns on: provider, model and voice stay and no way back is kept; turning it off changes nothing else', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
   local result = apply({{id = 'matureContent', value = true}})
-  assert(result.ok and result.names[1] == 'Local AI' and result.names[2] == 'Uncensored model', table.concat(result.names, ','))
-  assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc')
-  local way = saved.matureRestore
-  assert(way and way.conversationProvider.before == 'custom' and way.conversationProvider.set == 'local', 'the way back does not name Custom')
-  assert(manager.snapshot(player).settings.matureRestore.conversationProvider.before == 'custom')
-  assert(row('conversationProvider').value == 4 and row('localModel').value == 3, 'the rows read what was saved')
-  -- The line under the way back says what changed besides the switch.
-  assert(managerUi.inspect().shown:find('Local AI', 1, true), tostring(managerUi.inspect().shown))
-  -- Off again: Custom comes back, with the model.
+  assert(result.ok and #result.names == 0, table.concat(result.names, ','))
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.localModel == 'standard' and saved.voiceProvider == 'pocket')
+  assert(saved.matureRestore == nil, 'nothing was changed, so nothing is kept to put back')
+  assert(row('conversationProvider').value == 5 and row('localModel').value == 2, 'the rows read what was saved')
   result = apply({{id = 'matureContent', value = false}})
-  assert(result.ok and result.names[1] == 'Conversation provider', table.concat(result.names, ','))
-  assert(saved.matureContent == false and saved.conversationProvider == 'custom' and saved.localModel == 'standard' and saved.matureRestore == nil)
+  assert(result.ok and #result.names == 0, table.concat(result.names, ','))
+  assert(saved.matureContent == false and saved.conversationProvider == 'custom' and saved.localModel == 'standard')
   -- On and off in one batch leaves nothing behind.
   assert(apply({{id = 'matureContent', value = true}, {id = 'matureContent', value = false}}).ok == true)
   assert(saved.matureContent == false and saved.conversationProvider == 'custom')
 `));
 
-test('choosing Custom while Mature content is on turns it off in the same save, like every other cloud provider; Local keeps it', () => run(`${pageFixture()}${stateFixture}${matureFixture}
+test('choosing Custom while Mature content is on keeps it on in the same save; Local keeps it too and Convai turns it off', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
   assert(apply({{id = 'matureContent', value = true}}).ok)
-  assert(saved.matureContent == true and saved.conversationProvider == 'local')
-  -- Picking Local while it is on leaves it on.
+  assert(saved.matureContent == true and saved.conversationProvider == 'custom')
+  -- Picking Local while it is on leaves it on, and so does picking Custom again.
   assert(apply({{id = 'conversationProvider', value = 4}}).ok and saved.matureContent == true, 'local kept it')
-  -- Picking Custom turns it off, with the way back.
   local picked = apply({{id = 'conversationProvider', value = 5}})
   assert(picked.ok, tostring(picked.error))
-  assert(saved.conversationProvider == 'custom' and saved.matureContent == false and row('matureContent').value == false, tostring(saved.conversationProvider) .. tostring(saved.matureContent))
-  -- Picking Local again does not turn it back on by itself.
-  assert(apply({{id = 'conversationProvider', value = 4}}).ok and saved.matureContent == false)
-  -- Custom and Mature content on in one batch is saved with Mature content off.
+  assert(saved.conversationProvider == 'custom' and saved.matureContent == true and row('matureContent').value == true, tostring(saved.conversationProvider) .. tostring(saved.matureContent))
+  -- Convai turns it off, and picking Custom again does not turn it back on by itself.
+  assert(apply({{id = 'conversationProvider', value = 1}}).ok and saved.conversationProvider == 'convai' and saved.matureContent == false)
+  assert(apply({{id = 'conversationProvider', value = 5}}).ok and saved.matureContent == false)
+  -- Custom and Mature content on in one batch is saved with Mature content on.
   assert(apply({{id = 'conversationProvider', value = 5}, {id = 'matureContent', value = true}}).ok)
-  assert(saved.conversationProvider == 'custom' and saved.matureContent == false)
-  -- The Mature content help is the one it always was.
-  assert(row('matureContent').description:find('Choosing a cloud provider turns it off.', 1, true))
+  assert(saved.conversationProvider == 'custom' and saved.matureContent == true)
+  -- The Mature content help names the three providers and Convai.
+  assert(row('matureContent').description:find('Choosing Convai turns it off.', 1, true))
+  assert(row('matureContent').description:find('Works with Local AI, Mistral and Custom.', 1, true))
 `));
 
 test('release plumbing: the module ships like the paid tier one, the catalogue reads it, and the notices catalogue lists the seven ids', () => {

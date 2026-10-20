@@ -14,7 +14,7 @@ The **Mature content** setting is part of the main mod and works without these p
 
 Characters stay themselves. Judy, Panam, Kerry and the others keep their voices, personalities and orientations, and those decide how they flirt and talk about sex, not whether they do. With the setting on, they are direct and explicit: they say what they want and what they would do, in plain words. Your relationship with them sets the tone: a partner is the most forward, a friend warm and playful, a stranger or rival bolder and rougher.
 
-The **Mature content** setting itself lives in Settings > Conversation provider, right under the provider. It is off by default, applies to Local AI only, and its help text says the content is for adults (18+).
+The **Mature content** setting itself lives in Settings > Conversation provider, right under the provider. It is off by default, works with Local AI, Mistral and Custom (the models in these packs are for Local AI), and its help text says the content is for adults (18+).
 
 The hard limits are always on, for every model, with or without this pack:
 

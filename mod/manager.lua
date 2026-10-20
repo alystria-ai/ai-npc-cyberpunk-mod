@@ -36,6 +36,10 @@ local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
 -- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
 local V_VOICE_ENGINES = {'pocket', 'voxtral'}
+-- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI, Mistral and Custom text providers may have it, Convai never.
+local function matureProvider(provider) return provider == 'local' or provider == 'mistral' or provider == 'custom' end
+-- With the text on this computer (Local AI) Mature content keeps V's line off the cloud (no Voxtral); with Mistral or Custom text the line goes there anyway.
+local function matureKeepsLinesLocal(settings) return settings.matureContent == true and settings.conversationProvider == 'local' end
 local V_ENGINE_MATURE = 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
@@ -744,11 +748,10 @@ local function loadSettings()
     -- The retired Companions can see setting (docs/COMPANION_VISION.md): vision is always on with Convai now. An old saved key is
     -- dropped; the bridge ignores it either way.
     if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
-    -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
+    -- Mature content (off by default): lets the Local AI, Mistral and Custom providers write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
-    -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral, Custom) exclude each other: a saved pairing (an older
-    -- save, which showed "no effect yet" for it) comes back with Mature content off.
-    if settings.matureContent == true and settings.conversationProvider ~= 'local' then settings.matureContent, settingsNeedSave = false, true end
+    -- Mature content and Convai (free tier or API key) exclude each other (Convai prompting cannot take it): a saved pairing comes back with Mature content off.
+    if settings.matureContent == true and not matureProvider(settings.conversationProvider) then settings.matureContent, settingsNeedSave = false, true end
     -- Which installed Local AI model loads: one model's id. 'auto' means none chosen yet (or a value an older version saved): the bridge then
     -- loads the largest model that fits the free graphics memory, the settings page shows that model as selected, and the next Apply saves its
     -- id. The bridge falls back to the same model, with one notice, when the chosen one is missing, does not fit or does not start.
@@ -781,8 +784,9 @@ local function loadSettings()
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
     if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
-    -- Mature content keeps the player's words off the cloud: a saved Voxtral engine beside it (hand-edited) is Pocket.
-    if settings.matureContent == true and settings.vVoiceEngine == 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
+    -- Mature content with Local AI keeps the player's words off the cloud: a saved Voxtral engine beside it (hand-edited) is Pocket. With Mistral or
+    -- Custom text the lines go to the cloud for the reply anyway, so the cloud voice may stay.
+    if matureKeepsLinesLocal(settings) and settings.vVoiceEngine == 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -1777,7 +1781,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
             vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket',
-            -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
+            -- Part of the main mod: off by default; Local AI, Mistral and Custom (not Convai). The optional Mature pack (uncensored models, Local AI) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
@@ -1926,16 +1930,17 @@ function M.applySettings(player, values)
             end
         else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
-    -- Mature content needs Local AI: with a cloud provider in the saved result it is off (the page already stages that; this keeps
-    -- any other caller to the same rule). Turning developer mode on or off
+    -- Mature content needs a provider that can take it (Local AI, Mistral, Custom): with Convai in the saved result it is off (the page already
+    -- stages that; this keeps any other caller to the same rule). Turning developer mode on or off
     -- also changes what an open page shows, so the caller is asked to reload it quietly.
     local rulesReload = false
-    if nextSettings.matureContent == true and nextSettings.conversationProvider ~= 'local' then
+    if nextSettings.matureContent == true and not matureProvider(nextSettings.conversationProvider) then
         nextSettings.matureContent, rulesReload = false, true
     end
-    -- Mature content keeps the player's words off the cloud: V's line is never spoken by Voxtral beside it. Choosing Voxtral while it is
-    -- on is refused; turning it on moves V to Pocket (the page reloads to show it).
-    if nextSettings.matureContent == true and nextSettings.vVoiceEngine == 'voxtral' then
+    -- Mature content with Local AI keeps the player's words off the cloud: V's line is never spoken by Voxtral beside it. Choosing Voxtral while it is
+    -- on is refused; turning it on moves V to Pocket (the page reloads to show it). With Mistral or Custom text the line is sent to the cloud for
+    -- the reply anyway (bridge/mature-content.mjs, matureAllowsCloudVoice), so Voxtral is allowed there.
+    if matureKeepsLinesLocal(nextSettings) and nextSettings.vVoiceEngine == 'voxtral' then
         if values.vVoiceEngine == 'voxtral' and values.matureContent ~= true then return false, V_ENGINE_MATURE end
         nextSettings.vVoiceEngine, rulesReload = 'pocket', true
     end
