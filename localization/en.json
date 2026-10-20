@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1063,
+    "strings": 1064,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -632,6 +632,7 @@
     "Remove the voice clip? {name} goes back to the shipped voice.": "Remove the voice clip? {name} goes back to the shipped voice.",
     "Reopen the manager; that action is no longer available.": "Reopen the manager; that action is no longer available.",
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
+    "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.": "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.",
     "Report for the developer": "Report for the developer",
     "Report path copied to the clipboard.": "Report path copied to the clipboard.",
     "Report saved: {path}": "Report saved: {path}",
@@ -2068,6 +2069,7 @@
       "Remove the voice clip? The character goes back to a generic voice.",
       "Remove the voice clip? {name} goes back to the shipped voice.",
       "Reopen the manager; that action is no longer available.",
+      "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.",
       "Report path copied to the clipboard.",
       "Report saved: {path}",
       "Requires a Mistral key (add it in Settings > Conversation provider)",
@@ -2606,7 +2608,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3841"
+        "mod/init.lua:3846"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2614,7 +2616,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3799"
+        "mod/init.lua:3804"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2622,7 +2624,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3840"
+        "mod/init.lua:3845"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2630,7 +2632,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3798"
+        "mod/init.lua:3803"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2638,7 +2640,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3839"
+        "mod/init.lua:3844"
       ]
     },
     "Above the speaker": {
@@ -4455,7 +4457,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3434"
+        "mod/init.lua:3438"
       ]
     },
     "Custom: free daily limit reached": {
@@ -5896,7 +5898,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3428"
+        "mod/init.lua:3432"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -5904,7 +5906,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3430"
+        "mod/init.lua:3434"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6272,7 +6274,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4488"
+        "mod/init.lua:4493"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7237,6 +7239,14 @@
         "mod/manager-ui.lua:671"
       ]
     },
+    "Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3429"
+      ]
+    },
     "Report for the developer": {
       "contexts": [
         "page.category"
@@ -7876,7 +7886,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3625"
+        "mod/init.lua:3630"
       ]
     },
     "Starting": {
@@ -8853,7 +8863,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3432"
+        "mod/init.lua:3436"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -11111,7 +11121,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3690"
+        "mod/init.lua:3695"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -11828,7 +11838,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3690"
+        "mod/init.lua:3695"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

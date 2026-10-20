@@ -256,6 +256,7 @@ return {
     ["Remove only this copy from your group."] = "Прибрати з групи лише цю копію.",
     ["Reopen the manager; that action is no longer available."] = "Відкрий менеджер знову; ця дія більше недоступна.",
     ["Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result."] = "Відкрий цю сторінку знову після повторного підключення служби пам’яті. Відкладене очищення й далі чекає на власний результат.",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "Відповіді іншими мовами показуються текстом: цей голос говорить лише англійською. OmniVoice їх озвучить.",
     ["Report for the developer"] = "Звіт для розробника",
     ["Report path copied to the clipboard."] = "Шлях до звіту скопійовано в буфер обміну.",
     ["Report saved: {path}"] = "Звіт збережено: {path}",

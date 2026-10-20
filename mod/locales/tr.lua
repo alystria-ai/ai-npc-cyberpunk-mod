@@ -256,6 +256,7 @@ return {
     ["Remove only this copy from your group."] = "Yalnızca bu kopyayı grubundan çıkar.",
     ["Reopen the manager; that action is no longer available."] = "Yöneticiyi yeniden aç; bu eylem artık kullanılamıyor.",
     ["Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result."] = "Hafıza servisi yeniden bağlandıktan sonra bu sayfayı yeniden aç. Bekleyen bir temizleme kendi sonucunu beklemeye devam eder.",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "Diğer dillerdeki yanıtlar metin olarak gösterilir: bu ses yalnızca İngilizce konuşur. OmniVoice onları seslendirir.",
     ["Report for the developer"] = "Geliştirici için rapor",
     ["Report path copied to the clipboard."] = "Rapor yolu panoya kopyalandı.",
     ["Report saved: {path}"] = "Rapor kaydedildi: {path}",

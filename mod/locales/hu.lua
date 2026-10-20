@@ -256,6 +256,7 @@ return {
     ["Remove only this copy from your group."] = "Csak ezt a másolatot távolítja el a csoportodból.",
     ["Reopen the manager; that action is no longer available."] = "Nyisd meg újra a kezelőt; ez a művelet már nem érhető el.",
     ["Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result."] = "Nyisd meg újra ezt az oldalt, miután az emlékszolgáltatás újracsatlakozott. A függőben lévő törlés a saját eredményére vár.",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "A más nyelvű válaszok szövegként jelennek meg: ez a hang csak angolul beszél. Az OmniVoice kimondja őket.",
     ["Report for the developer"] = "Jelentés a fejlesztőnek",
     ["Report path copied to the clipboard."] = "A jelentés elérési útja a vágólapra másolva.",
     ["Report saved: {path}"] = "Jelentés mentve: {path}",

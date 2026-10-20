@@ -256,6 +256,7 @@ return {
     ["Remove only this copy from your group."] = "Odebere ze skupiny jen tuto kopii.",
     ["Reopen the manager; that action is no longer available."] = "Znovu otevři správce; tato akce už není dostupná.",
     ["Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result."] = "Otevři tuto stránku znovu po opětovném připojení služby paměti. Čekající vymazání dál čeká na svůj výsledek.",
+    ["Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."] = "Odpovědi v jiných jazycích se zobrazí jako text: tento hlas mluví jen anglicky. OmniVoice je namluví.",
     ["Report for the developer"] = "Hlášení pro vývojáře",
     ["Report path copied to the clipboard."] = "Cesta k hlášení zkopírována do schránky.",
     ["Report saved: {path}"] = "Hlášení uloženo: {path}",

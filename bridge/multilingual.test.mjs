@@ -5,7 +5,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {detectLanguage, isNonEnglish} from './reply-language.mjs';
-import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice, twinMarkerKey} from './multilingual.mjs';
+import {MultilingualConversations, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext, twinMarkerKey} from './multilingual.mjs';
 import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, parseRelationshipState,
   RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
@@ -563,7 +563,8 @@ test('the bridge loads the twins, gives memory their markers and decides the voi
   assert.match(bridge, /characterFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /chatResetFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /ttsEnabled: localVoice\.playbackEnabled!==false&&!turnUsesLocal\(input\)/);
-  assert.match(bridge, /const multilingualChanged = multilingual\.update\(settings\);/);
+  assert.match(bridge, /const twinsChanged = multilingual\.update\(settings\), textLanguageChanged = multilingual\.setTextProvider\(mistral\.active\);/);
+  assert.match(bridge, /const multilingualChanged = twinsChanged \|\| textLanguageChanged;/);
   // Every per-turn voice check goes through the plan; only invitation readiness asks about the profile.
   const perTurn = bridge.slice(bridge.indexOf('async function synthesizeReply('), bridge.indexOf('async function pollMicrophone('));
   assert.doesNotMatch(perTurn, /usesProfile\(input\.profileKey\)|localVoice\.provider\s*===\s*'omni'\s*\)/);
@@ -584,5 +585,110 @@ test('the reply-language block names the player\'s language, last in the context
   setting.update({multilingualConversations: true}); setting.observe('Hola, ¿cómo estás?');
   assert.match(setting.contextFor('[Microphone]'), /so far Spanish/);
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),\s*\/\/[^\n]*\n\s*block\('volatile', multilingual\.contextFor\(input\.reaction \? '' : input\.text\)\)\]/);
+  assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', multilingual\.contextFor\(input\.reaction \? '' : input\.text, input\.reaction \? null : speechLanguage\.evidence\?\.language\)\)\]/);
+});
+
+// ---- Text providers (Mistral, Local AI, Custom): the player's language, with no twins ---------------------------------------
+
+test('on a text provider a French message gets the French note, even though the Multilingual setting stays off', () => {
+  const setting = new MultilingualConversations();
+  setting.update({multilingualConversations: false}); setting.setTextProvider(true);
+  assert.equal(setting.enabled, false, 'the twins stay off');
+  const french = "Salut, ça va? Qu'est-ce que tu fais ce soir?";
+  const note = setting.contextFor(french);
+  assert.match(note, /latest message, which is French\..*whole reply in French/);
+  // Same wording as the twins' note.
+  const twins = new MultilingualConversations(); twins.update({multilingualConversations: true});
+  assert.equal(note, twins.contextFor(french));
+  // Not a text provider (Convai, Setting off): nothing.
+  assert.equal(new MultilingualConversations().contextFor(french), '');
+});
+
+test('on a text provider an English conversation adds nothing: the context stays what it always was', () => {
+  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+  for (const text of ['What do you need, choom?', 'Hey V, meet me at the Afterlife tonight.', '', '[Microphone]', 'ok', "Ay, chica, let's go"])
+    assert.equal(setting.contextFor(text), '', JSON.stringify(text));
+  setting.observe('What do you need, choom?'); setting.observe('Nothing much, V. You?');
+  assert.equal(setting.lastLanguage, 'en');
+  assert.equal(setting.contextFor('[Microphone]'), '');
+  assert.equal(setting.contextFor('Thanks, that helps.'), '');
+});
+
+test('on a text provider the note follows the conversation: kept for a turn with no text, and English named again when the player switches back', () => {
+  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+  assert.equal(setting.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.'), true);
+  assert.match(setting.contextFor('[Microphone]'), /language the player is using with you \(so far Spanish\)/);
+  assert.match(setting.contextFor(''), /so far Spanish/, 'a reaction bark follows the conversation');
+  assert.match(setting.contextFor('Thanks, that helps a lot.'), /which is English/, 'back to English: said once, so the reply follows');
+  // Turning the provider off forgets the language.
+  setting.setTextProvider(false);
+  assert.equal(setting.lastLanguage, null);
+  assert.equal(setting.contextFor('Hola, ¿cómo estás?'), '');
+});
+
+test('a language known from an earlier launch (or the last recording) is the fallback for a recording on a text provider', () => {
+  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+  assert.match(setting.contextFor('[Microphone]', 'fr'), /so far French/);
+  assert.equal(setting.contextFor('[Microphone]', 'en'), '');
+  assert.equal(setting.contextFor('[Microphone]', null), '');
+  // The conversation's own language wins over the hint.
+  setting.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.');
+  assert.match(setting.contextFor('[Microphone]', 'fr'), /so far Spanish/);
+  // With the twins on, the hint is not used (the twin keeps its own behaviour).
+  const twins = new MultilingualConversations(); twins.update({multilingualConversations: true});
+  assert.doesNotMatch(twins.contextFor('[Microphone]', 'fr'), /French/);
+});
+
+test('textProviderLanguageContext is empty exactly where the conversation is English', () => {
+  assert.equal(textProviderLanguageContext({text: 'How are you?'}), '');
+  assert.equal(textProviderLanguageContext({text: 'How are you?', lastLanguage: 'en'}), '');
+  assert.equal(textProviderLanguageContext({text: '[Microphone]', lastLanguage: 'en'}), '');
+  assert.match(textProviderLanguageContext({text: 'Hallo, wie geht es dir heute Abend?'}), /which is German/);
+  assert.match(textProviderLanguageContext({text: 'How are you?', lastLanguage: 'de'}), /which is English/);
+});
+
+test('a text provider speaks another language with OmniVoice, and shows it as text with Pocket or Voxtral (never loading another voice)', () => {
+  const french = "Salut, ça va? Je n'ai rien à te dire ce soir.";
+  const omniLocal = {uses: true, provider: 'omni'}, pocketLocal = {uses: true, provider: 'pocket'};
+  // OmniVoice: spoken, with the reply's language.
+  const omni = planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: omniLocal});
+  assert.deepEqual([omni.engine, omni.language], ['omni', 'fr']);
+  assert.deepEqual(replyVoice({plan: omni, text: french, local: omniLocal}), {engine: 'omni', language: 'fr'});
+  // Even when the player typed English and the reply came in French, OmniVoice is told.
+  const english = planTurnVoice({enabled: false, textProvider: true, language: 'en', local: omniLocal});
+  assert.deepEqual(replyVoice({plan: english, text: french, local: omniLocal}), {engine: 'omni', language: 'fr'});
+  assert.deepEqual(replyVoice({plan: english, text: 'Nothing much, V. You?', local: omniLocal}), {engine: 'omni', language: 'en'});
+  // Pocket (and Voxtral, which is Pocket's route): the plan keeps Pocket, the French reply has no voice, an English one is spoken as before.
+  const pocket = planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: pocketLocal});
+  assert.equal(pocket.engine, 'pocket', 'no Convai cloud voice and no other model is chosen for it');
+  assert.equal(replyVoice({plan: pocket, text: french, local: pocketLocal}).engine, 'none');
+  assert.deepEqual(replyVoice({plan: pocket, text: 'Nothing much, V. You?', local: pocketLocal}), {engine: 'pocket', language: 'en'});
+  const pocketEnglish = planTurnVoice({enabled: false, textProvider: true, language: 'en', local: pocketLocal});
+  assert.equal(replyVoice({plan: pocketEnglish, text: french, local: pocketLocal}).engine, 'none', 'a French reply to an English message');
+  // A cloud voice that cannot speak (no key) stays the written reply it always was.
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket'}}).engine, 'convai');
+  // Off and not a text provider: exactly the voice used before.
+  assert.equal(planTurnVoice({enabled: false, language: 'fr', local: pocketLocal}).reason, 'multilingual-off');
+});
+
+test('one notice per game session says OmniVoice has voices in other languages', () => {
+  const notice = new VoiceLanguageNotice();
+  assert.equal(notice.take(), undefined, 'nothing to say before a reply was shown as text');
+  notice.note(); notice.note();
+  assert.equal(notice.take(), 'voice-language');
+  assert.equal(notice.take(), undefined);
+  notice.note();
+  assert.equal(notice.take(), undefined, 'not again in the same session');
+});
+
+test('the bridge wires the text-provider language: note, voice plan, notice and the V line', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /planTurnVoice\(\{enabled: multilingual\.enabled, textProvider: multilingual\.textProvider,/);
+  assert.match(bridge, /language: multilingual\.aware \? multilingual\.expected\(input\.reaction \? '' : input\.text\) : 'en'/);
+  assert.match(bridge, /\?\? voiceLanguageNotice\.take\(\)/);
+  assert.match(bridge, /if \(mistral\.active && !multilingual\.enabled && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
+  assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.aware \? multilingual\.expected\(input\.text\) : 'en'\}\)/);
+  // The game side shows the notice.
+  const game = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(game, /reply\.keyNotice == 'voice-language'/);
 });

@@ -87,7 +87,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
-import {MultilingualConversations, RETIRED_PROVIDER_KEY, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
+import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
@@ -113,7 +113,7 @@ import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
-import {SpeechLanguage, LOCAL_PACKS, planRecording} from './speech-language.mjs';
+import {SpeechLanguage, LOCAL_PACKS, planRecording, PLAYER_LANGUAGE_FILE, parsePlayerLanguage, playerLanguageText} from './speech-language.mjs';
 import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
@@ -490,8 +490,11 @@ let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
 const spawnedConnections = () => spawnedWarmLimit({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
 const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
+// A text provider answered in a language the chosen voice cannot speak (Pocket and Voxtral speak English only): the reply is shown as text, and
+// the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
+const voiceLanguageNotice = new VoiceLanguageNotice();
 const keyNotice = () => {
-  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
+  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take();
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
@@ -868,7 +871,12 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 // installed multilingual pack on this computer (Local AI and custom routes, and the fallback when Mistral cannot take a recording); with neither
 // the English recogniser is used and the player is told once that voice input is English only for now. The language comes from the player's
 // typed text and earlier recordings, else the interface language (settings.json, or runtime/ui-language.txt written by the game on a change).
-const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8')});
+// The player's language is kept between launches in the state folder (player-language.json): read once here, written in the background (never on a
+// frame, never waiting) only when the language changes. A missing or invalid file is ignored.
+const playerLanguageFile = resolve(stateDirectory, PLAYER_LANGUAGE_FILE);
+const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8'),
+  remembered: parsePlayerLanguage(await readFile(playerLanguageFile, 'utf8').catch(() => '')),
+  remember: language => { void atomic(playerLanguageFile, playerLanguageText(language)).catch(() => {}); }});
 const voxtralStt = new VoxtralStt({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } }, onLog: message => process.stderr.write(message)});
 const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable});
 // A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording. The first load after
@@ -983,8 +991,8 @@ function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
   const profile = input.profileKey;
-  const plan = planTurnVoice({enabled: multilingual.enabled,
-    language: multilingual.enabled ? multilingual.expected(input.reaction ? '' : input.text) : 'en',
+  const plan = planTurnVoice({enabled: multilingual.enabled, textProvider: multilingual.textProvider,
+    language: multilingual.aware ? multilingual.expected(input.reaction ? '' : input.text) : 'en',
     local: localChoice(profile)});
   if (cacheKey) {
     turnVoices.set(cacheKey, plan);
@@ -1026,7 +1034,7 @@ function voiceKeyFor(input) {
   return key;
 }
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
-const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled,
+const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled, textProvider: multilingual.textProvider,
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
@@ -1095,7 +1103,7 @@ const vGenderMemory = {
   gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
   save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory,
-  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.enabled ? multilingual.expected(input.text) : 'en'}),
+  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.aware ? multilingual.expected(input.text) : 'en'}),
   // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
   // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
   ready: key => localVoice.vRouteSpeaks(key),
@@ -1170,8 +1178,8 @@ const conversationBlocks = input => {
     // notes are the same every turn for a given setting.
     block('volatile', naturalSpeechContext(input)), block('notes', expressiveEmotionsContext(input)),
     block('volatile', firstPersonReminder(input)),
-    // Multilingual conversations: the reply language, last so it outweighs the English notes above.
-    block('volatile', multilingual.contextFor(input.reaction ? '' : input.text))];
+    // Multilingual conversations: the reply language, last so it outweighs the English notes above; on a text provider the player's own language (nothing in English; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md).
+    block('volatile', multilingual.contextFor(input.reaction ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
 };
 const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).join('\n\n');
 const conversationContext = input => joinedContext(conversationBlocks(input));
@@ -1503,6 +1511,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
   const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey)});
   if (voice.engine === 'none') {
+    if (mistral.active && !multilingual.enabled && !input.reaction) voiceLanguageNotice.note();
     logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: 'The selected voice speaks English only; showing the written reply.'};
@@ -3227,7 +3236,9 @@ async function pollSettings(checkShutdown = true) {
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
     // Multilingual conversations changes which voice a turn uses (and so its instructions).
     // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
-    const multilingualChanged = multilingual.update(settings);
+    // (A text provider answering turns also makes them follow the player's language: no twins, see MultilingualConversations.textProvider.)
+    const twinsChanged = multilingual.update(settings), textLanguageChanged = multilingual.setTextProvider(mistral.active);
+    const multilingualChanged = twinsChanged || textLanguageChanged;
     if (speechChanged || emotionsChanged || multilingualChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
     if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();

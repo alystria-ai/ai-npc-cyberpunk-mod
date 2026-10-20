@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {createLocalSttChannel, createLocalSpeech, NO_SPEECH_ERROR, SILENT_INPUT_CODE, STT_LANGUAGE_CODE, describeRemote} from './local-stt-capture.mjs';
 import {VoxtralSttError} from './voxtral-stt.mjs';
+import {SpeechLanguage, planRecording} from './speech-language.mjs';
 
 const input = {requestId: '1-5-42ULL', entity: '42ULL', generation: 5, profileKey: 'judy', text: '(microphone)'};
 const config = {characterId: 'x', endUserId: 'u', scope: 'private', sessionId: 's'};
@@ -228,4 +229,21 @@ test('the speech hook releases the microphone page only when no recording is ope
   await new Promise(done => setImmediate(done));
   assert.equal(closed, 1, 'the page is released once, after the last recording');
   await speech.close();
+});
+
+test('the first recording of a launch follows the language remembered from the last one: a French pack hears it with no typed text', async () => {
+  const pack = fakeStt('parakeet', {text: 'bonjour, comment ça va'}), english = fakeStt('english', {text: 'hello'});
+  const language = new SpeechLanguage({readUiFile: async () => 'en', remembered: 'fr'});
+  const route = async () => {
+    const {language: code, source} = await language.current();
+    return planRecording({language: code, source, provider: 'local', installed: ['parakeet-tdt-0.6b-v3-int8'], englishAvailable: true, voxtralReady: false});
+  };
+  const f = rig({stt: english, route: async () => { const plan = await route(); return plan.pack ? {...plan, stt: pack} : plan; },
+    reply: async used => ({text: 'Salut.', saw: used.text})});
+  await f.mic.start(input, config);
+  f.capture.emit(audio().subarray(0, 3200));
+  await f.mic.finish(input.requestId, {input, config});
+  assert.deepEqual(english.log, [], 'Moonshine (English only) is not used');
+  assert.equal(f.replies[0].saw, 'bonjour, comment ça va');
+  assert.ok(f.logs.some(line => /speech language fr \(saved\): local pack parakeet/.test(line)));
 });

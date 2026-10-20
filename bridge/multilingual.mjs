@@ -51,24 +51,42 @@ export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
 
 /** The setting, plus the language the conversation was last in (a fallback for turns without player text). */
 export class MultilingualConversations {
-  constructor() { this.enabled = false; this.lastLanguage = null; }
+  // `textProvider`: a text provider (Mistral, Local AI, Custom) answers the turns. The twins stay off there (`enabled` is false), but the
+  // reply language, the language note and the voice plan still follow the player's language (languageContext, planTurnVoice).
+  constructor() { this.enabled = false; this.textProvider = false; this.lastLanguage = null; }
+  /** True while turns are language aware: the Convai twins are on, or a text provider answers. */
+  get aware() { return this.enabled || this.textProvider; }
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
     const next = settings.multilingualConversations === true, changed = next !== this.enabled;
     this.enabled = next;
-    if (!next) this.lastLanguage = null;
+    if (!this.aware) this.lastLanguage = null;
+    return changed;
+  }
+  /** The provider answering turns is a text provider (or not). Returns true when that changed. */
+  setTextProvider(active) {
+    const next = active === true, changed = next !== this.textProvider;
+    this.textProvider = next;
+    if (!this.aware) this.lastLanguage = null;
     return changed;
   }
   /** Remember a confidently detected language of player text or a reply. Returns true when it changed. */
   observe(text) {
-    if (!this.enabled) return false;
+    if (!this.aware) return false;
     const {language} = detectLanguage(text);
     if (!language || language === this.lastLanguage) return false;
     this.lastLanguage = language;
     return true;
   }
-  /** The reply-language block for a turn (languageContext). */
-  contextFor(text) { return languageContext({enabled: this.enabled, text, lastLanguage: this.lastLanguage}); }
+  /**
+   * The reply-language block for a turn (languageContext). `hint` is a language the player is known to use (the microphone's last
+   * recognised language, or the one remembered from an earlier launch): a turn with no text of its own, such as a recording, follows it
+   * when the conversation has no language yet. Only used on a text provider.
+   */
+  contextFor(text, hint = null) {
+    if (this.enabled) return languageContext({enabled: true, text, lastLanguage: this.lastLanguage});
+    return this.textProvider ? textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint}) : '';
+  }
   /** The language a turn is expected in: its own text when that is clear, else the last exchange's, else English. */
   expected(text) {
     const {language} = detectLanguage(text);
@@ -84,10 +102,14 @@ export class MultilingualConversations {
  * While the setting is on, Settings keep the voice on OmniVoice or the cloud voice, so this is a safety net: a turn in
  * another language never reaches Pocket (a fallback or hand-edited setup), and goes to the cloud voice instead.
  */
-export function planTurnVoice({enabled = false, language = 'en', local = {}} = {}) {
+export function planTurnVoice({enabled = false, language = 'en', local = {}, textProvider = false} = {}) {
   const chosen = local.uses ? local.provider : 'convai';
-  if (!enabled) return {engine: chosen, language: null, reason: 'multilingual-off'};
+  if (!enabled && !textProvider) return {engine: chosen, language: null, reason: 'multilingual-off'};
   if (!language || language === 'en') return {engine: chosen, language: 'en', reason: 'english'};
+  // A text provider has no Convai twin and no Convai cloud voice to hand a turn to: OmniVoice speaks another language, and an English-only
+  // voice keeps its place in the plan, so that the finished reply decides (replyVoice): a reply in another language is shown as text.
+  if (!enabled) return local.uses && local.provider === 'omni' ? {engine: 'omni', language, reason: 'omni'}
+    : {engine: chosen, language, reason: chosen === 'convai' ? 'cloud-voice' : 'english-only-voice'};
   if (local.uses && local.provider === 'omni') return {engine: 'omni', language, reason: 'omni'};
   return {engine: 'convai', language, reason: local.uses ? 'english-only-voice' : 'cloud-voice'};
 }
@@ -131,4 +153,36 @@ export function languageContext({enabled = false, text, lastLanguage = null} = {
   }
   const previous = lastLanguage && LANGUAGE_NAMES[lastLanguage];
   return `Language: answer in the language the player is using with you${previous ? ` (so far ${previous})` : ''}. ${REFERENCE_NOTE}`;
+}
+
+/**
+ * The reply-language block on a text provider (Mistral, Local AI, Custom): the same wording as languageContext, but only when it
+ * changes something, so an English conversation sends exactly the context it always did.
+ *   the player's message is in another language: that language is named;
+ *   it is English while the conversation was last in another language: English is named (the switch back);
+ *   it has no clear language (a recording, a reaction, one word) and the conversation is in another language: that language is kept;
+ *   otherwise nothing.
+ */
+export function textProviderLanguageContext({text, lastLanguage = null} = {}) {
+  const language = detectLanguage(text).language;
+  if (language) {
+    if (language === 'en' && (!lastLanguage || lastLanguage === 'en')) return '';
+    return languageContext({enabled: true, text, lastLanguage});
+  }
+  if (!lastLanguage || lastLanguage === 'en') return '';
+  return languageContext({enabled: true, text, lastLanguage});
+}
+
+/**
+ * The one-time note for a text provider's reply that the chosen voice cannot speak (Pocket and Voxtral speak English only): `note()` when such a
+ * reply is shown as text, `take()` when the next reply is written (it returns the game's notice id once per game session, then nothing).
+ */
+export class VoiceLanguageNotice {
+  constructor() { this.pending = false; this.sent = false; }
+  note() { if (!this.sent) this.pending = true; }
+  take() {
+    if (!this.pending) return undefined;
+    this.pending = false; this.sent = true;
+    return 'voice-language';
+  }
 }
