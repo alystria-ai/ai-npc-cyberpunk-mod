@@ -129,9 +129,8 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   "Conversations go back to Convai free tier." (the provider is Mistral), "Companions switch from Voxtral to the Convai voice." (the companion voice
   is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on and its engine is Voxtral). With none of them: "Nothing you use now depends on
   it." The Convai key's Remove help stays "Deletes the saved key. Conversations go back to Convai free tier."
-- **Battle and loot reactions are on by default** (since 2026-10-20). A saved off counts only when the player chose it (`battleReactionsChosen`,
-  `lootReactionsChosen`, set when an Apply carries the row); an old file's unchosen off becomes on once, and one the player switched off stays off.
-  Restore defaults turns both on. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
+- **Battle and loot reactions are off by default** (owner, 2026-10-20; a same-day on-by-default change never shipped). No migration, no Chosen keys.
+  Restore defaults turns both off. See `docs/BATTLE_REACTIONS.md` and `docs/LOOT_REACTIONS.md` for what each costs on the Convai free tier.
 - **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
   memory)", "(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted
   or model unavailable; the Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room;
@@ -169,18 +168,20 @@ the main settings saved.
 After every apply the page is drawn again. **What the rules did is shown on the rows in place**, with one line under Back:
 
 - A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
-  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI, Mistral or Custom."). The other changes of the same moment are kept.
+  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Needs Local AI or Custom."). The other changes of the same moment are kept.
 - A rule that **moves other rows** corrects them in place, and the line names what moved:
-  - **Mature content** works with Local AI, Mistral and Custom (since 2026-10-20) and never stands beside Convai (free tier or API key). It
-    changes no voice: the lines may go to a cloud voice with any provider (since 2026-10-20). Turning it on beside Convai selects, in the same
-    transaction, **Local AI** when its pack is installed (with the largest uncensored model that fits, when one is installed), else
-    **Mistral** when a Mistral key is saved, else **Custom** when its endpoint is set up. With none of the three the switch goes back to off
-    ("Needs Local AI, Mistral or Custom."); if the same batch picks Convai, the player's provider stays and the switch goes back to off. Beside
-    Local AI it selects the uncensored model the same way; beside Mistral or Custom it turns on and changes nothing else.
-    What it changed is kept in `settings.json` (`matureRestore`: `{conversationProvider, localModel}` each as `{before, set}`; the voice parts an
-    older record carried are dropped when it loads), so turning it off puts back what it changed, except anything the player changed since;
-    choosing Convai turns it off the same way; choosing Mistral or Custom leaves it on. The line reads "Also changed: ..." and names the
-    provider ("Local AI", "Mistral (free plan)" or "Custom (OpenAI-compatible)") and the uncensored model.
+  - **Mature content** works with Local AI and Custom only (owner decision 2026-10-20, after a live test) and never stands beside Convai (free tier or
+    API key) or Mistral. Turning it on beside Convai or Mistral selects, in the same transaction, **Local AI** when its pack is installed (with the largest
+    uncensored model that fits, when one is installed), else **Custom** when its endpoint is set up, never Mistral. With neither the switch goes back to off
+    ("Needs Local AI or Custom."); if the same batch picks Convai or Mistral, the player's provider stays and the switch goes back to off. Beside Local AI it
+    selects the uncensored model the same way; beside Custom it turns on and changes nothing else. **No Voxtral voice beside it**: a Voxtral companion voice
+    and V's Voxtral engine move to Pocket in the same save, with any provider; the voice entries are greyed out while it is on (MCM `setChoiceStates` with the
+    reason "Voxtral is not used with Mature content."; Native Settings UI shows the label "Voxtral · not with Mature" and refuses the click with the same
+    sentence), and `M.apply` and `manager.applySettings` refuse choosing Voxtral while it stays on. What it changed is kept in `settings.json` (`matureRestore`:
+    `{conversationProvider, localModel, voice, vVoiceEngine}`, each as `{before, set}`; an older record keeps loading), so turning it off puts back what it
+    changed, except anything the player changed since (Voxtral only while the Mistral key is saved and the voice is still Pocket); choosing Convai or Mistral
+    turns it off the same way; choosing Custom leaves it on. A saved file with Mature content and a Voxtral voice loads as Pocket. The line reads "Also changed: ..."
+    and names the provider ("Local AI" or "Custom (OpenAI-compatible)"), the uncensored model and the voices ("Pocket · Performance", "V’s voice for typed lines").
   - **Cloud voice and Natural speech** (`manager.applySettings`, `honourCloudVoice`; rule changed 2026-10-20): Natural speech and the
     Convai · Cloud voice exclude each other only where that voice is what speaks: the voice is Convai **and** the provider is Convai (free tier
     or own key). With Mistral, Local AI or Custom and the Convai voice selection the bridge plays Pocket, so Natural speech works there and
@@ -191,7 +192,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
   - V's voice is one list (2026-10-20): Off, Pocket, Voxtral. The row writes both stored keys (`vVoice`, `vVoiceEngine`); Off keeps the saved engine. Voxtral is greyed out
     until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and
-    speaks as Pocket until a key is saved. Mature content does not touch it.
+    speaks as Pocket until a key is saved. With Mature content on the Voxtral entry is greyed out and a saved Voxtral reads as Pocket (see Mature content above).
   - Johnny is one list (2026-10-20): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (at most twice an hour), Speaks up often (at most
     six times an hour, never closer than five minutes). The row writes both stored keys (`johnnyInHead`, `johnnyRemarks`): Off means no remarks, and an old file with
     `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only
@@ -343,10 +344,10 @@ group, the last one goes round to All).
 
 **Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
 Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
-`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content beside Convai turns on Local AI with its
-uncensored model, else Mistral, else Custom; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
+`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content beside Convai or Mistral turns on Local AI with its
+uncensored model, else Custom, and moves a Voxtral voice to Pocket; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
 asked for, not the extra ones the rules saved. MCM loads the page again and the rows show what was saved. If the rules did not keep a
-requested value (Mature content beside Convai with no Local AI pack, Mistral key or ready Custom endpoint), MCM would keep that draft as unapplied: the host reverts it from the next tick and
+requested value (Mature content beside Convai or Mistral with no Local AI pack and no ready Custom endpoint), MCM would keep that draft as unapplied: the host reverts it from the next tick and
 the status line gives the reason. MCM refuses a button while changes are pending ("Apply or revert pending changes ..."); that is MCM's
 own rule.
 

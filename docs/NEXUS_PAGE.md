@@ -62,7 +62,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
 [*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
-[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up (on by default; switch them off under Automatic reactions).
+[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up (off by default; switch them on under Automatic reactions).
 [*][b]Night City Allies followers talk.[/b] NCA followers who are characters here talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [/list]
 [b]Faces and voices[/b]
