@@ -61,6 +61,15 @@ export class TurnClock {
     this.marks = new Map();
     this.stalls = [];
     this.watching = null;
+    this.details = {};
+  }
+
+  /**
+   * Small facts about the turn that are not moments (the route that answered and its model, the prompt's token counts, that the game was
+   * paused or the model was cold): a plain object write, merged over what is there. The slow-turn report reads them (bridge/slow-turns.mjs).
+   */
+  annotate(values) {
+    if (values && typeof values === 'object') Object.assign(this.details, values);
   }
 
   /** Marks `name` now, or at `at` (epoch ms) when given. The first mark of a name wins. Returns the time marked. */

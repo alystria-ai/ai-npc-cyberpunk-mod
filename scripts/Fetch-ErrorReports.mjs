@@ -135,6 +135,27 @@ async function rowFromFiles(out, signature, ids) {
   return {signature, kind, message, reports: null, stored: null, versions, firstSeen: isoOfId(ids[0]), lastSeen: isoOfId(ids.at(-1)), expired: true};
 }
 
+const seconds = ms => (Number.isFinite(ms) ? `${Math.round(ms / 100) / 10} s` : '-');
+
+/**
+ * One table row per saved `slow-turn` report (bridge/slow-turns.mjs): when the replies were slow and how they grew, from the numbers the
+ * report carries (the first turns of the session against the slow ones), so the growth shows without opening a file.
+ */
+async function slowTurnLines(out, slowRows, saved) {
+  const lines = [];
+  for (const row of slowRows) {
+    for (const id of saved.get(row.signature) ?? []) {
+      let body;
+      try { body = JSON.parse(await readFile(join(out, row.signature, `${id}.json`), 'utf8')).report; } catch { continue; }
+      const slow = body?.report?.slow;
+      if (!slow || typeof slow !== 'object') continue;
+      const list = items => (Array.isArray(items) ? items : []).map(item => seconds(item?.soundMs)).join(', ') || '-';
+      lines.push(`| \`${row.signature}/${id}\` | ${cell(body.modVersion)} | ${cell(slow.provider ?? body.report?.choices?.provider)} | ${cell(slow.voice ?? body.report?.choices?.voice)} | ${cell(slow.turns)} | ${cell(slow.minutes)} | ${cell(list(slow.first))} | ${cell(list(slow.slow))} | ${cell(slow.reason)} |`);
+    }
+  }
+  return lines;
+}
+
 /**
  * Rewrites <out>/INDEX.md: when it was fetched, a table sorted by last seen (newest first) of the signatures the server listed plus
  * the ones only saved here, and a totals line. `signatures` is the server's list (its `signatures` array). Returns the path.
@@ -158,6 +179,13 @@ export async function writeIndex({out, signatures, fetchedAt = Date.now()}) {
     if (row.expired) expired += 1;
     lines.push(`| \`${row.signature}\`${row.expired ? ' (expired on server)' : ''} | ${cell(row.kind)} | ${cell(row.message, 120)} | ${row.reports ?? '-'} | ${row.stored ?? '-'} | ${cell(formatVersions(row.versions))} | ${cell(row.firstSeen)} | ${cell(row.lastSeen)} | ${here} |`);
   }
+  // By kind (a report kind is one word: turn-failed, voice-failed, slow-turn, ...), most reports first; then what each saved slow-turn report says.
+  const kinds = new Map();
+  for (const row of rows) kinds.set(String(row.kind || 'unknown'), (kinds.get(String(row.kind || 'unknown')) ?? 0) + (Number(row.reports) || saved.get(row.signature)?.length || 0));
+  lines.push('', `By kind: ${[...kinds].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([kind, total]) => `${kind} x${total}`).join(', ') || 'none'}.`);
+  const slow = await slowTurnLines(out, rows.filter(row => row.kind === 'slow-turn'), saved);
+  if (slow.length) lines.push('', '### Slow replies (kind slow-turn)', '',
+    '| Report | Version | Provider | Voice | Turns | Minutes in | First sound, first turns | First sound, slow turns | Trigger |', '|---|---|---|---|---|---|---|---|---|', ...slow);
   lines.push('', `Totals: ${rows.length} signatures (${expired} expired on server), ${reports} reports, ${kept} kept on the server, ${files} files here.`, '');
   await mkdir(out, {recursive: true});
   const path = join(out, 'INDEX.md');

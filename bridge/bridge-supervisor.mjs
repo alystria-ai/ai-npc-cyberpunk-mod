@@ -16,6 +16,7 @@ import {randomUUID} from 'node:crypto';
 import {dirname, isAbsolute, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
+import {capLogFile} from './log-cap.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, missingModuleInLog, missingRuntimeFiles} from './runtime-files.mjs';
@@ -41,6 +42,9 @@ export const DEFAULT_TIMINGS = Object.freeze({
   crashWindowMs: 600_000, maxCrashes: 5, backoffMs: [2000, 5000, 10_000, 20_000, 30_000],
   crashCooldownMs: 180_000, adoptFreshMs: 15_000, adoptCheckMs: 5000, setupRetryMs: 10_000, lockRetryMs: 1000, lockStatusAfterMs: 5000,
   buildTimeoutMs: 180_000, logLimitBytes: 1_000_000,
+  // The bridge's stdout and stderr files are cut back to their last bridgeLogKeepBytes when they pass bridgeLogMaxBytes; the service log to half
+  // of logLimitBytes when it passes it. Looked at every logCheckMs (bridge/log-cap.mjs): a long session or a restart loop no longer grows them.
+  logCheckMs: 300_000, bridgeLogMaxBytes: 6_000_000, bridgeLogKeepBytes: 3_000_000,
 });
 
 export function processAlive(pid) {
@@ -110,7 +114,7 @@ export class BridgeSupervisor {
     this.child = null; this.childPid = null; this.childExit = null; this.adoptedPid = null;
     this.ready = false; this.stopRequested = false; this.ownNonces = new Set(); this.retiredPids = new Set();
     this.exitReason = null; this.lifelineEnded = false; this.built = false; this.logsRotated = false;
-    this.lastGameProbe = -Infinity; this.lastStatusWrite = -Infinity; this.lastDormantCheck = -Infinity;
+    this.lastGameProbe = -Infinity; this.lastStatusWrite = -Infinity; this.lastDormantCheck = -Infinity; this.lastLogCheck = -Infinity;
     this.lastSetupCheck = -Infinity; this.retrySetup = false; this.lockFd = null; this.reporter = null;
   }
 
@@ -218,7 +222,17 @@ export class BridgeSupervisor {
     if (this.reporter) void this.reporter.record(event).catch(() => {});
   }
 
+  // The three logs are cut back when they have grown past their cap, at most every logCheckMs (a stat and, only when over, one small rewrite).
+  capLogsWhenDue() {
+    if (this.now() - this.lastLogCheck < this.timings.logCheckMs) return;
+    this.lastLogCheck = this.now();
+    const cap = this.timings.bridgeLogMaxBytes, keep = this.timings.bridgeLogKeepBytes;
+    for (const path of [this.paths.stdout, this.paths.stderr]) capLogFile(path, {maxBytes: cap, keepBytes: keep});
+    capLogFile(this.paths.log, {maxBytes: this.timings.logLimitBytes, keepBytes: Math.floor(this.timings.logLimitBytes / 2)});
+  }
+
   async step() {
+    this.capLogsWhenDue();
     await this.pollControl();
     if (this.mode === 'idle') return this.decide();
     if (this.mode === 'running') return this.checkRunning();
@@ -567,8 +581,10 @@ export class BridgeSupervisor {
         adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null,
         // Where the service logs are, for the in-game Help page when the bridge never started.
         gameRoot: this.gameRoot, stateDirectory: this.stateDirectory};
+      // A status file that cannot be written (the game holds it, a permission error) fails the same way every five seconds: said once, until a write works.
       return atomicFile(this.paths.status, JSON.stringify(value))
-        .catch(error => this.log(`The service status could not be published: ${error.message}`));
+        .then(() => { this.statusFailed = false; })
+        .catch(error => { if (!this.statusFailed) { this.statusFailed = true; this.log(`The service status could not be published: ${error.message}`); } });
     });
     return this.statusWriting;
   }

@@ -280,16 +280,18 @@ assert(api.status():find('plugin') and api.probe():find('player'))
 `));
 
 test('init.lua installs the shim before the perf probe and any module opens a file', () => {
-  const shimAt = init.indexOf("dofile('native-core.lua').install()");
-  const probeAt = init.indexOf("dofile('perf-probe.lua').hookRegistrations()");
-  const firstOpen = init.indexOf('io.open(');
+  // The once-per-load cut of probe.log and mcm.log (LOG-TRIM) runs first, with the game's own io, before the shim; it is not "a module".
+  const code = init.replace(/-- LOG-TRIM-BEGIN[\s\S]*?-- LOG-TRIM-END/, '');
+  const shimAt = code.indexOf("dofile('native-core.lua').install()");
+  const probeAt = code.indexOf("dofile('perf-probe.lua').hookRegistrations()");
+  const firstOpen = code.indexOf('io.open(');
   assert.ok(shimAt > 0 && shimAt < probeAt && shimAt < firstOpen);
   for (const event of ['onInit', 'onUpdate']) {
     const start = init.indexOf(`registerForEvent('${event}', function(`);
     const body = init.slice(start, start + 400);
     assert.ok(start > 0 && body.includes(`pcall(convaiNative.redetect, '${event}')`), `${event} must re-run native detection`);
   }
-  assert.ok(init.slice(0, shimAt).split('\n').every(line => /^\s*(--.*)?\r?$/.test(line) || line.startsWith('pcall(')));
+  assert.ok(code.slice(0, shimAt).split('\n').every(line => /^\s*(--.*)?\r?$/.test(line) || line.startsWith('pcall(')));
 });
 
 // Parity fixture for the native side (native/core/tests/io_tests.cpp): the channel each runtime path

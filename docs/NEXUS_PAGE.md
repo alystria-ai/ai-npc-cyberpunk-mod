@@ -150,9 +150,9 @@ Yes, with Mistral or Local AI. Face a character that has no profile here (for ex
 Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from that character's next line, with no restart. Remove clip brings the original voice back. The clip stays on your PC.
 
 [b]Error reports[/b]
-When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
+When something in the mod fails, or replies stay slow, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
 [list]
-[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed.
+[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed. For slow replies: only how long each stage of a few recent replies took, and their token counts.
 [*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
 [*]At most one report per kind of error a day and five a day in all; kept for 30 days.
 [/list]

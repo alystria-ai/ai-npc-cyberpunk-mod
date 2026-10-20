@@ -15,15 +15,16 @@
 // automatically" is off (settings.json "errorReports": false; missing means on).
 import {createHash} from 'node:crypto';
 import {mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync} from 'node:fs';
-import {mkdir, readFile, readdir, rename, rm, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {basename, join} from 'node:path';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
 export const QUEUE_MAX = 20;
 export const EVENT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const TEMPORARY_MAX_AGE_MS = 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
-  'turn-failed', 'voice-failed', 'setup-problem', 'lua-error']);
+  'turn-failed', 'voice-failed', 'setup-problem', 'lua-error', 'slow-turn']);
 const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
 
@@ -115,6 +116,50 @@ export function errorReportsEnabledSync(runtime) {
 
 // ------------------------------------------------------------------- the queue
 
+// ------------------------------------------------------------------ slow turns
+
+const SLOW_WORD = /^[A-Za-z0-9._:-]{1,80}$/;
+const SLOW_NAME = /^[A-Za-z][A-Za-z0-9]{1,23}$/;
+const slowNumber = (value, max = 1e7) => Number.isFinite(value) ? Math.max(0, Math.min(max, Math.round(value * 10) / 10)) : undefined;
+const slowWord = value => typeof value === 'string' && SLOW_WORD.test(value) ? value : undefined;
+const without = object => Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined));
+
+function slowTurn(row) {
+  if (!row || typeof row !== 'object') return null;
+  const marks = {};
+  if (row.marks && typeof row.marks === 'object') {
+    // A mark can be a little negative (the request file was written before the bridge read it).
+    for (const [name, at] of Object.entries(row.marks).slice(0, 40)) if (SLOW_NAME.test(name) && Number.isFinite(at)) marks[name] = Math.round(Math.max(-1e7, Math.min(1e7, at)));
+  }
+  const stalls = row.stalls && typeof row.stalls === 'object' ? without({count: slowNumber(row.stalls.count, 1000), maxMs: slowNumber(row.stalls.maxMs)}) : undefined;
+  return without({n: slowNumber(row.n, 1e6), atMin: slowNumber(row.atMin, 1e6), soundMs: slowNumber(row.soundMs), provider: slowWord(row.provider),
+    model: slowWord(row.model), voice: slowWord(row.voice), promptTokens: slowNumber(row.promptTokens), cachedTokens: slowNumber(row.cachedTokens),
+    cold: row.cold === true ? true : undefined, stalls: stalls && Object.keys(stalls).length ? stalls : undefined,
+    marks: Object.keys(marks).length ? marks : undefined});
+}
+
+/**
+ * The `slow` section of a slow-turn record (bridge/slow-turns.mjs), rebuilt field by field: numbers, fixed names and nothing else, each
+ * bounded, so no text can ride along. null when there is nothing usable.
+ */
+export function cleanSlow(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const rows = list => (Array.isArray(list) ? list.slice(0, 8).map(slowTurn).filter(Boolean) : []);
+  const group = (object, keys, max = 1e6) => object && typeof object === 'object'
+    ? without(Object.fromEntries(keys.map(key => [key, slowNumber(object[key], max)]))) : undefined;
+  const background = {};
+  if (value.background && typeof value.background === 'object') {
+    for (const [key, count] of Object.entries(value.background).slice(0, 12)) if (/^[A-Za-z]{2,30}$/.test(key) && slowNumber(count, 1e6) !== undefined) background[key] = slowNumber(count, 1e6);
+  }
+  const clean = without({reason: slowWord(value.reason), thresholds: group(value.thresholds, ['windowTurns', 'slowInWindow', 'slowMs', 'extremeMs']),
+    turns: slowNumber(value.turns, 1e6), excluded: group(value.excluded, ['failed', 'paused']), minutes: slowNumber(value.minutes, 1e6),
+    provider: slowWord(value.provider), voice: slowWord(value.voice), freeVideoMemoryMiB: slowNumber(value.freeVideoMemoryMiB, 1e6),
+    background: Object.keys(background).length ? background : undefined,
+    recentSoundMs: Array.isArray(value.recentSoundMs) ? value.recentSoundMs.slice(0, 12).map(item => slowNumber(item)).filter(item => item !== undefined) : undefined,
+    first: rows(value.first), slow: rows(value.slow)});
+  return Object.keys(clean).length ? clean : null;
+}
+
 /** A queue record from an event, or null when the event is not usable. Paths in the text keep only their file names. */
 export function queueRecord(event, now = Date.now()) {
   if (!event || typeof event !== 'object' || !KIND_PATTERN.test(String(event.kind ?? ''))) return null;
@@ -128,7 +173,8 @@ export function queueRecord(event, now = Date.now()) {
       .map(([key, value]) => [clip(key, 40), typeof value === 'string' ? clip(value, 200) : value]))
     : undefined;
   const at = Number.isFinite(event.at) ? event.at : now;
-  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}),
+  const slow = event.kind === 'slow-turn' ? cleanSlow(event.slow) : null;
+  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}), ...(slow ? {slow} : {}),
     source: clip(String(event.source ?? 'bridge'), 20), count: 1, firstAt: at, lastAt: at};
 }
 
@@ -174,7 +220,14 @@ export function recordErrorEventSync(stateDirectory, event, {now = Date.now()} =
 export async function readQueue(stateDirectory, {now = Date.now()} = {}) {
   const folder = queueDirectory(stateDirectory);
   let names = [];
-  try { names = (await readdir(folder)).filter(name => /^[0-9a-f]{16}\.json$/.test(name)); } catch { return []; }
+  try {
+    const all = await readdir(folder);
+    names = all.filter(name => /^[0-9a-f]{16}\.json$/.test(name));
+    // A write that was cut short (the process was ended between the write and the rename) leaves a .tmp file nobody reads: removed once an hour old.
+    for (const name of all.filter(item => item.endsWith('.tmp'))) {
+      try { if (now - (await stat(join(folder, name))).mtimeMs > TEMPORARY_MAX_AGE_MS) await rm(join(folder, name), {force: true}); } catch { /* the next look tries again */ }
+    }
+  } catch { return []; }
   const records = [];
   for (const name of names) {
     const path = join(folder, name);
@@ -324,6 +377,14 @@ export class ErrorEvents {
     const name = typeof engine === 'string' && /^[a-z0-9-]{1,20}$/.test(engine) ? engine : 'voice';
     const why = clip(String(reason ?? '').split(/\r?\n/)[0], 200).trim() || 'unknown';
     this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name}});
+  }
+  /**
+   * Replies are slow and stay slow (bridge/slow-turns.mjs decides; `data` is its report section). The message is the same every time, so
+   * the kind is one signature: one report a day. Numbers and names only: no turn's text is ever passed here.
+   */
+  slowTurns(data) {
+    const provider = slowWord(data?.provider);
+    this.record({kind: 'slow-turn', message: 'Replies are slow and stay slow', frame: 'turn-clock', slow: data, ...(provider ? {detail: {provider}} : {})});
   }
   /** The setup check's document: every row in the problem state. */
   setupChecked(document) {

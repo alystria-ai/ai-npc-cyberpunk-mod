@@ -1,5 +1,29 @@
 -- AI NPC Cyberpunk Mod game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
+-- probe.log and mcm.log are appended for ever (many thousands of lines over weeks of play): once per load, before the native core takes over io,
+-- a file over its cap keeps only its last quarter, in place (a rewrite of the same file: Mod Organizer 2 never sees a new or deleted file).
+-- LOG-TRIM-BEGIN
+pcall(function()
+    local function trim(path, maxBytes, keepBytes)
+        local file = io.open(path, 'rb')
+        if not file then return end
+        local size = file:seek('end')
+        if not size or size <= maxBytes then file:close(); return end
+        file:seek('set', size - keepBytes)
+        local tail = file:read(keepBytes)
+        file:close()
+        if not tail then return end
+        local newline = tail:find('\n', 1, true)
+        if newline then tail = tail:sub(newline + 1) end
+        local out = io.open(path, 'wb')
+        if not out then return end
+        out:write(tail)
+        out:close()
+    end
+    trim('runtime/probe.log', 1048576, 262144)
+    trim('runtime/mcm.log', 262144, 65536)
+end)
+-- LOG-TRIM-END
 -- Optional native core plugin: routes the bridge mailbox files through its worker thread when
 -- present (native-core.lua). Without the plugin, io and os stay unchanged.
 pcall(function() dofile('native-core.lua').install() end)
@@ -450,9 +474,12 @@ end
 groupChat.onPreparation = function(preparation)
     if preparation and not attachKnowledge(preparation.input) then preparation = nil end
     -- Written in place (the shipped placeholder is replaced, never created or deleted: Mod Organizer 2).
+    local encodedOk, encoded = true, '{}'
+    if preparation then encodedOk, encoded = pcall(json.encode, preparation) end   -- before the file is opened: a raise must not leave it emptied and open
+    if not encodedOk then return end
     local f = io.open('runtime/group-prefetch.json', 'wb')
     if not f then return end
-    f:write(preparation and json.encode(preparation) or '{}'); f:close()
+    f:write(encoded); f:close()
 end
 groupChat.onPreparation(nil)
 local supportedProfiles = {}
@@ -1430,8 +1457,11 @@ convaiLogFile = function(line)
     local count = state.n + 1
     state.lines[count], state.n, state.bytes = entry, count, state.bytes + #entry
     if count == 1 then state.at = os.clock() end
-    if count >= 64 or state.bytes >= 8192 or entry:find('[Ff]ail') or entry:find('[Ee]rror') or entry:find('[Aa]bandon')
-        or entry:find('[Ss]hut') or entry:find('[Cc]rash') then convaiLogFlush() end
+    -- A line that only says nothing failed ("error=false", "failed:0") is not a failure: it waits for the batch like any other.
+    local scan = entry
+    if entry:find('error=false', 1, true) or entry:find('failed:0', 1, true) then scan = (entry:gsub('error=false', ''):gsub('failed:0', '')) end
+    if count >= 64 or state.bytes >= 8192 or scan:find('[Ff]ail') or scan:find('[Ee]rror') or scan:find('[Aa]bandon')
+        or scan:find('[Ss]hut') or scan:find('[Cc]rash') then convaiLogFlush() end
 end
 local function log(line)
     convaiLogFile(line)
@@ -2785,9 +2815,16 @@ local function sendRequest(context)
     end
     -- In place over the shipped placeholder (Mod Organizer 2 never sees a new or deleted file). The bridge retries a
     -- half-written read on the file's next change; an empty file means "no request".
+    -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
+    local encodedOk, encoded = pcall(json.encode, context)
+    if not encodedOk then
+        gameplayActions.revoke('request-write-failed', context.requestId)
+        convaiLogOnce('Request could not be encoded', 'Request could not be encoded: ' .. tostring(encoded))
+        return false
+    end
     local file = io.open('runtime/last-input.json', 'wb')
     if not file then gameplayActions.revoke('request-write-failed', context.requestId); return false end
-    file:write(json.encode(context)); file:close()
+    file:write(encoded); file:close()
     pending = context
     pendingKnowledgeOwner = owner
     if not context.reaction then focusUntil = os.time() + 90 end
@@ -2945,10 +2982,12 @@ local function reactionLease(valid)
     local now = os.time()
     if valid and automatic.leaseAt == now then return true end
     -- In place: the bridge keeps its last good lease when it reads a partial file (bridge/battle-lease.mjs).
+    local encodedOk, encoded = pcall(json.encode, {requestId = automatic.requestId, valid = valid, updated = now * 1000,
+        playbackStartedAt = automatic.playbackAt and automatic.playbackAt * 1000})
+    if not encodedOk then return false end
     local file = io.open('runtime/reaction-lease.json', 'wb')
     if not file then return false end
-    file:write(json.encode({requestId = automatic.requestId, valid = valid, updated = now * 1000,
-        playbackStartedAt = automatic.playbackAt and automatic.playbackAt * 1000})); file:close()
+    file:write(encoded); file:close()
     automatic.leaseAt = now
     return true
 end
