@@ -88,7 +88,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
-import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
+import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
@@ -2450,7 +2450,11 @@ function addonTurnConfig(input, profile) {
   // A voice with no body (a cab's AI, persona.voiceContext) gets the voice form of the main mod's context: no "with V in person", no party
   // names outside a group round, no gear or journal (bridge/quest-context.mjs voiceConversationBlocks).
   const base = addonHost.usesVoiceContext(input.profileKey) ? voiceConversationBlocks(input) : intrinsicConversationContext.blocks(input);
-  const blocks = [...base, ...addonHost.blocks(input)];
+  // The reply language, last like a companion's: an add-on always answers on a text provider (Mistral, the local AI or Custom), whatever the
+  // companions use, so the text provider's rule applies directly. A remark has no words of V's and follows the conversation's language.
+  const language = textProviderLanguageContext({text: input.reaction ? '' : input.text,
+    lastLanguage: (multilingual.aware ? multilingual.lastLanguage : null) ?? speechLanguage.evidence?.language ?? null});
+  const blocks = [...base, ...addonHost.blocks(input), ...(language ? [{tier: 'volatile', text: language}] : [])];
   return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
     context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
     local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
