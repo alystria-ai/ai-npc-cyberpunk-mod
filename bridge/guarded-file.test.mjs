@@ -273,6 +273,27 @@ test('six failed rename attempts preserve the output and clean the owned tempora
   await onlyOutput(directory, output, 'original');
 });
 
+test('a rename across drives (EXDEV, a temporary file in MO2\'s Overwrite on another drive) writes the output in place and cleans the temporary file', async t => {
+  const {directory, output} = await fixture(t);
+  let attempts = 0;
+  assert.equal(await atomicFile(output, 'fresh', {
+    files: {rename: async () => { attempts++; throw failure('EXDEV'); }},
+    retryDelay: () => assert.fail('EXDEV was retried'),
+  }), true);
+  assert.equal(attempts, 1);
+  await onlyOutput(directory, output, 'fresh');
+});
+
+test('a cancelled write is not written in place after an EXDEV rename', async t => {
+  const {directory, output} = await fixture(t);
+  const controller = new AbortController();
+  assert.equal(await atomicFile(output, 'stale', {
+    signal: controller.signal,
+    files: {rename: async () => { controller.abort(); throw failure('EXDEV'); }},
+  }), false);
+  await onlyOutput(directory, output, 'original');
+});
+
 test('an unrecognized rename error is not retried and cleans the owned temporary file', async t => {
   const {directory, output} = await fixture(t);
   let attempts = 0;

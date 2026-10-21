@@ -769,8 +769,9 @@ function retryFixture({omni = [], pocket = []} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (mode === 'fail' || mode === 'blocked') {
-          this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)' : backend + ' worker failed');
+        if (mode === 'fail' || mode === 'blocked' || mode === 'paths') {
+          this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
+            : mode === 'paths' ? 'Local voice worker did not confirm its portable asset and data paths' : backend + ' worker failed');
           hooks.onState({state: 'error'}); throw this.failure;
         }
         owned = true; live++; peak = Math.max(peak, live);
@@ -827,6 +828,20 @@ test('an Omni that fails shows replies as text, loads again in the background, a
   assert.equal(candidate.steps, 16);
   assert.ok(h.logs.some(line => /attempt 1 failed/.test(line)) && h.logs.some(line => /ready; it takes over/.test(line)));
   assert.equal((await h.voice.prepareProfile('johnny-silverhand')).provider, 'omni');
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('an Omni worker that could not confirm its paths is not tried again: every try loads both models and fails the same way', async () => {
+  const h = retryFixture({omni: ['paths', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 1);
+  assert.equal(h.voice.omniRetry, null); assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'text'});
+  assert.equal(h.states.at(-1).omniRetry, null);
+  assert.ok(h.logs.some(line => /\[OmniRetry\] not trying again: .*portable asset and data paths/.test(line)));
+  assert.equal(h.failures.length, 1, 'the failure is still recorded for the error report');
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 1, 'no second load, however long it waits');
   await h.voice.close(); assert.equal(h.live(), 0);
 });
 
