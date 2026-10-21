@@ -20,7 +20,11 @@ import sys
 import time
 import wave
 
-ROOT = Path(__file__).resolve().parents[1]
+# The application directory is where this script is spelled to be. Inside USVFS (see USVFS_VARIABLE below) the resolved place of a file is the mod that holds
+# it, which is not where the folder the bridge handed over resolves to (a merged folder answers with the winning mod's), and the bridge compares the
+# `applicationDirectory` this worker reports with the folder it launched the worker from: the script's path as it was given, made absolute, never resolved.
+# Outside USVFS the resolved place decides, exactly as before.
+ROOT = (Path(os.path.abspath(__file__)) if os.environ.get('CYBERPUNK_CONVAI_USVFS') == '1' else Path(__file__).resolve()).parents[1]
 LEGACY_KEYS = ('johnny-silverhand', 'judy-alvarez', 'panam-palmer')
 MAX_PROFILES = 1024
 MAX_CACHED_PROFILES = 8

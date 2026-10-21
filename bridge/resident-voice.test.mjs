@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {PassThrough, Writable} from 'node:stream';
 import {resolve} from 'node:path';
 import {constants as osConstants} from 'node:os';
-import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS} from './resident-voice.mjs';
+import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
@@ -170,6 +170,17 @@ test('a worker with another data root or legacy unattested profiles cannot claim
     assert.equal(h.client.loaded, false);
     h.finish(); await h.client.close();
   }
+});
+
+test('a worker that reports another application directory fails with the text the voice routing does not retry', async () => {
+  const paths = portablePaths();
+  const h = harness({autoReady: false, protocolVersion: 2, workerOptions: paths});
+  const failed = assert.rejects(h.client.start(), error => pathAttestationFailed(error.message) && error.message === PATH_ATTESTATION_FAILURE);
+  h.ready({workerPaths: {applicationDirectory: resolve(process.cwd(), '../a mod that holds the script'), ...paths}});
+  await failed;
+  assert.equal(pathAttestationFailed('Local voice startup timed out'), false);
+  assert.equal(pathAttestationFailed(undefined), false);
+  h.finish(); await h.client.close();
 });
 
 test('one FP16 CUDA worker warms all references, stays resident, and changes steps without reloading', async () => {

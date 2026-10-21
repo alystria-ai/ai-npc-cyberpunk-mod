@@ -10,6 +10,14 @@
 // service's entry script: "Cannot find module ...start-service.mjs", exit code 1, before any line of ours ran, so the game kept reading
 // the launcher's "starting" for good.
 //
+// A second symptom of that unhooked call (a player's support report; reproduced in an MO2 test): when a path is a real file in the game
+// folder AND a copy of it lies in front of it in MO2's view (a mod that holds the same path, or MO2's Overwrite folder, which holds every
+// file the game or the service created before the install shipped its placeholders), open, read, write and rename reach the copy in front,
+// while stat answers for the real file in the game folder: its size and modification time never change. The bridge's request poll skips
+// the read while the stat of runtime/last-input.json equals the one it saw, so no turn V sent was ever read ("The conversation service
+// did not get that message"). Only a stat through an opened handle answers for the file the process can open, so stat asks the handle
+// first (statWithHandle below); lstat keeps its plain call.
+//
 // Three parts, used only when usvfs is loaded in the process (a physical install never runs any of this):
 //   - locate(path): where a path really is. A virtual path (it opens but stat says ENOENT) maps to its real place with
 //     realpathSync.native (GetFinalPathNameByHandle on an opened handle, which USVFS redirects). The service runs its own files (the
@@ -52,6 +60,22 @@ export function locate(path, base = fs) {
   catch (error) { if (!missing(error)) return {kind: 'physical', path}; }
   try { return {kind: 'virtual', path: plain.realpathSync.native(path)}; }
   catch { return {kind: 'missing', path}; }
+}
+
+// The files of a folder that are shadowed: a real file in the game folder whose plain stat disagrees (size or time) with a stat through a
+// handle it opens, so MO2 shows another copy in front of it (a mod or Overwrite; see the header). Names only, for the service's log.
+export function shadowedFiles(directory, base = fs) {
+  const plain = originalsOf(base), names = [];
+  let entries;
+  try { entries = base.readdirSync(directory); } catch { return names; }
+  for (const name of entries) {
+    const path = resolve(directory, name);
+    let real, seen;
+    try { real = plain.statSync(path); if (!real.isFile()) continue; } catch { continue; }
+    try { const fd = plain.openSync(path, 'r'); try { seen = plain.fstatSync(fd); } finally { plain.closeSync(fd); } } catch { continue; }
+    if (real.size !== seen.size || Math.abs(real.mtimeMs - seen.mtimeMs) > 2) names.push(name);
+  }
+  return names;
 }
 
 // The fallbacks, as functions over a base fs module (tests pass a fake one).
@@ -126,8 +150,33 @@ export function compatFunctions(base = fs) {
     };
   }
 
+  // stat answers for the file the process can open (see the header): through a handle first, the plain call for what cannot be opened
+  // (a file another process holds exclusively, a path that is not there).
+  const plainStatSync = statLike('statSync'), plainStat = statLikeAsync('stat'), plainStatPromise = statLikePromise('stat');
+  function statWithHandleSync(path, options) {
+    try { return statByHandleSync(path, options); } catch { /* the plain call says what is wrong */ }
+    return plainStatSync(path, options);
+  }
+  function statWithHandle(path, options, callback) {
+    if (typeof options === 'function') { callback = options; options = undefined; }
+    plain.open(path, 'r', (openError, fd) => {
+      if (openError) { plainStat(path, options, callback); return; }
+      plain.fstat(fd, options, (fstatError, handleStats) => plain.close(fd, () => {
+        if (fstatError) plainStat(path, options, callback); else callback(null, handleStats);
+      }));
+    });
+  }
+  async function statWithHandlePromise(path, options) {
+    let handle = null;
+    try { handle = await plain.promises.open(path, 'r'); } catch { /* the plain call says what is wrong */ }
+    if (handle) {
+      try { return await handle.stat(options); } catch { /* the plain call says what is wrong */ } finally { await handle.close().catch(() => {}); }
+    }
+    return plainStatPromise(path, options);
+  }
+
   const sync = {
-    statSync: statLike('statSync'),
+    statSync: statWithHandleSync,
     lstatSync: statLike('lstatSync'),
     existsSync(path) { return plain.existsSync(path) || accessible(path); },
     mkdirSync(path, options) {
@@ -144,7 +193,7 @@ export function compatFunctions(base = fs) {
     }, {native: plain.realpathSync?.native}),
   };
   const callbacks = {
-    stat: statLikeAsync('stat'),
+    stat: statWithHandle,
     lstat: statLikeAsync('lstat'),
     exists(path, callback) { plain.exists(path, found => callback(found || accessible(path))); },
     mkdir(path, options, callback) {
@@ -162,7 +211,7 @@ export function compatFunctions(base = fs) {
     }, {native: plain.realpath?.native}),
   };
   const promises = plain.promises ? {
-    stat: statLikePromise('stat'),
+    stat: statWithHandlePromise,
     lstat: statLikePromise('lstat'),
     async mkdir(path, options) {
       try { return await plain.promises.mkdir(path, options); }

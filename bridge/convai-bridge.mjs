@@ -107,6 +107,7 @@ import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
+import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
@@ -382,7 +383,13 @@ let localPack = detectLocalAiPack({project});
 // at most two minutes inside the supervisor, then the tier that fits, else Local AI says why it cannot (its turns never go to a cloud provider).
 // True once a settings poll has read the voice settings (playback on or off): until then `playbackEnabled` is only its default.
 let voiceSettingsRead = false;
-const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
+// Settled means: the voice settings have been read (until then `requestedProvider` is its default, Pocket, and the first poll starts Local AI before it reads them: the 2026-10-22 report
+// loaded the model whole beside an OmniVoice that was still to load), and OmniVoice is either not wanted, loaded, not installed, or has failed and the committed voice is the fallback.
+const omniSettled = () => voiceSettingsRead && (localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false || localVoice.fallback != null);
+// The graphics memory of OmniVoice (MiB) while it is wanted, playing is on and it is not loaded (still loading, or waiting to be loaded again in the background): the model is not placed in
+// memory that Omni is about to take. Pocket runs on the CPU and counts nothing; V's OmniVoice engine is a job on the same worker and adds nothing.
+const omniStillToLoadMiB = () => localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
+  && (localVoice.fallback == null || localVoice.omniRetry != null) ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
@@ -394,6 +401,7 @@ const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: l
 const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
+  gameRoom: {voiceMiB: omniStillToLoadMiB, uptimeSeconds: () => process.uptime()},
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {

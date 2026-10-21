@@ -1,5 +1,5 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
-import {ResidentVoice} from './resident-voice.mjs';
+import {ResidentVoice, pathAttestationFailed} from './resident-voice.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -652,6 +652,12 @@ export class VoiceSelection {
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason){
     const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
+    // A worker that loaded both models and then could not confirm its paths fails the same way on every try, and each try loads the models again (a
+    // minute or more of CPU and graphics memory, beside Local AI and the game): the paths are fixed for the life of the service, so it is not tried again.
+    if(pathAttestationFailed(reason)){
+      this.log(`not trying again: the worker did not confirm its asset and data paths, and they do not change until the game is restarted${reason?` (${reason})`:''}`);
+      this.omniRetry=null;return;
+    }
     if(this.closed||this.requestedProvider!=='omni'||this.omniPack.installed===false||delay===undefined){
       if(this.omniRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;

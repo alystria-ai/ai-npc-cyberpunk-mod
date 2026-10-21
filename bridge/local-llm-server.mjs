@@ -40,7 +40,7 @@ import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
@@ -592,17 +592,19 @@ export class LocalLlmServer extends EventEmitter {
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
   // selection: () => {pin, matureOn, matureModels}, read at each start and each reselect (the player's model choice, bridge/local-model-choice.mjs).
   // tier ('standard' | 'lite') is the older, stricter form of a pin: that tier or an error, no memory check.
+  // gameRoom: {voiceMiB(), uptimeSeconds()}, set by the bridge (null = off): on a card of 12 GB or less the first placement after the service started leaves the game's room and the
+  // voice engine still to load out of what the model may take (bridge/local-vram-fit.mjs smallCardRoom). voiceMiB() is the resident size of a voice engine that is wanted and not loaded.
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, deviceListRetryMs = LOCAL_LLM_LIMITS.deviceListRetryMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
-      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length} = {}) {
+      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length, gameRoom = null} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
-      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount});
+      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount, gameRoom});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     // CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: the free system memory the supervisor sees (tests of a real bridge process: the check before a load with part on the CPU, LOW_RAM).
@@ -889,13 +891,13 @@ export class LocalLlmServer extends EventEmitter {
   // The models whose real fit is looked at before a choice, each a few seconds' worth of tool runs at most (in parallel), only when the file-size rule says they do not fit the
   // free memory: the model the player chose and, with Mature content on, the uncensored ones (a Mature model never gives way to a censored one, so it would be loaded with layers
   // on the CPU). Everything else, and every card with room, takes no probe at all and chooses as before. A one-shot plan from a spill reload (#refitPlan) is used as it is.
-  async #probeFits(selected, freeMiB, device) {
+  async #probeFits(selected, freeMiB, device, {all = false} = {}) {
     const result = {};
     const plan = this.#refitPlan; this.#refitPlan = null;
     if (plan) result[plan.id] = plan.fit;
     if (!Number.isFinite(freeMiB) || typeof this.fitProbe !== 'function' || this.tierSetting === 'standard' || this.tierSetting === 'lite') return result;
     const wanted = selected.models.filter(model => !model.external && model.file && !result[model.id] && !model.broken && !model.stalled
-      && (model.id === selected.pin || (selected.matureOn && model.uncensored === true))
+      && (all || model.id === selected.pin || (selected.matureOn && model.uncensored === true))
       && freeMiB < modelNeedMiB(model, Number(this.fileSizeMiB(model.file)) || 0));
     await Promise.all(wanted.map(async model => {
       try { const fit = await this.#fitFor(model, freeMiB, FIT_LIMITS.marginMiB, device); if (fit) result[model.id] = fit; } catch { /* the file-size rule stands */ }
@@ -905,7 +907,7 @@ export class LocalLlmServer extends EventEmitter {
 
   // Where a model that does not fit whole goes (bridge/local-vram-fit.mjs offloadPlan): the projection of the offload placement (context 8,192, the 8-bit cache) from the fit that was
   // already looked at, else from one llama-fit-params run (1 to 3 s, nothing allocated; none without the tool: the file size stands in), against the free memory. Never throws.
-  async #placeOffload(choice, freeMiB, device, fit) {
+  async #placeOffload(choice, freeMiB, device, fit, room = null) {
     const {offloadContext: contextSize, offloadKvType: kvType} = FIT_LIMITS, model = choice.model;
     let projectedMiB = fit?.projections?.find(rung => rung.contextSize === contextSize && rung.kvType === kvType)?.projectedMiB ?? null;
     if (projectedMiB === null && typeof this.fitProbe === 'function' && model.file && device?.id) {
@@ -913,7 +915,19 @@ export class LocalLlmServer extends EventEmitter {
     }
     // A file whose size is unknown stands in with the fixed need of its tier (the same figure the file-size rule falls back to), so a card with next to nothing free is still refused.
     const size = Number(choice.sizeMiB) || 0;
-    return offloadPlan({projectedMiB, sizeMiB: size > 0 ? size : tierNeedMiB(choice.profile, 0) - FIT_LIMITS.offloadEstimateExtraMiB, freeMiB});
+    // On a small card at the service's start the game's room is what the placement keeps free (never less than the usual one), and a voice engine still to load is not free memory.
+    return offloadPlan({projectedMiB, sizeMiB: size > 0 ? size : tierNeedMiB(choice.profile, 0) - FIT_LIMITS.offloadEstimateExtraMiB,
+      freeMiB: room ? freeMiB - room.voiceMiB : freeMiB, ...(room ? {targetMiB: Math.max(FIT_LIMITS.offloadGameRoomMiB, room.reserveMiB)} : {})});
+  }
+
+  // The room for the game on a small card (see the constructor's gameRoom): null when it is off, on a reload after a spill or a step-down (the game is running then and the free memory is real),
+  // when the service is older than SMALL_CARD_ROOM.settleSeconds, or when the card is large or unreadable.
+  #gameRoomFor(freeMiB, reload) {
+    if (!this.gameRoom || reload || !(this.#totalMiB > 0)) return null;
+    try {
+      if (!(Number(this.gameRoom.uptimeSeconds?.() ?? Infinity) <= SMALL_CARD_ROOM.settleSeconds)) return null;
+      return smallCardRoom({totalMiB: this.#totalMiB, freeMiB, voiceMiB: Number(this.gameRoom.voiceMiB?.() ?? 0)});
+    } catch { return null; }
   }
 
   // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
@@ -1023,12 +1037,17 @@ export class LocalLlmServer extends EventEmitter {
     if (early) { this.#announce(early, selected); return this.#startExternal(early.model, failedPin, generation); }
     await this.#waitBeforeStart();
     this.#guard(generation);
+    const reload = this.#refitPlan !== null || this.#forcedOffload !== null;
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
+    // The game has not taken its graphics memory yet: the model is placed against what is left after the game's room (and a voice engine still to load), not against what is free now.
+    const room = this.#gameRoomFor(freeMiB, reload);
+    const modelFreeMiB = room ? room.modelMiB : freeMiB;
     this.#mark('checking which model fits the free graphics memory');
-    const realFit = await this.#probeFits(selected, freeMiB, device);
+    const realFit = await this.#probeFits(selected, modelFreeMiB, device, {all: room !== null});
     this.#guard(generation);
-    let choice = this.#choose(pack, freeMiB, selected, realFit);
+    let choice = this.#choose(pack, modelFreeMiB, selected, realFit);
+    this.#lastFreeMiB = Number.isFinite(freeMiB) ? freeMiB : null;
     // The model a step-down or a spill found no smaller model for: the same model, with part of its layers on the CPU (this start only).
     const forced = this.#forcedOffload; this.#forcedOffload = null;
     if (forced !== null && forced === choice.model.id && choice.model.external !== true && choice.offload !== true) choice = {...choice, offload: true};
@@ -1039,7 +1058,7 @@ export class LocalLlmServer extends EventEmitter {
     // names a smaller model and the Custom provider, never a cloud provider). What stops the load is the processor's side: the part of the model and its cache that stay in system memory must fit it.
     let placement = null;
     if (choice.offload === true) {
-      placement = await this.#placeOffload(choice, freeMiB, device, realFit[choice.model.id] ?? null);
+      placement = await this.#placeOffload(choice, freeMiB, device, realFit[choice.model.id] ?? null, room);
       this.#guard(generation);
       const ram = offloadRamNeedMiB({share: placement.share, sizeMiB: Number(choice.sizeMiB) || 0, projectedMiB: placement.projectedMiB});
       const freeRam = Number(this.freeMemMiB());
@@ -1067,6 +1086,10 @@ export class LocalLlmServer extends EventEmitter {
     if (placement) this.log('[local] partial offload: ' + (tier.loadedName ?? tier.name) + ', ' + (placement.share === null ? 'the share of its layers on the card is unknown' : 'about ' + Math.round(placement.share * 100) + '% of its layers on the card')
       + (placement.projectedMiB === null ? '' : ' (' + (placement.estimated ? 'estimated from the file, ' : 'projected ') + placement.projectedMiB + ' MiB at ' + placement.contextSize + ' ' + placement.kvType + ' against ' + (Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?') + ' MiB free)')
       + ', context ' + contextSize + ', ' + kvType + ' cache, fit target ' + placement.targetMiB + ' MiB kept free for the game, ' + threads + ' CPU threads');
+    // One line with the plan on a small card: the card, what is kept for the game and for a voice engine still to load, and how much of the model goes on the card.
+    if (room) this.log('[local] game room on a small card: card ' + Math.round(room.totalMiB) + ' MiB, ' + room.reserveMiB + ' MiB kept for the game' + (room.voiceMiB ? ', ' + room.voiceMiB + ' MiB for the voice engine still to load' : '')
+      + ', ' + Math.round(room.freeMiB) + ' MiB free now, so ' + room.modelMiB + ' MiB for the model: ' + (placement ? (placement.share === null ? 'part of its layers on the card (the share is unknown)' : 'about ' + Math.round(placement.share * 100) + '% of its layers on the card') : 'all of its layers on the card')
+      + ', context ' + contextSize);
     this.#tier = tierKey; this.#model = tier.loadedName ?? tier.name; this.#modelId = tier.id; this.#contextSize = contextSize;
     this.#hints = tier.custom ? {uncensored: tier.uncensored === true, family: tier.family ?? null} : null;
     const cacheRamMiB = this.cacheRamMiB ?? defaultCacheRamMiB(Number(this.freeMemMiB()));

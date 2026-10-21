@@ -309,6 +309,12 @@ if (usvfsCompat) {
       if (changed.length) log(`Mod Organizer 2: Python's search paths pinned to its real folder (${changed.join(', ')}).`);
     } catch (error) { log(`Mod Organizer 2: Python's search paths could not be pinned (${dirname(python)}): ${error?.message || error}`); }
   }
+  // Files the game folder holds that MO2 hides behind another copy (an older install's placeholders under a copy in a mod or in Overwrite):
+  // stat now asks the file the process can open, so nothing is skipped; the line tells a support report which copies are doubled.
+  try {
+    const doubled = usvfsCompat.shadowedFiles(layout.runtime);
+    if (doubled.length) log(`Mod Organizer 2: ${doubled.length} file(s) of runtime/ exist twice, a copy in the game folder and another in front of it in MO2's view (a mod or Overwrite): ${doubled.slice(0, 12).join(', ')}${doubled.length > 12 ? ', ...' : ''}.`);
+  } catch (error) { log(`Mod Organizer 2: the check for doubled files of runtime/ failed: ${error?.message || error}`); }
   // Where each Local AI pack file really is (several packs may be separate MO2 mods merged into one folder), for the report.
   try {
     const {packPlaceLines} = await import('../bridge/local-ai-pack.mjs');

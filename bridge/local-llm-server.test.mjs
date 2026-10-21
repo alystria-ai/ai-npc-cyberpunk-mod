@@ -1580,3 +1580,59 @@ test('a turn with no answer after 10 s reads the counters once (not three minute
   blind.server.begin()();
   assert.equal(timers.length, before);
 });
+
+// ---- The game's room on a small card (2026-10-22, LordValerius's 0.2.7 report: an 8 GB RTX 3070, 7,461 MiB free at the service's start, the model loaded whole, then the game and OmniVoice took the card) ----------------------
+
+const RTX3070 = 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 3070 (8232 MiB, 7461 MiB free)\n';
+function roomHarness(t, {room = {}, listDevices = async () => RTX3070, free = {value: 7461}, ...options} = {}) {
+  const gameRoom = {voiceMiB: () => 0, uptimeSeconds: () => 12, ...room};
+  return onlyGood(fitHarness(t, {selected: {matureOn: true}, free, listDevices, gameRoom, ...options}));
+}
+
+test('on an 8 GB card at the service start the model is placed against what is left after the game, with one plan line, instead of loaded whole and moved later', async t => {
+  // Pocket on the CPU, no voice engine to load: 7,461 free - 4,528 for the game leaves 2,933 MiB, so about three quarters of the layers go on the card (projected 3,520 MiB at 8,192 with the 8-bit cache).
+  const h = roomHarness(t);
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
+  await h.server.ensure();
+  assert.ok(!h.calls[0].args.includes('-ngl') && argValue(h.calls[0], '-fit') === 'on', 'layers on the CPU from the first load');
+  assert.deepEqual([argValue(h.calls[0], '-fitt'), argValue(h.calls[0], '-c'), argValue(h.calls[0], '-ctk')], ['4528', '8192', 'q8_0'], 'the game room is the fit target');
+  const plan = h.logs.filter(line => line.includes('game room on a small card'));
+  assert.equal(plan.length, 1, plan.join('|'));
+  assert.ok(plan[0].includes('card 8232 MiB, 4528 MiB kept for the game, 7461 MiB free now, so 2933 MiB for the model: about 76% of its layers on the card'), plan[0]);
+  assert.deepEqual(slow, [], 'three quarters on the card is no warning');
+  assert.deepEqual(h.failures, []);
+  // The same card, nothing else changed, with the room off (the bridge's option is absent): the model loads whole, as before.
+  const before = onlyGood(fitHarness(t, {selected: {matureOn: true}, free: {value: 7461}, listDevices: async () => RTX3070}));
+  await before.server.ensure();
+  assert.ok(before.calls[0].args.includes('-ngl') && argValue(before.calls[0], '-fit') === 'off');
+  assert.ok(!before.logs.some(line => line.includes('game room on a small card')));
+});
+
+test('a voice engine that is still to load takes its size out of the model\'s room, and OmniVoice plus the game on 8 GB leaves the model on the processor, said at the start', async t => {
+  const h = roomHarness(t, {room: {voiceMiB: () => 2500}});
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
+  await h.server.ensure();
+  const plan = h.logs.find(line => line.includes('game room on a small card'));
+  assert.ok(plan.includes('2500 MiB for the voice engine still to load') && plan.includes('so 433 MiB for the model') && plan.includes('about 0% of its layers on the card'), plan);
+  assert.deepEqual(slow.map(event => event.share), [0]);
+  assert.deepEqual([argValue(h.calls[0], '-fit'), argValue(h.calls[0], '-fitt')], ['on', '4528']);
+});
+
+test('a card of 12 GB or less with room for both gets the whole model on the card; a larger card and an old service take the free memory as it is', async t => {
+  // 11,997 MiB (the 4080 Laptop of the tests): 4,608 MiB for the game leaves 6,621 MiB, the model (3,734 at 16,384 plus the margin) fits whole.
+  const big = roomHarness(t, {listDevices: async () => DEVICES, free: {value: 11229}});
+  await big.server.ensure();
+  assert.ok(big.calls[0].args.includes('-ngl') && argValue(big.calls[0], '-fit') === 'off' && argValue(big.calls[0], '-c') === '16384');
+  const line = big.logs.find(text => text.includes('game room on a small card'));
+  assert.ok(line.includes('4608 MiB kept for the game') && line.includes('all of its layers on the card'), line);
+  // A card above 12 GB: no plan line at all.
+  const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
+  await huge.server.ensure();
+  assert.ok(!huge.logs.some(text => text.includes('game room on a small card')) && huge.calls[0].args.includes('-ngl'));
+  // The service is older than four minutes: the game is running and what is free is real.
+  const late = roomHarness(t, {room: {uptimeSeconds: () => 600}});
+  await late.server.ensure();
+  assert.ok(late.calls[0].args.includes('-ngl') && !late.logs.some(text => text.includes('game room on a small card')));
+});

@@ -515,6 +515,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **A file that exists twice (2026-10-22, `packaging/usvfs-shadow.test.mjs`).** When a path is a real file in the game folder and MO2 holds a
+  copy in front of it (a mod with the same path, or Overwrite, where the game and the service put every file they created before an install
+  shipped its placeholders), open, read, write and rename reach the copy in front while Node's plain `stat` answers for the real file: its
+  size and time never change (a support report showed 14 exchange files with the install day's time and a day-old content; reproduced in an
+  MO2 test). The request poll (`tick` in `convai-bridge.mjs`) skips the read while the stat of `runtime/last-input.json` is the one it saw, so
+  no turn was ever read and the game said the service did not get the message. Under usvfs `stat` (sync, callback and promise forms, not
+  `lstat`) now asks an opened handle first, which answers for the file the process can open; `shadowedFiles` lists the doubled files of
+  `runtime/` in `bridge-service.log` at start (`Mod Organizer 2: N file(s) of runtime/ exist twice ...`). The fix for the player is also to
+  clear the copy: delete the Scripts' `runtime/` files from MO2's Overwrite folder (or the older mod), so one copy is left.
+- **Bridge writes across drives (2026-10-22).** The bridge writes its files to a temporary name and renames it over the placeholder. A new
+  file under the game folder goes to MO2's Overwrite, so with the game on one drive and MO2 on another the rename fails with EXDEV (seen in
+  the same MO2 test). `atomicFile` (`bridge/guarded-file.mjs`) then writes the placeholder in place and removes the temporary file.
 - **Packs and MO2.** The Local AI, Mature and OmniVoice packs work as their own MO2 mods (their roots are resolved separately); the OmniVoice
   pack's voice clips under `voices/` are found only when that pack is merged into the Runtime's MO2 mod (or installed in the game folder),
   because `voices/` is read from the Runtime's real folder.

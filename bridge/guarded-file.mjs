@@ -49,6 +49,17 @@ export async function atomicFile(path, data, {signal, isCurrent, isCurrentSync, 
         committed = true;
         return true;
       } catch (error) {
+        // Mod Organizer 2: a new file under the game folder goes to MO2's Overwrite folder, so the temporary file can be on another drive
+        // than the placeholder it replaces (the game on D:, MO2 on C:), and Windows will not rename across drives. The placeholder is
+        // written in place instead, as the game's own Lua does; every reader of these files copes with a half-written read. The
+        // temporary file is removed below (committed stays false).
+        if (error.code === 'EXDEV') {
+          if (!await current() || signal?.aborted) return false;
+          if (isCurrentSync && isCurrentSync() !== true) return false;
+          const target = await io.open(path, 'w');
+          try { await target.writeFile(data); } finally { await target.close().catch(() => {}); }
+          return true;
+        }
         if (attempt === RENAME_ATTEMPTS - 1 || !retryable.has(error.code)) throw error;
         if (!await current() || signal?.aborted) return false;
         if (typeof retryDelay === 'function') await retryDelay(attempt);

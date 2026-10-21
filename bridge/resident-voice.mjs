@@ -22,6 +22,11 @@ export const voiceSteps = value => value === 16 ? 16 : 32;
 export const VOICE_WORKER_LIMITS = Object.freeze({startupStallMs: 300_000, startupMaxMs: 900_000,
   startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000, voicesMs: 30_000});
 
+// What a worker that did not confirm its paths fails with. The paths are fixed for the life of the service, so another try fails the same way
+// (bridge/voice-selection.mjs does not schedule one).
+export const PATH_ATTESTATION_FAILURE = 'Local voice worker did not confirm its portable asset and data paths';
+export const pathAttestationFailed = reason => String(reason ?? '').includes(PATH_ATTESTATION_FAILURE);
+
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
     setTimer = setTimeout, clearTimer = clearTimeout,
@@ -302,7 +307,15 @@ export class ResidentVoice {
         if (!paths || typeof paths !== 'object' || Array.isArray(paths)
             || Object.keys(paths).length !== Object.keys(expected).length
             || Object.entries(expected).some(([field, path]) => normalized(paths[field]) !== normalized(path))) {
-          throw Error('Local voice worker did not confirm its portable asset and data paths');
+          // Which path the worker and the bridge name differently, for the log (a support report then shows it: this failure was only
+          // ever seen under Mod Organizer 2, where a folder and a file resolve to different mods).
+          try {
+            const unequal = Object.entries(expected).filter(([field, path]) => {
+              try { return normalized(paths?.[field]) !== normalized(path); } catch { return true; }
+            }).map(([field, path]) => `${field}: worker ${String(paths?.[field])} | bridge ${path}`);
+            this.onLog(`[OmniPaths] ${unequal.length ? unequal.join('; ') : 'the worker reported another set of path fields'}\n`);
+          } catch { /* the log line is an extra */ }
+          throw Error(PATH_ATTESTATION_FAILURE);
         }
       }
       const version = frame.protocolVersion ?? 1;

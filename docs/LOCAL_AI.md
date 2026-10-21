@@ -957,6 +957,18 @@ Tests: `bridge/local-vram-fit.test.mjs` (the parse, the probe with a stand-in pr
 with the measured numbers), `bridge/local-llm-server.test.mjs` (whole-model loads at each rung, no probe where there was none, the hopeless first stall, refit once then step down, no
 counters, the reload that would end on the same model).
 
+### Room for the game on a small card (2026-10-22: RTX 3070 8 GB, "FPS tanks", the model spilled into shared memory)
+
+The service starts with the game, before the game has allocated its graphics memory, so the free memory it reads at the first placement is memory the game is about to take. The 0.2.7 report (8,232 MiB card, 7,461 MiB free at the start) loaded the 5 GB Mature model whole, then the game and OmniVoice (about 2.5 GB) took the card, 3,209 MiB of the model went into shared system memory, and a spill reload ten minutes into play ended with about 0% of the layers on the card after 52 s of full CPU use. Now (`smallCardRoom` in `bridge/local-vram-fit.mjs`, used by `#startOnce` in `bridge/local-llm-server.mjs`):
+
+- **Applies** on a card of 12,288 MiB or less, on the first placement while the service is younger than four minutes (`SMALL_CARD_ROOM.settleSeconds`), and only on a start that is not a reload after a spill or a step-down (the game is running then and the free memory is real). The bridge turns it on (`gameRoom` option); the server defaults to off.
+- **The game's room** is 55% of the card, at least 3,000 MiB (the old reserve of `local-model-choice.mjs`), at most 4,608 MiB: 4,528 MiB on the 8 GB card (the report showed the game holding about 4.3 GB beside OmniVoice).
+- **A voice engine still to load** takes its size out of the model's room: OmniVoice 2,500 MiB while it is wanted, playback is on and it is not loaded (`omniStillToLoadMiB` in the bridge; V's OmniVoice engine is a job on the same worker and adds nothing, Pocket runs on the CPU).
+- **The model's room** is free memory - voice engine - the game's room. Every installed model is looked at against it (one `llama-fit-params` run each, in parallel, only on such a start), the largest that fits whole is loaded whole, else the offload placement runs with the game's room as `-fitt` and the free memory minus the voice engine as what is free: on the 8 GB card with Pocket about 76% of the layers go on the card, with OmniVoice about 0% (said at the start, `offload-slow`, instead of a full load followed by a 52 s reload).
+- **One log line** with the plan: `[local] game room on a small card: card 8232 MiB, 4528 MiB kept for the game, 7461 MiB free now, so 2933 MiB for the model: about 76% of its layers on the card, context 8192`.
+- **Ordering.** `omniSettled` (the wait before a start, at most two minutes) now needs the voice settings to have been read first: the first settings poll starts Local AI before it reads them, and until then `requestedProvider` is its default, Pocket. A failed OmniVoice whose fallback is the committed voice counts as settled.
+- **Numbers to measure on the 8 GB dev card** (the 55% and 4,608 MiB are a conservative first pick from one report): prompt tokens a second at 50%, 76% and 100% of the layers on the card while the game runs, and the game's real footprint in the world. Tests: `bridge/local-llm-server.test.mjs` ("The game's room on a small card"), `bridge/local-vram-fit.test.mjs`, `bridge/local-game-room-wiring.test.mjs`.
+
 ### Partial offload on a small card (2026-10-21: RTX 4060 8 GB, Mature lite pack, "answered once, then not enough memory")
 
 **What the player had.** A 4060 (8 GB, 16 GB of RAM) with the Mature lite pack only (Qwen3.5-4B Q4_K_M, 2,582 MiB; the game used at most 45% of the card), text only. The first message was

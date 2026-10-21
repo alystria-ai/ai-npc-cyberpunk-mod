@@ -674,6 +674,40 @@ class UsvfsVoicePaths(unittest.TestCase):
                     worker.asset_file(self.pack_paths['modelDirectory'], relative)
             self.assertTrue(worker.asset_file(self.pack_paths['modelDirectory'], 'model.safetensors').is_file())
 
+    def load_copy(self, flag):
+        """The worker script as the bridge starts it: a copy inside the app folder, imported with or without the USVFS flag."""
+        copied = self.app / 'bridge/resident-voice-worker.py'
+        copied.parent.mkdir(exist_ok=True)
+        shutil.copyfile(SOURCE, copied)
+        loader = importlib.util.spec_from_file_location('copied_resident_voice_usvfs', copied)
+        module = importlib.util.module_from_spec(loader)
+        # USVFS answers Path.resolve() of a file with the mod that holds it, not with the folder the bridge launched the worker from.
+        holder = self.root / 'mods' / 'Runtime update' / 'app' / 'bridge' / copied.name
+        real = Path.resolve
+        resolve = lambda path, strict=False: holder if path == copied else real(path, strict=strict)
+        with patch.object(Path, 'resolve', resolve), patch.dict(os.environ, {worker.USVFS_VARIABLE: flag} if flag else {}, clear=True):
+            loader.loader.exec_module(module)
+        return module, holder
+
+    def test_the_application_directory_the_worker_reports_is_the_folder_it_was_launched_from_inside_usvfs(self):
+        # The bridge compares this with the folder it launched the worker from. A merged app folder resolves to the winning mod's folder, a file below
+        # it to the mod that holds the file: reporting the resolved place of the script failed the comparison for a Runtime in the game folder
+        # beside Local AI and OmniVoice packs that are mods of their own (2026-10-21 report).
+        module, holder = self.load_copy('1')
+        self.assertEqual(module.ROOT, self.app)
+        self.assertNotEqual(module.ROOT, holder.parents[1])
+        with patch.dict(os.environ, self.environment(), clear=True):
+            paths = module.resolve_worker_paths(module.ROOT, self.environment())
+        self.assertEqual(paths['applicationDirectory'], self.app)
+        self.assertEqual({key: str(paths[key]) for key in ('applicationDirectory', *worker.PATH_OVERRIDES)},
+                         {'applicationDirectory': str(self.app), **{field: str(path) for field, path in {**self.paths, **self.pack_paths}.items()}})
+
+    def test_without_the_flag_the_application_directory_is_still_where_the_script_resolves_to(self):
+        module, holder = self.load_copy(None)
+        self.assertEqual(module.ROOT, holder.parents[1])
+        module, holder = self.load_copy('0')
+        self.assertEqual(module.ROOT, holder.parents[1])
+
     def test_without_the_flag_nothing_changed_for_a_physical_install(self):
         plain = {worker.PATH_OVERRIDES[field]: str(path) for field, path in self.paths.items()}
         with patch.dict(os.environ, {}, clear=True):
