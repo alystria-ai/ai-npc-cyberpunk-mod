@@ -552,3 +552,51 @@ test('a reading that fails or never arrives does not hold up or change the failu
   assert.equal(reads, 0);
   const closed = slow.client.close(); slow.finish(); await closed;
 });
+
+// ---- voice language packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip to clone from --------------------------------------------
+
+const packClip = {reference: 'runtime/voice-references/multilingual/zh-cn/picked/alex.wav', sha256: 'c'.repeat(64), transcript: 'Words in the clip.'};
+
+test('a reply with a language pack clip is sent as it is: the clip beside the English profile, which is not prepared for it', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await h.client.start();
+  const audio = h.client.synthesize('alex', 'A reply.', {language: 'zh', languageReference: packClip}); await tick();
+  assert.equal(h.requests.length, 1, 'no hidden preparation render of the English profile first');
+  assert.deepEqual(h.requests[0], {op: 'synthesize', id: 1, profile: 'alex', text: 'A reply.', steps: 32, language: 'zh', languageReference: packClip});
+  // The worker leaves the profile's prepared list as it was and says the clip was used.
+  h.reply(0, {preparedProfiles: [...LOCAL_VOICE_KEYS], languageReference: 'used'});
+  const result = await audio;
+  assert.equal(result.timing.voiceLanguageReference, 'used');
+  assert.equal(h.client.profileReady('alex'), false, 'alex was not prepared by a reply in another language');
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('a clip the worker refused is spoken from the English reference and the result says so; a worker that does not know the field says so too', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await h.client.start();
+  const first = h.client.synthesize('alex', 'A reply.', {language: 'zh', languageReference: packClip}); await tick();
+  h.reply(0, {languageReference: 'fallback'});
+  assert.equal((await first).timing.voiceLanguageReference, 'fallback');
+  const second = h.client.synthesize('alex', 'Another.', {language: 'zh', languageReference: packClip}); await tick();
+  h.reply(1);   // an older worker answers without the field
+  assert.equal((await second).timing.voiceLanguageReference, 'fallback');
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('English replies and malformed language references are exactly what they were: nothing extra is sent', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await h.client.start();
+  const cases = [{}, {language: 'en', languageReference: packClip}, {language: 'zh', languageReference: {...packClip, sha256: 'nope'}},
+    {language: 'zh', languageReference: {reference: packClip.reference, sha256: packClip.sha256}}];
+  for (const [index, options] of cases.entries()) {
+    const done = h.client.synthesize('alex', 'A reply.', options);
+    await tick(); await tick();
+    // The profile is prepared first (a hidden render) on the first request only.
+    if (h.requests.at(-1).op === 'prepare') { h.reply(h.requests.length - 1); await tick(); }
+    const request = h.requests.at(-1);
+    assert.equal(request.op, 'synthesize', String(index));
+    assert.equal('languageReference' in request, false, String(index));
+    h.reply(h.requests.length - 1); await done;
+  }
+  const closed = h.client.close(); h.finish(); await closed;
+});

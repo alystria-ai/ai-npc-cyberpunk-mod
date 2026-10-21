@@ -637,6 +637,24 @@ test('Voxtral 3: a line in a language the cloud voice speaks is spoken by it (pl
   }
 });
 
+test('Voxtral: a line in another language tells the cloud voice its language (so it can clone from a voice language pack\'s V clip) and the log names that clip; English sends no language', async () => {
+  for (const language of ['zh', 'en']) {
+    const asked = [];
+    const {voice, calls} = engineFeature({engine: 'voxtral', language, cloudLanguages: ['zh'], cloudStream: async (key, text, options) => { asked.push(options); await options.onPcm(packet({profile: key})); return {frames: 4800}; }});
+    voice.cloud.languageSet = (key, spoken) => (spoken === 'zh' && key === 'v-male' ? 'multilingual/zh-cn/v-voice/v-male' : null);
+    const made = voice.start(typed({text: '走吧，我们出发。'}));
+    assert.ok(made, language); await made.finished;
+    assert.equal(asked.length, 1, language);
+    if (language === 'zh') {
+      assert.equal(asked[0].language, 'zh');
+      assert.ok(calls.logs.some(line => line.includes('V\'s line in zh is cloned from multilingual/zh-cn/v-voice/v-male')), calls.logs.join('|'));
+    } else {
+      assert.equal('language' in asked[0], false, 'an English line is exactly what it was');
+      assert.equal(calls.logs.some(line => line.includes('is cloned from')), false);
+    }
+  }
+});
+
 test('Voxtral: V\'s line is asked of the cloud voice at once; no Pocket worker is touched, and the companion\'s request does not stop it', async () => {
   const {voice, seen, host, calls} = engineFeature({engine: 'voxtral'});
   const clock = new TurnClock();

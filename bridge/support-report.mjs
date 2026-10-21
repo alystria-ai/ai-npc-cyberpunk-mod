@@ -508,6 +508,21 @@ export async function conversationSection({runtime, settings}) {
       ...(test ? {lastTest: {state: clip(test.state, 20), code: clip(test.code, 20), status: Number.isInteger(test.status) ? test.status : undefined}} : {})}} : {})};
 }
 
+/**
+ * The voice language packs as the service reports them (bridge/voice-language-packs.mjs report()): which packs it uses (language, number of voices, version)
+ * and which installed pack it ignores and why. Only those fields, at most 12 packs, short strings: no path, no clip, no text. null when the report was made
+ * without the service (it does not know).
+ */
+export function voiceLanguagePacksSection(value) {
+  if (!value || typeof value !== 'object') return null;
+  const list = Array.isArray(value.packs) ? value.packs : [], problems = Array.isArray(value.problems) ? value.problems : [];
+  return {
+    installed: list.slice(0, 12).map(pack => ({language: clip(pack?.language, 12), voices: Number.isFinite(pack?.voices) ? pack.voices : null, version: clip(pack?.version, 24) ?? null})),
+    problems: problems.slice(0, 12).map(row => ({language: clip(row?.language, 12), reason: clip(row?.reason, 240)})),
+    scanned: typeof value.scannedAt === 'string' ? clip(value.scannedAt, 40) : null,
+  };
+}
+
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
@@ -538,6 +553,7 @@ function companionProviders({settings, voice, routing, party}) {
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
+  const {voiceLanguagePacks: languagePackFacts, ...bridgeFacts} = bridge;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
   // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
@@ -607,7 +623,7 @@ export async function collectReport(options) {
     system: {graphics},
     request: {cetVersion: lua.cetVersion, language: lua.language, view: lua.view, developerMode: lua.developerMode,
       ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null, setup: lua.setup},
-    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
+    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridgeFacts, status},
     settings: settingsView,
     // Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md): on or off, and counts only.
     errorReports: await errorReportStatus({runtime, stateDirectory, now: now()}).catch(() => null),
@@ -617,6 +633,8 @@ export async function collectReport(options) {
     conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
     voiceClips,
+    // The voice language packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
+    voiceLanguagePacks: voiceLanguagePacksSection(languagePackFacts),
     recentErrors, logs: index,
   });
   summary.privacy.redactions = {...redact.stats};

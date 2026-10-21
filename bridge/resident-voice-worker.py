@@ -36,6 +36,10 @@ ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
 # shipped references: a descriptor naming this fixed second namespace resolves only inside that folder.
 PLAYER_PREFIX = 'runtime/player-voices'
 PLAYER_REFERENCE = re.compile(r'runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav')
+# A voice language pack's clip (docs/VOICE_LANGUAGE_PACKS.md) is a reference of the shipped namespace, in a folder of its own: a request may name one to clone from
+# in place of its profile's English reference (`languageReference`). Nothing else is accepted by that field.
+LANGUAGE_REFERENCE = re.compile(r'runtime/voice-references/multilingual/[a-z]{2}(?:-[a-z]{2})?/(?:picked|archetypes|v-voice)/[a-z0-9][a-z0-9._-]{0,79}\.wav')
+MAX_LANGUAGE_REFERENCES = 32
 PATH_OVERRIDES = {
     'modelDirectory': 'CYBERPUNK_CONVAI_OMNI_MODEL',
     'adapterDirectory': 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
@@ -346,6 +350,8 @@ def refresh_identity(registry):
     """The (file, words) -> (file hash, words hash) table the prompt-cache key reads (install_cache_identity)."""
     registry['identity'] = {(os.path.abspath(ref[0]), ref[1]): (registry['referenceHashes'][key], registry['transcriptHashes'][key])
                             for key, ref in registry['refs'].items()}
+    # The language pack clips a request named stay known to the prompt cache (ProfileSession.language_reference).
+    registry['identity'].update(registry.get('languageIdentity', {}))
 
 
 def apply_voice_change(registry, request):
@@ -430,6 +436,46 @@ class ProfileSession:
         self.prepared_snapshot = prepared_snapshot
         self.evict = evict
         self.prepared = OrderedDict()
+        # Voice language pack clips that requests named: (reference, sha256, transcript) -> (file, words, file size, file time), at most MAX_LANGUAGE_REFERENCES.
+        self.language_references = OrderedDict()
+
+    def language_reference(self, descriptor):
+        """The clip a request wants to clone from in place of the profile's English reference, as (file, words), or None for the English one.
+
+        The descriptor is checked like any reference (the same `validate_reference`: the file inside the references folder, its hash, its length of at most
+        20 s) and must name a voice language pack clip. A refused clip is not an error: the request is spoken from the English reference and the answer says
+        so. A clip that was checked is not read again until its file changes. Its prompt enters the prompt cache under its own file and words, so an English
+        and a Mandarin reference of one character never share a prepared state.
+        """
+        try:
+            if (not isinstance(descriptor, dict) or set(descriptor) != {'reference', 'sha256', 'transcript'}
+                    or not isinstance(descriptor['reference'], str) or not LANGUAGE_REFERENCE.fullmatch(descriptor['reference'])):
+                raise ValueError('Invalid language reference')
+            token = (descriptor['reference'], descriptor['sha256'], descriptor['transcript'])
+            known = self.language_references.get(token)
+            if known is not None:
+                status = os.stat(known[0])
+                if (status.st_size, status.st_mtime_ns) == known[2:]:
+                    self.language_references.move_to_end(token)
+                    return known[0], known[1]
+                self.language_references.pop(token)
+            path, transcript = validate_reference(self.registry['root'], descriptor, reference_root=self.registry.get('referenceRoot'))
+            status = os.stat(path)
+            self.language_references[token] = (path, transcript, status.st_size, status.st_mtime_ns)
+            fingerprints = (descriptor['sha256'], hashlib.sha256(transcript.encode('utf-8')).hexdigest())
+            identity = self.registry.setdefault('languageIdentity', {})
+            identity[(os.path.abspath(path), transcript)] = fingerprints
+            if 'identity' in self.registry:
+                self.registry['identity'][(os.path.abspath(path), transcript)] = fingerprints
+            while len(self.language_references) > MAX_LANGUAGE_REFERENCES:
+                _, (old_path, old_words, *_rest) = self.language_references.popitem(last=False)
+                identity.pop((os.path.abspath(old_path), old_words), None)
+                if 'identity' in self.registry:
+                    self.registry['identity'].pop((os.path.abspath(old_path), old_words), None)
+            return path, transcript
+        except (ReferenceUnavailable, ValueError, OSError) as error:
+            print(f'Language reference refused: {type(error).__name__}: {error}', file=sys.stderr, flush=True)
+            return None
 
     def apply_voices(self, request):
         """One voice change (apply_voice_change); the changed voices leave the prepared list and, when a reference was replaced or
@@ -546,13 +592,25 @@ class ProfileSession:
                     raise ValueError('Invalid local speech text/quality')
                 if language is not None and (not isinstance(language, str) or not re.fullmatch(r'[a-z]{2,3}', language)):
                     raise ValueError('Invalid local speech language')
-                self.validate_profile_reference(key)
-                values, elapsed = (self.render(key, text, steps, language) if language
-                                   else self.render(key, text, steps))
+                # A voice language pack's clip in place of the profile's English one (docs/VOICE_LANGUAGE_PACKS.md): 'used', or 'fallback' when the clip
+                # was refused and the English reference spoke.
+                reference = outcome = None
+                if request.get('languageReference') is not None:
+                    reference = self.language_reference(request['languageReference'])
+                    outcome = 'used' if reference is not None else 'fallback'
+                if reference is None:
+                    self.validate_profile_reference(key)
+                    values, elapsed = (self.render(key, text, steps, language) if language
+                                       else self.render(key, text, steps))
+                else:
+                    values, elapsed = self.render(key, text, steps, language, reference)
                 audio = self.encode(values)
-                self.remember(key)
+                # The profile's own prepared state is not the language clip's: it stays as it was.
+                if reference is None:
+                    self.remember(key)
                 self.send({'op': 'audio', 'id': request_id, 'profile': key, 'steps': steps,
                            'audio': audio, 'generationMs': elapsed, 'preparedProfiles': list(self.prepared),
+                           **({'languageReference': outcome} if outcome else {}),
                            **self.model_info, **self.memory_info()})
             else:
                 raise ValueError('Invalid local voice command')
@@ -741,8 +799,8 @@ def run_worker(registry):
                     'acceleration': graph.snapshot()['mode'] if graph else 'eager',
                     'cudaGraph': graph.snapshot() if graph else None}
 
-        def render(key, text, steps, language=None):
-            ref, transcript = registry['refs'][key]
+        def render(key, text, steps, language=None, reference=None):
+            ref, transcript = reference or registry['refs'][key]
             torch.manual_seed(1042)
             if graph:
                 graph.begin_request()

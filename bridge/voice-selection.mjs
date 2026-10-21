@@ -1,6 +1,6 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice} from './resident-voice.mjs';
-import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
+import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
@@ -90,6 +90,9 @@ export class VoiceSelection {
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
+    // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
+    // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
+    this.languagePacks=options.languagePacks||null;
     this.clock = options.clock || Date.now;
     this.cloudRetryAudioMs = {...CLOUD_RETRY_AUDIO_MS, ...options.cloudRetryAudioMs};
     this.packCheckedAt=0;this.refreshOmniPack();
@@ -921,7 +924,7 @@ export class VoiceSelection {
     });
     opening.catch(() => {});
     let cloud, failure;
-    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true, ahead: options.ahead === true}); }
+    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true, ahead: options.ahead === true, language: options.language}); }
     catch (error) { failure = error; }
     finally { options.signal?.removeEventListener('abort', relay); }
     throwIfCancelled(options.signal);
@@ -939,13 +942,21 @@ export class VoiceSelection {
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
     profile=this.voiceOf(profile);
     const steps=options.steps??this.omniSteps;
+    // The voice language pack's clip of this voice for the reply's language, when the pack has one (the worker checks it; a clip it refuses is spoken from
+    // the English reference). In memory but for the clip's hash, read once per file.
+    let languageReference;
+    if(options.language&&options.language!=='en'&&this.languagePacks&&!this.hasPlayerClip(profile)){
+      try{languageReference=(await this.languagePacks.omniDescriptor(options.language,profile))||undefined;}catch{languageReference=undefined;}
+    }
     await abortable(this.start(),options.signal);throwIfCancelled(options.signal);
     const client=this.client;
     if(!client||this.clientBackend!=='omni'||this.provider!=='omni'||!this.usesProfile(profile))
       throw Error('Voice selection changed before synthesis');
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
-    return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps});
+    return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps,...(languageReference?{languageReference}:{})});
   }
+  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips")? It is the player's choice and no pack replaces it.
+  hasPlayerClip(key){return isPlayerReference(this.registry?.profiles?.[key]?.reference);}
   async prepareProfile(profile, options = {}) {
     // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other
     // voice chosen (local or Voxtral) they are written ('text'), never given to a cloud voice.

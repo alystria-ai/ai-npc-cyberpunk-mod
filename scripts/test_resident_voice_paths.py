@@ -400,6 +400,107 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertEqual(frames[-1]['op'], 'error')
         self.assertEqual(registry['playerRoot'], self.player.resolve())
 
+    # ---- voice language packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip beside its profile's English reference ----
+
+    def pack_clip(self, name='johnny-silverhand', language='zh-cn', kind='picked', seconds=1, rate=24000):
+        folder = self.paths['referenceDirectory'] / 'multilingual' / language / kind
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f'{name}.wav'
+        with wave.open(str(path), 'wb') as output:
+            output.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))
+            output.writeframes(b'\x00\x01' * int(rate * seconds))
+        return path, {'reference': f'runtime/voice-references/multilingual/{language}/{kind}/{name}.wav',
+                      'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'transcript': '我有一个计划。'}
+
+    def language_session(self):
+        registry = self.registry()
+        renders, frames = [], []
+        session = worker.ProfileSession(registry, lambda key, text, steps, language=None, reference=None:
+                                        (renders.append((key, text, steps, language, reference)) or b'fixture', 1),
+                                        lambda _: 'fixture', frames.append, {}, lambda: {})
+        return registry, session, renders, frames
+
+    def test_a_pack_clip_resolves_inside_the_references_folder_like_any_shipped_reference(self):
+        path, descriptor = self.pack_clip()
+        registry = self.registry()
+        # The packaged layout keeps references outside the application directory; the pack's folder is a plain subfolder of it.
+        self.assertFalse(self.paths['referenceDirectory'].resolve().is_relative_to(self.app.resolve()))
+        file, words = worker.validate_reference(self.app, descriptor, reference_root=registry['referenceRoot'])
+        self.assertEqual(file, str(path.resolve()))
+        self.assertEqual(words, descriptor['transcript'])
+        # A clip of a pack that goes past the 20 s limit is refused like any other reference.
+        _, long_descriptor = self.pack_clip('long-one', seconds=21)
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.app, long_descriptor, reference_root=registry['referenceRoot'])
+
+    def test_a_request_with_a_pack_clip_renders_from_it_and_leaves_the_profile_as_it_was(self):
+        path, descriptor = self.pack_clip()
+        registry, session, renders, frames = self.language_session()
+        session.handle({'op': 'synthesize', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': descriptor})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        self.assertEqual(frames[-1]['languageReference'], 'used')
+        self.assertEqual(renders[-1][0], 'johnny-silverhand')
+        self.assertEqual(renders[-1][3], 'zh')
+        self.assertEqual(renders[-1][4], (str(path.resolve()), descriptor['transcript']))
+        self.assertEqual(list(session.prepared), [], 'the profile was not prepared by a reply in another language')
+        # The prompt cache knows the clip by its own file and words (never the English profile's), so the two never share a prepared state.
+        key = (str(Path(os.path.abspath(path.resolve()))), descriptor['transcript'])
+        self.assertIn(key, registry['languageIdentity'])
+        self.assertNotEqual(key, (os.path.abspath(registry['refs']['johnny-silverhand'][0]), registry['refs']['johnny-silverhand'][1]))
+        # A voice change rebuilds the identities of the profiles and keeps the pack clip's.
+        worker.refresh_identity(registry)
+        self.assertIn(key, registry['identity'])
+        # The request without a clip is the English reference, exactly as before.
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertNotIn('languageReference', frames[-1])
+        self.assertEqual(renders[-1][4], None)
+        self.assertEqual(list(session.prepared), ['johnny-silverhand'])
+
+    def test_a_refused_pack_clip_is_spoken_from_the_english_reference_and_the_answer_says_so(self):
+        path, descriptor = self.pack_clip()
+        for name, bad in (('a wrong hash', {**descriptor, 'sha256': '0' * 64}),
+                          ('another namespace', {**descriptor, 'reference': 'runtime/voice-references/johnny.wav'}),
+                          ('a climb out of the pack folder', {**descriptor, 'reference': 'runtime/voice-references/multilingual/zh-cn/picked/../../../johnny.wav'}),
+                          ('a player clip path', {**descriptor, 'reference': 'runtime/player-voices/johnny-silverhand.wav'}),
+                          ('an extra field', {**descriptor, 'extra': 1}),
+                          ('a missing file', {**descriptor, 'reference': 'runtime/voice-references/multilingual/zh-cn/picked/nobody.wav'}),
+                          ('not a descriptor', 'multilingual')):
+            registry, session, renders, frames = self.language_session()
+            session.handle({'op': 'synthesize', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': bad})
+            self.assertEqual(frames[-1]['op'], 'audio', name)
+            self.assertEqual(frames[-1]['languageReference'], 'fallback', name)
+            self.assertEqual(renders[-1][4], None, name)
+            self.assertEqual(renders[-1][0], 'johnny-silverhand', name)
+
+    def test_a_changed_pack_clip_is_checked_again_and_a_linked_one_is_refused(self):
+        path, descriptor = self.pack_clip()
+        registry, session, renders, frames = self.language_session()
+        session.handle({'op': 'synthesize', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': descriptor})
+        self.assertEqual(frames[-1]['languageReference'], 'used')
+        path.write_bytes(path.read_bytes()[:-2] + b'\x11\x22')
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': descriptor})
+        self.assertEqual(frames[-1]['languageReference'], 'fallback', 'the file no longer matches its hash')
+        outside = self.root / 'elsewhere.wav'
+        shutil.copy(self.paths['referenceDirectory'] / 'johnny.wav', outside)
+        _, linked = self.pack_clip('linked-one')
+        linked_path = self.paths['referenceDirectory'] / 'multilingual/zh-cn/picked/linked-one.wav'
+        linked_path.unlink()
+        try:
+            os.symlink(outside, linked_path)
+        except OSError:
+            self.skipTest('symbolic links are not available here')
+        session.handle({'op': 'synthesize', 'id': 3, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': linked})
+        self.assertEqual(frames[-1]['languageReference'], 'fallback')
+
+    def test_at_most_32_pack_clips_are_remembered_by_the_session(self):
+        registry, session, renders, frames = self.language_session()
+        for number in range(worker.MAX_LANGUAGE_REFERENCES + 3):
+            _, descriptor = self.pack_clip(f'voice-{number}', seconds=0.1)
+            session.handle({'op': 'synthesize', 'id': number + 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16, 'language': 'zh', 'languageReference': descriptor})
+            self.assertEqual(frames[-1]['languageReference'], 'used')
+        self.assertEqual(len(session.language_references), worker.MAX_LANGUAGE_REFERENCES)
+        self.assertEqual(len(registry['languageIdentity']), worker.MAX_LANGUAGE_REFERENCES)
+
     def test_shared_admission_is_in_data_and_excludes_other_app_versions(self):
         cache = self.paths['cacheDirectory']
         other_app = self.root / 'other application version'
