@@ -511,7 +511,7 @@ end
 local function stats(api)
     local row=api.vehiclesStats
     if type(row)~='table' then
-        row={native=0,lua=0,fallback=0,empty=0,emptyRun_inspect=0,emptyRun_mounting=0,verified=0,compared=0,mismatches=0}
+        row={native=0,lua=0,fallback=0,empty=0,emptyRun_inspect=0,emptyRun_mounting=0,verified=0,verifiedMounting=0,compared=0,mismatches=0}
         api.vehiclesStats=row
     end
     return row
@@ -677,14 +677,15 @@ function M.mounting(entry)
     if t[2]=='-' then
         local always=api.vehiclesVerify==true
         if not always and type(api.verifying)=='function' then always=api.verifying(NATIVE)==true end
-        if always or row.verified<VERIFY then
+        if always or (row.verifiedMounting or 0)<VERIFY then
             local lua=luaMounting(entry)
             row.compared=row.compared+1
             if lua~=nil then
                 mismatch(api,row,'mounting','plugin says not mounted, Lua says '..tostring(lua.vehicle)..' '..tostring(lua.seat))
                 return lua
             end
-            row.verified=row.verified+1
+            row.verifiedMounting=(row.verifiedMounting or 0)+1
+            if row.verifiedMounting==VERIFY then note('Native core: vehicles mounting matched the Lua '..VERIFY..' times, now native') end
             return nil
         end
         row.native=row.native+1

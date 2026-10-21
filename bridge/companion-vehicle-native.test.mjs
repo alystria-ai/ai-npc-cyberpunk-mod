@@ -254,7 +254,7 @@ function reset(wire, options)
   convaiNative.verifying = options.verify == 'file' and function(name) return name == 'vehicles' end or nil
   convaiNative.vehiclesStats = nil
   if options.trusted ~= false then
-    convaiNative.vehiclesStats = {native = 0, lua = 0, fallback = 0, empty = 0, emptyRun_inspect = 0, emptyRun_mounting = 0, verified = 99, compared = 0, mismatches = 0}
+    convaiNative.vehiclesStats = {native = 0, lua = 0, fallback = 0, empty = 0, emptyRun_inspect = 0, emptyRun_mounting = 0, verified = 99, verifiedMounting = 99, compared = 0, mismatches = 0}
   end
 end
 function total(counts) local sum = 0 for _, value in pairs(counts) do sum = sum + value end return sum end
@@ -293,6 +293,20 @@ function shimMounting(c, wire, options)
   local out = mod.mounting({npc = npc})
   return {mounted = out ~= nil, vehicle = out and digits(out.vehicle) or nil, seat = out and out.seat or nil,
     facility = facility, nativeCalls = #nativeCalls, fails = fails}
+end
+
+-- Ten not-mounted answers (the trial of mounting is 8), then one inspect on the same untrusted session.
+function shimMountingThenInspect(c, wire, options)
+  reset(wire, options)
+  mountReply = 'M -'
+  local mod = loadModule()
+  local npc = {IsAttached = function() return true end, GetEntityID = function() return {hash = '5ULL'} end}
+  FACILITY.GetMountingInfoSingleWithObjects = function() return nil end
+  for _ = 1, 10 do mod.mounting({npc = npc}) end
+  local vehicle = {entity = fakeCar(c), owned = c.owned == true, entityID = {hash = CARID}}
+  CALLS = {}
+  summarize(mod.inspect(vehicle), vehicle)
+  return {game = total(CALLS) - (CALLS.GetEntityID or 0), stats = convaiNative.vehiclesStats, fails = fails}
 end
 `;
 
@@ -473,6 +487,17 @@ test('mounting: not-mounted answers are compared with the original until the plu
   assert.equal(got.mounted, false);
   assert.equal(got.facility, 1, 'the original ran as the check');
   assert.deepEqual(got.fails, []);
+});
+
+test('mounting answers never use up the trial of inspect: its first 8 answers are still compared with the original', () => {
+  // Live 2026-10-16 to 21: vehicles.mounting runs in every companion update, so a shared counter reached 8 long before the first
+  // inspect, which would then have been trusted without one comparison.
+  const item = caseNamed(inspect, 'a full owned car at speed');
+  const got = shimRun(`return shimMountingThenInspect(${luaTable(item.input)}, ${json(wireOf(item))}, {trusted = false})`);
+  assert.deepEqual(got.fails, []);
+  assert.ok(got.game > 10, `the first inspect ran the original too (${got.game} game calls)`);
+  assert.equal(got.stats.verifiedMounting, 8);
+  assert.equal(got.stats.verified, 1);
 });
 
 test('mounting: empty, unreadable and failing answers run the original', () => {
