@@ -27,6 +27,11 @@
 // `LlamaProcess` (also used by the CPU embedder, bridge/local-embed.mjs) owns one child: the free port, the key
 // file, the health check, the output tail and the kill. The key reaches the child through a private temporary file
 // (`--api-key-file`), never the command line, and is never logged, in an error message, status() or an event.
+// One exception, found on a machine whose user name is not ASCII: on Windows llama-server opens that file with a narrow call that
+// cannot read a UTF-8 path, so a temporary folder under C:\Users\<a name with an accent, a Cyrillic or a Chinese letter> made every start
+// exit at once ("failed to open file"). Such a path takes the key in the child's environment instead (`LLAMA_API_KEY`, which llama-server
+// reads the same way; the environment is not the command line and is not logged either). The model path is not affected: it is opened
+// through a wide-character call.
 import {EventEmitter} from 'node:events';
 import {spawn, execFile} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
@@ -172,6 +177,19 @@ export function describeProps(body) {
   const token = value => (typeof value === 'string' && value ? oneLine(value, 40) : null);
   return {template: describeTemplate(body.chat_template), bos: token(body.bos_token), eos: token(body.eos_token),
     build: typeof body.build_info === 'string' ? oneLine(body.build_info, 40) : null, ftype: typeof body.model_ftype === 'string' ? oneLine(body.model_ftype, 20) : null};
+}
+
+/** Is the path made only of printable ASCII? llama-server (Windows) cannot open an `--api-key-file` whose path is anything else. */
+export const isAsciiPath = path => /^[\x20-\x7e]*$/.test(String(path ?? ''));
+
+/** The arguments without `--api-key-file <path>` (the key then goes in the environment). */
+export function withoutKeyFile(args) {
+  const out = [];
+  for (let index = 0; index < args.length; index++) {
+    if (args[index] === '--api-key-file') { index++; continue; }
+    out.push(args[index]);
+  }
+  return out;
 }
 
 // The llama-server command line for the chat model. Pure; the key goes in a file, never on the command line.
@@ -332,11 +350,11 @@ export class LlamaProcess extends EventEmitter {
   #exitPromise; #resolveExit; #settleWait = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
-      tmpDir = tmpdir(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
+      tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
       healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server'} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
-    Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, setTimer, clearTimer, log,
+    Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, platform, setTimer, clearTimer, log,
       lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
@@ -380,11 +398,18 @@ export class LlamaProcess extends EventEmitter {
       this.#key = randomBytes(32).toString('hex');
       port = await this.findPort();
       if (this.#expected) throw startError('stopped', 'start cancelled');
-      this.#keyDir = mkdtempSync(join(this.tmpDir, 'convai-llama-'));
-      const keyFile = join(this.#keyDir, 'api-key');
-      writeFileSync(keyFile, this.#key + '\n', {mode: 0o600, flag: 'wx'});
-      const args = [...this.argsPrefix, ...this.buildArgs({port, keyFile})];
-      child = this.spawnImpl(this.command, args, {stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: {...process.env, ...this.env}});
+      let args, keyEnvironment = {};
+      if (this.platform !== 'win32' || isAsciiPath(this.tmpDir)) {
+        this.#keyDir = mkdtempSync(join(this.tmpDir, 'convai-llama-'));
+        const keyFile = join(this.#keyDir, 'api-key');
+        writeFileSync(keyFile, this.#key + '\n', {mode: 0o600, flag: 'wx'});
+        args = [...this.argsPrefix, ...this.buildArgs({port, keyFile})];
+      } else {
+        // A temporary folder llama-server could not read the key file from (see the top of this file): no file, the key in the environment.
+        args = [...this.argsPrefix, ...withoutKeyFile(this.buildArgs({port, keyFile: 'unused'}))];
+        keyEnvironment = {LLAMA_API_KEY: this.#key};
+      }
+      child = this.spawnImpl(this.command, args, {stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: {...process.env, ...this.env, ...keyEnvironment}});
     } catch (error) {
       this.#removeKey();
       throw error?.code === 'stopped' ? error : startError('spawn-failed', 'could not be started (' + (error?.code || error?.message || 'error') + ')');

@@ -59,9 +59,11 @@ if (process.env.FAKE_LLAMA_EXIT_FOR_MODEL && String(options['-m'] ?? '').include
   process.exit(1);
 }
 
+// Like llama-server: the key is in the file named by --api-key-file, or else in LLAMA_API_KEY.
 const keyFile = options['--api-key-file'];
-if (!keyFile || !existsSync(keyFile)) { process.stderr.write('fake-llama: missing --api-key-file\n'); process.exit(2); }
-const key = readFileSync(keyFile, 'utf8').split(/\r?\n/)[0].trim();
+if (!keyFile && !process.env.LLAMA_API_KEY) { process.stderr.write('fake-llama: missing --api-key-file\n'); process.exit(2); }
+if (keyFile && !existsSync(keyFile)) { process.stderr.write('fake-llama: missing --api-key-file\n'); process.exit(2); }
+const key = keyFile ? readFileSync(keyFile, 'utf8').split(/\r?\n/)[0].trim() : process.env.LLAMA_API_KEY;
 if (process.env.FAKE_LLAMA_PRINT_KEY) process.stderr.write('debug key=' + key + '\n');
 const port = Number(options['--port']);
 const host = options['--host'] ?? '127.0.0.1';
