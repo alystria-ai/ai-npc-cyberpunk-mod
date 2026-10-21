@@ -397,7 +397,7 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
 runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
-`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782 (MIT; only `llama-server.exe` and its
+`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782 (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
 Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11782 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the

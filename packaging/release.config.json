@@ -93,10 +93,10 @@
       "sha256": "4defe0cf1ad6fb9d5e07eff26041c24fd46e14ef46a8971243a24b9b358a0525",
       "local": "dl-llama-vulkan/vulkan.zip",
       "license": "MIT",
-      "keep": ["llama-server.exe", "*.dll", "LICENSE*"],
+      "keep": ["llama-server.exe", "llama-fit-params.exe", "*.dll", "LICENSE*"],
       "drop": ["llama-batched-bench-impl.dll", "llama-bench-impl.dll", "llama-cli-impl.dll", "llama-completion-impl.dll",
-        "llama-fit-params-impl.dll", "llama-perplexity-impl.dll", "llama-quantize-impl.dll", "ggml-rpc.dll"],
-      "require": ["llama-server.exe", "llama-server-impl.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-vulkan.dll", "ggml-cpu-x64.dll"]
+        "llama-perplexity-impl.dll", "llama-quantize-impl.dll", "ggml-rpc.dll"],
+      "require": ["llama-server.exe", "llama-fit-params.exe", "llama-fit-params-impl.dll", "llama-server-impl.dll", "llama.dll", "ggml.dll", "ggml-base.dll", "ggml-vulkan.dll", "ggml-cpu-x64.dll"]
     },
     "embed": {
       "name": "granite-embedding-107m-multilingual Q8_0",

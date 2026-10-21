@@ -152,7 +152,7 @@ The list lives in `native.off` in `packaging/release.config.json`; change it the
 ### Local AI packs
 
 Two optional downloads (`docs/LOCAL_AI.md`): `localai-standard` (Gemma 4 E4B) and `localai-lite` (Bonsai 2 4B). Each holds the
-`llama-server` Vulkan build b11782 (only the server and its DLLs), the granite embedding model, one chat model, a manifest fragment
+`llama-server` Vulkan build b11782 (the server, `llama-fit-params.exe` for the free-memory fit, and their DLLs), the granite embedding model, one chat model, a manifest fragment
 (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`), the licence texts and the notices, under
 `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
 extracting both only overwrites identical bytes. The chat model ships whole (no parts): `bridge/local-ai-pack.mjs` finds the model file directly, and
