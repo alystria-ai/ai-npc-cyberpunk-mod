@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {MistralHost, attachMistral} from './mistral-host.mjs';
 import {TextProviderHost, attachTextProvider, localRoute, mistralRoute, isLocalUnavailable, CLOUD_CHAT_LIMITS, HOLDING_LINES} from './text-provider-host.mjs';
 import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
+import {MemoryStore} from './memory-store.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, buildMessages, systemHead, parseFacts, factMessages, joinBlocks, FACT_SCHEMA, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
 import {errorCodeFor, failureKind, MistralError, DEFAULT_MODELS} from './mistral-client.mjs';
@@ -433,6 +434,50 @@ test('the shared Mistral scheduler paces every Mistral request: replies as text 
     assert(noted.length >= seen.length, 'the headers of every answer reach the scheduler');
     host.close();
   } finally { await server.close(); }
+});
+
+// ---- Fact extraction follows the chat route: never on Convai (its own long-term memory), unchanged on Mistral
+
+async function extractionHarness(preference, answer) {
+  const logs = [];
+  const server = await fakeServer(answer);
+  const embedder = {id: 'fake', dim: 4, available: () => true, ready: () => true, async embed(texts) { return texts.map(() => new Float32Array([1, 0, 0, 0])); }};
+  const memory = await MemoryStore.open({embedder, gate: () => true, log: line => logs.push(line)});
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}`, writeText: async () => {}});
+  await provider.load(); provider.setPreference(preference); provider.apply();
+  const route = mistralRoute({provider, endpoint: server.endpoint, gapMs: 0});
+  const host = new TextProviderHost({provider, memory, personas: book, routes: {mistral: route}, log: line => logs.push(line)});
+  const factRequests = () => server.requests.filter(request => request.body.response_format);
+  const exchanges = count => { for (let i = 0; i < count; i++) memory.record({profileKey: 'judy-alvarez', v: `question ${i}`, r: `answer ${i}`}); };
+  return {server, memory, provider, host, logs, factRequests, exchanges, close: async () => { host.close(); await server.close(); }};
+}
+const FACTS = () => JSON.stringify({facts: [{text: 'V likes cheap whiskey', kind: 'preference', importance: 0.6}]});
+
+test('Convai route: fact extraction is never scheduled (no request, no retry, no log line), and runs once a text provider answers', async () => {
+  const {memory, provider, logs, factRequests, exchanges, close} = await extractionHarness('convai', FACTS);
+  try {
+    assert.equal(provider.active, false);
+    exchanges(7);                                   // exchanges left over from a chat on another provider
+    await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(factRequests().length, 0);
+    assert.deepEqual(logs, []);
+    // The player switches to Mistral: the host re-plans on the provider change and the waiting exchanges are extracted.
+    provider.setPreference('mistral'); provider.apply();
+    await eventually(() => factRequests().length === 1, 'the extraction to run on Mistral');
+    await eventually(() => memory.listRecords('judy-alvarez').length === 1, 'the fact to be kept');
+    assert.deepEqual(logs.filter(line => /failed|retrying/.test(line)), []);
+  } finally { await close(); }
+});
+
+test('Mistral route: fact extraction is unchanged (it runs after six exchanges and keeps the fact)', async () => {
+  const {memory, logs, factRequests, exchanges, close} = await extractionHarness('mistral', FACTS);
+  try {
+    exchanges(6);
+    await eventually(() => factRequests().length === 1, 'the extraction request');
+    assert.equal(factRequests()[0].body.response_format.type, 'json_object');
+    await eventually(() => memory.listRecords('judy-alvarez').length === 1, 'the fact to be kept');
+    assert.deepEqual(logs, []);
+  } finally { await close(); }
 });
 
 // ---- Streaming the first sentence to the voice (docs/LATENCY_2026-10-12.md) ----------------------------------------------------
