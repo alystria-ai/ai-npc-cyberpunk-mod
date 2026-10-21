@@ -110,6 +110,7 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB), 18+: uncensored local models. Each includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
 [*][b]Microphone, European languages[/b] (about 0.67 GB, new in 0.2.3): speak Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian or Portuguese with Local AI or a Custom endpoint. Recognised on your processor, loaded only while you use it.
 [*][b]Microphone, Asian languages[/b] (about 0.24 GB, new in 0.2.3): the same for Mandarin Chinese, Japanese and Korean.
+[*][b]Voice language packs[/b] (about 150-170 MB each, new): when a character replies in Chinese (Mandarin), Japanese, Korean, French, German, Italian, Spanish (Spain), Polish, Portuguese (Brazil) or Russian, their voice is cloned from the game's own dub in that language instead of the English actor. OmniVoice and Mistral voices. Get them from the Optional files on this page or the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual]multilingual folder on Hugging Face[/url] (the same files); only the languages you play in.
 [/list]With Mistral you need neither Microphone pack: Mistral understands other languages by itself. English never needs one.
 
 [size=4][b]Use your own AI model or model server[/b][/size]
