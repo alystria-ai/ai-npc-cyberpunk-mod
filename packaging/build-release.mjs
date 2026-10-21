@@ -511,6 +511,17 @@ async function runtimePackage(source, config, models, key) {
   notices.push('AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in the plugin folder.');
   pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
+  // The list of the Runtime's own code files and their hashes (bridge/runtime-integrity.mjs): the error reports say whether the
+  // installed files still match it, so a Runtime that someone else edited is seen. Made last, from exactly the bytes this package ships; a Runtime update zip
+  // carries the new list (it differs from the old one at every release), so the list always belongs to the newest Runtime applied.
+  const integrity = await import(pathToFileURL(resolve(source.root, 'bridge/runtime-integrity.mjs')).href);
+  const codeRows = [];
+  for (const [name, entry] of pkg.entries) {
+    const rel = name.startsWith(`${app}/`) ? name.slice(app.length + 1) : null;
+    if (rel && integrity.isCodePath(rel)) codeRows.push({path: rel, hash: integrity.hashBytes(entry.buffer ?? await readFile(entry.source))});
+  }
+  if (!codeRows.length) throw Error('The Runtime has no code files to list (bridge/runtime-integrity.mjs).');
+  pkg.text(`${app}/${integrity.CODE_LIST}`, integrity.codeListText({version, rows: codeRows}));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player',

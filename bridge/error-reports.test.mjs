@@ -14,6 +14,7 @@ import {ErrorEvents, errorReportStatus, errorSignature, eventFromError, frameKey
 import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
+import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
 import {collectReport} from './support-report.mjs';
 import {checkSignature} from '../auth-backend/api/_lib/crypto.js';
 import {SIGNING_SECRET} from '../auth-backend/testkit/harness.mjs';
@@ -584,5 +585,61 @@ test('a released Runtime sends to the address in app/defaults/error-reports.json
       installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
     assert.ok(!body.includes(shipped), 'the shipped secret never leaves');
     assert.ok((await dataFolderSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'the shipped secret is also returned for scrubbing');
+  } finally { await f.cleanup(); }
+});
+
+// ------------------------------------------------------------------ a crash's facts and the Runtime's files
+
+test('a bridge crash report carries the exit code in words, the stage and Node\'s report summary, and every text goes through the redactor', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock);
+  try {
+    const crash = {exit: {code: 4294967295, hex: '0xFFFFFFFF', meaning: 'usually TerminateProcess by another program'},
+      stage: {name: 'turn.llmSent', agoS: 3, previous: ['microphone.finish'], closed: false}, memory: {rssMiB: 380, heapUsedMiB: 90, heapTotalMiB: 140, heapLimitMiB: 4144, agoS: 120},
+      uptimeS: 600, nodeReport: {file: 'report.1.json', event: 'Exception', error: ['Error: cannot open C:', 'Users', PLANTED.windowsUser, 'game', 'x.json'].join(String.fromCharCode(92)), frames: ['turn.mjs:41 run'], heapUsedMiB: 96, rssMiB: 412}};
+    const record = await reporter.bridgeExited('exit code 4294967295', crash);
+    assert.equal(record.kind, 'bridge-crash'); assert.equal(record.crash.exit.hex, '0xFFFFFFFF');
+    const {payload, body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], graphics: () => [], secrets: [], now: () => START});
+    assert.equal(payload.report.crash.exit.meaning, 'usually TerminateProcess by another program');
+    assert.equal(payload.report.crash.stage.name, 'turn.llmSent');
+    assert.equal(payload.report.crash.nodeReport.frames[0], 'turn.mjs:41 run');
+    assert.equal(payload.report.crash.memory.heapLimitMiB, 4144);
+    assert.ok(!body.includes(PLANTED.windowsUser), 'the account name in the Node error text is removed');
+    assert.equal(payload.frame, 'exit code 4294967295', 'the signature\'s inputs are as before');
+    // A record that is not a crash has no such section.
+    const other = await buildErrorPayload({record: {...record, kind: 'turn-failed', signature: 'bbbbbbbbbbbbbbbb'}, game: f.game, modRoot: f.modRoot, runtime: f.runtime,
+      stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [], graphics: () => [], secrets: [], now: () => START});
+    assert.equal(other.payload.report.crash, undefined);
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('every report says whether the Runtime\'s code files match the release: counts and up to five names, no contents', async () => {
+  const f = await folders();
+  try {
+    const shipped = {'bridge/a.mjs': 'export const a = 1;\n', 'launcher/start-service.mjs': 'start();\n'};
+    await mkdir(join(f.project, 'bridge'), {recursive: true}); await mkdir(join(f.project, 'launcher'), {recursive: true}); await mkdir(join(f.project, 'defaults'), {recursive: true});
+    for (const [path, text] of Object.entries(shipped)) await writeFile(join(f.project, path), text);
+    await writeFile(join(f.project, CODE_LIST), codeListText({version: '0.2.8', rows: Object.entries(shipped).map(([path, text]) => ({path, hash: hashBytes(Buffer.from(text))}))}));
+    resetRuntimeIntegrityCache();
+    const record = {signature: 'cccccccccccccccc', kind: 'service-failed', count: 1, firstAt: START, lastAt: START, message: 'x', frame: '', stack: []};
+    const build = () => buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], secrets: [], now: () => START});
+    assert.equal((await build()).payload.report.runtimeFiles.state, 'ok');
+    await writeFile(join(f.project, 'launcher/start-service.mjs'), 'start(); callHomeToSomewhereElse();\n');
+    await writeFile(join(f.project, 'bridge/fesir-ai.mjs'), 'export const services = "Cloud.ru + GigaAM";\n');
+    resetRuntimeIntegrityCache();
+    const {payload, body} = await build();
+    assert.deepEqual(payload.report.runtimeFiles, {state: 'modified', checked: 3, changed: 1, extra: 1, missing: 0, listVersion: '0.2.8',
+      names: ['changed launcher/start-service.mjs', 'extra bridge/fesir-ai.mjs']});
+    assert.ok(!body.includes('callHomeToSomewhereElse') && !body.includes('Cloud.ru'), 'names only, never contents');
+    // No list (a Runtime before 0.2.8) and a check that throws are both harmless.
+    await rm(join(f.project, CODE_LIST));
+    assert.deepEqual((await build()).payload.report.runtimeFiles, {state: 'no-list'});
+    const broken = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL,
+      environment: {}, names: [], graphics: () => [], secrets: [], now: () => START, integrity: () => { throw new Error('nope'); }});
+    assert.deepEqual(broken.payload.report.runtimeFiles, {state: 'unavailable'});
   } finally { await f.cleanup(); }
 });

@@ -10,6 +10,7 @@
 // mark made with no clock in scope costs nothing but a lookup. Nothing runs per frame: a mark is a Map write, and the one timer a
 // turn owns (the stall watcher) fires every 25 ms for a few seconds and is off in between.
 import {AsyncLocalStorage} from 'node:async_hooks';
+import {markBridgeStage} from './stage-marker.mjs';
 
 const storage = new AsyncLocalStorage();
 const nowMs = () => {
@@ -77,6 +78,8 @@ export class TurnClock {
     if (this.marks.has(name)) return this.marks.get(name);
     const value = Number.isFinite(at) ? at : this.now();
     this.marks.set(name, value);
+    // The bridge's last-stage note for the supervisor (bridge/stage-marker.mjs): a name compare, and a throttled small write only when the stage changed.
+    if (name !== 'inputWritten') markBridgeStage(`turn.${name}`);
     this.notify(name, value);
     return value;
   }

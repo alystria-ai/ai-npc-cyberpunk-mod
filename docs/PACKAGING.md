@@ -355,6 +355,7 @@ not matter how either full zip was made); the new `app/release.json`; and `app/d
 **Removing what a version no longer ships.** Extracting adds and replaces but never deletes, so a file the new version dropped (a renamed voice clip, a retired
 model) would stay in the player's folder. The player never deletes anything: the service does, at its next start, from the list.
 
+- **The code list** (added 2026-10-22) is `app/defaults/runtime-code-files.json`, the hashes of the Runtime's own code files (`bridge/`, `launcher/`, `assets/`; docs/ERROR_REPORTS.md, "Runtime files that are not ours"). `build-release.mjs` writes it last; it is not part of the removal logic and changes at every release, so every update zip carries it.
 - **The list** is `app/defaults/runtime-removals.json`: `{"version": "0.2.3", "removes": ["red4ext/plugins/AiNpcCyberpunkMod/voices/old/clip.wav", ...]}`. Every Runtime carries
   one, the full one too (`build-release.mjs` writes it from `packaging/runtime-removals.json`, the paths declared there, empty at first, and refuses a declared path that the
   same Runtime ships or that the start step may not delete), so a full install over an old one cleans up what is declared. The update zip's list is the

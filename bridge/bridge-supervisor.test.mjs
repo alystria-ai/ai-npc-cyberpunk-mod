@@ -96,7 +96,10 @@ test('starts one hidden bridge with the configured paths and stops it gracefully
   assert.equal(ready.code, 'bridge-ready'); assert.equal(ready.adopted, false); assert.equal(ready.restarts, 0);
   assert.equal(run.spawned.length, 1);
   const [{command, args, spawnOptions}] = run.spawned;
-  assert.equal(command, process.execPath); assert.deepEqual(args, [join(f.project, 'bridge/convai-bridge.mjs')]);
+  assert.equal(command, process.execPath); assert.deepEqual(args.slice(-1), [join(f.project, 'bridge/convai-bridge.mjs')]);
+  // Node writes its diagnostic report on a fatal error or an uncaught exception, into the data folder (bridge/bridge-diagnostics.mjs).
+  assert.ok(args.includes('--report-on-fatalerror') && args.includes('--report-uncaught-exception') && args.includes('--report-compact'));
+  assert.ok(args.includes(`--report-directory=${join(f.state, 'node-reports')}`));
   assert.equal(spawnOptions.windowsHide, true); assert.equal(spawnOptions.cwd, f.project);
   const [pid] = await bridgePids(f.state);
   assert.equal(ready.bridgePid, pid);
@@ -460,4 +463,28 @@ test('arguments resolve the development defaults and reject an unusable game dir
   assert.throws(() => parseSupervisorArguments(['--game-root', 'relative'], {defaultProject: 'C:\\Project', env: {}}), /--game-root/);
   assert.throws(() => parseSupervisorArguments(['--game-root', 'C:\\Game', '--game-pid', 'x'], {defaultProject: 'C:\\Project', env: {}}), /process ID/);
   assert.throws(() => parseSupervisorArguments(['--game-root', 'C:\\Game', '--lifeline', 'pipe'], {defaultProject: 'C:\\Project', env: {}}), /stdin/);
+});
+
+test('an unexpected exit is logged with the exit code in words, the stage the bridge was in and Node\'s report, and the error report gets the same facts', async t => {
+  const f = await fixture(t);
+  const now = Date.now(), pid = 4242;
+  await mkdir(join(f.state, 'node-reports'), {recursive: true});
+  await writeFile(join(f.state, 'node-reports', 'report.20261022.1.json'), JSON.stringify({header: {event: 'Fatal error', trigger: 'FatalError', nodejsVersion: 'v24.21.0'},
+    javascriptStack: {message: 'No stack.', stack: ['Unavailable.']}, javascriptHeap: {usedMemory: 3900 * 1048576, totalMemory: 4000 * 1048576, memoryLimit: 4144 * 1048576},
+    nativeStack: [{symbol: 'node::TriggerNodeReport+1'}, {symbol: 'v8::internal::V8::FatalProcessOutOfMemory+10'}], resourceUsage: {rss: 4300 * 1048576}}));
+  await writeFile(join(f.state, 'bridge-stage.json'), JSON.stringify({version: 1, pid, startedAt: now - 60_000, updatedAt: now - 1000,
+    stage: {name: 'voice.worker-start', at: now - 1500}, previous: [{name: 'turn.llmSent', at: now - 4000}], memory: {rssMiB: 3000, heapUsedMiB: 2800, heapTotalMiB: 3000, heapLimitMiB: 4144, at: now - 90_000}}));
+  const seen = [];
+  const supervisor = new BridgeSupervisor({project: f.project, stateDirectory: f.state, keyFile: join(f.state, 'convai-key.txt'), gameRoot: f.game, lifeline: null, timings,
+    browserAvailable: () => true});
+  supervisor.reporter = {bridgeExited: async (description, crash) => { seen.push({description, crash}); }};
+  supervisor.launchedAt = now - 60_000;
+  await supervisor.onBridgeExit(pid, {code: 4294967295});
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  assert.match(log, /exited unexpectedly \(exit code 4294967295; 0xFFFFFFFF, exit code -1: usually TerminateProcess/);
+  assert.match(log, /Last stage of the bridge: voice\.worker-start, \d+ s before the end; before it: turn\.llmSent; .*did not announce an exit/);
+  assert.match(log, /Node report report\.20261022\.1\.json: Fatal error, .*native v8::internal::V8::FatalProcessOutOfMemory, heap 3900 of 4000 MiB \(limit 4144 MiB\), rss 4300 MiB/);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].description, 'exit code 4294967295', 'the description (and so the report signature) is what it was before');
+  assert.equal(seen[0].crash.exit.hex, '0xFFFFFFFF'); assert.equal(seen[0].crash.stage.name, 'voice.worker-start'); assert.equal(seen[0].crash.nodeReport.event, 'Fatal error');
 });

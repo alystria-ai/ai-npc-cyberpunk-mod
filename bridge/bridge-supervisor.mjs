@@ -16,6 +16,7 @@ import {randomUUID} from 'node:crypto';
 import {dirname, isAbsolute, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
+import {REPORT_FOLDER, collectCrashInfo, crashLogLines, exitCodeWords, prepareReportFolder, reportArguments} from './bridge-diagnostics.mjs';
 import {capLogFile} from './log-cap.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
@@ -356,7 +357,11 @@ export class BridgeSupervisor {
       out = openSync(this.paths.stdout, 'a'); err = openSync(this.paths.stderr, 'a');
       this.readyScan = {offset: fstatSync(out).size, tail: ''};
       writeSync(err, `--- bridge started by the conversation service supervisor at ${new Date(this.now()).toISOString()} ---\n`);
-      child = this.spawn(this.nodeExecutable, [this.entry], {cwd: this.project, env: this.bridgeEnvironment(),
+      // Node writes a diagnostic report into <data>/node-reports when the bridge hits a fatal error or an uncaught exception (the supervisor
+      // reads the newest one if the bridge ends unexpectedly, bridge/bridge-diagnostics.mjs). Costs nothing until one of those happens.
+      const reports = resolve(this.stateDirectory, REPORT_FOLDER);
+      prepareReportFolder(reports, {now: this.now()});
+      child = this.spawn(this.nodeExecutable, [...reportArguments(reports, {nodeExecutable: this.nodeExecutable}), this.entry], {cwd: this.project, env: this.bridgeEnvironment(),
         windowsHide: true, stdio: ['ignore', out, err]});
     } catch (error) {
       this.log(`The bridge could not be started: ${error.message}`);
@@ -481,8 +486,13 @@ export class BridgeSupervisor {
     const now = this.now();
     this.crashes = this.crashes.filter(at => now - at < this.timings.crashWindowMs);
     this.crashes.push(now); this.restarts++;
-    this.log(`The bridge${pid ? ` (PID ${pid})` : ''} exited unexpectedly (${describeExit(exit)}).`);
-    if (this.reporter) void this.reporter.bridgeExited(describeExit(exit)).catch(() => {});
+    // What the exit code means, the stage the bridge was in and Node's own report, when it wrote one (bridge/bridge-diagnostics.mjs).
+    let crashInfo = {};
+    try { crashInfo = collectCrashInfo({stateDirectory: this.stateDirectory, pid, exit, launchedAt: this.launchedAt ?? 0, now}); } catch {}
+    const words = exitCodeWords(exit?.code);
+    this.log(`The bridge${pid ? ` (PID ${pid})` : ''} exited unexpectedly (${describeExit(exit)}${words ? `; ${words}` : ''}).`);
+    for (const line of crashLogLines(crashInfo)) this.log(line);
+    if (this.reporter) void this.reporter.bridgeExited(describeExit(exit), crashInfo).catch(() => {});
     if (this.crashes.length >= this.timings.maxCrashes) {
       this.log(`Giving up after ${this.crashes.length} exits in ${Math.round(this.timings.crashWindowMs / 60000)} minutes. Check bridge.stderr.log.`);
       this.retrySetup = false;

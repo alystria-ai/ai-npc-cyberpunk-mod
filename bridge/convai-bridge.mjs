@@ -72,6 +72,7 @@ import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
+import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
 import {gpuVendors} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
@@ -135,6 +136,9 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyb
 // An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
 installCrashCapture({stateDirectory, runtime});
+// What the bridge last started (a turn's stage, a voice render, the microphone, the vision helper) goes into a small file the supervisor reads if this process
+// ends without a JavaScript stack (bridge/stage-marker.mjs); one memory line (rss and heap) is logged every 5 minutes. Both are in this process only.
+installStageMarker({stateDirectory});
 // A file read that nobody waits for and that fails because the folder changed under it (ENOENT, EPERM, EBUSY, ...) never ends the service
 // (bridge/runtime-files.mjs); any other unhandled rejection is the crash it always was. The data files the bridge reads at its start are
 // different: without one it cannot work, so `requiredJson` ends it at once with one plain line (the supervisor shows "Runtime incomplete").
@@ -2343,6 +2347,7 @@ async function pollMicrophone() {
       // Every command is logged with where it came from (the game's key press, key release, 30 s cap...) and how far into the recording
       // it arrived, so a recording that does not stop shows whether the stop ever got here.
       const ranMs = mic.current?.requestId === input.requestId && mic.current.opened ? Date.now() - mic.current.opened : null;
+      markBridgeStage('microphone.' + command.action);
       console.error('[CyberpunkConvai] Microphone: ' + command.action + ' command, source ' + String(command.source ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 24)
         + (ranMs === null ? '' : ', ' + ranMs + ' ms into the recording'));
       if (command.action === 'finish') {
