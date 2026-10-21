@@ -176,23 +176,31 @@ async function atomicWrite(files, path, raw) {
     await files.unlink(temp).catch(error => { if (error?.code !== 'ENOENT') throw error; });
   }
 }
+// The lock files this process holds right now. A lock that names THIS process's pid but is not in here was left by an earlier process that had the same pid (a bridge
+// that died without releasing it): the game under Wine/Proton restarts with the same low pids every session (report dee28c86: the bridge 656 found its own pid in the lock
+// of the 656 that died, saw "a live owner" and ended with REGISTRY_LOCKED). Such a lock is stale. A second open inside this process still finds its path in here: locked.
+const heldLocks = new Set();
 async function acquireLock(files, path) {
   const raw = JSON.stringify({version: VERSION, pid: process.pid, token: randomUUID()}) + '\n';
   for (let attempt = 0; attempt < 2; attempt++) {
     let handle;
     try {
       handle = await files.open(path, 'wx', 0o600);
+      heldLocks.add(path); // before any await: another open in this process that finds the file must already see it as held
       await handle.writeFile(raw, 'utf8'); await handle.sync(); await handle.close();
       return raw;
     } catch (error) {
       await handle?.close().catch(() => {});
+      if (handle) heldLocks.delete(path);
       if (error?.code !== 'EEXIST') throw error;
       const current = await readOptional(files, path, 1024);
       let lock; try { lock = JSON.parse(current); } catch { fail('LOCK_UNCERTAIN'); }
       if (!exact(lock, ['version', 'pid', 'token']) || lock.version !== VERSION
           || !Number.isSafeInteger(lock.pid) || lock.pid < 1 || !UUID.test(lock.token)) fail('LOCK_UNCERTAIN');
-      try { process.kill(lock.pid, 0); fail('REGISTRY_LOCKED'); }
-      catch (probe) { if (probe?.code !== 'ESRCH') throw new PlayerMemoryError('REGISTRY_LOCKED'); }
+      if (lock.pid !== process.pid || heldLocks.has(path)) {
+        try { process.kill(lock.pid, 0); fail('REGISTRY_LOCKED'); }
+        catch (probe) { if (probe?.code !== 'ESRCH') throw new PlayerMemoryError('REGISTRY_LOCKED'); }
+      }
       // Reclaimers need their own exclusive claim. A read-then-unlink alone can
       // otherwise delete a NEW owner's lock between two stale reclaim attempts.
       let claim;
@@ -212,6 +220,7 @@ async function acquireLock(files, path) {
   fail('REGISTRY_LOCKED');
 }
 async function releaseLock(files, path, raw) {
+  heldLocks.delete(path);
   if (await readOptional(files, path, 1024) === raw) await files.unlink(path);
 }
 function normalizeIds(characterIds) {

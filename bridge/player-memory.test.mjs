@@ -667,6 +667,25 @@ test('single-writer lock prevents concurrent identities and malformed locks fail
   await fs.writeFile(path + '.lock', ''); await assert.rejects(open(), {code: 'LOCK_UNCERTAIN'});
 });
 
+test('a lock left by an earlier process with this same pid is stale, one this process holds is not (report dee28c86: pids repeat every session under Wine/Proton)', async t => {
+  const {memory, open, path} = await fixture(t);
+  const id = memory.route('judy').endUserId;
+  const left = await fs.readFile(path + '.lock', 'utf8');
+  assert.equal(JSON.parse(left).pid, process.pid);
+  // While this process holds it, the same pid in the file is a live owner.
+  await assert.rejects(open(), {code: 'REGISTRY_LOCKED'});
+  await memory.close();
+  // The bridge died without releasing: the lock names a pid that a NEW process (this one) now has.
+  await fs.writeFile(path + '.lock', left);
+  const again = await open();
+  assert.equal(again.route('judy').endUserId, id);
+  await assert.rejects(open(), {code: 'REGISTRY_LOCKED'});
+  await again.close();
+  // A lock of another live process is still a live owner.
+  await fs.writeFile(path + '.lock', JSON.stringify({...JSON.parse(left), pid: process.ppid}) + '\n');
+  if (process.ppid > 0) await assert.rejects(open(), {code: 'REGISTRY_LOCKED'});
+});
+
 test('bounded clear timeout and provider errors never leak identities, text, paths or raw provider messages', async t => {
   const {memory, provider} = await fixture(t, {timeoutMs: 25});
   await talk(memory, 'judy'); const identity = memory.route('judy').endUserId;
