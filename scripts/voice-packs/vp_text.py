@@ -32,12 +32,17 @@ def extract_module():
     return _extract
 
 
-TAG = re.compile(r"<[^>]{1,40}>")
+TAG = re.compile(r"<[^>]+>")
+# A character speaks a few words of his own language inside a line: <mothertongue l="mex" m="No, mijo" b="..." a="(translation) rest of the line"/>.
+# What is said is b + m + a; the parenthesised gloss at the start of a is the subtitle's translation of m, not spoken.
+MOTHERTONGUE = re.compile(r"<mothertongue\s[^>]*?\bm=\"(?P<m>[^\"]*)\"\s+b=\"(?P<b>[^\"]*)\"\s+a=\"(?P<a>[^\"]*)\"\s*/?>")
+GLOSS = re.compile(r"^\s*[（(][^）)]*[）)]")
 
 
 def clean(text: str) -> str:
     """One line of plain text: markup tags dropped, line breaks and runs of spaces collapsed, typographic apostrophes kept."""
-    text = TAG.sub("", text or "")
+    text = MOTHERTONGUE.sub(lambda m: f"{m['b']}{m['m']}{GLOSS.sub('', m['a'])}", text or "")
+    text = TAG.sub("", text)
     text = text.replace("\r", " ").replace("\n", " ").replace(" ", " ")
     return re.sub(r"\s+", " ", text).strip()
 

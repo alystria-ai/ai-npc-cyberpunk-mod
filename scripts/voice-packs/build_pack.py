@@ -330,16 +330,20 @@ def main() -> int:
     if only:
         voices = {k: v for k, v in voices.items() if k in only}
 
-    speaker, threshold = None, args.speaker_threshold
+    # The English references themselves score a wide spread between their clips (median 0.57, 5th percentile 0.2, ECAPA on 3-7 s clips of the
+    # same speaker; work/en/ecapa-baseline.json), so one absolute bar would flag good voices. The bar is per voice: the lowest cosine between
+    # the clips of its English reference minus 0.30, held between 0.10 (a bar that still catches a different speaker, who scores near 0) and 0.35.
+    speaker, thresholds, threshold = None, {}, args.speaker_threshold
     if not args.no_speaker:
         import vp_speaker
         if vp_speaker.available():
             speaker = vp_speaker.Speaker(threads=args.threads)
-            if threshold is None:
-                base = vp.read_json(vp.WORK / "en/ecapa-baseline.json")
-                allpairs = np.array([p for v in base.values() for p in v["pairs"]])
-                threshold = float(max(0.2, np.percentile(allpairs, 1) - 0.05))
-            vp.log(f"speaker check on, threshold {threshold:.3f}")
+            base = vp.read_json(vp.WORK / "en/ecapa-baseline.json")
+            for key, row in base.items():
+                if row["min"] is not None:
+                    # never a stricter bar than the English reference itself meets (farida-nazeri's English clips already score 0.03 between two of them)
+                    thresholds[key] = threshold if threshold is not None else float(max(0.05, min(row["min"], min(0.35, max(0.10, row["min"] - 0.30)))))
+            vp.log(f"speaker check on, per-voice bars {min(thresholds.values()):.2f}..{max(thresholds.values()):.2f}")
         else:
             vp.log("ECAPA weights not found: speaker check skipped")
 
@@ -361,14 +365,26 @@ def main() -> int:
     roster = {r["key"]: r.get("gender") for r in vp.read_json(vp.ROOT / "characters/roster.json")}
     arche = vp.read_json(vp.MAIN / "runtime/voice-references/archetypes/manifest.json")["voices"]
     stage = vp.OUT / lang / "stage" / PACK_ROOT / lang
-    if stage.exists():
-        import shutil
-        shutil.rmtree(stage)
     manifest = {"version": 1, "language": lang, "languageTag": info["tag"], "gameLanguage": info["game"], "built": datetime.date.today().isoformat(),
                 "source": {"game": "2.31", "lines": "the English picks' line ids"}, "voices": {}}
     reports, omitted = {}, {}
+    previous = vp.WORK / lang / "build-report.json"
+    if only and (stage / "manifest.json").is_file() and previous.is_file():
+        # a re-run of a few voices: the rest of the finished pack stays as it is
+        manifest = vp.read_json(stage / "manifest.json")
+        old = vp.read_json(previous)
+        reports, omitted = old["voices"], old["omitted"]
+        for key in only:
+            manifest["voices"].pop(key, None)
+            omitted.pop(key, None)
+            if (stage / "prepared" / f"{key}.json").is_file():
+                (stage / "prepared" / f"{key}.json").unlink()
+                (stage / "prepared" / f"{key}.ogg").unlink(missing_ok=True)
+    elif stage.exists():
+        import shutil
+        shutil.rmtree(stage)
     for n, (key, row) in enumerate(sorted(voices.items())):
-        result = build_voice(key, row, dub, subs, english, speaker, threshold, None)
+        result = build_voice(key, row, dub, subs, english, speaker, thresholds.get(key, 0.10), None)
         reports[key] = result["report"]
         if not result["ok"]:
             omitted[key] = result["report"]["notes"][-1] if result["report"]["notes"] else "unusable"
@@ -388,7 +404,7 @@ def main() -> int:
         if (n + 1) % 25 == 0 or result["report"]["replaced"] or result["report"]["missing"]:
             vp.log(f"[{n + 1}/{len(voices)}] {key}: {len(clips)} lines, {result['seconds']} s, replaced {len(result['report']['replaced'])}, missing {len(result['report']['missing'])}")
     vp.write_json(stage / "manifest.json", manifest)
-    vp.write_json(vp.WORK / lang / "build-report.json", {"lang": lang, "built": manifest["built"], "speakerThreshold": threshold, "voices": reports, "omitted": omitted,
+    vp.write_json(vp.WORK / lang / "build-report.json", {"lang": lang, "built": manifest["built"], "speakerBars": thresholds, "voices": reports, "omitted": omitted,
                                                          "untraced": lists.get("untraced", [])})
     vp.log(f"{lang}: {len(manifest['voices'])} voices written, {len(omitted)} omitted -> {stage}")
     return 0
