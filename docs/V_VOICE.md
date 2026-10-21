@@ -332,7 +332,7 @@ ended plus the 320 ms tail" (about 2.2 to 2.5 s for a 1.5 to 2 s line), so the a
 line and the length of V's speech beyond that for a long one, and it is 0.4 to 0.9 s sooner than the old path, which delayed the
 reply for nothing. V's two voices were picked and scored on Pocket (ECAPA 0.68 male, 0.52 female), so this is the better-tested voice.
 
-**Resources.** Pocket is the CPU student: 418 MiB of weights (float32), 2 to 4 inference threads, worker below normal priority, 0 VRAM
+**Resources.** Pocket is the CPU student: 418 MiB of weights (float32), 2 to 4 inference threads, worker below normal priority once it is ready (its start runs at normal priority, since 2026-10-22: lowered from the first instruction it was starved by a loading game and timed out), 0 VRAM
 (`CUDA_VISIBLE_DEVICES=-1`), so VRAM is untouched and the game's main thread is not involved. It is the same worker Pocket
 companions already use during play (and Pocket plus a loading OmniVoice already coexist in the OmniVoice retry). Its start takes
 about 45 s (the Python imports, below normal priority; seen in the live log), so it loads once, in the background, **after the OmniVoice

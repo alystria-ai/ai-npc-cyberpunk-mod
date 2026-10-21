@@ -366,8 +366,9 @@ def set_priority_class(priority_class):
 
 
 def lower_priority():
-    """While nothing is being voiced (starting up, preparing voices ahead of a reply, waiting), the game's own
-    threads win any contested core: BelowNormal priority class on Windows, nice +5 elsewhere. Best effort."""
+    """Once the worker is ready, while nothing is being voiced (preparing voices ahead of a reply, waiting), the game's own
+    threads win any contested core: BelowNormal priority class on Windows, nice +5 elsewhere. Best effort. Starting up is
+    not included: a start under a loading game starves at below normal (see main)."""
     try:
         if os.name == "nt":
             return set_priority_class(BELOW_NORMAL_PRIORITY_CLASS)
@@ -416,7 +417,12 @@ def main():
     args = parser.parse_args()
     if re.fullmatch(r"[a-f0-9]{32}", args.owner) is None:
         raise ValueError("Invalid Pocket worker owner")
-    lower_priority()
+    # Starting up (the heavy imports, loading the student, warming voices) runs at NORMAL priority and the worker goes below normal only
+    # when it is ready (below). Lowered from the first instruction it was starved by a game that was loading and every core busy: three
+    # installs (0.2.7, 2026-10-21) saw `import pocket_tts` take under 3 s of CPU in 240 s (the worker got about 1% of a core) and the start
+    # timed out, while the retry a minute later (the game in the world) imported in seconds. A start is a few seconds of one or two threads
+    # (the thread count is capped, cpu_environment) and the game is loading, not rendering, so the same trade as the model server's load.
+    raise_priority()
     gate = PriorityGate()
     output = sys.stdout
     output_lock = threading.Lock()
@@ -529,6 +535,7 @@ def main():
                     "unavailableProfiles": dict(registry["unavailable"])}
 
         started.set()
+        lower_priority()   # ready: from now on the game's own threads win any contested core, except while a reply is being voiced (PriorityGate)
         send({"op": "ready", **identity, **profiles(),
               "workerPaths": {key: str(value) for key, value in registry["paths"].items()},
               "referenceHashes": {key: registry["descriptors"][key]["sha256"] for key in registry["refs"]}})
