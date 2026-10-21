@@ -45,7 +45,15 @@ def parse_id(clip_id: str) -> dict | None:
 
 
 def candidates_for(index: dict, ref: dict) -> list[tuple]:
-    keys = [key for key in index if key[4] == ref["hex"]]
+    by_hex = {}
+    for key in index:
+        if key[4] == ref["hex"]:
+            by_hex.setdefault(key[4], []).append(key)
+    return candidates_for_hex(by_hex, ref)
+
+
+def candidates_for_hex(by_hex: dict, ref: dict) -> list[tuple]:
+    keys = by_hex.get(ref["hex"], [])
     exact = [key for key in keys if key[1] == ref["vo"] and (ref["fm"] is None or key[3] == ref["fm"])]
     if ref["fm"] is None:                       # no gender in the id: the female (V) variant is the default name, a male one only exists beside it
         exact_f = [key for key in exact if key[3] == "f"]
