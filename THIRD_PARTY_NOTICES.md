@@ -88,8 +88,8 @@ Apache-2.0 page, and Google also publishes a prohibited use policy for Gemma
 
 | Component | Version | Licence | Where the licence text is |
 |---|---|---|---|
-| llama.cpp `llama-server`, Vulkan build for Windows x64 (the official release without its other command line tools) | b11560 | MIT, Copyright (c) 2023-2026 The ggml authors | `app/local-ai/licenses/llama.cpp-MIT.txt`; source: https://github.com/ggml-org/llama.cpp/tree/b11560 |
-| LLVM OpenMP runtime (`libomp.dll`, inside the llama.cpp release) | as released with b11560 | Apache-2.0 with LLVM exceptions | `app/local-ai/llama/LICENSE-LLVM-OpenMP` |
+| llama.cpp `llama-server`, Vulkan build for Windows x64 (the official release without its other command line tools) | b11782 | MIT, Copyright (c) 2023-2026 The ggml authors | `app/local-ai/licenses/llama.cpp-MIT.txt`; source: https://github.com/ggml-org/llama.cpp/tree/b11782 |
+| LLVM OpenMP runtime (`libomp.dll`, inside the llama.cpp release) | as released with b11782 | Apache-2.0 with LLVM exceptions | `app/local-ai/llama/LICENSE-LLVM-OpenMP` |
 | Gemma 4 E4B instruction-tuned, QAT q4_0 GGUF (Local AI standard) | `google/gemma-4-E4B-it-qat-q4_0-gguf`, revision `4b4a2c1d` | Apache-2.0 (Google) | `app/local-ai/licenses/Apache-2.0.txt` |
 | Bonsai 2 4B ternary Q2_0 GGUF by PrismML (Local AI lite; a Qwen3.5-based model) | `prism-ml/Ternary-Bonsai-2-4B-gguf`, revision `8d655716` | Apache-2.0 (PrismML; derived from Qwen3.5, Apache-2.0, Alibaba Cloud) | `app/local-ai/licenses/Apache-2.0.txt` |
 | granite-embedding-107m-multilingual Q8_0 GGUF (both packs; memory search) | `lmstudio-community/granite-embedding-107m-multilingual-GGUF`, revision `fe02f281`; model: ibm-granite/granite-embedding-107m-multilingual | Apache-2.0 (IBM) | `app/local-ai/licenses/Apache-2.0.txt` |

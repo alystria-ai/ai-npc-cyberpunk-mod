@@ -397,13 +397,28 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
 runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
-`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11560 (MIT; only `llama-server.exe` and its
+`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782 (MIT; only `llama-server.exe` and its
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
-Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11560 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
+Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11782 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
 licence texts and `THIRD-PARTY-NOTICES.txt`; `prepare-state.mjs` points `CYBERPUNK_CONVAI_LOCAL_AI` there. With `--models local` the
 developer folder (`--local-ai-source`, default `CYBERPUNK_CONVAI_LOCAL_AI_DEV`) supplies the files, each still checked against its
 pinned hash. See `docs/PACKAGING.md`.
+
+**Engine build b11782 (21 Oct 2026; was b11560).** Measured 2026-10-21 on the RTX 4080 Laptop (Balanced power, game closed, the GPU lock held), old and new alternating, three
+runs each, the mod's real `buildServerArgs` (`-ngl 99 -fa on -c 16384 -np 1 --reasoning off --cache-ram <n> --ctx-checkpoints 32 -fit off`) and its real prompts (`PersonaBook` and
+`buildMessages`, Judy about 6,500 tokens with the world block): five turns, then two turns of another character, then Judy again (the RAM prompt cache). Gemma 4 E4B, Bonsai 2 4B and
+both Mature models: the tokens re-read per turn, the tokens cached, time to first token, prompt tokens a second, VRAM and the start time came out the same to within the run-to-run
+spread (follow-up turns re-read 954 to 979 tokens on both builds, which is the layout of the prompt, not the engine; an append-only chat re-reads 14 to 16 tokens on Gemma and 44 to 61
+on the Qwen-based models on both). Generation was within 3% on every model (Bonsai 126 against 123 tokens a second, Gemma 83 against 82, Mature standard 80 against 78, Mature lite 88 against 88). The
+new build starts the lite model a little faster (2.2 to 2.4 s against 2.5 to 3.3 s). **Partial offload is much faster on Gemma 4 E4B**: with `-fit on -fitt` leaving 1,700 MiB for the
+model (13 of 43 layers on the card, 8,192 context, 8-bit cache, 6 threads) generation went from 10.4-10.7 to 19.7-22.7 tokens a second, three runs each; the Qwen3.5-4B Mature lite
+model is unchanged at 21. Nothing the bridge parses changed: `--list-devices` (same lines, the Intel line included), `llama-fit-params -lv 4` (the same
+"projected to use N MiB of device memory vs. N MiB of free device memory" line and the same projections to the MiB for all four models), `GET /props` (`build_info`, `n_ctx`, template, `bos_token`,
+`eos_token`), `/health`, `/v1/models`, the 400 error body, and every flag of `buildServerArgs` (`-fit`, `-fitt`, `--reasoning`, `--cache-ram`, `--ctx-checkpoints`, `--device`, `--api-key-file`,
+`--no-webui`) exist with the same meaning; the only help-text differences are new flags (`--connect`, `--connect-code`, `--spec-draft-n-ubatch`) and a `--cache-ram` default note for
+decision models. The new zip is 36.8 MB (was 32.1 MB) because it carries an 11 MB `llama-connect.exe`, which the pack does not keep; the files a pack ships are the same 24 (82.5 MiB
+against 81.7). Spill under an over-committed card behaved the same (three runs each, shared memory 275 to 379 MiB, 47 to 61 generated tokens a second, no verdict of a spill on either).
 
 ### Modules
 

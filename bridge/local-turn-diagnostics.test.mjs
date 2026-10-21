@@ -226,14 +226,14 @@ test('modelFamily, describeTemplate and describeProps: what the diagnostics keep
   assert.match(info.sha, /^[0-9a-f]{8}$/);
   assert.equal(info.head.length <= 60, true); assert.doesNotMatch(info.head, /[\r\n]/);
   assert.equal(describeTemplate(''), null); assert.equal(describeTemplate(undefined), null);
-  const props = describeProps({chat_template: TEMPLATE, bos_token: '<bos>', eos_token: '<eos>', build_info: 'b11560-abc', model_ftype: 'Q4_K_M', model_path: 'C:\\Users\\someone\\secret.gguf', media_marker: 'x'});
+  const props = describeProps({chat_template: TEMPLATE, bos_token: '<bos>', eos_token: '<eos>', build_info: 'b11782-abc', model_ftype: 'Q4_K_M', model_path: 'C:\\Users\\someone\\secret.gguf', media_marker: 'x'});
   assert.deepEqual(Object.keys(props).sort(), ['bos', 'build', 'eos', 'ftype', 'template']);
   assert.equal(props.eos, '<eos>');
   assert.deepEqual(describeProps(null), {});
 });
 
 test('after the start the supervisor can say which file is loaded, its family, its chat template (length, hash, first words, where it came from), eos and build, with no path', async t => {
-  const {server, logs, directory} = rig(t, {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE, FAKE_LLAMA_EOS: '<eos>', FAKE_LLAMA_BOS: '<bos>', FAKE_LLAMA_BUILD: 'b11560-test'}});
+  const {server, logs, directory} = rig(t, {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE, FAKE_LLAMA_EOS: '<eos>', FAKE_LLAMA_BOS: '<bos>', FAKE_LLAMA_BUILD: 'b11782-test'}});
   assert.equal(server.diagnostics(), null, 'nothing loaded yet');
   await server.ensure();
   const d = server.diagnostics();
@@ -243,7 +243,7 @@ test('after the start the supervisor can say which file is loaded, its family, i
   assert.equal(d.model.family, 'gemma-4'); assert.equal(d.model.id, 'standard'); assert.equal(d.model.sizeMiB, 5088); assert.equal(d.model.offload, false);
   assert.equal(d.template.source, 'gguf'); assert.equal(d.template.chars, TEMPLATE.length); assert.match(d.template.sha, /^[0-9a-f]{8}$/); assert.match(d.template.head, /^\{# Template: Google Gemma 4/);
   assert.deepEqual(d.tokens, {bos: '<bos>', eos: '<eos>'});
-  assert.equal(d.engine.build, 'b11560-test'); assert.equal(d.engine.contextSize, 16384); assert.equal(d.engine.device.id, 'Vulkan0');
+  assert.equal(d.engine.build, 'b11782-test'); assert.equal(d.engine.contextSize, 16384); assert.equal(d.engine.device.id, 'Vulkan0');
   assert.ok(d.engine.ram.totalMiB > 0 && d.engine.ram.freeMiB > 0 && d.engine.ram.freeMiB <= d.engine.ram.totalMiB, 'the system memory at the start (a model whose tables are mapped from disk slows down when it is short)');
   assert.equal(d.start.firstTime, false); assert.ok(d.start.loadMs >= 0); assert.match(d.start.readyAt, /^\d{4}-\d\d-\d\dT/);
   assert.deepEqual(d.turns, {ok: 0, failed: 0}); assert.equal(d.lastTurn, null); assert.equal(d.lastExit, null);

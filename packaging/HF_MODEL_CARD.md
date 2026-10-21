@@ -66,7 +66,7 @@ Every model file in the optional packs is the unmodified upstream file, pinned b
 
 | Component | Source | Licence |
 |---|---|---|
-| llama.cpp `llama-server` b11560 (Vulkan) | ggml-org/llama.cpp | MIT |
+| llama.cpp `llama-server` b11782 (Vulkan) | ggml-org/llama.cpp | MIT |
 | Gemma 4 E4B QAT q4_0 (Local AI standard) | google/gemma-4-E4B-it-qat-q4_0-gguf | Apache-2.0 |
 | Bonsai 2 4B Q2_0 (Local AI lite) | prism-ml/Ternary-Bonsai-2-4B-gguf (PrismML) | Apache-2.0 |
 | granite-embedding-107m-multilingual Q8_0 (memory) | lmstudio-community/granite-embedding-107m-multilingual-GGUF (IBM) | Apache-2.0 |

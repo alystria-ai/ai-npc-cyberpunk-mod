@@ -11,7 +11,7 @@ Related: `docs/MISTRAL.md` (the text-provider route this option copies), `docs/L
 
 | Part | Choice | Why |
 |---|---|---|
-| Runtime | **llama.cpp `llama-server`, Vulkan build** (b11560), a child process of the bridge on loopback, OpenAI-compatible streaming | One small binary set (32 MB zip, 88 MB unpacked, CPU backends included). Works on NVIDIA, AMD and Intel. Supports prompt caching, a RAM prompt cache across characters, and slot save/restore. The bridge's `streamChat` already speaks its protocol. |
+| Runtime | **llama.cpp `llama-server`, Vulkan build** (b11782), a child process of the bridge on loopback, OpenAI-compatible streaming | One small binary set (37 MB zip, 87 MB unpacked, CPU backends included). Works on NVIDIA, AMD and Intel. Supports prompt caching, a RAM prompt cache across characters, and slot save/restore. The bridge's `streamChat` already speaks its protocol. |
 | Where the LLM runs | **On the discrete GPU, fully offloaded, only in short bursts** | Measured: the GPU is 40-100x faster than this CPU for these prompts. CPU-only is not usable (warm replies took 11-26 s). Between replies the GPU does no LLM work; only the weights stay in VRAM. |
 | LLM, standard tier | **Qwen3.5-4B Q4_K_M** (2.74 GB, Apache-2.0, 201 languages, thinking off) | Best mix of speed, VRAM (about 3.0 GB) and quality in the measured set. Warm reply 0.8-1.7 s end to end. |
 | LLM, quality challenger | **Gemma 4 E4B QAT q4_0** (5.15 GB, Apache-2.0) | Replies were the most grounded (fewest invented facts) in a small sample, at the same VRAM. It needs twice the disk space and ran a little slower. Decide between it and Qwen3.5-4B in build step 1. |
