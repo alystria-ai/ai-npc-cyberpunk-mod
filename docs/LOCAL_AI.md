@@ -1124,6 +1124,14 @@ that rate so the hand-over keeps its head start, and the statistics still check 
 rates (44,100 and 48,000) are ever remembered. The memory is saved to `convai-audio-rates.json` in the state folder (a missing or broken file is an empty memory), so it holds in the next session; the very first
 turn of a character on a computer that has never seen it is still corrected late. Not covered: the phone's Convai host (`phoneRealtime`) keeps its own empty memory. Tests: `bridge/convai-audio-rates.test.mjs`.
 
+**A live turn that is corrected late FAILS (0.2.6 reports, 2026-10-21, fixed for 0.2.7).** The statement above that a turn "plays slow once" was wrong for continuous (live) speech: when the statistics change the rate under a
+player that already runs at the label's rate, `ConvaiContinuousSpeech.frame` sees a position past the shorter duration and throws "Invalid continuous speech state" (or "format changed"), so the turn failed, and
+`learn` only ran for a turn that succeeded, so the character never learned and failed on every later turn too (report `55741d05`: a Convai-voice player in Portuguese, every twin turn). Two changes: (1) the page snapshot
+carries `sampleRateCorrected` / `sampleRateHintMissed` (`realtime-client.mjs` `continuousView`), and `RealtimeHost.evaluateSpeech` learns them in its `finally`, so a failing turn still teaches its character;
+(2) the multilingual twins are seeded with the 24,000 to 44,100 hint (`audioRateSeed` in `convai-bridge.mjs`, `seed` of `AudioRates`), so even their first turn starts at the right rate. A seed is only a first guess: a turn
+whose statistics do not confirm it drops it and the character is saved as `null` in `convai-audio-rates.json` ("labelled right", never seeded again); a later correction takes it back. Live check owed: a Convai-voice
+Portuguese or Spanish line with an NPC, the first line of a twin must play at normal speed.
+
 ### The knowledge status file (EPERM in the bridge log)
 
 `Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the

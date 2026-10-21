@@ -118,7 +118,7 @@ test('AudioRates.learn: a rate the statistics did not confirm is forgotten and s
   assert.equal(saved.length, 0, 'nothing was known about this one');
   rates.learn({characterId: 'twin-1'}, {sampleRate: 24000, sampleRateHintMissed: true});
   assert.equal(rates.hintFor('twin-1'), null);
-  assert.deepEqual(saved, [{}]);
+  assert.deepEqual(saved, [{'twin-1': null}], 'saved as a character whose audio is labelled right');
   // A hint that was never applied (the turn's label differed) and a turn at the label's own rate: dropped; a turn at some other rate: kept.
   const again = new AudioRates({initial: {'twin-1': HINT}, onChange: value => saved.push(value)});
   again.learn({characterId: 'twin-1'}, {sampleRate: 16000});
@@ -131,6 +131,74 @@ test('AudioRates.learn: a rate the statistics did not confirm is forgotten and s
   assert.deepEqual(swap.hintFor('twin-1'), {declared: 24000, actual: 48000});
 });
 
+const SEED = {ids: ['twin-1', 'twin-2', 'twin-3'], hint: HINT};
+
+test('AudioRates seed: a character expected to be mislabelled starts at the right rate on its first turn; others and bad seeds do nothing', () => {
+  const rates = new AudioRates({seed: SEED});
+  assert.deepEqual(rates.forConfig({characterId: 'twin-2', ttsEnabled: true}).audioRate, HINT);
+  assert.equal('audioRate' in rates.forConfig({characterId: 'ordinary', ttsEnabled: true}), false);
+  assert.equal('audioRate' in rates.forConfig({characterId: 'twin-2', ttsEnabled: false}), false, 'a local voice speaks: no Convai audio');
+  for (const seed of [undefined, null, {ids: ['twin-1']}, {ids: ['twin-1'], hint: {declared: 24000, actual: 32000}}, {ids: 'twin-1', hint: HINT}, {ids: [1, '', 'x'.repeat(300)], hint: HINT}])
+    assert.equal(new AudioRates({seed}).size, 0, JSON.stringify(seed));
+  // Reading the seed changes nothing on disk.
+  const saved = [];
+  new AudioRates({seed: SEED, onChange: value => saved.push(value)});
+  assert.deepEqual(saved, []);
+});
+
+test('AudioRates seed: a rate learned earlier wins over the seed, and a character found to be labelled right is never seeded again', () => {
+  const rates = new AudioRates({seed: SEED, initial: {'twin-1': {declared: 24000, actual: 48000}, 'twin-2': null}});
+  assert.deepEqual(rates.hintFor('twin-1'), {declared: 24000, actual: 48000});
+  assert.equal(rates.hintFor('twin-2'), null, 'saved as labelled right');
+  assert.deepEqual(rates.hintFor('twin-3'), HINT);
+  assert.deepEqual(rates.snapshot(), {'twin-1': {declared: 24000, actual: 48000}, 'twin-3': HINT, 'twin-2': null});
+});
+
+test('AudioRates seed: a turn whose statistics do not confirm the seed drops it for good (saved as labelled right), and a later correction takes it back', () => {
+  const saved = [], rates = new AudioRates({seed: SEED, onChange: value => saved.push(value)});
+  rates.learn({characterId: 'twin-1'}, {sampleRate: 24000, sampleRateHintMissed: true});
+  assert.equal(rates.hintFor('twin-1'), null);
+  assert.deepEqual(saved.at(-1)['twin-1'], null);
+  const next = new AudioRates({seed: SEED, initial: saved.at(-1)});
+  assert.equal(next.hintFor('twin-1'), null, 'not seeded again in the next session');
+  assert.deepEqual(next.hintFor('twin-2'), HINT);
+  next.learn({characterId: 'twin-1'}, {sampleRate: 44100, sampleRateCorrected: HINT});
+  assert.deepEqual(next.hintFor('twin-1'), HINT);
+  assert.notEqual(next.snapshot()['twin-1'], null);
+});
+
+test('RealtimeHost: a live turn that fails because its audio turned out mislabelled still teaches its character (the 0.2.6 failure that repeated on every twin turn)', async () => {
+  const {RealtimeHost} = await import('./realtime-host.mjs');
+  const saved = [], logs = [];
+  const host = new RealtimeHost({audioRateSeed: {ids: ['twin-1'], hint: HINT}, onAudioRate: rates => saved.push(rates), log: line => logs.push(line)});
+  assert.deepEqual(host.audioRates.hintFor('twin-1'), HINT);
+  // A page whose snapshot already carries what the statistics showed, and a callback that fails the turn on it, as the continuous speech does.
+  const frame = extra => ({version: 1, token: 'rate-turn', sampleRate: 44100, channels: 1, receivedFrames: 1000, ...extra});
+  const run = async (snapshotExtra, characterId = 'twin-1') => {
+    let release; const gate = new Promise(resolve => { release = resolve; });
+    const page = {evaluate: async (fn, arg) => arg && 'method' in arg ? gate : JSON.stringify(frame(snapshotExtra))};
+    const failure = Error('Invalid continuous speech state');
+    await assert.rejects(host.evaluateSpeech(page, 'reply', {characterId, ttsEnabled: true},
+      {liveSpeech: {token: 'rate-turn', pollMs: () => 1, onFrame: async () => { throw failure; }}}), failure);
+    release({});
+  };
+  // The hinted rate was confirmed late and the turn still failed: nothing new to remember, nothing lost.
+  await run({sampleRateCorrected: HINT});
+  assert.deepEqual(host.audioRates.hintFor('twin-1'), HINT);
+  // An unseeded character is taught by the failing turn.
+  await run({sampleRateCorrected: HINT}, 'twin-9');
+  assert.deepEqual(host.audioRates.hintFor('twin-9'), HINT);
+  assert.deepEqual(saved.at(-1)['twin-9'], HINT);
+  // A seeded character whose audio turns out to be labelled right drops the seed, though the turn failed.
+  await run({sampleRate: 24000, sampleRateHintMissed: true});
+  assert.equal(host.audioRates.hintFor('twin-1'), null);
+  assert.equal(saved.at(-1)['twin-1'], null);
+  // A failing turn with nothing about the rate changes nothing.
+  const count = saved.length;
+  await run({}, 'twin-9');
+  assert.equal(saved.length, count); assert.deepEqual(host.audioRates.hintFor('twin-9'), HINT);
+});
+
 test('AudioRates: a failing save never fails the turn', () => {
   const rates = new AudioRates({onChange: () => { throw Error('disk full'); }});
   assert.doesNotThrow(() => rates.learn({characterId: 'twin-1'}, {sampleRate: 44100, sampleRateCorrected: HINT}));
@@ -140,7 +208,8 @@ test('the bridge keeps the memory in the state folder, hands it to the host and 
   const {readFileSync} = await import('node:fs');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(bridge, /resolve\(stateDirectory, 'convai-audio-rates\.json'\)/);
-  assert.match(bridge, /audioRates: savedAudioRates[\s\S]{0,200}onAudioRate: rates =>/);
+  assert.match(bridge, /audioRates: savedAudioRates[\s\S]{0,300}onAudioRate: rates =>/);
+  assert.match(bridge, /audioRateSeed: \{ids: Object\.values\(multilingualProfiles\.twins\), hint: \{declared: 24000, actual: 44100\}\}/);
   const host = readFileSync(new URL('./realtime-host.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(host, /this\.evaluateSpeech\(lease\.value, method, this\.audioRates\.forConfig\(config\)/);
   assert.match(host, /this\.audioRates\.learn\(config, result\)/);

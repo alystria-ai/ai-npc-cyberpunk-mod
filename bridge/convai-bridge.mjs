@@ -849,7 +849,7 @@ const companionVision = new CompanionVision({capture: new VisionCapture({log: vi
   log: visionLog});
 const realtime = new RealtimeHost({onCompanionAction: packet => companionActions.deliver(packet),
   transformReply: cleanReply, guard: hostGuard, vision: companionVision, ...keyHostOptions(() => [phoneRealtime]),
-  audioRates: savedAudioRates, log: line => console.error('[Convai audio] ' + line),
+  audioRates: savedAudioRates, audioRateSeed: {ids: Object.values(multilingualProfiles.twins), hint: {declared: 24000, actual: 44100}}, log: line => console.error('[Convai audio] ' + line),
   onAudioRate: rates => { audioRatesWriting = audioRatesWriting.catch(() => {}).then(() => mkdir(stateDirectory, {recursive: true}).then(() => atomic(audioRatesPath, JSON.stringify(rates)))).catch(() => {}); }});
 // Mistral route (docs/MISTRAL.md): the same text reply path as Convai, with the persona built from characters/*.json and a small
 // local memory. attachMistral makes both hosts answer text turns through it while the provider is Mistral. `localTurn` names

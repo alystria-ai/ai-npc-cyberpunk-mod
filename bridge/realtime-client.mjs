@@ -622,7 +622,11 @@ function continuousView(current, pcmFrom) {
     ...(diagnostic ? {clockDiagnostic: diagnostic} : {}),
     underruns: playback.underruns ?? 0, faces: source.faces,
     facesFormat: source.facesFormat, facesTimebase: source.facesTimebase,
-    sourceComplete: source.sourceComplete, ...(pcm ? {pcm} : {})};
+    sourceComplete: source.sourceComplete, ...(pcm ? {pcm} : {}),
+    // What the statistics showed about the packets' sample rate label (bridge/convai-data-audio.mjs): the host remembers it per character even when this turn
+    // fails because of it (the label changes under a player that is already running at the old rate), so the character's next turn starts right.
+    ...(current.dataAudio.rateCorrected ? {sampleRateCorrected: {...current.dataAudio.rateCorrected}} : {}),
+    ...(current.dataAudio.rateHintMissed ? {sampleRateHintMissed: true} : {})};
 }
 
 function continuousSnapshot(token, pcmFrom) {

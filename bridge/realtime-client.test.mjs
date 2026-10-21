@@ -1454,6 +1454,41 @@ test('continuous playback receives owned original PCM before terminal, preserves
   await api.close();
 });
 
+// 2026-10-21 reports (0.2.6, Convai voice, multilingual twins): a live turn whose packets say 24 kHz and carry 44.1 kHz audio is already playing at 24 kHz when the statistics correct the rate, so the
+// turn fails ("Invalid continuous speech state"). The page puts what the statistics showed into the snapshot, so the host can remember it for the character even though this turn fails.
+test('a live turn with mislabelled packets shows the corrected rate in its snapshot once the statistics arrive', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player});
+  await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'mislabelled-turn'}); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: .4, sampleRate: 44100});
+  c.data(data.faces); c.data(wire({type: 'audio-data', audio: data.samples.toString('base64'), sample_rate: 24000, channels: 1, includes_wav_header: false})); await flush();
+  const early = api.continuousSnapshot('mislabelled-turn');
+  assert.equal(early.sampleRate, 24000); assert.equal(Object.hasOwn(early, 'sampleRateCorrected'), false);
+  assert.equal(instances[0].format.sampleRate, 24000, 'the player started at the label, as the first turn of a character cannot know better');
+  c.data(data.stats); c.data(data.terminal); finalText(c); await new Promise(done => setTimeout(done, 80));
+  const late = api.continuousSnapshot('mislabelled-turn');
+  assert.equal(late.sampleRateCorrected.declared, 24000); assert.equal(late.sampleRateCorrected.actual, 44100); assert.equal(late.sampleRate, 44100);
+  assert.equal(Object.hasOwn(late, 'sampleRateHintMissed'), false);
+  instances[0].drain(); await pending; await api.close();
+});
+
+test('a live turn told the rate of its character starts at it, and says so in its snapshot when the statistics do not confirm it', async () => {
+  const hint = {declared: 24000, actual: 44100};
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player});
+  await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'hinted-turn', audioRate: hint}); pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture({seconds: .4, sampleRate: 24000});
+  c.data(data.faces); c.data(data.pcm()); await flush();
+  assert.equal(api.continuousSnapshot('hinted-turn').sampleRate, 44100, 'taken at the remembered rate from the first packet');
+  // The audio was labelled right this time (24 kHz data under a 24 kHz label): the statistics give way to the label and the snapshot says the hint missed.
+  c.data(data.stats); c.data(data.terminal); finalText(c); await new Promise(done => setTimeout(done, 80));
+  const late = api.continuousSnapshot('hinted-turn');
+  assert.equal(late.sampleRateHintMissed, true); assert.equal(late.sampleRate, 24000); assert.equal(Object.hasOwn(late, 'sampleRateCorrected'), false);
+  instances[0].drain(); await pending; await api.close();
+});
+
 test('continuous renderer startup failure cancels the provider without returning a duplicate WAV fallback', async () => {
   const {Player, instances} = playerFixture({openError: 'Test audio output unavailable'});
   const {api, clients} = fixture({player: Player}); await api.warm(config);
