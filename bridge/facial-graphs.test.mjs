@@ -164,8 +164,8 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
   assert.match(world, /this\.m_crowdGated\[index\]/);
   assert.match(world, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{\s*if this\.m_crowdMode == 0 \|\| !ConvaiFaceService\.SpawnedElsewhere\(dynamic, npc\.GetEntityID\(\)\) \{ return; \};[\s\S]*?this\.PrepareSpawnedFace\(spawnedFace\);[\s\S]*?return;\s*\};/,
     'our companions are never touched here; a character another mod or a spawner created takes its own path and returns');
-  assert.doesNotMatch(world, /TDBID\.ToStringDEBUG\(record\)[\s\S]*TDBID\.ToStringDEBUG\(record\)/, 'strings are read once, and only after the cheap checks passed');
-  assert(world.indexOf('ArrayContains(this.m_named, record)') < world.indexOf('NameToString(npc.GetCurrentAppearanceName())'), 'the roster check comes before any string work');
+  assert.doesNotMatch(world + body(nativeFace, 'private func PrepareCrowdFace', '// A named roster character the game placed'), /ToStringDEBUG|NameToString|GetCurrentAppearanceName/,
+    'no string work at the spawn: the record and the roster are the only filters, the quest tokens are gone');
   // The rig's track check is cached per rig path.
   const rig = body(nativeFace, 'private func CheckRig', 'public static func CrowdSkipReason');
   assert(rig.indexOf('ArrayContains(this.m_verifiedRigs, path)') < rig.indexOf('ArrayContains(rig.trackNames'), 'a verified rig is not checked again');
@@ -190,13 +190,15 @@ test('conversation start reports the spawn decision and keeps the talk-time guar
   assert.match(request, /service\.TalkRefusal\(this, spawned\)/);
   assert.match(request, /return "unprepared:" \+ ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\)/, 'a face that is not ours says which graph it has');
   assert.doesNotMatch(request, /face\.graph =|ScheduleAppearanceChange|PrepareFaceComponent/);
-  const guards = body(nativeFace, 'public func TalkRefusal', 'public static func QuestBound');
+  const guards = body(nativeFace, 'public func TalkRefusal', 'private func PrepareSpawnedFace');
   for (const guard of ['return "skipped:dialogue"', 'return "skipped:quest"', 'return "skipped:driven"']) assert(guards.includes(guard), guard);
   assert.match(guards, /scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\) \{ return "skipped:dialogue"; \};/);
-  assert.match(guards, /if npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};/);
-  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('skipped:quest') && guards.indexOf('skipped:quest') < guards.indexOf('skipped:driven'));
-  assert.match(guards, /let record = TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\);\s*if ConvaiFaceService\.QuestBound\(NameToString\(npc\.GetCurrentAppearanceName\(\)\)\)\s*\|\| ConvaiFaceService\.QuestBound\(record\) && !ConvaiFaceService\.QuestCrowd\(record\)/,
-    'a quest crowd extra (its record names it a crowd member) is let through at talk time; a quest appearance is not');
+  // 2026-10-22 (the Afterlife bouncer, quest	ertiary_characters\emmerick.ent, appearance ...q005__emmerick): the template, appearance and record
+  // names say nothing about whether the game is using the character now. A character at a workspot (his post) is not refused; a quest marking or
+  // a commanded AI elsewhere still is.
+  assert.match(guards, /let atPost = GameInstance\.GetWorkspotSystem\(npc\.GetGame\(\)\)\.IsActorInWorkspot\(npc\);\s*if !atPost && \(npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\)\) \{ return "skipped:driven"; \};/);
+  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('atPost') && guards.indexOf('atPost') < guards.lastIndexOf('skipped:driven'));
+  assert.doesNotMatch(guards, /QuestBound|QuestCrowd|GetCurrentAppearanceName|GetTemplatePath|ToStringDEBUG/, 'no skipping by appearance, record or template name');
   assert.doesNotMatch(guards, /IsEntityInScene|skipped:scene|IsVendor|IsCrowd/, 'vendors and community NPCs are scene actors: the scene guard is gone');
   assert.doesNotMatch(nativeFace, /skipped:scene/);
   // A refused NPC is never written: readiness checks the refusal, and the status the log shows is the refusal.
@@ -253,10 +255,10 @@ test('spawned characters: generic recognition, a face at spawn and at each rebui
   assert.match(body(nativeFace, 'private cb func OnLoad', 'private cb func OnCompanionExtract'),
     /ArrayPush\(this\.m_crowdGatedPaths, folder \+ this\.m_crowdNames\[i\] \+ "\.animgraph"\);/);
   // Talk time: a spawned character is refused only by a dialogue or a quest marking it, before the world NPC's guards.
-  const guards = body(nativeFace, 'public func TalkRefusal', 'public static func QuestBound');
+  const guards = body(nativeFace, 'public func TalkRefusal', 'private func PrepareSpawnedFace');
   assert.match(guards, /public func TalkRefusal\(npc: ref<NPCPuppet>, opt spawned: Bool\) -> String/);
   assert.match(guards, /if spawned \{\s*if npc\.IsQuest\(\) \{ return "skipped:quest"; \};\s*return "";\s*\};/);
-  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('if spawned {') && guards.indexOf('if spawned {') < guards.indexOf('QuestBound('));
+  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('if spawned {') && guards.indexOf('if spawned {') < guards.indexOf('atPost'));
   // The puppet remembers the answer as two Bool fields; nothing per frame, no handle kept.
   const remember = body(nativeFace, 'private final func ConvaiSpawnedElsewhere', '// The reason a conversation start refused');
   assert.match(remember, /if !this\.m_convaiSpawnedKnown \{\s*this\.m_convaiSpawned = ConvaiFaceService\.SpawnedElsewhere\(dynamic, this\.GetEntityID\(\)\);\s*this\.m_convaiSpawnedKnown = true;/);
@@ -331,48 +333,37 @@ test('a spawned character appearance rebuild: noted at extraction, claimed by it
   assert.doesNotMatch(nativeFace, /OnUpdate|UpdateScriptableService/);
 });
 
-// The filter, run as written: CrowdSkipReason and QuestBound are mechanical transliterations of their redscript bodies
-// (let/while/if and four string natives only). Story characters, named roster characters and Johnny stay vanilla.
+// The filter, run as written: CrowdSkipReason is a mechanical transliteration of its redscript body.
+// Story characters, named roster characters and Johnny stay vanilla.
 const redscript = nativeFace.replace(/\r\n/g, '\n');
 const transliterate = (signature, parameters) => {
   const from = redscript.indexOf(signature);
   assert(from >= 0, signature);
   const text = redscript.slice(redscript.indexOf('{', from) + 1, redscript.indexOf('\n  }', from));
-  const js = text.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {').replace(/ConvaiFaceService\.QuestBound\(/g, 'questBound(').replace(/ConvaiFaceService\.QuestCrowd\(/g, 'questCrowd(');
+  const js = text.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {');
   return new Function(...parameters, js);
 };
-const questBoundJs = transliterate('public static func QuestBound(text: String) -> Bool {', ['text', 'StrLen', 'StrMid', 'StrContains', 'Equals']);
-const questBound = text => questBoundJs(text, s => s.length, (s, i, n) => s.substr(i, n), (s, x) => x !== '' && s.includes(x), (a, b) => a === b);
-const questCrowdJs = transliterate('public static func QuestCrowd(record: String) -> Bool {', ['record', 'StrContains', 'StrEndsWith', 'StrLower']);
-const questCrowd = record => questCrowdJs(record, (s, x) => x !== '' && s.includes(x), (s, x) => s.endsWith(x), s => s.toLowerCase());
-const skipJs = transliterate('public static func CrowdSkipReason(', ['recordValid', 'named', 'appearance', 'record', 'questBound', 'questCrowd']);
-const skipReason = (recordValid, named, appearance = '', record = '') => skipJs(recordValid, named, appearance, record, questBound, questCrowd);
+const skipJs = transliterate('public static func CrowdSkipReason(', ['recordValid', 'named']);
+const skipReason = (recordValid, named) => skipJs(recordValid, named);
 const redscriptNamed = new Set([...featureSource().match(/NamedRecords\(\) -> array<String> \{\s*return \[([^\]]*)\]/)[1].matchAll(/"([^"]+)"/g)].map(match => match[1]));
-test('the spawn filter keeps story characters, named roster characters and Johnny vanilla, and lets ordinary NPCs through', () => {
-  // The decision for a record, as OnWorldInitialize makes it: roster first, then the strings.
-  const decide = (record, appearance) => {
-    const named = redscriptNamed.has(record);
-    let reason = skipReason(true, named);
-    if (reason === '') reason = skipReason(true, false, appearance, record);
-    return reason;
-  };
+test('the spawn filter keeps named roster characters and Johnny vanilla, and lets every other NPC through, quest-bound ones included', () => {
+  // The decision for a record, as OnWorldInitialize makes it: the roster only (no string is read any more).
+  const decide = record => skipReason(true, redscriptNamed.has(record));
   assert.equal(skipReason(false, false), 'skipped:no-record', 'an unreadable record fails closed');
-  assert.equal(decide('Character.Silverhand', 'johnny_silverhand'), 'skipped:named', 'Johnny: his record uses man_average_sermo');
+  assert.equal(decide('Character.Silverhand'), 'skipped:named', 'Johnny: his record uses man_average_sermo');
   for (const record of ['Character.Smasher', 'Character.Alt', 'Character.Judy', 'Character.Jackie', 'Character.wakako_okada', 'Character.reggie']) {
-    assert.equal(decide(record, 'whatever'), 'skipped:named', record);
+    assert.equal(decide(record), 'skipped:named', record);
   }
-  // Quest tokens in the appearance or the record, even for a record the roster does not list.
-  assert.equal(decide('Character.LowlifeMale', 'citizen__arasaka_corpo_wa__q004__konpeki_receptionist_04'), 'skipped:quest');
-  assert.equal(decide('Character.sq021_unlisted_vendor', 'lowlife_ma__01'), 'skipped:quest');
-  assert.equal(decide('Character.mq003_guard', 'x'), 'skipped:quest');
-  assert.equal(decide('Character.q101_johnny_bartender', 'x'), 'skipped:quest', 'a quest-placed Johnny');
-  // A quest's crowd extra speaks like any crowd face (it talks as an ordinary person); a quest appearance still keeps it vanilla.
-  assert.equal(decide('Character.q005_afterlife_crowd_female', 'citizen__nightlife_wa_hood_hottie_wa_17'), '');
-  assert.equal(decide('Character.q005_afterlife_crowd_female', 'citizen__q005__afterlife_patron_01'), 'skipped:quest');
-  assert.equal(decide('Character.q005_afterlife_bouncer', 'citizen__nightlife_ma_01'), 'skipped:quest');
+  // 2026-10-22: a quest token in the appearance or the record is no reason to keep the vanilla graph. The Afterlife bouncer (record
+  // Character.Emmerick, appearance gang__generic_mb__q005__emmerick, template base\quest\tertiary_characters\emmerick.ent) stood at his post with
+  // no scene and his mouth stayed still: the graph is prepared for him like anyone else and the talk-time guard decides.
+  for (const record of ['Character.Emmerick', 'Character.q005_afterlife_bouncer', 'Character.sq021_unlisted_vendor', 'Character.mq003_guard',
+    'Character.q101_johnny_bartender', 'Character.q005_afterlife_crowd_female', 'Character.dlc6_dtn_receptionist']) {
+    assert.equal(decide(record), '', record);
+  }
   for (const record of ['Character.LowlifeMale', 'Character.CorpoMan', 'Character.HomelessMan', 'Character.StoopKing', 'Character.WorkerMale',
     'Character.LowlifeWoman', 'Character.cct_dtn_food_02', 'Character.wat_kab_foodshop_04']) {
-    assert.equal(decide(record, 'citizen__lowlife_ma__01'), '', record);
+    assert.equal(decide(record), '', record);
   }
   // The roster list is the character data, not a guess: every record of every profile, phone contact and managed copy.
   const named = new Set(namedRecords());
@@ -386,23 +377,6 @@ test('the spawn filter keeps story characters, named roster characters and Johnn
   for (const record of ['Character.LowlifeMale', 'Character.CorpoMan', 'Character.HomelessMan', 'Character.StoopKing']) {
     assert.equal(named.has(record), false, `${record} is an ordinary crowd record`);
   }
-});
-
-// The native quest-token check, run as written (a mechanical transliteration of
-// its redscript body, which uses only let/while/if and four string natives).
-test('QuestBound recognizes quest appearance and record tokens and leaves crowd names alone', () => {
-  const start = nativeFace.indexOf('public static func QuestBound(text: String) -> Bool {');
-  const source = nativeFace.replace(/\r\n/g, '\n');
-  const from = source.indexOf('public static func QuestBound(text: String) -> Bool {');
-  const body = source.slice(source.indexOf('{', from) + 1, source.indexOf('\n  }', from));
-  assert(start >= 0 && body.includes('return false;'));
-  const js = body.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {');
-  const questBound = new Function('text', 'StrLen', 'StrMid', 'StrContains', 'Equals', js);
-  const run = text => questBound(text, s => s.length, (s, i, n) => s.substr(i, n), (s, x) => x !== '' && s.includes(x), (a, b) => a === b);
-  for (const name of ['citizen__arasaka_corpo_wa__q004__konpeki_receptionist_04', 'Character.sq021_river', 'mq003_vendor', 'q101_x', 'Character.q115_guard'])
-    assert.equal(run(name), true, name);
-  for (const name of ['citizen__lowlife_ma__01', 'Character.Watson_Resident_Male', 'squad_7', 'iq100', 'aq123_b', 'Character.ma_q12'])
-    assert.equal(run(name), false, name);
 });
 
 // October 10: the speech deltas were only ADDED to whatever facial idle the graph feeds the solver (a looped
@@ -600,4 +574,41 @@ test('on the extracted game graphs the crowd copy is the companion graph plus ex
       assert.deepEqual({returnVarType: data.returnVarType, tokenData: data.tokenData, valuesData: data.valuesData}, GATE_EXPRESSION, graph);
     }
   }
+});
+
+// 2026-10-22 live test: the Afterlife bouncer Emmerick (record Character.Emmerick, appearance gang__generic_mb__q005__emmerick, template
+// base\quest\tertiary_characters\emmerick.ent, face graph man_big_sermo) stood at his post with no scene, V talked to him as npc-merc-male and his
+// mouth did not move: "Face request: status=skipped:quest why=a quest-bound character". The log shows "Focus class: ... workspot=true".
+// The spawn and talk-time decisions, run as written against those facts.
+const talkRefusalJs = transliterate('public func TalkRefusal(', ['npc', 'spawned', 'ArrayContains', 'IsDefined', 'GameInstance']);
+const talkRefusal = (state, spawned = false) => {
+  const npc = {GetGame: () => 'game', GetEntityID: () => 'id', GetRecordID: () => 'Character.Emmerick', IsQuest: () => state.quest,
+    IsOnAutonomousAI: () => state.autonomous};
+  const game = {GetSceneSystem: () => ({GetScriptInterface: () => ({IsEntityInDialogue: () => state.dialogue})}),
+    GetWorkspotSystem: () => ({IsActorInWorkspot: () => state.workspot})};
+  return talkRefusalJs.call({m_storyTalk: false, m_named: []}, npc, spawned, (list, value) => list.includes(value), value => value != null, game);
+};
+test('Emmerick: a quest-bound character standing at his post is prepared at spawn and not refused at talk time; a scene still refuses', () => {
+  // Spawn: his record is not on the roster, so the quest tokens in his appearance no longer matter.
+  assert.equal(skipReason(true, redscriptNamed.has('Character.Emmerick')), '');
+  // Talk time with the facts the game reports for him: idle at his workspot, no dialogue; whether the quest marks him or commands his AI.
+  const idle = {dialogue: false, workspot: true, quest: false, autonomous: true};
+  assert.equal(talkRefusal(idle), '');
+  assert.equal(talkRefusal({...idle, autonomous: false}), '', 'a commanded AI at a workspot is his post, not a scene');
+  assert.equal(talkRefusal({...idle, quest: true, autonomous: false}), '', 'a quest marking at a workspot too');
+  // Anyone the game is animating: a dialogue, or a quest or scene commanding the AI away from a workspot.
+  assert.equal(talkRefusal({...idle, dialogue: true}), 'skipped:dialogue');
+  assert.equal(talkRefusal({...idle, dialogue: true, autonomous: false}), 'skipped:dialogue');
+  assert.equal(talkRefusal({...idle, workspot: false, autonomous: false}), 'skipped:driven');
+  assert.equal(talkRefusal({...idle, workspot: false, quest: true}), 'skipped:driven');
+  assert.equal(talkRefusal({...idle, workspot: false}), '', 'an ordinary NPC the game leaves alone');
+  // Another mod's character keeps its own rule (the quest marking only).
+  assert.equal(talkRefusal({...idle, workspot: false, autonomous: false}, true), '');
+  assert.equal(talkRefusal({...idle, quest: true}, true), 'skipped:quest');
+});
+
+test('the face status words still read plainly, and the Emmerick line is no longer the quest skip', () => {
+  const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
+  assert.match(facial, /\^skipped:driven\$', 'a quest or a scene commands this character'/);
+  assert.match(facial, /\^skipped:quest\$'/, 'the word stays for another mod\'s character a quest marks');
 });
