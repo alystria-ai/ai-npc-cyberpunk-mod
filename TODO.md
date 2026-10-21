@@ -110,6 +110,8 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 Nothing is parked.
 
 ### Settled and dropped
+
+- **Gradium Phonon instead of Pocket TTS (owner, 2026-10-21): no.** Faster (~11x real time on one core, ~14 ms first audio) and rated above Pocket in Gradium's tests, but the open weights have no local voice cloning (voices come from Gradium's cloud studio from consented recordings), and the 40m/multilingual models are CC BY-NC. Pocket clones every character from its game clip on the player's PC, so Phonon does not fit.
 - **Companion item 7 (turn toward V on arrival): dropped (the user, 2026-10-17: the issue does not happen in the game).**
 - **AMD Vulkan check of Bonsai lite: dropped by the user (2026-10-17);** no note in player text.
 - **YouTube TV is removed completely** (the user, 2026-10-15; log `remove-youtube-tv`).
