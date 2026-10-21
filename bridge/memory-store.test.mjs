@@ -865,3 +865,32 @@ test('a fact found later never rewrites a record the player wrote or edited', as
   await clock.advance(0);
   assert.deepEqual(store.listRecords('judy-alvarez').map(record => record.text).sort(), ['V drives an old Thorton Galena', 'V really likes cheap whiskey after a long night shift']);
 });
+
+// ---- extraction on a route that cannot do it (Convai keeps its own memory)
+test('an extractor that cannot run on the current route is never scheduled: no attempt, no retry, no log line, no timer', async () => {
+  const calls = [], logs = [], route = {on: false};
+  const {store, clock} = await setup({log: line => logs.push(line)});
+  store.setExtractor(async args => { calls.push(args); return SAMPLE; }, () => route.on);
+  exchange(store, 'judy-alvarez', 8);
+  await clock.advance(30 * 60 * 1000);
+  assert.equal(calls.length, 0);
+  assert.deepEqual(logs, []);
+  assert.equal(clock.count, 0, 'nothing is armed while the route cannot extract');
+  // The exchanges are kept: when the route can extract again (the provider was switched), a refresh schedules them at once.
+  route.on = true; store.refresh();
+  await clock.advance(1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].turns.length, 8);
+  assert.deepEqual(logs, []);
+});
+
+test('an extractor with a route check that says yes runs as before, and a real failure still backs off and logs', async () => {
+  const calls = [], logs = [];
+  const {store, clock} = await setup({log: line => logs.push(line)});
+  store.setExtractor(async args => { calls.push(args); throw new Error('boom'); }, () => true);
+  exchange(store, 'judy-alvarez', 6);
+  await clock.advance(1);
+  assert.equal(calls.length, 1);
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /memory extract failed \(boom\); retrying in 60 s/);
+});

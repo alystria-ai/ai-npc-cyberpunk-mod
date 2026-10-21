@@ -98,7 +98,7 @@ export class MemoryStore {
     this.root = dir ? join(dir, safePlayer(playerId)) : null;
     this.rows = new Map(); this.ambient = new Map();
     this.generation = 0;           // bumped by every forget: summaries, extractions and retrievals that began earlier are discarded
-    this.extractor = null;
+    this.extractor = null; this.extractorCanRun = null;
     this.dirty = new Set(); this.removedKeys = new Set(); this.wipeAll = false;
     this.damaged = new Set();      // characters whose file the load could not use: kept aside (<key>.json.corrupt) before a save writes over it
     this.saving = Promise.resolve(); this.saveTimer = null;
@@ -407,14 +407,24 @@ export class MemoryStore {
 
   // ---------------------------------------------------------------- background work
   /** `fn({profileKey, turns, known, signal}) -> Promise<[{text, kind, importance, replaces?}]>`, supplied by the host. */
-  setExtractor(fn) { this.extractor = typeof fn === 'function' ? fn : null; this.#plan(); }
+  setExtractor(fn, canRun = null) {
+    this.extractor = typeof fn === 'function' ? fn : null;
+    this.extractorCanRun = typeof canRun === 'function' ? canRun : null;
+    this.#plan();
+  }
+  /**
+   * The extractor's route changed (the conversation provider was switched): look at the schedule again. While `canRun` says no (the chat is on
+   * Convai, which keeps its own memory), nothing is scheduled at all: no attempt, no retry, no log line; the exchanges stay pending for a route that can.
+   */
+  refresh() { this.#plan(); }
+  #extractorOn() { try { return !this.extractor ? false : !this.extractorCanRun || this.extractorCanRun() !== false; } catch { return false; } }
   /** Aborts the running background job (a turn started). The exchanges stay pending and are retried later. */
   interrupt() { this.running?.controller.abort(); }
 
   #dueTimes(row) {
     const embedder = this.embedder;
     let extract = Infinity, embed = Infinity;
-    if (embedder && this.extractor && row.pending.length) {
+    if (embedder && this.#extractorOn() && row.pending.length) {
       extract = Math.max(row.sched.extractAt, row.pending.length >= EXTRACT_COUNT ? 0 : row.pending.at(-1).at + IDLE_MS);
     }
     if (embedder && row.unembedded) embed = row.sched.embedAt;

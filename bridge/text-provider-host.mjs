@@ -444,7 +444,9 @@ export class TextProviderHost {
     this.timers = new Set();
     this.closed = false;
     // Facts are extracted by the memory store when it is idle; it calls back here for the model request.
-    this.memory?.setExtractor?.(task => this.#extract(task));
+    // Only while a text provider answers: on Convai (its own long-term memory) nothing is scheduled; a provider switch re-plans.
+    this.memory?.setExtractor?.(task => this.#extract(task), () => this.provider.active === true);
+    try { this.unwatchProvider = this.provider.onChange?.(() => this.memory?.refresh?.()); } catch { /* an observer never breaks the host */ }
   }
 
   // The free plan allows about one request a second. Every request takes the next free start slot, so two requests (a reply and
@@ -1019,8 +1021,10 @@ export class TextProviderHost {
 
   // The memory store's fact extraction (bridge/memory-store.mjs): it decides when (idle, 6 exchanges), this makes the request.
   async #extract({profileKey, turns, known, signal}) {
+    // The chat went to Convai after the job was planned: not a failure, so no backoff and no log (the store stops scheduling while the provider is inactive).
+    if (!this.provider.active) throw Object.assign(new MistralError('request', 'extraction is not available on this route'), {retryLater: true});
     const route = this.routes[this.provider.route];
-    if (!route || !this.provider.active || !route.summarizeAllowed()) throw new MistralError('request', 'cannot extract facts now');
+    if (!route || !route.summarizeAllowed()) throw new MistralError('request', 'cannot extract facts now');
     const name = this.personas.persona(profileKey).name;
     let response;
     try {
@@ -1061,7 +1065,7 @@ export class TextProviderHost {
   /** What Forget does to this provider's memory. */
   forget(scope) { return this.memory.forget(scope); }
 
-  close() { this.closed = true; for (const timer of this.timers) clearTimeout(timer); this.timers.clear(); }
+  close() { this.closed = true; try { this.unwatchProvider?.(); } catch { /* already gone */ } for (const timer of this.timers) clearTimeout(timer); this.timers.clear(); }
 }
 
 /**
