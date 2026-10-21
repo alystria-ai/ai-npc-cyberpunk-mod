@@ -324,3 +324,33 @@ test('protectedReason: named, quest-flagged and story-record characters are off 
         facts={quest='MinorQuest',vendor=true,vendorType='Food',recordName='Character.v',bodyType='ManAverage'}})~=nil)
   `);
 });
+
+// 2026-10-22 report: Panam in her apartment scene was talked to as npc-aldecaldos-female. Her record's hash string did not match the roster's, and the
+// roster was never looked up by the readable record name the facts carry; a named character the game placed must never fall to an archetype.
+test('a world character found by facts.recordName never falls to an archetype: nil with story talk off, her profile with it on',()=>{
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({
+      {key='panam-palmer',name='Panam Palmer',aliases={'Panam'},records={'Character.Panam'}},
+      {key='resident-female',name='Night City Resident Female'}
+    },index)
+    local facts={recordName='Character.Panam',affiliation='Aldecaldos',gender='Female',bodyType='WomanAverage'}
+    local function who(actor) return (api.resolve(catalog,actor)) end
+    -- The hash string and the display name both miss (a scene name, another hash form): the readable record name still finds her.
+    local scene={world=true,name='Someone Else',record='<TDBID:DEADBEEF:07>',bodyType='WomanAverage',facts=facts}
+    assert(who(scene)==nil, 'story talk off: the game own character, no profile, no archetype')
+    scene.story=true
+    assert(who(scene)=='panam-palmer', 'story talk on: her profile')
+    -- Without the record name in the facts the same actor is an ordinary Aldecaldos woman, so the lookup is what makes the difference.
+    local plain={world=true,name='Someone Else',record='<TDBID:DEADBEEF:07>',bodyType='WomanAverage',
+        facts={recordName='Character.aldecaldos_grunt',affiliation='Aldecaldos',gender='Female',bodyType='WomanAverage'}}
+    assert(who(plain)=='npc-aldecaldos-female', 'an unnamed Aldecaldos woman is still an archetype')
+    -- The facts the actor carries when "Talk to ordinary NPCs" is off are absent: nothing changes there.
+    assert(who({world=true,name='Panam',record='<TDBID:DEADBEEF:07>',bodyType='WomanAverage'})==nil, 'the display name alone still finds her')
+    -- Every other system leaves her alone too, found by the same record name.
+    assert(api.protectedReason(catalog,{record='<TDBID:DEADBEEF:07>',name='Someone Else',facts=facts})=='named')
+    assert(api.protectedReason(catalog,{record='<TDBID:DEADBEEF:07>',name='Someone Else',facts=plain.facts})==nil)
+    -- A character our own copy spawned (managed key) is untouched by all of this.
+    assert(who({managedKey='panam-palmer',world=false,name='Panam Palmer'})=='panam-palmer')
+  `);
+});

@@ -776,6 +776,21 @@ function convaiUnprofiledWhy(npc)
     return ok and text or ''
 end
 
+-- The identity the roster lookup saw, as the tail of the "Archetype conversation" log line (a talk key press only, never per frame): the record's hash
+-- string (what characterCatalog.resolve compares first), its readable record name (facts.recordName, the second lookup) and the display name (the third).
+-- Without it a named character that fell to an archetype cannot be told from a roster gap (2026-10-22 report: Panam talked to as npc-aldecaldos-female).
+-- A global, so no function here gains an upvalue; every read is guarded and archetypeFacts is cached per entity.
+function convaiArchetypeIdentity(npc)
+    local ok, text = pcall(function()
+        local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        local facts = archetypeFacts(npc, idOk and entity or nil, tostring(npc:GetBodyType() or ''))
+        local nameOk, display = pcall(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '?') end)
+        return ' recordId=' .. tostring(facts.recordId or '?'):sub(1, 80) .. ' recordName=' .. tostring(facts.recordName or '?'):sub(1, 80)
+            .. ' name=' .. (nameOk and display or '?'):sub(1, 60)
+    end)
+    return ok and text or ''
+end
+
 -- Characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md): recognised from the shared dynamic entity
 -- system, never from another mod's names. A global, so no function here gains an upvalue; optional like the modules below.
 do
@@ -2445,7 +2460,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         local generated = convaiNpcNames and convaiNpcNames.nameFor(npc, 'talk') or nil
         if generated then primary.name, primary.archetype.npcName = generated, generated end
         log('Archetype conversation: profile=' .. key .. ' base=' .. tostring(primary.archetype.base)
-            .. ' district=' .. tostring(primary.archetype.district))
+            .. ' district=' .. tostring(primary.archetype.district) .. (convaiArchetypeIdentity and convaiArchetypeIdentity(npc) or ''))
     end
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     -- A generic spawned person in the round learns where it stands and gets its Night City name, like a generic primary.
