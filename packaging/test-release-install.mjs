@@ -213,6 +213,7 @@ async function localAiChecks({work, game, app}) {
   check('Local AI models are whole files, no parts', !(await readdir(join(root, 'models'))).some(name => /\.part\d+$/.test(name)));
   // The packaged bridge finds the pack from the environment the packaged service gives it, ignoring a developer's folder.
   const script = join(work, 'local-ai-detect.mjs');
+  // The second argument of the script is a folder to use as the Runtime's engine folder instead of the install's (the fall-back check below).
   await writeFile(script, `
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
@@ -222,6 +223,7 @@ const launcher = await load('launcher/prepare-state.mjs');
 const {detectLocalAiPack} = await load('bridge/local-ai-pack.mjs');
 const layout = launcher.installLayout({appDirectory: app, gameRoot: ${JSON.stringify(game)}});
 const env = launcher.serviceEnvironment(layout, {omni: false, keyFile: 'unused'}, {CYBERPUNK_CONVAI_LOCAL_AI_DEV: 'C:/nowhere'});
+if (process.argv[2]) env.CYBERPUNK_CONVAI_LOCAL_ENGINE = process.argv[2];
 console.log(JSON.stringify(detectLocalAiPack({project: app, environment: env})));
 `);
   const detected = spawnSync(join(app, 'node/node.exe'), [script], {env: cleanEnv(), encoding: 'utf8'});
@@ -229,8 +231,18 @@ console.log(JSON.stringify(detectLocalAiPack({project: app, environment: env})))
   try { pack = JSON.parse(detected.stdout.trim().split('\n').pop()); } catch { /* reported below */ }
   check('the packaged bridge detects both Local AI tiers and the embedding model',
     pack.installed === true && pack.dev === false && pack.tiers?.standard?.name === spec.tiers.standard.name && pack.tiers?.lite?.name === spec.tiers.lite.name
-      && pack.embed?.dim === spec.embed.dim && (pack.missing ?? ['?']).length === 0 && pack.server?.startsWith(root),
+      && pack.embed?.dim === spec.embed.dim && (pack.missing ?? ['?']).length === 0 && pack.server?.startsWith(join(app, spec.server.runtimeFolder)),
     detected.status === 0 ? `standard ${pack.tiers?.standard?.name}, lite ${pack.tiers?.lite?.name}, embed ${pack.embed?.id}, missing [${pack.missing}]` : detected.stderr.slice(-500));
+  // The Runtime's engine is the one used; a pack that still carries its own copy (localAi.server.inPacks) is the fall-back when the Runtime has none
+  // (an older Runtime, a file an antivirus tool took).
+  check("the packaged bridge uses the Runtime's engine, not the pack's copy", pack.engine?.source === 'runtime', `engine ${JSON.stringify(pack.engine)}`);
+  if (spec.server.inPacks !== false) {
+    const fallback = spawnSync(join(app, 'node/node.exe'), [script, join(work, 'no-engine-here')], {env: cleanEnv(), encoding: 'utf8'});
+    let old = {};
+    try { old = JSON.parse(fallback.stdout.trim().split('\n').pop()); } catch { /* reported below */ }
+    check("with no Runtime engine the pack's own copy is found", old.installed === true && old.server?.startsWith(root),
+      fallback.status === 0 ? String(old.server).split(/[\\/]/).slice(-3).join('/') : fallback.stderr.slice(-400));
+  }
   const server = pack.server;
   if (!server) return;
   const version = spawnSync(server, ['--version'], {env: cleanEnv(), encoding: 'utf8'});
@@ -369,8 +381,20 @@ async function main() {
     const required = await requiredRuntimeFiles(project);
     const installed = new Set(Object.values(required).flat().filter(rel => existsSync(join(game, rel))));
     const absent = missingRuntimeFiles(installed, required);
-    check("the Runtime carries V's voice clips and its OmniVoice lists", Object.keys(absent).length === 0,
+    check("the Runtime carries V's voice clips, its OmniVoice lists and the llama.cpp engine", Object.keys(absent).length === 0,
       Object.keys(absent).length ? Object.entries(absent).map(([group, files]) => `${group}: ${files.map(file => file.split('/').pop()).join(', ')}`).join('; ') : `${Object.values(required).flat().length} files`);
+    // The engine is part of the Runtime (docs/LOCAL_AI.md, "The engine is in the Runtime"): the server starts from there with nothing else installed, and the
+    // free-memory fit tool beside it answers. This needs no Local AI pack and no graphics card, so it runs on every install.
+    {
+      const engineSpec = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8')).localAi.server;
+      const engineDirectory = join(app, engineSpec.runtimeFolder);
+      const runtimeServer = spawnSync(join(engineDirectory, 'llama-server.exe'), ['--version'], {env: cleanEnv(), encoding: 'utf8'});
+      const output = `${runtimeServer.stdout}${runtimeServer.stderr}`;
+      check("the Runtime's llama-server starts without anything else installed", new RegExp(`build ${engineSpec.version.replace(/^b/, '')}\\b`).test(output),
+        output.split('\n').find(line => /build/.test(line)) ?? `exit ${runtimeServer.status}`);
+      const fitTool = spawnSync(join(engineDirectory, 'llama-fit-params.exe'), ['--help'], {env: cleanEnv(), encoding: 'utf8'});
+      check("the Runtime's llama-fit-params starts", fitTool.status === 0 && /fit/i.test(`${fitTool.stdout}${fitTool.stderr}`), `exit ${fitTool.status}`);
+    }
     const vScript = join(work, 'v-voice-check.mjs');
     await writeFile(vScript, `
 import {pathToFileURL} from 'node:url';

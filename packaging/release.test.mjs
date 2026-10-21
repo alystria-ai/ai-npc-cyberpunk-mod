@@ -640,7 +640,7 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
   assert.match(builder, /the Mature packs ship Apache-2\.0 base models only/);
   assert.match(builder, /lite and good, one model each/);
-  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', server: engine\.server, \[tierKey\]: \{file: [^\n]*embed: engine\.embed\}\);/, 'each pack writes its own marker with its own model only, and the server and the embedding model');
+  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \.\.\.\(engine\.server \? \{server: engine\.server\} : \{\}\), \[tierKey\]: \{file: [^\n]*embed: engine\.embed\}\);/, 'each pack writes its own marker with its own model only, and the server and the embedding model');
   assert.match(builder, /THIRD-PARTY-NOTICES-\$\{packKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
   assert.match(builder, /mature-pack-\$\{packKey\}\.json/);
   // A marker of that shape, for each pinned model, is what the detector accepts alone, and it is not the Local AI pack.
@@ -672,7 +672,8 @@ test('the Mature packs carry the Local AI engine: the same shared files as the L
   assert.match(engine, /\$\{root\}\/models\/\$\{spec\.embed\.file\}/, 'the embedding model');
   for (const licence of ['Apache-2.0.txt', 'llama.cpp-MIT.txt']) assert(engine.includes(`\${root}/licenses/${licence}`), licence);
   assert.match(engine, /\$\{root\}\/LICENSE\.txt/);
-  assert.match(engine, /for \(const name of spec\.server\.require\)/, 'a build without the required server files stops');
+  assert.match(body('engineFiles'), /for \(const name of spec\.server\.require\)/, 'a build without the required server files stops');
+  assert.match(engine, /await engineFiles\(config\)/, 'the packs take the engine files from the same helper as the Runtime');
   for (const name of ['localAiPackage', 'maturePackage']) assert.match(body(name), /await addEngine\(pkg, source, config\)/, name);
   // The engine comes from the same pinned inputs: the same localAi entries, checked against the same hashes, whichever pack asks.
   assert.doesNotMatch(body('maturePackage'), /spec\.server|llama-b\d+/, 'the Mature builder has no pins of its own for the engine');

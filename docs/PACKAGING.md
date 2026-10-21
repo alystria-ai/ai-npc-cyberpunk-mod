@@ -9,9 +9,9 @@ How the player release is built, what it contains and how it starts. Players rea
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
 | `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, beside the full Runtime | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
 | `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip`, `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
 | `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip`, `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) and the Local AI engine (the `llama` folder, the embedding model and the licence texts, the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone. |
@@ -61,6 +61,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
+    llama-cpp/               the llama.cpp engine of Local AI: llama-server, llama-fit-params and the libraries they load (26 files; the Runtime update zip delivers a new build)
     bridge/                  production import closure + worker scripts + the supervisor
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
@@ -72,7 +73,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs, state-home.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
-    local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
+    local-ai/                the Local AI pack(s), when installed (models/, licenses/, manifest.*.json; llama/ in a pack that still carries its own engine)
   voices/                    reference clips (outside app/: the Omni worker requires it)
     prepared/                the bridge's cache of the Mistral voice's references, and the OmniVoice pack's slots (see below)
     prepared-runtime/        the Runtime's pre-built slots for the Pocket clips (read after prepared/, never written)
@@ -152,12 +153,22 @@ The list lives in `native.off` in `packaging/release.config.json`; change it the
 ### Local AI packs
 
 Two optional downloads (`docs/LOCAL_AI.md`): `localai-standard` (Gemma 4 E4B) and `localai-lite` (Bonsai 2 4B). Each holds the
-`llama-server` Vulkan build b11782 (the server, `llama-fit-params.exe` for the free-memory fit, and their DLLs), the granite embedding model, one chat model, a manifest fragment
+the granite embedding model, one chat model, a manifest fragment
 (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`), the licence texts and the notices, under
 `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
 extracting both only overwrites identical bytes. The chat model ships whole (no parts): `bridge/local-ai-pack.mjs` finds the model file directly, and
 `assemble-parts.mjs` only joins parts that an earlier release left behind (it finds no `.parts.json` in a current install and does nothing). Every file is the unmodified upstream file, pinned in the
 `localAi` block of `release.config.json` by URL, revision and SHA-256; a developer folder can stand in with `--models local`.
+**The engine is in the Runtime (2026-10-21, `packaging/engine-in-runtime.test.mjs`).** The `llama-server` Vulkan build (b11782: the server, `llama-fit-params.exe` for the
+free-memory fit, and their DLLs, 26 files, 82.5 MiB, 29.8 MiB zipped) is built into the Runtime by `addRuntimeEngine` in `build-release.mjs`, at `app/llama-cpp/`, from the same pinned
+download, hash and keep/drop/require lists the packs used (`localAi.server`; `runtimeFolder` names the folder, `bridge/local-ai-pack.mjs` `RUNTIME_ENGINE_FOLDER`). The Runtime update zip then
+delivers an engine fix like any other changed file (a Runtime update from 0.2.6 adds the 26 files), and `packaging/lib/runtime-required.mjs` makes `check-runtime-contents.mjs` and the
+install test refuse a Runtime without them. The bridge uses the Runtime's engine first and the copy inside a pack as the fall-back (docs/LOCAL_AI.md, "The engine is in the Runtime");
+`apply-removals` already protects `app/local-ai/`, so a pack's own `llama/` is never deleted. **The packs:** `localAi.server.inPacks` (true now) keeps a copy of the engine in the packs'
+`llama/` folder, so a pack downloaded by a player who has not updated the Runtime still runs; no pack has to be rebuilt for this change (the packs on Hugging Face are reused
+unchanged, and the old ones work with the new Runtime). The next time a pack is rebuilt for another reason, set `inPacks` to false: the pack then carries models only (about 37 MB
+smaller), its marker names no `server`, and it needs a Runtime from 0.2.7 on (say so on the Nexus requirements and the model card).
+
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Bonsai 2 4B (PrismML, a Qwen3.5-based model) Apache-2.0, granite-embedding
 Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
@@ -516,6 +527,11 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
     real folder (Windows looks beside the real exe): if both packs ship `llama/` and MO2 would give the exe from one mod and a DLL from the
     other, the server is taken from the folder with the most of the DLLs the merged `llama/` lists (the winning exe's folder, else the folder
     of any marker that names a server; ties go to the winner). OmniVoice is one pack in one mod, so its real root is kept.
+  - **The engine is a Runtime file, so it is never split (2026-10-21).** `app/llama-cpp/` is in the Runtime's own mod folder; the service gives the bridge
+    its real path (`CYBERPUNK_CONVAI_LOCAL_ENGINE = layout.engine`, from the real `appDirectory`), the server, its DLLs and `llama-fit-params.exe` are neighbours there whatever
+    mods the packs are in, and the file-by-file DLL choice above only matters for an old pack that still carries its own `llama/`. The packs' merged virtual folder is
+    still handed over as before for their markers and models (`packaging/engine-in-runtime.test.mjs`, the MO2 cases: both models-only packs on the Runtime mod's engine, a Mature pack
+    alone, old packs beside the new Runtime mod, and old packs without it).
   - **Voice-input (microphone) packs are resolved the same way (2026-10-20, `packaging/mo2-mic-packs.test.mjs`).** MicPack-European and MicPack-Asian unpack
     into `app/models/stt/<id>`, which the service used to read only from the Runtime's own real app folder, so a pack installed as its own MO2 mod was
     missed. Under MO2 `start-service.mjs` now puts the VIRTUAL `app/models/stt` in `CYBERPUNK_CONVAI_STT_PACKS` (`layout.sttPacks`; set only
@@ -667,7 +683,7 @@ into a release. Inputs:
 - The launcher, compiled from `native/autostart` with MSVC (`/Brepro`, reproducible), and the native plugin from `native/core`
   (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
 - `ffmpeg`, for the pre-built Mistral voice references.
-- The Local AI files (llama.cpp release zip, embedding model, chat models), downloaded from their pinned URLs (no secret needed). The Mature packs use the same llama.cpp zip and embedding model, so those two small files are fetched once for both kinds of pack.
+- The Local AI files (llama.cpp release zip, embedding model, chat models), downloaded from their pinned URLs (no secret needed). The Runtime, the Local AI packs and the Mature packs use the same llama.cpp zip and the packs the same embedding model, so those small files are fetched once. A Runtime build needs the llama.cpp zip (36.8 MB) as well; with `--models local` it is read from the developer folder's `dl-llama-vulkan/vulkan.zip` and checked against the pinned hash.
 - The optional Mature packs' models (`--packages mature-lite` or `mature-standard`, never in the default set; only the model of the pack being built), from the private bucket's `mature/` mirror
   (`packaging/fetch-models.py --mature --tier lite|good`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from
   their pinned public Hugging Face URLs when the mirror lacks them. `--models local` reads the developer folder instead. `mature/` is outside `final/`, so the
