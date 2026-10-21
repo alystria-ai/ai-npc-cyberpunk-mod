@@ -885,14 +885,14 @@ test('the Settings page has no read-only rows at all and no Voice status row, an
         {state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral'},
         {state = 'ready', provider = 'pocket', requestedProvider = 'pocket'},
         {state = 'remote', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = 'voxtral',
-          fallback = {from = 'voxtral', to = 'convai', temporary = false, reason = 'no-key'}}}) do
+          fallback = {from = 'voxtral', to = 'text', temporary = false, reason = 'no-key'}}}) do
       status(state)
       walk()
       assert(row('voice-status') == nil)
     end
-    -- The voice that fell back is still announced once (the notice of the voice state, not a row).
+    -- The voice that became unavailable is still announced once (the notice of the voice state, not a row): replies are written, never given to the Convai voice.
     local notice = manager.takeVoiceFallbackNotice()
-    assert(type(notice) == 'string' and notice:find('Convai', 1, true), tostring(notice))
+    assert(notice == 'Mistral cloud voice (Voxtral) is unavailable right now. Replies show as text until it is back.', tostring(notice))
     assert(manager.takeVoiceFallbackNotice() == nil)
   `);
 });
@@ -5148,7 +5148,7 @@ test('the Mistral key row\'s Remove help says what the key still powers: the con
     -- Conversations on Mistral only.
     assert(set({conversationProvider = 'mistral'}) == FIXED .. ' Conversations go back to Convai free tier.' .. TAIL, help())
     -- Companions on Voxtral only.
-    assert(set({conversationProvider = 'convai', voiceProvider = 'voxtral'}) == FIXED .. ' Companions switch from Voxtral to the Convai voice.' .. TAIL, help())
+    assert(set({conversationProvider = 'convai', voiceProvider = 'voxtral'}) == FIXED .. ' Voxtral stops speaking; companion replies show as text until a key is saved.' .. TAIL, help())
     -- V on Voxtral only (V's voice on).
     assert(set({voiceProvider = 'pocket', vVoiceEngine = 'voxtral'}) == FIXED .. ' V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
     -- V's voice off keeps the engine, but it powers nothing.
@@ -5156,11 +5156,11 @@ test('the Mistral key row\'s Remove help says what the key still powers: the con
     assert(set({vVoice = true}) == FIXED .. ' V’s voice switches from Voxtral to Pocket.' .. TAIL)
     -- Mistral and Voxtral together: both sentences, in that order.
     assert(set({conversationProvider = 'mistral', voiceProvider = 'voxtral', vVoiceEngine = 'pocket'})
-      == FIXED .. ' Conversations go back to Convai free tier. Companions switch from Voxtral to the Convai voice.' .. TAIL, help())
+      == FIXED .. ' Conversations go back to Convai free tier. Voxtral stops speaking; companion replies show as text until a key is saved.' .. TAIL, help())
     assert(set({conversationProvider = 'mistral', voiceProvider = 'pocket', vVoiceEngine = 'voxtral'})
       == FIXED .. ' Conversations go back to Convai free tier. V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
     assert(set({voiceProvider = 'voxtral'})
-      == FIXED .. ' Conversations go back to Convai free tier. Companions switch from Voxtral to the Convai voice. V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
+      == FIXED .. ' Conversations go back to Convai free tier. Voxtral stops speaking; companion replies show as text until a key is saved. V’s voice switches from Voxtral to Pocket.' .. TAIL, help())
     -- Without a saved key the row is the paste row and says nothing about removal.
     bridge({provider = 'convai', effective = 'convai', saved = false})
     loaded = registered.loadMod('manager')

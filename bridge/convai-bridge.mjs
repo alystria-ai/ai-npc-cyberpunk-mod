@@ -1016,10 +1016,10 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 // the context (tags or none), the Convai TTS flag and the delivery all agree. An English turn is exactly the character's chosen
 // voice; a turn in another language never reaches Pocket (its reply is shown as text), and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
-// A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
-// which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
-// `convai`: the Convai voice may speak this installation's turns, because the player chose it or chose a cloud voice that falls to it. A LOCAL voice
-// that cannot run (or has no clip for this character) is never replaced by it: that turn is written (planTurnVoice 'none'), and Convai gets ttsEnabled false.
+// A cloud voice with no key speaks nothing, and its turns are written (planTurnVoice 'none'): neither a local voice nor the Convai voice stands in for it.
+// `convai`: the Convai voice may speak this installation's turns, and only because the player chose it. A voice that cannot run (a local one,
+// or Voxtral with no key, in a cool-down or in a language it does not list) or has no clip for this character is never replaced by it: that turn is
+// written, and Convai gets ttsEnabled false (convaiSpeaks below).
 // `cloud` and `speaks`: the Voxtral voice (it runs on Pocket's route) and the languages the model in use speaks (bridge/multilingual.mjs cloudSpeaks).
 const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,
   cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language)});
@@ -1037,6 +1037,8 @@ function turnVoice(input) {
 }
 // True when the Convai cloud voice is NOT the one speaking this turn: a local voice, or nothing at all ('none': written). Either way Convai sends no audio.
 const turnUsesLocal = input => turnVoice(input).engine !== 'convai';
+// Does Convai's own cloud voice speak this turn (the ttsEnabled flag of a Convai text turn)? Only when the player chose the Convai voice (owner rule 2026-10-21).
+const convaiSpeaks = input => localVoice.playbackEnabled !== false && localVoice.convaiVoiceAllowed && !turnUsesLocal(input);
 // One line per spoken reply: the voice chosen, the voice that spoke and why they differ (bridge/voice-routing-log.mjs).
 // Routing facts only, no dialogue; the file append is queued off the speech path. Never allowed to affect a reply.
 function logVoiceRoute(input, profile, reply, extra = {}) {
@@ -1070,7 +1072,7 @@ function voiceKeyFor(input) {
   return key;
 }
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
-const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({textProvider: true,
+const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && localVoice.convaiVoiceAllowed && planTurnVoice({textProvider: true,
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
@@ -1248,9 +1250,9 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
-  ttsEnabled: localVoice.playbackEnabled!==false&&!turnUsesLocal(input),
-  // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice or a cloud
-  // voice that falls to it are the only cases where it speaks), and a fault in the format of any audio it does send leaves the written reply instead of failing the turn
+  ttsEnabled: convaiSpeaks(input),
+  // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice is
+  // the only case where it speaks), and a fault in the format of any audio it does send leaves the written reply instead of failing the turn
   // (bridge/realtime-client.mjs, audioOptional).
   audioOptional: localChoice(input.profileKey).uses});
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
@@ -2233,7 +2235,7 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
     await connections.retireInvitation(prepared.route.profileKey, {signal});
     const host = prepared.route.channel === 'phone' ? phoneRealtime : realtime;
     const config = {...realtimeConfig(prepared.input), ttsEnabled: prepared.route.channel === 'phone'
-      ? false : localVoice.playbackEnabled!==false&&!turnUsesLocal(prepared.input)};
+      ? false : convaiSpeaks(prepared.input)};
     if (!await host.refreshIdle(config)) throw Error('The character connection is still releasing. Please try again.');
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');

@@ -570,20 +570,26 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
   } finally { await server.close(); }
 });
 
-test('cloud to cloud is the only fallback that leaves the computer: Voxtral chosen with no usable Pocket route falls to the Convai voice, and a local voice never does', async () => {
+test('nothing falls to the Convai voice: Voxtral chosen with no usable Pocket route is written text, like a local voice that cannot run', async () => {
   const server = await serve((request, response) => { response.end(); });
   try {
-    // Voxtral chosen, but this installation has no Pocket route to ride on at all: the Convai voice (cloud to cloud), as before.
+    // Voxtral chosen, but this installation has no Pocket route to ride on at all: text (owner rule 2026-10-21: the Convai voice speaks only when chosen).
     const rideless = new VoiceSelection({}, {voxtral: new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), endpoint: server.endpoint,
       read: async () => REFERENCE, scheduler: fastScheduler()})});
     rideless.update({voiceProvider: 'voxtral'}, null, false);
-    assert.equal(rideless.provider, 'convai'); assert.equal(rideless.convaiVoiceAllowed, true);
+    assert.equal(rideless.provider, 'text'); assert.equal(rideless.convaiVoiceAllowed, false); assert.equal(rideless.cloudActive, false);
+    assert.deepEqual(await rideless.prepareProfile('judy-alvarez'), {provider: 'text', ready: true, reason: rideless.remoteReason('judy-alvarez')});
     await rideless.close();
     // The same installation with a LOCAL voice chosen: text, and the Convai voice is not allowed.
     const local = new VoiceSelection({});
     local.update({voiceProvider: 'pocket'}, null, false);
     assert.equal(local.provider, 'text'); assert.equal(local.convaiVoiceAllowed, false);
     await local.close();
+    // Only a player who chose the Convai voice gets it.
+    const chosen = new VoiceSelection({});
+    chosen.update({voiceProvider: 'convai'}, null, false);
+    assert.equal(chosen.provider, 'convai'); assert.equal(chosen.convaiVoiceAllowed, true);
+    await chosen.close();
   } finally { await server.close(); }
 });
 
@@ -613,20 +619,20 @@ test('a first ask that times out and a second one that speaks never announce a s
   } finally { await server.close(); }
 });
 
-test('what really blocks the cloud voice (no key, a refused key, a limit cooling down) is still published as the fallback to the Convai voice', async () => {
+test('what really blocks the cloud voice (no key, a refused key, a limit cooling down) is published as unavailable, replies written (never the Convai voice)', async () => {
   const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '30'}); response.end(); });
   try {
     let key = null;
     const h = selection(server); h.cloud.getKey = () => key;
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     h.voice.publish();
-    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'no-key'});
+    assert.deepEqual(h.states.at(-1).fallback, {from: 'voxtral', to: 'text', temporary: false, reason: 'no-key'});
     key = KEY;
     h.voice.publish();
     assert.equal(h.states.at(-1).fallback, null, 'the key is back');
     await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Limited.', {onPcm() {}}), {kind: 'limit'});
     assert.equal(h.states.at(-1).fallback?.reason, 'limit', 'a limit cooling down is a real block');
-    assert.equal(h.states.at(-1).fallback?.to, 'convai');
+    assert.equal(h.states.at(-1).fallback?.to, 'text');
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -686,7 +692,7 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
     assert.equal(server.requests.length, 2, 'asked, then asked once more'); assert.equal(packets.length, 0);
     assert.deepEqual(asked(), [60, 120], 'the second ask waits longer than the first');
     assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0, 'no local worker was ever created');
-    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'text', temporary: true, reason: 'timeout'});
     h.voice.publish();
     // Not announced as a switch to the Convai voice: the next reply asks the cloud voice again (the 2026-10-20 live test showed "Companions are using
     // Convai for now" after one slow first ask). The reason stays in the state for the support report.
@@ -715,14 +721,14 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
   } finally { await server.close(); }
 });
 
-test('without a Mistral key the cloud voice is unavailable, the turn goes to the Convai voice, and nothing local is loaded; a key added later is used at once', async () => {
+test('without a Mistral key the cloud voice is unavailable, the turn is written (never the Convai voice), and nothing local is loaded; a key added later is used at once', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
     let key = null;
     const h = selection(server); h.cloud.getKey = () => key;
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
-    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'no-key'});
-    assert.equal(h.voice.cloudKeyless, true, 'the bridge sends this turn to the Convai cloud voice');
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'text', temporary: false, reason: 'no-key'});
+    assert.equal(h.voice.cloudKeyless, true, 'the bridge writes this turn'); assert.equal(h.voice.convaiVoiceAllowed, false);
     await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'No key.', {onPcm() {}}), /no key/);
     assert.equal(server.requests.length, 0); assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
     key = KEY;
@@ -821,15 +827,15 @@ test('the routing log names the cloud voice; with a reason only when the cloud v
     assert.equal(record.used, 'Mistral cloud voice (Voxtral)'); assert.equal(record.fallback, null); assert.equal(record.cloudLast, 'timeout');
     const line = formatVoiceRoute(record);
     assert.ok(line.includes('used="Mistral cloud voice (Voxtral)"') && line.includes('cloudLast=timeout') && !line.includes('fallback='), line);
-    // No key: the cloud voice cannot be asked at all. The turn goes to the Convai voice (engine 'convai'); a reply that still reached the
-    // cloud route is written only. No local voice is named, and the line says why.
+    // No key: the cloud voice cannot be asked at all. The turn is written (engine 'none'), as is a reply that still reached the cloud route.
+    // No local voice and not the Convai voice is named, and the line says why.
     h.cloud.getKey = () => null;
     record = describe();
     assert.equal(record.used, 'none (written reply only)'); assert.equal(record.fallback, 'Mistral cloud voice has no key'); assert.equal(record.cloudLast, undefined);
     assert.ok(formatVoiceRoute(record).includes('fallback="Mistral cloud voice has no key"'));
-    const convai = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
-      plan: {engine: 'convai'}, reply: {engine: 'convai'}, now: () => 0});
-    assert.equal(convai.used, 'Convai cloud (Anna)'); assert.equal(convai.fallback, 'Mistral cloud voice has no key');
+    const written = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
+      plan: {engine: 'none', reason: 'local-voice-unavailable'}, reply: {engine: 'none', reason: 'local-voice-unavailable'}, now: () => 0});
+    assert.equal(written.used, 'none (written reply only)'); assert.equal(written.fallback, 'Mistral cloud voice has no key');
     await h.voice.close();
   } finally { await server.close(); }
 });
@@ -1632,7 +1638,7 @@ test('the 2026-10-17 round: a 403 in the middle of a group round no longer silen
   } finally { await server.close(); }
 });
 
-test('a real bad key (401) is a key problem: the voice stops being asked, the turn goes to the Convai voice, and the log line says key; it recovers after the cool-down', async () => {
+test('a real bad key (401) is a key problem: the voice stops being asked, the turn is written (never the Convai voice), and the log line says key; it recovers after the cool-down', async () => {
   let good = false;
   const server = await serve((request, response) => {
     if (!good) { response.writeHead(401, {'content-type': 'application/json'}); response.end('{"message":"Unauthorized"}'); return; }
@@ -1644,11 +1650,11 @@ test('a real bad key (401) is a key problem: the voice stops being asked, the tu
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}}), {kind: 'key', status: 401});
     assert.equal(server.requests.length, 1);
-    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'key'});
-    assert.equal(h.voice.cloudKeyless, true, 'the next turn is spoken by the Convai voice, not left silent');
-    const convai = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
-      plan: {engine: 'convai'}, reply: {engine: 'convai'}, now: () => 0});
-    assert.equal(convai.used, 'Convai cloud (Anna)'); assert.equal(convai.fallback, 'Mistral cloud voice fell back (key)');
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'text', temporary: false, reason: 'key'});
+    assert.equal(h.voice.cloudKeyless, true, 'the next turn is written, not spoken by another voice'); assert.equal(h.voice.convaiVoiceAllowed, false);
+    const written = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
+      plan: {engine: 'none', reason: 'local-voice-unavailable'}, reply: {engine: 'none', reason: 'local-voice-unavailable'}, now: () => 0});
+    assert.equal(written.used, 'none (written reply only)'); assert.equal(written.fallback, 'Mistral cloud voice fell back (key)');
     assert.equal(h.calls.length, 0, 'never a local voice');
     good = true; time += VOXTRAL_LIMITS.keyCooldownMs + 1;
     assert.equal(h.voice.cloudKeyless, false, 'the cool-down is over: the cloud voice is tried again');
@@ -1658,7 +1664,7 @@ test('a real bad key (401) is a key problem: the voice stops being asked, the tu
   } finally { await server.close(); }
 });
 
-test('a long 429 sends the turns to the Convai voice for the cool-down instead of leaving them as text', async () => {
+test('a long 429 writes the turns for the cool-down (text, never the Convai voice); the voice returns by itself', async () => {
   const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '20'}); response.end(); });
   try {
     let time = 3_000_000;

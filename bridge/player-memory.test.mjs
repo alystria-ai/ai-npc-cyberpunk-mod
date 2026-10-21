@@ -789,7 +789,7 @@ test('bridge admission takes the session-only fast path for ambient routes and r
   const namedAdmit = runInNewContext('(' + body + ')', {playerMemory: memory, mistral: {active: false}, knowledgeRouter: {current: async () => true},
     intrinsicHistory: new IntrinsicCharacterContext([]), realtime: host, phoneRealtime: host,
     connections: {needsRetirement: () => false, retireInvitation: async profile => { retired.push(profile); }},
-    realtimeConfig: () => ({}), localVoice: {playbackEnabled: true}, turnUsesLocal: () => false,
+    realtimeConfig: () => ({}), localVoice: {playbackEnabled: true}, turnUsesLocal: () => false, convaiSpeaks: () => true,
     throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
   const provider = await namedAdmit(named);
   assert.equal(provider.memory.mode, 'provider'); assert.equal(provider.reconnectRequired, true);

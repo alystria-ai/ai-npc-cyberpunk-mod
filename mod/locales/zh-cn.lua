@@ -1045,7 +1045,7 @@ return {
     ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "缺少 TweakXL。请从 Nexus Mods 安装 TweakXL（nexusmods.com/cyberpunk2077/mods/4197），解压到 Cyberpunk 2077 文件夹，然后重新启动游戏。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "本模组只会更改菜单和提示。\n\n角色语音与你的对话语言是分开设置的。麦克风会把这个语言作为非英语语音的提示。",
     ["Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works."] = "伙伴会不时停顿、迟疑、笑或叹气，符合各自的性格。每个角色自行决定何时发生，这种情况很少见。\n\nOmniVoice 可以发出笑声和叹气；其他语音只会添加停顿。\n\nConvai 回复时无法与 Convai 云端语音同时使用：选择云端语音会关闭此功能，开启此功能则会把语音切换为 Pocket。使用 Mistral、Local AI 或 Custom 时可用。",
-    ["Companions switch from Voxtral to the Convai voice."] = "伙伴的语音从 Voxtral 切换为 Convai 语音。",
+    ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral 将不再发声；保存密钥之前，伙伴的回复将以文字显示。",
     ["Conversations go back to Convai free tier."] = "对话将改回使用 Convai（免费套餐）。",
     ["Deletes the saved key."] = "删除已保存的密钥。",
     ["Nothing you use now depends on it."] = "你目前使用的任何功能都不依赖它。",

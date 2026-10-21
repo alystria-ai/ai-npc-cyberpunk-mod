@@ -749,7 +749,7 @@ end
 local function mistralRemoval(snapshot)
     local settings, parts = snapshot.settings, {}
     if settings.conversationProvider == 'mistral' then parts[#parts + 1] = ui.t('Conversations go back to Convai free tier.') end
-    if settings.voiceProvider == 'voxtral' then parts[#parts + 1] = ui.t('Companions switch from Voxtral to the Convai voice.') end
+    if settings.voiceProvider == 'voxtral' then parts[#parts + 1] = ui.t('Voxtral stops speaking; companion replies show as text until a key is saved.') end
     if settings.vVoice == true and settings.vVoiceEngine == 'voxtral' then parts[#parts + 1] = ui.t('V’s voice switches from Voxtral to Pocket.') end
     if #parts == 0 then parts[1] = ui.t('Nothing you use now depends on it.') end
     return table.concat(parts, ' ')

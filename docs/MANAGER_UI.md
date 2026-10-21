@@ -127,7 +127,7 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
   status is in brackets in the row name: "Convai API key (...a1F9)" (the last four characters, the only part of a key ever shown),
   "(Added)", "(Checking...)" or "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help.
 - **What the Mistral key's Remove says.** The help starts with the fixed sentence "Deletes the saved key." and then names what the key powers now:
-  "Conversations go back to Convai free tier." (the provider is Mistral), "Companions switch from Voxtral to the Convai voice." (the companion voice
+  "Conversations go back to Convai free tier." (the provider is Mistral), "Voxtral stops speaking; companion replies show as text until a key is saved." (the companion voice
   is Voxtral), "V's voice switches from Voxtral to Pocket." (V's voice is on and its engine is Voxtral). With none of them: "Nothing you use now depends on
   it." The Convai key's Remove help stays "Deletes the saved key. Conversations go back to Convai free tier."
 - **Battle and loot reactions are off by default** (owner, 2026-10-20; a same-day on-by-default change never shipped). No migration, no Chosen keys.

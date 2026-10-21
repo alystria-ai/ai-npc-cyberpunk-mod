@@ -53,7 +53,7 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
 [*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
 [*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
-[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
+[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters. If Voxtral cannot speak (no key, a limit), replies show as text until it can: the mod never switches your voice to another one.
 [/list][b]2. Local: no internet, no account, no limit[/b][list]
 [*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
 [*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
@@ -149,7 +149,7 @@ When something in the mod fails, or replies stay slow, a short report goes to th
 [/list]
 
 [b]What languages can I use?[/b]
-Menus come in sixteen languages. Characters answer in the language you write in, automatically; there is nothing to switch on. Pocket speaks English only, so a reply in another language is shown as text, with a one-time notice. OmniVoice speaks every language, Voxtral the 22 languages Mistral lists for it, and the Convai voice (with Convai as the provider) other languages too. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
+Menus come in sixteen languages. Characters answer in the language you write in, automatically; there is nothing to switch on. Pocket speaks English only, and Voxtral the 22 languages Mistral lists for it, so a reply in a language your voice does not speak is shown as text, with a one-time notice. OmniVoice speaks every language, and so does the Convai voice (with Convai as the provider), if you chose it. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 
 [b]The Companion Manager doesn't show up.[/b]
 Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
