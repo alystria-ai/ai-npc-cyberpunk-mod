@@ -34,7 +34,7 @@ MIN_CLIP_SECONDS, MAX_CLIP_SECONDS = 1.0, 12.0
 MIN_GATED_DB, MAX_GATED_DB = -36.0, -10.0        # per clip (the English pool's median is about -23)
 SET_LUFS_RANGE = (-34.0, -12.0)                  # per finished reference, before the gain stage
 MAX_TRIES = 14                                   # replacement lines tried per voice
-MIN_VOICE_SECONDS = 4.0
+MIN_VOICE_SECONDS = 5.0
 PACK_ROOT = "red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual"
 
 
