@@ -45,7 +45,7 @@ Zip name: `AI-NPC-Cyberpunk-Mod-Voices-<lang>.zip`. On Hugging Face they live in
 
 ## How clips are chosen
 
-No new search. Each English reference is a fixed list of game lines (clip ids `<voice>/<string id>[/female|male]` in the pick log and the autobest configs). The pack takes the same line ids from `base\localization\<lang>\vo\` and `ep1\localization\<lang>\vo\`, decodes them (vgmstream), and joins them like the English build (24 kHz mono 16-bit, 0.4 s of silence between clips, no EQ or denoise). It then runs a cheap check per voice:
+No new search. Each English reference is a fixed list of game lines (clip ids `<voice>/<string id>[/female|male]` in the pick log and the autobest configs). The pack takes the same line ids from `base\localization\<lang>\vo\` and `ep1\localization\<lang>\vo\`, decodes them (vgmstream), and joins them like the English build (24 kHz mono 16-bit, 0.4 s of silence between clips, no EQ or denoise; the 44 voices whose English build has a -20 LUFS gain stage get the same gain, and V keeps its own trim recipe; details in VOICE_PACK_BUILDER.md). It then runs a cheap check per voice:
 
 - the total fits OmniVoice's 20 s limit (trim at a pause if not);
 - loudness is sane, with no clipping;
