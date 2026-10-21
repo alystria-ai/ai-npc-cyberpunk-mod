@@ -139,12 +139,12 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   const key = input?.profileKey ?? profile?.key ?? '?';
   const local = engine === 'pocket' || engine === 'omni';
   // The cloud voice (Voxtral) uses Pocket's route and packet format but no local model: chosen, it is what the player asked
-  // for and it speaks. With no key the turn goes to the Convai cloud voice (engine 'convai'); in a limit or refused-key cool-down the
-  // reply is written only (no local voice stands in), and the reason is logged.
+  // for and it speaks. With no key, in a limit or in a refused-key cool-down the reply is written only (engine 'none': neither a local voice nor
+  // the Convai voice stands in), and the reason is logged.
   const cloud = voice.cloudActive === true && voice.requestedProvider === 'pocket';
   // Only a state that stops the cloud voice from being asked at all (no key, a limit, a refused key) is a reason here: the line
   // is written before the reply is voiced, so a timeout on the previous reply would be a stale claim (`cloudLast` carries it instead).
-  const cloudWhy = cloud && (engine === 'pocket' || engine === 'convai') ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
+  const cloudWhy = cloud && (engine === 'pocket' || engine === 'none') ? ('cloudBlocked' in voice ? voice.cloudBlocked : voice.cloudFallback) : null;
   const cloudLast = cloud && engine === 'pocket' && !cloudWhy ? voice.cloudLast ?? null : null;
   const cloudKind = 'voxtral', CLOUD_LABEL = CLOUD_LABELS[cloudKind];
   const record = {time: now(), profile: key, name: profile?.name ?? input?.name ?? '?',

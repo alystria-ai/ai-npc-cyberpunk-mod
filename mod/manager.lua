@@ -21,7 +21,8 @@ local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {}
 -- The Companion voices list: Pocket TTS (default), OmniVoice at 16 or 32 steps with a short or a long
--- reference, Convai. The fallback order inside the bridge stays OmniVoice, Pocket TTS, Convai.
+-- reference, Convai. A voice that cannot run is replaced by the other local voice only if that one is already loaded, else replies show as text:
+-- nothing falls to the Convai voice, which speaks only when it was chosen (owner rule 2026-10-21).
 local DEFAULT_VOICE_PROVIDER, DEFAULT_OMNI_STEPS, DEFAULT_OMNI_REFERENCE = 'pocket', 16, 'long'
 -- The menu text of each OmniVoice choice, named by quality from fastest to best (Balanced and Quality are 16 steps
 -- with a short and a long reference, High Quality and Ultra Quality 32 steps). These are also the names used in
@@ -961,8 +962,9 @@ end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
 -- in gameplay so a paused menu cannot swallow it. A chosen LOCAL voice (OmniVoice, Pocket) that cannot run is never replaced by a cloud voice:
--- replies are shown as text until it is back (to == 'text', one sentence for the temporary and the lasting case). Only the Mistral cloud voice
--- falls to the Convai voice, and for that a temporary fallback (the cloud voice is asked again) says so instead of calling the voice unavailable.
+-- replies are shown as text until it is back (to == 'text', one sentence for the temporary and the lasting case). The same holds for the Mistral cloud
+-- voice (no key, a refused key, a limit cooling down): it never falls to the Convai voice, which speaks only when the player chose it.
+-- The 'pocket' branches below are OmniVoice replaced by an already loaded Pocket.
 function M.takeVoiceFallbackNotice()
     local pending = voiceFallbackNotice
     voiceFallbackNotice = nil
@@ -1215,7 +1217,7 @@ local function updateLocalVoice()
     -- Tell the player once per fallback; the mark clears when the fallback ends.
     local fallback = state.fallback
     if fresh and type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral')
-        and (fallback.to == 'pocket' or fallback.to == 'convai' or fallback.to == 'text') then
+        and (fallback.to == 'pocket' or fallback.to == 'text') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '')

@@ -146,7 +146,7 @@ test('the report holds versions, settings, party, providers, recent errors and b
     assert.deepEqual(summary.party.companions.map(row => row.profile), ['bob-sagan', 'judy-alvarez']);
     const bob = summary.providers.companions.find(row => row.profile === 'bob-sagan');
     assert.equal(bob.voice, 'omni'); assert.equal(bob.conversation, 'convai-realtime');
-    assert.equal(summary.providers.companions.find(row => row.profile === 'judy-alvarez').voice, 'convai');
+    assert.equal(summary.providers.companions.find(row => row.profile === 'judy-alvarez').voice, 'text');
     const judyRow = summary.providers.companions.find(row => row.profile === 'judy-alvarez');
     assert.deepEqual(judyRow.relationshipStyle, {mode: 'auto', style: 'ordinary', status: 'ready'});
     assert(!('relationshipVariant' in judyRow));

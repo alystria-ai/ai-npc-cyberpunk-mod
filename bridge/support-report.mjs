@@ -511,7 +511,7 @@ export async function conversationSection({runtime, settings}) {
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
-  // 'text': the chosen local voice cannot run and the replies are written (bridge/voice-selection.mjs TEXT_ROUTE); no voice speaks any companion.
+  // 'text': a companion no voice speaks (the chosen local or cloud voice cannot run, or has no clip for it): its replies are written (bridge/voice-selection.mjs TEXT_ROUTE). 'convai' only when the player chose the Convai voice.
   const local = voice?.provider && voice.provider !== 'convai' && voice.provider !== 'text' ? voice.provider : null;
   const rows = [];
   for (const member of party) {
@@ -519,7 +519,7 @@ function companionProviders({settings, voice, routing, party}) {
     if (!key) continue;
     const route = routes.get(key);
     rows.push({profile: key, state: member.state, conversation: 'convai-realtime',
-      voice: local && routed.has(key) ? local : voice?.provider === 'text' ? 'text' : 'convai',
+      voice: local && routed.has(key) ? local : voice?.provider === 'convai' ? 'convai' : voice?.provider ? 'text' : null,
       relationshipStyle: route ? {mode: route.mode, style: route.style ?? route.variant, status: route.status,
         ...(route.multilingual === true ? {multilingual: true} : {})} : undefined,
       conversationEnabled: settings?.enabledByKey ? settings.enabledByKey[key] !== false : undefined});

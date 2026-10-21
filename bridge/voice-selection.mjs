@@ -14,8 +14,9 @@ import {VHelperVoice} from './v-helper-voice.mjs';
 // no OmniVoice, no worker of any kind starts while it is chosen (a running one is retired when the choice is committed, like any
 // backend switch). It borrows only Pocket's ROUTE and audio packet format (the same packets feed the subtitles, the lip sync and
 // the face), so its routing is Pocket's and only the synthesis of each reply differs (bridge/voxtral-voice.mjs). A reply it cannot
-// deliver (asked again once with a longer limit) is not given to a local voice: the turn's voice is the Convai cloud voice when the
-// cloud voice has no key at all, and otherwise the reply is shown as written text. (Cloud to cloud is the only fallback that leaves the computer.)
+// deliver (asked again once with a longer limit) is not given to a local voice, and not to the Convai voice either (owner rule 2026-10-21: the
+// Convai voice speaks only when the player chose it): the reply is shown as written text, with no key, in a limit's cool-down or in a language
+// the voice does not speak too, and the voice comes back by itself.
 // A LOCAL voice (OmniVoice, Pocket) that fails is never replaced by a cloud voice (owner rule 2026-10-21, after a player's report of surprise cloud
 // use): the fallback is a local retry, the other local engine only if it is already loaded (none is loaded for this), else the route 'text' below
 // (the reply is shown as written text and the game says so once). The voice comes back by itself when the local engine recovers.
@@ -29,7 +30,7 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // The local voices, best first: OmniVoice (16 or 32 steps), Pocket TTS. The Settings menu lists Pocket first because it is the
 // default. A choice that cannot run falls to the next entry of THIS list only when that engine is ALREADY loaded (an Omni choice that
 // cannot run does not start Pocket for it), and otherwise to TEXT_ROUTE: no voice, the reply is written. 'convai' is a route only
-// when the player chose the Convai voice (or a cloud voice that has no key and so falls to it: cloud to cloud).
+// when the player chose the Convai voice: nothing falls to it, not a local voice and not the Voxtral cloud voice (owner rule 2026-10-21).
 // A Python library the voice needs that Windows refused to load: Smart App Control, or a company's or a school's Application Control (WDAC) policy, blocks a
 // file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
 // Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
@@ -282,18 +283,18 @@ export class VoiceSelection {
     return this.clientBackend===backend&&!!this.client&&this.client.loaded===true&&!this.client.failure&&!this.client.closing;
   }
   // The route for a chosen voice. The Convai voice only when it was chosen. A local voice that cannot run is replaced by the other local voice only
-  // if that one is already loaded, and otherwise by TEXT_ROUTE (the reply is written). A cloud voice (Voxtral) that has no route at all falls to the
-  // Convai voice, the one cloud-to-cloud step; it never loads a local model.
+  // if that one is already loaded, and otherwise by TEXT_ROUTE (the reply is written). A cloud voice (Voxtral) that has no route at all is
+  // written too: it never falls to the Convai voice, and it never loads a local model.
   resolve(provider){
     if(provider==='convai')return 'convai';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
       .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend));
-    return found||(this.cloudWanted?'convai':TEXT_ROUTE);
+    return found||TEXT_ROUTE;
   }
-  // May the Convai voice speak a reply of this installation? The player chose it, or chose a cloud voice (which falls to it when it cannot be asked).
-  // Never because a local voice failed.
-  get convaiVoiceAllowed(){return this.provider==='convai'||this.cloudWanted;}
+  // May the Convai voice speak a reply of this installation? Only when the player chose it. Never because a local voice failed, and never because
+  // the Voxtral cloud voice cannot be asked (no key, a limit, a language it does not speak): those replies are written.
+  get convaiVoiceAllowed(){return this.provider==='convai';}
   // True while no voice speaks the replies: the chosen local voice cannot run and nothing local stands in for it.
   get textOnly(){return this.provider===TEXT_ROUTE;}
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
@@ -302,10 +303,10 @@ export class VoiceSelection {
   get cloudActive(){return !!this.cloudEngine&&this.provider==='pocket';}
   // The player chose a cloud voice (committed or waiting for the idle boundary). No local voice model is loaded for it.
   get cloudWanted(){return this.requestedCloud!==null;}
-  // A cloud voice that cannot be asked right now (no key, or a refused key or a limit cooling down) cannot speak anything: the turn's voice
-  // is the Convai cloud voice (bridge: localChoice), so the conversation is not silent while it recovers. The order is: the cloud voice
-  // (asked again quickly for a hiccup, VoxtralVoice.fetchPart), then the Convai voice, then written text (a reply already on its way
-  // when the cloud voice fails is shown as written text: one reply is never given two voices).
+  // A cloud voice that cannot be asked right now (no key, or a refused key or a limit cooling down) cannot speak anything: the turn is written
+  // (bridge: localChoice, planTurnVoice 'none'), never given to the Convai voice. The order is: the cloud voice (asked again quickly for a
+  // hiccup, VoxtralVoice.fetchPart, and once more with a longer wait, synthesizeHead), then written text. A reply already on its way when the
+  // cloud voice fails is shown as written text too: one reply is never given two voices. The voice comes back by itself when it can be asked.
   get cloudKeyless(){return this.cloudActive&&(!this.cloudEngine.hasKey||!this.cloudEngine.ready);}
   // Why the cloud voice is not the one speaking, for the Settings status line and the one notice: no key, or its last
   // reply fell back (nothing is reported before a first failure, and it clears by itself with the next good reply).
@@ -323,7 +324,7 @@ export class VoiceSelection {
   }
   get cloudFallback(){
     if(!this.cloudActive)return null;
-    const value={from:this.cloud,to:'convai'},engine=this.cloudEngine;
+    const value={from:this.cloud,to:TEXT_ROUTE},engine=this.cloudEngine;
     if(!engine.hasKey)return {...value,temporary:false,reason:'no-key'};
     const degraded=engine.degraded;
     if(!degraded)return null;
@@ -336,7 +337,7 @@ export class VoiceSelection {
   get fallback(){
     const want=this.resolvedProvider;
     if(want===this.requestedProvider||this.provider!==want)return null;
-    const value={from:this.requestedProvider,to:want};
+    const value={from:this.requestedCloud??this.requestedProvider,to:want};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
   // Why a character has no local voice: the Convai voice was chosen, or the local voice cannot serve it (its reply is then written).
@@ -509,7 +510,7 @@ export class VoiceSelection {
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
-      // The cloud voice is reported as replaced by the Convai voice only when it really cannot be asked (no key, a refused key, a limit cooling down:
+      // The cloud voice is reported as unavailable (replies written) only when it really cannot be asked (no key, a refused key, a limit cooling down:
       // `cloudBlocked`). One reply that timed out or lost its connection is not that: the next reply asks again, and the game must not say that
       // companions "are using the Convai voice for now" (the 2026-10-20 live test: a first ask timed out, the second one spoke, the notice appeared).
       // `voxtral.degraded` below still carries the reason for the support report.
@@ -946,8 +947,8 @@ export class VoiceSelection {
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps});
   }
   async prepareProfile(profile, options = {}) {
-    // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen (or a cloud voice,
-    // which falls to it); with a local voice chosen they are written ('text'), never given to a cloud voice.
+    // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other
+    // voice chosen (local or Voxtral) they are written ('text'), never given to a cloud voice.
     const remote = reason => ({provider: this.convaiVoiceAllowed ? 'convai' : TEXT_ROUTE, ready: true, reason});
     for (;;) {
       throwIfCancelled(options.signal);

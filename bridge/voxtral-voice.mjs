@@ -27,8 +27,8 @@
 //  - A 403 whose own body says "guardrail" (or that the request was "blocked", `isContentRefusal`) is a refusal of that one line's text,
 //    not of the key: it is a VoxtralError of kind 'content', never asked again (it would be refused the same way), never a pause of the
 //    voice (the next reply's voice is asked as usual), never a tightening of the request gate, never reported as a refused key, and it
-//    leaves no degraded state. That reply is shown as written text; one log line says so. No other voice speaks it: the Convai voice is
-//    chosen when a turn starts (before any text exists), so a refusal that comes with the reply cannot hand it over.
+//    leaves no degraded state. That reply is shown as written text; one log line says so. No other voice speaks it: the voice of a turn is
+//    chosen when it starts (before any text exists), and the Convai voice is never part of that choice unless the player chose it.
 //  - An ordinary NPC (an archetype or resident voice, never a named character) is cloned from ONE clip, always the same one: the archetype
 //    references are several game lines joined with silence, each in its own delivery, and Voxtral clones every request afresh, so a reply spoken as
 //    two to four requests came out in different-sounding voices, depending on which line each request leaned on (2026-10-21, `singleClip`).
@@ -561,7 +561,7 @@ export class VoxtralVoice {
   /** Records why Voxtral could not deliver (a limit or a refused key pauses requests) and says so in the log. */
   noteFailure(error, scope = '', apiKey = this.lastKey) {
     // The server's guardrail refused this one line: no pause (the next reply's voice is asked as usual), no degraded state (that would
-    // publish a fallback to the Convai voice that does not happen) and one line, with no key wording. The written reply stands.
+    // publish an unavailable voice that is not the case) and one line, with no key wording. The written reply stands.
     if (error.kind === 'content') {
       this.log(scope ? `refused the rest of this reply (guardrail), the reply ends after the part already heard` : 'refused this line (guardrail); shown as text');
       return;

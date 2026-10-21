@@ -1,14 +1,15 @@
 # Shared local voices
 
 The Mistral cloud voice (Voxtral, 2026-10-12) is a seventh Companion voices entry that rides on the Pocket route; a reply it cannot deliver in
-time is shown as written text, and with no key at all the Convai voice speaks (cloud to cloud): see `docs/CLOUD_VOICE_VOXTRAL.md`.
+time is shown as written text, and so is a reply with no key, in a cool-down or in a language it does not speak (never the Convai voice, 2026-10-21): see `docs/CLOUD_VOICE_VOXTRAL.md`.
 
-**A local voice never falls back to a cloud voice (owner rule, 2026-10-21, after a player's report of surprise cloud use).** When the chosen
+**No voice ever falls back to a cloud voice (owner rule, 2026-10-21, after a player's report of surprise cloud use; the Voxtral cases were added the same day).** When the chosen
 local voice (OmniVoice or Pocket) cannot run, the fallback is a local retry, or the other local voice only if it is already loaded (it is never
 loaded for that), and otherwise **text only**: the reply is shown as written text, Convai is asked for text with `ttsEnabled: false`, and
 the game says "{voice} is unavailable right now. Replies show as text until it is back." once. The voice comes back by itself when the local
-engine recovers (the retries below). The Convai voice is spoken only when the player chose it (or chose Voxtral and it has no key). See
-"Fallback order" below.
+engine recovers (the retries below). The Convai voice is spoken only when the player chose it: Voxtral (the Mistral cloud voice) that fails, has no
+key, is cooling down from a refused key or a limit, or gets a reply in a language it does not speak, is written text too, with the same notice and the
+same return by itself (`planTurnVoice` / `replyVoice` give the turn the engine `none`). See "Fallback order" below.
 
 ## Voice report and reference picker (one page)
 
@@ -187,8 +188,8 @@ The local voices are OmniVoice, then Pocket TTS. **No cloud voice is ever a fall
 the other local voice only when that one is already loaded (never loaded for the purpose), and otherwise by the route **`text`**: no
 voice speaks, and each reply is shown as written text (`planTurnVoice` gives the turn the engine `none`, Convai is asked with
 `ttsEnabled: false`, the reply carries `audioError`, and the routing log says `used="none (written reply only)"` with the reason).
-The Convai voice (`provider: "convai"`) is a route only when the player chose it, or chose Voxtral and it has no key or no route (cloud
-to cloud, `VoiceSelection.convaiVoiceAllowed`).
+The Convai voice (`provider: "convai"`) is a route only when the player chose it (`VoiceSelection.convaiVoiceAllowed`); Voxtral with no key or no
+route is text as well. Convai text turns carry `ttsEnabled: false` whenever the chosen voice is not the Convai voice (`convaiSpeaks` in the bridge).
 "Cannot run" means the backend is not configured (a machine with no Pocket setup at all included), none of its references is
 available, or its worker failed (for example no CUDA GPU, OmniVoice failing to
 load, a crashed worker). A failed worker stays out of routing until the player

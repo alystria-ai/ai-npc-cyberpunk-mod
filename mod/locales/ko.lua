@@ -1045,7 +1045,7 @@ return {
     ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "TweakXL 없음. Nexus Mods에서 TweakXL을 설치하고(nexusmods.com/cyberpunk2077/mods/4197), Cyberpunk 2077 폴더에 압축을 푼 후 게임을 다시 시작하세요.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "이 모드의 메뉴와 알림만 변경합니다.\n\n캐릭터 음성과 대화하는 언어는 별개입니다. 마이크는 영어가 아닌 음성을 인식할 때 이 언어를 힌트로 사용합니다.",
     ["Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works."] = "동료는 성격에 맞게 가끔 말을 멈추거나, 망설이거나, 웃거나, 한숨을 쉽니다. 언제 그럴지는 각 캐릭터가 정하며, 드물게 일어납니다.\n\nOmniVoice는 웃음과 한숨을 낼 수 있습니다. 다른 음성은 멈춤만 추가합니다.\n\nConvai 클라우드 음성을 쓰고 Convai가 응답하는 동안에는 사용할 수 없습니다. 클라우드 음성을 고르면 이 기능이 꺼지고, 이 기능을 켜면 음성이 Pocket으로 바뀝니다. Mistral, Local AI 또는 사용자 지정에서는 동작합니다.",
-    ["Companions switch from Voxtral to the Convai voice."] = "동료는 Voxtral 음성에서 Convai 클라우드 음성으로 바뀝니다.",
+    ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral이 말하지 않게 되며, 키를 저장할 때까지 동료의 답변은 텍스트로 표시됩니다.",
     ["Conversations go back to Convai free tier."] = "대화는 다시 Convai (무료 플랜)을 사용합니다.",
     ["Deletes the saved key."] = "저장된 키를 삭제합니다.",
     ["Nothing you use now depends on it."] = "지금 사용 중인 것은 이것에 의존하지 않습니다.",

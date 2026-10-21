@@ -31,7 +31,8 @@ bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved
 (a reference clip in English still speaks French). Mistral names 21 languages for Voxtral TTS 3 and its voice presets add Greek; those 22 are the list the mod
 uses (`bridge/voxtral-languages.mjs`; "35+ languages" is claimed, but only these are written down). The older alias model speaks 9 (English, French, Spanish,
 Portuguese, Italian, Dutch, German, Hindi, Arabic) and is the list used while it is the model in use. A reply in a listed language is spoken by Voxtral
-(on every provider); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text, with the one-time voice-language notice. An English conversation
+(on every provider); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text, with the one-time voice-language notice, and is never
+handed to the Convai voice or its multilingual twin's voice (`planTurnVoice`, `replyVoice`; owner rule 2026-10-21). An English conversation
 keeps the chosen voice untouched. No voice is moved or refused for the language of a reply (the Multilingual conversations switch was removed on 2026-10-21; the
 language is detected per message). See docs/MISTRAL.md, "Voxtral 3".
 Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
@@ -80,20 +81,21 @@ failure matter: before any audio has been delivered, each of these throws a `Vox
 its connection or was refused (`timeout`, `network`, `request`) is **asked once more with a longer wait** (10 s to first audio instead of
 7 s; `VoiceSelection.synthesizeHead`, `cloudRetryAudioMs`). A reply that still has no audio is shown as written text, with the one
 notice (`deliverPocketSpeech` returns the written reply). A turn whose cloud voice **cannot be asked right now** (no key at all, a
-refused key or a limit cooling down: `VoiceSelection.cloudKeyless`) is routed to the Convai cloud voice instead (a written reply under
-the Mistral conversation provider, which has no Convai audio), so the conversation is not silent while the cloud voice recovers. The
-order is: the cloud voice (asked again quickly for a hiccup, below), then the Convai voice, then written text. Once the first part of a reply has played
+refused key or a limit cooling down: `VoiceSelection.cloudKeyless`) is **written**: neither a local voice nor the Convai cloud voice stands in
+(owner rule 2026-10-21: the Convai voice speaks only when the player chose it; from 2026-10-13 to 2026-10-21 a keyless Voxtral turn went to the
+Convai voice, cloud to cloud). The order is: the cloud voice (asked again quickly for a hiccup, below), then written text, with the
+one notice. The voice comes back by itself when it can be asked again (a key saved, a cool-down over). Once the first part of a reply has played
 in the cloud voice, the rest of it is never given to another voice (see "One reply, one voice"):
 
 | Cause | Kind | After it |
 | --- | --- | --- |
-| No Mistral key | `no-key` | the turn goes to the Convai cloud voice until a key appears |
+| No Mistral key | `no-key` | written replies until a key appears (never the Convai voice) |
 | No clip at all for this character (see below) | `no-reference` | written reply for this character; the rest still use Voxtral |
 | No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | asked once more (10 s); then a written reply; the next reply tries again |
-| 429 | `limit` | a `Retry-After` of 1 s or less (or none): asked again once after it; longer: cool-down for it (20 s when none given twice, at most 60 s), the Convai voice speaks meanwhile; every Mistral request pauses for it |
-| 401 | `key` | never asked again; 60 s cool-down, the Convai voice speaks meanwhile |
-| 403 | `key` only if it repeats | asked again once after 300 ms; still 403: `key`, 20 s cool-down, the Convai voice speaks meanwhile |
-| 403 whose own body says "guardrail" (or a plain "blocked" that does not blame the key, the account or the network, and is not a web page) | `content` | a refusal of that one line's text, not of the key: never asked again, no cool-down, the gate is not tightened, no degraded state. That reply is shown as written text and one log line says so (`refused this line (guardrail); shown as text`); the next reply asks Voxtral as usual. No other voice speaks it: the Convai voice is chosen when a turn starts, before any text exists |
+| 429 | `limit` | a `Retry-After` of 1 s or less (or none): asked again once after it; longer: cool-down for it (20 s when none given twice, at most 60 s), replies are written meanwhile; every Mistral request pauses for it |
+| 401 | `key` | never asked again; 60 s cool-down, replies are written meanwhile |
+| 403 | `key` only if it repeats | asked again once after 300 ms; still 403: `key`, 20 s cool-down, replies are written meanwhile |
+| 403 whose own body says "guardrail" (or a plain "blocked" that does not blame the key, the account or the network, and is not a web page) | `content` | a refusal of that one line's text, not of the key: never asked again, no cool-down, the gate is not tightened, no degraded state. That reply is shown as written text and one log line says so (`refused this line (guardrail); shown as text`); the next reply asks Voxtral as usual. No other voice speaks it: the voice of a turn is chosen when it starts, before any text exists, and the Convai voice is never part of that choice unless the player chose it |
 | Network error, 5xx, 408, stalled stream (8 s of silence) | `network` | a 5xx or 408 is asked again once after 300 ms; the next reply tries again |
 | Refused request or unusable answer | `request` | next reply tries again |
 | Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; written reply |
@@ -232,8 +234,9 @@ of a streamed reply (below): they are asked for again once, and then the reply e
 cancellation is not a fallback.
 
 The player is told **once per session** per fallback, with the existing `voice-fallback` notice; the bridge publishes it as
-`fallback: {from: 'voxtral', to: 'convai', temporary, reason}` in `runtime/local-voice-state.json` (`to` was `pocket` before 2026-10-13).
-The notice wording still names the voice that stands in; with no local voice that is the Convai cloud voice, or the written reply.
+`fallback: {from: 'voxtral', to: 'text', temporary, reason}` in `runtime/local-voice-state.json` (`to` was `pocket` before 2026-10-13 and `convai`
+from then to 2026-10-21). The notice is "{requested} is unavailable right now. Replies show as text until it is back." (`to == 'text'`, bridge/voice-selection.mjs
+`TEXT_ROUTE`), the same sentence a local voice that cannot run gets; no voice is named as standing in.
 
 ## Why the cloud voice sounded muffled, and the reference as it is now (2026-10-13)
 
