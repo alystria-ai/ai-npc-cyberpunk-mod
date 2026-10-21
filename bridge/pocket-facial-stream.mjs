@@ -1,6 +1,6 @@
 import {normaliseSpeechEnvelope, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
-import {validateMouthCues} from './phonetic-lipsync.mjs';
+import {validateMouthCues} from './mouth-cues.mjs';
 import {ConfirmedPhoneTimeline} from './phone-poses.mjs';
 import {PHONE_ANALYSIS_ENGINE,PHONE_ANALYSIS_FORMAT,PHONE_ANALYSIS_FRONTEND} from './phone-analysis-config.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
@@ -26,7 +26,7 @@ export function pocketAnalysisWav(pcm) {
 }
 
 // Same native phonetic mapping as local WAV replies, on one audio-seconds
-// clock. Rhubarb runs beside playback; PCM admission never awaits analysis.
+// clock. An injected analyser runs beside playback; PCM admission never awaits analysis.
 // Only the part of a result that is still ahead of the device cursor can be
 // admitted. Completed work is not evidence of phonetic coverage at playback.
 export class PocketFacialStream {
@@ -42,7 +42,7 @@ export class PocketFacialStream {
     this.revision = 0; this.publicationRevision = 0; this.audiblePosition = 0; this.complete = false;
     if(jaliFace){
       // Game-trained model on a worker thread: it follows the same copied PCM
-      // and supersedes the phone/Rhubarb paths. Failure leaves the envelope.
+      // and supersedes the phone paths. Failure leaves the envelope.
       try{
         // The whole reply text is known before the first packet: the text path aligns it as the PCM streams.
         this.model=jaliFace.begin(RATE,typeof text==='string'?{text,textComplete}:{});this.lipsync=undefined;phoneAnalysis=undefined;

@@ -81,7 +81,7 @@ async function stageManifest(fix) {
     ...BRIDGE_AUXILIARY_FILES,
     'python/Lib/site-packages/omnivoice/__init__.py',
     'python/Lib/site-packages/omnivoice/models/omnivoice.py',
-    'voice/voicestudio/backend/services/tts_backend.py', 'tools/rhubarb/rhubarb.exe',
+    'voice/voicestudio/backend/services/tts_backend.py',
     'characters/roster.json', 'characters/world-knowledge.json', 'characters/phone-contacts.json',
     'models/omnivoice/model.safetensors', 'models/omnivoice/config.json',
     'models/omnivoice/tokenizer.json', 'models/omnivoice/tokenizer_config.json',
@@ -107,7 +107,7 @@ async function stageManifest(fix) {
       node: {path: 'node/node.exe'}, python: {path: 'python/python.exe'}, browser: {path: 'browser/chrome.exe'},
     }, localVoice: {engine: 'omnivoice', revision: OMNI_REVISION, adapterRevision: ADAPTER_REVISION,
       modelDirectory: 'models/omnivoice', adapterDirectory: 'voice/voicestudio/backend'},
-    tools: {rhubarb: {path: 'tools/rhubarb/rhubarb.exe', version: '1.14.0'}}, files};
+    files};
   await atomicJson(join(fix.app, 'runtime-manifest.json'), manifest);
   return manifest;
 }
@@ -184,8 +184,8 @@ test('installed root discovery and overrides survive a relocated path with space
     assert.equal(layout.env.CYBERPUNK_CONVAI_OMNI_ADAPTER, join(fix.app, 'voice/voicestudio/backend'));
     assert.equal(layout.env.CYBERPUNK_CONVAI_OMNI_REFERENCES, join(fix.state, 'voice-references'));
     assert.equal(layout.env.CYBERPUNK_CONVAI_OMNI_CACHE, join(fix.state, 'voice-studio-data'));
-    assert.equal(layout.env.CYBERPUNK_CONVAI_RHUBARB, join(fix.app, 'tools/rhubarb/rhubarb.exe'));
-    assert.equal(layout.env.CYBERPUNK_CONVAI_LIPSYNC_WORK, join(fix.state, 'lipsync-work'));
+    assert.equal(layout.env.CYBERPUNK_CONVAI_RHUBARB, undefined);
+    assert.equal(layout.env.CYBERPUNK_CONVAI_LIPSYNC_WORK, undefined);
     assert.equal(layout.env.CYBERPUNK_CONVAI_STATE, fix.state);
     await verifyManifestFiles(layout.appRoot, layout.manifest);
     await assert.rejects(resolveRuntimeLayout({appDirectory: fix.app, gameDirectory: fix.game}), {code: 'invalid-installation'});
@@ -450,7 +450,7 @@ test('manifest generator uses a file recipe, produces checked hashes and refuses
     await rm(join(fix.app, 'runtime-manifest.json'));
     const recipe = join(fix.folder, 'recipe.json');
     await atomicJson(recipe, {runtimeVersion: sourceManifest.runtimeVersion, scriptsVersion: sourceManifest.scriptsVersion,
-      executables: sourceManifest.executables, localVoice: sourceManifest.localVoice, tools: sourceManifest.tools,
+      executables: sourceManifest.executables, localVoice: sourceManifest.localVoice,
       files: sourceManifest.files.map(file => file.path)});
     const invoke = () => new Promise((done, reject) => {
       const child = spawn(process.execPath, [join(source, 'Create-RuntimeManifest.mjs'), '--app', fix.app, '--recipe', recipe],

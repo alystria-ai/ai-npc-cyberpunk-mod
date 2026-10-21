@@ -29,7 +29,7 @@ and `files`, a list of relative paths. The `localVoice` metadata declares the
 pinned OmniVoice revision `c5fdb5ccb189668d56333f77ba2629f4cd7535f4`, VoiceStudio
 adapter revision `08a1592e3cb9b4c36beef5fa3185ec2313bb1fea`, model directory
 `models/omnivoice` and adapter directory `voice/voicestudio/backend`.
-`tools.rhubarb` declares `tools/rhubarb/rhubarb.exe` and version `1.14.0`.
+The Runtime ships no Rhubarb: a line without cues from the lip-sync model plays on its audio envelope.
 All 40 production bridge modules, the player launcher, catalog files,
 executables and four browser assets must be included. The bridge module list in
 `runtime-layout.mjs` is checked against the actual production import closure by
@@ -62,8 +62,6 @@ The bootstrap passes these absolute path overrides to the production bridge:
 | `CYBERPUNK_CONVAI_OMNI_ADAPTER` | `app/voice/voicestudio/backend/` |
 | `CYBERPUNK_CONVAI_OMNI_REFERENCES` | `data/voice-references/` |
 | `CYBERPUNK_CONVAI_OMNI_CACHE` | `data/voice-studio-data/` |
-| `CYBERPUNK_CONVAI_RHUBARB` | `app/tools/rhubarb/rhubarb.exe` |
-| `CYBERPUNK_CONVAI_LIPSYNC_WORK` | `data/lipsync-work/` |
 
 The four OmniVoice overrides travel together. Persistent voice configuration
 retains the existing logical `runtime/voice-references/` paths; the worker maps

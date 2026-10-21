@@ -689,6 +689,7 @@
             "bridge/mistral-memory.mjs",
             "bridge/mistral-prompt.mjs",
             "bridge/mistral-rate.mjs",
+            "bridge/mouth-cues.mjs",
             "bridge/multilingual.mjs",
             "bridge/natural-speech-talk.mjs",
             "bridge/natural-speech.mjs",
@@ -702,7 +703,6 @@
             "bridge/phone-failure.mjs",
             "bridge/phone-poses.mjs",
             "bridge/phone-warm.mjs",
-            "bridge/phonetic-lipsync.mjs",
             "bridge/phonetic-poses.mjs",
             "bridge/place-names.mjs",
             "bridge/player-gear.mjs",
@@ -834,14 +834,6 @@
           "revision": "c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
           "uncompressedBytes": 3267470260,
           "status": "redistribution-review-and-release-size-check-required"
-        },
-        {
-          "id": "rhubarb",
-          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/app/tools/rhubarb",
-          "source": "vendor/rhubarb-1.14.0/Rhubarb-Lip-Sync-1.14.0-Windows",
-          "version": "1.14.0",
-          "selection": "executable, required resource files, complete license notices",
-          "status": "relocation-test-required"
         },
         {
           "id": "audio-bank",
@@ -1108,12 +1100,6 @@
       "license": "Apache-2.0",
       "evidence": "node_modules/playwright/package.json",
       "status": "retain-browser-and-dependency-notices-too"
-    },
-    {
-      "component": "Rhubarb 1.14.0",
-      "license": "MIT plus bundled dependency notices",
-      "evidence": "vendor/rhubarb-1.14.0/Rhubarb-Lip-Sync-1.14.0-Windows/LICENSE.md",
-      "status": "retain-complete-license-file"
     },
     {
       "component": "Mod code",

@@ -13,7 +13,7 @@ import {resolve, dirname, basename} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {buildFacialTimeline} from '../../bridge/facial-timeline.mjs';
-import {PhoneticLipsync} from '../../bridge/phonetic-lipsync.mjs';
+import {PhoneticLipsync} from './rhubarb-lab.mjs';
 import {JaliFace} from '../../bridge/jali-face.mjs';
 import {storeSpeech} from '../../bridge/speech-audio.mjs';
 

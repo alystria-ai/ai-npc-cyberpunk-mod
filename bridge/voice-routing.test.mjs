@@ -35,7 +35,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
   const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
     localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
-    ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
+    ownedPocketFace:()=>{},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
     emotionSelection:new EmotionSelection(),waitLateEmotion,
     splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},logFollowUp:()=>{},streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
@@ -459,17 +459,21 @@ test('Omni16 and32 use one original text reply then their separate native phrase
   }
 });
 
-test('with local facial weights Omni phrases use the game-trained model and Rhubarb stays the fallback',async()=>{
+test('with local facial weights Omni phrases use the game-trained model; when it fails, or there is none, the line plays on its audio envelope with no other analyser',async()=>{
   const analysed=[],voice={provider:'omni',steps:32,usesProfile:()=>true,
     async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const jaliFace={async analyseWav(audio){analysed.push(audio);return{jaliFrames:{model:true},timing:{lipEngine:'jali-audio-v1'}};}};
   const f=fixture({voiceSelection:voice,continuous:true,jaliFace});
   const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
   assert.equal(analysed.length,1);assert.deepEqual(result.jaliFrames,{model:true});
-  assert.equal(result.timing.lipEngine,'jali-audio-v1');assert.ok(!f.calls.includes('rhubarb'));
+  assert.equal(result.timing.lipEngine,'jali-audio-v1');
   const failing=fixture({voiceSelection:voice,continuous:true,jaliFace:{async analyseWav(){throw Error('worker stopped');}}});
   const fallback=await failing.api.respond(failing.input,failing.profile,{current:async()=>true});
-  assert.ok(failing.calls.includes('rhubarb'));assert.equal(fallback.jaliFrames,undefined);
+  assert.equal(fallback.jaliFrames,undefined);assert.equal(fallback.mouthCues,undefined);assert.equal(fallback.mouthCuesFormat,undefined);
+  assert.equal(fallback.timing.voiceProvider,'omni');assert.equal(fallback.timing.lipEngine,undefined);
+  const without=fixture({voiceSelection:voice,continuous:true});
+  const bare=await without.api.respond(without.input,without.profile,{current:async()=>true});
+  assert.equal(bare.mouthCues,undefined);assert.equal(bare.jaliFrames,undefined);assert.equal(bare.timing.voiceProvider,'omni');
 });
 
 test('local voices get the context selector: sad text is sad, a plain reply rests neutral, Convai voices keep provider metadata',async()=>{

@@ -13,7 +13,6 @@ import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {SpeechPace} from './speech-pace.mjs';
 import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
-import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
 import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
@@ -803,7 +802,6 @@ const nearbyPath = resolve(runtime, 'nearby-connections.json');
 const sessions = new Map();
 const realtimeSessions = new Map();
 const audioDepot = resolve(game, 'r6/audioware/CyberpunkConvai');
-const lipsync = new PhoneticLipsync({project});
 const speechStateFile = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
@@ -1721,13 +1719,9 @@ async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={})
   }catch(error){
     if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
   }
-  try{
-    const facial=await lipsync.analyse(generated.audio,options);
-    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
-  }catch(error){
-    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Omni lip-sync fallback:',error.message);
-    return withStore({...generated,timing:{...generated.timing,voiceProvider:'omni'}});
-  }
+  // No facial model, or it failed: no cues. The line plays on its audio envelope; no other analyser is started.
+  if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);
+  return withStore({...generated,timing:{...generated.timing,voiceProvider:'omni'}});
 }
 
 // Status writes are queued in call order, so a caller may leave one unawaited (a turn's 'thinking' no longer holds up the

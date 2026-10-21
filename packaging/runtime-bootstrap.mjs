@@ -211,7 +211,7 @@ export async function superviseRuntime(layout, {spawnImpl = spawn, alive = proce
     }
     await mkdir(resolve(layout.stateRoot, 'logs'), {recursive: true});
     if (layout.packaged) {
-      for (const name of ['voice-references', 'voice-studio-data', 'lipsync-work'])
+      for (const name of ['voice-references', 'voice-studio-data'])
         await mkdir(resolve(layout.stateRoot, name), {recursive: true});
     }
     output = createWriteStream(resolve(layout.stateRoot, 'logs/bridge.stdout.log'), {flags: 'a', mode: 0o600});

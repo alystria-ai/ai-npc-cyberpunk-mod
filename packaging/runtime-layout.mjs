@@ -102,6 +102,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/mistral-memory.mjs',
   'bridge/mistral-prompt.mjs',
   'bridge/mistral-rate.mjs',
+  'bridge/mouth-cues.mjs',
   'bridge/multilingual.mjs',
   'bridge/natural-speech-talk.mjs',
   'bridge/natural-speech.mjs',
@@ -115,7 +116,6 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/phone-failure.mjs',
   'bridge/phone-poses.mjs',
   'bridge/phone-warm.mjs',
-  'bridge/phonetic-lipsync.mjs',
   'bridge/phonetic-poses.mjs',
   'bridge/place-names.mjs',
   'bridge/player-gear.mjs',
@@ -274,7 +274,6 @@ export function validateManifest(value) {
       || value.localVoice.adapterRevision !== ADAPTER_REVISION
       || value.localVoice.modelDirectory !== 'models/omnivoice'
       || value.localVoice.adapterDirectory !== 'voice/voicestudio/backend'
-      || value.tools?.rhubarb?.path !== 'tools/rhubarb/rhubarb.exe' || value.tools.rhubarb.version !== '1.14.0'
       || !Array.isArray(value.files) || !value.files.length || value.files.length > 20_000) {
     throw new RuntimeError('invalid-manifest', 'The runtime manifest is invalid or unsupported.');
   }
@@ -302,7 +301,7 @@ export function validateManifest(value) {
     ...BRIDGE_AUXILIARY_FILES,
     'python/Lib/site-packages/omnivoice/__init__.py',
     'python/Lib/site-packages/omnivoice/models/omnivoice.py',
-    'voice/voicestudio/backend/services/tts_backend.py', 'tools/rhubarb/rhubarb.exe',
+    'voice/voicestudio/backend/services/tts_backend.py',
     'characters/roster.json', 'characters/world-knowledge.json', 'characters/phone-contacts.json',
     'research/cyberpunk/generated/quest-catalog.json',
     'models/omnivoice/model.safetensors', 'models/omnivoice/config.json',
@@ -385,8 +384,6 @@ export async function resolveRuntimeLayout({appDirectory, developmentProject, ga
     env.CYBERPUNK_CONVAI_OMNI_ADAPTER = resolve(appRoot, manifest.localVoice.adapterDirectory);
     env.CYBERPUNK_CONVAI_OMNI_REFERENCES = resolve(stateRoot, 'voice-references');
     env.CYBERPUNK_CONVAI_OMNI_CACHE = resolve(stateRoot, 'voice-studio-data');
-    env.CYBERPUNK_CONVAI_RHUBARB = resolve(appRoot, manifest.tools.rhubarb.path);
-    env.CYBERPUNK_CONVAI_LIPSYNC_WORK = resolve(stateRoot, 'lipsync-work');
   }
   return Object.freeze({packaged, appRoot, gameRoot, gameExecutable, modRoot,
     gameRuntime: resolve(modRoot, 'runtime'), stateRoot, entry, nodeExecutable, manifest, env,
@@ -423,7 +420,6 @@ export function bridgeEnvironment(layout, source = process.env) {
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_BROWSER', 'CYBERPUNK_CONVAI_CLIENT_ASSETS',
     'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
-    'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE',
-    'CYBERPUNK_CONVAI_RHUBARB', 'CYBERPUNK_CONVAI_LIPSYNC_WORK']) delete env[name];
+    'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE']) delete env[name];
   return {...env, ...layout.env};
 }
