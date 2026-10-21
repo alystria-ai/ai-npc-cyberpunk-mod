@@ -35,7 +35,8 @@ def extract_module():
 TAG = re.compile(r"<[^>]+>")
 # A character speaks a few words of his own language inside a line: <mothertongue l="mex" m="No, mijo" b="..." a="(translation) rest of the line"/>.
 # What is said is b + m + a; the parenthesised gloss at the start of a is the subtitle's translation of m, not spoken.
-MOTHERTONGUE = re.compile(r"<mothertongue\s[^>]*?\bm=\"(?P<m>[^\"]*)\"\s+b=\"(?P<b>[^\"]*)\"\s+a=\"(?P<a>[^\"]*)\"\s*/?>")
+VALUE = r"(?:\\.|[^\"\\])*"            # an attribute value; it may hold escaped quotes and a nested <Rich ...> tag
+MOTHERTONGUE = re.compile(r"<mothertongue\s[^>]*?\bm=\"(?P<m>" + VALUE + r")\"\s+b=\"(?P<b>" + VALUE + r")\"\s+a=\"(?P<a>" + VALUE + r")\"\s*/?>")
 GLOSS = re.compile(r"^\s*[（(][^）)]*[）)]")
 
 
