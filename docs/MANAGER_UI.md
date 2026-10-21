@@ -204,7 +204,7 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     (`manager.vVoiceEngine()`; the bridge reads `runtime/settings.json` itself and applies the same two conditions). Removing the pack needs nothing: it reads as Pocket while the
     pack is gone and is OmniVoice again when it returns. A batch that moves the companion voice off OmniVoice while V's engine is `omni` sets `vVoiceEngine` to `pocket` in the same
     save (`manager.applySettings`; no restore record) and the feedback line says "V’s voice switches from OmniVoice to Pocket." (only when V is on and was showing OmniVoice).
-    The help text says plainly that Pocket and Voxtral lines not ready in time are skipped while an OmniVoice line is waited for (about 1.5 to 3 s before the reply, because V speaks first).
+    The help text says plainly that Pocket and Voxtral lines not ready in time are skipped while an OmniVoice line is waited for (about a second more than Pocket before V starts, then V's own speaking time, because V speaks first and the companion answers after).
   - Johnny is one list (2026-10-20): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (at most twice an hour), Speaks up often (at most
     six times an hour, never closer than five minutes). The row writes both stored keys (`johnnyInHead`, `johnnyRemarks`): Off means no remarks, and an old file with
     `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only

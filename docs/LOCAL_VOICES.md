@@ -416,6 +416,13 @@ clips in `assets/v-voice` (or `voice-references/v-voice` when installed) the way
 `voice-references/addons/<key>.wav`, written into the `addons.<name>` copies of the configurations, prepared lazily). They are
 not profiles and never speak for a companion: only the setting "V's voice for typed lines" uses them. See `docs/V_VOICE.md`.
 
+With V's engine set to OmniVoice (2026-10-21; only while OmniVoice is the companions' voice) `v-male` / `v-female` are rendered by the Omni worker itself,
+at 16 steps, queued ahead of the companion's own render (`VoiceSelection.vOmniRender`): no second worker and no Pocket worker for V. Warm render times on the
+RTX 4080 Laptop (long reference, 16 steps): about 0.76 s for a 4 s line, 0.90 s for a 7 s line, 0.97 s for a 9 s line (32 steps: 1.0, 1.4, 1.6 s); preparing V's
+voice takes about 0.8 s once per worker, and V's voice counts as one of the worker's 8 prepared prompts. The worker renders one job at a time and a started render cannot be
+cancelled, so a companion phrase queued behind V's line finishes about 0.8 s later than it would alone (plus about 0.2 s when the text length changes the CUDA graph).
+Measured standalone with `ResidentVoice` and the player install's pack; see docs/V_VOICE.md, "V on OmniVoice".
+
 ## Player voice clips
 
 A player can give a story character, or a character they made, a reference clip of their own in the character editor (docs/CHARACTER_EDITOR.md, "Voice clips"). The clip stays in the data folder: `<state>/player-voices/<key>.wav` (canonical mono 16-bit PCM) with the words said in it in `<state>/player-voices.json` (`bridge/player-voices.mjs`). At service start each clip joins V's voices as an `extra` of `AddonHost.voiceConfigPaths` with `player: true`, but it is never copied: its descriptor is `runtime/player-voices/<key>.wav`, a second reference namespace that Pocket (`runtime.playerVoiceDirectory`), OmniVoice (top-level `playerVoiceDirectory`) and Voxtral (`playerRoot`) resolve only inside the player folder, with the same containment, link, hash, WAV and 20-second checks as the shipped references. A clip **replaces** the shipped voice of its key in every merged configuration and is taken out of `preparation.startupProfiles`, so it is prepared only when that character speaks. Voxtral keeps its prepared slot of a player clip in `<state>/player-voices-prepared`. A clip given or removed while the service runs counts from that character's next line, with no restart: see "Changing a clip while the service runs" in docs/CHARACTER_EDITOR.md (`bridge/live-voices.mjs` edits that one key in the three voice tables and `VoiceSelection.setVoices` sends the running workers the difference). With the clip removed, the shipped voice is back.
