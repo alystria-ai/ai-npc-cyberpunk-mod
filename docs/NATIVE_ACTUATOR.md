@@ -2,6 +2,23 @@
 
 Port of system 2 in `docs/NATIVE_PORT_BRIEF.md`: the per-companion game reads of the 10 Hz companion tick.
 
+## Live status (read from the dev game's probe.log, 2026-10-16 to 2026-10-21)
+
+- Native and proven in about 30 sessions: `Native core: actuator parity proven over N senses (10 or more with the companion walking)`
+  (N from 40 to 4,884), the canary line `parity checked 250 / 500 senses, 0 differences`, and no `PARITY MISMATCH` line in the whole
+  log. `actuator.life`, `.sense` and `.state` all ran native.
+- **The combat flag is read by Lua, not by the plugin.** Every session logs `actuator capabilities 63 (Lua keeps: inCombat)` and the
+  proven line says `combat flag read by Lua (the plugin could not read it)`, and the RED4ext log has `Game access: no static function
+  NPCPuppet.IsInCombat with 1 parameters (nothing under that name)`. The `IsInCombat;ScriptedPuppet` claim in "Behaviour" below did not
+  survive the game: the plugin finds no function with that script name anywhere on the NPCPuppet class chain. The actuator is
+  unaffected (Lua reads the flag, as before); the capabilities are 0x3f, not 0x7f. The same lookup is what `chauffeur` (section A) and
+  `faces` (`Safe`) use.
+- Never A/B-measured, and no native-path number survives: `runtime/perf-probe.json` keeps only the last 5 minutes, which (2026-10-20,
+  23:12Z) had no companion (no `actuator=native` line that session) and no `tickNative.*` row. The Lua path measured `companions.update`
+  7.6 to 8.8 ms/s (2026-10-12 captures, `docs/PERFORMANCE_NATIVE_PLAN.md`); the 10-13 note that proven native read 1.5 to 2 ms/s higher
+  at matched FPS was not a controlled comparison.
+- The last session with a companion and the actuator was 2026-10-20 12:46Z (canary: 500 senses, 0 differences).
+
 ## What moved
 
 `companions.update` senses each ready companion every tick, and `companion-actuator.lua` reads the

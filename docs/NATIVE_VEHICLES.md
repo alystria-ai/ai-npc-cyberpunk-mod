@@ -1,10 +1,25 @@
 # Native vehicle group (systems `vehicles`, `chauffeur`, `passage`)
 
 Port of systems 4, 8 and 9 in `docs/NATIVE_PORT_BRIEF.md` to the native core (`native/core/src/systems/`).
-Status: built and tested headless (parity replay and shim tests). **Not yet run in the game**: every
+Status: built and tested headless (parity replay and shim tests). Barely run in the game: every
 game call below is a name looked up through RTTI at run time, so the in-game checks at the end are the
 first real proof. A function that does not exist makes the plugin answer "unavailable" and the Lua
 keeps running its own code.
+
+**Live status (dev game probe.log, 2026-10-16 to 2026-10-21).** All three classes register and the systems are on in every
+session; the RED4ext log has `GameInstance.GetMountingFacility resolved` (the 10-13 getter fix works). What the log proves:
+`vehicles.mounting` (the not-mounted answer) runs in the companion update (perf row `vehicles.mounting`, 2,870 calls in the last
+5-minute window) with no `MISMATCH` and no fall back; the line `vehicles=native` only says the switch was asked, not that a call
+succeeded. `chauffeur`: one real trip is logged (Takemura, 2026-10-18 08:29Z): `inspectDrive matched the Lua 8 times, now native`,
+then 1 s later `chauffeur=lua (native call failed: sample keeps answering unavailable)`, so the system stayed on Lua for the
+session. The likely cause is the unresolved `NPCPuppet.IsInCombat` described in `NATIVE_ACTUATOR.md` (section A of Sample reads it
+for a tagged actor and fails the section when the function is missing); unproven until `ConvaiNativeChauffeur.Stats()`
+`sampleFailedSections` and the RED4ext log are read after a trip. `vehicles.inspect` and `passage` never reached the verify count
+live (no `matched the Lua 8 times` line, no `passage self-test` line): there is no ride or lift on record with the native on.
+Until 2026-10-21 `inspect` and `mounting` shared one verified counter, so the mounting answers of the companion update used up the
+8-answer trial and the first inspect would have been trusted without one comparison (and its "matched the Lua 8 times" line could
+not print). They now count separately (`verified` for inspect, `verifiedMounting` for mounting, which logs its own `vehicles
+mounting matched the Lua 8 times, now native` line).
 
 Registration is all or nothing, like every system (`rtti::CommitAll`): the three classes check every
 parameter and return type against the game's RTTI before any native is registered, and a system whose
