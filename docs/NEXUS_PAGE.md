@@ -12,8 +12,8 @@
 [size=4][b]Key features[/b][/size]
 [b]Talk to anyone[/b][list]
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
-[*][b]The game's named cast.[/b] Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
-[*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers you come back to remember you. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
+[*][b]The game's named cast.[/b] 123 named characters: Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
+[*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person: 37 kinds of people, with 74 personalities (a woman's and a man's for each), and shopkeepers you come back to remember you. Every nameless passer-by gets their own Night City name that fits who they are (a Valentino gets a Latino name, a Tyger Claw a Japanese one), from about 13,000 names in 16 cultures, shown on the scanner and in the subtitles. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
 [*][b]Talk has consequences.[/b] Threaten an ordinary pedestrian and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
 [*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
 [*][b]Group chat.[/b] Talk to two or three companions at once; they take turns and pick up from each other.
@@ -168,7 +168,7 @@ In game, open Companion Manager > Settings > Help > Help and support, choose [b]
 
 Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord server[/url]:
 
-[url=https://discord.gg/p4pxQhAvJ][img]https://logos-world.net/wp-content/uploads/2020/12/Discord-Symbol.png[/img][/url]
+[url=https://discord.gg/p4pxQhAvJ][img]https://img.icons8.com/color/64/discord-logo.png[/img][/url]
 ```
 
 ## 2. File description (Scripts upload)
