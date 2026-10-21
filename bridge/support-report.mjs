@@ -11,6 +11,8 @@ import {cachedGraphicsCards} from './setup-check.mjs';
 import {describePackFiles} from './local-ai-pack.mjs';
 import {customManifestFolders, describeCustomFolders, parseManifestText} from './custom-manifest-folders.mjs';
 import {errorReportStatus} from './error-events.mjs';
+import {REPORT_FOLDER, recentNodeReports} from './bridge-diagnostics.mjs';
+import {checkRuntimeFiles} from './runtime-integrity.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -645,6 +647,10 @@ export async function collectReport(options) {
     settings: settingsView,
     // Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md): on or off, and counts only.
     errorReports: await errorReportStatus({runtime, stateDirectory, now: now()}).catch(() => null),
+    // Whether the Runtime's code files are the shipped ones (counts and up to five file names, worked out now and cached by modification time, bridge/runtime-integrity.mjs),
+    // and Node's own reports of this data folder's last fatal errors or uncaught exceptions (the error, a few frames, memory; bridge/bridge-diagnostics.mjs).
+    runtimeFiles: await (options.integrity ?? (() => checkRuntimeFiles({project: project ?? resolve(runtime, '..')})))().catch(() => ({state: 'unavailable'})),
+    nodeReports: stateDirectory ? recentNodeReports(join(stateDirectory, REPORT_FOLDER), {limit: 3}) : [],
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},

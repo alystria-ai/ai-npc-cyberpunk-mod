@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {PassThrough, Writable} from 'node:stream';
 import {resolve} from 'node:path';
 import {constants as osConstants} from 'node:os';
-import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed} from './resident-voice.mjs';
+import {readFileSync} from 'node:fs';
+import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed, NO_CUDA_EXIT_CODE, NO_CUDA_FAILURE, noCudaFailed} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
@@ -181,6 +182,26 @@ test('a worker that reports another application directory fails with the text th
   assert.equal(pathAttestationFailed('Local voice startup timed out'), false);
   assert.equal(pathAttestationFailed(undefined), false);
   h.finish(); await h.client.close();
+});
+
+test('a worker that exits with the no-CUDA code fails with the text the voice routing does not retry; any other code is a plain exit', async () => {
+  const h = harness({autoReady: false});
+  const failed = assert.rejects(h.client.start(), error => noCudaFailed(error.message) && error.message === NO_CUDA_FAILURE);
+  h.finish(NO_CUDA_EXIT_CODE);
+  await failed;
+  assert.equal(h.client.loaded, false);
+  const other = harness({autoReady: false});
+  const exited = assert.rejects(other.client.start(), error => error.message === 'Local voice worker exited (1)' && !noCudaFailed(error.message));
+  other.finish(1);
+  await exited;
+  assert.equal(noCudaFailed(undefined), false);
+  await h.client.close(); await other.client.close();
+});
+
+test('the Python worker exits with the code the bridge reads, after one stable marker line on stderr', () => {
+  const source = readFileSync(new URL('./resident-voice-worker.py', import.meta.url), 'utf8');
+  assert.equal(Number(/^NO_CUDA_EXIT_CODE = (\d+)$/m.exec(source)?.[1]), NO_CUDA_EXIT_CODE);
+  assert.match(source, /torch\.cuda\.is_available\(\)[\s\S]{0,400}\[no-cuda\][\s\S]{0,200}raise SystemExit\(NO_CUDA_EXIT_CODE\)/);
 });
 
 test('one FP16 CUDA worker warms all references, stays resident, and changes steps without reloading', async () => {

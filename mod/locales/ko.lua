@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "V의 입력 대사에 쓰이며, Pocket, OmniVoice, Voxtral 클라우드 음성이 이를 복사합니다.",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V는 설치한 V 음성 모드의 음성이나 원래 V 음성으로 말합니다.",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "음성 클립을 제거할까요? V는 설치한 V 음성 모드의 음성이나 원래 V 음성으로 돌아갑니다.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice에는 NVIDIA 그래픽 카드가 필요하지만 이 PC에는 작동하는 그래픽 카드가 없습니다. 응답은 텍스트로 표시됩니다. 음성을 들으려면 설정에서 Pocket을 선택하세요.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice에는 NVIDIA 그래픽 카드가 필요하지만 이 PC에는 작동하는 그래픽 카드가 없습니다. 동료들은 대신 {voice} 음성을 사용합니다.",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice에 NVIDIA 필요",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "이 PC에는 OmniVoice에 필요한 NVIDIA 그래픽 카드가 없습니다. OmniVoice는 여기서 시작되지 않습니다. 음성을 들으려면 Pocket을 선택하세요.",
+    ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA 카드 필요",
 }

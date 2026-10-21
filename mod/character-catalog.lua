@@ -622,8 +622,9 @@ end
 -- A vendor with a minor quest flag can still be talked to (resolve), but no other system touches it.
 function M.protectedReason(catalog, actor)
     if type(catalog) ~= 'table' or type(actor) ~= 'table' then return nil end
-    if (actor.record and catalog.records[actor.record]) or catalog.names[normalized(actor.name)] then return 'named' end
     local facts = type(actor.facts) == 'table' and actor.facts or {}
+    if (actor.record and catalog.records[actor.record]) or (type(facts.recordName) == 'string' and catalog.records[facts.recordName])
+        or catalog.names[normalized(actor.name)] then return 'named' end
     if STORY_BOUND[facts.quest or ''] then return 'quest' end
     if M.storyRecord(facts.recordName) then return 'story-record' end
     return nil
@@ -686,7 +687,11 @@ function M.resolve(catalog, actor)
         local profile = catalog.keys[actor.managedKey]
         return actor.managedKey, profile and profile.name or actor.name
     end
-    local profile = catalog.records[actor.record] or catalog.names[normalized(actor.name)]
+    -- The record by its hash string (actor.record), then by its readable name (actor.facts.recordName, set when the facts were read) and the display name. A
+    -- named roster character whose hash string did not match (2026-10-22: Panam in her apartment scene fell to npc-aldecaldos-female) is still found by name.
+    local facts = type(actor.facts) == 'table' and actor.facts or nil
+    local profile = catalog.records[actor.record] or (facts and type(facts.recordName) == 'string' and catalog.records[facts.recordName])
+        or catalog.names[normalized(actor.name)]
     if profile then
         -- actor.world: a character the game placed in the world, not our spawned copy. A named roster character there
         -- is the game's own (a quest or scene may drive it): only the copy the mod spawned talks. Name lookups that

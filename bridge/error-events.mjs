@@ -160,6 +160,44 @@ export function cleanSlow(value) {
   return Object.keys(clean).length ? clean : null;
 }
 
+// ------------------------------------------------------------- a crash's facts
+
+const crashNumber = (value, max = 1e9) => Number.isFinite(value) ? Math.max(0, Math.min(max, Math.round(value))) : undefined;
+const crashList = (list, count, size) => Array.isArray(list) ? list.slice(0, count).map(item => clip(String(item ?? ''), size).trim()).filter(Boolean) : [];
+
+/**
+ * The `crash` section of a bridge-crash record (bridge/bridge-diagnostics.mjs collectCrashInfo), rebuilt field by field: the exit code in words,
+ * the stage the bridge was in (fixed names), its last memory figures and the summary of Node's own report (the error's first line, a few
+ * frames, heap and rss). Bounded, no conversation text. null when there is nothing usable.
+ */
+export function cleanCrash(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const result = {};
+  const exit = value.exit && typeof value.exit === 'object' ? without({code: crashNumber(value.exit.code, 4294967295), hex: clip(value.exit.hex, 12) || undefined,
+    meaning: clip(value.exit.meaning, 160) || undefined, signal: clip(value.exit.signal, 20) || undefined}) : null;
+  if (exit && Object.keys(exit).length) result.exit = exit;
+  if (value.stage && typeof value.stage === 'object') {
+    const stage = without({name: clip(value.stage.name, 40) || undefined, agoS: crashNumber(value.stage.agoS, 1e7), previous: crashList(value.stage.previous, 5, 40),
+      closed: typeof value.stage.closed === 'boolean' ? value.stage.closed : undefined, exitCode: Number.isFinite(value.stage.exitCode) ? Math.round(value.stage.exitCode) : undefined});
+    if (stage.previous && !stage.previous.length) delete stage.previous;
+    if (Object.keys(stage).length) result.stage = stage;
+  }
+  const figures = source => source && typeof source === 'object' ? without({rssMiB: crashNumber(source.rssMiB, 1e6), heapUsedMiB: crashNumber(source.heapUsedMiB, 1e6),
+    heapTotalMiB: crashNumber(source.heapTotalMiB, 1e6), heapLimitMiB: crashNumber(source.heapLimitMiB, 1e6), agoS: crashNumber(source.agoS, 1e7)}) : {};
+  const memory = figures(value.memory);
+  if (Object.keys(memory).length) result.memory = memory;
+  const uptime = crashNumber(value.uptimeS, 1e8);
+  if (uptime !== undefined) result.uptimeS = uptime;
+  if (value.nodeReport && typeof value.nodeReport === 'object') {
+    const report = without({file: clip(value.nodeReport.file, 80) || undefined, event: clip(value.nodeReport.event, 80) || undefined,
+      trigger: clip(value.nodeReport.trigger, 40) || undefined, error: clip(value.nodeReport.error, 200) || undefined, frames: crashList(value.nodeReport.frames, 5, 120),
+      native: crashList(value.nodeReport.native, 4, 80), node: clip(value.nodeReport.node, 20) || undefined, ...figures(value.nodeReport)});
+    for (const key of ['frames', 'native']) if (report[key] && !report[key].length) delete report[key];
+    if (Object.keys(report).length) result.nodeReport = report;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
 /** A queue record from an event, or null when the event is not usable. Paths in the text keep only their file names. */
 export function queueRecord(event, now = Date.now()) {
   if (!event || typeof event !== 'object' || !KIND_PATTERN.test(String(event.kind ?? ''))) return null;
@@ -174,7 +212,8 @@ export function queueRecord(event, now = Date.now()) {
     : undefined;
   const at = Number.isFinite(event.at) ? event.at : now;
   const slow = event.kind === 'slow-turn' ? cleanSlow(event.slow) : null;
-  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}), ...(slow ? {slow} : {}),
+  const crash = event.kind === 'bridge-crash' ? cleanCrash(event.crash) : null;
+  return {version: 1, signature, kind: event.kind, message, frame, stack, ...(detail ? {detail} : {}), ...(slow ? {slow} : {}), ...(crash ? {crash} : {}),
     source: clip(String(event.source ?? 'bridge'), 20), count: 1, firstAt: at, lastAt: at};
 }
 

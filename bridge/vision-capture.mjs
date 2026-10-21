@@ -7,6 +7,7 @@ import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {resolve, dirname} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
+import {markBridgeStage} from './stage-marker.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const HELPER_NAME = 'CyberpunkConvaiVision.exe';
@@ -39,6 +40,7 @@ export class VisionCapture {
     if (this.ready) return this.ready;
     const path = this.path;
     if (!path) { this.log('vision helper not found'); return Promise.resolve(false); }
+    markBridgeStage('vision.helper-start');
     let child;
     try { child = this.spawnHelper(path); } catch (error) { this.log(`vision helper did not start: ${error.message}`); return Promise.resolve(false); }
     this.child = child; this.buffer = '';
@@ -75,6 +77,7 @@ export class VisionCapture {
     const width = Math.round(Math.min(2048, Math.max(64, Number(maxWidth) || CAPTURE_DEFAULTS.maxWidth)));
     const level = Math.round(Math.min(100, Math.max(1, Number(quality) || CAPTURE_DEFAULTS.quality)));
     const run = async () => {
+      markBridgeStage('vision.capture');
       if (!await this.start()) return normalise({ok: false, reason: this.available ? 'failed' : 'unavailable'});
       const child = this.child;
       const reply = await new Promise(resolveReply => {

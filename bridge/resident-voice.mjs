@@ -8,6 +8,7 @@ import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from 
 import {realpathSync} from 'node:fs';
 import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
 import {readGpuProcessMemory} from './gpu-memory.mjs';
+import {markBridgeStage} from './stage-marker.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -26,6 +27,12 @@ export const VOICE_WORKER_LIMITS = Object.freeze({startupStallMs: 300_000, start
 // (bridge/voice-selection.mjs does not schedule one).
 export const PATH_ATTESTATION_FAILURE = 'Local voice worker did not confirm its portable asset and data paths';
 export const pathAttestationFailed = reason => String(reason ?? '').includes(PATH_ATTESTATION_FAILURE);
+
+// A worker whose PyTorch has no CUDA (an AMD or Intel card, or an NVIDIA driver that does not work) exits with this code (resident-voice-worker.py
+// NO_CUDA_EXIT_CODE) and fails with this text. It is the same on every try, so bridge/voice-selection.mjs does not schedule one.
+export const NO_CUDA_EXIT_CODE = 78;
+export const NO_CUDA_FAILURE = 'Local voice worker needs CUDA (no NVIDIA graphics card that works)';
+export const noCudaFailed = reason => String(reason ?? '').includes(NO_CUDA_FAILURE);
 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
@@ -237,6 +244,7 @@ export class ResidentVoice {
       for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];
       Object.assign(environment, this.workerEnvironment);
       if (this.workerEnvironment) environment.PYTHONDONTWRITEBYTECODE = '1';
+      markBridgeStage('voice.worker-start');   // the supervisor's last-stage note (bridge/stage-marker.mjs)
       child = this.child = this.spawnImpl(this.pythonExecutable
         || resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
         [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath],
@@ -265,7 +273,7 @@ export class ResidentVoice {
         this.exitTimer = this.exitConfirmation = null;
         this.child = null; this.loaded = false; this.prepared.clear();
         this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
-        const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(`Local voice worker exited (${code})`));
+        const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(code === NO_CUDA_EXIT_CODE ? NO_CUDA_FAILURE : `Local voice worker exited (${code})`));
         this.rejectReady?.(error);
         for (const item of this.pending.values()) item.reject(error);
         this.pending.clear();

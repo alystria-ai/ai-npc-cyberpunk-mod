@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "用於 V 的輸入台詞：Pocket、OmniVoice 和 Voxtral 雲端語音會複製它。",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V 將使用你已安裝的 V 語音 Mod 的聲音，或出廠的 V 語音。",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "要移除語音片段嗎？V 將恢復為你已安裝的 V 語音 Mod 的聲音，或出廠的 V 語音。",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice 需要 NVIDIA 顯示卡，而這台電腦沒有可用的顯示卡。回覆會以文字顯示。在設定中選擇 Pocket 即可聽到語音。",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice 需要 NVIDIA 顯示卡，而這台電腦沒有可用的顯示卡。夥伴們改用 {voice}。",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice 需要 NVIDIA",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "這台電腦沒有 OmniVoice 所需的 NVIDIA 顯示卡，OmniVoice 無法在此啟動。要聽到語音，請選擇 Pocket。",
+    ["{voice} · needs NVIDIA card"] = "{voice} · 需要 NVIDIA 顯示卡",
 }

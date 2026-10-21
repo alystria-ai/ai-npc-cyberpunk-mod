@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "V’nin yazılan satırları için kullanılır: Pocket, OmniVoice ve Voxtral bulut sesi bunu kopyalar.",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V, yüklediğin V ses modunun sesiyle ya da orijinal V sesiyle konuşur.",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "Ses klibi kaldırılsın mı? V, yüklü V ses modunun sesine ya da orijinal V sesine geri döner.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice bir NVIDIA ekran kartı gerektiriyor ve bu bilgisayarda çalışan bir ekran kartı yok. Yanıtlar metin olarak gösterilir. Sesleri duymak için Ayarlar’dan Pocket’i seç.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice bir NVIDIA ekran kartı gerektiriyor ve bu bilgisayarda çalışan bir ekran kartı yok. Yoldaşlar bunun yerine {voice} kullanıyor.",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice NVIDIA gerektirir",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Bu bilgisayarda OmniVoice’un ihtiyaç duyduğu NVIDIA ekran kartı yok. OmniVoice burada başlamayacak. Sesleri duymak için Pocket’i seç.",
+    ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA kartı gerekir",
 }

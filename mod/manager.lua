@@ -957,13 +957,16 @@ end
 
 -- The optional OmniVoice pack, as the bridge reports it (worker Python, model weights, adapter). Unknown (no fresh
 -- report) counts as installed: Settings never locks a choice because the service has not answered yet.
+-- `noNvidia`: the bridge knows this PC has no NVIDIA graphics card (its card list, or a worker that found no CUDA): the entries stay choosable,
+-- the menu only says OmniVoice needs one. Unknown (no fresh report, or no card list yet) is false.
 function M.omniPack()
     local pack = type(localVoiceState) == 'table' and localVoiceState.omniPack or nil
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
+    local noNvidia = fresh and localVoiceState.omniNoNvidia == true
     if fresh and type(pack) == 'table' and pack.installed == false then
-        return {installed = false, known = true, missing = pack.missing or {}}
+        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia}
     end
-    return {installed = true, known = fresh and type(pack) == 'table'}
+    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia}
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
@@ -975,6 +978,14 @@ function M.takeVoiceFallbackNotice()
     local pending = voiceFallbackNotice
     voiceFallbackNotice = nil
     if not pending then return nil end
+    -- OmniVoice cannot run on this PC at all (it needs an NVIDIA graphics card): said once, and not as a retry or a plain "unavailable".
+    if pending.reason == 'omni-no-nvidia' then
+        if pending.to == 'text' then
+            return ui.t('OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices.')
+        end
+        return ui.t('OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead.', {
+            voice = M.voiceLabel(pending.to)})
+    end
     if pending.to == 'text' then
         return ui.t('{requested} is unavailable right now. Replies show as text until it is back.', {
             requested = M.voiceLabel(pending.from, pending.steps, pending.reference)})
@@ -1237,10 +1248,12 @@ local function updateLocalVoice()
         and (fallback.to == 'pocket' or fallback.to == 'text') then
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
-        local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '')
+        -- 'omni-no-nvidia' (OmniVoice needs an NVIDIA card) is its own notice, whatever the lower voice is.
+        local reason = fallback.from == 'omni' and fallback.reason == 'omni-no-nvidia' and fallback.reason or nil
+        local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true
-            voiceFallbackNotice = {from = fallback.from, to = fallback.to, temporary = temporary,
+            voiceFallbackNotice = {from = fallback.from, to = fallback.to, temporary = temporary, reason = reason,
                 steps = state.requestedOmniSteps, reference = state.requestedOmniReference}
         end
         signature = signature .. ':' .. id

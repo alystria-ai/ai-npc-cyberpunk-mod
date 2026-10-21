@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "Vの入力セリフに使われ、Pocket、OmniVoice、Voxtralクラウド音声がこれをコピーします。",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "Vは、インストール済みのVボイスMODの声、または初期のVの声で話します。",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "音声クリップを削除しますか？Vは、インストール済みのVボイスMODの声、または初期のVの声に戻ります。",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice には NVIDIA のグラフィックカードが必要ですが、このPCには動作するものがありません。返答はテキストで表示されます。音声を聞くには設定で Pocket を選んでください。",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice には NVIDIA のグラフィックカードが必要ですが、このPCには動作するものがありません。コンパニオンは代わりに {voice} を使っています。",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice には NVIDIA が必要",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "このPCには OmniVoice に必要な NVIDIA のグラフィックカードがありません。OmniVoice はここでは起動しません。音声を聞くには Pocket を選んでください。",
+    ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA カードが必要",
 }

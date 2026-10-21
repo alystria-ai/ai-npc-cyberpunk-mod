@@ -712,3 +712,27 @@ test('the player\'s voice clips appear only as a count and a length each: no aud
     assert.match(report.entries.find(row => row.name === 'README.txt').data, /your own voice clips\n\(only how many there are and how long each is\)/);
   } finally { await f.cleanup(); }
 });
+
+test('the report says whether the Runtime\'s code files match the release, and lists Node\'s own reports of fatal errors (names and numbers only)', async () => {
+  const f = await fakeInstall();
+  try {
+    const {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} = await import('./runtime-integrity.mjs');
+    resetRuntimeIntegrityCache();
+    await mkdir(join(f.project, 'bridge'), {recursive: true}); await mkdir(join(f.project, 'defaults'), {recursive: true});
+    await writeFile(join(f.project, 'bridge/a.mjs'), 'export const a = 1;\n');
+    await writeFile(join(f.project, CODE_LIST), codeListText({version: '0.2.8', rows: [{path: 'bridge/a.mjs', hash: hashBytes(Buffer.from('export const a = 1;\n'))}]}));
+    await writeFile(join(f.project, 'bridge/injected.mjs'), 'secret contents');
+    await mkdir(join(f.state, 'node-reports'), {recursive: true});
+    await writeFile(join(f.state, 'node-reports', 'report.1.json'), JSON.stringify({header: {event: 'Allocation failed - JavaScript heap out of memory', trigger: 'OOMError'},
+      javascriptStack: {message: 'No stack.', stack: ['Unavailable.']}, javascriptHeap: {usedMemory: 3900 * 1048576, totalMemory: 4000 * 1048576, memoryLimit: 4144 * 1048576},
+      environmentVariables: {SECRET: PLANTED.hexKey}}));
+    const {summary, entries} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-files'});
+    assert.equal(summary.runtimeFiles.state, 'modified');
+    assert.deepEqual(summary.runtimeFiles.names, ['extra bridge/injected.mjs']);
+    assert.equal(summary.nodeReports.length, 1);
+    assert.equal(summary.nodeReports[0].event, 'Allocation failed - JavaScript heap out of memory');
+    assert.equal(summary.nodeReports[0].heapUsedMiB, 3900);
+    const text = JSON.stringify(entries.find(row => row.name === 'summary.json').data);
+    assert.ok(!text.includes('secret contents') && !text.includes(PLANTED.hexKey), 'no contents, no environment');
+  } finally { await f.cleanup(); }
+});

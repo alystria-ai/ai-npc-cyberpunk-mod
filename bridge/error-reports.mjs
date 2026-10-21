@@ -16,7 +16,9 @@
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
 // CET, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
-// Mature content as on or off only; the graphics card name and memory; the setup check's lines; up to 150 log lines around the error
+// Mature content as on or off only; the graphics card name and memory; the setup check's lines; whether the Runtime's code files match the release
+// (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
+// the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
 // (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines); the install id hashed again.
 // Never: keys, tokens, conversation text, memories, typed lines, audio, the Windows user name. Every text goes through the support
 // report's redactor (bridge/support-report.mjs) with every key file's value as a literal to scrub, then a filter that removes
@@ -28,6 +30,7 @@ import os from 'node:os';
 import {createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
+import {checkRuntimeFiles} from './runtime-integrity.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {GAME_EVENTS_FILE, QUEUE_FOLDER, cleanSlow, clearQueue, errorReportsEnabled, parseGameEvents, readQueue, recordErrorEvent,
   removeQueued, sentPath} from './error-events.mjs';
@@ -285,7 +288,7 @@ export async function reportSecrets({stateDirectory, project, environment = proc
  * it. The JSON is at most MAX_BODY_BYTES (log lines are dropped, oldest first from the largest source, until it fits).
  */
 export async function buildErrorPayload({record, game, modRoot, runtime, stateDirectory, project, installId, gameInfo = {}, secrets,
-  graphics = () => cachedGraphicsCards(), environment = process.env, names, now = Date.now}) {
+  graphics = () => cachedGraphicsCards(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
   const scrub = secrets ?? await reportSecrets({stateDirectory, project, environment});
   const {clean, stats} = reportCleaner({secrets: scrub, ...(names ? {names} : {})});
   const versions = await collectVersions({game, modRoot, project, gameInfo});
@@ -315,6 +318,9 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       // A slow-turn record's timings (bridge/slow-turns.mjs): numbers and fixed names, rebuilt again by cleanSlow when it was queued.
       ...(record.kind === 'slow-turn' && record.slow ? {slow: cleanStrings(cleanSlow(record.slow), clean)} : {}),
       versions,
+      // A crash's facts (the exit code decoded, the bridge's last stage, Node's own report): rebuilt field by field when the event was recorded.
+      ...(record.kind === 'bridge-crash' && record.crash ? {crash: cleanStrings(record.crash, clean)} : {}),
+      runtimeFiles: cleanStrings(await Promise.resolve().then(() => integrity()).catch(() => ({state: 'unavailable'})), clean),
       choices: await collectChoices({runtime, gameInfo}),
       system: {gpu},
       setup: (await collectSetup({runtime, gameInfo, now: now()})).map(line => clean(line)),
@@ -436,13 +442,13 @@ export class ErrorReporter {
     return record;
   }
 
-  /** The bridge exited unexpectedly: a crash report, unless the bridge recorded its own exception just before (that one says more). */
-  async bridgeExited(description) {
+  /** The bridge exited unexpectedly: a crash report, unless the bridge recorded its own exception just before (that one says more). `crash`: collectCrashInfo's facts. */
+  async bridgeExited(description, crash) {
     if (this.closed) return null;
     const recent = (await readQueue(this.stateDirectory, {now: this.now()}))
       .some(record => (record.kind === 'bridge-exception' || record.kind === 'bridge-rejection') && this.now() - record.lastAt <= this.timings.crashPairMs);
     if (recent) { this.#schedule(this.timings.debounceMs); return null; }
-    return this.record({kind: 'bridge-crash', message: 'The bridge exited unexpectedly', frame: clip(String(description ?? 'unknown'), 120)});
+    return this.record({kind: 'bridge-crash', message: 'The bridge exited unexpectedly', frame: clip(String(description ?? 'unknown'), 120), ...(crash ? {crash} : {})});
   }
 
   // The state file (sent.json) has one writer at a time: every look and every send runs in this chain.

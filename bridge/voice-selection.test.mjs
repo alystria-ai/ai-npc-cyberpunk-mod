@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {VoiceSelection, blockedByWindows} from './voice-selection.mjs';
-import {LOCAL_VOICE_KEYS, ResidentVoice} from './resident-voice.mjs';
+import {LOCAL_VOICE_KEYS, ResidentVoice, NO_CUDA_FAILURE} from './resident-voice.mjs';
 import {abortable} from './transport-pool.mjs';
 
 const pocketSettings = voices => ({version:1,provider:'pocket',engine:'pocket-tts',voices,
@@ -758,7 +758,7 @@ test('prepared voices are always kept: on for every worker, and an old saved kee
 // A slow or failed OmniVoice is not a lost one: the replies are written meanwhile (Pocket is not loaded in its place, and no cloud voice speaks),
 // Omni loads again in the background, and the voice returns at an idle reply boundary. `omni` scripts each Omni attempt in order: 'fail', 'hold' (a gate the test
 // opens), or 'ok' (the default once the script runs out). `pocket` scripts the Pocket attempts the same way.
-function retryFixture({omni = [], pocket = []} = {}) {
+function retryFixture({omni = [], pocket = [], options = {}} = {}) {
   const workers = [], states = [], logs = []; let now = 1000, live = 0, peak = 0;
   const voices = {'johnny-silverhand': {reference: 'runtime/voice-references/johnny.wav', sha256: 'a'.repeat(64), transcript: 'Original line.'}};
   const factory = backend => (config, hooks) => {
@@ -769,9 +769,9 @@ function retryFixture({omni = [], pocket = []} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (mode === 'fail' || mode === 'blocked' || mode === 'paths') {
+        if (mode === 'fail' || mode === 'blocked' || mode === 'paths' || mode === 'nocuda') {
           this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
-            : mode === 'paths' ? 'Local voice worker did not confirm its portable asset and data paths' : backend + ' worker failed');
+            : mode === 'paths' ? 'Local voice worker did not confirm its portable asset and data paths' : mode === 'nocuda' ? NO_CUDA_FAILURE : backend + ' worker failed');
           hooks.onState({state: 'error'}); throw this.failure;
         }
         owned = true; live++; peak = Math.max(peak, live);
@@ -785,7 +785,7 @@ function retryFixture({omni = [], pocket = []} = {}) {
     workers.push(worker); return worker;
   };
   const failures = [];
-  const voice = new VoiceSelection(pocketSettings(voices), {onState: value => states.push(value), onLog: line => logs.push(line), onFailure: info => failures.push(info),
+  const voice = new VoiceSelection(pocketSettings(voices), {...options, onState: value => states.push(value), onLog: line => logs.push(line), onFailure: info => failures.push(info),
     factory: factory('pocket'), omniFactory: factory('omni'), clock: () => now,
     omniConfig: {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 32, voices}});
   const omniWorkers = () => workers.filter(worker => worker.backend === 'omni');
@@ -843,6 +843,46 @@ test('an Omni worker that could not confirm its paths is not tried again: every 
   for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
   assert.equal(h.omniWorkers().length, 1, 'no second load, however long it waits');
   await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('an Omni worker with no CUDA is never tried again, says so once, is not reported as a bug, and names the card vendors', async () => {
+  let vendors = null;
+  const h = retryFixture({omni: ['nocuda', 'ok'], options: {gpuVendors: () => vendors}});
+  vendors = ['amd'];
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 1);
+  assert.ok(h.logs.some(line => /\[OmniVoice\] starting OmniVoice \(graphics: amd\)/.test(line)), 'the start line names the vendors');
+  assert.equal(h.voice.omniRetry, null); assert.equal(h.states.at(-1).omniRetry, null);
+  assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'text', reason: 'omni-no-nvidia'});
+  assert.equal(h.logs.filter(line => /\[OmniRetry\]/.test(line)).length, 1);
+  assert.ok(h.logs.some(line => /\[OmniRetry\] not trying again: OmniVoice needs an NVIDIA graphics card .*\(graphics: amd\)/.test(line)));
+  assert.ok(!h.logs.some(line => /trying again in/.test(line)));
+  assert.equal(h.failures.length, 0, 'a PC without an NVIDIA card is not filed as an error report');
+  assert.equal(h.states.at(-1).omniNoNvidia, true); assert.deepEqual(h.states.at(-1).gpuVendors, ['amd']);
+  assert.equal(h.pocketWorkers().length, 0, 'no other voice is loaded in its place');
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 1, 'no background load, however long it waits');
+  // Choosing another voice and Omni again does not start the worker again either (the failure is for the life of the service).
+  h.voice.update({voiceProvider: 'convai'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 1); assert.equal(h.logs.filter(line => /not trying again/.test(line)).length, 1);
+  assert.equal(h.voice.fallback?.reason, 'omni-no-nvidia');
+  await h.voice.close(); assert.equal(h.live(), 0, 'the failed worker is released');
+});
+
+test('the menu fact omniNoNvidia needs a known card list without an NVIDIA card; unknown claims nothing', async () => {
+  let vendors = null;
+  const h = retryFixture({options: {gpuVendors: () => vendors}});
+  h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false); assert.equal(h.states.at(-1).gpuVendors, null);
+  vendors = []; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false);
+  vendors = ['other']; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false);
+  vendors = ['intel', 'nvidia']; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, false);
+  vendors = ['intel', 'amd']; h.voice.publish(); assert.equal(h.states.at(-1).omniNoNvidia, true);
+  assert.equal(h.voice.fallback, null, 'a PC without an NVIDIA card is not told anything until the voice is chosen and fails');
+  const broken = retryFixture({options: {gpuVendors: () => { throw Error('x'); }}});
+  broken.voice.publish(); assert.equal(broken.states.at(-1).omniNoNvidia, false);
+  await h.voice.close(); await broken.voice.close();
 });
 
 test('Omni retries back off, give up after the last one, and choosing Omni again starts over', async () => {

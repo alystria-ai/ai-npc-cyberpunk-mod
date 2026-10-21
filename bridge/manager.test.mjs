@@ -1141,6 +1141,72 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
   `);
 });
 
+test('a PC the bridge knows has no NVIDIA card gets a note on the OmniVoice entries, which stay choosable; unknown or stale claims nothing', () => {
+  run(`${nsuiFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    local function show(tag, state)
+      clock = clock + 20
+      state.state, state.provider, state.updated = 'ready', 'pocket', clock * 1000
+      jsonFixtures['voice-' .. tag] = state
+      files['runtime/local-voice-state.json'] = 'voice-' .. tag
+      manager.snapshot(player)
+      loaded = registered.loadMod('manager')
+    end
+    assert(invoke('tab:settings').ok)
+    show('plain', {omniPack = {installed = true, missing = {}}})
+    assert(row('voiceProvider').label == 'Companion voices' and manager.omniPack().noNvidia == false)
+    show('unknown', {omniPack = {installed = true, missing = {}}, omniNoNvidia = false, gpuVendors = {}})
+    assert(row('voiceProvider').label == 'Companion voices' and not row('voiceProvider').description:find('NVIDIA', 1, true))
+    show('amd', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, gpuVendors = {'amd'}})
+    assert(manager.omniPack().noNvidia == true)
+    assert(row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)', row('voiceProvider').label)
+    local description = row('voiceProvider').description
+    assert(description:find('^This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.'), description)
+    assert(description:find('Pocket: the lightest', 1, true), 'the usual help follows the note')
+    local elements = row('voiceProvider').elements
+    assert(#elements == 7 and elements[3] == 'OmniVoice · Balanced', 'the entries are not renamed (they must fit the box)')
+    assert(row('voiceProvider').disabledElements == nil, 'no entry is greyed out or removed: a card the list does not show may still work')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok and saved.voiceProvider == 'omni')
+    -- A stale report claims nothing.
+    clock = clock + 60
+    assert(manager.omniPack().noNvidia == false)
+    -- The missing pack comes first in the row's name.
+    show('both', {omniPack = {installed = false, missing = {'model'}}, omniNoNvidia = true})
+    assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
+  `);
+});
+
+test('OmniVoice that needs an NVIDIA card is announced once as its own notice, whatever voice speaks instead, and not as a retry', () => {
+  run(`${nsuiFixture}${managerPopupFixture}
+    popupStep = 1
+    local state = {state = 'ready', provider = 'text', requestedProvider = 'omni', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', routedProfiles = {},
+      fallback = {from = 'omni', to = 'text', reason = 'omni-no-nvidia'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one notice')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == 'OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices.', popups[1])
+    assert(not popups[1]:find('not ready yet', 1, true) and not popups[1]:find('Convai', 1, true) and not popups[1]:find('Mistral', 1, true))
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 1, 'the same fallback was announced again')
+    -- With Pocket already loaded it speaks instead and the notice says so; a different fallback id, so said once more.
+    popupClock = popupClock + 700
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'pocket', reason = 'omni-no-nvidia'}, 'pocket', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == 'OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using Pocket · Performance instead.', popups[2])
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 2)
+    -- A fallback with another reason (or none) keeps the usual wording.
+    popupClock = popupClock + 700
+    state.fallback, state.updated = {from = 'omni', to = 'pocket'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(popups[#popups] == 'OmniVoice · Balanced is unavailable. Companions are using Pocket · Performance instead.', popups[#popups])
+  `);
+});
+
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end

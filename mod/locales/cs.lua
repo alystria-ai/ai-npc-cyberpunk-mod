@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "Použije se pro napsané repliky V: Pocket, OmniVoice a cloudový hlas Voxtral ho zkopírují.",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V mluví hlasem tvého nainstalovaného modu hlasu V, nebo původním hlasem V.",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "Odstranit hlasový klip? V se vrátí k hlasu tvého nainstalovaného modu hlasu V, nebo k původnímu hlasu V.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice potřebuje grafickou kartu NVIDIA a tento PC žádnou funkční nemá. Odpovědi se zobrazují jako text. Hlasy uslyšíš, když v Nastavení vybereš Pocket.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice potřebuje grafickou kartu NVIDIA a tento PC žádnou funkční nemá. Společníci místo toho používají {voice}.",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice potřebuje NVIDIA",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Tento PC nemá grafickou kartu NVIDIA, kterou OmniVoice potřebuje. OmniVoice se tu nespustí. Hlasy uslyšíš, když zvolíš Pocket.",
+    ["{voice} · needs NVIDIA card"] = "{voice} · potřebuje kartu NVIDIA",
 }
