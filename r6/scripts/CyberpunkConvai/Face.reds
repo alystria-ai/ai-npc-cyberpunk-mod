@@ -370,17 +370,16 @@ public class ConvaiFaceService extends ScriptableService {
     };
   }
 
-  // The ordinary crowd NPC's preparation, the same at its spawn and after a rebuild of its face: the record and quest filters,
+  // The ordinary crowd NPC's preparation, the same at its spawn and after a rebuild of its face: the record and roster filters,
   // the rig check, then the gated copy of its crowd graph. Returns "prepared:<graph>" (the graph is written) or the reason it
-  // stays as the game built it (skipped:no-record, skipped:named, skipped:quest, rig-not-loaded, unsupported-rig,
-  // speech-graph-not-loaded). Strings are read only for an NPC the cheap checks passed.
+  // stays as the game built it (skipped:no-record, skipped:named, rig-not-loaded, unsupported-rig, speech-graph-not-loaded).
+  // A quest-bound character (a q###/sq###/mq### record or appearance: the Afterlife bouncer) is prepared like anyone else: the
+  // speech layer is inert until the mod voices that character, so a scene or the character's own animation sees the vanilla
+  // face, and the talk-time guard (TalkRefusal) keeps the mouth shut while the game has the character in a scene or a dialogue.
   private func PrepareCrowdFace(npc: ref<NPCPuppet>, face: ref<AnimatedComponent>, index: Int32) -> String {
     let record = npc.GetRecordID();
     let recordValid = TDBID.IsValid(record);
-    let reason = ConvaiFaceService.CrowdSkipReason(recordValid, recordValid && ArrayContains(this.m_named, record), "", "");
-    if Equals(reason, "") {
-      reason = ConvaiFaceService.CrowdSkipReason(true, false, NameToString(npc.GetCurrentAppearanceName()), TDBID.ToStringDEBUG(record));
-    };
+    let reason = ConvaiFaceService.CrowdSkipReason(recordValid, recordValid && ArrayContains(this.m_named, record));
     if !Equals(reason, "") { return reason; };
     let rig = this.CheckRig(face);
     if !Equals(rig, "") { return rig; };
@@ -529,13 +528,13 @@ public class ConvaiFaceService extends ScriptableService {
   }
 
   // Why an NPC with a crowd graph stays vanilla, or "" when it is ordinary: no readable record (fail closed, so a story
-  // character is never touched by mistake), a named roster record, or a quest token in the appearance or the record
-  // (q004, sq021, mq003...). The named roster is the one thing the graph and the tokens cannot tell apart: Johnny's
-  // record uses man_average_sermo. The strings are only read for an NPC the cheap checks passed.
-  public static func CrowdSkipReason(recordValid: Bool, named: Bool, appearance: String, record: String) -> String {
+  // character is never touched by mistake) or a named roster record. The named roster is the one thing the graph cannot tell
+  // apart: Johnny's record uses man_average_sermo. A quest token in the appearance or record (q004, sq021, mq003...) is no
+  // reason any more (2026-10-22: the Afterlife bouncer's appearance is gang__generic_mb__q005__emmerick and his mouth stayed
+  // still): whether the game is using the character is decided at talk time, from what the game reports (TalkRefusal).
+  public static func CrowdSkipReason(recordValid: Bool, named: Bool) -> String {
     if !recordValid { return "skipped:no-record"; };
     if named { return "skipped:named"; };
-    if ConvaiFaceService.QuestBound(appearance) || ConvaiFaceService.QuestBound(record) && !ConvaiFaceService.QuestCrowd(record) { return "skipped:quest"; };
     return "";
   }
 
@@ -555,13 +554,12 @@ public class ConvaiFaceService extends ScriptableService {
     return "gated";
   }
 
-  // The talk-time guards, once per conversation start for an NPC that carries the layer. They cannot matter for an NPC
-  // the spawn filter let through, except for a quest that took it since or a record the filter could not know: such an
-  // NPC is only refused here (it keeps an inert, switched-off graph, never written), its voice still plays.
+  // The talk-time guards, once per conversation start for an NPC that carries the layer. The spawn filter decides nothing
+  // about quests any more, so this is where the game's use of the character is read: such an NPC is only refused here (it keeps
+  // an inert, switched-off graph, never written), its voice still plays.
   public func TalkRefusal(npc: ref<NPCPuppet>, opt spawned: Bool) -> String {
-    // A dialogue in progress, one a quest marked or whose AI a quest or scene commands, and one whose appearance or
-    // record belongs to a quest. A scene alone is no reason: vendors and community NPCs at their workspots are scene
-    // actors, and the spawn filter already kept the story characters out.
+    // A dialogue in progress, and one a quest marked or whose AI a quest or scene commands, unless the character stands at a
+    // workspot. A scene alone is no reason: vendors, community NPCs and a quest's bouncer at their workspots are scene actors.
     let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
     if IsDefined(scene) && scene.IsEntityInDialogue(npc.GetEntityID()) { return "skipped:dialogue"; };
     // A character another mod or a spawner created: only a quest marking it refuses it. Its AI is commanded by that mod
@@ -577,38 +575,14 @@ public class ConvaiFaceService extends ScriptableService {
       if !npc.IsOnAutonomousAI() { return "skipped:driven"; };
       return "";
     };
-    let record = TDBID.ToStringDEBUG(npc.GetRecordID());
-    if ConvaiFaceService.QuestBound(NameToString(npc.GetCurrentAppearanceName()))
-      || ConvaiFaceService.QuestBound(record) && !ConvaiFaceService.QuestCrowd(record) { return "skipped:quest"; };
-    if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
+    // An ordinary or quest-bound character of the game (the template, the appearance and the record say nothing about whether the
+    // game is using the character now): refused for a quest marking or an AI a quest or scene commands, unless it stands at a
+    // workspot, which is how the game keeps a bouncer, a vendor or a receptionist at their post (2026-10-22: the Afterlife
+    // bouncer stood idle at his, no scene, and his mouth was left still). V's own scene, quest conversation and call are checked on
+    // the Lua side (mod/world-talk.lua, for a quest-bound character), and the game dialogue above.
+    let atPost = GameInstance.GetWorkspotSystem(npc.GetGame()).IsActorInWorkspot(npc);
+    if !atPost && (npc.IsQuest() || !npc.IsOnAutonomousAI()) { return "skipped:driven"; };
     return "";
-  }
-
-  // A quest's crowd extra (Character.q005_afterlife_crowd_female): its record names it a crowd member of the quest. It talks as an
-  // ordinary person (mod/character-catalog.lua questCrowd, 2026-10-21), so its face speaks like any crowd face; a quest token in its
-  // appearance, a quest marking or a commanded AI still leaves it to the game.
-  public static func QuestCrowd(record: String) -> Bool {
-    return StrContains(StrLower(record), "_crowd_") || StrEndsWith(StrLower(record), "_crowd");
-  }
-
-  // True for a quest token: "q", "sq" or "mq" right after "_" or "." or at the
-  // start, then three digits ("..._q004_...", "Character.sq021_..."). Runs once
-  // per NPC spawn and once per conversation start, on two short strings.
-  public static func QuestBound(text: String) -> Bool {
-    let digits = "0123456789";
-    let length = StrLen(text);
-    let i = 0;
-    while i + 3 < length {
-      if Equals(StrMid(text, i, 1), "q")
-        && StrContains(digits, StrMid(text, i + 1, 1)) && StrContains(digits, StrMid(text, i + 2, 1))
-        && StrContains(digits, StrMid(text, i + 3, 1)) {
-        let start = i;
-        if start > 0 && (Equals(StrMid(text, start - 1, 1), "s") || Equals(StrMid(text, start - 1, 1), "m")) { start -= 1; };
-        if start == 0 || Equals(StrMid(text, start - 1, 1), "_") || Equals(StrMid(text, start - 1, 1), ".") { return true; };
-      };
-      i += 1;
-    };
-    return false;
   }
 
   // A spawned character's face: the gated crowd copy on one of the four crowd graphs (the ordinary-NPC layer and cost),

@@ -776,6 +776,32 @@ function convaiUnprofiledWhy(npc)
     return ok and text or ''
 end
 
+-- The notice the talk key shows for a target that ends with no profile, in plain words (a key press only, never per frame). Every
+-- person the game placed gets a conversation (character-catalog fallbackKey), so what is left is a story character while Talk to story
+-- characters is off, Talk to ordinary NPCs switched off, a child, a machine or animal, or someone whose voice type cannot be told.
+-- Returns the text, or nil when none of those fits (the caller then keeps the old line). A global, so no function here gains an upvalue.
+function convaiUnprofiledNotice(npc, name)
+    local ok, text = pcall(function()
+        local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        local body = tostring(npc:GetBodyType() or '')
+        local facts = archetypeFacts(npc, idOk and entity or nil, body)
+        local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
+        local reason = characterCatalog.noProfileReason(catalog, {record = recordOk and record or '',
+            name = tostring(npc:GetTweakDBFullDisplayName(true) or ''), facts = facts, bodyType = body})
+        if reason == 'named' and not manager.storyConversations() then
+            return ui.t('{name} is a story character. Turn on Talk to story characters in Esc > Mods.', {name = name})
+        end
+        if reason ~= 'named' and not manager.archetypeConversations() then
+            return ui.t('Talk to ordinary NPCs is off. Turn it on in Esc > Mods.')
+        end
+        if reason == 'child' then return ui.t('{name} is a child and cannot be talked to.', {name = name}) end
+        if reason == 'not-human' then return ui.t('{name} is not a person and cannot be talked to.', {name = name}) end
+        if reason == 'no-gender' then return ui.t('{name} cannot be talked to: the mod cannot tell which voice fits.', {name = name}) end
+        return nil
+    end)
+    return ok and text or nil
+end
+
 -- The identity the roster lookup saw, as the tail of the "Archetype conversation" log line (a talk key press only, never per frame): the record's hash
 -- string (what characterCatalog.resolve compares first), its readable record name (facts.recordName, the second lookup) and the display name (the third).
 -- Without it a named character that fell to an archetype cannot be told from a roster gap (2026-10-22 report: Panam talked to as npc-aldecaldos-female).
@@ -2411,7 +2437,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
     end
     if not key or not supportedProfiles[key] then
-        convaiNotices.send(player, 'talk-no-profile', ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
+        local told = key == nil and convaiUnprofiledNotice and convaiUnprofiledNotice(npc, name) or nil
+        convaiNotices.send(player, 'talk-no-profile', told or ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
         log('Conversation unavailable: profile=' .. tostring(key) .. (key == nil and convaiUnprofiledWhy and convaiUnprofiledWhy(npc) or ''))
         return nil
     end
@@ -2440,6 +2467,27 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
             return nil
         end
         log('World conversation: profile=' .. key .. ' (voice and face only)')
+    end
+    -- A quest-bound person with no roster profile (a receptionist in a main quest's building, a bouncer, a worker of a quest area) talks as
+    -- their archetype like anyone else, but the game's own checks still apply while it has them: V in a quest conversation, a call or a
+    -- scene, the person in a scene dialogue, a fight, an injury or a ride (mod/world-talk.lua). Standing or idling at a workspot is
+    -- not a scene: `idle` (the fifth argument) lets a commanded AI through while the person is in a workspot. Read fresh on this key
+    -- press, cached per entity (protected), and the same test then guards the recording and the reply (convaiStory).
+    if not primary.story and not primary.spawned and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
+        and not companions.owns(npc) and convaiWorldPolicy.protected(npc) == true then
+        local why = convaiWorldTalk:refusal(npc, player, nil, key, true)
+        if why then
+            log('World conversation refused: profile=' .. key .. ' reason=' .. why .. ' (quest-bound)'
+                .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
+                .. (convaiWorldTalk.facts and (' facts[' .. convaiWorldTalk.facts .. ']') or '')
+                .. (convaiUnprofiledWhy and convaiUnprofiledWhy(npc) or ''))
+            convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = name}))
+            return nil
+        end
+        primary.guarded = true
+        convaiStory = {entity = primary.entity, key = key, name = name, idle = true}
+        if convaiFacialPlayback then convaiFacialPlayback.storyEntity = primary.entity end
+        log('World conversation: profile=' .. key .. ' (quest-bound, archetype)')
     end
     -- A spawned character V talks to is remembered by its ID (key press only), so a later group round counts it wherever V faces.
     if primary.spawned and convaiSpawnedCharacters ~= nil then
@@ -2807,7 +2855,7 @@ local function toggleVoice(groupMode, source)
                 return head ~= nil and head:refusal(Game.GetPlayer()) == nil
             end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
-            if primary.story and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity, primary.profileKey) then return false end
+            if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity, primary.profileKey, primary.guarded) then return false end
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
@@ -3008,7 +3056,7 @@ speech.storyGuard = function(actor, context, starting)
     end
     local story = convaiStory
     if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
-    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity, story.key)
+    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity, story.key, story.idle)
     if not why then return false end
     log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or '')
         .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')

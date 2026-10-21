@@ -484,14 +484,15 @@ end
 -- Which base describes these facts, or nil. Facts (all optional): vendor,
 -- vendorType, affiliation, police, crowd, children, human, quest, recordName,
 -- recordId. A child, a machine and a main/side quest actor are never routed to
--- an archetype (a vendor still is, unless main-quest bound).
+-- an archetype (a vendor still is, unless main-quest bound). facts.storyOk = true (fallbackKey only) skips the quest rule:
+-- an unnamed quest-bound person is then classified by what else is known of them (affiliation, vendor, record tokens).
 function M.classifyBase(index, facts)
     if type(index) ~= 'table' or type(facts) ~= 'table' then return nil, 'no-facts' end
     if facts.children == true then return nil, 'child' end
     if facts.human == false then return nil, 'not-human' end
     local recordName, recordId = facts.recordName, facts.recordId
     local recordBase = (recordName and index.records[recordName]) or (recordId and index.records[recordId])
-    if facts.vendor == true and facts.quest ~= 'MainQuest' then
+    if facts.vendor == true and (facts.quest ~= 'MainQuest' or facts.storyOk == true) then
         for _, name in ipairs(index.vendorSpecific) do
             local base = index.bases[name]
             if has(base.vendorTypes, facts.vendorType)
@@ -501,7 +502,7 @@ function M.classifyBase(index, facts)
             if has(index.bases[name].vendorTypes, facts.vendorType) then return name, 'vendor' end
         end
     end
-    if (STORY_BOUND[facts.quest or ''] or M.storyRecord(recordName)) and not M.questCrowd(facts) then return nil, 'story-bound' end
+    if (STORY_BOUND[facts.quest or ''] or M.storyRecord(recordName)) and not M.questCrowd(facts) and facts.storyOk ~= true then return nil, 'story-bound' end
     local names = {}
     for name in pairs(index.bases) do names[#names + 1] = name end
     table.sort(names)
@@ -537,6 +538,43 @@ function M.classify(index, facts)
     local key = variants and gender and variants[gender]
     if not key then return nil, 'no-variant' end
     return key, base
+end
+
+-- The kind of ordinary person a record name suggests, for the generic fallback: lower-case token -> resident base. First match
+-- in this order wins; a base that has no variant for the gender is skipped. Not generated: a small list of plain words.
+local FALLBACK_KINDS = {
+    {'ep1_', 'dogtown-resident'}, {'homeless', 'homeless'}, {'nomad', 'nomad-resident'}, {'nightlife', 'nightlife-resident'},
+    {'receptionist', 'corpo-resident'}, {'corpo', 'corpo-resident'}, {'worker', 'worker-resident'}, {'waitress', 'worker-resident'},
+    {'janitor', 'worker-resident'}, {'cleaner', 'worker-resident'},
+}
+
+-- The archetype for a person the game placed that has no roster profile and that no archetype rule claims (an unclassified
+-- worker, a quest-bound receptionist, a MaxTac officer): the best archetype the facts allow, else a resident of their gender.
+-- Never for a child or a machine. Returns key, base-or-kind on success; nil and a reason otherwise: 'no-facts', 'child',
+-- 'not-human' or 'no-gender'. Plain data only; bodyType (optional) is the rig name when the facts carry none. lastReason (optional): why
+-- the ordinary classification just failed; only 'story-bound' (or unknown) is classified again without the quest rule, so the common
+-- case (nothing matched) costs no second pass.
+function M.fallbackKey(index, facts, bodyType, lastReason)
+    if type(index) ~= 'table' or type(facts) ~= 'table' then return nil, 'no-facts' end
+    if facts.children == true then return nil, 'child' end
+    if facts.human == false then return nil, 'not-human' end
+    local copy = facts
+    if lastReason == nil or lastReason == 'story-bound' then
+        copy = {}
+        for name, value in pairs(facts) do copy[name] = value end
+        copy.storyOk = true
+        if copy.bodyType == nil or copy.bodyType == '' then copy.bodyType = bodyType end
+        local key, base = M.classify(index, copy)
+        if key then return key, base end
+    end
+    local gender = M.gender(copy) or M.gender({bodyType = bodyType}) or M.nameGender(copy.recordName)
+    if not gender then return nil, 'no-gender' end
+    local bare = type(copy.recordName) == 'string' and copy.recordName:lower() or ''
+    for _, kind in ipairs(FALLBACK_KINDS) do
+        local variants = index.byBase[kind[2]]
+        if variants and variants[gender] and bare:find(kind[1], 1, true) then return variants[gender], kind[2] end
+    end
+    return gender == 'FEMALE' and 'resident-female' or 'resident-male', 'resident'
 end
 
 -- The stable identity of a shop V can come back to: the TweakDB record of a
@@ -630,6 +668,18 @@ function M.protectedReason(catalog, actor)
     return nil
 end
 
+-- Why a character the game placed ends with no conversation profile, as one word, for the notice the talk key shows. Plain data
+-- (actor as for resolve: record, name, facts, bodyType). 'named' is a roster character (a story character: Talk to story
+-- characters is off), 'child', 'not-human' and 'no-gender' are the only people nobody can talk to, 'unknown' is anything else.
+function M.noProfileReason(catalog, actor)
+    if type(catalog) ~= 'table' or type(actor) ~= 'table' then return 'unknown' end
+    local facts = type(actor.facts) == 'table' and actor.facts or {}
+    if M.protectedReason(catalog, {record = actor.record, name = actor.name, facts = facts}) == 'named' then return 'named' end
+    local _, kind = M.fallbackKey(catalog.archetypes, facts, actor.bodyType)
+    if kind == 'child' or kind == 'not-human' or kind == 'no-gender' then return kind end
+    return 'unknown'
+end
+
 -- Record-cloning mods spawn a character from a copy of its record named "<prefix><original record>" (Night City Allies:
 -- NCA.Character.Judy, docs/NCA_FOLLOWERS_PLAN.md). The copy keeps every flat, so it is the same person: every roster record
 -- also matches under each prefix, and no row needs to list its clones. A prefix is data here, not a mod check: nothing
@@ -711,8 +761,19 @@ function M.resolve(catalog, actor)
     if catalog.archetypes and type(actor.facts) == 'table' then
         local key, reason = M.classify(catalog.archetypes, actor.facts)
         if key then return key, actor.name, M.describe(catalog.archetypes, key, actor.facts) end
-        -- A story-bound or excluded world character never falls back to a resident.
-        if actor.world == true and (reason == 'story-bound' or reason == 'excluded-record') then return nil, actor.name end
+        -- A person the game placed that no roster profile names (a quest-bound receptionist, a worker the archetypes do not list, a
+        -- MaxTac officer) always gets a conversation: the best archetype their facts allow, else a resident of their gender
+        -- (M.fallbackKey). Only a child, a machine or a person whose gender cannot be told ends with no profile; a crowd child keeps
+        -- the old resident fallback below. Named roster characters resolved above and keep their own rules.
+        if actor.world == true then
+            local fallback, kind = M.fallbackKey(catalog.archetypes, actor.facts, actor.bodyType, reason)
+            if fallback then return fallback, actor.name, M.describe(catalog.archetypes, fallback, actor.facts) end
+            if kind == 'child' or kind == 'not-human' then
+                if not actor.crowd then return nil, actor.name end
+            elseif kind == 'no-gender' then
+                return nil, actor.name
+            end
+        end
         -- actor.spawned: a copy of a quest character's model that another mod or a spawner created (docs/SPAWNED_CHARACTERS.md).
         -- It is player-made, not the quest's actor: classify it by its other facts (affiliation, crowd), else as a resident.
         if actor.spawned == true and reason == 'story-bound' then

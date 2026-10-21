@@ -112,7 +112,7 @@ test('the service caches per entity, retries an unanswered read, and forgets eve
   assert(service.count <= S.LIMIT, 'the cache is bounded')
 `));
 
-test('resolve: a spawned copy talks with its roster profile; a story-bound model falls back; the game-placed one still does not', () => run(`
+test('resolve: a spawned copy talks with its roster profile; a story-bound model falls back; the game-placed one talks too, a named one does not', () => run(`
   local api = (function() ${catalogSource} end)()
   local index = api.buildArchetypes(api.ARCHETYPES)
   local catalog = api.build({
@@ -133,9 +133,12 @@ test('resolve: a spawned copy talks with its roster profile; a story-bound model
     facts = {recordName = 'Character.q101_y', quest = 'MainQuest'}}) == 'resident-female', 'the body type comes from the actor')
   assert(who({world = false, spawned = true, name = 'Little one', record = 'Character.q101_z',
     facts = {recordName = 'Character.q101_z', children = true, bodyType = 'WomanAverage'}}) == nil, 'never a child')
-  -- The game-placed version of that quest character stays refused.
+  -- The game-placed version of that quest character, with no roster profile, talks the same way since 2026-10-22 (every NPC V can target is talkable)...
   assert(who({world = true, name = 'Someone', record = 'Character.q101_x',
-    facts = {recordName = 'Character.q101_x', affiliation = 'Maelstrom', bodyType = 'ManAverage'}}) == nil)
+    facts = {recordName = 'Character.q101_x', affiliation = 'Maelstrom', bodyType = 'ManAverage'}}) == 'npc-maelstrom-male')
+  -- ...but a named one is still refused.
+  assert(who({world = true, name = 'Judy Alvarez', record = 'Character.Judy',
+    facts = {recordName = 'Character.Judy', quest = 'MainQuest', bodyType = 'WomanAverage'}}) == nil)
 `));
 
 test('policy: a spawned character is not ours, is protected from tactics and renaming, and gets eye contact only', () => {

@@ -220,7 +220,7 @@ test('describe: a refusal\'s facts are plain text, "?" for what was not read, an
 test('wiring: the log line of a refusal carries the facts, and Johnny\'s key reaches every place that asks', () => {
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
   assert.match(select, /log\('World conversation refused: profile=' \.\. key \.\. ' reason=' \.\. why[\s\S]*?convaiWorldTalk\.facts[\s\S]*?convaiUnprofiledWhy\(npc\)/);
-  assert.match(init, /convaiWorldTalk:refusal\(actor, Game\.GetPlayer\(\), story\.entity, story\.key\)/);
+  assert.match(init, /convaiWorldTalk:refusal\(actor, Game\.GetPlayer\(\), story\.entity, story\.key, story\.idle\)/);
   assert.match(init, /log\('World conversation ended: profile=' \.\. story\.key[\s\S]*?convaiWorldTalk\.facts/);
 });
 
@@ -269,9 +269,11 @@ test('resolve: the story flag lets a roster record resolve for a world character
   assert(key({record = 'Character.Judy', name = 'Judy Alvarez', world = true}) == nil, 'before: a world Judy has no profile')
   assert(key({record = 'Character.Judy', name = 'Judy Alvarez', world = true, story = true}) == 'judy-alvarez')
   assert(key({record = 'Character.Judy', name = 'Judy Alvarez', world = true, story = false}) == nil)
-  -- A story-bound world character with no roster profile never falls back, story flag or not.
+  -- A story-bound world character with no roster profile talks as an ordinary person, story flag or not (2026-10-22), except one
+  -- whose gender cannot be told.
   local facts = {quest = 'MainQuest', recordName = 'Character.q101_goon', human = true, gender = 'Female'}
-  assert(key({record = 'Character.q101_goon', name = 'Goon', world = true, story = true, facts = facts, bodyType = 'WomanAverage'}) == nil)
+  assert(key({record = 'Character.q101_goon', name = 'Goon', world = true, story = true, facts = facts, bodyType = 'WomanAverage'}) == 'resident-female')
+  assert(key({record = 'Character.q101_goon', name = 'Goon', world = true, story = false, facts = facts, bodyType = 'WomanAverage'}) == 'resident-female')
   assert(key({record = 'Character.g1', name = 'Goon', world = true, story = true, facts = {quest = 'SideQuest'}}) == nil)
   -- The unchanged paths: a managed copy, a spawned Judy and an ordinary resident.
   assert(key({managedKey = 'judy-alvarez', name = 'Judy Alvarez'}) == 'judy-alvarez')
@@ -287,12 +289,13 @@ test('identity and policy: the game\'s own Judy and Jackie talk with the setting
   local function key(n) return (profileIdentity(n)) end
   -- Setting on (the default): the named characters resolve, the quest-bound and unnamed ones do not.
   assert(key(worldJudy) == 'judy-alvarez' and key(worldJackie) == 'jackie-welles')
-  assert(key(questGoon) == nil and key(storyGoon) == nil, 'no roster profile and story-bound: never a resident')
+  assert(key(questGoon) == 'resident-female' and key(storyGoon) == 'resident-female', 'no roster profile and story-bound: an ordinary person')
   assert(key(walker) == 'resident-female', 'ordinary NPCs unchanged')
   assert(key(copy) == 'judy-alvarez' and key(spawnedJudy) == 'judy-alvarez')
   assert(P.story(worldJudy) == true and P.story(worldJackie) == true, 'named game characters are story characters')
   assert(P.story(walker) == false, 'an ordinary NPC is not')
-  assert(P.story(questGoon) == false and P.story(storyGoon) == false, 'no profile, so not talkable')
+  assert(P.story(questGoon) == false and P.story(storyGoon) == false, 'an ordinary person, not a story character')
+  assert(P.protected(questGoon) == true and P.protected(storyGoon) == true, 'but still protected from every other system')
   assert(P.story(copy) == false, 'our own copy keeps the full feature set, it is not a story character')
   assert(P.story(spawnedJudy) == false, 'another mod\\'s Judy keeps the spawned-character rules')
   assert(P.story(nil) == false)
@@ -314,7 +317,7 @@ test('identity and policy: the game\'s own Judy and Jackie talk with the setting
   assert(P.story(broken) == false)
 `));
 
-test('a pedestrian the game binds to a quest (crowd body, quest flag or q-record) has no profile, and the log line says why', () => run(`
+test('a pedestrian the game binds to a quest (crowd body, quest flag or q-record) talks as a resident, and the log line says why', () => run(`
   ${world}
   ${identitySource}
   local function key(n) return (profileIdentity(n)) end
@@ -323,7 +326,7 @@ test('a pedestrian the game binds to a quest (crowd body, quest flag or q-record
   local minor = npc('21', 'Character.customer_a', 'Customer', {crowd = true, quest = 'MinorQuest', recordName = 'Character.customer_a', human = true})
   local record = npc('22', 'Character.q003_customer', 'Customer', {crowd = true, quest = 'NotQuest', recordName = 'Character.q003_customer', human = true})
   local plain = npc('23', 'Character.customer_b', 'Customer', {crowd = true, quest = 'NotQuest', recordName = 'Character.customer_b', human = true})
-  assert(key(minor) == nil and key(record) == nil, 'story-bound: never a resident, story setting on or not')
+  assert(key(minor) == 'resident-female' and key(record) == 'resident-female', 'story-bound but unnamed: a resident, story setting on or not')
   assert(key(plain) == 'resident-female', 'the same person without the quest binding talks')
   local why = convaiUnprofiledWhy(minor)
   assert(why:find('classify=story-bound', 1, true) and why:find('protected=quest', 1, true) and why:find('crowd=true', 1, true)
@@ -413,7 +416,7 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   // No gaze: both talk paths skip the focus for a story character.
   assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
   assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not primary\.story then beginFocus\(player, npc\) end/);
-  assert.match(init, /if primary\.story and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey\) then return false end/);
+  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity and not context\.group then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);
@@ -462,7 +465,7 @@ test('the face service: named characters are prepared at spawn on any graph, gua
   assert.match(story, /this\.PrepareSpawnedFace\(face\)/, 'the same preparation as a spawned character: gated crowd copy or companion graph');
   assert.doesNotMatch(story, /ScheduleAppearanceChange|ResetFacial|SelectFacialEmotion|\.graph = /, 'no rebuild, no direct graph write here');
   // Talk time: a dialogue refuses (first check), then only a commanded AI; the quest flag and quest-named record do not.
-  const refusal = between('public func TalkRefusal', 'public static func QuestBound', face);
+  const refusal = between('public func TalkRefusal', 'private func PrepareSpawnedFace', face);
   assert.ok(refusal.indexOf('IsEntityInDialogue') < refusal.indexOf('m_storyTalk'));
   assert.match(refusal, /if this\.m_storyTalk && ArrayContains\(this\.m_named, npc\.GetRecordID\(\)\) \{\s+if !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};\s+return "";/);
   // Without the setting everything is as before: the named roster stays skipped.
@@ -494,3 +497,119 @@ test('the docs, README and player README state the policy', () => {
   assert.match(read('../README.md'), /Talk to story characters/);
   assert.match(read('../packaging/PLAYER_README.md'), /story characters/i);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 2026-10-22: a quest-bound person with no roster profile (the Afterlife bouncer Emmerick, a receptionist) talks as an archetype. The
+// game's own checks still apply while the game has them; standing at a workspot is not a scene.
+
+test('classify idle: a commanded AI at a workspot is not a scene, and every other reason still refuses', () => withModule(`
+  local function facts(over)
+    local f = {gone = false, hub = false, dialogue = false, driven = false, combat = false, hurt = false, mounted = false}
+    for k, v in pairs(over or {}) do f[k] = v end
+    return f
+  end
+  -- The Emmerick facts of the 21 Oct log: no scene, no dialogue, standing at his post (workspot=true), the quest commands his AI.
+  local emmerick = facts({driven = true, workspot = true})
+  assert(W.classify(emmerick, false, true) == nil, 'idle at a workspot: not refused')
+  assert(W.classify(emmerick) == 'driven', 'a named character keeps the old rule')
+  assert(W.classify(facts({driven = true, workspot = false}), false, true) == 'driven', 'a commanded AI away from a workspot is a scene')
+  assert(W.classify(facts({driven = true}), false, true) == 'driven', 'workspot unread: refuse')
+  -- Everything that says the game has the floor still refuses an idle person.
+  assert(W.classify(facts({driven = true, workspot = true, hub = true}), false, true) == 'hub', 'V in a quest conversation, a call or a scene')
+  assert(W.classify(facts({driven = true, workspot = true, dialogue = true}), false, true) == 'dialogue')
+  assert(W.classify(facts({workspot = true, combat = true}), false, true) == 'combat')
+  assert(W.classify(facts({workspot = true, playerCombat = true}), false, true) == 'combat')
+  assert(W.classify(facts({workspot = true, hurt = true}), false, true) == 'hurt')
+  assert(W.classify(facts({workspot = true, mounted = true}), false, true) == 'vehicle')
+`));
+
+test('read: the workspot is asked only for an idle (quest-bound, unnamed) person, and describe lists it only when read', () => withModule(`
+  ${fakeGame}
+  local asked = 0
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function() asked = asked + 1; return true end} end
+  local plain = W.read(npc, 'V', function() return playerSample end)
+  assert(asked == 0 and plain.workspot == nil, 'a story character: the workspot is not read')
+  assert(not W.describe(plain):find('workspot', 1, true))
+  local idle = W.read(npc, 'V', function() return playerSample end, true)
+  assert(asked == 1 and idle.workspot == true)
+  assert(W.describe(idle):find('workspot=true', 1, true))
+  state.autonomous = false
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == nil, 'the bouncer at his post: no refusal')
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male') == 'driven')
+  playerSample.tier = 3
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'hub', 'V in a scene refuses an idle person too')
+`));
+
+test('wiring: a quest-bound person with no roster profile is guarded like a story character but keeps the ordinary behaviour', () => {
+  const select = between('local function selectConversation(', 'local function voiceTargetValid');
+  assert.match(select, /convaiWorldPolicy\.protected\(npc\) == true then\s+local why = convaiWorldTalk:refusal\(npc, player, nil, key, true\)/);
+  assert.match(select, /primary\.guarded = true\s+convaiStory = \{entity = primary\.entity, key = key, name = name, idle = true\}/);
+  assert.match(select, /\(quest-bound\)[\s\S]*?convaiNotices\.send\(player, 'talk-busy'/, 'the same busy notice and a log line');
+  // The guarded person is not a story character: it is still faced toward V and still gets an archetype conversation.
+  assert.doesNotMatch(select.slice(select.indexOf('primary.guarded = true')), /primary\.story = /);
+  assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 2026-10-22 live test: every person V can target is talkable, and the few who are not are told in plain words.
+
+test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk; Rogue with the story setting off is told so', () => run(`
+  ${world}
+  ${identitySource}
+  ${policySource}
+  ui = {t = function(text, values) return (text:gsub('{(%w+)}', function(name) return values and tostring(values[name]) or '' end)) end}
+  local function key(n) return (profileIdentity(n)) end
+  -- log: classify=story-bound protected=quest crowd=true quest=MainQuest record=Character.dlc6_dtn_receptionist
+  local receptionist = npc('30', 'Character.dlc6_dtn_receptionist', 'Receptionist', {crowd = true, quest = 'MainQuest',
+    recordName = 'Character.dlc6_dtn_receptionist', human = true, gender = 'Female'})
+  assert(key(receptionist) == 'npc-corpo-resident-female', tostring(key(receptionist)))
+  -- an earlier report: classify=unclassified record=Character.WorkerMaleDE
+  local worker = npc('31', 'Character.WorkerMaleDE', 'Worker', {recordName = 'Character.WorkerMaleDE', human = true, gender = 'Male'})
+  assert(key(worker) == 'npc-worker-resident-male', tostring(key(worker)))
+  -- the Afterlife bouncer: affiliation AfterlifeMercs, talked to as npc-merc-male before and after
+  local emmerick = npc('32', 'Character.Emmerick', 'Emmerick Bronson', {recordName = 'Character.Emmerick', human = true, gender = 'Male',
+    affiliation = 'AfterlifeMercs'})
+  assert(key(emmerick) == 'npc-merc-male', tostring(key(emmerick)))
+  -- they are still protected from every other system, and none is a story character
+  local P = convaiWorldPolicy
+  assert(P.story(receptionist) == false and P.story(worker) == false and P.story(emmerick) == false)
+  assert(P.protected(receptionist) == true, 'quest-bound: protected')
+  assert(P.protected(worker) == false and P.protected(emmerick) == false, 'no quest flag: an ordinary person')
+  -- Rogue (a roster character) with the setting off: no profile, and the notice says why and where to turn it on.
+  catalog = characterCatalog.build({{key = 'rogue-amendiares', name = 'Rogue Amendiares', records = {'Character.Rogue'}}}, characterCatalog.buildArchetypes(characterCatalog.ARCHETYPES))
+  local rogue = npc('33', 'Character.Rogue', 'Rogue Amendiares', {recordName = 'Character.Rogue', human = true, gender = 'Female', affiliation = 'AfterlifeMercs'})
+  storyOn = false
+  assert(key(rogue) == nil, 'story setting off: no profile')
+  local told = convaiUnprofiledNotice(rogue, 'Rogue Amendiares')
+  assert(told == 'Rogue Amendiares is a story character. Turn on Talk to story characters in Esc > Mods.', tostring(told))
+  storyOn = true
+  assert(key(rogue) == 'rogue-amendiares', 'the setting on: her own profile')
+  -- the other plain-word notices
+  local kid = npc('34', 'Character.kid', 'Kid', {recordName = 'Character.kid', human = true, children = true, gender = 'Male'})
+  assert(key(kid) == nil and convaiUnprofiledNotice(kid, 'Kid') == 'Kid is a child and cannot be talked to.')
+  local bot = npc('35', 'Character.bot', 'Bot', {recordName = 'Character.bot', human = false, gender = 'Male'})
+  assert(key(bot) == nil and convaiUnprofiledNotice(bot, 'Bot') == 'Bot is not a person and cannot be talked to.')
+  local odd = npc('36', 'Character.odd', 'Odd', {recordName = 'Character.odd', human = true})
+  odd.GetBodyType = function() return 'Mech' end
+  assert(key(odd) == nil and convaiUnprofiledNotice(odd, 'Odd') == 'Odd cannot be talked to: the mod cannot tell which voice fits.')
+  -- Talk to ordinary NPCs off: a person who is no crowd member is told which setting; a roster character is still told it is a story character.
+  archetypesOn = false
+  assert(key(worker) == nil, 'the setting off: facts are not read, a non-crowd person has no profile')
+  assert(convaiUnprofiledNotice(worker, 'Worker') == 'Talk to ordinary NPCs is off. Turn it on in Esc > Mods.')
+  storyOn = false
+  assert(convaiUnprofiledNotice(rogue, 'Rogue Amendiares'):find('story character', 1, true))
+  -- A person nothing explains keeps the old line (the caller's fallback), and an unreadable one gives nil instead of an error.
+  storyOn, archetypesOn = true, true
+  assert(convaiUnprofiledNotice({GetEntityID = function() error('gone') end}, 'x') == nil)
+`));
+
+{
+  const code = init.replace(/--.*$/gm, '');
+  test('the talk key tells why in words, from a global function, and keeps the old line for any other case', () => {
+    assert.match(code, /local told = key == nil and convaiUnprofiledNotice and convaiUnprofiledNotice\(npc, name\) or nil\s+convaiNotices\.send\(player, 'talk-no-profile', told or ui\.t\('\{name\} does not have a conversation profile configured yet\.',\{name=name\}\)\)/);
+    assert.match(code, /\nfunction convaiUnprofiledNotice\(npc, name\)/);
+    // The three sentences the owner asked for, with the menu path.
+    assert.match(init, /ui\.t\('\{name\} is a story character\. Turn on Talk to story characters in Esc > Mods\.'/);
+  });
+}

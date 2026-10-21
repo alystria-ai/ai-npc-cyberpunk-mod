@@ -1743,7 +1743,7 @@ local FACE_REASONS = {
     {'^unsupported%-rig$', 'the face rig lacks the lip-sync tracks, so no mouth can be written (a model with its own rig)'},
     {'^speech%-graph%-not%-loaded$', 'the game has not loaded the mod face graphs: convai_facial.archive is missing, in the wrong folder or not enabled'},
     {'^skipped:named$', 'a story character the game placed; its face is driven only while Talk to story characters is on, after the next load'},
-    {'^skipped:quest$', 'a quest-bound character, left to the game'},
+    {'^skipped:quest$', 'a quest has marked this character, left to the game'},
     {'^skipped:no%-record$', 'the character has no readable record, left to the game'},
     {'^skipped:dialogue$', 'the character is in a game dialogue'},
     {'^skipped:driven$', 'a quest or a scene commands this character'},

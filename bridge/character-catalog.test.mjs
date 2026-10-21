@@ -28,7 +28,7 @@ test('named identities take priority over rig and crowd classification',()=>{
 const runLua=code=>{
   const source=readFileSync(new URL('../mod/character-catalog.lua',import.meta.url),'utf8');
   const state=lauxlib.luaL_newstate();lualib.luaL_openlibs(state);
-  const result=lauxlib.luaL_dostring(state,to_luastring(`local api=(function() ${source} end)()\n${code}`));
+  const result=lauxlib.luaL_dostring(state,to_luastring(`local api=(function() ${source} end)()\nlocal function eq(a,b,m) assert(a==b,(m or 'values differ')..': expected '..tostring(b)..', got '..tostring(a)) end\n${code}`));
   const error=result===lua.LUA_OK?'':to_jsstring(lua.lua_tostring(state,-1));
   lua.lua_close(state);assert.equal(result,lua.LUA_OK,error);
 };
@@ -90,15 +90,19 @@ test('resolve keeps named and managed identities first, then archetypes, then th
     assert(key=='npc-ripperdoc-male' and name=='Ripperdoc' and info.base=='ripperdoc')
     assert(api.resolve(catalog,{name='Pedestrian',bodyType='WomanAverage',crowd=true,
       facts={crowd=true,recordName='Character.Mallrat',bodyType='WomanAverage'}})=='resident-female')
+    -- A quest-bound person with no roster profile (2026-10-22: every NPC V can target is talkable): the archetype their other facts give,
+    -- else a resident of their gender. Without a world flag (game dialogue attribution) nothing changes.
     assert(api.resolve(catalog,{name='Ganger',bodyType='ManAverage',crowd=false,
       facts={affiliation='Valentinos',quest='MainQuest',bodyType='ManAverage'}})==nil)
-    -- A quest's crowd extra (the Afterlife patrons) talks as an ordinary person; a named quest actor of the same quest does not.
+    assert(api.resolve(catalog,{world=true,name='Ganger',bodyType='ManAverage',crowd=false,
+      facts={affiliation='Valentinos',quest='MainQuest',bodyType='ManAverage'}})=='npc-valentinos-male')
+    -- A quest's crowd extra (the Afterlife patrons) talks as an ordinary person, and so does an unnamed quest actor of the same quest.
     assert(api.resolve(catalog,{world=true,name='Afterlife patron',bodyType='ManAverage',crowd=true,
       facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male',bodyType='ManAverage'}})=='resident-male')
     assert(api.resolve(catalog,{world=true,name='Bouncer',bodyType='ManAverage',crowd=false,
-      facts={crowd=false,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male',bodyType='ManAverage'}})==nil)
+      facts={crowd=false,quest='MainQuest',recordName='Character.q005_afterlife_crowd_male',bodyType='ManAverage'}})=='resident-male')
     assert(api.resolve(catalog,{world=true,name='Goon',bodyType='ManAverage',crowd=true,
-      facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_bouncer',bodyType='ManAverage'}})==nil)
+      facts={crowd=true,quest='MainQuest',recordName='Character.q005_afterlife_bouncer',bodyType='ManAverage'}})=='resident-male')
     assert(api.questCrowd({crowd=true,recordName='Character.sq021_party_crowd'})==true)
     assert(api.questCrowd({crowd=true,recordName='Character.crowdrat'})==false)
     -- Without facts (the setting is off) the previous behaviour is unchanged.
@@ -291,13 +295,17 @@ test('a named character the game placed gets no profile; our spawned copy and or
     assert(who({world=true,name='Ganger',record='Character.x',facts={affiliation='Maelstrom',bodyType='ManAverage'}})=='npc-maelstrom-male')
     assert(who({world=true,name='Dealer',record='Character.y',facts={vendor=true,vendorType='RipperDoc',bodyType='WomanAverage'}})=='npc-ripperdoc-female')
     assert(who({world=true,name='Citizen',record='Character.z',crowd=true,bodyType='WomanAverage'})=='resident-female')
-    -- A quest-bound or story-record character never falls back to a resident or an archetype.
-    assert(who({world=true,name='Quest NPC',record='Character.q',crowd=true,bodyType='WomanAverage',
-        facts={quest='SideQuest',crowd=true,affiliation='Maelstrom',bodyType='WomanAverage'}})==nil)
-    assert(who({world=true,name='Quest Goon',record='Character.q101_goon',crowd=true,
-        facts={recordName='Character.q101_goon',affiliation='Maelstrom',bodyType='ManAverage'}})==nil)
-    assert(who({world=true,name='Maxtac',record='Character.maxtac_x',crowd=true,
-        facts={recordName='Character.maxtac_avg',affiliation='NCPD',police=true,bodyType='ManAverage'}})==nil)
+    -- A quest-bound or story-record character with no roster profile still talks: the archetype their facts give, else a resident.
+    eq(who({world=true,name='Quest NPC',record='Character.q',crowd=true,bodyType='WomanAverage',
+        facts={quest='SideQuest',crowd=true,affiliation='Maelstrom',bodyType='WomanAverage'}}),'npc-maelstrom-female')
+    eq(who({world=true,name='Quest Goon',record='Character.q101_goon',crowd=true,
+        facts={recordName='Character.q101_goon',affiliation='Maelstrom',bodyType='ManAverage'}}),'npc-maelstrom-male')
+    eq(who({world=true,name='Maxtac',record='Character.maxtac_x',crowd=true,
+        facts={recordName='Character.maxtac_avg',affiliation='NCPD',police=true,bodyType='ManAverage'}}),'resident-male')
+    -- A child or a machine (not a crowd child) and a person of unknown gender still have no profile.
+    assert(who({world=true,name='Kid',record='Character.k',facts={children=true,bodyType='ManAverage'}})==nil)
+    assert(who({world=true,name='Drone',record='Character.d',facts={human=false,bodyType='ManAverage'}})==nil)
+    assert(who({world=true,name='Shape',record='Character.s',facts={human=true,bodyType='Mech'}})==nil)
   `);
 });
 
@@ -352,5 +360,59 @@ test('a world character found by facts.recordName never falls to an archetype: n
     assert(api.protectedReason(catalog,{record='<TDBID:DEADBEEF:07>',name='Someone Else',facts=plain.facts})==nil)
     -- A character our own copy spawned (managed key) is untouched by all of this.
     assert(who({managedKey='panam-palmer',world=false,name='Panam Palmer'})=='panam-palmer')
+  `);
+});
+
+// 2026-10-22 live test: "Conversation unavailable: profile=nil" for people V can target. Every person the game placed and the roster does not
+// name gets an archetype conversation; the notice reason is told in words for the few who cannot talk.
+test('the receptionist and WorkerMaleDE cases: quest-bound and unclassified world people always get an archetype', () => {
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({{key='judy-alvarez',name='Judy Alvarez',records={'Character.judy'}},
+      {key='resident-male',name='Night City Resident Male'},{key='resident-female',name='Night City Resident Female'}},index)
+    local function who(actor) return (api.resolve(catalog,actor)) end
+    -- log: classify=story-bound protected=quest crowd=true quest=MainQuest record=Character.dlc6_dtn_receptionist
+    local receptionist={world=true,name='Receptionist',record='ToTweakDBID{ hash = 0x1, length = 30 }',crowd=true,bodyType='WomanAverage',
+      facts={crowd=true,quest='MainQuest',recordName='Character.dlc6_dtn_receptionist',bodyType='WomanAverage',gender='Female',human=true}}
+    eq(who(receptionist),'npc-corpo-resident-female','a receptionist is a corporate worker')
+    -- an earlier report: classify=unclassified record=Character.WorkerMaleDE (not a crowd body, no affiliation)
+    local worker={world=true,name='Worker',record='ToTweakDBID{ hash = 0x2, length = 22 }',crowd=false,bodyType='ManAverage',
+      facts={crowd=false,recordName='Character.WorkerMaleDE',bodyType='ManAverage',human=true,children=false}}
+    eq(who(worker),'npc-worker-resident-male')
+    local plain={world=true,name='Someone',record='Character.zzz',crowd=false,bodyType='WomanBig',
+      facts={crowd=false,recordName='Character.SomethingElse',bodyType='WomanBig',human=true}}
+    eq(who(plain),'resident-female','no archetype fits: a resident of their gender')
+    -- the gender comes from the explicit fact, the rig or the record name, in that order
+    eq(who({world=true,name='X',facts={recordName='Character.foo_ma',gender='Female'}}),'resident-female')
+    eq(who({world=true,name='X',bodyType='ManAverage',facts={recordName='Character.foo'}}),'resident-male')
+    eq(who({world=true,name='X',facts={recordName='Character.NightlifeWomanX',human=true}}),'npc-nightlife-resident-female')
+    -- the quest actor's own facts still pick the archetype when they name one
+    eq(who({world=true,name='Guard',facts={affiliation='Arasaka',quest='MainQuest',bodyType='ManAverage'}}),'npc-corpo-security-male')
+    -- a named roster character keeps its own rules: never a fallback
+    assert(who({world=true,name='Judy Alvarez',record='Character.judy',crowd=true,bodyType='WomanAverage',
+      facts={crowd=true,quest='MainQuest',recordName='Character.judy',bodyType='WomanAverage'}})==nil)
+    -- the setting-off path (no facts) is unchanged
+    eq(who({world=true,name='Worker',crowd=false,bodyType='ManAverage'}),nil)
+    eq(who({world=true,name='Worker',crowd=true,bodyType='ManAverage'}),'resident-male')
+  `);
+});
+
+test('noProfileReason names the few people nobody can talk to, and a roster character with the story setting off', () => {
+  runLua(`
+    local index=api.buildArchetypes(api.ARCHETYPES)
+    local catalog=api.build({{key='rogue-amendiares',name='Rogue Amendiares',aliases={'Rogue'},records={'Character.Rogue'}}},index)
+    local function why(actor) return api.noProfileReason(catalog,actor) end
+    -- log: classify=merc protected=named crowd=false quest=nil record=Character.Rogue
+    eq(why({world=true,name='Rogue Amendiares',record='ToTweakDBID{ hash = 0x3, length = 14 }',
+      facts={recordName='Character.Rogue',affiliation='AfterlifeMercs',bodyType='WomanAverage'}}),'named')
+    eq(why({world=true,name='Someone',record='Character.x',facts={recordName='Character.Rogue'}}),'named')
+    eq(why({world=true,name='Kid',facts={children=true,bodyType='ManAverage'}}),'child')
+    eq(why({world=true,name='Bot',facts={human=false,bodyType='ManAverage'}}),'not-human')
+    eq(why({world=true,name='Shape',facts={human=true,bodyType='Mech'}}),'no-gender')
+    eq(why({world=true,name='Plain',facts={human=true,bodyType='ManAverage'}}),'unknown')
+    eq(why(nil),'unknown')
+    -- with the story setting on the roster character resolves and never reaches the notice
+    eq((api.resolve(catalog,{world=true,story=true,name='Rogue Amendiares',record='Character.Rogue',bodyType='WomanAverage'})),'rogue-amendiares')
+    eq((api.resolve(catalog,{world=true,name='Rogue Amendiares',record='Character.Rogue',bodyType='WomanAverage'})),nil)
   `);
 });

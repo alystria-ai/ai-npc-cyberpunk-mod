@@ -146,8 +146,9 @@ test('NCA mercenaries and roamers are ordinary people: never a named character, 
   assert(person({human = true}) == nil)
   -- A named character wins before any of this: NCA's Judy is Judy even with a mercenary-looking affiliation.
   assert(person({human = true, affiliation = 'AfterlifeMercs', bodyType = 'Woman Average'}, {record = 'NCA.Character.Judy', name = 'Merc'}) == 'judy-alvarez')
-  -- A game-placed unclassified person is unchanged: only a spawned body falls back.
-  assert(person({human = true, bodyType = 'Man Average'}, {spawned = false, world = true}) == nil)
+  -- A game-placed unclassified person also falls back since 2026-10-22 (every NPC V can target is talkable): a resident by body.
+  assert(person({human = true, bodyType = 'Man Average'}, {spawned = false, world = true}) == 'resident-male')
+  assert(person({human = true, children = true, bodyType = 'Man Average'}, {spawned = false, world = true}) == nil)
 `));
 
 test('none of NCA\'s merc, roamer or location records is a roster record, except the named characters it also offers', () => {
@@ -183,7 +184,7 @@ test('face: a spawned clone is prepared from its live graph, never from a record
   const prepare = faceSource.slice(faceSource.indexOf('private func PrepareSpawnedFace'), faceSource.indexOf('public static func SpawnedElsewhere'));
   assert.doesNotMatch(prepare, /m_named|GetRecordID|TDBID/, 'the spawned face is chosen by the graph path alone');
   // TalkRefusal's spawned branch looks at the quest flag only.
-  const refusal = faceSource.slice(faceSource.indexOf('public func TalkRefusal'), faceSource.indexOf('// True for a quest token'));
+  const refusal = faceSource.slice(faceSource.indexOf('public func TalkRefusal'), faceSource.indexOf('private func PrepareSpawnedFace'));
   assert.match(refusal, /if spawned \{\s*if npc\.IsQuest\(\) \{ return "skipped:quest"; \};\s*return "";\s*\};/);
 });
 
@@ -210,7 +211,7 @@ test('no refusal for NCA followers: the "busy" gate belongs to game-placed story
   const policy = init.slice(policyStart, init.indexOf('    protected = function(npc)', policyStart));
   assert.match(policy, /if convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is\(npc\) then return false end/);
   assert.match(init, /if primary\.story then\s*local why = convaiWorldTalk:refusal\(npc, player, nil, key\)/);
-  assert.match(init, /if primary\.story and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey\) then return false end/);
+  assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // The world-talk module itself reads facts only; it never commands anything.
   const worldTalk = read('../mod/world-talk.lua');
   assert.doesNotMatch(worldTalk, /SendCommand|AIMountCommand|AIHoldPositionCommand|QueueEvent|Teleport|Workspot\(\):Play|LookAt/);

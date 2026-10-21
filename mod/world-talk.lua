@@ -33,16 +33,20 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 --             character itself is still refused below (dialogue, driven)
 --   dialogue  the character is in a scene or quest dialogue
 --   driven    the game's AI is not on its own (a scene or quest commands it)
+--             idle (a quest-bound person with no roster profile: the receptionist, the Afterlife bouncer) lets a commanded AI through
+--             while the person stands in a workspot: a post the quest gave them is not a scene. V's own scene, dialogue and call (hub),
+--             the person's dialogue, a fight, an injury and a ride still refuse
 --   combat    the character or V is in a fight
 --   hurt      the character is injured, defeated, unconscious, stunned or ragdolled
 --   vehicle   the character is mounted in a vehicle
 -- projection (true for M.PROJECTIONS' keys): `driven` and `mounted` are not asked (see M.PROJECTIONS), read or not.
-function M.classify(facts, projection)
+-- idle (true for a quest-bound person who is not on the roster): a commanded AI in a workspot is not `driven` (see above).
+function M.classify(facts, projection, idle)
     if type(facts) ~= 'table' then return 'unreadable' end
     if facts.gone == true then return 'gone' end
     if facts.hub == true then return 'hub' end
     if facts.dialogue == true then return 'dialogue' end
-    if facts.driven == true and projection ~= true then return 'driven' end
+    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true) then return 'driven' end
     if facts.combat == true or facts.playerCombat == true then return 'combat' end
     if facts.hurt == true then return 'hurt' end
     if facts.mounted == true and projection ~= true then return 'vehicle' end
@@ -57,9 +61,10 @@ end
 function M.describe(facts, projection)
     if type(facts) ~= 'table' then return 'facts=none' end
     local parts = {}
-    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
+    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
         local value = facts[name]
-        parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?')
+        -- workspot is read only for a quest-bound person with no roster profile (idle), so it is listed only when it was read.
+        if name ~= 'workspot' or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
     end
     if projection == true then parts[#parts + 1] = 'projection=true' end
     return table.concat(parts, ' ')
@@ -70,7 +75,8 @@ M.REASONS = {gone = true, hub = true, dialogue = true, driven = true, combat = t
 
 -- The native reads, each in its own pcall so one missing API leaves only that fact unread. `sample` is the player-side sample of
 -- mod/battle-observer.lua (V's scene tier, quest dialogue, choice hub, phone call and combat), asked once per call.
-function M.read(npc, player, sample)
+-- idle: also read whether the person stands in a workspot (only a quest-bound person with no roster profile is asked).
+function M.read(npc, player, sample, idle)
     local facts = {}
     local function try(name, read)
         local ok, value = pcall(read)
@@ -78,6 +84,7 @@ function M.read(npc, player, sample)
     end
     try('gone', function() return not npc:IsAttached() or npc:IsDeadNoStatPool() end)
     try('driven', function() return not npc:IsOnAutonomousAI() end)
+    if idle == true then try('workspot', function() return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end) end
     try('combat', function() return NPCPuppet.IsInCombat(npc) == true end)
     try('dialogue', function()
         return Game.GetSceneSystem():GetScriptInterface():IsEntityInDialogue(npc:GetEntityID()) == true
@@ -114,8 +121,9 @@ function M.new(options)
     local service = {held = {}, count = 0}
 
     -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
-    -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride).
-    function service:refusal(npc, player, entity, profileKey)
+    -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride). idle: a quest-bound person
+    -- with no roster profile (a commanded AI at a workspot is not refused, see M.classify).
+    function service:refusal(npc, player, entity, profileKey, idle)
         if not npc then return 'gone' end
         local now = clock()
         local held = entity and self.held[entity]
@@ -124,8 +132,8 @@ function M.new(options)
             return held.reason
         end
         local projection = profileKey ~= nil and M.PROJECTIONS[profileKey] == true
-        local facts = M.read(npc, player, options.sample)
-        local reason = M.classify(facts, projection)
+        local facts = M.read(npc, player, options.sample, idle)
+        local reason = M.classify(facts, projection, idle)
         -- The player-side facts behind a hub refusal and every fact read, for the probe-log line on the talk key press (set on every
         -- read, never held beyond the answer's own hold; text built only when something refuses).
         self.detail = reason == 'hub' and type(facts) == 'table' and facts.hubWhy or nil
