@@ -1,9 +1,11 @@
 // The Pocket voice that speaks V's typed line while the companions use OmniVoice (docs/V_VOICE.md, "OmniVoice companions").
 //
-// OmniVoice has one GPU worker that does one job at a time and cannot cancel a render that has started. V's line rendered there takes
-// longer than the companion's own text reply, so it was never audible in time (dropped), and it kept the GPU busy in front of the
-// companion's own render. Pocket runs on the CPU (no VRAM), starts audio in about 0.2 s, and V's two voices are Pocket-tuned, so V
-// speaks on a Pocket worker of its own while OmniVoice is the committed voice:
+// OmniVoice has one GPU worker that does one job at a time and cannot cancel a render that has started. With V's engine on Pocket (the
+// default), V's line rendered there would take longer than the companion's own text reply, so it would never be audible in time
+// (dropped), and it would keep the GPU busy in front of the companion's own render. Pocket runs on the CPU (no VRAM), starts audio in
+// about 0.2 s, and V's two voices are Pocket-tuned, so V speaks on a Pocket worker of its own while OmniVoice is the committed voice.
+// (Since 2026-10-21 the player can instead choose OmniVoice for V: bridge/v-voice.mjs engine 'omni', waited for, no worker of this
+// kind then: VVoice.wantsPocket is false and this class is never started for it.)
 //   - It exists only while OmniVoice is the committed voice, the V setting is on and the clips exist. A cloud voice, the Pocket voice
 //     itself (V then uses the chosen worker), the Convai cloud voice and a muted voice playback never load it.
 //   - It loads in the background, after the OmniVoice worker is ready (never beside its load), in the Pocket worker's usual below

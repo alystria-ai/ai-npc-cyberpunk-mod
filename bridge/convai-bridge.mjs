@@ -47,7 +47,7 @@ import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-rou
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
-import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
+import {VVoice, loadVVoiceReferences, extraVoices, vSettingsFor} from './v-voice.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
@@ -1131,8 +1131,10 @@ function logFollowUp(input, result) {
 }
 // V's voice for typed lines (bridge/v-voice.mjs, docs/V_VOICE.md): the player's typed line is also spoken in V's cloned voice, by the engine
 // the player chose for V (Settings > Voices > V's voice engine): Pocket on the CPU (the default) or the Mistral cloud voice (Voxtral), whatever
-// the companions use. Never OmniVoice, never the Convai cloud voice, never a local model beside a cloud voice that was chosen for it. It runs
-// beside the companion's reply and never delays it. English on Pocket; on Voxtral also the languages its model lists (a turn in another language gets no V line otherwise).
+// the companions use, or OmniVoice (only while it is the companions' voice: one more job on their GPU worker, queued first, waited for). Never
+// the Convai cloud voice, never a local model beside a cloud voice that was chosen for it. Pocket and Voxtral run beside the companion's reply and
+// never delay it (a line that is not ready in time is dropped); OmniVoice is the player's choice of a short wait. English on Pocket; on Voxtral also
+// the languages its model lists (a turn in another language gets no V line otherwise); OmniVoice speaks every language.
 // Which V is playing, kept between sessions (state folder): the first typed line of a session prepares the right voice before it is sent.
 const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
 const vGenderMemory = {
@@ -1152,11 +1154,16 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   play: (config, producer, options) => realtime.playVoiceLine(config, producer, options),
   warm: options => realtime.prewarmVoiceLine(options),
   // With any other companion voice (OmniVoice, a cloud voice, the Convai voice) V's Pocket line is spoken by a Pocket worker of its own on
-  // the CPU (bridge/v-helper-voice.mjs), never rendered on OmniVoice's one GPU worker. It is loaded in the background only while the V
-  // setting is on and the engine is Pocket (never beside the Pocket route or with the Voxtral engine).
+  // the CPU (bridge/v-helper-voice.mjs); with the engine Pocket the line is never rendered on OmniVoice's one GPU worker (the engine 'omni'
+  // below is the player's separate choice of that). It is loaded in the background only while the V setting is on and the engine is Pocket
+  // (never beside the Pocket route, with the Voxtral engine or with the Omni engine).
   helper: {speaks: key => localVoice.vHelperSpeaks(key), ready: key => localVoice.vHelperReady(key),
     stream: (key, text, options) => localVoice.vHelperStream(key, text, options),
     prepare: (key, options) => localVoice.vHelperPrepare(key, options)},
+  // The OmniVoice engine: V's line is one more job on the companions' Omni worker (bridge/voice-selection.mjs vOmni*), queued the moment the
+  // line is sent, so it renders while the companion's text is written and the companion's render queues right behind it. No worker is loaded for it.
+  omni: {problem: key => localVoice.vOmniProblem(key), render: (key, text, options) => localVoice.vOmniRender(key, text, options),
+    prepare: (key, options) => localVoice.vOmniPrepare(key, options)},
   // The Voxtral engine: a request of its own to the Mistral voice, beside the companion's text request. No local model, and no fallback to
   // one (a failed line is silent; the subtitle is on screen). It never takes a start from the reply: while the shared Mistral scheduler is
   // pacing or pausing requests (a limit was hit, an allowance is nearly used up) V is skipped.
@@ -3269,10 +3276,14 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    // V's voice row is one list (Off / Pocket / Voxtral): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
+    // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
     // is Voxtral again as soon as a key is saved; the poll runs this every time). The same while Mature content is on: no cloud voice then
-    // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off.
-    const vSettings = settings?.vVoiceEngine === 'voxtral' && (!voxtralVoice.hasKey || !matureAllowsCloudVoice(matureContent.enabled)) ? {...settings, vVoiceEngine: 'pocket'} : settings;
+    // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
+    // unless the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V): the same
+    // two conditions as the row's greyed-out entry (mod/manager.lua vOmniBlock). An Omni voice that is merely failing or loading is not that:
+    // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it.
+    const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false;
+    const vSettings = vSettingsFor(settings, {cloudUsable: voxtralVoice.hasKey && matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);

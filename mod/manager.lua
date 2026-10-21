@@ -36,7 +36,9 @@ local OMNI_LABELS = {
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
 -- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
-local V_VOICE_ENGINES = {'pocket', 'voxtral'}
+local V_VOICE_ENGINES = {'pocket', 'voxtral', 'omni'}
+-- OmniVoice for V runs on the GPU voice the companions use: it needs the optional pack and a saved companion voice that is OmniVoice.
+local V_OMNI_NEEDS_VOICE = 'Requires the Companion voices to be an OmniVoice choice'
 -- Mature content (bridge/mature-content.mjs, MATURE_PROVIDERS): the Local AI and Custom text providers may have it; Convai and Mistral never (owner
 -- decision 2026-10-20, after Mistral's Voxtral voice refused Mature lines in a live test: "let's not risk their API key").
 local function matureProvider(provider) return provider == 'local' or provider == 'custom' end
@@ -791,7 +793,9 @@ local function loadSettings()
     -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
-    if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
+    -- 'omni' is kept as saved even when it cannot be used now (the companions are not on OmniVoice, the pack is missing): the page and the bridge read
+    -- it as Pocket then (M.vOmniBlock), and the file is left alone.
+    if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' and settings.vVoiceEngine ~= 'omni' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
     -- A Voxtral voice beside Mature content (an older file, a hand edit): Pocket, for the companions and for V (MATURE_VOXTRAL). No record is made, so
     -- turning Mature content off leaves Pocket where it is; the page's own way (stageMature) records it and puts Voxtral back.
     if settings.matureContent == true then
@@ -1028,16 +1032,27 @@ function M.followUpInterest()
 end
 
 -- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by V's own voice engine
--- (vVoiceEngine: Pocket by default, or Voxtral), whatever voice the companions use. Typed lines only; push-to-talk never replays V.
+-- (vVoiceEngine: Pocket by default, Voxtral, or OmniVoice while the companions use it), whatever voice the companions use otherwise. Typed lines only;
+-- push-to-talk never replays V.
 function M.vVoice()
     loadSettings()
     return settings.vVoice == true
 end
 
--- V's voice engine: 'pocket' (default) or 'voxtral'.
+-- Why OmniVoice cannot speak for V with these settings: 'pack' (the optional OmniVoice pack is missing, named first), 'voice' (the companion voice in
+-- `values` is not OmniVoice), or nil when it can.
+function M.vOmniBlock(values)
+    if not M.omniPack().installed then return 'pack' end
+    if (values or {}).voiceProvider ~= 'omni' then return 'voice' end
+    return nil
+end
+
+-- V's voice engine: 'pocket' (default), 'voxtral' or 'omni'. A saved 'omni' that cannot be used now (M.vOmniBlock) reads as 'pocket'.
 function M.vVoiceEngine()
     loadSettings()
-    return settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket'
+    if settings.vVoiceEngine == 'voxtral' then return 'voxtral' end
+    if settings.vVoiceEngine == 'omni' and not M.vOmniBlock(settings) then return 'omni' end
+    return 'pocket'
 end
 
 -- The setting is on, so a real V line can follow a typed turn. Used to skip work that only a real V line needs (the game-side read of the
@@ -1674,7 +1689,7 @@ function M.snapshot(player)
             naturalSpeech = settings.naturalSpeech,
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
-            vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket',
+            vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or settings.vVoiceEngine == 'omni' and 'omni' or 'pocket',
             -- Part of the main mod: off by default; Local AI and Custom (not Convai, not Mistral). The optional Mature pack (uncensored models, Local AI) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
@@ -1790,6 +1805,7 @@ function M.applySettings(player, values)
             if not isChoice(value, V_VOICE_ENGINES) then return false, 'Choose one of the listed voices for V.' end
             -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies and the companions' Voxtral use).
             if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
+            -- OmniVoice for V: judged below, against the companion voice as this batch leaves it.
             nextSettings.vVoiceEngine = value
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
@@ -1829,6 +1845,17 @@ function M.applySettings(player, values)
         end
         if nextSettings.vVoiceEngine == 'voxtral' then
             if values.vVoiceEngine == 'voxtral' and values.matureContent ~= true then return false, MATURE_VOXTRAL end
+            nextSettings.vVoiceEngine, rulesReload = 'pocket', true
+        end
+    end
+    -- V on OmniVoice needs the pack and companions on OmniVoice as this batch leaves them (the pack reason first). Choosing it otherwise is refused; a
+    -- batch that moves the companions off OmniVoice while V is on it sets V's engine to Pocket in the same save.
+    if nextSettings.vVoiceEngine == 'omni' then
+        if values.vVoiceEngine == 'omni' then
+            local block = M.vOmniBlock(nextSettings)
+            if block == 'pack' then return false, OMNI_PACK_MISSING end
+            if block == 'voice' then return false, V_OMNI_NEEDS_VOICE end
+        elseif values.voiceProvider ~= nil and nextSettings.voiceProvider ~= 'omni' then
             nextSettings.vVoiceEngine, rulesReload = 'pocket', true
         end
     end

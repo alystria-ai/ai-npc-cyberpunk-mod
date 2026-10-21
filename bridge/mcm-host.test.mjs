@@ -1399,14 +1399,18 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up ofte
   assert(mcm.row('Johnny in your head').value == 3)
 `));
 
-test('V’s voice is one list: Off, Pocket, Voxtral; Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
+test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
   press('Settings')
   local name = 'V’s voice for typed lines'
   assert(mcm.row('V’s voice engine') == nil, 'the engine row is gone')
   local row = mcm.row(name)
   assert(row.type == 'select' and row.default == nil and row.value == 2, 'Pocket by default')
-  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key', table.concat(row.elements, ' | '))
+  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
   local states = mcm.config().choices and mcm.config().choices.vVoice
+  -- OmniVoice is greyed out too, with its own reason: the companions are on Pocket (the pack is taken as installed while the bridge has not said otherwise).
+  assert(states and states.states[4] and states.states[4].enabled == false and states.states[4].reason == 'Requires the Companion voices to be an OmniVoice choice', tostring(states.states[4] and states.states[4].reason))
+  local okOmni = mcm.set(name, 4)
+  assert(okOmni == false, 'MCM refuses the disabled OmniVoice entry as a draft')
   assert(states and states.states[3] and states.states[3].enabled == false, 'Voxtral is a disabled choice without a key')
   assert(states.states[1].enabled ~= false and states.states[2].enabled ~= false, 'Off and Pocket are free')
   local ok, why = mcm.set(name, 3)
@@ -1440,6 +1444,43 @@ test('the Voxtral entry of V’s voice says what it needs: the Mistral key (and 
   press('Settings')
   local states = mcm.config().choices.vVoice.states
   assert(states[3].enabled == false and states[3].reason:find('Mistral', 1, true) and not states[3].reason:find('OmniVoice', 1, true), tostring(states[3].reason))
+`));
+
+test('the OmniVoice entry of V’s voice is greyed out with the pack reason while the pack is missing (the pack first, even with the companions on Pocket)', () => withScreen(`
+  jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = os.time() * 1000.0}
+  files['runtime/local-voice-state.json'] = 'voice-runtime'
+  clock = clock + 2
+  for _ = 1, 5 do manager.update(player, 0.6) end
+  press('Settings')
+  frames(6)
+  local name = 'V’s voice for typed lines'
+  assert(mcm.row(name).elements[4] == 'OmniVoice · needs Omni pack', mcm.row(name).elements[4])
+  local states = mcm.config().choices.vVoice.states
+  assert(states[4].enabled == false and states[4].reason == 'Requires the optional OmniVoice pack (GPU)', tostring(states[4].reason))
+  assert(mcm.set(name, 4) == false)
+  assert(states[1].enabled ~= false and states[2].enabled ~= false)
+`));
+
+test('the OmniVoice entry of V’s voice is a normal choice with the pack installed and the companions on OmniVoice; moving the companions off OmniVoice sets V to Pocket in the same Apply and says so', () => withScreen(`
+  jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = os.time() * 1000.0}
+  files['runtime/local-voice-state.json'] = 'voice-runtime'
+  clock = clock + 2
+  for _ = 1, 5 do manager.update(player, 0.6) end
+  assert(manager.applySettings(player, {voiceProvider = 'omni'}))
+  press('Settings')
+  frames(6)
+  local name = 'V’s voice for typed lines'
+  assert(mcm.row(name).elements[4] == 'OmniVoice · short wait', mcm.row(name).elements[4])
+  local states = mcm.config().choices
+  assert(states == nil or states.vVoice == nil or states.vVoice.states[4].enabled ~= false, 'OmniVoice is a normal choice')
+  assert(mcm.set(name, 4) and mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'omni' and manager.vVoiceEngine() == 'omni' and mcm.row(name).value == 4)
+  -- The companions move to Pocket: V goes to Pocket in the same save, and the line says so.
+  assert(mcm.set('Companion voices', 1) and mcm.apply())
+  frames(6)
+  assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
+  assert(mcm.row(name).value == 2)
+  assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
 `));
 
 test('React to battles and to collected loot are off by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions off', () => withScreen(`

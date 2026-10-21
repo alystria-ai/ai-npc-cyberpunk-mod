@@ -35,7 +35,7 @@ test('the companions\' voice selector reads the removed value as Pocket and choo
 
 test('V\'s voice engine reads the removed value as Pocket', () => {
   const voice = new VVoice({voices: {male: {key: 'v-male'}}});
-  assert.deepEqual(V_ENGINES, ['pocket', 'voxtral']);
+  assert.deepEqual(V_ENGINES, ['pocket', 'voxtral', 'omni']);
   voice.update({vVoiceEngine: 'voxtral'});
   assert.equal(voice.engine, 'voxtral');
   assert.doesNotThrow(() => voice.update({vVoiceEngine: REMOVED}));

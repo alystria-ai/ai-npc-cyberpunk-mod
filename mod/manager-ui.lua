@@ -450,9 +450,11 @@ local function voiceIndexOf(record)
     return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
 end
 
--- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral) for the saved settings. With Mature content on a Voxtral engine reads as Pocket (it is not used).
-local function savedVIndex(settings, keySaved)
+-- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice) for the saved settings. With Mature content on a Voxtral engine reads as Pocket (it
+-- is not used); so does a saved OmniVoice engine that cannot be used now (`omniOk` false: the companions are not on OmniVoice, or its pack is missing).
+local function savedVIndex(settings, keySaved, omniOk)
     if settings.vVoice ~= true then return 1 end
+    if settings.vVoiceEngine == 'omni' and omniOk then return 4 end
     return settings.vVoiceEngine == 'voxtral' and keySaved and settings.matureContent ~= true and 3 or 2
 end
 
@@ -520,8 +522,8 @@ local function stageMature(changes, snapshot)
         end
     end
     local keySaved = (snapshot.mistral or {}).saved == true
-    -- V's voice row as the batch leaves it: 1 Off, 2 Pocket, 3 Voxtral.
-    local vNow = now('vVoice', savedVIndex(saved, keySaved))
+    -- V's voice row as the batch leaves it: 1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice.
+    local vNow = now('vVoice', savedVIndex(saved, keySaved, not manager.vOmniBlock(saved)))
     local function turnedOff()
         local restore = saved.matureRestore
         if type(restore) ~= 'table' then leaveUncensoredModel(); return end
@@ -1442,6 +1444,8 @@ local function schema()
         -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
         local voiceName = ui.t('Companion voices')
         if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')' end
+        -- Why OmniVoice cannot speak for V now ('pack' before 'voice'), from the saved settings; nil when it can.
+        local vOmniBlock = manager.vOmniBlock(snapshot.settings)
         local voicesCategory = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
             setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
@@ -1459,24 +1463,37 @@ local function schema()
                 'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
-            -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved).
-            -- A saved Voxtral without a key reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
+            -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved),
+            -- 4 OmniVoice (greyed out until the OmniVoice pack is installed and the saved companion voice is OmniVoice; the pack comes first).
+            -- A saved Voxtral without a key, or a saved OmniVoice that cannot be used, reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
             setting('vVoice', 'V’s voice for typed lines', 'select',
-                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved and snapshot.settings.matureContent ~= true) and 3 or 2, 2,
-                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nWhichever you pick, a line that is not ready in time is skipped.',
+                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved and snapshot.settings.matureContent ~= true) and 3
+                    or (snapshot.settings.vVoiceEngine == 'omni' and not vOmniBlock) and 4 or 2, 2,
+                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. Pocket and Voxtral lines that are not ready in time are skipped; an OmniVoice line is waited for. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nOmniVoice: uses the same GPU voice as your companions (only while they use OmniVoice); no extra model loads. It adds a short wait before replies to typed lines (about a second more than Pocket, before V starts), because V speaks first and the companion answers after.',
                 {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
-                    or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
+                    or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
+                    vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
+                    or ui.t('OmniVoice · short wait')},
                 {elements = true}),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
             end
-            if voiceRow.id == 'vVoice' and snapshot.settings.matureContent == true then
-                -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
-                voiceRow.disabledElements, voiceRow.disabledReason = {[3] = true}, ui.t('Voxtral is not used with Mature content.')
-            elseif voiceRow.id == 'vVoice' and not (snapshot.mistral or {}).saved then
-                voiceRow.disabledElements, voiceRow.disabledReason = {[3] = true}, ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')
+            if voiceRow.id == 'vVoice' then
+                local greyed, reason = {}, nil
+                if snapshot.settings.matureContent == true then
+                    -- Beside Mature content Voxtral is not used, whatever the key (this reason comes before the key's).
+                    greyed[3], reason = true, ui.t('Voxtral is not used with Mature content.')
+                elseif not (snapshot.mistral or {}).saved then
+                    greyed[3], reason = true, ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')
+                end
+                -- OmniVoice carries its own reason (a string), so it never takes Voxtral's; the pack's comes first.
+                if vOmniBlock then
+                    greyed[4] = vOmniBlock == 'pack' and ui.t('Requires the optional OmniVoice pack (GPU)') or ui.t('Requires the Companion voices to be an OmniVoice choice')
+                    reason = reason or greyed[4]
+                end
+                if next(greyed) then voiceRow.disabledElements, voiceRow.disabledReason = greyed, reason end
             end
         end
         categories[#categories + 1] = voicesCategory
@@ -1783,14 +1800,14 @@ function M.apply(changes)
             end
             values.uiLanguage = choices[change.value].value
         elseif key == 'vVoice' then
-            -- Order: 1 Off, 2 Pocket (stored 'pocket'), 3 Voxtral (stored 'voxtral', needs the Mistral key). One row writes both stored settings;
-            -- Off keeps the engine that was saved.
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose one of the listed voices for V.') end
+            -- Order: 1 Off, 2 Pocket (stored 'pocket'), 3 Voxtral (stored 'voxtral', needs the Mistral key), 4 OmniVoice (stored 'omni', judged after the
+            -- loop against the companion voice the batch leaves). One row writes both stored settings; Off keeps the engine that was saved.
+            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose one of the listed voices for V.') end
             if change.value == 3 and not manager.mistral().saved then
                 return refused('Requires a Mistral key (add it in Settings > Conversation provider)')
             end
             values.vVoice = change.value ~= 1
-            if change.value ~= 1 then values.vVoiceEngine = change.value == 3 and 'voxtral' or 'pocket' end
+            if change.value ~= 1 then values.vVoiceEngine = change.value == 4 and 'omni' or change.value == 3 and 'voxtral' or 'pocket' end
         elseif key == 'voiceProvider' then
             local choice = type(change.value) == 'number' and VOICE_CHOICES[change.value] or nil
             if not choice then return refused('Choose one of the listed companion voices.') end
@@ -1832,6 +1849,15 @@ function M.apply(changes)
         else return refused('That setting is read-only.') end
         applied[#applied + 1] = key
     end
+    -- V on OmniVoice needs the pack (named first) and the companion voice as this batch leaves it to be OmniVoice: otherwise it is refused, nothing is saved.
+    if values.vVoiceEngine == 'omni' then
+        local block = manager.vOmniBlock({voiceProvider = values.voiceProvider or snapshot.settings.voiceProvider})
+        if block == 'pack' then return refused('Requires the optional OmniVoice pack (GPU)') end
+        if block == 'voice' then return refused('Requires the Companion voices to be an OmniVoice choice') end
+    end
+    -- A batch that moves the companions off OmniVoice while V speaks with it: manager.applySettings sets V to Pocket in the same save, and this says so.
+    local omniLeft = values.vVoiceEngine == nil and values.vVoice ~= false and values.voiceProvider ~= nil and values.voiceProvider ~= 'omni'
+        and snapshot.settings.vVoice == true and snapshot.settings.vVoiceEngine == 'omni' and not manager.vOmniBlock(snapshot.settings)
     -- No Voxtral voice beside Mature content: choosing one while the setting is on (or stays on) is refused and nothing is saved. A batch that turns
     -- the setting on never gets here with one: stageMature moved it to Pocket.
     local matureFinal = values.matureContent
@@ -1853,6 +1879,7 @@ function M.apply(changes)
     elseif refusal then text = refusal
     elseif notice then text = notice
     elseif #names > 0 then text = ui.t('Also changed: {names}.', {names = table.concat(names, ', ')}) end
+    if ok and omniLeft then text = (text and text .. ' ' or '') .. ui.t('V’s voice switches from OmniVoice to Pocket.') end
     actionFeedback = text
     refreshQueued = true
     return {ok = ok == true, error = not ok and ui.t(err) or nil, notice = notice, reload = reload == true, names = names,
