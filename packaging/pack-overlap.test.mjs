@@ -333,7 +333,7 @@ test('the build puts the Runtime\'s slots in their own folder and leaves voices/
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.equal(builder.split('${plugin}/${RUNTIME_PREPARED_FOLDER}').length - 1, 1, 'the Runtime package');
   assert.equal(builder.split('${plugin}/voices/prepared`').length - 1, 1, 'the OmniVoice pack');
-  assert.match(builder, /import \{RUNTIME_PREPARED_FOLDER\} from '\.\/lib\/pack-overlap\.mjs'/);
+  assert.match(builder, /import \{RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE\} from '\.\/lib\/pack-overlap\.mjs'/);
   const bridge = await readFile(resolve(project, 'bridge/convai-bridge.mjs'), 'utf8');
   assert(bridge.includes('cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)]'));
 });
