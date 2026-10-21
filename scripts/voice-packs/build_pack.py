@@ -259,7 +259,12 @@ def build_voice(key, row, dub: Dub, subs: vp_text.Subtitles, english: English, s
         else:
             report["notes"].append("speaker check still failing after replacements")
         if "speakerMinCosine" in report and report["speakerMinCosine"] < threshold:
-            report["speakerFailed"] = True
+            # no replacement left: a pair clearly below the bar is a different speaker (a stranger scores near 0.1), one just under it is kept and reported
+            if report["speakerMinCosine"] < max(0.05, threshold - 0.15):
+                report["speakerFailed"] = True
+            else:
+                report["borderlineSpeaker"] = True
+                report["notes"].append(f"speaker check borderline: lowest cosine {report['speakerMinCosine']:.2f}, bar {threshold:.2f}; kept")
     elif speaker is None:
         report["notes"].append("speaker check skipped (no ECAPA weights)")
 
@@ -267,6 +272,26 @@ def build_voice(key, row, dub: Dub, subs: vp_text.Subtitles, english: English, s
     while total(clips) > MAX_SECONDS and len(clips) > 1:
         gone = clips.pop()
         report["dropped"].append({"hex": gone.line["hex"], "seconds": round(gone.seconds, 2), "because": f"set over {MAX_SECONDS} s"})
+    # a set that shrank to under 12 s (a long dub line was dropped) is topped up with the next ranked line that fits and sounds like the same speaker
+    topup = 0
+    while report["dropped"] and 0 < total(clips) < 12.0 and tries < MAX_TRIES and topup < 6:
+        repl = next_replacement()
+        if repl is None:
+            break
+        tries += 1
+        candidate, why = take(repl)
+        if candidate is None or total(clips) + vp.GAP_SECONDS + candidate.seconds > MAX_SECONDS:
+            continue
+        if speaker is not None:
+            candidate.emb = speaker.embed(candidate.audio)
+            for c in clips:
+                if c.emb is None:
+                    c.emb = speaker.embed(c.audio)
+            if min(speaker.cosine(candidate.emb, c.emb) for c in clips) < threshold:
+                continue
+        clips.append(candidate)
+        topup += 1
+        report["notes"].append(f"topped up with line {candidate.line['hex']} ({candidate.seconds:.1f} s) after a long line was dropped")
     if total(clips) > MAX_SECONDS:
         report["notes"].append("single clip over the limit")
         return {"report": report, "ok": False}
