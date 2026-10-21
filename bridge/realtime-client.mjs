@@ -501,7 +501,8 @@ function beginTurn(timing = {}, config = {}) {
     audioOptional: config.audioOptional === true,
     providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
   current.emotion = new ConvaiEmotion({retiredOwners: retiredExpressionOwners});
-  if (ttsEnabled) current.dataAudio = new ConvaiDataAudio({retiredOwners: retiredAudioOwners});
+  // config.audioRate: the correction an earlier turn of this character showed (bridge/realtime-host.mjs, rememberAudioRate).
+  if (ttsEnabled) current.dataAudio = new ConvaiDataAudio({retiredOwners: retiredAudioOwners, rateHint: config.audioRate});
   attachContinuous(current, config.liveSpeechToken);
   turn = current;
   return current;
@@ -516,16 +517,17 @@ function attachContinuous(current, token) {
   }
   previousContinuous = null; previousAnalysis = null;
   current.live = {token, player: new ContinuousPcmPlayer(), chain: Promise.resolve(), opened: false};
-  startStandby(current.live);
+  startStandby(current.live, current.dataAudio?.rateHint?.actual);
   queueContinuous(current);
 }
 
 // Open the output device now, silently and without a game lease. A failure here
 // is not a turn failure: the first audio packet opens a player as it always did.
-function startStandby(live) {
+function startStandby(live, sampleRate) {
   const player = new ContinuousPcmPlayer();
   live.standby = player;
-  live.standbyOpen = player.open({...STANDBY_FORMAT, token: live.token, standby: true}).catch(() => {});
+  // A character whose audio is known to arrive at another rate than its label (the hint of beginTurn) opens its standby at that rate, so the hand-over keeps its head start.
+  live.standbyOpen = player.open({...STANDBY_FORMAT, ...(sampleRate ? {sampleRate} : {}), token: live.token, standby: true}).catch(() => {});
 }
 
 // Stop a standby player that never became the turn's player. Idempotent.

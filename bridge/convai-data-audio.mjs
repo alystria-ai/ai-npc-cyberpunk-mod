@@ -20,10 +20,15 @@ const durationSlack = seconds => DURATION_SLACK_SECONDS + DURATION_SLACK_FRACTIO
 // duration is a rounded millisecond figure).
 const STANDARD_RATES = [44100, 48000], RATE_MATCH = 0.005;
 /** The standard rate the bytes and the declared duration agree on, or null (not one, or the rate the packets already said). */
-function mislabelledRate(bytes, align, declaredSeconds, declaredRate) {
+function mislabelledRate(bytes, align, declaredSeconds, declaredRate, extra = []) {
   if (!(declaredSeconds > 0)) return null;
   const actual = bytes / (align * declaredSeconds);
-  return STANDARD_RATES.find(rate => rate !== declaredRate && Math.abs(actual - rate) / rate <= RATE_MATCH) ?? null;
+  return [...extra, ...STANDARD_RATES].find(rate => rate !== declaredRate && Math.abs(actual - rate) / rate <= RATE_MATCH) ?? null;
+}
+/** A remembered correction ({declared, actual}: packets of this character say `declared` but carry `actual`), or null when it is not a usable one. Only the standard rates are ever taken. */
+export function validRateHint(hint) {
+  return hint && Number.isInteger(hint.declared) && hint.declared >= 8000 && hint.declared <= 96000 && STANDARD_RATES.includes(hint.actual) && hint.actual !== hint.declared
+    ? {declared: hint.declared, actual: hint.actual} : null;
 }
 const ownerFields = ['response_id', 'neurosync_turn_id', 'epoch'];
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -121,7 +126,10 @@ function wav(parts, byteCount, rate, channels) {
 }
 
 export class ConvaiDataAudio {
-  constructor({retiredOwners = [], maxSeconds = 120, maxBytes = 24000000} = {}) {
+  // rateHint: {declared, actual}, what an earlier turn of this same character showed (packets that say 24 kHz carry 44.1 kHz, the Convai multilingual twin). The first packet that says
+  // `declared` is then taken at `actual` at once, so a turn played live is heard at the right speed from its first sample instead of only being corrected when the statistics arrive.
+  // The statistics still check it: if they do not fit the hinted rate, the rate they do fit stands (`rateHintMissed`) and the caller forgets the hint.
+  constructor({retiredOwners = [], maxSeconds = 120, maxBytes = 24000000, rateHint = null} = {}) {
     if (!finite(maxSeconds) || maxSeconds <= 0 || maxSeconds > 120
         || !integer(maxBytes) || maxBytes < 2 || maxBytes > 24000000)
       throw Error('Invalid Convai audio limits');
@@ -135,6 +143,7 @@ export class ConvaiDataAudio {
     // The rate the packets said. `sampleRate` is the one the clip is written and played at: the same, unless the final statistics showed that the packets were mislabelled
     // (rateCorrected: {declared, actual}, see validateTotals).
     this.declaredRate = null; this.rateCorrected = null;
+    this.rateHint = validRateHint(rateHint); this.rateHinted = false; this.rateHintMissed = false;
     this.timing = {}; this.sealed = false; this.result = null;
   }
 
@@ -229,7 +238,11 @@ export class ConvaiDataAudio {
     const total = this.byteCount + bytes.length;
     if (total > this.maxBytes || total / (rate * channels * 2) > this.maxSeconds)
       return this.fail('Convai speech exceeded the collection limit');
-    this.sampleRate = this.declaredRate = rate; this.channels = channels;
+    if (this.declaredRate === null && this.rateHint?.declared === rate) {
+      this.sampleRate = this.rateHint.actual; this.rateHinted = true;
+      this.rateCorrected = {declared: rate, actual: this.rateHint.actual};
+    } else if (this.declaredRate === null) this.sampleRate = rate;
+    this.declaredRate = rate; this.channels = channels;
     this.parts.push(bytes); this.byteCount = total; this.packetCount++;
     this.timing.firstAudioMs ??= atMs; this.timing.completeAudioMs = atMs;
   }
@@ -294,9 +307,12 @@ export class ConvaiDataAudio {
         // The packets say one rate and the bytes and the declared duration agree on another: the audio is mislabelled (2026-10-21: packets that said 24 kHz carried 44.1 kHz audio,
         // 5,733 ms declared against 10,535 counted, which is exactly 44100 / 24000, in the reports of the turns with Multilingual on). The clip is taken at the rate the declared duration
         // gives, when that is a standard rate (within RATE_MATCH of it), and written and played at it. Anything else is still a fault.
-        const actual = mislabelledRate(bytes, align, declaredSeconds, this.declaredRate);
+        // A hinted rate that the statistics do not confirm (the character's audio is labelled right now, or is another rate): the rate they fit stands, the label included.
+        const actual = this.rateHinted ? mislabelledRate(bytes, align, declaredSeconds, this.sampleRate, [this.declaredRate])
+          : mislabelledRate(bytes, align, declaredSeconds, this.declaredRate);
         if (actual === null) return this.fail(`Convai PCM size does not match its declared duration (${numbers})`, {format: true});
-        this.rateCorrected = {declared: this.declaredRate, actual};
+        if (this.rateHinted) { this.rateHintMissed = true; this.rateHinted = false; }
+        this.rateCorrected = actual === this.declaredRate ? null : {declared: this.declaredRate, actual};
         this.sampleRate = actual;
       }
     }
@@ -346,6 +362,7 @@ export class ConvaiDataAudio {
       faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
       timing: {...this.timing}, stats: {...this.stats}, packetCount: this.packetCount,
       ...(this.rateCorrected ? {sampleRateCorrected: {...this.rateCorrected}} : {}),
+      ...(this.rateHinted ? {sampleRateHinted: true} : {}), ...(this.rateHintMissed ? {sampleRateHintMissed: true} : {}),
       ...(this.facialDiagnostic ? {facialDiagnostic: this.facialDiagnostic} : {})};
     this.sealed = true; this.parts.length = 0; this.frames.clear();
     return this.result;

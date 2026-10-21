@@ -1061,6 +1061,14 @@ after the reply (so nothing left of that response can reach another turn). The f
 `rejectTransport` already ignores the `disconnect` of a connection `close()` retired (`currentConnection()`), and with the rate corrected the fault no longer retires it at all, so no
 separate guard was added. Tests: `bridge/convai-data-audio.test.mjs`, `bridge/realtime-client.test.mjs`.
 
+**Remembered per character (0.2.6 follow-up).** Since 0.2.6 the twin is chosen per message, so every non-English Convai-voice turn is a twin turn and, played live, would have been heard at 24/44.1 speed
+before the statistics corrected the clip. `bridge/convai-audio-rates.mjs` (`AudioRates`, held by `RealtimeHost`) remembers the correction per Convai character id: the first turn of a character learns it from
+its statistics (`result.sampleRateCorrected`, one log line `[Convai audio] ... remembered`), and every later turn of that character is sent `config.audioRate = {declared, actual}` with its other settings (a Map read:
+no request, no timer, nothing per frame). `ConvaiDataAudio({rateHint})` then takes the first packet that says `declared` at `actual` at once (`result.sampleRateHinted`), the standby output device is opened at
+that rate so the hand-over keeps its head start, and the statistics still check it: if they do not fit, the rate they fit stands (`sampleRateHintMissed`) and the remembered rate is dropped. Only the standard
+rates (44,100 and 48,000) are ever remembered. The memory is saved to `convai-audio-rates.json` in the state folder (a missing or broken file is an empty memory), so it holds in the next session; the very first
+turn of a character on a computer that has never seen it is still corrected late. Not covered: the phone's Convai host (`phoneRealtime`) keeps its own empty memory. Tests: `bridge/convai-audio-rates.test.mjs`.
+
 ### The knowledge status file (EPERM in the bridge log)
 
 `Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the

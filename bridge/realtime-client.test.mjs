@@ -966,6 +966,15 @@ test('Convai audio that arrives at 44.1 kHz in packets labelled 24 kHz is writte
   await api.close();
 });
 
+test('a turn told the character\'s remembered rate (config.audioRate) takes the first packet at 44.1 kHz and the statistics confirm it', async () => {
+  const {api, pending, real} = await mislabelledTurn({audioRate: {declared: 24000, actual: 44100}});
+  const result = await pending;
+  assert.equal(result.sampleRate, 44100); assert.equal(Buffer.from(result.audio, 'base64').readUInt32LE(24), 44100);
+  assert.deepEqual(Buffer.from(result.audio, 'base64').subarray(44), real.samples);
+  assert.equal(result.sampleRateHinted, true); assert.deepEqual(result.sampleRateCorrected, {declared: 24000, actual: 44100});
+  await api.close();
+});
+
 test('a Convai audio format fault fails the turn, unless the player\'s own voice is not Convai\'s (audioOptional): then the written reply stands, the audio is dropped and the connection is retired', async () => {
   // 3 s declared for 2 s of audio at 44.1 kHz: no standard rate explains it, so it is a fault.
   const strict = await mislabelledTurn({}, {statsMs: 3000});
