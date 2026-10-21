@@ -679,8 +679,10 @@ export class VoiceSelection {
     this.omniRetry={failures,nextAt:this.clock()+delay};
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
   }
+  // Omni is the chosen voice or a worker for it is starting or running: the only time the card list is asked for (the source reads the PC when first asked, never at start-up).
+  get omniWanted(){return this.requestedProvider==='omni'||this.clientBackend==='omni'||this.targetBackend==='omni';}
   // The card vendors for the Omni start and failure lines: names only.
-  get graphicsVendors(){try{const found=this.gpuVendorsSource();return Array.isArray(found)?found:null;}catch{return null;}}
+  get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
   get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
   // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones. Unknown claims nothing.
   get omniNoNvidia(){return this.omniNoCuda||lacksNvidia(this.graphicsVendors);}

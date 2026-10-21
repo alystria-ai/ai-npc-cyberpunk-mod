@@ -173,6 +173,12 @@ test('the game ending a talk is not a fault: V interrupting or the game pausing 
   assert.equal(reportableTurnFailure(new Error('Invalid continuous speech state')), true);
 });
 
+// The recorder's writes are asynchronous files: wait until the queue holds `count` records (a fixed sleep lost the race on a loaded machine).
+async function untilQueued(f, count, limitMs = 10000) {
+  const end = Date.now() + limitMs;
+  while (Date.now() < end) { if ((await readQueue(f.state, {now: START})).length >= count) return; await new Promise(done => setTimeout(done, 20)); }
+}
+
 test('the bridge recorder writes after the fact, once per signature, and nothing while the setting is off', async () => {
   const f = await folders();
   try {
@@ -185,7 +191,7 @@ test('the bridge recorder writes after the fact, once per signature, and nothing
     assert.equal((await readQueue(f.state)).length, 0, 'nothing is written inside the call');
     assert.equal(deferred.length, 2, 'one deferred write per new signature');
     for (const run of deferred) run();
-    await new Promise(done => setTimeout(done, 100));
+    await untilQueued(f, 2);
     const queue = await readQueue(f.state, {now: START});
     assert.deepEqual(queue.map(record => record.kind).sort(), ['setup-problem', 'turn-failed']);
     assert.match(queue.find(record => record.kind === 'turn-failed').message, /^convai: /);
@@ -209,7 +215,7 @@ test('a voice that could not start is recorded with its engine and reason, once 
     events.voiceFailed({engine: 'v-helper', reason: 'Pocket student runtime is unavailable (FileNotFoundError: C:\\Games\\one\\model.safetensors)'});
     events.voiceFailed({engine: 'v-helper', reason: 'Pocket student runtime is unavailable (FileNotFoundError: D:\\Other\\place\\model.safetensors)'});
     events.voiceFailed({reason: 'a\nsecond line'});
-    await new Promise(done => setTimeout(done, 100));
+    await untilQueued(f, 3);
     const queue = await readQueue(f.state, {now: START});
     assert.deepEqual(queue.map(record => record.kind), Array(3).fill('voice-failed'), 'the same reason is one report, and a folder is not a different reason');
     assert.deepEqual(queue.map(record => record.message).sort(), ['pocket: Pocket student runtime is unavailable (ValueError: Pocket source differs from the pinned official revision)',
@@ -223,7 +229,7 @@ test('a voice that ran out of time carries its worker graphics memory as two num
     const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
     events.voiceFailed({engine: 'omni', reason: 'Local voice generation timed out', gpu: {dedicatedMiB: 2100.4, sharedMiB: 1650, adapter: 'C:\\secret', extra: 'x'}});
     events.voiceFailed({engine: 'omni', reason: 'Local voice preparation timed out', gpu: {dedicatedMiB: 'many', sharedMiB: 5}});
-    await new Promise(done => setTimeout(done, 100));
+    await untilQueued(f, 2);
     const queue = await readQueue(f.state, {now: START});
     const byMessage = Object.fromEntries(queue.map(record => [record.message, record.detail]));
     assert.deepEqual(byMessage['omni: Local voice generation timed out'], {engine: 'omni', gpuDedicatedMiB: 2100, gpuSharedMiB: 1650});

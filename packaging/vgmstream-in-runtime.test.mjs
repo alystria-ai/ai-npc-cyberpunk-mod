@@ -25,7 +25,7 @@ const APP = `${PLUGIN}/app`;
 const read = rel => readFileSync(resolve(project, rel), 'utf8');
 const config = JSON.parse(read('packaging/release.config.json'));
 const spec = config.toolchain.vgmstream;
-const builder = read('packaging/build-release.mjs');
+const builder = read('packaging/build-release.mjs').replaceAll('\r\n', '\n'); // a CRLF checkout (core.autocrlf) finds the same function ends as an LF one
 const body = name => { const at = builder.indexOf(`async function ${name}(`); assert(at >= 0, `${name} exists`); return builder.slice(at, builder.indexOf('\n}\n', at) + 2); };
 const EXPECTED = ['vgmstream-cli.exe', 'avcodec-vgmstream-59.dll', 'avformat-vgmstream-59.dll', 'avutil-vgmstream-57.dll', 'libatrac9.dll', 'libcelt-0061.dll', 'libcelt-0110.dll',
   'libg719_decode.dll', 'libmpg123-0.dll', 'libspeex-1.dll', 'libvorbis.dll'];
