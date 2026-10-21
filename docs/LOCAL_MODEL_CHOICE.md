@@ -7,7 +7,7 @@ Haiku with a blind rubric. The game was closed. Nothing here is in the mod yet.
 **Update 2026-10-17: the Lite tier is now Bonsai 2 4B (`Q2_0`, PrismML, Apache-2.0), not Qwen3.5-2B.** A re-run of the same harness with the same blind rubric
 (`docs/LOCAL_MODEL_BONSAI_2026-10-17.md`) scored it 2.96 overall against 2.19 for Qwen3.5-2B (grounded 4.08 against 3.04, invented phrases 12 against 44) at the same cost:
 1.58 GB of video memory at 8k context against 1.45 GB, a 1.21 GB download against 1.28 GB, and a warm reply in 0.37-0.41 s against 0.32-0.42 s. Its one cost is the first turn
-of a character (about 1.25 s against 0.52 s). It runs on the shipped llama.cpp b11560 Vulkan server, so nothing else in the pack changed. The Standard tier (Gemma 4 E4B)
+of a character (about 1.25 s against 0.52 s). It runs on the shipped llama.cpp b11782 Vulkan server, so nothing else in the pack changed. The Standard tier (Gemma 4 E4B)
 stays. Everything below is the original 2026-10-12 record: where it says Lite or the 2B, read it as the earlier model.
 
 ## Result in one table

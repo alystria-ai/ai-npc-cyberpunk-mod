@@ -21,7 +21,7 @@ community's, not ours. See "What to verify before shipping".
 
 ## How optional models work today (what a proposal has to fit)
 
-- `packaging/release.config.json`, block `localAi`: one pinned `server` (llama.cpp b11560 Vulkan, MIT), one `embed` model, and `tiers.standard` /
+- `packaging/release.config.json`, block `localAi`: one pinned `server` (llama.cpp b11782 Vulkan, MIT), one `embed` model, and `tiers.standard` /
   `tiers.lite`, each with `repository`, `revision`, `file`, `size`, `sha256`, `local`, `license`.
 - `packaging/build-release.mjs --packages localai-standard|localai-lite` downloads the unmodified upstream file from its pinned Hugging Face
   URL in CI, checks the SHA-256, and re-hosts it in a GitHub release zip (asset limit 1.95 GB; larger files split into 1 GB parts joined on

@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
-// The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context).
+// The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context; the same line and the same projections to the MiB on build 11782, 2026-10-21).
 const LINE = '0.01.933.385 I common_params_fit_impl: projected to use 3734 MiB of device memory vs. 11226 MiB of free device memory';
 
 test('parseProjection reads the projected and the free memory from the tool output, and nothing from other text', () => {

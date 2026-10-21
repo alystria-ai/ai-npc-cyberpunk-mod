@@ -377,6 +377,17 @@ test('Local AI downloads pin every file by revision, size and hash, and the lice
   assert.match(await readFile(resolve(project, 'packaging/licenses/llama.cpp-MIT.txt'), 'utf8'), /MIT License/);
 });
 
+test('the llama.cpp files a pack keeps include llama-fit-params and its library: the bridge looks for it beside llama-server (bridge/local-vram-fit.mjs fitToolPath) and does no free-memory fit without it', () => {
+  const {keep, drop, require} = config.localAi.server;
+  const glob = pattern => new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$', 'i');
+  const kept = name => keep.some(pattern => glob(pattern).test(name)) && !drop.includes(name);
+  for (const name of ['llama-server.exe', 'llama-server-impl.dll', 'llama-fit-params.exe', 'llama-fit-params-impl.dll', 'llama-common.dll']) {
+    assert(kept(name), `${name} is shipped`);
+    assert(require.includes(name) || name === 'llama-common.dll', `${name} is required, so the build fails when a new release lacks it`);
+  }
+  for (const name of ['llama-cli.exe', 'llama-bench.exe', 'llama-connect.exe', 'llama-quantize.exe']) assert(!kept(name), `${name} is not shipped`);
+});
+
 test('GGUF models and their split parts are stored, not deflated', async () => {
   const directory = await temporary();
   try {
