@@ -4,9 +4,9 @@ import {mkdtemp, writeFile, rm, utimes, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
 import {depotHash, openArchive, EMPTY_SHA1} from './rdar.mjs';
-import {parseModLines, detectVoiceMods, inspectArchive, linesHeld, GENDERS} from './v-voice-mods.mjs';
+import {parseModLines, detectVoiceMods, inspectArchive, linesHeld, ensureVoiceModReferences, findVgmstream, GENDERS} from './v-voice-mods.mjs';
 import {resamplePoly, trimSilence, gatedRmsDb, chooseClips, joinClips, buildModReference, prepareClip, monoOf} from './v-voice-mod-reference.mjs';
 import {encodeWav16} from './voxtral-reference.mjs';
 
@@ -274,4 +274,53 @@ test('buildModReference says why it could not: no lines, a failing decoder, no f
     await writeFile(join(folder, 'c.archive'), makeArchive(PATHS.male.map((path, i) => ({path, bytes: wem(i), storedSize: 20}))));
     await assert.rejects(buildModReference({archive: join(folder, 'c.archive'), lines: modLines.genders.male.lines, decode: async () => wavOf(sine(), 24000)}), {code: 'no-set'}, 'compressed lines are skipped, nothing left to build from');
   });
+});
+
+// ---- keeping the references current ----------------------------------------------------------------------------------------------------
+
+test('ensureVoiceModReferences builds from the winning archive, keeps the result while the archive is unchanged, rebuilds when it changes and removes it when the mod is gone', async () => {
+  await withFolder(async folder => {
+    const mods = join(folder, 'mods'), out = join(folder, 'v-voice-mod'), cachePath = join(folder, 'cache.json');
+    await (await import('node:fs/promises')).mkdir(mods);
+    await writeFile(join(mods, 'jc.archive'), makeArchive([...PATHS.male.slice(0, 3), ...PROBES.male].map((path, i) => ({path, bytes: wem(i)}))));
+    let decodes = 0;
+    const decode = async () => { decodes++; return wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000); };
+    const first = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath});
+    assert.deepEqual(first.voices, {male: 'built'});
+    assert.equal(first.directory, out);
+    const manifest = JSON.parse(await readFile(join(out, 'v-voice.json'), 'utf8'));
+    assert.equal(manifest.voices.male.file, 'v-male.wav'); assert.equal(manifest.voices.male.source.archive, 'jc.archive');
+    assert.equal(createHash('sha256').update(await readFile(join(out, 'v-male.wav'))).digest('hex'), manifest.voices.male.sha256, 'the manifest is the one loadVVoiceReferences checks');
+    const before = decodes;
+    const second = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath});
+    assert.deepEqual(second.voices, {male: 'kept'}); assert.equal(decodes, before, 'nothing decoded again');
+    await utimes(join(mods, 'jc.archive'), new Date(), new Date(Date.now() + 9000));
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath})).voices, {male: 'built'}, 'a changed archive is built again');
+    await writeFile(join(out, 'v-male.wav'), Buffer.from('damaged'));
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath})).voices, {male: 'built'}, 'a damaged reference is built again');
+    await rm(join(mods, 'jc.archive'));
+    const gone = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath});
+    assert.deepEqual(gone.voices, {male: 'removed'}); assert.equal(gone.directory, null);
+    assert.equal(existsSync(join(out, 'v-male.wav')), false);
+  });
+});
+
+test('ensureVoiceModReferences without a decoder builds nothing and says so; a failing build is reported, not thrown', async () => {
+  await withFolder(async folder => {
+    const mods = join(folder, 'mods'), out = join(folder, 'out');
+    await (await import('node:fs/promises')).mkdir(mods);
+    await writeFile(join(mods, 'ariana.archive'), makeArchive([...PATHS.female, ...PROBES.female].map((path, i) => ({path, bytes: wem(i)}))));
+    const none = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines});
+    assert.deepEqual(none.voices, {female: 'needs-decoder'}); assert.equal(none.directory, null); assert.equal(existsSync(out), false, 'nothing written');
+    const failed = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: async () => { throw Error('no tool'); }});
+    assert.deepEqual(failed.voices, {female: 'failed:decoder'});
+  });
+});
+
+test('findVgmstream takes an explicit path, then the environment, then the candidates', async () => {
+  const exists = async path => path.startsWith('/there');
+  assert.equal(await findVgmstream({explicit: '/there/a', env: {}, exists}), '/there/a');
+  assert.equal(await findVgmstream({explicit: '/missing', env: {CYBERPUNK_CONVAI_VGMSTREAM: '/there/b'}, exists}), '/there/b');
+  assert.equal(await findVgmstream({env: {}, candidates: ['/missing/c', '/there/c'], exists}), '/there/c');
+  assert.equal(await findVgmstream({env: {}, candidates: ['/missing/c'], exists}), null);
 });

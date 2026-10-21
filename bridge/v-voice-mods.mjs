@@ -10,11 +10,12 @@
 // Cost: the header and the index of each archive in the mod folder, read once (a stat per archive on every later start). The result is kept by archive
 // path, size and modification time (and the line list's digest) in a small JSON file, so an archive that did not change is never opened again. It runs
 // in the bridge's service (never the game), once at start and again only when the folder's listing changes; nothing here runs per frame or per reply.
-import {readdir, readFile, stat} from 'node:fs/promises';
+import {mkdir, readdir, readFile, rm, stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {join, relative, sep} from 'node:path';
+import {join, relative, resolve, sep} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 import {depotHash, openArchive} from './rdar.mjs';
+import {buildModReference} from './v-voice-mod-reference.mjs';
 
 export const V_MOD_CACHE_VERSION = 1;
 export const V_MOD_DETECTION = Object.freeze({minCoverage: 0.25, minLines: 3, maxArchives: 4000, maxDepth: 3});
@@ -101,7 +102,7 @@ export async function detectVoiceMods({folder, modLines, cachePath = null, now =
       catch (error) { result = {size: item.size, mtimeMs: item.mtimeMs, error: String(error?.code ?? 'unreadable')}; failed++; }
     }
     next[key] = result;
-    archives.push({relative: item.relative, size: item.size, cached: result === hit, ...(result.error ? {error: result.error} : result.result)});
+    archives.push({relative: item.relative, size: item.size, mtimeMs: item.mtimeMs, cached: result === hit, ...(result.error ? {error: result.error} : result.result)});
   }
   if (cachePath && (inspected || failed || Object.keys(cache).length !== Object.keys(next).length)) {
     try { await files.atomicFile(cachePath, JSON.stringify({version: V_MOD_CACHE_VERSION, lines: modLines.digest, archives: next})); } catch (error) { log(`the V voice mod cache could not be saved: ${error?.code ?? 'error'}`); }
@@ -118,4 +119,51 @@ export async function detectVoiceMods({folder, modLines, cachePath = null, now =
 export function linesHeld(modLines, gender, archiveResult) {
   const {lines} = modLines.genders[gender];
   return archiveResult[gender].lineHits.map(index => lines[index]);
+}
+
+// ---- keeping V's references current -------------------------------------------------------------------------------------------------------
+
+/** Where the tool that decodes the mod's Wwise lines is: an explicit path, CYBERPUNK_CONVAI_VGMSTREAM, or the first of `candidates` that exists. Null when none. */
+export async function findVgmstream({explicit = null, env = process.env, candidates = [], exists = async path => !!(await stat(path).catch(() => null))?.isFile()} = {}) {
+  for (const path of [explicit, env.CYBERPUNK_CONVAI_VGMSTREAM, ...candidates].filter(value => typeof value === 'string' && value)) if (await exists(path)) return path;
+  return null;
+}
+
+/**
+ * Brings the folder of mod-built references in line with the mods installed: for each gender with a winning archive, the reference is kept when the
+ * manifest says it was built from that very archive (name, size, time) and its WAV still matches its SHA-256, otherwise it is built again; a gender with no
+ * winner has its reference removed (the mod is gone). The folder holds v-voice.json and v-<gender>.wav in the shape of assets/v-voice, so the bridge's
+ * loadVVoiceReferences reads it as it reads the shipped one (nothing in the folder is a script or is ever run). A missing decoder means nothing is built
+ * and the result says so (`needsDecoder`), never an error. Resolves to {directory, voices: {male?, female?}: 'kept' | 'built' | 'removed' | 'needs-decoder'
+ * | 'failed:<code>', detection}.
+ */
+export async function ensureVoiceModReferences({modFolder, outFolder, modLines, decode = null, cachePath = null, log = () => {}, files = {readFile, atomicFile, rm, mkdir}, detect = detectVoiceMods, build = buildModReference} = {}) {
+  const detection = await detect({folder: modFolder, modLines, cachePath, log});
+  const manifestPath = resolve(outFolder, 'v-voice.json');
+  let manifest = {version: 1, voices: {}};
+  try { const raw = JSON.parse(String(await files.readFile(manifestPath, 'utf8')).replace(/^﻿/, '')); if (raw?.version === 1 && raw.voices && typeof raw.voices === 'object') manifest = raw; } catch { /* none yet */ }
+  const voices = {}, wavName = gender => `v-${gender}.wav`;
+  let changed = false;
+  for (const gender of GENDERS) {
+    const winner = detection.winners[gender], row = manifest.voices[gender];
+    if (!winner) {
+      if (row) { delete manifest.voices[gender]; changed = true; await files.rm(resolve(outFolder, wavName(gender)), {force: true}).catch(() => {}); voices[gender] = 'removed'; log(`the ${gender} V voice mod is gone; its reference was removed`); }
+      continue;
+    }
+    const source = {archive: winner.relative, size: winner.size, mtimeMs: winner.mtimeMs};
+    if (row?.source && row.source.archive === source.archive && row.source.size === source.size && row.source.mtimeMs === source.mtimeMs) {
+      try { if (createHash('sha256').update(await files.readFile(resolve(outFolder, wavName(gender)))).digest('hex') === row.sha256) { voices[gender] = 'kept'; continue; } } catch { /* rebuilt below */ }
+    }
+    if (!decode) { voices[gender] = 'needs-decoder'; continue; }
+    try {
+      const made = await build({archive: resolve(modFolder, winner.relative), lines: linesHeld(modLines, gender, winner), decode, file: wavName(gender)});
+      await files.mkdir(outFolder, {recursive: true});
+      await files.atomicFile(resolve(outFolder, wavName(gender)), made.wav);
+      manifest.voices[gender] = {...made.entry, source};
+      changed = true; voices[gender] = 'built';
+      log(`V's ${gender} reference was built from ${winner.relative} (${made.entry.seconds} s)`);
+    } catch (error) { voices[gender] = `failed:${error?.code ?? 'error'}`; log(`V's ${gender} reference was not built from ${winner.relative}: ${error?.code ?? 'error'}`); }
+  }
+  if (changed) { await files.mkdir(outFolder, {recursive: true}); await files.atomicFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n'); }
+  return {directory: Object.keys(manifest.voices).length ? outFolder : null, voices, detection};
 }
