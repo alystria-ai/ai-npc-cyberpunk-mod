@@ -1792,7 +1792,9 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       // turns (runAddonTurn). Throwing here for the missing receipt stopped the voice stream the moment the text was complete,
       // which cut every add-on line off in the middle (probe.log 2026-10-14: "Conversation receipt owner changed" after each
       // Delamain line). Such a turn only has to still be current.
-      if (!receiptPrepared && input.addon) {
+      // A character the player made is the same: runCustomTurn voices the reply with no knowledge receipt (error report e0fc2ad3,
+      // Local AI + Pocket: "Conversation receipt owner changed" after every custom-character line).
+      if (!receiptPrepared && (input.addon || customCharacters.has(input.profileKey))) {
         if (!await current()) throw Error('Conversation owner changed');
         return;
       }

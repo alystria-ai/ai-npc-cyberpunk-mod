@@ -33,7 +33,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
   // Not local: the player chose the Convai voice (`convaiVoiceAllowed`). A local voice that cannot run is a different fixture (voiceSelection with provider 'text').
   const selectedVoice = voiceSelection ?? {provider: local ? 'pocket' : 'convai', usesProfile: () => local, convaiVoiceAllowed: !local};
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
-  const sandbox = {addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
+  const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
     localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed,
     ownedPocketFace:()=>{},lipsync:{analyse:async()=>{calls.push('rhubarb');return{mouthCues:[],mouthCuesFormat:'rhubarb-phonetic-v1'};}},
     jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
@@ -113,6 +113,20 @@ test('an add-on speaker has no knowledge receipt: its generated text must not en
   // A turn that is no longer current still stops, exactly like any other.
   const stale = f.api.continuousSpeech(addonInput, {key: addonInput.profileKey, name: 'Delamain'}, async () => false);
   await assert.rejects(stale.callbacks.onGenerated('Late line'), /owner changed/);
+});
+
+test('a player-made character has no knowledge receipt either: its generated text must not end the voice stream (report e0fc2ad3)', async () => {
+  const f = fixture({local: true, continuous: true}), customInput = {...f.input, profileKey: 'custom-kaori-sqss'};
+  const profile = {key: customInput.profileKey, name: 'Kaori'};
+  const speech = f.api.continuousSpeech(customInput, profile, async () => true);
+  await speech.callbacks.onGenerated('Hello, V.');
+  assert.ok(!f.calls.some(value => value[0] === 'knowledge' || value[0] === 'staged'), 'no knowledge receipt is reported for a custom character');
+  // A turn that is no longer current still stops, like any other.
+  const stale = f.api.continuousSpeech(customInput, profile, async () => false);
+  await assert.rejects(stale.callbacks.onGenerated('Late line'), /owner changed/);
+  // A named character without a receipt is still refused (a real bug stays loud).
+  const named = f.api.continuousSpeech(f.input, f.profile, async () => true);
+  await assert.rejects(named.callbacks.onGenerated('Reply'), /receipt owner changed/);
 });
 
 test('local microphone speech keeps the original submitted receipt when the text/context projection refreshes',async()=>{
