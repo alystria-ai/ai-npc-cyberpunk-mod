@@ -7,6 +7,7 @@
 // The game's own dialogue has the same Bluetooth delay and does not correct it.
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {asciiTempEnvironment} from './ascii-temp.mjs';
 
 export const AUDIO_DELAY_CHOICES = Object.freeze(['auto', 0, 50, 100, 150, 200, 250]);
 // Typical SBC/AAC earbuds measure roughly 150-250 ms; aptX Low Latency and LE
@@ -44,11 +45,18 @@ export function setAudioDelayMs(value) {
 // nothing within `firstOutputMs`) means the probe cannot work here: the watch gives up for the rest of this process, writes one log
 // line, and the delay stays 0 (no compensation) unless it is set by hand. It is never retried and nothing reaches the player.
 export class AudioOutputWatch {
-  constructor({spawnFn = spawn, platform = process.platform, intervalSeconds = 60, onChange = () => {},
+  constructor({spawnFn = spawn, platform = process.platform, tempEnvironment = asciiTempEnvironment, intervalSeconds = 60, onChange = () => {},
     setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout, firstOutputMs = 30000,
     log = message => console.error(`[CyberpunkConvai] ${message}`)} = {}) {
-    Object.assign(this, {spawnFn, platform, intervalSeconds, onChange, setTimeoutFn, clearTimeoutFn, firstOutputMs, log});
+    Object.assign(this, {spawnFn, platform, tempEnvironment, intervalSeconds, onChange, setTimeoutFn, clearTimeoutFn, firstOutputMs, log});
     this.output = null; this.stopped = false; this.buffer = ''; this.unavailable = false; this.heard = false; this.watchdog = null;
+  }
+
+  // Add-Type (the probe compiles a small helper) cannot write under a TEMP that is not ASCII (bridge/ascii-temp.mjs): then, and only then, the
+  // child gets an ASCII TEMP and TMP. An ASCII temporary folder adds no option at all.
+  #tempOptions() {
+    let temp; try { temp = this.tempEnvironment(); } catch { temp = {}; }
+    return temp && Object.keys(temp).length ? {env: {...process.env, ...temp}} : {};
   }
 
   start() {
@@ -57,7 +65,7 @@ export class AudioOutputWatch {
     this.heard = false; this.buffer = '';
     try {
       child = this.spawnFn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-        '-File', PROBE, '-Interval', String(this.intervalSeconds), '-ParentId', String(process.pid)], {windowsHide: true, stdio: ['pipe', 'pipe', 'ignore']});
+        '-File', PROBE, '-Interval', String(this.intervalSeconds), '-ParentId', String(process.pid)], {windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'], ...this.#tempOptions()});
     } catch (error) { this.giveUp(error?.code ?? 'spawn failed'); return; }
     this.child = child;
     child.stdout?.setEncoding?.('utf8');
