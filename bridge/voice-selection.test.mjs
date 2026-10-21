@@ -885,6 +885,16 @@ test('the menu fact omniNoNvidia needs a known card list without an NVIDIA card;
   await h.voice.close(); await broken.voice.close();
 });
 
+test('the card list is asked for only while Omni is wanted (chosen or starting), never for another voice', async () => {
+  const asked = [];
+  const h = retryFixture({options: {gpuVendors: wanted => { asked.push(wanted); return ['amd']; }}});
+  h.voice.publish(); assert.equal(asked.at(-1), false, 'Pocket is the voice: nothing to look up');
+  assert.ok(asked.every(wanted => wanted === false));
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.publish();
+  assert.equal(asked.at(-1), true, 'Omni chosen: the source is told to look the cards up');
+  await h.voice.close();
+});
+
 test('Omni retries back off, give up after the last one, and choosing Omni again starts over', async () => {
   const h = retryFixture({omni: ['fail', 'fail', 'fail', 'fail']});
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();

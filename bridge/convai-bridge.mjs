@@ -322,11 +322,20 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 // The graphics card vendors (names only, bridge/gpu-vendors.mjs), from the card list the setup check and the error report read too (looked up once):
-// the OmniVoice start line names them and the game's voice menu says OmniVoice needs an NVIDIA card when the PC has none. null until the list is read.
+// the OmniVoice start line names them and the game's voice menu says OmniVoice needs an NVIDIA card when the PC has none. The lookup starts the first time
+// OmniVoice is wanted (chosen or starting; VoiceSelection passes `wanted`), never at start-up, which runs no process of its own. null until the list is read;
+// the voice state is published again when it arrives.
 let graphicsVendors = null;
-cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); }, () => {});
+let graphicsLookup = false;
+const graphicsVendorsSource = wanted => {
+  if (wanted && !graphicsLookup) {
+    graphicsLookup = true;
+    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); try { if (!localVoice.closed) localVoice.publish(); } catch {} }, () => {});
+  }
+  return graphicsVendors;
+};
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  gpuVendors: () => graphicsVendors,
+  gpuVendors: graphicsVendorsSource,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
