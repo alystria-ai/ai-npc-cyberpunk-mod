@@ -17,7 +17,7 @@
 //      service, which must report Ready (with --key-file, used as the player's own key and never
 //      printed) or ask for setup (without a key); closing the host must stop it again.
 // 4. Plugin folders: only the launcher and the native plugin install into red4ext/plugins (never the development
-//    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt lists the
+//    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt (the kill switch, always shipped) lists the
 //    systems that start off.
 // 5. With --update-from (the Runtime update zip test): instead of the new full Runtime, the PREVIOUS full Runtime and Scripts are extracted
 //    first (--update-from <previous Runtime zip>, repeated for a Runtime in several zips; --update-from-scripts <previous Scripts zip>), then
@@ -397,7 +397,7 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
       const buildConfig = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8'));
       // The plugin's own parser rule: one name per line, '#' starts a comment, a missing file means all on.
       const off = existsSync(nativeOff) ? (await readFile(nativeOff, 'utf8')).split(/\r?\n/).map(line => line.replace(/#.*/, '').trim().toLowerCase()).filter(Boolean) : null;
-      check('runtime/native-off.txt starts the unproven systems off', JSON.stringify(off) === JSON.stringify(buildConfig.native.off), off ? off.join(', ') : 'missing');
+      check('runtime/native-off.txt ships and lists exactly the configured off systems (none: every system on)', JSON.stringify(off) === JSON.stringify(buildConfig.native.off), off ? (off.join(', ') || 'no system off') : 'missing');
       check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(plugins, 'AiNpcCyberpunkModNative', name))));
     } else {
       check('package without the native plugin has no native-off.txt', !existsSync(nativeOff) && release.nativePlugin === 'none');

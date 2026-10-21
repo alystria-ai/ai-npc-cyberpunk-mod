@@ -75,8 +75,8 @@
     }
   },
   "native": {
-    "notes": "The optional native plugin (native/core, docs/NATIVE_REWRITE_PLAN.md). The package works without the DLL: the Lua keeps its own path. runtime/native-off.txt lists the systems that start off because they are not yet proven in the real game: one name per line, a missing file means all on.",
-    "off": ["actuator", "vehicles", "chauffeur", "passage", "faces"],
+    "notes": "The optional native plugin (native/core, docs/NATIVE_REWRITE_PLAN.md). The package works without the DLL: the Lua keeps its own path. runtime/native-off.txt is the kill switch and always ships; `off` lists the systems that start off because they are not yet proven in the real game (one name per line in the file, a missing file means all on). The list is empty: every native system is on.",
+    "off": [],
     "offFile": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt",
     "licences": {
       "RED4ext.SDK-LICENSE.md": "packaging/licenses/RED4ext.SDK-LICENSE.md",

@@ -15,6 +15,7 @@ import {checkLuaPartition, importClosure} from './lib/closure.mjs';
 import {chooseKeyFile, installLayout, MANAGED_FILES, OMNI_CONFIGS, pocketConfigFor, prepareState, serviceEnvironment} from './runtime/prepare-state.mjs';
 import {assembleParts} from './runtime/assemble-parts.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
+import {nativeOffText} from './lib/native-off.mjs';
 import {readKeyFileText} from '../bridge/key-codec.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -344,13 +345,31 @@ test('developer-only folders never feed a package', () => {
 });
 
 // ---------------------------------------------------------------- native plugin and Local AI packs (docs/PACKAGING.md)
-test('the native plugin ships beside its own licences, and the systems not yet proven live start off', () => {
+test('the native plugin ships beside its own licences, with every system on and the kill switch file kept', () => {
   assert.equal(config.layout.nativeDirectory, 'red4ext/plugins/AiNpcCyberpunkModNative');
   assert.equal(config.layout.nativeDll, 'CyberpunkConvaiNative.dll');
   // The plugin reads runtime/native-off.txt of the mod folder (native/core/src/core/Paths.cpp); a missing file means all on.
   assert.equal(config.native.offFile, `${config.layout.modDirectory}/runtime/native-off.txt`);
-  assert.deepEqual(config.native.off, ['actuator', 'vehicles', 'chauffeur', 'passage', 'faces']);
+  assert.deepEqual(config.native.off, []);
   for (const rel of Object.values(config.native.licences)) assert(existsSync(resolve(project, rel)), rel);
+});
+
+// The names a native-off.txt switches off, read the way the plugin and the Lua read it (native/core/src/core/Switches.cpp).
+const switchedOff = text => text.split(/\r?\n/).map(line => line.replace(/#.*/, '').trim().toLowerCase()).filter(Boolean);
+
+test('native-off.txt keeps its comment header when no system is off, and lists the names when some are', () => {
+  const empty = nativeOffText([]);
+  assert(empty.startsWith('# '), 'the kill switch stays documented by its header');
+  assert(empty.split('\n').filter(line => line.startsWith('#')).length >= 4);
+  assert.deepEqual(switchedOff(empty), []);
+  assert(/every native system is on/i.test(empty));
+  assert(/\bfaces\b/.test(empty) && /\ball\b/.test(empty), 'the header names the way to switch a system off');
+  assert(empty.endsWith('\n'));
+  assert.deepEqual(switchedOff(nativeOffText(config.native.off)), config.native.off);
+  const some = nativeOffText(['faces', 'passage']);
+  assert.deepEqual(switchedOff(some), ['faces', 'passage']);
+  assert(/not yet proven/.test(some) && !/every native system is on/i.test(some));
+  assert.deepEqual(switchedOff(nativeOffText(['all'])), ['all']);
 });
 
 test('Local AI downloads pin every file by revision, size and hash, and the licences are Apache-2.0 or MIT', async () => {
