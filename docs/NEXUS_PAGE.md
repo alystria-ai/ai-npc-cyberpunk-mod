@@ -9,38 +9,6 @@
 
 [youtube]7hoYG5tmZ98[/youtube]
 
-[size=4][b]Recommended settings[/b][/size]
-Pick one in Companion Manager > Settings > Conversation provider.
-[b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
-[*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
-[*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
-[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
-[/list][b]2. Local: no internet, no account, no limit[/b][list]
-[*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
-[*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
-[*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
-[*]Already run models in KoboldCpp, LM Studio or Ollama, or have your own GGUF file? The mod can use them: see [b]Use your own AI model or model server[/b] below.
-[*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 12 GB of video memory or more, for voices that sound like the game characters and for other languages.
-[*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
-[*]Local stays local: if your local voice or Local AI fails, you get a message or text only. The mod never switches to a cloud voice or cloud text on its own.
-[*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
-[/list]
-
-[b]How much video memory?[/b]
-The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at 1440p or with ray tracing, and 12 GB or more at 4K or with path tracing. Local AI and OmniVoice need room on top of that:[list]
-[*][b]8 GB card:[/b] cloud text (Convai or Mistral) with Pocket or Voxtral is the fastest. Local AI still starts: whatever does not fit next to the game runs on your processor, so replies are slower, and the mod says so once. OmniVoice will be slow or step down.
-[*][b]10 to 12 GB:[/b] Local AI lite with Pocket at 1080p without ray tracing, or OmniVoice with cloud text.
-[*][b]12 to 16 GB:[/b] Local AI standard with Pocket at 1080p, or lite with ray tracing or 1440p.
-[*][b]16 GB or more:[/b] Local AI standard with ray tracing or 1440p and up, or Local AI with OmniVoice.
-[/list]What each voice + text pair adds on top of the game:[list]
-[*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
-[*]Pocket voice + Local AI lite: about 1.8 GB
-[*]Pocket voice + Local AI standard: about 3.1 GB (needs about 6 GB free to start)
-[*]OmniVoice + Convai or Mistral: about 2 GB (up to 4 GB)
-[*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
-[*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
-[/list]Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time. Lowering texture quality in the game frees the most room.
-
 [size=4][b]Key features[/b][/size]
 [b]Talk to anyone[/b][list]
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
@@ -79,6 +47,38 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory.
 [*]Works with Vortex, Mod Organizer 2 or a manual install.
 [/list]
+
+[size=4][b]Recommended settings[/b][/size]
+Pick one in Companion Manager > Settings > Conversation provider.
+[b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
+[*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
+[*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
+[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
+[/list][b]2. Local: no internet, no account, no limit[/b][list]
+[*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
+[*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
+[*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
+[*]Already run models in KoboldCpp, LM Studio or Ollama, or have your own GGUF file? The mod can use them: see [b]Use your own AI model or model server[/b] below.
+[*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 12 GB of video memory or more, for voices that sound like the game characters and for other languages.
+[*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
+[*]Local stays local: if your local voice or Local AI fails, you get a message or text only. The mod never switches to a cloud voice or cloud text on its own.
+[*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
+[/list]
+
+[b]How much video memory?[/b]
+The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at 1440p or with ray tracing, and 12 GB or more at 4K or with path tracing. Local AI and OmniVoice need room on top of that:[list]
+[*][b]8 GB card:[/b] cloud text (Convai or Mistral) with Pocket or Voxtral is the fastest. Local AI still starts: whatever does not fit next to the game runs on your processor, so replies are slower, and the mod says so once. OmniVoice will be slow or step down.
+[*][b]10 to 12 GB:[/b] Local AI lite with Pocket at 1080p without ray tracing, or OmniVoice with cloud text.
+[*][b]12 to 16 GB:[/b] Local AI standard with Pocket at 1080p, or lite with ray tracing or 1440p.
+[*][b]16 GB or more:[/b] Local AI standard with ray tracing or 1440p and up, or Local AI with OmniVoice.
+[/list]What each voice + text pair adds on top of the game:[list]
+[*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
+[*]Pocket voice + Local AI lite: about 1.8 GB
+[*]Pocket voice + Local AI standard: about 3.1 GB (needs about 6 GB free to start)
+[*]OmniVoice + Convai or Mistral: about 2 GB (up to 4 GB)
+[*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
+[*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
+[/list]Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time. Lowering texture quality in the game frees the most room.
 
 [size=4][b]Install[/b][/size]
 [b]Requirements[/b][list]
