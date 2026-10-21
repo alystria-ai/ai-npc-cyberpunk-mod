@@ -13,7 +13,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {MistralError, failureDetail, errorCodeFor, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {LocalLlmServer, LocalAiUnavailable, unavailableDetail} from './local-llm-server.mjs';
-import {lostServer, deviceLost, survivingLoss} from './local-server-recovery.mjs';
+import {lostServer, deviceLost, invalidBatch, survivingLoss} from './local-server-recovery.mjs';
 import {TextProviderHost, localRoute, isLocalUnavailable} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -268,5 +268,80 @@ test('a device lost again on the new server fails the turn with its own words, t
   assert.ok(children[2].spawnargs.includes('-fitt') && children[2].spawnargs[children[2].spawnargs.indexOf('-fit') + 1] === 'on', 'the third server is the offloaded one');
   assert.ok(!children[0].spawnargs.includes('-fitt') && !children[1].spawnargs.includes('-fitt'));
   assert.equal(server.status().state, 'ready', 'Local AI is not marked unavailable: it runs, part on the CPU');
+  assert.ok(children.length <= 3, 'no loop: ' + children.length);
+});
+
+// ---- a graphics card that ran out of memory: the same state as a lost device (reports 0f5d6496 and 8696ffb2, a Radeon Pro Vega 48 with 8 GB, version 0.2.2) ----------------------
+// After the first "vk::Device::allocateMemory: ErrorOutOfDeviceMemory" every request answered HTTP 500 ("Invalid input batch.") within 30 to 50 ms while /health stayed fine.
+
+const OOM = 'decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory';
+
+test('deviceLost also reads an out-of-memory graphics card, and invalidBatch the answer that follows it; the plain words "ran out of memory" and an ordinary 500 are neither', () => {
+  assert.equal(deviceLost(failure(OOM, {status: 500, slow: true})), true);
+  assert.equal(deviceLost(failure('VK_ERROR_OUT_OF_DEVICE_MEMORY')), true);
+  assert.equal(deviceLost(Object.assign(failure('HTTP 500', {status: 500}), {providerText: 'vk::Device::allocateMemory: ErrorOutOfDeviceMemory'})), true);
+  assert.equal(deviceLost(failure('Invalid input batch.', {status: 500})), false, 'on its own it is not proof (a bad request says it too)');
+  assert.equal(invalidBatch(failure('Invalid input batch.', {status: 500})), true);
+  assert.equal(invalidBatch(Object.assign(failure('HTTP 500', {status: 500}), {providerText: 'Invalid input batch.'})), true);
+  assert.equal(invalidBatch(failure(OOM)), false);
+  assert.equal(invalidBatch(undefined), false);
+  assert.equal(deviceLost(failure('the graphics device ran out of memory')), false);
+  assert.equal(lostServer(failure('Invalid input batch.', {status: 500, slow: true})), true, 'a 500 with nothing of the reply written is asked again');
+});
+
+test('an out-of-memory failure is passed to the supervisor as a lost device; "Invalid input batch" is passed as its own flag, never as a lost device', async () => {
+  const seen = [];
+  const server = {recover: async options => { seen.push([options.deviceLost, options.invalidBatch === true]); return null; }, noteDeviceLost: () => {}};
+  for (const message of [OOM, 'Invalid input batch.', 'HTTP 500']) {
+    await survivingLoss(async () => { throw failure(message, {status: 500, slow: true}); }, {server})({endpoint: 'e', apiKey: 'k', ...timed()}).catch(() => {});
+  }
+  assert.deepEqual(seen, [[true, false], [false, true], [false, false]]);
+});
+
+test('out of device memory on a server that stays healthy: the turn is restarted onto a new server and answered, with the same restart as a lost device', async t => {
+  const {server, host, provider, logs, children, restarted} = await rig(t, {envFor: index => (index === 0 ? {FAKE_LLAMA_DEVICE_LOST_FROM: '1', FAKE_LLAMA_FAULT: 'oom'} : {FAKE_LLAMA_REPLY: 'Sure, V.'})});
+  server.deviceLostPauseMs = 10;
+  const first = await server.ensure();
+  const reply = await host.reply(turn('hello there'));
+  assert.equal(reply.text, 'Sure, V.');
+  assert.equal(children.length, 2);
+  assert.notEqual((await server.ensure()).endpoint, first.endpoint);
+  assert.ok(logs.some(line => /graphics device was lost or ran out of memory/.test(line)), logs.join('\n'));
+  assert.equal(restarted.length, 1);
+  assert.equal(provider.takeNotice(), 'local-restarted');
+});
+
+test('"Invalid input batch" after the server log showed the out-of-memory fault takes the restart at the first failure', async t => {
+  const {server, host, children} = await rig(t, {envFor: index => (index === 0 ? {FAKE_LLAMA_DEVICE_LOST_FROM: '1', FAKE_LLAMA_FAULT: 'batch'} : {FAKE_LLAMA_REPLY: 'Sure, V.'})});
+  server.deviceLostPauseMs = 10;
+  await server.ensure();
+  const reply = await host.reply(turn('hello there'));
+  assert.equal(reply.text, 'Sure, V.');
+  assert.equal(children.length, 2);
+});
+
+test('"Invalid input batch" with nothing else to show for it: the first failure is left alone (it may be a bad request), the second on the same server restarts it', async t => {
+  const {server, host, children} = await rig(t, {envFor: index => (index === 0 ? {FAKE_LLAMA_DEVICE_LOST_FROM: '1', FAKE_LLAMA_FAULT: 'batch-only'} : {FAKE_LLAMA_REPLY: 'Sure, V.'})});
+  server.deviceLostPauseMs = 10;
+  await server.ensure();
+  const error = await host.reply(turn('hello there')).catch(e => e);
+  assert.ok(error instanceof Error); assert.match(String(error.message), /Invalid input batch/);
+  assert.equal(children.length, 1, 'one failure does not restart a server');
+  const reply = await host.reply(turn('hello again'));
+  assert.equal(reply.text, 'Sure, V.');
+  assert.equal(children.length, 2, 'the repeat restarted it');
+});
+
+test('out of device memory again on the new server steps down the same way as a lost device (here: no smaller model, so the same model is loaded with part of it on the CPU), and Local AI is never handed to a cloud provider', async t => {
+  const {server, host, children} = await rig(t, {envFor: () => ({FAKE_LLAMA_DEVICE_LOST_FROM: '1', FAKE_LLAMA_FAULT: 'oom'})});
+  server.deviceLostPauseMs = 10;
+  const waitFor = async check => { for (let i = 0; i < 400; i++) { if (check()) return true; await new Promise(resolve => setTimeout(resolve, 25)); } return false; };
+  await server.ensure();
+  const error = await host.reply(turn('hello there')).catch(e => e);
+  assert.ok(error instanceof Error);
+  assert.match(String(error.message), /ErrorOutOfDeviceMemory|stopped working|went away/i);
+  assert.equal(await waitFor(() => children.length === 3 && server.status().state === 'ready'), true, 'the same model is loaded again with part of its layers on the CPU');
+  assert.ok(children[2].spawnargs.includes('-fitt') && children[2].spawnargs[children[2].spawnargs.indexOf('-fit') + 1] === 'on', 'the third server is the offloaded one');
+  assert.equal(server.status().state, 'ready', 'Local AI stays on: part on the CPU');
   assert.ok(children.length <= 3, 'no loop: ' + children.length);
 });

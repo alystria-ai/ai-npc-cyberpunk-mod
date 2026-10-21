@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
-  pickDevice, unavailableDetail} from './local-llm-server.mjs';
+  pickDevice, unavailableDetail, looksBlocked, BLOCKED} from './local-llm-server.mjs';
 import {SPILL_LIMITS} from './gpu-memory.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
@@ -153,6 +153,56 @@ test('without an injected device list, --list-devices of the server is parsed an
   // Unknown free memory chooses the lite tier.
   const unknown = harness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: AMD Radeon RX 7600 (8176 MiB)\n'});
   assert.equal((await unknown.server.ensure()).tier, 'lite');
+});
+
+const spawnError = (code, message = 'spawn ' + code) => Object.assign(Error(message), {code, syscall: 'spawn'});
+
+test('a listing of the graphics devices that fails is logged with its code and message, and tried once more', async t => {
+  let tries = 0;
+  const {server, calls, logs, failures} = harness(t, {deviceListRetryMs: 10, listDevices: async () => {
+    if (++tries === 1) throw spawnError('UNKNOWN', 'spawn UNKNOWN');
+    return DEVICES;
+  }});
+  const started = Date.now();
+  await server.ensure();
+  assert.equal(tries, 2);
+  assert.equal(calls.length, 1, 'the model server started after the second listing');
+  assert.equal(failures.length, 0);
+  assert.ok(Date.now() - started >= 9, 'it waited before the second try');
+  const line = logs.find(text => /could not list the graphics devices/.test(text));
+  assert.match(line, /try 1 of 2\): code UNKNOWN: spawn UNKNOWN/);
+  assert.match(line, /looks like Windows blocking the file/);
+});
+
+test('a listing that fails twice with a blocked-file error says Windows blocked a file, keeps it in the status, and never leaves Local AI', async t => {
+  let tries = 0;
+  const {server, calls, logs, failures} = harness(t, {deviceListRetryMs: 10, listDevices: async () => { tries++; throw spawnError('EPERM', 'spawn EPERM'); }});
+  await assert.rejects(server.ensure(), error => error instanceof LocalAiUnavailable && error.reason === 'start-failed' && error.detail === BLOCKED);
+  assert.equal(tries, 2, 'one retry, not more');
+  assert.equal(calls.length, 0);
+  assert.deepEqual(failures, [{reason: 'start-failed', detail: BLOCKED}]);
+  assert.equal(server.status().detail, BLOCKED);
+  assert.equal(logs.filter(text => /could not list the graphics devices \(try/.test(text)).length, 2);
+  // The next turn is refused the same way, with the same words (the failure stays until reset(); there is no other provider to fall to).
+  await assert.rejects(server.ensure(), error => error.reason === 'start-failed' && error.detail === BLOCKED);
+  assert.match(unavailableDetail('start-failed', BLOCKED), /^Windows blocked a file of the model server \(Smart App Control or an Application Control policy\)/);
+  assert.match(unavailableDetail('start-failed', BLOCKED), /^[ -~]+$/, 'printable ASCII only');
+});
+
+test('a listing that fails for another reason keeps the generic start failure, with the error in the log and without the folder', async t => {
+  const {server, logs} = harness(t, {deviceListRetryMs: 10, listDevices: async () => { throw Object.assign(Error('Command failed: ' + process.execPath + ' --list-devices'), {code: 1}); }});
+  await assert.rejects(server.ensure(), error => error.reason === 'start-failed' && error.detail === 'could not list the graphics devices');
+  const line = logs.find(text => /could not list the graphics devices \(try 2 of 2\)/.test(text));
+  assert.match(line, /code 1: Command failed:/);
+  assert.ok(!line.includes(process.execPath), 'the folder of the executable is not logged');
+  assert.ok(!/Windows blocking/.test(line));
+});
+
+test('looksBlocked: the spawn codes and the words of Smart App Control or an Application Control policy', () => {
+  for (const code of ['UNKNOWN', 'EPERM', 'EACCES']) assert.equal(looksBlocked({code}), true, code);
+  assert.equal(looksBlocked(Error('An Application Control policy has blocked this file.')), true);
+  assert.equal(looksBlocked(Error('spawn UNKNOWN')), true);
+  for (const error of [{code: 1}, {code: 'ENOENT'}, {code: 'ETIMEDOUT'}, Error('Command failed'), null, undefined]) assert.equal(looksBlocked(error), false, JSON.stringify(error));
 });
 
 test('the tier is chosen from the smaller of the device and nvidia-smi free memory', async t => {

@@ -797,6 +797,12 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 - A server that cannot be started again (two attempts) is the old `crashed` failure: the turn says
   `Local AI could not start...` with the reason in brackets (`the model server stopped working and did not start again`, `no discrete graphics card was found`,
   `the Local AI pack is not installed`, from `unavailableDetail`).
+- The listing of the graphics devices (`llama-server --list-devices`) that fails to run is logged with its error code and message (`[local] could not list the graphics devices (try 1 of 2): code UNKNOWN: spawn UNKNOWN`, the file name only), tried once more after 1.5 s (`deviceListRetryMs`) and then ends the start. When the error is `UNKNOWN`, `EPERM` or `EACCES` or names an Application Control policy (Smart App Control or a company's or school's WDAC rule refusing an unsigned file; error reports b6014b54 and 1aa616f1), the log adds `(looks like Windows blocking the file)` and the reason in brackets is `Windows blocked a file of the model server (Smart App Control or an Application Control policy), so Local AI cannot run on this PC` (detail `windows-blocked`). The same words follow a `llama-server` start that fails to spawn with those codes. No cloud provider takes the turn; the next turn tries again.
+- A turn that ends with "the model was still loading" (the 80 s budget ran out while the server was starting; error report d8c0d2f9) writes one log line with the cause, from `LocalLlmServer.loadProgress()`:
+  `[TextProvider] The local AI is still loading the model: this turn waited 80.0 s for it; server state warming; this start has run 95.4 s; waiting on: <stage> for 41.3 s`. The stages are
+  `waiting for the voice to finish loading`, `listing the graphics devices`, `checking which model fits the free graphics memory`, `loading the model into the server (waiting for it to answer)`,
+  `reading the server settings`, `the first warm-up request (shaders compile)` / `a warm-up request`, `waiting for the graphics driver to reset after a lost device` and `pausing before the next start attempt`;
+  with no start under way it says the model was stopped (the idle stop) and no start had begun. Set a handful of times per start; nothing runs per request.
 - A restart that worked is said once, with the next reply: `local-restarted`, "Local AI stopped working and was restarted."
 - A turn that arrives while the server is starting (first start, a restart, after the idle stop) already waits for it (`localRoute.connect`, bounded by the turn's budget).
 - Tests: `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_GO_DEAF_AT` answers the Nth request with HTTP 500 and stops listening while the process lives on).
@@ -812,6 +818,13 @@ the first loss of a session ends llama-server and starts it again (after `device
 the player gets the usual `local-restarted` notice. The second loss steps down one model size through the same path as stalled turns (`model-stepdown` and its notice; Local AI fails with `low-memory` when no smaller model is installed, with no cloud provider taking over; the count starts again for the smaller model). A model the player added is only restarted, and after two more losses Local AI is marked
 failed (`crashed`) instead of restarting for ever. One process counts once. A loss on the retry is noted at once, so the step happens now, not at the next turn's failure.
 Tests: `bridge/local-llm-server.test.mjs` and `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_DEVICE_LOST_FROM`).
+
+**A card that ran out of memory (reports 0f5d6496 and 8696ffb2, Radeon Pro Vega 48 8 GB, 0.2.2).** `decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory` left the same state: llama-server alive, `/health`
+fine, every later request answered HTTP 500 ("Invalid input batch.") within 30 to 50 ms. `DEVICE_FAULT` (`DEVICE_LOST` plus `DEVICE_OUT_OF_MEMORY`: `ErrorOutOfDeviceMemory`, `VK_ERROR_OUT_OF_DEVICE_MEMORY`,
+`out of device memory`) now takes exactly the path above: restart once (the new start reads the free memory again and chooses or fits the model anew), and a second fault on the new server steps down a model size, or
+loads the same model with part of it on the CPU when none is smaller; never a cloud provider. "Invalid input batch" alone is not taken as proof, since a request the server cannot take says it too: it counts when the server's own
+log shows the fault before it (first failure) or when it repeats on the same server process (second failure; `recover({invalidBatch})`). The log line reads `the graphics device was lost or ran out of memory (...)`.
+Tests: `bridge/local-server-recovery.test.mjs` (`FAKE_LLAMA_FAULT=oom|batch|batch-only` with `FAKE_LLAMA_DEVICE_LOST_FROM`).
 
 ### Stalled turns step down (2026-10-20: "the mod steps down by itself" did not, on an 8 GB card)
 
@@ -1061,6 +1074,14 @@ English-only voice cannot), a format fault of the audio no longer fails the turn
 after the reply (so nothing left of that response can reach another turn). The follow-on "Convai realtime connection closed" (`92f464e9`) came from the connection a failed turn retired;
 `rejectTransport` already ignores the `disconnect` of a connection `close()` retired (`currentConnection()`), and with the rate corrected the fault no longer retires it at all, so no
 separate guard was added. Tests: `bridge/convai-data-audio.test.mjs`, `bridge/realtime-client.test.mjs`.
+
+**Remembered per character (0.2.6 follow-up).** Since 0.2.6 the twin is chosen per message, so every non-English Convai-voice turn is a twin turn and, played live, would have been heard at 24/44.1 speed
+before the statistics corrected the clip. `bridge/convai-audio-rates.mjs` (`AudioRates`, held by `RealtimeHost`) remembers the correction per Convai character id: the first turn of a character learns it from
+its statistics (`result.sampleRateCorrected`, one log line `[Convai audio] ... remembered`), and every later turn of that character is sent `config.audioRate = {declared, actual}` with its other settings (a Map read:
+no request, no timer, nothing per frame). `ConvaiDataAudio({rateHint})` then takes the first packet that says `declared` at `actual` at once (`result.sampleRateHinted`), the standby output device is opened at
+that rate so the hand-over keeps its head start, and the statistics still check it: if they do not fit, the rate they fit stands (`sampleRateHintMissed`) and the remembered rate is dropped. Only the standard
+rates (44,100 and 48,000) are ever remembered. The memory is saved to `convai-audio-rates.json` in the state folder (a missing or broken file is an empty memory), so it holds in the next session; the very first
+turn of a character on a computer that has never seen it is still corrected late. Not covered: the phone's Convai host (`phoneRealtime`) keeps its own empty memory. Tests: `bridge/convai-audio-rates.test.mjs`.
 
 ### The knowledge status file (EPERM in the bridge log)
 

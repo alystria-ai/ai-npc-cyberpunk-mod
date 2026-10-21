@@ -12,6 +12,8 @@
 //                              (a crashed llama-server that Windows still lists while it writes its crash report: later requests are refused)
 //   FAKE_LLAMA_DEVICE_LOST_FROM  from the Nth chat request on, every one is answered with HTTP 500 "decode() failed: vk::Queue::submit: ErrorDeviceLost" while /health keeps answering
 //                              (a Vulkan device that was lost: llama-server stays alive and healthy and fails every turn)
+//   FAKE_LLAMA_FAULT           with the line above: 'oom' answers "decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory"; 'batch' answers "Invalid input batch." after the out-of-memory line
+//                              on stderr; 'batch-only' answers "Invalid input batch." with nothing on stderr
 //   FAKE_LLAMA_REPLY           the chat reply text (default: an echo of the last user message)
 //   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
 //   FAKE_LLAMA_PRINT_KEY       print the API key to stderr (to test redaction)
@@ -122,8 +124,11 @@ const server = createServer((request, response) => {
         return;
       }
       if (deviceLostFrom && ++chats >= deviceLostFrom) {
-        process.stderr.write('ggml_vulkan: vk::Queue::submit: ErrorDeviceLost\n');
-        send(response, 500, {error: {code: 500, message: 'decode() failed: vk::Queue::submit: ErrorDeviceLost'}});
+        // FAKE_LLAMA_FAULT: 'oom' (out of device memory), 'batch' (the server log shows the out-of-memory fault, the answer is "Invalid input batch."), 'batch-only' (the answer alone).
+        const fault = process.env.FAKE_LLAMA_FAULT || '';
+        if (fault !== 'batch-only') process.stderr.write(fault === 'oom' || fault === 'batch' ? 'ggml_vulkan: vk::Device::allocateMemory: ErrorOutOfDeviceMemory\n' : 'ggml_vulkan: vk::Queue::submit: ErrorDeviceLost\n');
+        send(response, 500, {error: {code: 500, message: fault === 'oom' ? 'decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory'
+          : fault === 'batch' || fault === 'batch-only' ? 'Invalid input batch.' : 'decode() failed: vk::Queue::submit: ErrorDeviceLost'}});
         return;
       }
       const messages = Array.isArray(json.messages) ? json.messages : [];

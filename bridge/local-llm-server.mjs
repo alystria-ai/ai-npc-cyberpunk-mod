@@ -60,6 +60,13 @@ const SERVER_DETAIL_TEXT = Object.freeze({
   'server-key-refused': 'the model server you added did not accept the API key (check "apiKey" in manifest.custom.json)',
   'server-bad-address': 'the model server you added answers, but not like an OpenAI-style API (the address usually ends in /v1)',
 });
+/** The `detail` of a 'start-failed' refusal when the computer refused to run a file of the model server (spawn UNKNOWN / EPERM / EACCES, or the words of Smart App Control or an Application Control policy). */
+export const BLOCKED = 'windows-blocked';
+/** The code or words of a file the system would not run. Smart App Control and a company's or school's Application Control (WDAC) policy refuse an unsigned executable at spawn: Node reports `spawn UNKNOWN`, EPERM or EACCES
+ *  (error reports b6014b54 and 1aa616f1, and "An Application Control policy has blocked this file" in the same install's earlier report). */
+const BLOCKED_CODE = /^(UNKNOWN|EPERM|EACCES)$/;
+const BLOCKED_TEXT = /Application Control|has blocked this file|blocked by (?:a |your )?(?:group )?policy|Smart App Control|\bspawn (?:UNKNOWN|EPERM|EACCES)\b/i;
+export const looksBlocked = error => BLOCKED_CODE.test(String(error?.code ?? '')) || BLOCKED_TEXT.test(String(error?.message ?? ''));
 
 export class LocalAiUnavailable extends Error {
   // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
@@ -87,6 +94,8 @@ export function unavailableDetail(reason, detail) {
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
   if (reason === 'start-failed' && SERVER_DETAIL_TEXT[detail]) return SERVER_DETAIL_TEXT[detail];
+  // The same words as the Pocket voice row (voice-selection.mjs): restarting changes nothing until the player allows the file or chooses another provider.
+  if (reason === 'start-failed' && detail === BLOCKED) return 'Windows blocked a file of the model server (Smart App Control or an Application Control policy), so Local AI cannot run on this PC';
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
@@ -112,6 +121,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   maxRestarts: 2,
   deviceLostStepDown: 2,       // the graphics device was lost (Vulkan ErrorDeviceLost) this many times in a session: the first loss restarts llama-server, the second steps down a model size
   offloadReloads: 3,           // a model that spilled, was lost or stalled again is loaded again with part of it on the CPU at most this many times a session, then Local AI is unavailable
+  deviceListRetryMs: 1500,     // the listing of the graphics devices (llama-server --list-devices) failed to run: one more try after this long, then the start fails and names the error
   deviceLostPauseMs: 2000,     // the driver needs a moment to reset the device: the server it is restarted on waits this long before it starts
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
   externalContext: 8192,       // its context when neither the entry, the listing nor /props says
@@ -119,6 +129,15 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
 
 /** The words of a lost graphics device (llama.cpp's Vulkan backend: "decode() failed: vk::Queue::submit: ErrorDeviceLost"), in a failed request's text or in the server's own log. */
 export const DEVICE_LOST = /ErrorDeviceLost|device lost|VK_ERROR_DEVICE_LOST/i;
+/** The words of a graphics card that ran out of memory while llama-server was allocating on it ("decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory", error report 0f5d6496). Like a lost
+ *  device it leaves llama-server alive and answering /health while every later request fails with HTTP 500 (a card with 8 GB that the game and the model share): only a restart helps, and a restart
+ *  that meets the same wall steps the model down. */
+export const DEVICE_OUT_OF_MEMORY = /ErrorOutOfDeviceMemory|VK_ERROR_OUT_OF_DEVICE_MEMORY|out of device memory/i;
+/** Either of them: the failures that take the restart, then the step-down (LocalLlmServer.noteDeviceLost). */
+export const DEVICE_FAULT = new RegExp(DEVICE_LOST.source + '|' + DEVICE_OUT_OF_MEMORY.source, 'i');
+/** What every request answers after such a fault, whatever it was ("Invalid input batch.", error report 8696ffb2: HTTP 500 within 30 to 50 ms, /health still fine). The same words also come from a request the
+ *  server cannot take, so on their own they count only when they repeat on one server process (LocalLlmServer.recover), or when the server's own log shows the device fault before them. */
+export const INVALID_BATCH = /Invalid input batch/i;
 
 /** The key sent to a server the player runs that needs none (streamChat wants a key of 8 characters; such a server ignores the header). */
 export const NO_KEY = 'no-key-needed';
@@ -515,6 +534,8 @@ export class LocalLlmServer extends EventEmitter {
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #serverWhy = null; #broken = new Map();
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
+  // What a start is doing right now and since when (loadProgress): one word-string per stage, set a handful of times per start, never per request or per frame.
+  #phase = {name: null, at: 0}; #launchedAt = null;
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
@@ -527,7 +548,7 @@ export class LocalLlmServer extends EventEmitter {
   #stepGate = null;
   // Lost graphics device (noteDeviceLost): the losses since the session began (or the last step), the process the last one was seen on (one process counts once),
   // and the pause the next start makes first, so the driver has reset the device.
-  #deviceLosses = 0; #lostProc = null; #coolDownMs = 0;
+  #deviceLosses = 0; #lostProc = null; #coolDownMs = 0; #batchFaults = {proc: null, count: 0};
   // Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs): the device of the last start, the models already reloaded once after a spill (a second spill
   // steps down), the one-shot fit a spill reload brings to the next start, and the rate limit of the counter reads.
   #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false; #headerWatch = new Set();
@@ -549,13 +570,13 @@ export class LocalLlmServer extends EventEmitter {
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
-      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
+      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, deviceListRetryMs = LOCAL_LLM_LIMITS.deviceListRetryMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
       externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
-      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, argsPrefix, processOptions, freeMemMiB,
+      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
@@ -579,6 +600,19 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#firstTime) status.firstTime = true;
     if (this.#info?.external && this.#state === 'ready') status.external = true;
     return status;
+  }
+
+  #mark(name) { this.#phase = {name, at: this.now()}; }
+
+  /**
+   * Where a start stands, for the log line of a turn that gave up waiting for the model (bridge/text-provider-host.mjs, 'still loading', report d8c0d2f9): the state, how long this
+   * start has run, what it is waiting on and for how long. `loadMs` is null when no start is under way. Plain numbers and a fixed phrase: no path, no key.
+   */
+  loadProgress() {
+    const now = this.now(), starting = this.#starting !== null || this.#state === 'starting' || this.#state === 'warming';
+    return {state: this.#state, loadMs: starting && this.#launchedAt !== null ? Math.max(0, now - this.#launchedAt) : null,
+      waitingOn: starting ? this.#phase.name : null, waitingMs: starting && this.#phase.name ? Math.max(0, now - this.#phase.at) : null,
+      stepping: this.#stepping === true, model: this.#model, idleStopped: this.#state === 'stopped' && this.#starting === null};
   }
 
   #setState(state, reason = null) {
@@ -668,6 +702,7 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   #launch(recovering) {
+    this.#launchedAt = this.now(); this.#mark(recovering ? 'restarting after the server stopped' : 'beginning to start');
     const promise = this.#bringUp(recovering).then(
       handle => {
         if (this.#starting === promise) this.#starting = null;
@@ -682,7 +717,7 @@ export class LocalLlmServer extends EventEmitter {
           // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
           const tooSmall = error.detail === TOO_SMALL || error.detail === LOW_RAM;
           if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason, tooSmall || SERVER_DETAIL_TEXT[error.detail] ? error.detail : null);
+          this.#fail(error.reason, tooSmall || error.detail === BLOCKED || SERVER_DETAIL_TEXT[error.detail] ? error.detail : null);
         }
         throw error;
       });
@@ -724,6 +759,7 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#coolDownMs > 0) {
       const pause = this.#coolDownMs, generation = this.#generation;
       this.#coolDownMs = 0;
+      this.#mark('waiting for the graphics driver to reset after a lost device');
       await delay(this.setTimer, this.clearTimer, pause);
       if (generation !== this.#generation) throw new LocalAiUnavailable('stopped');
     }
@@ -739,6 +775,7 @@ export class LocalLlmServer extends EventEmitter {
         remaining--; attempt++;
         if (remaining <= 0) throw recovering ? new LocalAiUnavailable('crashed') : error;
         this.log('[local] restarting the local model server (attempt ' + attempt + ')');
+        this.#mark('pausing before the next start attempt');
         const generation = this.#generation;
         await delay(this.setTimer, this.clearTimer, this.backoffMs * attempt);
         if (generation !== this.#generation) throw new LocalAiUnavailable('stopped');
@@ -753,6 +790,7 @@ export class LocalLlmServer extends EventEmitter {
   // The host may hold the start back (the bridge waits while OmniVoice is loading) so the free VRAM read next is what Omni leaves.
   async #waitBeforeStart() {
     if (typeof this.beforeStart !== 'function') return;
+    this.#mark('waiting for the voice to finish loading (it loads first so the free graphics memory is read after it)');
     let timer = null;
     try {
       await Promise.race([Promise.resolve(this.beforeStart()), new Promise(resolveWait => { timer = this.setTimer(resolveWait, this.beforeStartMs); timer?.unref?.(); })]);
@@ -760,14 +798,29 @@ export class LocalLlmServer extends EventEmitter {
     finally { if (timer) this.clearTimer(timer); }
   }
 
-  async #selectDevice() {
-    let devices;
-    try {
-      const listing = await this.listDevices();
-      devices = Array.isArray(listing) ? listing : parseDeviceList(listing);
-    } catch (error) {
-      throw new LocalAiUnavailable('start-failed', 'could not list the graphics devices');
+  // `llama-server --list-devices`. A run that fails is logged with its error code and message (the file name only, no folder), tried once more after deviceListRetryMs
+  // (the 2026-10-21 reports failed twice in the same second on a PC where the same listing worked in the next sessions), and then ends the start. Never a cloud fallback.
+  async #listDevices() {
+    this.#mark('listing the graphics devices');
+    const generation = this.#generation, name = basename(String(this.command ?? ''));
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const listing = await this.listDevices();
+        return Array.isArray(listing) ? listing : parseDeviceList(listing);
+      } catch (error) {
+        const blocked = looksBlocked(error);
+        const words = oneLine(String(error?.message ?? error ?? '').split(String(this.command ?? '\u0000')).join(name), 200);
+        this.log(`[local] could not list the graphics devices (try ${attempt} of 2): code ${error?.code ?? 'none'}${error?.signal ? ', signal ' + error.signal : ''}${error?.killed ? ', timed out' : ''}: ${words}`
+          + (blocked ? ' (looks like Windows blocking the file)' : ''));
+        if (attempt >= 2) throw new LocalAiUnavailable('start-failed', blocked ? BLOCKED : 'could not list the graphics devices');
+        await delay(this.setTimer, this.clearTimer, this.deviceListRetryMs);
+        this.#guard(generation);
+      }
     }
+  }
+
+  async #selectDevice() {
+    const devices = await this.#listDevices();
     const device = pickDevice(devices);
     // Which cards the computer has and which one was taken: a model that "loads but never answers" on the wrong adapter is slow, not broken.
     this.log('[local] graphics devices: ' + (devices.map(item => `${item.id} ${String(item.name).slice(0, 60)} (${item.totalMiB} MiB${isIntegratedGpu(item.name) ? ', integrated: not used' : isAmdApu(item.name) ? ', integrated AMD: last resort' : ''})`).join('; ') || 'none')
@@ -947,6 +1000,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#guard(generation);
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
+    this.#mark('checking which model fits the free graphics memory');
     const realFit = await this.#probeFits(selected, freeMiB, device);
     this.#guard(generation);
     let choice = this.#choose(pack, freeMiB, selected, realFit);
@@ -1013,6 +1067,7 @@ export class LocalLlmServer extends EventEmitter {
       ...this.processOptions});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
+    this.#mark('loading the model into the server (waiting for it to answer)');
     try {
       await proc.start();
     } catch (error) {
@@ -1022,9 +1077,10 @@ export class LocalLlmServer extends EventEmitter {
       this.log('[local] llama-server did not start: ' + (error?.code || error?.message) + ' (' + this.#loaded.file + ', context ' + contextSize + ')');
       this.#logTail(proc, 'it did not start');
       if (tier.custom && error?.code !== 'stopped') { this.#modelFailed(tier, error?.code || 'error'); return this.#startOnce(); }
-      throw new LocalAiUnavailable('start-failed', error?.code);
+      throw new LocalAiUnavailable('start-failed', looksBlocked(error) ? BLOCKED : error?.code);
     }
     this.#guard(generation);
+    this.#mark('reading the server settings');
     const props = await this.#readProps(proc, contextSize);
     const serverContext = props.contextSize;
     this.#guard(generation);
@@ -1036,6 +1092,7 @@ export class LocalLlmServer extends EventEmitter {
 
     if (this.warmup) {
       const warmBegan = this.now();
+      this.#mark(this.#firstTime ? 'the first warm-up request (shaders compile)' : 'a warm-up request');
       const warmed = await this.#warmUp(proc, generation, this.#firstTime);
       this.#loaded.warmMs = this.now() - warmBegan;
       if (warmed && this.#firstTime) this.#saveWarmed(signature);
@@ -1321,10 +1378,15 @@ export class LocalLlmServer extends EventEmitter {
    * {endpoint, apiKey, model, ...}: the old address and key died with the old process. Throws LocalAiUnavailable('crashed' ...) when it
    * cannot be started again. A server the player runs is not ours to restart: null. Never called per frame: only after a failed request.
    */
-  async recover({signal, deviceLost = false} = {}) {
+  async recover({signal, deviceLost = false, invalidBatch = false} = {}) {
     signal?.throwIfAborted();
     if (this.#info?.external) return null;
     const proc = this.#proc;
+    // "Invalid input batch": the second such answer of one server process (or one after the server's log showed the fault) is the state a device fault leaves behind, not a bad request.
+    if (invalidBatch && !deviceLost && proc) {
+      if (this.#batchFaults.proc !== proc) this.#batchFaults = {proc, count: 0};
+      if (++this.#batchFaults.count >= 2) deviceLost = true;
+    }
     // A lost graphics device leaves llama-server alive and answering /health, but every request fails (2026-10-20 report: an RX 580 failed seven turns in a row): the
     // words of the failed request, or of the server's own log, send it to noteDeviceLost (restart, or a smaller model the second time) without the health check.
     if (this.#state === 'ready' && proc && (deviceLost || this.#tailSaysDeviceLost(proc)) && await this.noteDeviceLost('a failed request')) return this.ensure({signal});
@@ -1343,7 +1405,7 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   #tailSaysDeviceLost(proc) {
-    try { return DEVICE_LOST.test(String(proc?.tail?.() ?? '')); } catch { return false; }
+    try { return DEVICE_FAULT.test(String(proc?.tail?.() ?? '')); } catch { return false; }
   }
 
   /**
@@ -1361,7 +1423,7 @@ export class LocalLlmServer extends EventEmitter {
       this.#lostProc = proc;
       this.#deviceLosses++;
       const needed = LOCAL_LLM_LIMITS.deviceLostStepDown;
-      this.log('[local] the graphics device was lost (' + what + '; ' + this.#deviceLosses + ' since the session began or the last step down)');
+      this.log('[local] the graphics device was lost or ran out of memory (' + what + '; ' + this.#deviceLosses + ' since the session began or the last step down)');
       const from = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
       this.#coolDownMs = this.deviceLostPauseMs;
       if (this.#deviceLosses >= needed && from && from.custom !== true) {

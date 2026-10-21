@@ -13,7 +13,7 @@
 // health check would send the old address back. Those failures go to LocalLlmServer.noteDeviceLost (restart the first time, step down a model size the second).
 // Background work (no turn deadline) never waits for a server: it only runs while one is up.
 import {MistralError, MIN_ATTEMPT_MS} from './mistral-client.mjs';
-import {DEVICE_LOST} from './local-llm-server.mjs';
+import {DEVICE_FAULT, INVALID_BATCH} from './local-llm-server.mjs';
 
 /** Is this failure of a local request the kind a restarted server fixes? Not a timeout, not a refused prompt, not a reply that had begun. */
 export function lostServer(error) {
@@ -22,9 +22,15 @@ export function lostServer(error) {
     && (!Number.isInteger(error.status) || error.status >= 500);
 }
 
-/** Does a failed request's text say the graphics device was lost (Vulkan ErrorDeviceLost)? The server stays alive and healthy then, so only a forced restart helps (LocalLlmServer.noteDeviceLost). */
+/** Does a failed request's text say the graphics device was lost (Vulkan ErrorDeviceLost) or ran out of memory (ErrorOutOfDeviceMemory, reports 5920501457 and 0f5d6496)? The server stays alive and healthy then,
+ *  so only a forced restart helps (LocalLlmServer.noteDeviceLost). */
 export function deviceLost(error) {
-  try { return DEVICE_LOST.test(String(error?.message ?? '') + ' ' + String(error?.providerText ?? '')); } catch { return false; }
+  try { return DEVICE_FAULT.test(String(error?.message ?? '') + ' ' + String(error?.providerText ?? '')); } catch { return false; }
+}
+
+/** "Invalid input batch" (report 8696ffb2): what a server answers after such a fault, HTTP 500 at once. Only the supervisor can tell it from a bad request (it counts repeats and reads the server's own log). */
+export function invalidBatch(error) {
+  try { return INVALID_BATCH.test(String(error?.message ?? '') + ' ' + String(error?.providerText ?? '')); } catch { return false; }
 }
 
 /** The error of a turn that ran out of time while the server it was waiting for started again (its own explanation, not the game's silent timeout). */
@@ -38,7 +44,7 @@ export function survivingLoss(chat, {server, log = () => {}} = {}) {
   return async function chatThroughRestart(options) {
     try { return await chat(options); } catch (error) {
       // A lost graphics device: the server answers /health, so it is told (restart, or a smaller model the second time) and recover() skips its health check.
-      const lost = deviceLost(error);
+      const lost = deviceLost(error), batch = !lost && invalidBatch(error);
       const noteLoss = what => { if (lost) try { void Promise.resolve(server.noteDeviceLost?.(what)).catch(() => {}); } catch { /* the note never fails a turn */ } };
       if (!lostServer(error) || options?.signal?.aborted || !Number.isFinite(options?.deadlineAt)) { noteLoss('a reply that could not go on'); throw error; }
       const clock = typeof options.now === 'function' ? options.now : () => performance.now();
@@ -47,7 +53,7 @@ export function survivingLoss(chat, {server, log = () => {}} = {}) {
       if (!(room > 0)) { noteLoss('a turn with no time left to ask again'); throw error; }
       const bounded = AbortSignal.timeout(Math.ceil(room));
       let handle;
-      try { handle = await server.recover({signal: options.signal ? AbortSignal.any([options.signal, bounded]) : bounded, deviceLost: lost}); } catch (failure) {
+      try { handle = await server.recover({signal: options.signal ? AbortSignal.any([options.signal, bounded]) : bounded, deviceLost: lost, ...(batch ? {invalidBatch: true} : {})}); } catch (failure) {
         if (options.signal?.aborted) throw options.signal.reason ?? failure;
         if (bounded.aborted) { log('The local AI: the model server stopped working during the turn and was not ready again in time'); throw stillRestarting(clock() - began); }
         throw failure;
