@@ -417,8 +417,8 @@ model is unchanged at 21. Nothing the bridge parses changed: `--list-devices` (s
 "projected to use N MiB of device memory vs. N MiB of free device memory" line and the same projections to the MiB for all four models), `GET /props` (`build_info`, `n_ctx`, template, `bos_token`,
 `eos_token`), `/health`, `/v1/models`, the 400 error body, and every flag of `buildServerArgs` (`-fit`, `-fitt`, `--reasoning`, `--cache-ram`, `--ctx-checkpoints`, `--device`, `--api-key-file`,
 `--no-webui`) exist with the same meaning; the only help-text differences are new flags (`--connect`, `--connect-code`, `--spec-draft-n-ubatch`) and a `--cache-ram` default note for
-decision models. The new zip is 36.8 MB (was 32.1 MB) because it carries an 11 MB `llama-connect.exe`, which the pack does not keep; the files a pack ships are the same 24 (82.5 MiB
-against 81.7). Spill under an over-committed card behaved the same (three runs each, shared memory 275 to 379 MiB, 47 to 61 generated tokens a second, no verdict of a spill on either).
+decision models. The new zip is 36.8 MB (was 32.1 MB) because it carries an 11 MB `llama-connect.exe`, which the pack does not keep; the files a pack ships are the same 24 DLLs and server files (82.5 MiB
+against 81.7), plus `llama-fit-params.exe` and its library since the same change (the earlier packs did not carry them). Spill under an over-committed card behaved the same (three runs each, shared memory 275 to 379 MiB, 47 to 61 generated tokens a second, no verdict of a spill on either).
 
 ### Modules
 
