@@ -121,6 +121,15 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
 
 /** The words of a lost graphics device (llama.cpp's Vulkan backend: "decode() failed: vk::Queue::submit: ErrorDeviceLost"), in a failed request's text or in the server's own log. */
 export const DEVICE_LOST = /ErrorDeviceLost|device lost|VK_ERROR_DEVICE_LOST/i;
+/** The words of a graphics card that ran out of memory while llama-server was allocating on it ("decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory", error report 0f5d6496). Like a lost
+ *  device it leaves llama-server alive and answering /health while every later request fails with HTTP 500 (a card with 8 GB that the game and the model share): only a restart helps, and a restart
+ *  that meets the same wall steps the model down. */
+export const DEVICE_OUT_OF_MEMORY = /ErrorOutOfDeviceMemory|VK_ERROR_OUT_OF_DEVICE_MEMORY|out of device memory/i;
+/** Either of them: the failures that take the restart, then the step-down (LocalLlmServer.noteDeviceLost). */
+export const DEVICE_FAULT = new RegExp(DEVICE_LOST.source + '|' + DEVICE_OUT_OF_MEMORY.source, 'i');
+/** What every request answers after such a fault, whatever it was ("Invalid input batch.", error report 8696ffb2: HTTP 500 within 30 to 50 ms, /health still fine). The same words also come from a request the
+ *  server cannot take, so on their own they count only when they repeat on one server process (LocalLlmServer.recover), or when the server's own log shows the device fault before them. */
+export const INVALID_BATCH = /Invalid input batch/i;
 
 /** The key sent to a server the player runs that needs none (streamChat wants a key of 8 characters; such a server ignores the header). */
 export const NO_KEY = 'no-key-needed';
@@ -531,7 +540,7 @@ export class LocalLlmServer extends EventEmitter {
   #stepGate = null;
   // Lost graphics device (noteDeviceLost): the losses since the session began (or the last step), the process the last one was seen on (one process counts once),
   // and the pause the next start makes first, so the driver has reset the device.
-  #deviceLosses = 0; #lostProc = null; #coolDownMs = 0;
+  #deviceLosses = 0; #lostProc = null; #coolDownMs = 0; #batchFaults = {proc: null, count: 0};
   // Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs): the device of the last start, the models already reloaded once after a spill (a second spill
   // steps down), the one-shot fit a spill reload brings to the next start, and the rate limit of the counter reads.
   #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false; #headerWatch = new Set();
@@ -1360,10 +1369,15 @@ export class LocalLlmServer extends EventEmitter {
    * {endpoint, apiKey, model, ...}: the old address and key died with the old process. Throws LocalAiUnavailable('crashed' ...) when it
    * cannot be started again. A server the player runs is not ours to restart: null. Never called per frame: only after a failed request.
    */
-  async recover({signal, deviceLost = false} = {}) {
+  async recover({signal, deviceLost = false, invalidBatch = false} = {}) {
     signal?.throwIfAborted();
     if (this.#info?.external) return null;
     const proc = this.#proc;
+    // "Invalid input batch": the second such answer of one server process (or one after the server's log showed the fault) is the state a device fault leaves behind, not a bad request.
+    if (invalidBatch && !deviceLost && proc) {
+      if (this.#batchFaults.proc !== proc) this.#batchFaults = {proc, count: 0};
+      if (++this.#batchFaults.count >= 2) deviceLost = true;
+    }
     // A lost graphics device leaves llama-server alive and answering /health, but every request fails (2026-10-20 report: an RX 580 failed seven turns in a row): the
     // words of the failed request, or of the server's own log, send it to noteDeviceLost (restart, or a smaller model the second time) without the health check.
     if (this.#state === 'ready' && proc && (deviceLost || this.#tailSaysDeviceLost(proc)) && await this.noteDeviceLost('a failed request')) return this.ensure({signal});
@@ -1382,7 +1396,7 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   #tailSaysDeviceLost(proc) {
-    try { return DEVICE_LOST.test(String(proc?.tail?.() ?? '')); } catch { return false; }
+    try { return DEVICE_FAULT.test(String(proc?.tail?.() ?? '')); } catch { return false; }
   }
 
   /**
@@ -1400,7 +1414,7 @@ export class LocalLlmServer extends EventEmitter {
       this.#lostProc = proc;
       this.#deviceLosses++;
       const needed = LOCAL_LLM_LIMITS.deviceLostStepDown;
-      this.log('[local] the graphics device was lost (' + what + '; ' + this.#deviceLosses + ' since the session began or the last step down)');
+      this.log('[local] the graphics device was lost or ran out of memory (' + what + '; ' + this.#deviceLosses + ' since the session began or the last step down)');
       const from = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
       this.#coolDownMs = this.deviceLostPauseMs;
       if (this.#deviceLosses >= needed && from && from.custom !== true) {

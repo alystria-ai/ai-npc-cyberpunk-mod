@@ -817,6 +817,13 @@ the player gets the usual `local-restarted` notice. The second loss steps down o
 failed (`crashed`) instead of restarting for ever. One process counts once. A loss on the retry is noted at once, so the step happens now, not at the next turn's failure.
 Tests: `bridge/local-llm-server.test.mjs` and `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_DEVICE_LOST_FROM`).
 
+**A card that ran out of memory (reports 0f5d6496 and 8696ffb2, Radeon Pro Vega 48 8 GB, 0.2.2).** `decode() failed: vk::Device::allocateMemory: ErrorOutOfDeviceMemory` left the same state: llama-server alive, `/health`
+fine, every later request answered HTTP 500 ("Invalid input batch.") within 30 to 50 ms. `DEVICE_FAULT` (`DEVICE_LOST` plus `DEVICE_OUT_OF_MEMORY`: `ErrorOutOfDeviceMemory`, `VK_ERROR_OUT_OF_DEVICE_MEMORY`,
+`out of device memory`) now takes exactly the path above: restart once (the new start reads the free memory again and chooses or fits the model anew), and a second fault on the new server steps down a model size, or
+loads the same model with part of it on the CPU when none is smaller; never a cloud provider. "Invalid input batch" alone is not taken as proof, since a request the server cannot take says it too: it counts when the server's own
+log shows the fault before it (first failure) or when it repeats on the same server process (second failure; `recover({invalidBatch})`). The log line reads `the graphics device was lost or ran out of memory (...)`.
+Tests: `bridge/local-server-recovery.test.mjs` (`FAKE_LLAMA_FAULT=oom|batch|batch-only` with `FAKE_LLAMA_DEVICE_LOST_FROM`).
+
 ### Stalled turns step down (2026-10-20: "the mod steps down by itself" did not, on an 8 GB card)
 
 **Why it did not.** The only step-down there was happened when a model was loaded: `chooseLocalModel` takes the largest model that fits the free
