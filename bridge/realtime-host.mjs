@@ -121,7 +121,7 @@ export class RealtimeHost {
   //   turnWaitMs() -> null | ms: the page's cap on waiting for Convai to buffer a picture not staged ahead.
   // audioRates: {characterId: {declared, actual}} remembered from earlier sessions, and onAudioRate(map): called when it changed (the bridge saves it). Convai's multilingual twin sends 44.1 kHz audio
   // in packets that say 24 kHz (error reports 14e50b97 and others); the first turn finds out when the statistics arrive, later turns of that character are told the rate (config.audioRate) and play right at once.
-  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate,
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction, transformReply, exclusive, onFailure, onSuccess, recover, guard, credential, vision, audioRates, onAudioRate, audioRateSeed,
     browserExecutable = process.env.CYBERPUNK_CONVAI_BROWSER,
     clientAssetsDirectory = process.env.CYBERPUNK_CONVAI_CLIENT_ASSETS,
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
@@ -145,7 +145,7 @@ export class RealtimeHost {
     this.guard = guard;
     this.credential = typeof credential === 'function' ? credential : null;
     this.vision = vision && typeof vision === 'object' ? vision : null;
-    this.audioRates = new AudioRates({initial: audioRates, onChange: onAudioRate, log: line => this.log(line)});
+    this.audioRates = new AudioRates({initial: audioRates, seed: audioRateSeed, onChange: onAudioRate, log: line => this.log(line)});
   }
   // The page config with the current vision setting applied (and any stale vision fields from the caller removed).
   withVision(config) {
@@ -345,7 +345,16 @@ export class RealtimeHost {
     if (signal?.aborted) cancel();
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
-    const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.());
+    // The sample rate the statistics showed for this turn's audio (the page puts it in the snapshot). A turn played live that finds out its audio is mislabelled is already playing at
+    // the label's rate, so it fails; the character must still learn the rate, or every later turn of it fails the same way (2026-10-21 reports of 55741d05, 0.2.6).
+    const seenRate = {};
+    const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.()).then(value => {
+      if (value?.token === token) {
+        if (value.sampleRateCorrected) seenRate.corrected = value.sampleRateCorrected;
+        if (value.sampleRateHintMissed === true) { seenRate.missed = true; seenRate.sampleRate = value.sampleRate; }
+      }
+      return value;
+    });
     const request = Promise.resolve().then(() => {
       check();
       return page.evaluate(({config, method}) => window.convaiRealtime[method](config),
@@ -383,6 +392,7 @@ export class RealtimeHost {
       return result;
     } finally {
       settled = true; controller.abort(); signal?.removeEventListener('abort', cancel);
+      if (seenRate.corrected || seenRate.missed) this.audioRates.learn(config, {sampleRateCorrected: seenRate.corrected, sampleRateHintMissed: seenRate.missed, sampleRate: seenRate.sampleRate});
       // Both promises remain observed even when a failed callback wins first.
       void pump.catch(() => {}); void request.catch(() => {});
     }
