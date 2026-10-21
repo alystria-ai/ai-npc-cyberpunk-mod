@@ -144,6 +144,87 @@ test('the service holds an answer for 0.4 s per character, forgets on reset and 
 `));
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Johnny Silverhand, a projection of V's head (a player's "busy right now" with no quest running, Nexus 2026-10-21): the game's own
+// scenes, workspots and mounts command his AI and seat him in V's car in ambient moments, so "driven" and "mounted" say nothing about
+// a quest for him. The facts that do say it still refuse.
+
+test('projection: Johnny is not refused for a scene-commanded AI or a ride, and everyone else still is', () => withModule(`
+  local function facts(over)
+    local f = {gone = false, hub = false, dialogue = false, driven = false, combat = false, hurt = false, mounted = false}
+    for k, v in pairs(over or {}) do f[k] = v end
+    return f
+  end
+  assert(W.PROJECTIONS['johnny-silverhand'] == true and W.PROJECTIONS['judy-alvarez'] == nil, 'only Johnny')
+  assert(W.classify(facts({driven = true})) == 'driven' and W.classify(facts({mounted = true})) == 'vehicle', 'others: unchanged')
+  assert(W.classify(facts({driven = true}), false) == 'driven')
+  assert(W.classify(facts({driven = true, mounted = true}), true) == nil, 'Johnny in a scene-driven seat of V\\'s car')
+  -- The game's own conversation, a fight, V's scene, an injury and a missing body still refuse him.
+  assert(W.classify(facts({dialogue = true, driven = true}), true) == 'dialogue', 'Johnny in a scene dialogue (a line of the game\\'s)')
+  assert(W.classify(facts({hub = true, driven = true, mounted = true}), true) == 'hub', 'V in a quest conversation, a call or tier 3 or above')
+  assert(W.classify(facts({combat = true, driven = true}), true) == 'combat')
+  assert(W.classify(facts({playerCombat = true}), true) == 'combat')
+  assert(W.classify(facts({hurt = true}), true) == 'hurt')
+  assert(W.classify(facts({gone = true}), true) == 'gone')
+  -- Every fact still has to be readable except the two that are not asked for him.
+  for _, name in ipairs({'gone', 'hub', 'dialogue', 'combat', 'hurt'}) do
+    local partial = facts(); partial[name] = nil
+    assert(W.classify(partial, true) == 'unreadable', name .. ' unread must refuse for Johnny too')
+  end
+  local partial = facts(); partial.driven = nil; partial.mounted = nil
+  assert(W.classify(partial, true) == nil and W.classify(partial, false) == 'unreadable', 'two unread facts do not matter for him')
+`));
+
+test('projection: the service reads the same natives for Johnny, asks only the key press, and keeps every fact for the log line', () => withModule(`
+  ${fakeGame}
+  local clock = 0
+  local svc = W.new({clock = function() return clock end, sample = function() return playerSample end})
+  state.autonomous = false; state.mounted = true
+  assert(svc:refusal(npc, 'V', nil, 'judy-alvarez') == 'driven', 'another story character in a scene')
+  assert(svc.facts:find('driven=true', 1, true) and svc.facts:find('mounted=true', 1, true) and not svc.facts:find('projection', 1, true), svc.facts)
+  assert(svc:refusal(npc, 'V', nil, nil) == 'driven', 'no key: the old rule')
+  assert(svc:refusal(npc, 'V', nil, 'johnny-silverhand') == nil, 'Johnny: an ambient ride or a workspot is not a quest')
+  assert(svc.facts == nil, 'an answer with no refusal keeps no text')
+  -- The refusals that stay, with every fact in the log text (and nothing but plain facts in it).
+  playerSample.tier = 3
+  assert(svc:refusal(npc, 'V', nil, 'johnny-silverhand') == 'hub')
+  assert(svc.facts == 'gone=false hub=true dialogue=false driven=true combat=false playerCombat=false hurt=false mounted=true projection=true', svc.facts)
+  assert(svc.detail == 'dialogue=false choices=false call=false tier=3', svc.detail)
+  playerSample.tier = 1
+  state.dialogue = true
+  assert(svc:refusal(npc, 'V', nil, 'johnny-silverhand') == 'dialogue' and svc.facts:find('dialogue=true', 1, true))
+  state.dialogue = false
+  state.combat = true
+  assert(svc:refusal(npc, 'V', nil, 'johnny-silverhand') == 'combat'); state.combat = false
+  -- A held answer (the recording poll, the reply guard) hands back its own facts, and a different key on the same entity is read afresh
+  -- only after the hold: the key is the same character's for the whole conversation.
+  clock = 10
+  state.dialogue = true
+  assert(svc:refusal(npc, 'V', '77', 'johnny-silverhand') == 'dialogue')
+  local text = svc.facts
+  svc.facts = nil
+  clock = 10.2
+  assert(svc:refusal(npc, 'V', '77', 'johnny-silverhand') == 'dialogue' and svc.facts == text, 'held: the same facts')
+  -- No natives at all (the game gave nothing): still a refusal for him too.
+  NPCPuppet = nil
+  state.dialogue = false
+  clock = 20
+  assert(svc:refusal(npc, 'V', nil, 'johnny-silverhand') == 'unreadable' and svc.facts:find('combat=?', 1, true), svc.facts)
+`));
+
+test('describe: a refusal\'s facts are plain text, "?" for what was not read, and nothing is built for a missing table', () => withModule(`
+  assert(W.describe(nil) == 'facts=none' and W.describe('x') == 'facts=none')
+  assert(W.describe({gone = false, hub = true}) == 'gone=false hub=true dialogue=? driven=? combat=? playerCombat=? hurt=? mounted=?')
+  assert(W.describe({}, true):find('projection=true$'))
+`));
+
+test('wiring: the log line of a refusal carries the facts, and Johnny\'s key reaches every place that asks', () => {
+  const select = between('local function selectConversation(', 'local function voiceTargetValid');
+  assert.match(select, /log\('World conversation refused: profile=' \.\. key \.\. ' reason=' \.\. why[\s\S]*?convaiWorldTalk\.facts[\s\S]*?convaiUnprofiledWhy\(npc\)/);
+  assert.match(init, /convaiWorldTalk:refusal\(actor, Game\.GetPlayer\(\), story\.entity, story\.key\)/);
+  assert.match(init, /log\('World conversation ended: profile=' \.\. story\.key[\s\S]*?convaiWorldTalk\.facts/);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Who may be talked to: the catalog and the policy.
 
 const world = `
@@ -326,13 +407,13 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
   assert.match(select, /convaiWorldPolicy\.story\(npc\) == true then\s+npc, reason = nil,/, 'a group key on a story character builds the round without it');
   assert.match(select, /primary\.story = convaiWorldPolicy ~= nil and convaiWorldPolicy\.story\(npc\) == true or nil/);
-  assert.match(select, /convaiWorldTalk:refusal\(npc, player\)/, 'a fresh read on the key press');
+  assert.match(select, /convaiWorldTalk:refusal\(npc, player, nil, key\)/, 'a fresh read on the key press, with the profile key');
   assert.match(select, /convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.'/);
   assert.match(select, /convaiFacialPlayback\.storyEntity = convaiStory and convaiStory\.entity or nil/);
   // No gaze: both talk paths skip the focus for a story character.
   assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
   assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not primary\.story then beginFocus\(player, npc\) end/);
-  assert.match(init, /if primary\.story and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity\) then return false end/);
+  assert.match(init, /if primary\.story and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   assert.match(init, /elseif convaiStory and convaiStory\.entity == context\.entity and not context\.group then\s+-- A game-placed story character gets no action offers or advisories[^\r\n]*\s+elseif not context\.group and not context\.reaction then gameplayActions\.capture\(context, 'private-text'\)/);

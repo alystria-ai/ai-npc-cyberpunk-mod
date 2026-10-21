@@ -630,3 +630,21 @@ test('the whole path is broken after a folder separator, never mid-name, with th
   local out = support.fullPath(long)
   assert(out:find(string.rep('x', 60) .. '\\\\', 1, true) and out:gsub('\\n', '') == long)
 `));
+
+test('a talk refusal line (the reason and the facts behind it) reaches the short report whole, redaction leaves it alone', () => run(`
+  local lines = {
+    '2026-10-21T10:00:00Z World conversation refused: profile=johnny-silverhand reason=hub (dialogue=false choices=false call=false tier=3) facts[gone=false hub=true dialogue=false driven=true combat=false playerCombat=false hurt=false mounted=true projection=true] (classify=unclassified protected=nil crowd=nil quest=MainQuest record=Character.Silverhand)',
+    '2026-10-21T10:00:05Z Johnny in your head: refused reason=johnny-speaking facts[tier=1 dialogue=false choices=false call=false replacer=false combat=false sitting=? vehicle=false scene=true lastLine=4s]',
+  }
+  for _, line in ipairs(lines) do
+    local out = support.redactLine(line)
+    assert(out == line, 'redaction changed a refusal line: ' .. out)
+  end
+  put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
+  put('runtime/probe.log', table.concat(lines, '\\n') .. '\\n')
+  local s = newSupport({})
+  assert(s.request())
+  local text = files[reportsWritten()[1]]
+  assert(text:find('reason=hub (dialogue=false choices=false call=false tier=3) facts[gone=false hub=true', 1, true), 'world refusal in the report')
+  assert(text:find('refused reason=johnny-speaking facts[tier=1', 1, true) and text:find('lastLine=4s]', 1, true), 'head refusal in the report')
+`));

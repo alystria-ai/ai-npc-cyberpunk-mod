@@ -44,11 +44,13 @@ The guard is `mod/world-talk.lua`, a read-only module (`classify` is pure). It a
 | `vehicle` | mounted in any vehicle (`GetMountingFacility():IsMountedToAnything`); stricter than "as a driver" on purpose |
 | `unreadable` | a read failed: fail closed |
 
+**Johnny Silverhand is a projection, not a person the game stages** (2026-10-21, a player's "busy right now" with no quest running). The game's own scenes, workspots and mounts command his AI and seat him in V's car in ambient moments, so for `johnny-silverhand` (`M.PROJECTIONS` in `mod/world-talk.lua`) `driven` and `vehicle` do not refuse. Everything that says the game has the floor still does: V in a quest conversation, a call or scene tier 3 or above (`hub`), Johnny in a scene dialogue (`dialogue`), a fight, an injury, and a missing body. Only the voice and the subtitle follow: while a scene commands his AI the face-side refusal (`skipped:driven`, `Face.reds` `TalkRefusal`, and the Lua autonomy check in `mod/facial-playback.lua`) still leaves his mouth to the game.
+
 `IsEntityInScene` is deliberately not read: it stays true in ordinary gameplay (docs/WORLD_COMPANIONS.md, `mod/battle-observer.lua`), so it would refuse every character that stands at a workspot.
 
 The same test runs at five moments, and the guard only ever reads:
 
-1. **The talk key** (text or voice), fresh read: a refusal shows the notice "{name} is busy right now." (`talk-busy`) and one probe-log line, `World conversation refused: profile=... reason=...`. Nothing was started.
+1. **The talk key** (text or voice), fresh read: a refusal shows the notice "{name} is busy right now." (`talk-busy`) and one probe-log line, `World conversation refused: profile=... reason=... facts[gone=... hub=... dialogue=... driven=... combat=... playerCombat=... hurt=... mounted=...] (classify=... quest=... record=...)`: the reason and every fact behind it (for a hub refusal also V's dialogue, choice, call and tier flags). Written only on a refusal, from the key press; the support report carries it with the rest of probe.log. Nothing was started.
 2. **A voice recording** (`targetValid`, polled by the microphone): a refusal cancels the recording.
 3. **Redscript, at the start**: `ConvaiFaceRequest` runs `TalkRefusal`: a dialogue and a commanded AI refuse the face (`skipped:dialogue`, `skipped:driven`). The quest flag and a quest-named record do not refuse a named character, because they are what it is, not a scene.
 4. **A reply about to begin** (`speech.start`): a scene or fight that began after V asked drops the reply before anything is heard or shown (`World conversation ended: ... (before the reply began)`).

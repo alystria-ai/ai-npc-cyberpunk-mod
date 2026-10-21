@@ -185,6 +185,29 @@ test('service: facts held five seconds, nothing past the start read before it, r
   assert(S:refusal('V') == 'unreadable' and S:standing() == 'unknown')
 `));
 
+test('refusal facts: the log line names V\'s scene facts and the age of his last game line, only for a refusal', () => withModule(`${service}
+  assert(J.lineAge({}, 1000, 'johnny-silverhand') == nil and J.lineAge(nil, 1000, 'johnny-silverhand') == nil)
+  assert(J.lineAge({{profileKey = 'johnny-silverhand', at = 990}, {profileKey = 'judy-alvarez', at = 998}}, 1000, 'johnny-silverhand') == 10, 'his own newest line, not another speaker\\'s')
+  assert(J.lineAge({{profileKey = 'johnny-silverhand', at = 1005}}, 1000, 'johnny-silverhand') == 0, 'a clock step back is never negative')
+  assert(J.describe(nil, nil) == 'sample=none')
+  assert(J.describe({tier = 3, dialogue = true, choices = false, call = false, replacer = false, combat = false, vehicle = true, scene = true}, 3.9)
+    == 'tier=3 dialogue=true choices=false call=false replacer=false combat=false sitting=? vehicle=true scene=true lastLine=3s')
+  assert(J.describe({}, nil):find('tier=? ', 1, true) and J.describe({}, nil):find('lastLine=none$'))
+  -- A service that refuses keeps the basis and gives it back as one line; one that does not has nothing to say but the story state.
+  values.q101_done = 1
+  state.sample.tier = 3; state.sample.vehicle = true
+  assert(S:refusal('V') == 'scene')
+  assert(S:detail() == 'tier=3 dialogue=false choices=false call=false replacer=false combat=false sitting=? vehicle=true scene=? lastLine=none', S:detail())
+  tick(0.1)
+  assert(S:refusal('V') == 'scene' and S:detail():find('tier=3', 1, true), 'held: the same basis')
+  tick(0.5)
+  state.sample.tier = 1; state.sample.vehicle = nil
+  rows[1] = {profileKey = 'johnny-silverhand', at = wall - 4}
+  assert(S:refusal('V') == 'johnny-speaking' and S:detail():find('lastLine=4s', 1, true) and S:detail():find('tier=1', 1, true), S:detail())
+  tick(10)
+  assert(S:refusal('V') == nil and S:detail():find('^story=active'), S:detail())
+`));
+
 test('service: the partner is V\'s own entity with his profile, voice only and the head field; the standing for the settings page', () => withModule(`${service}
   values.sq032_johnny_friend, values.sq031_rogue_date_done, values.sq031_samurai_concert_done = 1, 1, 1
   local partner = assert(S:partner(player))
@@ -255,6 +278,9 @@ test('talk keys: with nobody in front of V and private talk, Johnny answers, is 
   assert.match(head, /why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then[\s\S]*convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.', \{name = head\.name\}\)\)\s+return nil/);
   // A holocall still wins: it is asked first.
   assert.ok(select.indexOf('convaiHolocall.partner(player, groupMode)') < select.indexOf(head));
+  // A refusal logs its reason and the facts behind it (2026-10-21), on the key press and when it ends his reply; nothing runs otherwise.
+  assert.match(head, /log\('Johnny in your head: refused reason=' \.\. why \.\. ' facts\[' \.\. head:detail\(\) \.\. '\]'\)/);
+  assert.match(init, /log\('Johnny in your head: reply ended reason=' \.\. why[\s\S]*?head and head:detail\(\) or 'off'/);
 });
 
 test('talk keys: his turn has no face, gaze, actions or add-on blocks, and the recording and reply follow the busy gate', () => {

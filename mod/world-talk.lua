@@ -12,6 +12,13 @@
 -- scene or quest commands, a fight, an injury or a ride in a vehicle.
 local M = {HOLD_SECONDS = 0.4, LIMIT = 16}
 
+-- Characters that are a projection of V's own head, not a person the game stages (2026-10-21, a player's "busy right now" with no quest
+-- running): Johnny Silverhand shows up in ambient moments (the passenger seat of V's car, V's apartment, a rooftop) through the game's
+-- own scenes, workspots and mounts, so his AI is always commanded and he is often mounted. For him those two facts say nothing about
+-- a quest, so they do not refuse (`driven` and `vehicle`). Everything that says the game has the floor still does: V in a quest
+-- conversation, a call or a scene tier 3 or above (hub), Johnny in a scene dialogue (a line of the game's), a fight, an injury, gone.
+M.PROJECTIONS = {['johnny-silverhand'] = true}
+
 -- The game's own injury and incapacitation signal (the same five tags mod/facial-playback.lua checks).
 local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 
@@ -29,19 +36,33 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 --   combat    the character or V is in a fight
 --   hurt      the character is injured, defeated, unconscious, stunned or ragdolled
 --   vehicle   the character is mounted in a vehicle
-function M.classify(facts)
+-- projection (true for M.PROJECTIONS' keys): `driven` and `mounted` are not asked (see M.PROJECTIONS), read or not.
+function M.classify(facts, projection)
     if type(facts) ~= 'table' then return 'unreadable' end
     if facts.gone == true then return 'gone' end
     if facts.hub == true then return 'hub' end
     if facts.dialogue == true then return 'dialogue' end
-    if facts.driven == true then return 'driven' end
+    if facts.driven == true and projection ~= true then return 'driven' end
     if facts.combat == true or facts.playerCombat == true then return 'combat' end
     if facts.hurt == true then return 'hurt' end
-    if facts.mounted == true then return 'vehicle' end
+    if facts.mounted == true and projection ~= true then return 'vehicle' end
     for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'combat', 'hurt', 'mounted'}) do
-        if type(facts[name]) ~= 'boolean' then return 'unreadable' end
+        if type(facts[name]) ~= 'boolean' and not (projection == true and (name == 'driven' or name == 'mounted')) then return 'unreadable' end
     end
     return nil
+end
+
+-- The facts behind an answer as one plain line for the probe log (a refusal only): "gone=false hub=false ... " with "?" for a fact
+-- that could not be read. Pure.
+function M.describe(facts, projection)
+    if type(facts) ~= 'table' then return 'facts=none' end
+    local parts = {}
+    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
+        local value = facts[name]
+        parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?')
+    end
+    if projection == true then parts[#parts + 1] = 'projection=true' end
+    return table.concat(parts, ' ')
 end
 
 -- What the player is told, by reason (the notice text itself is the interface's, mod/init.lua).
@@ -92,22 +113,29 @@ function M.new(options)
     local clock = options.clock or os.clock
     local service = {held = {}, count = 0}
 
-    -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key).
-    function service:refusal(npc, player, entity)
+    -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
+    -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride).
+    function service:refusal(npc, player, entity, profileKey)
         if not npc then return 'gone' end
         local now = clock()
         local held = entity and self.held[entity]
-        if held and now >= held.at and now - held.at < M.HOLD_SECONDS then return held.reason end
+        if held and now >= held.at and now - held.at < M.HOLD_SECONDS then
+            self.detail, self.facts = held.detail, held.facts
+            return held.reason
+        end
+        local projection = profileKey ~= nil and M.PROJECTIONS[profileKey] == true
         local facts = M.read(npc, player, options.sample)
-        local reason = M.classify(facts)
-        -- The player-side facts behind a hub refusal, for the probe-log line on the talk key press (set on every read, never held).
+        local reason = M.classify(facts, projection)
+        -- The player-side facts behind a hub refusal and every fact read, for the probe-log line on the talk key press (set on every
+        -- read, never held beyond the answer's own hold; text built only when something refuses).
         self.detail = reason == 'hub' and type(facts) == 'table' and facts.hubWhy or nil
+        self.facts = reason ~= nil and M.describe(facts, projection) or nil
         if entity then
             if not self.held[entity] then
                 if self.count >= M.LIMIT then self.held, self.count = {}, 0 end
                 self.count = self.count + 1
             end
-            self.held[entity] = {at = now, reason = reason}
+            self.held[entity] = {at = now, reason = reason, detail = self.detail, facts = self.facts}
         end
         return reason
     end
