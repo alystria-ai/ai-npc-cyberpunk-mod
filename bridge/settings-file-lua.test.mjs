@@ -205,6 +205,8 @@ const oldFiles = {
   'false chosen by the player for those two': {version: 2, holocallLiveImage: false, holocallLiveImageChosen: true, vVoice: false, vVoiceChosen: true},
   'retired keys': {version: 2, followUpQuestions: true, companionVision: false, disappearingMessages: true},
   'Voxtral for V beside Mature content': {version: 2, conversationProvider: 'local', matureContent: true, vVoiceEngine: 'voxtral'},
+  'OmniVoice for V beside companions on Pocket (read as Pocket, kept in the file)': {version: 2, voiceProvider: 'pocket', vVoice: true, vVoiceEngine: 'omni'},
+  'OmniVoice for V beside companions on OmniVoice': {version: 2, voiceProvider: 'omni', omniSteps: 16, omniReference: 'short', vVoice: true, vVoiceEngine: 'omni'},
   'every removed setting saved off': {version: 2, autoConnectNearby: false, expressiveEmotions: false, expressiveEmotionsChosen: true, gameDialogueContext: false,
     holocallLiveImage: false, holocallLiveImageChosen: true, bodyGestures: false, johnnyHologram: true, vTalks: 'normal'},
   'Johnny’s remarks set while Johnny in your head is off': {version: 2, johnnyInHead: false, johnnyRemarks: 'rare'},
@@ -239,6 +241,21 @@ for (const [label, content] of Object.entries(oldFiles)) {
     assert.ok(out.firstWrites <= 1);
   });
 }
+
+test('a saved OmniVoice engine for V survives the load: the snapshot keeps it, the engine in use is OmniVoice only beside companions on OmniVoice (pack taken as installed)', () => {
+  for (const [voice, engine] of [['pocket', 'pocket'], ['omni', 'omni'], ['voxtral', 'pocket']]) {
+    const out = run(`${managerLua}
+      files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, voiceProvider: voice, omniSteps: 16, omniReference: 'short', vVoice: true, vVoiceEngine: 'omni'}))}
+      local player = newPlayer()
+      local manager = newManager()
+      manager.update(player, 0.1)
+      report('snapshot', manager.snapshot(player).settings.vVoiceEngine)
+      report('engine', manager.vVoiceEngine())
+    `);
+    assert.equal(out.snapshot, 'omni', `the snapshot keeps the saved engine beside ${voice}`);
+    assert.equal(out.engine, engine, `the engine in use beside ${voice}`);
+  }
+});
 
 test('reading the setting of the moment each frame reads the file once, and again only after a reset; Developer mode is off before the load', () => {
   const out = run(`${managerLua}
