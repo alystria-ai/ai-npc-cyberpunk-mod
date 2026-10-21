@@ -1264,10 +1264,12 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // The last lines the child printed (the key is redacted), for a start that failed or a server that stopped: why is in there (an allocation that failed, a model it cannot read).
+  // One log line per output line, the newest last: the error report cuts every log line at 300 characters, so a single joined line lost the last
+  // lines (the reason) and kept the start-up banner (a 0.2.7 report: "llama-server did not start: exited" and nothing after the banner).
   #logTail(proc, why) {
     let lines = [];
-    try { lines = String(proc?.tail?.() ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(-10).map(line => line.slice(0, 220)); } catch { /* best effort */ }
-    if (lines.length) this.log('[local] last llama-server output (' + why + '): ' + lines.join(' | ').slice(0, 1800));
+    try { lines = String(proc?.tail?.() ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(-6).map(line => line.slice(0, 220)); } catch { /* best effort */ }
+    lines.forEach((line, index) => this.log('[local] last llama-server output (' + why + ') ' + (index + 1) + '/' + lines.length + ': ' + line));
   }
 
   /**
