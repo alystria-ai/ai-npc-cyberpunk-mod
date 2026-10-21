@@ -179,8 +179,8 @@ export async function ensureVoiceModReferences({modFolder = null, list = null, o
       await files.atomicFile(resolve(outFolder, wavName(gender)), made.wav);
       manifest.voices[gender] = {...made.entry, source};
       changed = true; voices[gender] = 'built';
-      log(`V's ${gender} reference was built from ${winner.relative} (${made.entry.seconds} s)`);
-    } catch (error) { voices[gender] = `failed:${error?.code ?? 'error'}`; log(`V's ${gender} reference was not built from ${winner.relative}: ${error?.code ?? 'error'}`); }
+      log(`V's ${gender} reference was built from ${basename(winner.relative)} (${made.entry.seconds} s)`);
+    } catch (error) { voices[gender] = `failed:${error?.code ?? 'error'}`; log(`V's ${gender} reference was not built from ${basename(winner.relative)}: ${error?.code ?? 'error'}`); }
   }
   if (changed) { await files.mkdir(outFolder, {recursive: true}); await files.atomicFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n'); }
   return {directory: Object.keys(manifest.voices).length ? outFolder : null, voices, detection};

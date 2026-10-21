@@ -285,8 +285,10 @@ test('ensureVoiceModReferences builds from the winning archive, keeps the result
     await writeFile(join(mods, 'jc.archive'), makeArchive([...PATHS.male.slice(0, 3), ...PROBES.male].map((path, i) => ({path, bytes: wem(i)}))));
     let decodes = 0;
     const decode = async () => { decodes++; return wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000); };
-    const first = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath});
+    const logs = [];
+    const first = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath, log: line => logs.push(line)});
     assert.deepEqual(first.voices, {male: 'built'});
+    assert.match(logs.join(' '), /male reference was built from jc\.archive /);
     assert.equal(first.directory, out);
     const manifest = JSON.parse(await readFile(join(out, 'v-voice.json'), 'utf8'));
     assert.equal(manifest.voices.male.file, 'v-male.wav'); assert.equal(manifest.voices.male.source.archive, 'jc.archive');
