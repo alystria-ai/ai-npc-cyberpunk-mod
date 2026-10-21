@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1062,
+    "strings": 1068,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -623,6 +623,7 @@
     "Remove clip": "Remove clip",
     "Remove only this copy from your group.": "Remove only this copy from your group.",
     "Remove the voice clip? The character goes back to a generic voice.": "Remove the voice clip? The character goes back to a generic voice.",
+    "Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.": "Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.",
     "Remove the voice clip? {name} goes back to the shipped voice.": "Remove the voice clip? {name} goes back to the shipped voice.",
     "Reopen the manager; that action is no longer available.": "Reopen the manager; that action is no longer available.",
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
@@ -946,9 +947,13 @@
     "Use this conversation profile": "Use this conversation profile",
     "Use {key} to finish this recording.": "Use {key} to finish this recording.",
     "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
+    "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.": "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.",
+    "V (female voice)": "V (female voice)",
+    "V (male voice)": "V (male voice)",
     "V changed seats or vehicles.": "V changed seats or vehicles.",
     "V left the passenger seat.": "V left the passenger seat.",
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
+    "V speaks with the voice of your installed V voice mod, or the shipped V voice.": "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
     "Vehicle exit workspot state is unavailable.": "Vehicle exit workspot state is unavailable.",
     "Vehicle information became unavailable.": "Vehicle information became unavailable.",
     "Vehicle information is not ready.": "Vehicle information is not ready.",
@@ -968,6 +973,7 @@
     "Voxtral · Mistral cloud": "Voxtral · Mistral cloud",
     "Voxtral · needs Mistral key": "Voxtral · needs Mistral key",
     "Voxtral · not with Mature": "Voxtral · not with Mature",
+    "V’s voice": "V’s voice",
     "V’s voice for typed lines": "V’s voice for typed lines",
     "V’s voice switches from OmniVoice to Pocket.": "V’s voice switches from OmniVoice to Pocket.",
     "V’s voice switches from Voxtral to Pocket.": "V’s voice switches from Voxtral to Pocket.",
@@ -2060,6 +2066,7 @@
       "Remove clip",
       "Remove only this copy from your group.",
       "Remove the voice clip? The character goes back to a generic voice.",
+      "Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.",
       "Remove the voice clip? {name} goes back to the shipped voice.",
       "Reopen the manager; that action is no longer available.",
       "Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.",
@@ -2265,6 +2272,10 @@
       "Use the character I’m facing",
       "Use {key} to finish this recording.",
       "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
+      "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.",
+      "V (female voice)",
+      "V (male voice)",
+      "V speaks with the voice of your installed V voice mod, or the shipped V voice.",
       "Version {version}.",
       "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
       "Voice",
@@ -2278,6 +2289,7 @@
       "Voxtral · Mistral cloud",
       "Voxtral · needs Mistral key",
       "Voxtral · not with Mature",
+      "V’s voice",
       "V’s voice for typed lines",
       "V’s voice switches from OmniVoice to Pocket.",
       "V’s voice switches from Voxtral to Pocket.",
@@ -2841,7 +2853,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:168"
+        "mod/character-editor.lua:174"
       ]
     },
     "As shipped": {
@@ -3168,7 +3180,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:162"
+        "mod/character-editor.lua:168"
       ]
     },
     "Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.": {
@@ -3184,7 +3196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:158"
+        "mod/character-editor.lua:164"
       ]
     },
     "Character picker closed. Your selection is unchanged. Closing it deleted nothing.": {
@@ -3701,7 +3713,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:171"
+        "mod/character-editor.lua:177"
       ]
     },
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
@@ -3752,7 +3764,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:160"
+        "mod/character-editor.lua:166"
       ]
     },
     "Close the phone to finish the pending companion requests.": {
@@ -4001,7 +4013,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:163"
+        "mod/character-editor.lua:169"
       ]
     },
     "Convai paid tier": {
@@ -4770,7 +4782,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:156"
+        "mod/character-editor.lua:162"
       ]
     },
     "Everyday people do not keep memories of your talks.": {
@@ -4909,7 +4921,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:167"
+        "mod/character-editor.lua:173"
       ]
     },
     "For example: Rebecca": {
@@ -6166,7 +6178,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:157"
+        "mod/character-editor.lua:163"
       ]
     },
     "No matches. Try another name or clear the search.": {
@@ -6588,7 +6600,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:204"
+        "mod/character-editor.lua:210"
       ]
     },
     "Opening the page in your browser…": {
@@ -7162,6 +7174,14 @@
         "mod/character-editor.lua:91"
       ]
     },
+    "Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:160"
+      ]
+    },
     "Remove the voice clip? {name} goes back to the shipped voice.": {
       "contexts": [
         "ui.localized"
@@ -7308,7 +7328,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:170"
+        "mod/character-editor.lua:176"
       ]
     },
     "Review the memory clear below, then choose Confirm or Cancel.": {
@@ -7334,7 +7354,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:166"
+        "mod/character-editor.lua:172"
       ]
     },
     "Running": {
@@ -7500,7 +7520,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:161"
+        "mod/character-editor.lua:167"
       ]
     },
     "Search names, models or settings...": {
@@ -7977,7 +7997,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:155"
+        "mod/character-editor.lua:161"
       ]
     },
     "Strong": {
@@ -8692,7 +8712,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:189"
+        "mod/character-editor.lua:195"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -8871,7 +8891,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:203"
+        "mod/character-editor.lua:209"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -8879,7 +8899,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:164"
+        "mod/character-editor.lua:170"
       ]
     },
     "The endpoint URL was removed.": {
@@ -9403,7 +9423,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:169"
+        "mod/character-editor.lua:175"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -9886,6 +9906,30 @@
         "mod/character-editor.lua:100"
       ]
     },
+    "Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:158"
+      ]
+    },
+    "V (female voice)": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:157"
+      ]
+    },
+    "V (male voice)": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:156"
+      ]
+    },
     "V changed seats or vehicles.": {
       "contexts": [
         "chauffeur.feedback"
@@ -9908,6 +9952,14 @@
       ],
       "references": [
         "mod/companion-chauffeur-native.lua:417"
+      ]
+    },
+    "V speaks with the voice of your installed V voice mod, or the shipped V voice.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:159"
       ]
     },
     "Vehicle exit workspot state is unavailable.": {
@@ -10069,6 +10121,14 @@
       "references": [
         "mod/manager-ui.lua:1473",
         "mod/manager-ui.lua:401"
+      ]
+    },
+    "V’s voice": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:155"
       ]
     },
     "V’s voice for typed lines": {
@@ -10398,7 +10458,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:165"
+        "mod/character-editor.lua:171"
       ]
     },
     "Write a message...  /  Enter to send  /  Esc to stop typing": {
@@ -10571,7 +10631,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:159"
+        "mod/character-editor.lua:165"
       ]
     },
     "Your character": {

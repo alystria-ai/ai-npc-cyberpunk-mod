@@ -1062,4 +1062,10 @@ return {
     ["Requires the Companion voices to be an OmniVoice choice"] = "需要伙伴语音选择 OmniVoice",
     ["V’s voice switches from OmniVoice to Pocket."] = "V 的语音从 OmniVoice 切换为 Pocket。",
     ["When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. Pocket and Voxtral lines that are not ready in time are skipped; an OmniVoice line is waited for. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nOmniVoice: uses the same GPU voice as your companions (only while they use OmniVoice); no extra model loads. It adds a short wait before replies to typed lines (about a second more than Pocket, before V starts), because V speaks first and the companion answers after."] = "当你输入一行文字时，V 也会把它说出来，使用与你性别相符的男性或女性 V 语音。按键通话的语音从不重播。\n\nV 先说话，然后伙伴再回答。来不及准备好的 Pocket 和 Voxtral 台词会被跳过；OmniVoice 的台词则会等待。台词始终以字幕显示。\n\nPocket：在你的处理器上运行，约 0.2 秒开始。若伙伴使用其他语音，则会另外加载一个仅供 V 使用的小型语音模型。\n\nVoxtral：通过云端并使用你的 Mistral 密钥生成，因此不会在电脑上加载任何内容。约 1 秒开始，支持英语和许多其他语言。\n\nOmniVoice：与伙伴使用相同的 GPU 语音（仅当伙伴使用 OmniVoice 时）；不会加载额外模型。对输入文字的回复会增加一小段等待（比 Pocket 约多 1 秒，在 V 开始说话之前），因为 V 先说，伙伴随后回答。",
+    ["V’s voice"] = "V 的语音",
+    ["V (male voice)"] = "V（男声）",
+    ["V (female voice)"] = "V（女声）",
+    ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "用于 V 的打字台词：Pocket、OmniVoice 和 Voxtral 云端语音会复制它。",
+    ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V 将使用你已安装的 V 语音 Mod 的声音，或出厂的 V 语音。",
+    ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "移除语音片段？V 将恢复为你已安装的 V 语音 Mod 的声音，或出厂的 V 语音。",
 }
