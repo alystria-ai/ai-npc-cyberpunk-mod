@@ -884,6 +884,8 @@ local function ownKeyRows(snapshot)
             -- Only Mature models (the Mature pack's, or a server of the player's marked uncensored) and Mature content off: say what to do.
             label = label .. ' (' .. ui.t('Unavailable') .. ')'
             status = mistral.localReason == 'mature-off' and ui.t('Only Mature models found. Turn on Mature content to use them.') or loadingText('local-ai', 'failed')
+            -- Why, in the bridge's own plain words (the model server you added does not answer, ...): the sentence alone cannot tell a missing server from a failed start.
+            if mistral.localReason ~= 'mature-off' and mistral.localDetail then status = status .. '\n\n' .. mistral.localDetail end
         end
         status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end

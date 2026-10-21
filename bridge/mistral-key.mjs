@@ -210,10 +210,10 @@ export function parseKeyCommand(raw, now = Date.now()) {
  * reads (runtime/mistral-state.json). The key itself never enters either file. */
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
-    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, localReason,
+    read = path => readFile(path, 'utf8'), now = Date.now, localStatus, localReason, localDetail,
     maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, localDetail, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
   }
   /** Ignore a command left from an earlier session, then publish the first status. */
@@ -224,6 +224,7 @@ export class MistralControl {
   }
   status() {
     const p = this.provider;
+    const localDetail = typeof this.localDetail === 'function' && this.localStatus?.() === 'failed' ? String(this.localDetail() ?? '').slice(0, 160) : '';
     return {version: 1, updated: this.now(), provider: p.preference, effective: p.applied, saved: !!p.key, tail: p.tail,
       pending: p.pending, ...(this.result ? {result: this.result} : {}), limit: p.limit?.kind ?? null,
       model: typeof this.model === 'function' ? this.model() : this.model, stt: p.sttAvailable === true,
@@ -231,6 +232,8 @@ export class MistralControl {
       ...(typeof this.localStatus === 'function' ? {localAi: this.localStatus()} : {}),
       // Why it failed, only 'mature-off' (a Mature-only install, or a server of the player's marked uncensored, with Mature content off): the page says what to do.
       ...(typeof this.localReason === 'function' && this.localReason() === 'mature-off' ? {localReason: 'mature-off'} : {}),
+      // Why Local AI is down in a few plain English words (bridge/local-llm-server.mjs unavailableDetail), only while it is failed: the model row shows them after its own sentence. No path, no address, no key.
+      ...(localDetail ? {localDetail} : {}),
       // Is the optional Mature pack installed (bridge/mature-pack.mjs)? Only the Mature content help text reads it (it does not gate the setting).
       ...(typeof this.maturePack === 'function' ? {maturePack: this.maturePack() === true} : {}),
       // The installed Local AI chat models, [{id, name, sizeMiB}], for the model choice row (bridge/local-model-choice.mjs); names and sizes only, no paths.

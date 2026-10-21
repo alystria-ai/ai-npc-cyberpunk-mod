@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AUTO_MODEL, chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, profileOf, sortLocalModels, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
+import {AUTO_MODEL, resolveServerPin, chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, profileOf, sortLocalModels, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 import {tierNeedMiB} from './local-llm-server.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
@@ -450,4 +450,42 @@ test('a card of about 8 GB keeps room for the game in the default choice only: t
   assert.deepEqual([tiny.model.id, tiny.gameReserve], ['lite', undefined], '4 GB: the reserve leaves no model, so the largest that fits is taken as before');
   // The page's defaults follow the same rule.
   assert.equal(defaultModelIds({models: stock, ...small, sizeOf}).default, 'lite');
+});
+
+// ---- A saved choice of a server whose id changed (2026-10-21, KoboldCpp report) ---------------------------------------------------------
+
+const serverEntry = (id, endpoint = 'http://127.0.0.1:5001/v1') => ({id, name: 'My Server', file: null, external: true, endpoint, custom: true, uncensored: false, tier: null, loadedName: 'My Server'});
+
+test('a saved server choice whose id changed (the entry gained a "model", or the address was written again) still means that server: same address first, else the only server listed', () => {
+  const kobold = serverEntry('custom:ep-127.0.0.1-5001'), ollama = serverEntry('custom:ep-127.0.0.1-11434-llama3.2', 'http://127.0.0.1:11434/v1');
+  // The id is listed: nothing changes.
+  assert.equal(resolveServerPin('custom:ep-127.0.0.1-5001', [kobold, ollama]), 'custom:ep-127.0.0.1-5001');
+  // The entry gained a model id: the saved id is the start of the listed one; or lost it: the listed id is the start of the saved one.
+  assert.equal(resolveServerPin('custom:ep-127.0.0.1-5001', [serverEntry('custom:ep-127.0.0.1-5001-qwen3.5-9b'), ollama]), 'custom:ep-127.0.0.1-5001-qwen3.5-9b');
+  assert.equal(resolveServerPin('custom:ep-127.0.0.1-5001-qwen3.5-9b', [kobold, ollama]), 'custom:ep-127.0.0.1-5001');
+  // Another address that is not listed, with two servers: nothing can say which, the pin stays (the default rule then runs). With one server: that one.
+  assert.equal(resolveServerPin('custom:ep-127.0.0.1-8080', [kobold, ollama]), 'custom:ep-127.0.0.1-8080');
+  assert.equal(resolveServerPin('custom:ep-127.0.0.1-8080', [kobold]), 'custom:ep-127.0.0.1-5001');
+  // Only a saved server choice is mapped; a file model, auto and non-strings pass.
+  assert.equal(resolveServerPin('custom:my-file', [kobold]), 'custom:my-file');
+  assert.equal(resolveServerPin('standard', [kobold]), 'standard');
+  assert.equal(resolveServerPin(AUTO_MODEL, [kobold]), AUTO_MODEL);
+  assert.equal(resolveServerPin(null, [kobold]), null);
+});
+
+test('chooseLocalModel and stillSatisfies follow a server pin whose id changed, with file models installed or not, and say nothing about it', () => {
+  const kobold = serverEntry('custom:ep-127.0.0.1-5001');
+  for (const models of [[kobold], [...stock, kobold]]) {
+    const chosen = chooseLocalModel({models, pin: 'custom:ep-localhost-5001', sizeOf, freeMiB: 24000});
+    assert.equal(chosen.model.id, 'custom:ep-127.0.0.1-5001', models.length + ' models');
+    assert.equal(chosen.pinned, true);
+    assert.equal(chosen.fellBack, null, 'no "chosen model is missing" notice');
+    assert.equal(stillSatisfies({loadedId: 'custom:ep-127.0.0.1-5001', models, pin: 'custom:ep-localhost-5001'}), true);
+    assert.equal(stillSatisfies({loadedId: 'standard', models, pin: 'custom:ep-localhost-5001'}), false);
+  }
+  // Two servers and a pin that names neither: the default rule, with the old notice.
+  const two = [kobold, serverEntry('custom:ep-127.0.0.1-1234', 'http://127.0.0.1:1234/v1')];
+  const fallback = chooseLocalModel({models: [...stock, ...two], pin: 'custom:ep-localhost-9999', sizeOf, freeMiB: 24000});
+  assert.equal(fallback.fellBack, 'missing');
+  assert.equal(fallback.model.id, 'standard');
 });

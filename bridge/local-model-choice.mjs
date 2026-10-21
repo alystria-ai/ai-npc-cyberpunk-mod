@@ -55,6 +55,19 @@ export const matureOffBlocks = (models, matureOn) => !matureOn && models.length 
 /** True when Mature content is off, the pin names a Mature pack model (`mature:*`) and one is installed: the pin is not used (the default rule runs, with no notice). */
 const matureOffIgnores = (pin, models) => typeof pin === 'string' && pin.startsWith('mature:') && models.some(model => model.matureTier);
 
+/**
+ * A saved choice of a server the player runs (`custom:ep-<host>-<port>[-<model>]`, bridge/custom-models.mjs) whose id is no longer listed: the id is made of the address and the
+ * entry's model id, so an entry that gained or lost its "model", or was written again, names it differently. The listed server with the same address (the pin is the other id's start,
+ * or the other way round) stands for it; failing that, the only server listed does. Else the pin is returned as it was. Pure.
+ */
+export function resolveServerPin(pin, models = []) {
+  if (typeof pin !== 'string' || !pin.startsWith('custom:ep-') || models.some(model => model.id === pin)) return pin;
+  const servers = models.filter(model => model.external === true && typeof model.id === 'string');
+  const same = servers.filter(model => model.id.startsWith(pin + '-') || pin.startsWith(model.id + '-'));
+  if (same.length === 1) return same[0].id;
+  return servers.length === 1 ? servers[0].id : pin;
+}
+
 /** A pin read from the settings file: an id made of letters, digits and `. _ : -` (at most 80), else `auto` (no choice: the default rule). */
 export function normalisePin(value) {
   return typeof value === 'string' && /^[A-Za-z0-9._:-]{1,80}$/.test(value) ? (value === AUTO_MODEL ? AUTO_MODEL : value) : AUTO_MODEL;
@@ -196,6 +209,7 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
   // Mature content off: a Mature pack model never loads, pinned or not (a pin of it stays in the settings, and is used again when Mature content is on).
   if (!matureOn) { if (matureOffIgnores(pin, models)) pin = AUTO_MODEL; models = models.filter(model => !model.matureTier); }
+  pin = resolveServerPin(pin, models);
   const {sized, fits, pick, pickMature, externals, offloadable, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
@@ -268,6 +282,7 @@ export function stillSatisfies({loadedId, models = [], pin = AUTO_MODEL, matureO
   if (matureOffBlocks(models, matureOn)) return false;   // a Mature-only install with Mature content turned off: nothing may stay loaded
   if (!matureOn && models.some(model => model.id === loadedId && model.matureTier)) return false;   // a Mature pack model never stays loaded with Mature content off
   if (matureOffIgnores(pin, models)) pin = AUTO_MODEL;
+  pin = resolveServerPin(pin, models);
   if (pin !== AUTO_MODEL && models.some(model => model.id === pin)) return loadedId === pin;
   // A saved Mature model that is gone stands for a model of the Mature pack (chooseLocalModel): any of the two satisfies it.
   if (pin.startsWith('mature:') && models.some(model => model.matureTier)) return models.some(model => model.id === loadedId && model.matureTier);

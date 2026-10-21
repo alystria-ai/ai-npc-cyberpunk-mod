@@ -36,6 +36,10 @@ import dgram from 'node:dgram';
 const log = process.env.CYBERPUNK_TEST_SIDE_EFFECTS, llamaLog = process.env.CYBERPUNK_TEST_LLAMA_LOG;
 const fake = process.env.CYBERPUNK_TEST_FAKE_LLAMA ? resolve(process.env.CYBERPUNK_TEST_FAKE_LLAMA).toLowerCase() : '';
 const isFake = command => fake !== '' && typeof command === 'string' && resolve(command).toLowerCase() === fake;
+// A test names loopback ports a FAKE model server listens on (CYBERPUNK_TEST_ALLOW_LOOPBACK_PORTS, comma separated): fetch and the socket to those, and only those, are real.
+const ports = new Set(String(process.env.CYBERPUNK_TEST_ALLOW_LOOPBACK_PORTS || '').split(',').filter(Boolean));
+const allowedUrl = value => { try { const url = new URL(typeof value === 'string' ? value : value?.url ?? String(value)); return url.hostname === '127.0.0.1' && ports.has(url.port); } catch { return false; } };
+const allowedSocket = args => { const first = Array.isArray(args[0]) ? args[0][0] : args[0]; const port = typeof first === 'object' && first !== null ? first.port : first; const host = typeof first === 'object' && first !== null ? first.host : args[1]; return ports.has(String(port)) && (host === '127.0.0.1' || host === 'localhost' || host === undefined); };
 const forbidden = kind => function() {
   appendFileSync(log, kind + '\\n');
   throw Error('Forbidden side effect in isolated bridge test: ' + kind);
@@ -61,7 +65,8 @@ child.spawn = function(command, args) {
 };
 http.request = forbidden('http.request'); http.get = forbidden('http.get');
 https.request = forbidden('https.request'); https.get = forbidden('https.get');
-net.Socket.prototype.connect = forbidden('socket.connect');
+const connect = net.Socket.prototype.connect;
+net.Socket.prototype.connect = function(...args) { return allowedSocket(args) ? connect.apply(this, args) : forbidden('socket.connect')(); };
 const listen = net.Server.prototype.listen;
 net.Server.prototype.listen = function(...args) {
   // Only the supervisor's probe for a free loopback port (it closes at once).
@@ -70,7 +75,8 @@ net.Server.prototype.listen = function(...args) {
 };
 tls.connect = forbidden('tls.connect'); dgram.createSocket = forbidden('dgram.createSocket');
 // The address is part of the log line: a test that expects the one warm-up request of a cloud provider can tell it from any other host.
-globalThis.fetch = function(url) { return forbidden('fetch ' + (typeof url === 'string' ? url : url?.url ?? String(url)))(); };
+const realFetch = globalThis.fetch;
+globalThis.fetch = function(url, ...rest) { return allowedUrl(url) ? realFetch.call(this, url, ...rest) : forbidden('fetch ' + (typeof url === 'string' ? url : url?.url ?? String(url)))(); };
 globalThis.WebSocket = forbidden('WebSocket');
 syncBuiltinESMExports();
 `;

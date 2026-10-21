@@ -4127,6 +4127,23 @@ test('The Conversation provider section offers the provider, Mature content, the
       answer('local-ai-ready-with-reason', {provider = 'local', effective = 'local', localAi = 'ready', localReason = 'mature-off'})
       assert(row('localModel').label == 'Local AI model' and not row('localModel').description:find(MATURE_OFF, 1, true))
     end
+    -- Why a failed Local AI is down, in the bridge's own plain words (a model server the player runs that does not answer): shown after the row's sentence, only while it is
+    -- failed, never when it is Mature-off (that sentence says what to do), and never a control character or a long text.
+    do
+      local WHY = 'the model server you added does not answer: start it (and load its model), then the next turn tries again'
+      answer('local-ai-detail', {provider = 'local', effective = 'local', localAi = 'failed', localDetail = WHY})
+      local model = row('localModel')
+      assert(manager.mistral().localDetail == WHY)
+      assert(model.label == 'Local AI model (Unavailable)' and firstParagraph(model.description) == WAIT.failed[2] and model.description:find(WHY, 1, true), model.description)
+      answer('local-ai-detail-mature', {provider = 'local', effective = 'local', localAi = 'failed', localReason = 'mature-off', localDetail = WHY})
+      assert(not row('localModel').description:find(WHY, 1, true))
+      answer('local-ai-detail-ready', {provider = 'local', effective = 'local', localAi = 'ready', localDetail = WHY})
+      assert(not row('localModel').description:find(WHY, 1, true))
+      for _, bad in ipairs({'line\\nbreak', string.rep('x', 161), 7, true}) do
+        answer('local-ai-detail-bad-' .. tostring(#tostring(bad)), {provider = 'local', effective = 'local', localAi = 'failed', localDetail = bad})
+        assert(manager.mistral().localDetail == nil and firstParagraph(row('localModel').description) == WAIT.failed[2])
+      end
+    end
     answer('local-ai-none', {provider = 'convai', effective = 'convai'})
     assert(row('localModel').label == 'Local AI model' and manager.mistral().localAi == nil)
     -- Who answers: Local AI needs no note when the bridge uses it, a plain reason when Local is chosen but Convai answers.
