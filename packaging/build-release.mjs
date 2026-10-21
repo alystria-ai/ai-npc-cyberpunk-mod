@@ -54,7 +54,7 @@ import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
-import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
+import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
@@ -156,6 +156,10 @@ class Package {
   constructor(id) { this.id = id; this.entries = new Map(); }
   add(name, entry) {
     if (this.entries.has(name)) throw Error(`${this.id}: duplicate entry ${name}`);
+    // The voice language packs' folder belongs to their own zips (docs/VOICE_LANGUAGE_PACKS.md): the Runtime and the Scripts never ship a file in it.
+    if (['scripts', 'runtime'].includes(this.id) && name.toLowerCase().startsWith(LANGUAGE_PACK_TREE.toLowerCase())) {
+      throw Error(`${this.id}: ${name} is in the voice language packs' folder, which only their own zips write`);
+    }
     this.entries.set(name, entry);
   }
   file(name, source) { this.add(name, {source}); }

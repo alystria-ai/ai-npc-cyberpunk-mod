@@ -43,7 +43,9 @@ import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
-import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
+import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
+import {VoiceLanguagePacks} from './voice-language-packs.mjs';
+import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
@@ -206,6 +208,14 @@ let audioRatesWriting = Promise.resolve();
 // voice. They only sit in the configurations; nothing is prepared or loaded for them until a typed line is spoken in V's voice.
 const referenceRoots = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
   : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')];
+// The voice language packs (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs): the game's own dub of a character in the language of a reply, as the
+// reference OmniVoice and the Mistral voice clone from. Found and checked once here (a few file headers; nothing at all without a pack), looked at again by the
+// settings poll, and asked for from memory per reply. A broken pack is ignored with one log line, and the reason goes in the support report.
+const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line => console.error('[VoiceLanguagePacks] ' + line),
+  onChange: () => { try { voxtralVoice.forgetLanguageReferences(); } catch {} }});
+await languagePacks.scan().catch(error => console.error('[VoiceLanguagePacks] scan failed:', error?.message ?? error));
+// Developer mode: the last spoken reply's audio and its reference, in <state>/debug (bridge/last-reply-capture.mjs). Off otherwise, and then it costs nothing.
+const replyCapture = new LastReplyCapture({directory: resolve(stateDirectory, CAPTURE_FOLDER), log: line => console.error('[Debug] ' + line)});
 const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')],
   {log: line => console.error('[VVoice] ' + line)});
 // The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
@@ -279,16 +289,25 @@ const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || res
 const voxtralPreparers = process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? null : {
   shipped: createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   player: createReferencePreparer({cacheDirectory: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+  // A voice language pack keeps its Mistral slots in its own prepared/ folder (options.slots), found by the same signature as every other slot.
+  slots: new Map(),
+};
+const voxtralPreparer = (options = {}) => {
+  if (options.slots) {
+    if (!voxtralPreparers.slots.has(options.slots)) voxtralPreparers.slots.set(options.slots, createReferencePreparer({cacheDirectory: options.slots, onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}));
+    return voxtralPreparers.slots.get(options.slots);
+  }
+  return options.player ? voxtralPreparers.player : voxtralPreparers.shipped;
 };
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
-  prepare: voxtralPreparers ? (bytes, options = {}) => (options.player ? voxtralPreparers.player : voxtralPreparers.shipped)(bytes, options) : undefined,
+  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks,
+  prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,
+  voxtral:voxtralVoice,languagePacks,
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
@@ -1050,9 +1069,30 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       if (characterId) character = {key: route.route?.providerProfileKey ?? input.profileKey, id: characterId};
     } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
-      sources: voiceSources, voiceKey, character, ...extra}));
+      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, ...extra}));
   } catch {}
 }
+// The voice language pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
+// a voice the pack lists, and not a voice the player gave a clip of their own. Pocket (English only) and the Convai voice never use one. In-memory lookups.
+function languagePackFor(engine, language, voiceKey) {
+  if (!language || language === 'en' || !voiceKey || !languagePacks.installed) return null;
+  if (engine === 'omni') return localVoice.hasPlayerClip(voiceKey) ? null : languagePacks.entry(language, voiceKey);
+  if (engine === 'pocket' && localVoice.cloudActive) return voxtralVoice.languageEntry(voiceKey, language);
+  return null;
+}
+// The set a reply's reference is logged as (the routing line's ref): the pack's, else the English one. Only asked while Developer mode keeps the reply (replyCapture).
+function referenceSetFor(engine, language, voiceKey) {
+  const pack = languagePackFor(engine, language, voiceKey);
+  if (pack) return pack.set;
+  const english = engine === 'omni' ? referenceOf(localVoice, 'omni', voiceKey, voiceSources)
+    : localVoice.cloudActive ? cloudReferenceOf(localVoice, voiceKey, voiceSources) : referenceOf(localVoice, 'pocket', voiceKey, voiceSources);
+  return english?.set ?? null;
+}
+// Developer mode: the capture of the reply OmniVoice is speaking now (every phrase of it is added by synthesizeOmniPhrase).
+let omniReplyCapture;
+const beginOmniCapture = (voiceKey, language) => {
+  omniReplyCapture = replyCapture.enabled ? replyCapture.begin({engine: 'omni', voiceKey, language: language ?? 'en', reference: referenceSetFor('omni', language, voiceKey)}) : undefined;
+};
 // The local voice that speaks this turn: an ambient profile (unnamed NPC) may have several (bridge/voice-variants.mjs),
 // chosen from the NPC's stable identity. Decided once per turn (the same turn's phrases, look-ahead and prefetch agree)
 // and only when it is spoken; routing, readiness and the provider keep using the BASE profile key.
@@ -1180,6 +1220,7 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
     },
     stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, options),
     speaks: language => voxtralVoice.speaks(language),
+    languageSet: (key, language) => voxtralVoice.languageSet(key, language),
     warm: key => { void voxtralVoice.reference(key); }},
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
@@ -1656,6 +1697,8 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       // written is already rendering (respondStreamed). It is used when it is the phrase this reply starts with, else dropped.
       const reuse=omniSpeculation&&omniSpeculation.phrase===voiced[0]&&omniSpeculation.language===language&&omniSpeculation.steps===steps;
       if(omniSpeculation&&!reuse)omniSpeculation.cancel();
+      // Developer mode: a reply that was not rendered ahead starts its capture here (a rendered-ahead one began it with its first phrase).
+      if(!reuse)beginOmniCapture(voiceKey,language);
       const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language,preStore:true});
       // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
       // lip analysis, storage and publication run, instead of after them.
@@ -1666,7 +1709,8 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       // If it comes later, the phrases not yet rendered use it: the stream holds this same plan object.
       if(late.settled)refine();
       else{const shared=result.expressionPlan;late.promise?.then(()=>{if(refine()&&shared&&result.expressionPlan!==shared)Object.assign(shared,result.expressionPlan);},()=>{});}
-      logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
+      // The worker says when it spoke from the English reference because the pack's clip was refused: the line says so too.
+      logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText, ...(generated.timing?.voiceLanguageReference === 'fallback' ? {languageSet: null} : {})});
       // The record says whether the first phrase rendered while the model wrote was used (a voice tag in it, Natural speech, makes the
       // finished reply's first phrase differ and the phrase is rendered again: docs/perf, LATENCY.md).
       return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing,
@@ -1694,7 +1738,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
     // The voices ignore a reply's emotion marks; they are carried with the request.
     const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, ahead: true, emotion: {marks: replyMarks, sounds: replySounds}})});
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, ahead: true, emotion: {marks: replyMarks, sounds: replySounds}, ...(language ? {language} : {})})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -1702,8 +1746,11 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       await waitUntil(() => !realtime.localPcmBusy, {signal, timeoutMs: 3000});
     } catch (error) { prefetched.discard(); throw error; }
   }
+  // Developer mode: keep this reply's audio and its reference (undefined, and nothing held, while it is off).
+  const capture = replyCapture.enabled ? replyCapture.begin({engine: localVoice.cloudActive ? 'voxtral' : 'pocket', voiceKey, language: language ?? 'en',
+    reference: referenceSetFor('pocket', language, voiceKey)}) : undefined;
   return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: localVoice, host: realtime, speech,
-    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,stream:streamed?.stream,
+    phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,stream:streamed?.stream,language,capture,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
@@ -1711,8 +1758,14 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
 // (bridge/speech-audio.mjs prepareSpeech); the result carries `preStored` for publishResult.
 async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={}){
   markStage('ttsSent');
+  const capture=omniReplyCapture;
   const generated=await localVoice.synthesize(profile,text,options);
   markStage('firstPcm');
+  // Developer mode only (capture is undefined otherwise): the phrase's audio joins the reply's file, and the file says when the English reference spoke instead.
+  if(capture){
+    if(generated.timing?.voiceLanguageReference==='fallback')capture.note({referenceUsed:'english-fallback'});
+    capture.addWav(generated.audio);
+  }
   let preStored;
   // The analysis is started first (it runs in a worker), then the file is prepared on this thread while that runs: the other way round
   // the preparation's 10 ms of decoding and levelling would delay the start of the analysis.
@@ -1868,6 +1921,7 @@ async function voiceStreamedReply(input, profile, {signal, current, stream, fina
     const phrase = splitSpeechText(head)[0], language = voice.language && voice.language !== 'en' ? voice.language : undefined, steps = localVoice.steps;
     const controller = new AbortController(), cancel = () => controller.abort();
     signal?.addEventListener('abort', cancel, {once: true});
+    beginOmniCapture(voiceKeyFor(input), language);   // Developer mode: this phrase opens the capture of the reply
     const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language, preStore: true});
     promise.catch(() => {});
     final.then(() => {}, cancel);
@@ -3272,6 +3326,10 @@ async function pollSettings(checkShutdown = true) {
       dropPrefetch(); prefetchObserved = '';
     }
     if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
+    // Voice language packs installed (or removed) while the game runs are noticed within 30 s: one folder listing and a stat per manifest, never awaited by a reply.
+    void languagePacks.refresh().catch(() => {});
+    // Developer mode: the last reply's audio and reference are kept (bridge/last-reply-capture.mjs).
+    if (replyCapture.update(settings)) console.error(`[Debug] keeping the last spoken reply is now ${replyCapture.enabled ? 'on' : 'off'}`);
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
@@ -3350,7 +3408,7 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
-  bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
+  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report()})});
 // Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
 // process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.
 const bridgeStartedAt = Date.now() - Math.round(process.uptime() * 1000);

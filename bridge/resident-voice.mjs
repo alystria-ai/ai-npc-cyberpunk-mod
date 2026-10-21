@@ -366,9 +366,10 @@ export class ResidentVoice {
         // Invite prepares again rather than trusting stale cache readiness.
         this.prepared.clear();
       } else {
+        // A reply spoken from a language pack clip does not prepare the profile (the worker leaves its prepared list as it was).
         if (!this.validProfiles(frame.preparedProfiles, this.registry.preparation.maxCachedProfiles)
             || frame.preparedProfiles.some(key => !this.available.has(key))
-            || (frame.op !== 'error' && !frame.preparedProfiles.includes(request.profile))) {
+            || (frame.op !== 'error' && !request.languageReference && !frame.preparedProfiles.includes(request.profile))) {
           throw Error('Invalid prepared local voice profiles');
         }
         this.prepared = new Set(frame.preparedProfiles);
@@ -442,22 +443,36 @@ export class ResidentVoice {
   }
   // `language`: the reply's ISO 639-1 code when it is not English (Multilingual conversations). OmniVoice clones
   // the English reference into that language. Absent or 'en' sends nothing, so English requests are unchanged.
-  synthesize(profile, text, {signal, steps: chosenSteps, language} = {}) {
+  // `languageReference` {reference, sha256, transcript}: a voice language pack's clip of this character (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs
+  // omniDescriptor) to clone from instead of the profile's English reference. The worker checks it like any reference and answers 'used', or 'fallback' when it
+  // spoke from the English one (the result's timing says which: voiceLanguageReference). The profile is not prepared for it: the clip's prompt is its own.
+  synthesize(profile, text, {signal, steps: chosenSteps, language, languageReference} = {}) {
     if (!this.usesProfile(profile)) return Promise.reject(Error('This character uses its Convai voice'));
     if (typeof text !== 'string' || !text.trim() || text.length > 12_000) return Promise.reject(Error('Invalid speech text'));
     if (chosenSteps !== undefined && ![16, 32].includes(chosenSteps)) return Promise.reject(Error('Invalid voice quality'));
     if (language !== undefined && language !== null && !/^[a-z]{2,3}$/.test(language)) return Promise.reject(Error('Invalid speech language'));
     const languageField = language && language !== 'en' ? {language} : {};
+    // Only a non-English reply has a language reference, and only a well-formed one is sent.
+    const wanted = languageField.language && languageReference && typeof languageReference.reference === 'string' && /^[a-f0-9]{64}$/.test(languageReference.sha256 ?? '')
+      && typeof languageReference.transcript === 'string' && languageReference.transcript.trim()
+      ? {languageReference: {reference: languageReference.reference, sha256: languageReference.sha256, transcript: languageReference.transcript}} : {};
     const steps = chosenSteps ?? this.steps, queued = performance.now();
     const operation = this.tail.then(async () => {
-      await this.ensurePrepared(profile, signal);
+      if (wanted.languageReference) {
+        // The English profile is not prepared for a language clip's reply (that would be a hidden render for nothing): the worker only has to be running.
+        await this.start();
+        throwIfCancelled(signal);
+        if (this.closing || this.failure) throw this.failure || cancelled();
+        if (!this.hasProfile(profile)) throw Error('This character uses its Convai voice');
+      } else await this.ensurePrepared(profile, signal);
       const started = performance.now();
-      const frame = await this.command('synthesize', profile, {text, steps, ...languageField});
+      const frame = await this.command('synthesize', profile, {text, steps, ...languageField, ...wanted});
       throwIfCancelled(signal);
       if (this.closing || this.failure) throw this.failure || cancelled();
       const bytes = Buffer.from(frame.audio, 'base64'), wav = inspectWav(bytes);
       return {audio: bytes.toString('base64'), wav, faces: [], captions: [], timing: {
         voiceProvider: 'omnivoice', voiceEngine: 'omnivoice', voiceSteps: steps, voiceWarm: true,
+        ...(wanted.languageReference ? {voiceLanguageReference: frame.languageReference === 'used' ? 'used' : 'fallback'} : {}),
         voiceDtype: this.details.dtype, voiceRuntime: this.details.runtime,
         voiceAcceleration: frame.acceleration || 'eager', voiceGraph: frame.cudaGraph,
         voiceQueueMs: started - queued, voiceGenerationMs: frame.generationMs,

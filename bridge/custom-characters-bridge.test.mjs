@@ -173,7 +173,9 @@ test('the bridge opens the store before the voices, gives it to the prompt, the 
   // Voxtral reads a player clip from the data folder and keeps its prepared slot there; the shipped clips keep their own cache.
   assert.match(bridge, /referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices\.folder,/);
   assert.match(bridge, /player: createReferencePreparer\(\{cacheDirectory: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\),/);
-  assert.match(bridge, /prepare: voxtralPreparers \? \(bytes, options = \{\}\) => \(options\.player \? voxtralPreparers\.player : voxtralPreparers\.shipped\)\(bytes, options\) : undefined,/);
+  // A player's clip keeps its slot in the data folder, a voice language pack's in its own prepared/ folder, every other clip in the shared one.
+  assert.match(bridge, /prepare: voxtralPreparers \? \(bytes, options = \{\}\) => voxtralPreparer\(options\)\(bytes, options\) : undefined,/);
+  assert.match(bridge, /return options\.player \? voxtralPreparers\.player : voxtralPreparers\.shipped;/);
   assert.match(bridge, /onRemoved: key => releasePreparedSlots\(\{folder: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\), key\}\)/);
   assert.match(bridge, /aliases: key => customCharacters\.voiceAlias\(key\),/, 'a character with no clip speaks with the resident voice of its gender');
   assert.match(bridge, /new PersonaBook\(roster, \{overrides: characterOverrides, custom: customCharacters, worldRules\}\)/);

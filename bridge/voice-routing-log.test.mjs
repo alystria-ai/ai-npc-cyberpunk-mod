@@ -210,7 +210,7 @@ test('the bridge logs the cloud voice, written-only, Omni and Pocket replies onc
 test('logVoiceRoute hands the record to the log and swallows any failure', () => {
   const recorded = [];
   const code = bridge.match(/function logVoiceRoute[\s\S]*?\r?\n}\r?\n/)[0];
-  const sandbox = {recorded, routingLog: {record: record => recorded.push(record)}, voiceSources: {},
+  const sandbox = {recorded, routingLog: {record: record => recorded.push(record)}, voiceSources: {}, languagePackFor: () => null,
     localVoice: fixture().voice, turnVoice: () => ({engine: 'convai', language: null, reason: 'multilingual-off'}),
     describeVoiceRoute};
   runInNewContext(`${code};globalThis.api={logVoiceRoute};`, sandbox);
