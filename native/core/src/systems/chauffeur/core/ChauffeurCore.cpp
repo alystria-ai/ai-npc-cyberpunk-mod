@@ -58,7 +58,8 @@ ActorResult DecideActor(const ActorRaw& aRaw)
     result.dead = result.attached && aRaw.dead;
     result.valid = result.attached && !result.dead && aRaw.sameEntity && aRaw.ownerPresent && aRaw.ownerReady
         && aRaw.managed && aRaw.tagged;
-    result.calm = result.valid && !aRaw.inCombat;
+    result.calmKnown = !result.valid || aRaw.combatKnown;
+    result.calm = result.valid && result.calmKnown && !aRaw.inCombat;
     return result;
 }
 
@@ -201,7 +202,14 @@ std::string FormatActor(const ActorResult& aResult)
     AppendFlag(out, aResult.attached);
     AppendFlag(out, aResult.dead);
     AppendFlag(out, aResult.valid);
-    AppendFlag(out, aResult.calm);
+    if (aResult.calmKnown)
+    {
+        AppendFlag(out, aResult.calm);
+    }
+    else
+    {
+        out += " ?";
+    }
     return out;
 }
 

@@ -522,6 +522,25 @@ test('the shim turns every recorded sample wire into the table the original buil
   }
 });
 
+test('a combat flag the plugin could not read (calm "?") is read by the Lua for that one field, and the sample stays native', () => {
+  // Live 2026-10-18 the plugin found no function for the flag, every sample failed and the system went to Lua after 20 of them.
+  const item = sampleOf(BASE);
+  const wire = item.output.wire.replace(/^A (\d) (\d) (\d) \d /, 'A $1 $2 $3 ? ');
+  assert.notEqual(wire, item.output.wire);
+  assert.equal(item.output.result.actorCalm, true);
+  const calm = runSample(item, {wires: [wire]});
+  assert.deepEqual(calm.fails, []);
+  assert.equal(calm.stats.native, 1, 'the sample is the plugin\'s');
+  assert.equal(calm.stats.empty, 0, 'not an unavailable sample');
+  assert.deepEqual(calm.summary, item.output.result);
+  const fighting = {...item, input: {...item.input, raw: {...item.input.raw, actor: {...item.input.raw.actor, inCombat: true}}}};
+  const got = runSample(fighting, {wires: [wire]});
+  assert.deepEqual(got.fails, []);
+  assert.equal(got.stats.native, 1);
+  assert.equal(got.summary.actorCalm, false, 'the Lua read of the flag decides');
+  assert.equal(got.summary.actorValid, true);
+});
+
 test('a native sample makes a fraction of the game calls of the original', () => {
   const item = sampleOf(BASE);
   const native = runSample(item, {wires: [item.output.wire]});

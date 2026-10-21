@@ -459,7 +459,10 @@ test('the proof needs the companion to walk: standing still proves nothing', () 
   assert.equal(out, 'ok');
 });
 
-test('the combat flag is part of the parity proof: a plugin that reads it backwards is caught', () => {
+test('the combat flag is part of the parity proof: a plugin that reads it backwards is caught, and only its combat read goes back to Lua', () => {
+  // The flag is read through whichever route of convai::game::PuppetInCombat resolved (a static, a member or the state blackboard),
+  // so a route that answers differently from the game must not take the actuator down with it: the combat read is switched
+  // off, the other reads stay native and the proof goes on without it.
   const body = `${serializer}${hook}${fakePlugin}`;
   const out = run(`KEEP_PROOF = true
     ${body}
@@ -468,11 +471,16 @@ test('the combat flag is part of the parity proof: a plugin that reads it backwa
     BIAS_COMBAT = true
     ${scenario}
     local state = shimModule.state()
-    assert(state.proven == false and state.mismatches >= 3, serialize(state))
-    assert(#failures == 1 and failures[1]:find('parity'), table.concat(failures, ';'))
-    local named = false
-    for _, line in ipairs(LOGLINES) do if line:find('PARITY MISMATCH in combat: plugin', 1, true) then named = true end end
-    assert(named, table.concat(LOGLINES, '|'))
+    assert(state.combatOff == true and state.combatMismatches >= 3, serialize(state))
+    assert(state.mismatches == 0 and state.proven == true, serialize(state))
+    assert(#failures == 0, 'the actuator is not switched off: ' .. table.concat(failures, ';'))
+    local named, off, said = false, false, false
+    for _, line in ipairs(LOGLINES) do
+      if line:find('PARITY MISMATCH in combat: plugin', 1, true) then named = true end
+      if line:find('the plugin\\'s combat read is off and Lua reads it', 1, true) then off = true end
+      if line:find('parity proven', 1, true) and line:find('combat flag read by Lua (the plugin\\'s read differed', 1, true) then said = true end
+    end
+    assert(named and off and said, table.concat(LOGLINES, '|'))
     OUT = 'ok'
   `);
   assert.equal(out, 'ok');

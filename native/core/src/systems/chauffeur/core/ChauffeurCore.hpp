@@ -64,6 +64,9 @@ struct ActorRaw
     bool managed = false;    // owner:IsManaged(entry.entityID)
     bool tagged = false;     // owner:IsTagged(entry.entityID, CyberpunkConvaiCompanion)
     bool inCombat = false;   // NPCPuppet.IsInCombat(npc), read only when the actor is valid
+    // False when the plugin could not read the combat flag (no route to it in this game build, or the call failed):
+    // the flag is then UNKNOWN, not "unavailable sample": the wire says '?' for calm and the Lua reads that one field.
+    bool combatKnown = true;
 };
 
 struct ActorResult
@@ -72,10 +75,12 @@ struct ActorResult
     bool dead = false;
     bool valid = false;
     bool calm = false;
+    bool calmKnown = true; // false: the actor is valid but its combat flag was not read, calm is the Lua's to decide
 };
 
 // attached = npcPresent and attached; dead = attached and dead; valid = attached and not dead and
-// sameEntity and ownerPresent and ownerReady and managed and tagged; calm = valid and not inCombat.
+// sameEntity and ownerPresent and ownerReady and managed and tagged; calm = valid and not inCombat. When the
+// actor is valid and the combat flag is unknown, calmKnown is false (calm stays false and is not to be used).
 ActorResult DecideActor(const ActorRaw& aRaw);
 
 // --- drive (Lua inspectDrive) ----------------------------------------------------------------
@@ -237,7 +242,8 @@ WaypointResult DecideWaypoint(const WaypointRaw& aRaw);
 // Space-separated tokens. Flags are 0/1; an id is the decimal entity hash or 0 for nil; numbers use
 // %.17g and a non-finite number is the word nan, inf or -inf; "-" is a nil number or text.
 //
-//   A  "A <attached> <dead> <valid> <calm>"
+//   A  "A <attached> <dead> <valid> <calm>"                  calm is "?" when the actor is valid and its combat flag
+//                                                            could not be read; the Lua then asks NPCPuppet.IsInCombat itself
 //   P  "P <id> <passenger> <combat>"
 //   S  "S <summoned> <state>"
 //   U  "U <enabled> <delamain> <available> <laneValid> <destType> <freeRoam> <remaining> <vehicle> <destId>"

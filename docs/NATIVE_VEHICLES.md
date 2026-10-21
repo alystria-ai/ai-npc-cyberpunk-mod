@@ -14,7 +14,11 @@ succeeded. `chauffeur`: one real trip is logged (Takemura, 2026-10-18 08:29Z): `
 then 1 s later `chauffeur=lua (native call failed: sample keeps answering unavailable)`, so the system stayed on Lua for the
 session. The likely cause is the unresolved `NPCPuppet.IsInCombat` described in `NATIVE_ACTUATOR.md` (section A of Sample reads it
 for a tagged actor and fails the section when the function is missing); unproven until `ConvaiNativeChauffeur.Stats()`
-`sampleFailedSections` and the RED4ext log are read after a trip. `vehicles.inspect` and `passage` never reached the verify count
+`sampleFailedSections` and the RED4ext log are read after a trip. Branch `feat/natives-on` changes it twice: the flag is reached
+through five routes (see `NATIVE_ACTUATOR.md`, "Where the flag really lives"), and when none resolves the actor section still
+answers with calm `?` (the shim asks `NPCPuppet.IsInCombat` for that one field), so a missing combat read no longer fails a sample.
+The player section (`PlayerPuppet.GetCurrentVehicleState`, a static of a script class) uses the same lookup, which now also
+searches the game's class-function and global-function lists. `vehicles.inspect` and `passage` never reached the verify count
 live (no `matched the Lua 8 times` line, no `passage self-test` line): there is no ride or lift on record with the native on.
 Until 2026-10-21 `inspect` and `mounting` shared one verified counter, so the mounting answers of the companion update used up the
 8-answer trial and the first inspect would have been trusted without one comparison (and its "matched the Lua 8 times" line could
@@ -120,7 +124,7 @@ a nil number or text. The grammar lives in the `*Core.hpp` headers; the fixtures
 every recorded case.
 
 - **vehicles**: `V <status>` (0 not a vehicle, 1 no AI, 3 detached) or `V 2 <invalid> <aiPresent> <playerMounted> <scene> <speed> <playerGap> <seatCount>` then `<name> <occupant> <reserved>` per seat. `M -` (not mounted) or `M <parentHash> <seat>`.
-- **chauffeur** `Sample`: sections `A P C [D] U W` (D only when the leased car is live; S, the summon read, stays in Lua). `A <attached> <dead> <valid> <calm>`, `P <id> <passenger> <combat>`, `C <live> <id> <carValid> <posValid> <x> <y> <z>`, `D 0|1|2` (AI missing, control information unreadable, no command identity) or `D 3 <ready> <reservations> <busy> <foreign> <ownedActive> <state> <commandId> <currentId> <remaining> <currentClass>` (state `-` none, `?` ask `IsCommandActive`, else 0-6), `U <enabled> <delamain> <available> <laneValid> <destType> <freeRoam> <remaining> <vehicle> <destId>`, `W 0` or `W 1 <id> <px> <py> <pz> <mx> <my> <mz> <quest> <rawName>` (the raw name is the rest of the text). A section the plugin could not read is `<tag> !`. `Drive`: `0` (not the live leased car), `1 D ...`, or `""`.
+- **chauffeur** `Sample`: sections `A P C [D] U W` (D only when the leased car is live; S, the summon read, stays in Lua). `A <attached> <dead> <valid> <calm>` (calm is `?` when the actor is valid and the plugin could not read its combat flag), `P <id> <passenger> <combat>`, `C <live> <id> <carValid> <posValid> <x> <y> <z>`, `D 0|1|2` (AI missing, control information unreadable, no command identity) or `D 3 <ready> <reservations> <busy> <foreign> <ownedActive> <state> <commandId> <currentId> <remaining> <currentClass>` (state `-` none, `?` ask `IsCommandActive`, else 0-6), `U <enabled> <delamain> <available> <laneValid> <destType> <freeRoam> <remaining> <vehicle> <destId>`, `W 0` or `W 1 <id> <px> <py> <pz> <mx> <my> <mz> <quest> <rawName>` (the raw name is the rest of the text). A section the plugin could not read is `<tag> !`. `Drive`: `0` (not the live leased car), `1 D ...`, or `""`.
 - **passage**: `<status> <used> <deferred> <index> <hasFloor> <floor>` then ` x y z` (0 spot), ` reason` (1 none: 1 no-car-floor, 2 physics-unavailable), nothing (2 pending); `4 <used> <code>` is a failed game call.
 
 Behaviour is the Lua's: the decision logic is a line-for-line port and the fixtures replay the recorded

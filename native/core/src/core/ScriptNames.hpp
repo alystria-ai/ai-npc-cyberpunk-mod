@@ -11,4 +11,10 @@ namespace convai
 // with ';' and a parameter signature. "IsInCombat;ScriptedPuppet", "IsInCombat;", "NPCPuppet::IsInCombat"
 // and "IsInCombat" are IsInCombat; "IsInCombatWith" and "XIsInCombat" are not.
 bool ScriptNameIs(const char* aText, const char* aName);
+
+// True when aText is "aClass::aName", optionally followed by ';' and a parameter signature: the full
+// name a function registered on a class can carry ("NPCPuppet::IsInCombat;ScriptedPuppet"). The class must
+// match exactly ("ScriptedPuppet::IsInCombat" is not NPCPuppet's), and aText without a "Class::" prefix is
+// never a match, so a function of another class with the same short name is not taken for this one.
+bool ScriptNameInClass(const char* aText, const char* aClass, const char* aName);
 } // namespace convai

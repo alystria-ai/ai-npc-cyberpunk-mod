@@ -515,6 +515,31 @@ test('every failure of the plugin hands the frame to the Lua path without losing
   assert.match(result.failed, /array check failed/);
 });
 
+test('the first native Safe answers are compared with the Lua check: a plugin that says safe in combat puts faces on Lua, an agreeing one is trusted', () => {
+  // Until the plugin could read the combat flag it answered -1 and the Lua check decided every frame, so Safe's other checks
+  // (scene, dialogue, injury) never ran in the game: its first 40 answers are checked, and the Lua answer is the one used.
+  const wrong = quick('shim', `
+   a.combat=true
+   ConvaiNativeFaces.Safe=function() counts.safeAsked=(counts.safeAsked or 0)+1;return 1 end
+   K.frameResult=function() return 1 end
+   for _=1,6 do step(.1) end
+   assert(K.on==false,'switched off');assert(counts.safeAsked>=1)`);
+  assert.match(wrong.failed, /Safe answered 1 where the Lua check says false/);
+  const right = quick('shim', `
+   ConvaiNativeFaces.Safe=function(actor) counts.safeAsked=(counts.safeAsked or 0)+1;return actor.combat and 0 or 1 end
+   K.frameResult=function() return 1 end
+   local combatReads,real=0,NPCPuppet.IsInCombat
+   NPCPuppet.IsInCombat=function(x) combatReads=combatReads+1;return real(x) end
+   for _=1,120 do step(.1) end
+   assert(K.on==true,'still native');assert(counts.safeAsked>=45,'asked '..tostring(counts.safeAsked))
+   local settled=combatReads
+   assert(settled>=40,'the first answers were compared with the Lua check: '..settled)
+   for _=1,40 do step(.1) end
+   -- after the 40 compared answers the Lua check is no longer run beside the plugin: no more IsInCombat reads
+   assert(combatReads==settled,'trusted: '..combatReads..' reads, '..settled..' before')`);
+  assert.equal(right.failed, undefined);
+});
+
 test('the kill switch returns to the Lua path and back, and restarts the pose from neutral on each flip', () => {
   const result = quick('shim', `
    K.frameResult=function(actor,feature,nid,c,v) counts.fake=(counts.fake or 0)+1;return 1 end

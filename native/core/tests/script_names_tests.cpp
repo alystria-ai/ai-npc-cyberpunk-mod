@@ -30,3 +30,18 @@ TEST(script_name_does_not_match_other_names)
     CHECK(!ScriptNameIs(nullptr, "IsInCombat"));
     CHECK(!ScriptNameIs("IsInCombat", nullptr));
 }
+
+TEST(script_name_in_class_needs_the_exact_class_and_the_name)
+{
+    CHECK(ScriptNameInClass("NPCPuppet::IsInCombat;ScriptedPuppet", "NPCPuppet", "IsInCombat"));
+    CHECK(ScriptNameInClass("NPCPuppet::IsInCombat", "NPCPuppet", "IsInCombat"));
+    CHECK(ScriptNameInClass("NPCPuppet::IsPuppetInCombat;", "NPCPuppet", "IsPuppetInCombat"));
+    CHECK(!ScriptNameInClass("ScriptedPuppet::IsInCombat;ScriptedPuppet", "NPCPuppet", "IsInCombat"));
+    CHECK(!ScriptNameInClass("NPCPuppetX::IsInCombat", "NPCPuppet", "IsInCombat"));
+    CHECK(!ScriptNameInClass("IsInCombat;ScriptedPuppet", "NPCPuppet", "IsInCombat")); // no class prefix
+    CHECK(!ScriptNameInClass("NPCPuppet::IsInCombatWithTarget;ScriptedPuppetEntity", "NPCPuppet", "IsInCombat"));
+    CHECK(!ScriptNameInClass("NPCPuppet::IsInComba", "NPCPuppet", "IsInCombat"));
+    CHECK(!ScriptNameInClass(nullptr, "NPCPuppet", "IsInCombat"));
+    CHECK(!ScriptNameInClass("NPCPuppet::IsInCombat", "", "IsInCombat"));
+    CHECK(!ScriptNameInClass("NPCPuppet::IsInCombat", "NPCPuppet", nullptr));
+}

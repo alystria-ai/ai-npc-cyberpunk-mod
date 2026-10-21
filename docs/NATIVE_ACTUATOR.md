@@ -13,6 +13,32 @@ Port of system 2 in `docs/NATIVE_PORT_BRIEF.md`: the per-companion game reads of
   survive the game: the plugin finds no function with that script name anywhere on the NPCPuppet class chain. The actuator is
   unaffected (Lua reads the flag, as before); the capabilities are 0x3f, not 0x7f. The same lookup is what `chauffeur` (section A) and
   `faces` (`Safe`) use.
+- **Where the flag really lives (read from `r6/cache/final.redscripts`, 2026-10-21; header, 6 tables, 20-byte definitions
+  `name parent offset size flags`, function bodies decoded for their references).** It IS a static function of NPCPuppet,
+  `IsInCombat;ScriptedPuppet` (body flags: static, final; one parameter, a ScriptedPuppet), and its body is
+  `IntEnum(npc.GetPuppetStateBlackboard().GetInt(GetAllBlackboardDefs().PuppetState.HighLevel)) == gamedataNPCHighLevelState.Combat`.
+  Two members say the same thing: `NPCPuppet.IsPuppetInCombat()` (no parameters; its whole body is `IsInCombat(this)`; the base
+  `ScriptedPuppet.IsPuppetInCombat()` has a 3-byte body, read as a plain return of false) and `ScriptedPuppet.GetHighLevelStateFromBlackboard()`
+  (the same blackboard read, answering the `gamedataNPCHighLevelState` enum). PlayerPuppet's `IsInCombat;` and StealthMappin's
+  `IsInCombat` are other functions. So the definition is there and the game's RTTI lookup by the class chain does not show it
+  (why is not known offline: script-defined statics may only be listed in the game's function lists).
+- **The fix (branch `feat/natives-on`).** `convai::game::PuppetInCombat` (`native/core/src/plugin/GameAccess.hpp`) reads the flag
+  through the first route that resolves, once, in this order: (1) the static on the class chain, (2) the same static in the game's
+  list of every class function (full name `NPCPuppet::IsInCombat;...`), (3) the same static as a global function (RTTI table and
+  list), (4) the member `NPCPuppet.IsPuppetInCombat()` (chain, then list; only NPCPuppet's own, the base one always answers false),
+  (5) the member `ScriptedPuppet.GetHighLevelStateFromBlackboard()` compared with the value of `gamedataNPCHighLevelState.Combat`.
+  The RED4ext log says once which route resolved (`Game access: combat flag read through <route>: <function>`) or, when none did,
+  every candidate tried plus what the NPCPuppet chain and the function lists do hold under the names (`Game access: combat flag:
+  no route resolved ...`, 4 lines); `ConvaiNative.GameProbe()` and `Status()` carry `"combat":{"route":...}`. With no route the flag
+  is unknown, as today: the actuator's flag, the faces `Safe` check (-1) and the chauffeur's calm flag are left to Lua. The
+  chauffeur section A no longer fails the whole sample for it (calm is `?` and the shim asks `NPCPuppet.IsInCombat` itself).
+  `StaticFunction` gained the same two list lookups for every static of a script class (PlayerPuppet.GetCurrentVehicleState,
+  StatusEffectSystem.ObjectHasStatusEffectWithTag), read at the first miss of a name and every 256th.
+- **Safety nets for a route that reads wrongly.** The actuator's parity proof compares the plugin's flag with Lua's on every counted
+  sense; combat differences no longer count toward the three that switch the whole actuator off: after three, only the plugin's
+  combat read goes back to Lua (`Native core: actuator combat flag: the plugin and the game differ ...`) and the proof goes on. The
+  faces `Safe` answers newly reach the scene and injury checks, so the first 40 are compared with the Lua check (the Lua answer is
+  used; a difference puts `faces` on Lua).
 - Never A/B-measured, and no native-path number survives: `runtime/perf-probe.json` keeps only the last 5 minutes, which (2026-10-20,
   23:12Z) had no companion (no `actuator=native` line that session) and no `tickNative.*` row. The Lua path measured `companions.update`
   7.6 to 8.8 ms/s (2026-10-12 captures, `docs/PERFORMANCE_NATIVE_PLAN.md`); the 10-13 note that proven native read 1.5 to 2 ms/s higher

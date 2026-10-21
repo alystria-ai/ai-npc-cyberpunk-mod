@@ -769,6 +769,9 @@ local function buildSample(decoded,player,entry,leasedCar,carEntity,api,operatio
             destinationType=w.quest and 'Quest' or 'PlayerTracked',markerPosition={x=w.mx,y=w.my,z=w.mz}}
     end
     sample.actorAttached,sample.actorDead,sample.actorValid,sample.actorCalm=A[1]=='1',A[2]=='1',A[3]=='1',A[4]=='1'
+    -- "?": the plugin could not read the combat flag (it found no route to it in this game build). That one field is the
+    -- original's own read, made here; the rest of the section stays the plugin's.
+    if A[4]=='?' then sample.actorCalm=sample.actorValid and not NPCPuppet.IsInCombat(entry.npc) or false end
     if sample.actorAttached then sample.driverMount=api.mounting(entry) end
     sample.playerMount=mounted(player,api)
     sample.playerPassenger=P[2]=='1'

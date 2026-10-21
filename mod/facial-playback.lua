@@ -495,6 +495,9 @@ end
 -- expression time (a flip of the switch asks again at once, restartPoseBlocks).
 local SAFE_RETRY_S=30
 local safeUnknownUntil=-math.huge
+-- The first SAFE_VERIFY native Safe answers are compared with the Lua check (see safeExpressionActor).
+local SAFE_VERIFY=40
+local safeChecked=0
 -- A switch flip restarts every face's pose block from neutral on both sides (the two paths keep the same numbers in
 -- different places, and copying them across is not worth a path that runs only when a switch is thrown). The feature
 -- objects are dropped too, so no blink or pose written by the other path stays on a reused object.
@@ -590,7 +593,19 @@ local function safeExpressionActor(actor,entity)
     end
     if native and M.expressionClock>=safeUnknownUntil then
         local ok,answer=pcall(native.Safe,actor)
-        if ok and answer==1 then return true elseif ok and answer==0 then return false end
+        if ok and (answer==1 or answer==0) then
+            if safeChecked>=SAFE_VERIFY then return answer==1 end
+            -- The plugin's Safe (combat, scene, dialogue and injury checks) answers for the first time when it can read the
+            -- combat flag (it answered -1 until it could), so its first answers are compared with the Lua check, which is
+            -- the answer used; a difference puts "faces" on Lua for the session.
+            local good,lua=pcall(luaActorSafe,actor)
+            if good and (lua==true)~=(answer==1) then
+                nativeFailed('Safe answered '..answer..' where the Lua check says '..tostring(lua))
+                return lua==true
+            end
+            if good then safeChecked=safeChecked+1 end
+            return good and lua==true
+        end
         if not ok then nativeFailed(answer) else safeUnknownUntil=M.expressionClock+SAFE_RETRY_S end
     end
     local ok,ready=pcall(luaActorSafe,actor)
