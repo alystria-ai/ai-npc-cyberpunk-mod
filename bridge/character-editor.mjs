@@ -15,7 +15,12 @@ export class EditorError extends Error {
   constructor(status, code, errors = []) { super(code); this.status = status; this.code = code; this.errors = errors; }
 }
 const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
-const GROUP_ORDER = {custom: 0, story: 1, everyday: 2};
+const GROUP_ORDER = {custom: 0, v: 1, story: 2, everyday: 3};
+// V's typed lines are spoken with these two voice keys (bridge/v-voice.mjs V_VOICE_KEYS, tested to match). The editor lists them as two voice-only
+// rows in the group 'v': no bio, style, rules or memories, no delete, no gender; just the clip, which every engine reads from the same key.
+export const V_EDITOR_KEYS = Object.freeze(['v-male', 'v-female']);
+const V_NAMES = Object.freeze({'v-male': 'V (male voice)', 'v-female': 'V (female voice)'});
+const isVKey = key => V_EDITOR_KEYS.includes(key);
 
 export class CharacterEditor {
   /**
@@ -56,13 +61,14 @@ export class CharacterEditor {
     if (!row || !['named', 'ambient', 'archetype'].includes(row.kind)) throw new EditorError(404, 'not-found');
     return row;
   }
-  /** Every character the editor offers: the player's own first, then the named ones, then the everyday people, each group by name. A story or own character says whether it has a voice clip. */
+  /** Every character the editor offers: the player's own first, then V's two voices (only with a clip store), then the named ones, then the everyday people, each group by name. A story, own or V row says whether it has a voice clip. */
   catalog() {
     const rows = [...this.personas.rows.values()].filter(row => ['named', 'ambient', 'archetype'].includes(row.kind));
     const shipped = rows.map(row => ({key: row.key, name: String(row.name || row.key), group: row.kind === 'named' ? 'story' : 'everyday', edited: !!this.overrides.get(row.key),
       ...(row.kind === 'named' ? {voice: !!this.voices?.has(row.key)} : {})}));
     const own = (this.custom?.summaries() ?? []).map(item => ({...item, voice: !!this.voices?.has(item.key)}));
-    return [...shipped, ...own]
+    const v = this.voices ? V_EDITOR_KEYS.map(key => ({key, name: V_NAMES[key], group: 'v', edited: false, voiceOnly: true, voice: this.voices.has(key)})) : [];
+    return [...shipped, ...own, ...v]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
   state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage}; }
@@ -94,12 +100,18 @@ export class CharacterEditor {
   /** Everything the page needs for one character. */
   details(key) {
     if (isCustomKey(key) && this.custom?.has(key)) return this.customDetails(key);
+    if (isVKey(key)) return this.vDetails(key);
     const row = this.#row(key), defaults = this.defaults(key), stored = this.overrides.get(key) ?? {};
     const memory = row.kind === 'named' && this.memory ? this.#memoryOf(key) : {available: false, learns: false, summary: '', records: []};
     return {key, name: String(row.name || key), group: row.kind === 'named' ? 'story' : 'everyday', defaults,
       values: Object.fromEntries(FIELDS.map(field => [field, field in stored ? stored[field] : defaults[field]])),
       edited: Object.fromEntries(FIELDS.map(field => [field, field in stored])), memory,
       voice: row.kind === 'named' ? this.#voiceOf(key, 'shipped') : null};
+  }
+  /** One of V's two voice rows: only the voice part (the page draws the voice section and nothing else). 404 without a clip store. */
+  vDetails(key) {
+    if (!this.voices || !isVKey(key)) throw new EditorError(404, 'not-found');
+    return {key, name: V_NAMES[key], group: 'v', voiceOnly: true, voice: this.#voiceOf(key, 'v')};
   }
   // The voice part of a character's details: its clip (without the words), the words said in it, and what speaks while it has none.
   #voiceOf(key, fallback) {
@@ -169,9 +181,10 @@ export class CharacterEditor {
   }
 
   // ---- voice clips (bridge/player-voices.mjs): a story character's, or one of the player's own
-  /** Throws EditorError 404 unless `key` may have a clip: a story character, or a character the player made. Everyday people have none. */
+  /** Throws EditorError 404 unless `key` may have a clip: a story character, a character the player made, or one of V's two voice keys. Everyday people have none. */
   checkVoiceKey(key) {
     if (!this.voices) throw new EditorError(404, 'not-found');
+    if (isVKey(key)) return;
     if (isCustomKey(key)) this.#custom(key);
     else if (this.#row(key).kind !== 'named') throw new EditorError(404, 'not-found');
   }
@@ -199,7 +212,7 @@ export class CharacterEditor {
     if (typeof text !== 'string') throw new EditorError(400, 'bad-request');
     try { await this.voices.setTranscript(key, text); return this.details(key); } catch (error) { throw this.#voiceError(error); }
   }
-  /** Removes the key's clip (the character goes back to the shipped voice, or the generic one, from its next line). Removing none is not an error. */
+  /** Removes the key's clip (the character goes back to the shipped voice, or the generic one, V to the voice of the installed V voice mod or the shipped V voice, from its next line). Removing none is not an error. */
   async clearVoice(key) {
     this.checkVoiceKey(key);
     try { await this.voices.clear(key); return this.details(key); } catch (error) { throw this.#voiceError(error); }

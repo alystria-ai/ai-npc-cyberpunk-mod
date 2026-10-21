@@ -9,7 +9,7 @@ How the player release is built, what it contains and how it starts. Players rea
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
 | `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, beside the full Runtime | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
@@ -62,6 +62,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
     llama-cpp/               the llama.cpp engine of Local AI: llama-server, llama-fit-params and the libraries they load (26 files; the Runtime update zip delivers a new build)
+    vgmstream/               vgmstream-cli.exe and the ten libraries it loads (the decoder of a player's V voice mod; 11 files, unmodified official release)
     bridge/                  production import closure + worker scripts + the supervisor
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
@@ -175,6 +176,32 @@ smaller), its marker names no `server`, and it needs a Runtime from 0.2.7 on (sa
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Bonsai 2 4B (PrismML, a Qwen3.5-based model) Apache-2.0, granite-embedding
 Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
+
+### vgmstream in the Runtime
+
+The Runtime carries `vgmstream-cli.exe` and ten libraries it loads, in `app/vgmstream/` (11 files, 8.1 MB, 3.4 MB zipped), so the bridge can decode the Wwise voice-over of a
+player's V voice mod and build V's voice reference from it (one line at a time, on the player's own PC; the process exits when the build is done). The files are the unmodified files
+of the official vgmstream Windows release **r2055** (`vgmstream-cli.exe -h` prints "r2055 (Sep 28 2025)"): `vgmstream-cli.exe`, `avcodec-vgmstream-59.dll`, `avformat-vgmstream-59.dll`,
+`avutil-vgmstream-57.dll`, `libatrac9.dll`, `libcelt-0061.dll`, `libcelt-0110.dll`, `libg719_decode.dll`, `libmpg123-0.dll`, `libspeex-1.dll`, `libvorbis.dll`. The release's
+`swresample` and `zlib-ng2` DLLs, the Winamp and XMPlay plugins and the other helper DLLs are not needed and are not shipped.
+
+- **Pin:** `toolchain.vgmstream` in `release.config.json` (version, build date, licence, release and source URLs, `runtimeFolder`, `licenceFolder`, `vendorFolder`, and `files`: each
+  file's size and SHA-256).
+- **Input (nothing is downloaded):** `addRuntimeVgmstream` in `build-release.mjs` reads the 11 files from `vendor/vgmstream/` of the working checkout (`vendor/` is git-ignored, so
+  it is read from the checkout and not from the exported commit, like `assets/v-voice/*.wav`) and stops the build on a missing file or one that differs from the pin. **A release is built
+  on a PC whose `vendor/vgmstream/` has those files**: copy the folder from the machine that has it (the CI release workflow has no source for them, so it cannot build the Runtime
+  until the files are in the runner; it needs the files added to its inputs first).
+- **Licences:** `packaging/licenses/vgmstream/COPYING` (ISC, the project's own licence text) and `NOTICE-bundled-libraries.txt` (the libraries, their licences, the source location) are
+  committed and go to `app/licenses/vgmstream/`; the build adds two lines to `app/licenses/THIRD-PARTY-NOTICES.txt`, and `THIRD_PARTY_NOTICES.md` has the table rows. FFmpeg (avcodec,
+  avformat, avutil) and mpg123 are LGPL-2.1-or-later: they are the unmodified release DLLs, loaded dynamically, so a compatible build can replace them; their sources and build scripts
+  are in https://github.com/vgmstream/vgmstream at the tag r2055. libVorbis, Speex and CELT are BSD-3-Clause, LibAtrac9 is MIT, and the vgmstream release gives no licence text for
+  `libg719_decode.dll` (the notice says so).
+- **Checks:** `packaging/lib/runtime-required.mjs` requires the 11 files (group "vgmstream decoder") and the two licence files (group "vgmstream licences"), so
+  `check-runtime-contents.mjs` and the install test refuse a Runtime without them; the install test also starts `app/vgmstream/vgmstream-cli.exe -h` from the extracted install and expects
+  the pinned release's banner. The Runtime update zip delivers the folder like any other new or changed file (a Runtime update from 0.2.7 adds the 13 files); nothing in the start step
+  protects it, so a later Runtime may drop a library with a removal entry. Tests: `packaging/vgmstream-in-runtime.test.mjs`.
+- **Updating vgmstream:** replace the files in `vendor/vgmstream/` with the new official release's, update `version`, `build`, `release`, `source` and the sizes and hashes in
+  `toolchain.vgmstream`, the version in `COPYING`/`NOTICE-bundled-libraries.txt` and `THIRD_PARTY_NOTICES.md`, and the library versions if they changed.
 
 ### Voice-input packs (`micpack-european`, `micpack-asian`)
 
@@ -698,6 +725,7 @@ into a release. Inputs:
 - The launcher, compiled from `native/autostart` with MSVC (`/Brepro`, reproducible), and the native plugin from `native/core`
   (`--native PATH` supplies a prebuilt DLL, `--no-native` omits it).
 - `ffmpeg`, for the pre-built Mistral voice references.
+- `vendor/vgmstream/` (git-ignored, from the official vgmstream release; the 11 files pinned in `toolchain.vgmstream`), for the Runtime ("vgmstream in the Runtime" above).
 - The Local AI files (llama.cpp release zip, embedding model, chat models), downloaded from their pinned URLs (no secret needed). The Runtime, the Local AI packs and the Mature packs use the same llama.cpp zip and the packs the same embedding model, so those small files are fetched once. A Runtime build needs the llama.cpp zip (36.8 MB) as well; with `--models local` it is read from the developer folder's `dl-llama-vulkan/vulkan.zip` and checked against the pinned hash.
 - The optional Mature packs' models (`--packages mature-lite` or `mature-standard`, never in the default set; only the model of the pack being built), from the private bucket's `mature/` mirror
   (`packaging/fetch-models.py --mature --tier lite|good`, SHA-256 checked against `maturePack.tiers`, so a takedown of the community repositories cannot break a build), or from

@@ -381,7 +381,7 @@ async function main() {
     const required = await requiredRuntimeFiles(project);
     const installed = new Set(Object.values(required).flat().filter(rel => existsSync(join(game, rel))));
     const absent = missingRuntimeFiles(installed, required);
-    check("the Runtime carries V's voice clips, its OmniVoice lists and the llama.cpp engine", Object.keys(absent).length === 0,
+    check("the Runtime carries V's voice clips, its OmniVoice lists, the llama.cpp engine and vgmstream", Object.keys(absent).length === 0,
       Object.keys(absent).length ? Object.entries(absent).map(([group, files]) => `${group}: ${files.map(file => file.split('/').pop()).join(', ')}`).join('; ') : `${Object.values(required).flat().length} files`);
     // The engine is part of the Runtime (docs/LOCAL_AI.md, "The engine is in the Runtime"): the server starts from there with nothing else installed, and the
     // free-memory fit tool beside it answers. This needs no Local AI pack and no graphics card, so it runs on every install.
@@ -394,6 +394,15 @@ async function main() {
         output.split('\n').find(line => /build/.test(line)) ?? `exit ${runtimeServer.status}`);
       const fitTool = spawnSync(join(engineDirectory, 'llama-fit-params.exe'), ['--help'], {env: cleanEnv(), encoding: 'utf8'});
       check("the Runtime's llama-fit-params starts", fitTool.status === 0 && /fit/i.test(`${fitTool.stdout}${fitTool.stderr}`), `exit ${fitTool.status}`);
+    }
+    // vgmstream (the decoder of a player's V voice mod) is part of the Runtime: the CLI starts from app/vgmstream/ with nothing else installed, loads its libraries from
+    // beside itself and names the pinned release. The files and licences themselves are in `required` above.
+    {
+      const vgmstreamSpec = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8')).toolchain.vgmstream;
+      const vgmstream = spawnSync(join(app, vgmstreamSpec.runtimeFolder, vgmstreamSpec.executable), ['-h'], {env: cleanEnv(), encoding: 'utf8'});
+      const help = `${vgmstream.stdout}${vgmstream.stderr}`;
+      check("the Runtime's vgmstream-cli starts and is the pinned release", help.includes(`vgmstream CLI decoder ${vgmstreamSpec.version} (${vgmstreamSpec.build})`),
+        help.split(/\r?\n/).find(line => /vgmstream/.test(line)) ?? `exit ${vgmstream.status}`);
     }
     const vScript = join(work, 'v-voice-check.mjs');
     await writeFile(vScript, `

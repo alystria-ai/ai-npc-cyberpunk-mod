@@ -87,6 +87,10 @@ test('pinned toolchain entries are official HTTPS downloads with SHA-256 values'
     assert.match(item.sha256, /^[a-f0-9]{64}$/, name);
   }
   for (const spec of Object.values(config.toolchain.omniModel.files)) assert.match(spec.sha256, /^[a-f0-9]{64}$/);
+  // vgmstream is not downloaded: its 11 files are read from vendor/vgmstream/ and checked against these hashes (packaging/vgmstream-in-runtime.test.mjs).
+  assert.equal(Object.keys(config.toolchain.vgmstream.files).length, 11);
+  for (const spec of Object.values(config.toolchain.vgmstream.files)) assert.match(spec.sha256, /^[a-f0-9]{64}$/);
+  assert.match(config.toolchain.vgmstream.source, /^https:\/\/github\.com\/vgmstream\/vgmstream\/tree\/r\d+$/);
   assert(config.limits.assetBytes < 2 * 1024 ** 3);
 });
 
@@ -316,7 +320,7 @@ test('the project licence keeps Convai selectable and the notices cover the bund
   assert.match(licence, /user-selectable Convai integration/);
   assert.match(licence, /Copyright \(c\) 2026 Alystria AI/);
   const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
-  for (const name of ['AGPL-3.0', 'CC-BY-NC', 'Node.js', 'CPython', 'BSD-2-Clause', 'espeak-ng', 'CC-BY-4.0', 'Kyutai']) {
+  for (const name of ['AGPL-3.0', 'CC-BY-NC', 'Node.js', 'CPython', 'BSD-2-Clause', 'espeak-ng', 'CC-BY-4.0', 'Kyutai', 'vgmstream', 'ISC', 'LGPL-2.1-or-later']) {
     assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
   }
 });

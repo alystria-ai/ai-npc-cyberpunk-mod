@@ -43,13 +43,14 @@ import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
-import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
+import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
-import {VVoice, loadVVoiceReferences, extraVoices, vSettingsFor} from './v-voice.mjs';
+import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
+import {loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
@@ -217,15 +218,20 @@ const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line =
 await languagePacks.scan().catch(error => console.error('[VoiceLanguagePacks] scan failed:', error?.message ?? error));
 // Developer mode: the last spoken reply's audio and its reference, in <state>/debug (bridge/last-reply-capture.mjs). Off otherwise, and then it costs nothing.
 const replyCapture = new LastReplyCapture({directory: resolve(stateDirectory, CAPTURE_FOLDER), log: line => console.error('[Debug] ' + line)});
-const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')],
-  {log: line => console.error('[VVoice] ' + line)});
+// A player's V voice mod (docs/V_VOICE.md, "V voice mods"): once, here, the archives of archive/pc/mod and REDmod are looked at (cached by name, size and
+// time) and the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip for V (the editor) wins over both.
+// Nothing here runs again during a session, and the decoder process it may start exits when its line is done. `source` on each voice names the reference.
+const {report: vVoiceModReport, ...vVoiceReferences} = await loadVVoiceReferencesWithMods({
+  shippedDirectories: [...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')], game, stateDirectory, project,
+  log: line => console.error('[VVoice] ' + line)});
 // The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
 // they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
 // of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
 // removed while the service runs counts from that character's next line (LiveVoices, below); a custom character with no clip speaks with the
 // voice of its gender (aliases below). Only story characters and the player's existing characters may have one; a clip of a character the player
 // deleted is removed here.
-const playerVoiceAllowed = key => isCustomKey(key) ? customCharacters.has(key) : roster.some(row => row?.key === key && row.kind === 'named');
+// V's two voices (v-male, v-female) take a clip of the player's too (the editor's V rows): the clip beats a V voice mod's reference and the shipped one.
+const playerVoiceAllowed = key => isCustomKey(key) ? customCharacters.has(key) : Object.values(V_VOICE_KEYS).includes(key) || roster.some(row => row?.key === key && row.kind === 'named');
 await playerVoices.prune(key => !isCustomKey(key) || customCharacters.has(key));
 const playerVoiceExtras = await playerVoices.extras(playerVoiceAllowed);
 const originalVoiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
@@ -242,6 +248,12 @@ const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.sho
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
   voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
   shipped: shippedVoicesReader(originalVoiceConfigPaths), log: message => console.error('[PlayerVoices] ' + message),
+  // V is not in the shipped configurations (its voices are merged in as extras, from the mod-built or shipped clip copied to voice-references/addons):
+  // with the player's clip gone V goes back to that reference, with no restart.
+  fallback: key => {
+    const voice = vGenderOfKey(key) ? vVoiceReferences.voices[vGenderOfKey(key)] : null;
+    return voice ? {reference: `runtime/voice-references/addons/${key}.wav`, sha256: voice.sha256, transcript: voice.transcript} : null;
+  },
   apply: update => { const applied = localVoice.setVoices(update); if (applied) { dropPrefetch(); prefetchObserved = ''; } return applied; }});
 // What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
 // start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
@@ -1188,7 +1200,9 @@ const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
 const vGenderMemory = {
   gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
   save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
-const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory,
+// Which reference V speaks from, for the log and the support report: the player's own clip, a V voice mod's ('mod:<archive file name>') or the shipped one.
+const vReferenceLabel = gender => playerVoices.has(V_VOICE_KEYS[gender]) ? 'manual' : vVoiceReferences.voices[gender]?.source ?? 'shipped';
+const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory, referenceLabel: vReferenceLabel,
   planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.expected(input.text)}),
   // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
   // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
@@ -1233,8 +1247,9 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
     try {
-      console.error(`[VVoice] profile=${input.profileKey} voice=${summary.voice} engine=${summary.engine} result=${summary.result}`
+      console.error(`[VVoice] profile=${input.profileKey} voice=${summary.voice} engine=${summary.engine} ref=${JSON.stringify(summary.reference ?? 'shipped')} result=${summary.result}`
         + `${summary.reason ? ' reason=' + summary.reason : ''} marks=${JSON.stringify(summary.marks)}`);
+      routingLog.record(describeVLine({input, summary}));
       void measure(input, {vVoice: summary}).catch(() => {});
     } catch { /* a log line never affects a reply */ }
   }});
@@ -3416,7 +3431,8 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
-  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report()})});
+  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report(),
+    vVoiceMods: {...vVoiceModReport, references: Object.fromEntries(Object.keys(V_VOICE_KEYS).map(gender => [gender, vVoiceReferences.voices[gender] || playerVoices.has(V_VOICE_KEYS[gender]) ? vReferenceLabel(gender) : null]))}})});
 // Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
 // process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.
 const bridgeStartedAt = Date.now() - Math.round(process.uptime() * 1000);

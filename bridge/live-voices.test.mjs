@@ -38,7 +38,7 @@ async function rig(options = {}) {
   const allowed = key => roster.includes(key) || customs.has(key);
   const players = await PlayerVoices.open({dir, onChanged: key => live?.refresh(key)});
   const tables = {pocket: {'judy-alvarez': shipped('judy'), 'sam-hill': shipped('sam')}, short: {'judy-alvarez': shipped('short-judy')}, long: {'judy-alvarez': shipped('long-judy'), 'sam-hill': shipped('long-sam')}};
-  live = new LiveVoices({players, allowed, folder: players.folder, voices: options.voices ?? tables, shipped: options.shipped ?? (async () => tables),
+  live = new LiveVoices({players, allowed, folder: players.folder, voices: options.voices ?? tables, shipped: options.shipped ?? (async () => tables), fallback: options.fallback,
     apply: update => { calls.push(update); return options.apply ? options.apply(update) : true; }});
   return {dir, players, live, calls, tables, customs, allowed, cleanup: () => rm(dir, {recursive: true, force: true})};
 }
@@ -54,6 +54,10 @@ test('withPlayerVoice: a clip replaces the key, no clip restores the shipped voi
   assert.deepEqual(voices.a, shipped('a'), 'the table that was given is not modified');
   assert.deepEqual(withPlayerVoice(withClip, 'a', null, voices).a, voices.a, 'no clip: the shipped descriptor is back');
   assert.equal(Object.hasOwn(withPlayerVoice({...voices, c: clip}, 'c', null, voices), 'c'), false, 'no clip and no shipped voice: the key is gone');
+  const fallback = {reference: 'runtime/voice-references/v.wav', sha256: 'd'.repeat(64), transcript: 'V words.'};
+  assert.deepEqual(withPlayerVoice({a: clip}, 'a', null, null, fallback).a, fallback, 'no clip, no shipped voice, a fallback: the key keeps the fallback');
+  assert.deepEqual(withPlayerVoice(voices, 'a', null, voices, fallback).a, voices.a, 'the shipped voice comes before the fallback');
+  assert.deepEqual(withPlayerVoice({a: clip}, 'a', clip, null, fallback).a, clip, 'a clip comes before the fallback');
   assert.equal(voicesOf({voices: {a: 1}}).a, 1);
   assert.equal(voicesOf({}), null);
   assert.equal(voicesOf(null), null);
@@ -171,6 +175,54 @@ test('LiveVoices: a character the player made has no shipped voice, so its key l
     await r.live.refresh(key);
     assert.equal(Object.hasOwn(r.calls.at(-1).pocket, key), false);
   } finally { await r.cleanup(); }
+});
+
+test('LiveVoices: the keys of V with a fallback stay in the tables when the clip goes, a clip sets them, and a key without a fallback still leaves', async () => {
+  const fallbackFor = {'v-male': {reference: 'runtime/voice-references/v-male.wav', sha256: sha('v male'), transcript: 'V male words.'}};
+  const seen = [];
+  const r = await rig({roster: ['judy-alvarez', 'v-male', 'v-female', 'sam-hill'], fallback: key => { seen.push(key); return fallbackFor[key] ?? null; },
+    voices: {pocket: {'judy-alvarez': shipped('judy'), 'v-male': fallbackFor['v-male']}, short: {'v-male': fallbackFor['v-male']}, long: {'v-male': fallbackFor['v-male']}},
+    shipped: async () => ({pocket: {'judy-alvarez': shipped('judy')}, short: {}, long: {}})});
+  try {
+    await r.players.set('v-male', clipOf(3), WORDS);
+    await r.live.chain;
+    const entry = r.players.get('v-male'), clip = {reference: 'runtime/player-voices/v-male.wav', sha256: entry.sha256, transcript: WORDS};
+    for (const table of [r.calls.at(-1).pocket, r.calls.at(-1).omni.short, r.calls.at(-1).omni.long]) assert.deepEqual(table['v-male'], clip);
+    assert.deepEqual(seen, [], 'a key with a clip does not ask for the fallback');
+    await r.players.clear('v-male');
+    await r.live.chain;
+    const removed = r.calls.at(-1);
+    for (const table of [removed.pocket, removed.omni.short, removed.omni.long]) assert.deepEqual(table['v-male'], fallbackFor['v-male'], 'V keeps a voice: the fallback descriptor');
+    assert.deepEqual(seen, ['v-male']);
+    assert.deepEqual(removed.pocket['judy-alvarez'], shipped('judy'));
+    // A key the fallback has nothing for, and a fallback that throws, leave the table as before.
+    await r.players.set('v-female', clipOf(4), WORDS);
+    await r.players.clear('v-female');
+    await r.live.chain;
+    assert.equal(Object.hasOwn(r.calls.at(-1).pocket, 'v-female'), false, 'the fallback has no descriptor for it: the key is gone');
+    r.live.fallback = () => { throw new Error('no reference'); };
+    await r.players.set('sam-hill', clipOf(1), WORDS);
+    await r.players.clear('sam-hill');
+    await r.live.chain;
+    assert.equal(Object.hasOwn(r.calls.at(-1).pocket, 'sam-hill'), false);
+  } finally { await r.cleanup(); }
+});
+
+test('LiveVoices: without a fallback a key the shipped files lack leaves the table (unchanged), and the fallback is never used for a character the shipped files have', async () => {
+  const r = await rig({roster: ['judy-alvarez', 'v-male'], fallback: () => shipped('never'), voices: {pocket: {'judy-alvarez': shipped('judy')}, short: null, long: null}});
+  try {
+    await r.players.set('judy-alvarez', clipOf(1), WORDS);
+    await r.players.clear('judy-alvarez');
+    await r.live.chain;
+    assert.deepEqual(r.calls.at(-1).pocket['judy-alvarez'], r.tables.pocket['judy-alvarez'], 'the shipped voice wins over the fallback');
+  } finally { await r.cleanup(); }
+  const plain = await rig({roster: ['v-male']});
+  try {
+    await plain.players.set('v-male', clipOf(2), WORDS);
+    await plain.players.clear('v-male');
+    await plain.live.chain;
+    assert.equal(Object.hasOwn(plain.calls.at(-1).pocket, 'v-male'), false, 'no fallback option: the old behaviour');
+  } finally { await plain.cleanup(); }
 });
 
 test('LiveVoices: a clip whose file no longer matches the index is not used, an engine with no voices is left alone, quick saves end as the last says', async () => {

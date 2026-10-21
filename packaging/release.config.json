@@ -72,6 +72,35 @@
         "audio_tokenizer/model.safetensors": {"size": 805665628, "sha256": "fe7c5e8785e0a05833e1bfc3e002ec7f55af21e306b2e7154a448c1f54ccfb0d"},
         "audio_tokenizer/preprocessor_config.json": {"size": 206, "sha256": "ae61eea88558608ee2fa86d2aec9fce8d99a5ff75d09cb7651ccce21ae1d9084"}
       }
+    },
+    "vgmstream": {
+      "notes": "vgmstream-cli decodes the Wwise voice-over of a player's V voice mod (bridge/ reads it one line at a time, on the player's PC, and the process exits after the build). Shipped in the Runtime at app/<runtimeFolder>/: the unmodified files of the official vgmstream Windows release (the release also has swresample and zlib-ng DLLs, which the voice-over decode does not need, and plugins for media players: none of those are shipped). The build reads them from <repo>/vendor/vgmstream/ (git-ignored; no download) and checks each against the size and SHA-256 recorded here. The licence texts are committed in packaging/licenses/vgmstream/ and go to app/<licenceFolder>/ (a licence text is hashed with its line ends as LF, so a checkout with CRLF or LF checks the same).",
+      "version": "r2055",
+      "build": "Sep 28 2025",
+      "license": "ISC",
+      "release": "https://github.com/vgmstream/vgmstream/releases/tag/r2055",
+      "source": "https://github.com/vgmstream/vgmstream/tree/r2055",
+      "vendorFolder": "vendor/vgmstream",
+      "runtimeFolder": "vgmstream",
+      "licenceFolder": "licenses/vgmstream",
+      "executable": "vgmstream-cli.exe",
+      "files": {
+        "vgmstream-cli.exe": {"size": 2334720, "sha256": "71027230c2f12a8bd63067d304c399290c287e45c258e20b4ddc85dce8349374"},
+        "avcodec-vgmstream-59.dll": {"size": 1981952, "sha256": "dc6f469c2f1728d8f8809223c190af693ee48e5e005b73711fc356c91b8c3adc"},
+        "avformat-vgmstream-59.dll": {"size": 1053184, "sha256": "909cf4b58656b0ed6913ff6e9964b76eadeaf65f1396852d90d4c8bc0cc18f05"},
+        "avutil-vgmstream-57.dll": {"size": 1381376, "sha256": "89ef867a5bb25e203f61bb2d2add2d1b02c672a3706095c4522189f38489cf3c"},
+        "libatrac9.dll": {"size": 280064, "sha256": "baf0d5e741451761b67364485f52b1844df79d1a26e7ce7e655bde7317520bb4"},
+        "libcelt-0061.dll": {"size": 101093, "sha256": "6421f8c1846d52b1ff43a6e570cfba80cc85c9f032f59af07cb65a35647bb218"},
+        "libcelt-0110.dll": {"size": 92375, "sha256": "81da4f358d9aef949a6dc23cdbd0bf4432a1a1f43c89fd5dc3a30e712a5f4012"},
+        "libg719_decode.dll": {"size": 134656, "sha256": "385f1dde89acddebd03fdd61858395703ba7bf146e19a965479ccee702be3069"},
+        "libmpg123-0.dll": {"size": 426551, "sha256": "2bae5dcb2071b09d9b1c1803ec345954e80046bdc4cae08bc85853040ac6202b"},
+        "libspeex-1.dll": {"size": 121633, "sha256": "4373dd6b292fe4a65f91d94e50802b7aedff6a4f7544d05274cab105aee08a6a"},
+        "libvorbis.dll": {"size": 218112, "sha256": "f7b2b3d82abfcfeccf1c1135c7a333eb280c0d1ebf3951281bbb7759c055b092"}
+      },
+      "licences": {
+        "COPYING": {"path": "packaging/licenses/vgmstream/COPYING", "sha256": "a146f3d248872acbe15ec4dd7b84910fa766370b6042ff17e099dbf2a9406cea"},
+        "NOTICE-bundled-libraries.txt": {"path": "packaging/licenses/vgmstream/NOTICE-bundled-libraries.txt"}
+      }
     }
   },
   "native": {

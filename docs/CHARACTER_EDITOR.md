@@ -222,6 +222,15 @@ Saving a clip, changing its words or removing it takes effect with **no restart 
 
 Not changed: a worker of the first OmniVoice protocol (`version: 1`, the three original voices) cannot take a live change, so nothing is sent to it; the next start merges the clip as before.
 
+### V's own clip (branch `feat/v-voice-mods`)
+
+V's typed lines are spoken with two voice keys, `v-male` and `v-female` (`bridge/v-voice.mjs` `V_VOICE_KEYS`), and a player clip stored under a key replaces that key in every merged configuration. The editor therefore lists two voice-only rows in a group of their own, **V's voice**, between the player's own characters and the story characters: **V (male voice)** and **V (female voice)** (`catalog()` items `{key, name, group: 'v', edited: false, voiceOnly: true, voice}`; they exist only when the clip store does).
+
+- A row has the Voice section and nothing else: no tabs, no bio, style, rules or memories, no reset, no delete, no gender. `details('v-male')` is `{key, name, group: 'v', voiceOnly: true, voice: {clip, transcript, fallback: 'v'}}`; saving text, memories or a summary for those keys is 404. The clip routes (`PUT`/`DELETE /api/voice/v-male`, `/text`, `/audio`) work through the same `checkVoiceKey`, which allows exactly those two keys besides story and own characters.
+- The page says: "Used for V's typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it." With no clip it says "V speaks with the voice of your installed V voice mod, or the shipped V voice.", and the remove confirmation says V goes back to that.
+- Applying live: `LiveVoices` has an optional `fallback(key)` (sync; `{reference, sha256, transcript}` or null). V is merged as an extra, so the shipped configuration files have no descriptor for its keys; when a V clip is removed and the shipped file has none, the key takes the fallback descriptor (the mod-built or shipped V reference, supplied by the bridge) instead of leaving the tables, so V keeps speaking at once. Without a fallback, or when it gives null, a key the shipped files lack still leaves the tables (a character the player made).
+- The bridge must also let the two keys through `playerVoiceAllowed` so the clips are merged at start and `LiveVoices.descriptor` accepts them.
+
 ### One place for the clips
 
 The clip file, the index (`player-voices.json`) and the folder every engine reads are all derived from the one `dir` the store is opened with, the service's state folder (`CYBERPUNK_CONVAI_STATE`): `%LOCALAPPDATA%\AiNpcCyberpunkMod\data` in an install, `runtime/` in a source checkout. Nothing else builds those paths (a test reads the bridge's source for it), and the start-up log line `[PlayerVoices] voice clips and their list are kept in ...` names both.

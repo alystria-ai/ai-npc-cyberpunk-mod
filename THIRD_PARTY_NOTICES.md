@@ -20,8 +20,22 @@ This file states what each component's published licence says. It is not legal a
 | sherpa-onnx and sherpa-onnx-core (run the Moonshine model on the CPU) | 1.13.6 | Apache-2.0 | `*.dist-info` folders under `app/python/Lib/site-packages` |
 | Playwright, playwright-core | 1.58.2 | Apache-2.0 | `app/node_modules/<name>/LICENSE` |
 | Convai Web SDK (`@convai/web-sdk`), compiled into `app/assets/realtime-client.js` | 1.7.0 | Apache-2.0 | `app/licenses/client/` |
+| vgmstream `vgmstream-cli.exe`, the command line decoder of the vgmstream project, in `app/vgmstream/`. It decodes the Wwise voice-over of a player's V voice mod, one line at a time, only on the player's own PC; the process exits when V's voice reference is built | r2055 (build of Sep 28 2025), the unmodified official Windows release files | ISC, Copyright (c) 2008-2025 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm, Christopher Snowhill, NicknineTheEagle, bxaimc, Thealexbarney, CyberBotX, et al (and the portions named in the file) | `app/licenses/vgmstream/COPYING`; source: https://github.com/vgmstream/vgmstream/tree/r2055 |
+| FFmpeg libraries `avcodec-vgmstream-59.dll`, `avformat-vgmstream-59.dll`, `avutil-vgmstream-57.dll` and mpg123 `libmpg123-0.dll`, loaded by vgmstream-cli (in `app/vgmstream/`) | FFmpeg n5.1.2 as built by vgmstream; mpg123 as built by vgmstream | LGPL-2.1-or-later. These are the unmodified official vgmstream release DLLs, dynamically linked, so a compatible build can replace them; the FFmpeg build also links the Opus library (BSD-3-Clause) | `app/licenses/vgmstream/NOTICE-bundled-libraries.txt`; source and build scripts: https://github.com/vgmstream/vgmstream at the release tag r2055; FFmpeg: https://ffmpeg.org/, mpg123: https://www.mpg123.de/ |
+| `libvorbis.dll`, `libspeex-1.dll`, `libcelt-0061.dll`, `libcelt-0110.dll` and `libatrac9.dll`, loaded by vgmstream-cli (in `app/vgmstream/`) | libVorbis 1.3.7; Speex; CELT 0.6.1 and 0.11.0; LibAtrac9 (all as built by vgmstream) | BSD-3-Clause (libVorbis, Speex, CELT, Xiph.Org Foundation and others); MIT (LibAtrac9, Alex Barney) | `app/licenses/vgmstream/NOTICE-bundled-libraries.txt`; source: https://github.com/vgmstream/vgmstream at the release tag r2055 |
+| `libg719_decode.dll`, a G.719 decoder loaded by vgmstream-cli (in `app/vgmstream/`; the voice-over decoding does not use it) | as built by vgmstream | the vgmstream release gives no licence text for this library, so none is reproduced here | source and build: the `ext_libs` folder of https://github.com/vgmstream/vgmstream at the release tag r2055 |
 | CMU Pronouncing Dictionary, inside the lip-sync lexicon | as distributed with CMU Sphinx / Rhubarb Lip Sync | BSD-2-Clause, Copyright (c) 1993-2015 Carnegie Mellon University | `app/models/lipsync/face-lexicon-NOTICE.txt` |
 | Game-vocabulary pronunciations in the same lexicon | 6,553 entries | generated with espeak-ng; espeak-ng itself is not shipped | `app/models/lipsync/face-lexicon-NOTICE.txt` |
+
+### vgmstream (V voice mods)
+
+The Runtime carries `vgmstream-cli.exe` and ten libraries it loads in `app/vgmstream/`: the unmodified files of the official vgmstream Windows release r2055,
+pinned by size and SHA-256 in `packaging/release.config.json` (`toolchain.vgmstream`). The mod starts it only to decode the voice-over of a V voice mod that the player
+installed, one line at a time, on the player's own PC, to build V's voice reference; the process exits when the build is done and nothing is sent anywhere. The audio it
+decodes belongs to the player's game and voice mod, not to this package. vgmstream is ISC-licensed; the FFmpeg and mpg123 libraries are LGPL-2.1-or-later and are used as
+separate DLLs, unmodified and dynamically linked, so a player can replace them with another build. Their licences and the source locations are in
+`app/licenses/vgmstream/` (`COPYING`, `NOTICE-bundled-libraries.txt`); the sources and build scripts of every library are in the vgmstream repository at the tag `r2055`.
+The G.719 library is the one component whose licence text the release does not give.
 
 ### Pocket voice model (Kyutai)
 

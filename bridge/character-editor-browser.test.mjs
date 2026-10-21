@@ -67,8 +67,8 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   assert.equal(await page.title(), 'Character editor');
   assert.equal(await page.locator('#banner').isHidden(), true, 'no warning when a text provider answers');
   assert.match(await page.locator('#sub').textContent(), /Mistral, Local AI and Custom\. They do not apply to Convai\./);
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
-  assert.equal(await page.locator('#list button.pick').count(), rows.length);
+  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['V’s voice', 'Story characters', 'Everyday people']);
+  assert.equal(await page.locator('#list button.pick').count(), rows.length + 2);
   await e.shot('01-start');
 
   // Search narrows the list; choosing a character shows the shipped bio and a counter.
@@ -207,11 +207,11 @@ test('with Convai answering the page says the changes do not apply yet, and the 
   assert.equal(await page.locator('html').getAttribute('lang'), 'de');
   assert.equal(await page.locator('#close').textContent(), 'Editor schließen');
   assert.equal(await page.getAttribute('#search', 'placeholder'), 'Charaktere suchen');
-  assert.equal((await page.locator('#list h3').first().textContent()), 'Story-Charaktere');
+  assert.equal((await page.locator('#list h3').nth(1).textContent()), 'Story-Charaktere');
   assert.equal(await page.locator('#main .empty').textContent(), 'Wähle links einen Charakter.');
   assert.equal(await page.locator('#foot').textContent(), 'Changes are saved on this computer and used from the next reply.', 'a sentence without a translation is shown in English');
   await e.shot('06-convai-banner-german');
-  await page.locator('#list button.pick').first().click();
+  await page.locator('#list button.pick').nth(2).click();
   await page.waitForSelector('#f-bio');
   await e.shot('07-convai-bio');
   // A saved edit still works (it is used the moment a text provider answers).
@@ -222,7 +222,7 @@ test('with Convai answering the page says the changes do not apply yet, and the 
 test('Close editor stops the server and says so; the page works at phone width and in the light theme', {skip, timeout: 120000}, async t => {
   const e = await open(t, {viewport: {width: 390, height: 844}, scheme: 'light'});
   const {page} = e;
-  await page.locator('#list button.pick').first().click();
+  await page.locator('#list button.pick').nth(2).click();
   await page.waitForSelector('#f-bio');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true, 'no sideways scrolling at phone width');
   await e.shot('08-phone-light');
@@ -289,7 +289,7 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   assert.doesNotMatch(await page.locator('#main .voice').textContent(), /\bnull\b|undefined/, 'no missing part is written out as a word');
   assert.equal(await page.locator('#main .voice h3').textContent(), 'Voice');
   const key = e.custom.list()[0].key;
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Your characters', 'Story characters', 'Everyday people']);
+  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Your characters', 'V’s voice', 'Story characters', 'Everyday people']);
   assert.equal(await page.locator('#list button.pick').first().textContent(), 'Rebecca');
   assert.equal(e.personas.persona(key).name, 'Rebecca', 'the prompt reads it from the next reply');
   await e.shot('11-saved');
@@ -329,7 +329,7 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   await page.waitForFunction(() => !document.getElementById('f-name'));
   assert.deepEqual(e.dialogs, ['Delete Rebecca? The character, its voice clip and what it remembers of you are removed.']);
   assert.equal(e.custom.size, 0);
-  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
+  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['V’s voice', 'Story characters', 'Everyday people']);
   // The only console lines are the browser's own note of the refusals the test provoked (422): no script error, no outside request.
   assert.deepEqual(e.problems.filter(text => !/status of 422/.test(text)), []);
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
@@ -450,6 +450,52 @@ test('a story character gets a Voice tab: choose a clip, see its length and a pr
   await page.fill('#f-voiceText', '');
   assert.equal(await page.getByRole('button', {name: 'Save clip'}).isDisabled(), false, 'the chosen file can still be saved once the words are typed');
 
+  assert.deepEqual(e.problems.filter(message => !/status of 422/.test(message)), [], 'no console error or warning');
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
+});
+
+test('V has two voice-only rows: no tabs, no reset, a clip is saved and removed, and the page says what V uses without one', {skip, timeout: 180000}, async t => {
+  const e = await open(t);
+  const {page} = e;
+  const main = page.locator('#main');
+  // The V rows are in the list at once, in a group of their own, before the story characters.
+  const groups = await page.locator('#list h3.group').allTextContents();
+  assert.deepEqual(groups.slice(0, 2), ['V’s voice', 'Story characters']);
+  assert.deepEqual(await page.locator('#list ul').first().locator('button').allTextContents(), ['V (female voice)', 'V (male voice)']);
+  await page.fill('#search', 'V (male');
+  await page.locator('#list button.pick').click();
+  await page.waitForSelector('#f-clip');
+  assert.equal(await page.locator('#main h2').textContent(), 'V (male voice)');
+  for (const gone of ['[role=tab]', '#f-bio', '#f-name', '#f-gender']) assert.equal(await page.locator(gone).count(), 0, gone + ' is not on a V row');
+  assert.equal(await page.getByRole('button', {name: 'Reset everything'}).count() + await page.getByRole('button', {name: 'Delete character'}).count(), 0, 'no reset, no delete');
+  const text = await main.textContent();
+  assert.match(text, /Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it\./);
+  assert.match(text, /No clip yet\. V speaks with the voice of your installed V voice mod, or the shipped V voice\./);
+  assert.doesNotMatch(await main.locator('.voice').textContent(), /null|undefined/);
+  await e.shot('17-v-voice');
+  // Save a clip under the V key.
+  await page.fill('#f-voiceText', WORDS);
+  await page.locator('#f-clip').setInputFiles({name: 'v.wav', mimeType: 'audio/wav', buffer: speechClip(11, 44100)});
+  await page.getByText('Chosen file: v.wav, 11 seconds.').waitFor();
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await page.waitForFunction(() => /Saved clip: 11 seconds\./.test(document.querySelector('#main').textContent));
+  assert.equal(e.voices.get('v-male').seconds, 11);
+  assert.equal(e.voices.has('v-female'), false);
+  assert.equal(await page.locator('#main h2').textContent(), 'V (male voice)');
+  // Leaving to the other V row and back works, and the other row has no clip.
+  await page.fill('#search', '');
+  await page.getByRole('button', {name: 'V (female voice)'}).click();
+  await page.waitForFunction(() => document.querySelector('#main h2')?.textContent === 'V (female voice)');
+  await page.getByText('No clip yet.').waitFor();
+  await page.getByRole('button', {name: 'V (male voice)'}).click();
+  await page.getByText('Saved clip: 11 seconds.').waitFor();
+  // Remove it: the page says what V goes back to.
+  e.dialogs.length = 0;
+  await page.getByRole('button', {name: 'Remove clip'}).click();
+  await main.getByText('No clip yet.').waitFor();
+  assert.deepEqual(e.dialogs, ['Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.']);
+  assert.equal(e.voices.size, 0);
+  assert.equal(await page.locator('#note').textContent(), 'Clip removed.');
   assert.deepEqual(e.problems.filter(message => !/status of 422/.test(message)), [], 'no console error or warning');
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
 });

@@ -1,0 +1,52 @@
+vgmstream in the AI NPC Cyberpunk Mod Runtime
+=============================================
+
+What it is: vgmstream-cli r2055 (build of Sep 28 2025), the command line decoder of the vgmstream project, with ten libraries it loads.
+Where it is: red4ext/plugins/AiNpcCyberpunkMod/app/vgmstream/
+What the mod uses it for: decoding the Wwise voice-over of a player's V voice mod, one line at a time, on the player's own PC, to build V's voice
+reference. The process starts when that reference is built and exits when it is done. Nothing is sent anywhere.
+
+These are the unmodified files of the official vgmstream Windows release r2055 (vgmstream-win.zip), not rebuilt or changed by this mod. The release
+also contains swresample-vgmstream-4.dll, zlib-ng2.dll, Detex.dll, oodle-data-shared.dll and the Winamp / XMPlay plugins; they are not needed for
+this use and are not shipped.
+
+Source code and build scripts: https://github.com/vgmstream/vgmstream at the release tag r2055 (https://github.com/vgmstream/vgmstream/tree/r2055).
+The repository also holds the build instructions for the libraries below (doc/BUILD.md, the ext_libs folder). Releases: https://github.com/vgmstream/vgmstream/releases
+
+vgmstream (vgmstream-cli.exe)
+  Licence: ISC. Copyright (c) 2008-2025 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm, Christopher Snowhill, NicknineTheEagle, bxaimc,
+  Thealexbarney, CyberBotX, et al, with the portions named in COPYING. The licence text is in COPYING in this folder.
+
+Libraries, each a separate DLL next to vgmstream-cli.exe. This list is what the files themselves state and what the vgmstream project documents; it is not legal advice.
+
+  avcodec-vgmstream-59.dll, avformat-vgmstream-59.dll, avutil-vgmstream-57.dll
+    FFmpeg (version string n5.1.2), vgmstream's own build with only the demuxers and decoders it needs (the DLLs state "LGPL version 2.1 or later").
+    Its build configuration (stated inside avutil-vgmstream-57.dll) also links the Opus library (libopus, BSD-3-Clause, Copyright Xiph.Org Foundation and contributors).
+    Licence: LGPL-2.1-or-later (https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html). The DLLs are unmodified from the official vgmstream release,
+    and vgmstream-cli.exe loads them dynamically, so any compatible build of these DLLs can replace them. FFmpeg source: https://ffmpeg.org/ ;
+    the build used for the release is documented in the vgmstream repository linked above.
+
+  libmpg123-0.dll
+    mpg123 (MPEG audio decoder). Licence: LGPL-2.1-or-later (https://www.mpg123.de/). Unmodified, dynamically linked, replaceable in the same way.
+
+  libvorbis.dll
+    Xiph.Org libVorbis 1.3.7. Licence: BSD-3-Clause, Copyright (c) Xiph.Org Foundation (https://xiph.org/vorbis/).
+
+  libspeex-1.dll
+    Speex. Licence: BSD-3-Clause, Copyright Xiph.Org Foundation, Jean-Marc Valin and others (https://www.speex.org/).
+
+  libcelt-0061.dll, libcelt-0110.dll
+    CELT 0.6.1 and 0.11.0 (the Xiph.Org low-latency audio codec that became Opus). Licence: BSD-3-Clause, Copyright Xiph.Org Foundation, Jean-Marc Valin and others.
+
+  libatrac9.dll
+    LibAtrac9 (ATRAC9 decoder) by Alex Barney. Licence: MIT (https://github.com/Thealexbarney/LibAtrac9).
+
+  libg719_decode.dll
+    G.719 decoder library built by the vgmstream project. The vgmstream release carries no licence text for this library, and none is reproduced here.
+    Its source and build are in the vgmstream repository (the ext_libs folder at the release tag). The mod's voice-over decoding does not use G.719.
+
+Replacing a library: the LGPL libraries are ordinary DLLs. To use your own build, put a compatible DLL with the same file name in this app/vgmstream/ folder
+(a Runtime update may put the shipped one back).
+
+Cyberpunk 2077, its audio and its voice performances belong to CD PROJEKT RED and the performers; the audio vgmstream decodes here comes from the player's own game
+and V voice mod and is not part of this package.

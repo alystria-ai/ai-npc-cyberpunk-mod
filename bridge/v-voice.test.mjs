@@ -1412,3 +1412,15 @@ test('the rescue budget: a late line is waited for only while the wait plus the 
   assert.equal(long.line.holds(), false); assert.equal(long.line.reason, 'slower-than-reply'); assert.ok(!('graceStart' in long.clock.snapshot().marks));
   await long.line.finished;
 });
+
+test('each V line says which reference it speaks from: the bridge\'s label (manual, mod:<archive file name>), else the voice\'s source, else shipped', async () => {
+  const run = async (voices, referenceLabel) => {
+    const {voice, calls} = feature({voices, ...(referenceLabel ? {referenceLabel} : {})});
+    await voice.start(typed()).finished;
+    return calls.reports[0].reference;
+  };
+  assert.equal(await run({male: {key: 'v-male'}, female: {key: 'v-female'}}), 'shipped');
+  assert.equal(await run({male: {key: 'v-male', source: 'mod:JCDentonAIVoice.archive'}, female: {key: 'v-female'}}), 'mod:JCDentonAIVoice.archive');
+  assert.equal(await run({male: {key: 'v-male', source: 'mod:JCDentonAIVoice.archive'}, female: {key: 'v-female'}}, gender => gender === 'male' ? 'manual' : null), 'manual', 'the player\'s own clip wins');
+  assert.equal(await run({male: {key: 'v-male'}, female: {key: 'v-female'}}, () => { throw Error('label failed'); }), 'shipped', 'a failing label never affects speech');
+});

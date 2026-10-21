@@ -27,7 +27,7 @@ async function zipOf(directory, name, names) {
 }
 
 test('the required files come from the repository: the V manifest and the OmniVoice lists', async () => {
-  assert.deepEqual(required["V's voice clips"], ['v-voice.json', 'v-male.wav', 'v-female.wav'].map(file => `${PLUGIN}/voices/v-voice/${file}`));
+  assert.deepEqual(required["V's voice clips"], ['v-voice.json', 'v-male.wav', 'v-female.wav', 'v-mod-lines.json'].map(file => `${PLUGIN}/voices/v-voice/${file}`));
   // The manifest names exactly the clips that exist beside it in a development checkout; the tracked file is what the build validates.
   const manifest = JSON.parse(await read('assets/v-voice/v-voice.json'));
   assert.deepEqual(Object.values(manifest.voices).map(row => row.file).sort(), ['v-female.wav', 'v-male.wav']);
@@ -35,8 +35,23 @@ test('the required files come from the repository: the V manifest and the OmniVo
 
 test('a Runtime ships no double-click support report tool: the report is made in the game (Settings > Help) or sent automatically', async () => {
   const config = JSON.parse(await read('packaging/release.config.json'));
-  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists", 'llama.cpp engine']);
+  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
   assert(!allNames.some(name => name.endsWith('.bat')));
+});
+
+test('vgmstream (the decoder of a V voice mod) is required: the 11 files in app/vgmstream/ and the licence texts in app/licenses/vgmstream/', async () => {
+  const vgmstream = JSON.parse(await read('packaging/release.config.json')).toolchain.vgmstream;
+  const decoder = ['vgmstream-cli.exe', 'avcodec-vgmstream-59.dll', 'avformat-vgmstream-59.dll', 'avutil-vgmstream-57.dll', 'libatrac9.dll', 'libcelt-0061.dll', 'libcelt-0110.dll',
+    'libg719_decode.dll', 'libmpg123-0.dll', 'libspeex-1.dll', 'libvorbis.dll'];
+  assert.deepEqual(required['vgmstream decoder'].map(name => name.slice(`${PLUGIN}/app/vgmstream/`.length)).sort(), [...decoder].sort());
+  assert(required['vgmstream decoder'].every(name => name.startsWith(`${PLUGIN}/app/vgmstream/`)));
+  assert.deepEqual(Object.keys(vgmstream.files).sort(), [...decoder].sort());
+  assert.deepEqual(required['vgmstream licences'], ['COPYING', 'NOTICE-bundled-libraries.txt'].map(name => `${PLUGIN}/app/licenses/vgmstream/${name}`));
+  // Without the exe or a library the group is named, whatever else the Runtime has.
+  const exe = `${PLUGIN}/app/vgmstream/vgmstream-cli.exe`;
+  assert.deepEqual(missingRuntimeFiles(allNames.filter(name => name !== exe), required), {'vgmstream decoder': [exe]});
+  const earlier = allNames.filter(name => !name.includes('/vgmstream/'));
+  assert.deepEqual(Object.keys(missingRuntimeFiles(earlier, required)), ['vgmstream decoder', 'vgmstream licences'], 'a Runtime from before vgmstream is named');
 });
 
 test('a complete Runtime has nothing missing; without a V clip or the manifest the group is named', () => {
@@ -79,6 +94,7 @@ test('the zip checker passes a complete Runtime and fails one without a V clip (
 test('the build and the install test still put and check these files', async () => {
   const builder = await read('packaging/build-release.mjs');
   assert.match(builder, /vVoiceReferenceFiles\(\)/);
+  assert.match(builder, /await addRuntimeVgmstream\(pkg, source, config, app, notices\)/);
   assert.match(builder, /\$\{plugin\}\/voices\/v-voice\/\$\{rel\}/);
   assert.doesNotMatch(builder, /supportBatch|support report/i);
   const install = await read('packaging/test-release-install.mjs');
