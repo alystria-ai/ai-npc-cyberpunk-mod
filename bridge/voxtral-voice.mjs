@@ -102,6 +102,8 @@ const MODEL_ID = createHash('sha256').update('voxtral-mini-tts').digest('hex');
 const REFERENCE_SOURCES = ['omni-long', 'omni-short', 'pocket'];
 // The references of ordinary NPCs (scripts/archetype-voices): several whole game lines joined with 0.4 s of silence. Named characters' clips are elsewhere.
 const AMBIENT_REFERENCES = 'runtime/voice-references/archetypes/';
+// The cache key of a language pack's reference is <language>|<voice key>: no voice key holds a bar.
+const LANGUAGE_SEPARATOR = '|';
 // A voice key that may name a folder: lower-case letters, digits and hyphens only.
 const SAFE_VOICE_KEY = /^[a-z0-9][a-z0-9-]*$/;
 // What a second ask can cure (not a refused key, not text that cannot be spoken).
@@ -367,10 +369,10 @@ export class VoxtralVoice {
    */
   constructor({getKey, referenceRoot, playerRoot = null, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
-    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare, fetchOptions = cloudFetchOptions} = {}) {
+    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare, fetchOptions = cloudFetchOptions, languagePacks = null} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
     Object.assign(this, {getKey, referenceRoot, playerRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
-      setTimer, clearTimer, now, clock, scheduler, prepare, fetchOptions});
+      setTimer, clearTimer, now, clock, scheduler, prepare, fetchOptions, languagePacks});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
       tightMs: this.limits.tightMs, now: clock, setTimer, clearTimer});
@@ -430,20 +432,86 @@ export class VoxtralVoice {
     if (changed) { try { this.onChange(this.degraded); } catch { /* observers never break speech */ } }
   }
 
-  /** The encoded reference of a voice, cached in memory (one read and one encoding per voice, per process). */
-  reference(key) {
-    const cached = this.references.get(key);
+  /**
+   * The voice language pack's entry for this voice in a reply language (bridge/voice-language-packs.mjs), or null: English, no pack, a voice the pack lacks, or a
+   * voice the player gave a clip of their own (their choice is not replaced).
+   */
+  languageEntry(key, language) {
+    if (!language || language === 'en' || !this.languagePacks) return null;
+    if (this.registries.some(registry => isPlayerReference(registry?.profiles?.[key]?.reference))) return null;
+    return this.languagePacks.entry(language, key) ?? null;
+  }
+  /** The set (multilingual/<lang>/picked/<voice>) the reference of this voice in this language comes from, or null: the English reference speaks. */
+  languageSet(key, language) { return this.languageEntry(key, language)?.set ?? null; }
+  /** The packs' references are read again (a pack was installed, changed or removed while the service ran). */
+  forgetLanguageReferences() { for (const id of [...this.references.keys()]) if (id.includes(LANGUAGE_SEPARATOR)) this.references.delete(id); }
+
+  /**
+   * The encoded reference of a voice, cached in memory (one read and one encoding per voice, per process). `language`: the reply's language code when it is
+   * not English; a voice with a pack entry in that language is cloned from the pack's clip, and one without keeps the English reference. The cache is keyed by
+   * the language as well, so the English and the Mandarin reference of one character never replace each other.
+   */
+  reference(key, language) {
+    const entry = this.languageEntry(key, language);
+    const id = entry ? `${entry.language}${LANGUAGE_SEPARATOR}${key}` : key;
+    const cached = this.references.get(id);
     if (cached) {
       // Most recent last, so the oldest is the one dropped.
-      this.references.delete(key); this.references.set(key, cached);
+      this.references.delete(id); this.references.set(id, cached);
       return cached;
     }
-    const pending = this.build(key).catch(() => null);
-    this.references.set(key, pending);
+    // A pack clip that cannot be used (missing, changed since the pack was checked, refused by the encoder) is spoken from the English reference, with one log line.
+    const fromPack = () => this.buildFromPack(key, entry).catch(error => {
+      this.log(`${key}: the ${entry.language} pack clip is not usable (${String(error?.message ?? error).slice(0, 80)}); using the English reference`);
+      return null;
+    }).then(found => found ?? this.build(key));
+    const pending = (entry ? fromPack() : this.build(key)).catch(() => null);
+    this.references.set(id, pending);
     // A reference that could not be built is tried again next time (the file may appear later).
-    pending.then(value => { if (!value && this.references.get(key) === pending) this.references.delete(key); });
+    pending.then(value => { if (!value && this.references.get(id) === pending) this.references.delete(id); });
     while (this.references.size > this.limits.cachedReferences) this.references.delete(this.references.keys().next().value);
     return pending;
+  }
+
+  /**
+   * The reference of a voice from a voice language pack entry: the clip (checked against the pack's hash when the manifest has one), cut and encoded like any
+   * reference, the pack's own prepared slot (<pack>/prepared/<key>.json + .ogg) used when it fits (same signature) and made, and kept there, when it is missing.
+   * An archetypes/ clip is an ordinary NPC's and speaks from one clip of the joined reference (singleClip), like the English archetype references. The release
+   * builder of the packs calls this too, so the slots it ships are the ones read here. Returns {base64, bytes, source, format, ...} or null.
+   */
+  async buildFromPack(key, entry) {
+    const bytes = await this.read(entry.path);
+    if (bytes.length > this.limits.maxReferenceBytes * 4) return null;
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    if (entry.sha256 && sha256 !== entry.sha256) throw Error('the clip does not match the manifest');
+    return this.finishReference(key, bytes, `language-pack:${entry.language}`, sha256, {ordinary: entry.kind === 'archetypes', slots: entry.preparedDirectory ?? null});
+  }
+
+  /**
+   * A reference clip made small and encoded (the work `build` ends with). `sha256` names the source clip; `ordinary`: an ordinary NPC's clip, cut to one clip;
+   * `player`: a player's own clip (its slot is kept in the player's data folder); `slots`: a folder the prepared slot is kept in instead of the shared one.
+   */
+  async finishReference(key, bytes, source, sha256, {player = false, ordinary = false, slots = null} = {}) {
+    // An ordinary NPC speaks from one clip, the same one for every request of every reply (see the rule at the top of this file).
+    if (ordinary) {
+      const one = singleClip(bytes);
+      if (one) {
+        this.log(`${key}: cloned from one clip, ${wavSeconds(one)} s of the ${wavSeconds(bytes)} s reference`);
+        bytes = one; sha256 = sha256 ? oneClipHash(sha256) : undefined;
+      }
+    }
+    bytes = capWav(bytes, this.limits.maxReferenceSeconds);
+    // `prepare` (bridge/voxtral-reference.mjs): a smaller clip to send instead (every request carries the reference, and the upload is
+    // most of the first-audio wait). A clip it cannot make smaller is sent as it is.
+    if (this.prepare) {
+      try {
+        const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {}), ...(player ? {player: true} : {}), ...(slots ? {slots} : {}), ...(this.safeFormat ? {safeFormat: true} : {})});
+        if (made?.bytes?.length && made.bytes.length < bytes.length) {
+          return {base64: made.bytes.toString('base64'), bytes: made.bytes.length, source, format: made.format, originalBytes: bytes.length, cached: made.cached === true};
+        }
+      } catch { /* the clip is sent as it is */ }
+    }
+    return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source, format: 'wav'};
   }
 
   /**
@@ -454,28 +522,7 @@ export class VoxtralVoice {
    * `player: true` so the bridge keeps that clip's prepared slot in the player's data folder, never beside the shipped ones.
    */
   async build(key) {
-    // `prepare` (bridge/voxtral-reference.mjs): a smaller clip to send instead (every request carries the reference, and the upload is
-    // most of the first-audio wait). A clip it cannot make smaller is sent as it is.
-    const finish = async (bytes, source, sha256, player = false, ordinary = false) => {
-      // An ordinary NPC speaks from one clip, the same one for every request of every reply (see the rule at the top of this file).
-      if (ordinary) {
-        const one = singleClip(bytes);
-        if (one) {
-          this.log(`${key}: cloned from one clip, ${wavSeconds(one)} s of the ${wavSeconds(bytes)} s reference`);
-          bytes = one; sha256 = sha256 ? oneClipHash(sha256) : undefined;
-        }
-      }
-      bytes = capWav(bytes, this.limits.maxReferenceSeconds);
-      if (this.prepare) {
-        try {
-          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {}), ...(player ? {player: true} : {}), ...(this.safeFormat ? {safeFormat: true} : {})});
-          if (made?.bytes?.length && made.bytes.length < bytes.length) {
-            return {base64: made.bytes.toString('base64'), bytes: made.bytes.length, source, format: made.format, originalBytes: bytes.length, cached: made.cached === true};
-          }
-        } catch { /* the clip is sent as it is */ }
-      }
-      return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source, format: 'wav'};
-    };
+    const finish = (bytes, source, sha256, player = false, ordinary = false) => this.finishReference(key, bytes, source, sha256, {player, ordinary});
     const root = this.referenceRoot ? resolve(this.referenceRoot) : null;
     const playerRoot = this.playerRoot ? resolve(this.playerRoot) : null;
     const within = (base, path) => path === base || path.startsWith(base + sep);
@@ -532,7 +579,7 @@ export class VoxtralVoice {
    * `continuation: true`: this text is the rest of a reply whose first part was already heard in this voice. It gets the longer
    * limits and the second ask (`tail*` limits), and it is not held back by a limit cool-down that began after that first part.
    */
-  async synthesizeStream(key, text, {signal, onPcm, continuation = false, firstAudioMs, ahead = false} = {}) {
+  async synthesizeStream(key, text, {signal, onPcm, continuation = false, firstAudioMs, ahead = false, language} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Voxtral streaming requires a PCM consumer');
     const apiKey = this.#key();
@@ -543,7 +590,7 @@ export class VoxtralVoice {
       if (!apiKey) throw fail('no-key', 'has no Mistral key');
       if (!continuation && this.clock() < this.until) throw fail('limit', 'is waiting out a limit');
       const queued = this.now();
-      const reference = await this.reference(key);
+      const reference = await this.reference(key, language);
       throwIfCancelled(signal);
       if (!reference) throw fail('no-reference', 'has no reference clip for this voice');
       const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation, firstAudioMs, ahead});

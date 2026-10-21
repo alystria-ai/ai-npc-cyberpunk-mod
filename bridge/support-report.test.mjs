@@ -167,6 +167,23 @@ test('the report holds versions, settings, party, providers, recent errors and b
   } finally { await f.cleanup(); }
 });
 
+test('the report lists the voice language packs the service found, with why a pack is not used; a report made without the service says nothing about them', async () => {
+  const f = await plantedInstall();
+  try {
+    const request = {id: 'r-test-packs', issuedAt: Date.now(), lua: {cetVersion: 'v1.99.0', language: 'en', view: 'help', party: []}};
+    const packs = {scannedAt: '2026-10-21T10:00:00.000Z', packs: [{language: 'fr', tag: 'fr', voices: 301, version: '2026-10-21'}],
+      problems: [{language: 'zh-cn', reason: '2 of 301 voices unusable (resident-female: file missing; v-male: 16000 Hz, not 24000)'}]};
+    const withPacks = JSON.parse((await zipText((await buildReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request, secrets: [], knownIds: [], bridge: {busy: false, voiceLanguagePacks: packs}})).path)).find(entry => entry.name === 'summary.json').text);
+    assert.deepEqual(withPacks.voiceLanguagePacks.installed, [{language: 'fr', voices: 301, version: '2026-10-21'}]);
+    assert.deepEqual(withPacks.voiceLanguagePacks.problems, [{language: 'zh-cn', reason: packs.problems[0].reason}]);
+    assert.equal('voiceLanguagePacks' in withPacks.bridge, false, 'listed once, at the top');
+    const without = JSON.parse((await zipText((await buildReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {...request, id: 'r-test-packs-2'}, secrets: [], knownIds: [], bridge: {busy: false}})).path)).find(entry => entry.name === 'summary.json').text);
+    assert.equal(without.voiceLanguagePacks, null);
+  } finally { await f.cleanup(); }
+});
+
 test('credential files are only scrub lists: never read into the report even when they are the only secret source', async () => {
   const f = await plantedInstall();
   try {

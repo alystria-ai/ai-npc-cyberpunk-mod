@@ -81,6 +81,38 @@ test('Mature content moves only a Voxtral voice: the Convai cloud voice and Omni
     tostring(saved.voiceProvider) .. ' ' .. tostring(saved.vVoiceEngine))
 `));
 
+test('V on OmniVoice (voiceProvider x vVoiceEngine x pack): Mature content leaves it alone; the pack going away reads as Pocket; the companions leaving OmniVoice from the page sets V to Pocket in the same save with the notice', () => run(`${harness()}
+  bridge('ready', {provider = 'convai', effective = 'convai', localAi = 'ready', saved = true, localModels = MODELS,
+    localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})
+  voices(true)
+  press('Settings'); frames(20)
+  assert(manager.applySettings(player, {voiceProvider = 'omni', vVoice = true, vVoiceEngine = 'omni'}))
+  frames(8)
+  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 4)
+  -- Mature content moves only a Voxtral voice: OmniVoice for the companions and for V stays.
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == true and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni' and saved.vVoice == true)
+  ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
+  assert(saved.matureContent == false and saved.vVoiceEngine == 'omni')
+  -- The pack goes away: the row reads Pocket, its label says why, the file keeps 'omni'.
+  clock = clock + 20
+  jsonFixtures['voice-state-gone'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}}, updated = os.time() * 1000.0}
+  files['runtime/local-voice-state.json'] = 'voice-state-gone'
+  manager.snapshot(player); frames(8)
+  local row = ns.find('V’s voice for typed lines')
+  assert(row.selectedElementIndex == 2 and row.elements[4] == 'OmniVoice · needs Omni pack' and saved.vVoiceEngine == 'omni', tostring(row.elements[4]))
+  -- The pack is back; the companions leave OmniVoice from their row: V is Pocket in the same save, and the line says so.
+  clock = clock + 20
+  jsonFixtures['voice-state-back'] = {state = 'ready', provider = 'pocket', omniPack = {installed = true, missing = {}}, updated = os.time() * 1000.0}
+  files['runtime/local-voice-state.json'] = 'voice-state-back'
+  manager.snapshot(player); frames(8)
+  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 4)
+  ns.interact.select(ns.find('Companion voices'), 1); frames(8); ns.verify()
+  assert(saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(saved.vVoiceEngine))
+  assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
+  assert(ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+`));
+
 test('A saved Mature record from before keeps all its parts; a Voxtral voice beside Mature content in a saved file is Pocket; turning it off with the kept parts puts the provider and Voxtral back', () => run(`${harness()}
   bridge('ready', {provider = 'local', effective = 'local', localAi = 'ready', saved = true, localModels = MODELS,
     localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'})

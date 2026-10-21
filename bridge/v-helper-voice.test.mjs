@@ -26,7 +26,7 @@ function fixture({holdPocketClose = false, failHelper = false, helperError = 'he
     let loaded = false;
     const index = backend === 'pocket' ? ++pocketCount : 0;
     // The first Pocket worker made while OmniVoice is committed is V's helper; the label says which one it is.
-    const worker = {backend, index, hooks, starts: 0, closes: 0, calls: [], prepared: [], closing: false, setSteps() {}, setKeepPrepared() {},
+    const worker = {backend, index, hooks, starts: 0, closes: 0, calls: [], renders: [], prepared: [], closing: false, setSteps() {}, setKeepPrepared() {},
       get loaded() { return loaded; },
       hasProfile: key => Object.hasOwn(config.voices, key), profileReady(key) { return loaded && this.hasProfile(key); },
       async start() {
@@ -35,7 +35,7 @@ function fixture({holdPocketClose = false, failHelper = false, helperError = 'he
         loaded = true; events.push(`${backend}#${index} ready`); onState({state: 'ready', resident: true});
       },
       async prepareProfile(profile) { this.prepared.push(profile); return {provider: backend, ready: true, profile}; },
-      async synthesize() { return {}; },
+      async synthesize(profile, text, options) { this.renders.push({profile, text, ...options}); return {audio: 'AAAA'}; },
       async synthesizeStream(profile, text, options) { this.calls.push({profile, text, ...options}); return {frames: 1}; },
       async close() {
         this.closing = true; this.closes++; events.push(`${backend}#${index} closing`);
@@ -380,4 +380,62 @@ test('V\'s worker finishing its load tells the bridge once (so V\'s voice is pre
   await until(() => broken.helperWorker()?.loaded, 'the helper to load');
   assert.equal(broken.voice.vHelperReady('v-male'), true);
   await broken.voice.close();
+});
+
+// ---- V on OmniVoice (V's engine 'omni'): one more job on the companions' worker, nothing else loads -----------------------------------
+
+const pocketWorkers = h => h.workers.filter(worker => worker.backend === 'pocket').length;
+
+test('V on OmniVoice renders on the companions\' Omni worker at 16 steps (tags removed, language passed), loads no Pocket worker, and prepares there', async () => {
+  const h = fixture();
+  // V on OmniVoice: the bridge's settings poll says V wants no Pocket worker (VVoice.wantsPocket is false for the engine 'omni').
+  h.voice.update({...omniSettings, omniSteps: 32}, null, false);
+  await h.voice.start(); h.voice.setVHelperWanted(false); await tick();
+  assert.equal(h.voice.vOmniProblem('v-male'), null);
+  await h.voice.vOmniRender('v-male', 'Hello [laughter] there.', {language: 'es'});
+  const omni = h.workers.find(worker => worker.backend === 'omni');
+  assert.deepEqual(omni.renders.map(({profile, text, language, steps}) => ({profile, text, language, steps})),
+    [{profile: 'v-male', text: 'Hello there.', language: 'es', steps: 16}], 'V\'s line is short: 16 steps even when the companions use 32');
+  await h.voice.vOmniPrepare('v-male');
+  assert.ok(omni.prepared.includes('v-male'), 'V\'s voice is prepared on the Omni worker');
+  assert.equal(pocketWorkers(h), 0, 'no Pocket worker of any kind exists for V');
+  assert.equal(h.workers.filter(worker => worker.backend === 'omni').length, 1, 'and no second Omni worker');
+  assert.equal(h.voice.vHelper.running, false);
+  await h.voice.close();
+});
+
+test('V on OmniVoice is refused, with the reason, whenever the companions\' Omni worker is not there to render it', async () => {
+  const h = fixture();
+  // The companions are on Pocket (the default) or OmniVoice has not loaded yet.
+  assert.match(h.voice.vOmniProblem('v-male'), /not on OmniVoice/);
+  await assert.rejects(h.voice.vOmniRender('v-male', 'Hi'), /does not use OmniVoice/);
+  assert.deepEqual(await h.voice.vOmniPrepare('v-male'), {ready: false});
+  h.voice.update(omniSettings, null, false);
+  await h.voice.start(); await tick();
+  assert.equal(h.voice.vOmniProblem('v-male'), null);
+  assert.match(h.voice.vOmniProblem('not-a-voice'), /not on OmniVoice/, 'a voice the Omni configuration does not hold');
+  // Voice playback Off releases OmniVoice: there is nothing to render on, and nothing is loaded for V.
+  h.voice.request({voice: false}); await tick(); await tick();
+  assert.notEqual(h.voice.vOmniProblem('v-male'), null);
+  assert.equal(pocketWorkers(h), 0, 'no Pocket worker is loaded for V instead');
+  await h.voice.close();
+  assert.match(h.voice.vOmniProblem('v-male'), /closed/);
+  // The pack is gone.
+  const missing = fixture({options: {omniPack: {installed: false, missing: ['model']}}});
+  missing.voice.update(omniSettings, null, false);
+  assert.match(missing.voice.vOmniProblem('v-male'), /pack is missing/);
+  await missing.voice.close();
+});
+
+test('when the companions leave OmniVoice V\'s Omni route is gone at once (V falls back to Pocket)', async () => {
+  const h = fixture();
+  await omniReady(h, {wanted: false});
+  assert.equal(h.voice.vOmniProblem('v-male'), null);
+  assert.equal(pocketWorkers(h), 0);
+  h.voice.update({voiceProvider: 'pocket'}, null, false);
+  await h.voice.start(); await tick();
+  assert.match(h.voice.vOmniProblem('v-male'), /not on OmniVoice/);
+  // The bridge now reads V's engine as Pocket (vSettingsFor) and asks for V's Pocket voice: the companions' Pocket worker speaks it.
+  assert.equal(h.voice.vRouteSpeaks('v-male'), true);
+  await h.voice.close();
 });

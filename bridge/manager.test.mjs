@@ -3364,27 +3364,30 @@ test('V’s voice for typed lines is on by default and a saved choice is kept; w
   `);
 });
 
-test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept, and a saved file with Mature content on never keeps Voxtral (it is Pocket)', () => {
+test('V’s voice engine is Pocket by default, only Pocket, Voxtral and OmniVoice are kept (OmniVoice reads as Pocket until it can be used, the file keeps it), and a saved file with Mature content on never keeps Voxtral (it is Pocket)', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(saved.vVoiceEngine == 'pocket' and manager.vVoiceEngine() == 'pocket' and manager.snapshot(player).settings.vVoiceEngine == 'pocket')
-    -- A case is {saved engine, saved Mature content, expected engine}. Mature content needs Local AI, so the seed carries it; a hand-edited
-    -- file with Mature content, Local AI and Voxtral loads as Pocket and is saved so (Voxtral is not used beside Mature content, 2026-10-20).
+    -- A case is {saved engine, saved Mature content, expected engine, saved voice (default pocket), the engine left in the file (default: the expected one)}.
+    -- Mature content needs Local AI, so the seed carries it; a hand-edited file with Mature content, Local AI and Voxtral loads as Pocket and is saved so
+    -- (Voxtral is not used beside Mature content, 2026-10-20). A saved 'omni' survives the load: it is used while the companions speak with OmniVoice
+    -- (the pack is taken as installed when the bridge has not said otherwise), and read as Pocket, the file untouched, while they do not.
     for _, case in ipairs({{'missing', false, 'pocket'}, {'pocket', false, 'pocket'}, {'voxtral', false, 'voxtral'},
-        {'omni', false, 'pocket'}, {'inworld', false, 'pocket'}, {'convai', false, 'pocket'}, {7, false, 'pocket'}, {true, false, 'pocket'},
+        {'omni', false, 'pocket', 'pocket', 'omni'}, {'omni', false, 'omni', 'omni'}, {'omni', false, 'pocket', 'voxtral', 'omni'},
+        {'inworld', false, 'pocket'}, {'convai', false, 'pocket'}, {7, false, 'pocket'}, {true, false, 'pocket'},
         {'voxtral', true, 'pocket'}, {'pocket', true, 'pocket'}}) do
-      seed = {version = 2, voiceProvider = 'pocket', matureContent = case[2], conversationProvider = case[2] and 'local' or 'convai', enabledByKey = {}, future = {keep = 'unchanged'}}
+      seed = {version = 2, voiceProvider = case[4] or 'pocket', matureContent = case[2], conversationProvider = case[2] and 'local' or 'convai', enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.vVoiceEngine = case[1] end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
-      assert(manager.vVoiceEngine() == case[3] and saved.vVoiceEngine == case[3], tostring(case[1]) .. ' ' .. tostring(case[2]))
-      assert(manager.snapshot(player).settings.vVoiceEngine == case[3])
+      assert(manager.vVoiceEngine() == case[3] and saved.vVoiceEngine == (case[5] or case[3]), tostring(case[1]) .. ' ' .. tostring(case[2]))
+      assert(manager.snapshot(player).settings.vVoiceEngine == (case[5] or case[3]))
       assert(saved.future.keep == 'unchanged')
     end
   `);
 });
 
-test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral key and is greyed out without it, applies beside any companion voice, Off keeps the engine, and with Mature content on it is greyed out, moved to Pocket and refused', () => {
+test('V’s voice is one row (Off, Pocket, Voxtral, OmniVoice): Voxtral needs the Mistral key and is greyed out without it, applies beside any companion voice, Off keeps the engine, and with Mature content on it is greyed out, moved to Pocket and refused', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function key(tag, value)
@@ -3394,7 +3397,7 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     end
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
-    -- V's voice and V's engine are ONE row in the Voices category (1 Off, 2 Pocket, 3 Voxtral), and the row says what Voxtral needs while there is no key.
+    -- V's voice and V's engine are ONE row in the Voices category (1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice), and the row says what Voxtral needs while there is no key.
     local order = {}
     for _, category in ipairs(loaded.categories) do
       if category.id == 'voices' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
@@ -3403,10 +3406,11 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     assert(row('vVoiceEngine') == nil)
     local engine = row('vVoice')
     assert(engine.label == 'V’s voice for typed lines' and engine.type == 'select' and engine.value == 2 and engine.defaultValue == 2)
-    assert(#engine.elements == 3 and engine.elements[1] == 'Off' and engine.elements[2] == 'Pocket · On your PC'
-      and engine.elements[3] == 'Voxtral · needs Mistral key', engine.elements[3])
+    assert(#engine.elements == 4 and engine.elements[1] == 'Off' and engine.elements[2] == 'Pocket · On your PC'
+      and engine.elements[3] == 'Voxtral · needs Mistral key' and engine.elements[4] == 'OmniVoice · needs Omni voice', engine.elements[3] .. ' | ' .. engine.elements[4])
     assert(engine.disabledElements and engine.disabledElements[3] == true and not engine.disabledElements[1] and not engine.disabledElements[2],
       'Voxtral is greyed out without a key')
+    assert(engine.disabledElements[4] == 'Requires the Companion voices to be an OmniVoice choice', 'OmniVoice is greyed out, with its own reason, while the companions are on Pocket')
     for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not tostring(engine.description):lower():find(banned, 1, true), banned)
       for _, element in ipairs(engine.elements) do assert(not element:lower():find(banned, 1, true), banned) end
@@ -3417,7 +3421,7 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
     assert(saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     assert(not manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and manager.vVoiceEngine() == 'pocket')
-    assert(registered.applyBatch('manager', {{id = 'vVoice', value = 4}}).ok == false)
+    assert(registered.applyBatch('manager', {{id = 'vVoice', value = 5}}).ok == false)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 0}}).ok == false)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = true}}).ok == false, 'the row is a position, not a switch')
     assert(registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 2}}).error == 'That setting is read-only.', 'no apply key for a second row')
@@ -3431,7 +3435,7 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     key('a', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager')
     assert(row('vVoice').elements[3] == 'Voxtral · Mistral cloud', row('vVoice').elements[3])
-    assert(row('vVoice').disabledElements == nil, 'nothing is greyed out with a key')
+    assert((row('vVoice').disabledElements or {})[3] == nil, 'Voxtral is not greyed out with a key')
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 3}}).ok)
     assert(saved.vVoiceEngine == 'voxtral' and saved.vVoice == true and manager.vVoiceEngine() == 'voxtral' and manager.snapshot(player).settings.vVoiceEngine == 'voxtral')
     assert(saved.voiceProvider == 'pocket', 'the voice of the companions is untouched')
@@ -3478,6 +3482,80 @@ test('V’s voice is one row (Off, Pocket, Voxtral): Voxtral needs the Mistral k
     assert(not manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'pocket')
     assert(manager.applySettings(player, {conversationProvider = 'mistral', vVoiceEngine = 'voxtral'}))
     assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.vVoiceEngine == 'voxtral')
+  `);
+});
+
+test('V’s voice on OmniVoice (fourth entry): it needs the OmniVoice pack (named first) and companions saved on OmniVoice, a batch is judged by its final values, a saved OmniVoice reads as Pocket while it cannot be used, and moving the companions off OmniVoice sets V to Pocket in the same save with a notice', () => {
+  run(`${nsuiFixture}
+    local clock = 1000
+    os.clock = function() return clock end
+    os.time = function() return clock end
+    local NEEDS_VOICE = 'Requires the Companion voices to be an OmniVoice choice'
+    local NEEDS_PACK = 'Requires the optional OmniVoice pack (GPU)'
+    local function pack(installed)
+      clock = clock + 20
+      jsonFixtures['voice-' .. clock] = {state = 'ready', provider = 'pocket', updated = clock * 1000,
+        omniPack = {installed = installed, missing = installed and {} or {'model'}}}
+      files['runtime/local-voice-state.json'] = 'voice-' .. clock
+      manager.snapshot(player)
+      loaded = registered.loadMod('manager')
+    end
+    local POCKET, BALANCED
+    for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do
+      if choice.provider == 'pocket' then POCKET = index end
+      if choice.provider == 'omni' and choice.steps == 16 and choice.reference == 'short' then BALANCED = index end
+    end
+    assert(POCKET and BALANCED)
+    assert(invoke('tab:settings').ok)
+    pack(true)
+    -- Pack installed, companions on Pocket: the fourth entry is greyed out with the voice reason, and choosing it is refused.
+    local engine = row('vVoice')
+    assert(#engine.elements == 4 and engine.elements[4] == 'OmniVoice · needs Omni voice', tostring(engine.elements[4]))
+    assert(engine.disabledElements[4] == NEEDS_VOICE and engine.value == 2)
+    local result = registered.applyBatch('manager', {{id = 'vVoice', value = 4}})
+    assert(result.ok == false and result.error == NEEDS_VOICE and saved.vVoiceEngine == 'pocket', tostring(result.error))
+    local ok, why = manager.applySettings(player, {vVoiceEngine = 'omni'})
+    assert(ok == false and why == NEEDS_VOICE and saved.vVoiceEngine == 'pocket', tostring(why))
+    -- Pack missing: its reason comes first (here and with the companions saved on OmniVoice below).
+    pack(false)
+    engine = row('vVoice')
+    assert(engine.elements[4] == 'OmniVoice · needs Omni pack' and engine.disabledElements[4] == NEEDS_PACK, tostring(engine.elements[4]))
+    result = registered.applyBatch('manager', {{id = 'vVoice', value = 4}})
+    assert(result.ok == false and result.error == NEEDS_PACK and saved.vVoiceEngine == 'pocket', tostring(result.error))
+    ok, why = manager.applySettings(player, {vVoiceEngine = 'omni'})
+    assert(ok == false and why == NEEDS_PACK, tostring(why))
+    -- Both together: the companions move to OmniVoice and V to OmniVoice in one batch (the final values judge it).
+    pack(true)
+    result = registered.applyBatch('manager', {{id = 'vVoice', value = 4}, {id = 'voiceProvider', value = BALANCED}})
+    assert(result.ok and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni' and saved.vVoice == true, tostring(result.error))
+    assert(manager.vVoiceEngine() == 'omni' and manager.snapshot(player).settings.vVoiceEngine == 'omni')
+    loaded = registered.loadMod('manager')
+    engine = row('vVoice')
+    assert(engine.value == 4 and engine.elements[4] == 'OmniVoice · short wait' and (engine.disabledElements or {})[4] == nil, tostring(engine.value))
+    -- A batch that moves the companions away and keeps V on OmniVoice is refused, nothing is saved.
+    result = registered.applyBatch('manager', {{id = 'voiceProvider', value = POCKET}, {id = 'vVoice', value = 4}})
+    assert(result.ok == false and result.error == NEEDS_VOICE and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni', tostring(result.error))
+    -- The pack goes away: the row reads Pocket, the engine is Pocket, the file keeps 'omni'; it comes back with the pack.
+    pack(false)
+    assert(row('vVoice').value == 2 and manager.vVoiceEngine() == 'pocket' and saved.vVoiceEngine == 'omni', tostring(row('vVoice').value))
+    assert(row('vVoice').elements[4] == 'OmniVoice · needs Omni pack' and row('vVoice').disabledElements[4] == NEEDS_PACK, 'the pack first, with the companions saved on OmniVoice')
+    result = registered.applyBatch('manager', {{id = 'vVoice', value = 4}})
+    assert(result.ok == false and result.error == NEEDS_PACK, tostring(result.error))
+    pack(true)
+    assert(row('vVoice').value == 4 and manager.vVoiceEngine() == 'omni')
+    -- The companions move off OmniVoice: V goes to Pocket in the same save, and the line says so.
+    result = registered.applyBatch('manager', {{id = 'voiceProvider', value = POCKET}})
+    assert(result.ok and saved.voiceProvider == 'pocket' and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, tostring(result.error))
+    assert(managerUi.inspect().shown == 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
+    loaded = registered.loadMod('manager'); assert(row('vVoice').value == 2)
+    -- V on OmniVoice again; V Off with the companions leaving OmniVoice: the engine still goes to Pocket, V stays off, and nothing is said about V.
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = BALANCED}, {id = 'vVoice', value = 4}}).ok)
+    result = registered.applyBatch('manager', {{id = 'voiceProvider', value = POCKET}, {id = 'vVoice', value = 1}})
+    assert(result.ok and saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.voiceProvider == 'pocket', tostring(result.error))
+    assert(managerUi.inspect().shown ~= 'V’s voice switches from OmniVoice to Pocket.', tostring(managerUi.inspect().shown))
+    -- A save that does not touch the voices leaves the saved engine alone.
+    assert(manager.applySettings(player, {vVoice = true, voiceProvider = 'omni'}) and manager.applySettings(player, {vVoiceEngine = 'omni'}))
+    assert(manager.applySettings(player, {subtitles = false}) and saved.vVoiceEngine == 'omni' and saved.voiceProvider == 'omni')
   `);
 });
 
@@ -4887,7 +4965,7 @@ test('Mature content refuses a Voxtral choice (companions and V), greys the entr
     for index, choice in ipairs(dofile('voice-preview.lua').CHOICES) do if choice.provider == 'voxtral' then VOXTRAL = index end end
     -- Off: Voxtral is a plain, enabled entry (the key is saved).
     assert(row('voiceProvider').elements[VOXTRAL] == 'Voxtral (recommended)' and (row('voiceProvider').disabledElements == nil or row('voiceProvider').disabledElements[VOXTRAL] == nil))
-    assert(row('vVoice').elements[3] == 'Voxtral · Mistral cloud' and row('vVoice').disabledElements == nil)
+    assert(row('vVoice').elements[3] == 'Voxtral · Mistral cloud' and (row('vVoice').disabledElements or {})[3] == nil)
     assert(core.apply({{id = 'voiceProvider', value = VOXTRAL}}).ok and saved.voiceProvider == 'voxtral')
     assert(core.apply({{id = 'vVoice', value = 3}}).ok and saved.vVoiceEngine == 'voxtral')
     assert(core.apply({{id = 'voiceProvider', value = 1}, {id = 'vVoice', value = 2}}).ok)

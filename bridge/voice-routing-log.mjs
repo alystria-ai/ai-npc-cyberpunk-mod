@@ -131,9 +131,11 @@ const quote = value => `"${text(value)}"`;
  *   voice: the VoiceSelection; input/profile: the turn and its roster entry;
  *   plan: the turn plan; reply: {engine, language}; voiceKey: the local voice that speaks (a variant key or the profile);
  *   sources: raw voice configurations (for reference seconds); lipText: true/false when known, else undefined;
- *   reason: a fallback reason the caller knows better than the routing state (a worker error mid-reply).
+ *   reason: a fallback reason the caller knows better than the routing state (a worker error mid-reply);
+ *   languageSet: the set of the voice language pack clip that speaks this reply (multilingual/<lang>/picked/<voice>, docs/VOICE_LANGUAGE_PACKS.md), for
+ *   OmniVoice and the Mistral voice; the English reference's set when absent.
  */
-export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character,
+export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character, languageSet,
   now = Date.now}) {
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
@@ -151,7 +153,8 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
     // The cloud voice clones from its own pick of the reference sets, not from the Pocket one whose route it uses.
-    reference: !local ? null : cloud && engine === 'pocket' ? (cloudWhy ? null : cloudReferenceOf(voice, voiceKey ?? key, sources))
+    reference: !local ? null : typeof languageSet === 'string' && languageSet && (engine === 'omni' || (cloud && !cloudWhy)) ? {set: languageSet}
+      : cloud && engine === 'pocket' ? (cloudWhy ? null : cloudReferenceOf(voice, voiceKey ?? key, sources))
       : referenceOf(voice, engine, voiceKey ?? key, sources),
     fallback: reason ?? (cloudWhy ? `${CLOUD_NAMES[cloudKind]} ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};

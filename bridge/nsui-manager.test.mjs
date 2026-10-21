@@ -944,13 +944,16 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up ofte
   assert(ns.find('Johnny in your head').selectedElementIndex == 3)
 `));
 
-test('V’s voice is one list: Off, Pocket, Voxtral; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
+test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
   press('Settings')
   local name = 'V’s voice for typed lines'
   assert(ns.find('V’s voice engine') == nil, 'the engine row is gone')
   local row = ns.find(name)
   assert(row.selectedElementIndex == 2, 'Pocket by default')
-  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key', table.concat(row.elements, ' | '))
+  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key | OmniVoice · needs Omni voice', table.concat(row.elements, ' | '))
+  ns.interact.select(ns.find(name), 4); frames(8); ns.verify()
+  assert(managerUi.inspect().shown == 'Requires the Companion voices to be an OmniVoice choice', tostring(managerUi.inspect().shown))
+  assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused OmniVoice choice went back')
   ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
   assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
   assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused choice went back')

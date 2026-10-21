@@ -161,6 +161,6 @@ test('the live-test settings (Mistral, a key, the Local AI pack, Voxtral voices)
 test('the settings poll mapping in the bridge: Mature content makes a saved Voxtral Pocket for the companions and V, off again when it is off, and a Mature turn on Local AI that fails is not handed to Mistral', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /cloudBarred: \(\) => !matureAllowsCloudVoice\(matureContent\.enabled\)/, 'the voice selection is told when no cloud voice may speak');
-  assert.match(bridge, /!matureAllowsCloudVoice\(matureContent\.enabled\)\) \? \{\.\.\.settings, vVoiceEngine: 'pocket'\}/, 'V reads as Pocket');
+  assert.match(bridge, /cloudUsable: voxtralVoice\.hasKey && matureAllowsCloudVoice\(matureContent\.enabled\)/, 'V reads as Pocket (vSettingsFor)');
   assert.match(bridge, /if \(!matureAllowsCloudVoice\(matureContent\.enabled\)\) return 'Mature content is on';/, 'and V\'s cloud line has a net');
 });

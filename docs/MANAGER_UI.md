@@ -95,7 +95,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
     opens the Custom page, below), Convai API key, Convai paid tier, Edit characters.
   - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong).
   - Voices: Voice playback, Companion voices, Lip sync delay (Bluetooth), Voice volume (%), Natural speech (off by default),
-    Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud; default Pocket,
+    Follow-up questions (on by default) and V's voice for typed lines (one list: Off, Pocket · On your PC, Voxtral · Mistral cloud, OmniVoice · short wait; default Pocket,
     `docs/V_VOICE.md`).
   - Subtitles; Automatic reactions (React to battles, React to collected loot; both on by default since 2026-10-20); one section per installed add-on that has settings
     (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
@@ -191,9 +191,20 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     existing pairing moves the voice to Pocket · Performance with the "needs a local voice" notice. An older save with the pairing loads with
     Natural speech off. No voice is moved or refused for the language of a reply: Pocket keeps speaking English and shows another language as text with the
     one-time voice-language notice.
-  - V's voice is one list (2026-10-20): Off, Pocket, Voxtral. The row writes both stored keys (`vVoice`, `vVoiceEngine`); Off keeps the saved engine. Voxtral is greyed out
+  - V's voice is one list (2026-10-20): Off, Pocket, Voxtral, OmniVoice. The row writes both stored keys (`vVoice`, `vVoiceEngine`: `pocket`, `voxtral`, `omni`); Off keeps the saved engine. Voxtral is greyed out
     until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and
     speaks as Pocket until a key is saved. With Mature content on the Voxtral entry is greyed out and a saved Voxtral reads as Pocket (see Mature content above).
+    The fourth entry, OmniVoice (added 2026-10-21; it renders V's line on the GPU voice the companions use, no extra model), is usable only when the OmniVoice pack is installed
+    (`manager.omniPack().installed`) and the saved Companion voice is OmniVoice (`voiceProvider == 'omni'`); `manager.vOmniBlock(settings)` says which fails (the pack first). Its label is
+    "OmniVoice · short wait" when usable, "OmniVoice · needs Omni voice" while the companions are not on OmniVoice, "OmniVoice · needs Omni pack" while the pack is missing.
+    Unusable, the entry is greyed out in MCM (`disabledElements[4]` holds its own reason: "Requires the Companion voices to be an OmniVoice choice", or "Requires the optional
+    OmniVoice pack (GPU)" for the pack, which wins); Native Settings UI has no greyed-out entries, so the label carries the reason and `M.apply` refuses the choice with the same sentence.
+    A batch is judged by its final values: companions and V both set to OmniVoice in one batch is fine; a batch that moves the companions off OmniVoice and keeps V on it is refused.
+    A saved `omni` that cannot be used now (companions not on OmniVoice, pack missing) loads untouched, shows Pocket in the row (position 2) and is read as Pocket by the engine
+    (`manager.vVoiceEngine()`; the bridge reads `runtime/settings.json` itself and applies the same two conditions). Removing the pack needs nothing: it reads as Pocket while the
+    pack is gone and is OmniVoice again when it returns. A batch that moves the companion voice off OmniVoice while V's engine is `omni` sets `vVoiceEngine` to `pocket` in the same
+    save (`manager.applySettings`; no restore record) and the feedback line says "V’s voice switches from OmniVoice to Pocket." (only when V is on and was showing OmniVoice).
+    The help text says plainly that Pocket and Voxtral lines not ready in time are skipped while an OmniVoice line is waited for (about a second more than Pocket before V starts, then V's own speaking time, because V speaks first and the companion answers after).
   - Johnny is one list (2026-10-20): Off, On (he answers the talk keys, no unprompted remarks), Speaks up rarely (at most twice an hour), Speaks up often (at most
     six times an hour, never closer than five minutes). The row writes both stored keys (`johnnyInHead`, `johnnyRemarks`): Off means no remarks, and an old file with
     `johnnyInHead` off reads as Off whatever `johnnyRemarks` held; on-saves map `true` + `off` to On, `rare` to Speaks up rarely, `normal` to Speaks up often. The read-only
