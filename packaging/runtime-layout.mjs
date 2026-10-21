@@ -18,6 +18,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/addon-voice.mjs',
   'bridge/addons.mjs',
   'bridge/analysis-pcm.mjs',
+  'bridge/ascii-temp.mjs',
   'bridge/audio-delay.mjs',
   'bridge/battle-context.mjs',
   'bridge/caption-cues.mjs',
