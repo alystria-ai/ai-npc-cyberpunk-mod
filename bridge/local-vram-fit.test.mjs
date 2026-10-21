@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitLadder, fitToolPath, gameRoomMiB, offloadPlan, offloadRamNeedMiB, offloadThreads, parseProjection, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
 // The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context; the same line and the same projections to the MiB on build 11782, 2026-10-21).
@@ -171,4 +171,28 @@ test('offloadRamNeedMiB: the part of the model and its cache that stays on the p
   assert.equal(offloadRamNeedMiB({share: 0.9, sizeMiB: 1000}), Math.ceil(0.1 * (1000 + 300) + 1024), 'the cache is at least 300 MiB');
   assert.equal(offloadRamNeedMiB({share: 0, projectedMiB: 3271}), Math.ceil(3271 + 393 + 1024), 'no file size: the projection stands in');
   for (const unknown of [offloadRamNeedMiB({share: 1, sizeMiB: 2582}), offloadRamNeedMiB({share: null, sizeMiB: 2582}), offloadRamNeedMiB({share: 0.4}), offloadRamNeedMiB({})]) assert.equal(unknown, null);
+});
+
+test('the game\'s room on a small card: 55% of the card between 3,000 and 4,608 MiB, none above 12 GB or without a reading', () => {
+  assert.equal(gameRoomMiB(8232), 4528, 'the 8 GB card of the 2026-10-22 report; the game held about 4.3 GB beside OmniVoice there');
+  assert.equal(gameRoomMiB(6144), 3379);
+  assert.equal(gameRoomMiB(4096), 3000, 'the floor is the old reserve');
+  assert.equal(gameRoomMiB(11997), 4608, 'capped');
+  assert.equal(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB), 4608);
+  assert.equal(gameRoomMiB(SMALL_CARD_ROOM.maxCardMiB + 1), 0);
+  for (const unknown of [0, -1, NaN, undefined, null, '8192']) assert.equal(gameRoomMiB(unknown), 0);
+});
+
+test('smallCardRoom takes the game\'s room and a voice engine still to load out of the free memory, never below 0', () => {
+  assert.deepEqual(smallCardRoom({totalMiB: 8232, freeMiB: 7461}), {totalMiB: 8232, freeMiB: 7461, reserveMiB: 4528, voiceMiB: 0, modelMiB: 2933});
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461, voiceMiB: SMALL_CARD_ROOM.omniVoiceMiB}).modelMiB, 433);
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 3000, voiceMiB: 2500}).modelMiB, 0);
+  assert.equal(smallCardRoom({totalMiB: 24564, freeMiB: 23000}), null, 'a large card keeps no reserve');
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: null}), null, 'no free-memory reading: nothing is decided from it');
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461, voiceMiB: NaN}).voiceMiB, 0);
+  // The placement the report's numbers give: 2,933 MiB for a model projected at 3,520 MiB (8,192, 8-bit cache) keeps about three quarters of the layers on the card.
+  const room = smallCardRoom({totalMiB: 8232, freeMiB: 7461});
+  const plan = offloadPlan({projectedMiB: 3520, freeMiB: room.freeMiB, targetMiB: room.reserveMiB});
+  assert.equal(Math.round(plan.share * 100), 76);
+  assert.equal(plan.hopeless, false);
 });

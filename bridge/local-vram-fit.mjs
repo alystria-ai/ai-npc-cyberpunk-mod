@@ -157,3 +157,29 @@ export function describeFit(fit, freeMiB, marginMiB) {
     : fit.share === null ? 'no projection: the file-size rule stands' : `it does not fit whole, about ${Math.round(fit.share * 100)}% of the layers can stay on the card`;
   return `projected ${rungs} against ${Number.isFinite(freeMiB) ? Math.round(freeMiB) : '?'} MiB free (room kept ${marginMiB} MiB): ${decision}`;
 }
+
+/**
+ * Room for the game on a small card, worked out when the model is first placed (2026-10-22, LordValerius's 0.2.7 report: an RTX 3070 with 8 GB; Local AI took 7,461 MiB free at the
+ * game's start and loaded whole, the game and OmniVoice then took the card, 3,209 MiB of the model went into shared system memory, and a spill reload 10 minutes into play ended with 0% of
+ * the layers on the card after 52 s of full CPU). The service starts with the game, before the game has allocated anything, so the free memory it reads is memory the game is about to take.
+ * On a card of `maxCardMiB` or less the model is placed against what is left after the game's room and the voice engine that is still to load.
+ *   gameShare / gameCapMiB / gameFloorMiB   the game's room: 55% of the card, at least 3,000 MiB (the old reserve of bridge/local-model-choice.mjs), at most 4,608 MiB. The 8 GB card of the report
+ *                  (8,232 MiB) gets 4,528 MiB; the same report showed the game holding about 4.3 GB beside OmniVoice (8,232 - 659 MiB left - 2.5 GB OmniVoice - 0.77 GB used at the menu)
+ *   omniVoiceMiB   OmniVoice's resident size (docs/RESOURCE_LIFECYCLE.md, about 2.5 GB); Pocket runs on the CPU and takes none
+ *   settleSeconds  the service is this young: after it the game is running and the free memory read is real (a start later than that, and every reload after a spill or a step-down, takes it as it is)
+ */
+export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 12288, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, settleSeconds: 240});
+
+/** The game's room (MiB) on a card of this size, or 0 for a card above SMALL_CARD_ROOM.maxCardMiB or an unknown one. */
+export function gameRoomMiB(totalMiB, limits = SMALL_CARD_ROOM) {
+  if (!(Number.isFinite(totalMiB) && totalMiB > 0 && totalMiB <= limits.maxCardMiB)) return 0;
+  return Math.round(Math.max(limits.gameFloorMiB, Math.min(limits.gameCapMiB, totalMiB * limits.gameShare)));
+}
+
+/** {totalMiB, freeMiB, reserveMiB, voiceMiB, modelMiB} (modelMiB: what the model may take, never below 0), or null on a card with no reserve or with no free-memory reading. */
+export function smallCardRoom({totalMiB, freeMiB, voiceMiB = 0, limits = SMALL_CARD_ROOM} = {}) {
+  const reserveMiB = gameRoomMiB(totalMiB, limits);
+  if (reserveMiB <= 0 || !Number.isFinite(freeMiB)) return null;
+  const voice = Number.isFinite(voiceMiB) && voiceMiB > 0 ? voiceMiB : 0;
+  return {totalMiB, freeMiB, reserveMiB, voiceMiB: voice, modelMiB: Math.max(0, Math.round(freeMiB - voice - reserveMiB))};
+}
