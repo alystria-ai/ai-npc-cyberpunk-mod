@@ -74,7 +74,7 @@
       }
     },
     "vgmstream": {
-      "notes": "vgmstream-cli decodes the Wwise voice-over of a player's V voice mod (bridge/ reads it one line at a time, on the player's PC, and the process exits after the build). Shipped in the Runtime at app/<runtimeFolder>/: the unmodified files of the official vgmstream Windows release (the release also has swresample and zlib-ng DLLs, which the voice-over decode does not need, and plugins for media players: none of those are shipped). The build reads them from <repo>/vendor/vgmstream/ (git-ignored; no download) and checks each against the size and SHA-256 recorded here. The licence texts are committed in packaging/licenses/vgmstream/ and go to app/<licenceFolder>/.",
+      "notes": "vgmstream-cli decodes the Wwise voice-over of a player's V voice mod (bridge/ reads it one line at a time, on the player's PC, and the process exits after the build). Shipped in the Runtime at app/<runtimeFolder>/: the unmodified files of the official vgmstream Windows release (the release also has swresample and zlib-ng DLLs, which the voice-over decode does not need, and plugins for media players: none of those are shipped). The build reads them from <repo>/vendor/vgmstream/ (git-ignored; no download) and checks each against the size and SHA-256 recorded here. The licence texts are committed in packaging/licenses/vgmstream/ and go to app/<licenceFolder>/ (a licence text is hashed with its line ends as LF, so a checkout with CRLF or LF checks the same).",
       "version": "r2055",
       "build": "Sep 28 2025",
       "license": "ISC",
@@ -98,7 +98,7 @@
         "libvorbis.dll": {"size": 218112, "sha256": "f7b2b3d82abfcfeccf1c1135c7a333eb280c0d1ebf3951281bbb7759c055b092"}
       },
       "licences": {
-        "COPYING": {"path": "packaging/licenses/vgmstream/COPYING", "sha256": "19e7cebe32b6fa88a732c13d6beaa37548d9adc961fba803016a903f5c7e5a1a"},
+        "COPYING": {"path": "packaging/licenses/vgmstream/COPYING", "sha256": "a146f3d248872acbe15ec4dd7b84910fa766370b6042ff17e099dbf2a9406cea"},
         "NOTICE-bundled-libraries.txt": {"path": "packaging/licenses/vgmstream/NOTICE-bundled-libraries.txt"}
       }
     }

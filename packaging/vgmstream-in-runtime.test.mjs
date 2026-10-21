@@ -7,7 +7,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync, readFileSync} from 'node:fs';
-import {mkdir, mkdtemp, rm, stat, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -52,7 +52,7 @@ test('the pin names the release, its licence and source, and the 11 files with s
 test('the committed licence texts are what the pin says, and say what is bundled and where the sources are', () => {
   for (const [name, licence] of Object.entries(spec.licences)) {
     assert(existsSync(resolve(project, licence.path)), `${licence.path} is committed (vendor/ is not in git)`);
-    if (licence.sha256) assert.equal(sha256Buffer(readFileSync(resolve(project, licence.path))), licence.sha256, name);
+    if (licence.sha256) assert.equal(sha256Buffer(Buffer.from(read(licence.path).replaceAll('\r\n', '\n'))), licence.sha256, `${name} (hashed with LF line ends)`);
   }
   assert.deepEqual(Object.keys(spec.licences).sort(), ['COPYING', 'NOTICE-bundled-libraries.txt']);
   const copying = read(spec.licences.COPYING.path);
@@ -129,7 +129,7 @@ test('addRuntimeVgmstream packs the pinned files and stops on a missing or chang
     // The function's own text from the builder, with the builder's names handed in (the builder is a script and cannot be imported).
     const text = body('addRuntimeVgmstream').replace(/^async function addRuntimeVgmstream/, 'return async function');
     const run = async () => {
-      const fn = await new AsyncFunction('resolve', 'existsSync', 'stat', 'sha256File', 'project', text)(resolve, existsSync, stat, sha256File, root);
+      const fn = await new AsyncFunction('resolve', 'existsSync', 'stat', 'sha256File', 'sha256Buffer', 'readFile', 'project', text)(resolve, existsSync, stat, sha256File, sha256Buffer, readFile, root);
       const packed = new Map(), notices = [];
       const count = await fn({file: (name, from) => packed.set(name, from)}, {root}, {toolchain: {vgmstream: fixture}}, 'APP', notices);
       return {count, packed, notices};

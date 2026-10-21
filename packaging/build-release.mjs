@@ -766,7 +766,7 @@ async function addRuntimeVgmstream(pkg, source, config, app, notices) {
   }
   for (const [name, licence] of Object.entries(spec.licences)) {
     const path = resolve(source.root, licence.path);
-    if (licence.sha256 && await sha256File(path) !== licence.sha256) throw Error(`${licence.path} differs from the pinned licence text.`);
+    if (licence.sha256 && sha256Buffer((await readFile(path, 'utf8')).replaceAll('\r\n', '\n')) !== licence.sha256) throw Error(`${licence.path} differs from the pinned licence text.`);
     pkg.file(`${app}/${spec.licenceFolder}/${name}`, path);
   }
   notices.push(`vgmstream ${spec.version} (vgmstream-cli.exe with its libraries, the unmodified official Windows release; decodes the voice-over of a player's V voice mod on the player's PC) - ${spec.license}, `
