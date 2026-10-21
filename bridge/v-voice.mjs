@@ -9,8 +9,13 @@
 //     (bridge/v-helper-voice.mjs, VoiceSelection.tickVHelper).
 //   - 'voxtral': the Mistral cloud voice, with the player's Mistral key. No local voice model is loaded for V (and none for the
 //     companions either when they use a cloud voice).
-// Never OmniVoice (its one GPU worker could not make V's line before the companion's reply and would hold the companion's own render),
-// never the Convai cloud voice (it cannot clone). A cloud voice never falls back to a local model: if V's cloud line fails, V is
+//   - 'omni' (2026-10-21): OmniVoice, the GPU voice the companions already use, offered only while it is the companions' committed voice
+//     (settings: the OmniVoice pack installed and the companion voice OmniVoice; otherwise the engine reads as Pocket, convai-bridge.mjs
+//     settings poll). Nothing extra loads: no V Pocket worker, no second Omni worker. The player chose it knowing it adds a short wait
+//     before the reply to a typed line, so V's line is WAITED FOR: it is never dropped for being slow (only a real failure drops it, with
+//     the reason in the log), the companion's reply follows it. The overlap is kept: V's render is queued on the Omni worker the moment
+//     the line is sent (it renders while the companion's text is written), the companion's own render queues right behind it.
+// Never the Convai cloud voice (it cannot clone). A cloud voice never falls back to a local model: if V's cloud line fails, V is
 // silent for that line (its subtitle is on screen) and the conversation is untouched.
 //
 // Latency comes first. The typed text goes to the companion's text model at once, exactly as without this feature; V's line is
@@ -27,14 +32,16 @@
 //   - A worker the companion's voice shares with V (the Pocket voice speaking both) works one job at a time. A V line still waiting for
 //     its first audio when the companion's own text-to-speech request goes out is stopped, so it never stands in front of the reply's
 //     voice. (A line that is already audible keeps going: the companion cannot be heard before it ends anyway.) A V line on its own
-//     worker or on the cloud shares nothing with the companion, so nothing stops it.
+//     worker or on the cloud shares nothing with the companion, so nothing stops it. A V line on OmniVoice shares the worker but is in
+//     FRONT of the companion's render in its queue, so it is not stopped either: it is the one thing the reply waits for.
 //   - Any failure drops the line, writes one log line and never touches the conversation.
 // V's line runs under a TurnClock of its own (the stage clock, bridge/turn-clock.mjs), so its marks never mix into the companion's.
-import {randomBytes} from 'node:crypto';
+import {createHash, randomBytes} from 'node:crypto';
 import {readFile as readFileDefault} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {inspectReference} from './addons.mjs';
 import {PcmEdges} from './pcm-edges.mjs';
+import {readPcmWav} from './speech-audio.mjs';
 import {voiceVolumeDb} from './dialogue-level.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 
@@ -70,7 +77,22 @@ export const V_MANIFEST = 'v-voice.json';
 export const V_MAX_CHARS = 240;
 const GENDERS = Object.keys(V_VOICE_KEYS);
 /** The engines V's line can be asked of (runtime/settings.json `vVoiceEngine`); Pocket is the default. */
-export const V_ENGINES = Object.freeze(['pocket', 'voxtral']);
+export const V_ENGINES = Object.freeze(['pocket', 'voxtral', 'omni']);
+const SAMPLE_RATE = 24000;
+const PACKET_FRAMES = 48000;
+
+/**
+ * The settings V's engine is read from: a saved engine that cannot speak right now counts as Pocket, as the settings row shows it (the saved
+ * value is left alone, so the engine is back the moment it can speak). `cloudUsable`: a Mistral key is saved and Mature content is off (Voxtral).
+ * `omniUsable`: the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V); an Omni
+ * worker that is only loading or failing does not count here, so V stays on OmniVoice (its line is skipped with the reason) and no Pocket
+ * worker loads beside it.
+ */
+export function vSettingsFor(settings, {cloudUsable = false, omniUsable = false} = {}) {
+  const engine = settings?.vVoiceEngine;
+  if ((engine === 'voxtral' && !cloudUsable) || (engine === 'omni' && !omniUsable)) return {...settings, vVoiceEngine: 'pocket'};
+  return settings;
+}
 const FILE = /^[a-z0-9][a-z0-9._-]{0,63}\.wav$/;
 const SHA = /^[a-f0-9]{64}$/;
 
@@ -143,6 +165,45 @@ export function vLineText(text, maxChars = V_MAX_CHARS) {
   return /[\p{L}\p{N}]/u.test(line) ? line : null;
 }
 
+/**
+ * A rendered WAV (OmniVoice) as the packets the local PCM renderer takes (24 kHz mono f32le, in order, at most 48000 frames each).
+ * Any other sample rate is resampled linearly and several channels are averaged. Plays nothing.
+ */
+export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('hex'), id = 1} = {}) {
+  const wav = readPcmWav(bytes), {data, channels, bits, codec, sampleRate} = wav;
+  const frames = data.length / wav.align, mono = new Float32Array(frames);
+  const sample = (frame, channel) => {
+    const at = (frame * channels + channel) * (bits / 8);
+    if (codec === 3) return data.readFloatLE(at);
+    if (bits === 16) return data.readInt16LE(at) / 32768;
+    if (bits === 24) return data.readIntLE(at, 3) / 8388608;
+    return data.readInt32LE(at) / 2147483648;
+  };
+  for (let frame = 0; frame < frames; frame++) {
+    let sum = 0;
+    for (let channel = 0; channel < channels; channel++) sum += sample(frame, channel);
+    mono[frame] = Math.max(-1, Math.min(1, sum / channels));
+  }
+  let pcm = mono;
+  if (sampleRate !== SAMPLE_RATE) {
+    const length = Math.max(1, Math.round(frames * SAMPLE_RATE / sampleRate));
+    pcm = new Float32Array(length);
+    const ratio = sampleRate / SAMPLE_RATE;
+    for (let at = 0; at < length; at++) {
+      const position = at * ratio, low = Math.floor(position), high = Math.min(frames - 1, low + 1), blend = position - low;
+      pcm[at] = mono[Math.min(frames - 1, low)] * (1 - blend) + mono[high] * blend;
+    }
+  }
+  const modelSha256 = createHash('sha256').update(bytes).digest('hex');
+  const packets = [];
+  for (let offset = 0, index = 1; offset < pcm.length; offset += PACKET_FRAMES, index++) {
+    const part = pcm.slice(offset, offset + PACKET_FRAMES);
+    packets.push({version: 1, engine: 'pocket-tts', owner, id, profile, modelSha256, sampleRate: SAMPLE_RATE, channels: 1,
+      format: 'f32le', index, offsetFrames: offset, frames: part.length, pcm: part});
+  }
+  return {packets, frames: pcm.length};
+}
+
 // ---- One line --------------------------------------------------------------------------------------------------------------
 
 /**
@@ -152,9 +213,11 @@ export function vLineText(text, maxChars = V_MAX_CHARS) {
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
     after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, onGrace = () => {},
-    graceMs = V_GRACE_MS, rescueMs = V_RESCUE_BUDGET_MS, now = () => performance.now()}) {
+    graceMs = V_GRACE_MS, rescueMs = V_RESCUE_BUDGET_MS, patient = false, now = () => performance.now()}) {
+    // `patient`: the player chose an engine that is waited for (OmniVoice). There is no grace and no budget: the reply waits for V's first
+    // audio for as long as the render takes, and only a failure or the end of the turn drops the line.
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
-      after, edges, token, onSettled, onAudible, onGrace, graceMs, rescueMs, now});
+      after, edges, token, onSettled, onAudible, onGrace, graceMs, rescueMs, patient, now});
     // The grace (V_GRACE_MS): started once, by the first time the reply asks while V is not audible yet.
     this.graceTimer = null; this.graceStarted = false; this.graceAt = 0; this.waitedMs = 0;
     this.state = 'synth';
@@ -174,7 +237,7 @@ export class VLine {
 
   get blocking() { return this.state === 'playing'; }
   /** The reply is ready, V is not audible yet and the grace is running: the reply waits for V's first audio (never longer than graceMs). */
-  get waiting() { return this.state === 'synth' && this.graceTimer !== null; }
+  get waiting() { return this.state === 'synth' && (this.patient || this.graceTimer !== null); }
   get settled() { return this.state === 'done' || this.state === 'dropped'; }
 
   /** Calls `fn` once when the line stops being audible or pending (at once if it already has). */
@@ -192,7 +255,7 @@ export class VLine {
 
   /** The reply asked while V is not audible: start the one grace (or drop at once when it is 0). Later asks change nothing. */
   startGrace() {
-    if (this.state !== 'synth' || this.graceStarted) return;
+    if (this.state !== 'synth' || this.graceStarted || this.patient) return;
     this.graceStarted = true;
     // The wait is what the budget leaves after the line's own length; no room (a long line) is no wait.
     const lineMs = this.text.split(/\s+/).filter(Boolean).length / V_WORDS_PER_SECOND * 1000 + V_EDGES_MS;
@@ -323,7 +386,7 @@ export class VLine {
         }
         if (this.settled) return;
         const signal = this.controller.signal;
-        const producer = this.streamProducer();
+        const producer = this.plan.engine === 'omni' ? this.omniProducer(signal) : this.streamProducer();
         await this.playHost({token: this.token, text: this.text}, producer,
           {signal, current: () => !this.settled || this.state === 'done', onFrame: snapshot => this.onFrame(snapshot)});
         if (this.state === 'playing') { this.state = 'done'; this.clock.mark('ended'); this.settle(); }
@@ -335,6 +398,30 @@ export class VLine {
         }
       }
     });
+  }
+
+  /**
+   * V's line on OmniVoice: one render of the whole line on the GPU worker (no streaming), then its packets, with the same air at both
+   * ends as a streamed line. The render is asked for here, when the line is built, not when the renderer page is ready (a cold browser
+   * would otherwise start it up to a second late): it is queued on the worker at once, behind what the worker is doing and ahead of the
+   * companion's. `signal` ends a job that has not started yet; one that has started finishes on the worker and is discarded.
+   */
+  omniProducer(signal) {
+    this.clock.mark('ttsSent');
+    const language = this.plan.language && this.plan.language !== 'en' ? this.plan.language : undefined;
+    const rendering = Promise.resolve().then(() => this.renderVoice(this.key, this.text, {signal, ...(language ? {language} : {})}));
+    rendering.catch(() => {});
+    return async emit => {
+      const generated = await rendering;
+      this.clock.mark('firstPcm');
+      if (typeof generated?.audio !== 'string') throw Error('OmniVoice returned no audio');
+      const {packets} = wavToPackets(Buffer.from(generated.audio, 'base64'), {profile: this.key});
+      const edges = new PcmEdges(emit, this.edges);
+      for (const packet of packets) await edges.push(packet);
+      await edges.finish();
+      this.clock.mark('synthDone');
+      return {};
+    };
   }
 
   streamProducer() {
@@ -359,7 +446,7 @@ export class VLine {
 export class VVoice {
   /**
    * voices   {male?, female?}: what loadVVoiceReferences found (only the keys matter here)
-   * planFor  (input, key) => {engine: 'pocket' | 'voxtral', language}: V's engine (the player's choice) and the turn's language
+   * planFor  (input, key) => {engine: 'pocket' | 'voxtral' | 'omni', language}: V's engine (the player's choice) and the turn's language
    * ready    key => boolean: the Pocket voice is the companions' committed voice, loaded and routed, and has that voice (it speaks V)
    * stream / play / prepare / warm   the Pocket voice and renderer calls (convai-bridge.mjs wires the real ones)
    * isLocal  () => boolean: that Pocket worker is shared with the companion (one job at a time)
@@ -369,13 +456,17 @@ export class VVoice {
    * cloud    {problem(key), stream(key, text, options), warm(key), speaks(language)} or null: the Voxtral cloud voice. `problem` is null when it
    *          can speak V's line now, else a short reason (no key, no clip, a limit cooling down); `warm` prepares V's reference clip; `speaks`
    *          says whether its model speaks a language other than English (a line in such a language is spoken, any other is skipped).
+   * omni    {problem(key), render(key, text, {signal, language}), prepare(key, {signal})} or null: V's line on the OmniVoice worker the companions
+   *          use (only while it is their committed voice). `problem` is null when it can render now, else a short reason (the companions are not on
+   *          OmniVoice, the worker is not loaded, playback is off); `render` resolves to {audio: base64 WAV}, queued on the worker behind what it
+   *          is doing and ahead of anything asked later; `prepare` is the voice's hidden warm-up render.
    * remember {gender, save(gender)} or null: V's gender kept between sessions (the bridge keeps it in the state folder). It lets the
    *          voice that will speak be prepared before the first typed line of a session, when the game has not said yet who V is.
    * graceMs  how long a ready reply waits for V's first audio (V_GRACE_MS)
    */
-  constructor({voices = {}, planFor, ready, stream, play, prepare, warm, isLocal = () => true, helper = null, cloud = null, log = () => {}, report = () => {},
+  constructor({voices = {}, planFor, ready, stream, play, prepare, warm, isLocal = () => true, helper = null, cloud = null, omni = null, log = () => {}, report = () => {},
     remember = null, graceMs = V_GRACE_MS} = {}) {
-    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, log, report, remember, graceMs});
+    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, omni, log, report, remember, graceMs});
     this.enabled = false;
     this.engine = 'pocket';
     this.lastGender = null;
@@ -388,8 +479,9 @@ export class VVoice {
 
   /**
    * The setting (runtime/settings.json "vVoice", "vVoiceEngine"). On unless the player turned it off: a file that never stored it, or a
-   * saved false the player never chose, counts as on. The engine is 'voxtral' only when that is what is stored; anything else is Pocket,
-   * the default. Returns whether either changed.
+   * saved false the player never chose, counts as on. The engine is 'voxtral' or 'omni' only when that is what is stored; anything else is Pocket,
+   * the default. (The bridge's settings poll has already turned a stored 'omni' into 'pocket' when the companions are not on OmniVoice, and a
+   * stored 'voxtral' when there is no key: this class takes the engine it is given.) Returns whether either changed.
    */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;
@@ -441,6 +533,7 @@ export class VVoice {
   /** Can V's engine speak this key right now (a worker routed, or the cloud voice usable)? Quiet: no log, nothing started. */
   speakable(key) {
     if (this.engine === 'voxtral') return !!this.cloud && this.cloud.problem(key) === null;
+    if (this.engine === 'omni') return !!this.omni && this.omni.problem(key) === null;
     return !!this.helper?.speaks(key) || (typeof this.ready === 'function' && this.ready(key) === true);
   }
 
@@ -465,11 +558,12 @@ export class VVoice {
       const text = vLineText(input.text);
       if (!text) return null;
       const plan = this.planFor(input, voice.key);
-      if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'voxtral')) return null;
+      if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'voxtral' && plan.engine !== 'omni')) return null;
       // Pocket has no language but English. The Voxtral voice speaks the language the line is written in, for the languages its model lists
       // (Voxtral TTS 3: bridge/voxtral-languages.mjs): a line in another language is spoken by it, and skipped when the model does not list it.
+      // OmniVoice clones the English reference into any language (the worker takes any ISO code, as for a companion's reply), so it skips none.
       const spoken = plan.language && plan.language !== 'en' ? plan.language : 'en';
-      if (spoken !== 'en' && !(plan.engine === 'voxtral' && this.cloud?.speaks?.(spoken) === true)) {
+      if (spoken !== 'en' && plan.engine !== 'omni' && !(plan.engine === 'voxtral' && this.cloud?.speaks?.(spoken) === true)) {
         this.once('language:' + plan.engine, `V's voice skipped: the ${plan.engine === 'voxtral' ? 'Voxtral' : 'Pocket'} voice does not speak this language`);
         return this.skip('not-english');
       }
@@ -477,7 +571,14 @@ export class VVoice {
       if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', "V's voice skipped: the game's dialogue volume is not known"); return this.skip('volume-unknown'); }
       if (volume <= 0.001) return null;
       let route;
-      if (plan.engine === 'voxtral') {
+      if (plan.engine === 'omni') {
+        // OmniVoice, the companions' own worker. Not there (the companions are on another voice, still loading, playback Off, failed): no line,
+        // the reason in the log (once per reason); nothing is loaded for it. Otherwise the render is queued on the worker NOW, ahead of the
+        // companion's: the reply waits for V's first audio as long as it takes (`patient`), and only a failure drops the line.
+        const problem = this.omni ? this.omni.problem(voice.key) : 'not available';
+        if (problem !== null) { this.once('omni:' + problem, `V's voice skipped: OmniVoice cannot speak it now (${problem})`); return this.skip('omni-unavailable'); }
+        route = {plan: {engine: 'omni', language: spoken}, render: (key, spoken, options) => this.omni.render(key, spoken, options), local: false, patient: true};
+      } else if (plan.engine === 'voxtral') {
         // The cloud voice shares no worker with anyone: nothing stops it, it is simply dropped if it is not audible when the reply is.
         const problem = this.cloud ? this.cloud.problem(voice.key) : 'not available';
         if (problem !== null) { this.once('cloud:' + problem, `V's voice skipped: the Voxtral voice cannot speak it now (${problem})`); return this.skip('cloud-unavailable'); }
@@ -493,8 +594,8 @@ export class VVoice {
         route = {plan: {engine: 'pocket', language: 'en'}, stream: this.stream, local: this.isLocal()};
       }
       const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log,
-        play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, local: route.local, after: this.previous,
-        graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
+        play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, render: route.render, local: route.local,
+        patient: route.patient === true, after: this.previous, graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
         onAudible: () => clock?.mark('vAudible'), onGrace: () => clock?.mark('vGrace')});
       this.previous = line.finished;
       line.whenClear(() => { clock?.mark(line.state === 'done' ? 'vEnded' : 'vDropped'); });
@@ -558,11 +659,24 @@ export class VVoice {
     // An engine that cannot speak right now (no key, no worker) warms and prepares nothing.
     if (!keys.some(key => this.speakable(key))) return;
     if (page) Promise.resolve().then(() => this.warm?.({signal})).catch(() => {});
+    if (this.engine === 'omni') {
+      // V's voice is prepared on the Omni worker (a hidden render, once per worker) now, while the player types, not inside the first line.
+      void this.prepareOmni(keys, signal);
+      return;
+    }
     if (this.engine === 'voxtral') {
       for (const key of keys) { try { this.cloud?.warm?.(key); } catch { /* a warm-up never fails a turn */ } }
       return;
     }
     void this.prepareVoices(keys, signal);
+  }
+
+  async prepareOmni(keys, signal) {
+    for (const key of keys) {
+      if (this.lastGender && this.voices[this.lastGender]?.key !== key) continue;
+      if (signal?.aborted) return;
+      try { await this.omni?.prepare?.(key, {signal}); } catch { /* a warm-up never fails a turn */ }
+    }
   }
 
   async prepareVoices(keys, signal) {

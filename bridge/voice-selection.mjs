@@ -845,6 +845,37 @@ export class VoiceSelection {
   vHelperReady(key) { this.tickVHelper(); return this.vHelper.ready(key); }
   vHelperStream(key, text, options = {}) { return this.vHelper.stream(key, stripSpeechTags(text), options); }
   vHelperPrepare(key, options = {}) { return this.vHelper.prepare(key, options); }
+  // ---- V's typed line on OmniVoice (V's voice engine 'omni', docs/V_VOICE.md "V on OmniVoice") ----
+  // The player's choice, offered only while OmniVoice is the companions' committed voice: V's line is one more job on the Omni worker
+  // the companions already use. Nothing extra loads (no Pocket worker for V, no second Omni worker), so with any other companion voice, a
+  // worker that is not loaded or voice playback Off there is simply no V line, with the reason. The worker does one job at a time and cannot
+  // cancel a render that has started, so V's job goes in first (the bridge starts it when the line is sent) and the companion's render
+  // queues behind it; a V job that is still queued when its turn ends is cancelled before it starts (ResidentVoice.synthesize).
+  /** Why V's line cannot be rendered on OmniVoice right now, or null when it can. Quiet: starts nothing. */
+  vOmniProblem(key) {
+    if (this.closed) return 'the voice service is closed';
+    if (!this.omniPack?.installed) return 'the OmniVoice pack is missing';
+    if (this.provider !== 'omni' || !this.usesProfile(key)) return 'the companions are not on OmniVoice now';
+    if (this.silent) return 'voice playback is off, so OmniVoice is not loaded';
+    const client = this.client;
+    if (this.clientBackend !== 'omni' || !client || client.failure || client.closing) return 'the OmniVoice worker is not running';
+    if (client.loaded !== true) return 'the OmniVoice worker is still loading';
+    return null;
+  }
+  /**
+   * Renders V's line on the Omni worker: the whole WAV, queued behind whatever the worker is doing and ahead of anything asked later. 16
+   * steps whatever the companions use (V's line is short; 32 steps cost about 0.6 s more first audio and the worker re-captures its graph for
+   * a new text length either way). `signal` cancels a job that has not started.
+   */
+  vOmniRender(key, text, options = {}) {
+    const spoken = stripSpeechTags(text);
+    return this.synthesize(key, spoken, {...options, steps: 16});
+  }
+  /** Prepares V's voice on the Omni worker (the hidden warm-up render, about 0.8 s, once per worker): at the composer, not inside the first line. */
+  vOmniPrepare(key, options = {}) {
+    if (this.vOmniProblem(key) !== null) return Promise.resolve({ready: false});
+    return this.client.prepareProfile(this.voiceOf(key), options);
+  }
   async synthesizeStream(profile, text, options = {}) {
     if (this.provider!=='pocket'||!this.usesProfile(profile))throw Error('This character does not use Pocket streaming');
     profile = this.voiceOf(profile);
