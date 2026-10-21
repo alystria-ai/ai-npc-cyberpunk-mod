@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {LlamaProcess, LocalLlmServer, LocalAiUnavailable, buildServerArgs, chooseTier, defaultCacheRamMiB, fillerText, isIntegratedGpu, parseDeviceList, tierNeedMiB,
-  pickDevice, unavailableDetail, looksBlocked, BLOCKED} from './local-llm-server.mjs';
+  pickDevice, unavailableDetail, looksBlocked, BLOCKED, isAsciiPath, withoutKeyFile} from './local-llm-server.mjs';
 import {SPILL_LIMITS} from './gpu-memory.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
@@ -143,6 +143,38 @@ test('ensure starts the server on the discrete GPU with the key in a file, and n
   assert.equal(ok.status, 200);
   const wrong = await fetch(info.endpoint, {method: 'POST', headers: {authorization: 'Bearer nope'}, body: '{}'});
   assert.equal(wrong.status, 401);
+});
+
+// llama-server on Windows opens --api-key-file with a narrow call that cannot read a UTF-8 path (checked with b11560: "failed to open file" for
+// C:\Users\<Cyrillic or Chinese name>\AppData\Local\Temp, and for accented letters too), so a player whose user name is not ASCII could never
+// start Local AI. The key then travels in LLAMA_API_KEY.
+test('a temporary folder that is not ASCII (a Windows user name with accents) takes the key in the environment and no file', async t => {
+  const base = mkdtempSync(join(tmpdir(), 'local-llm-nonascii-'));
+  t.after(() => rmSync(base, {recursive: true, force: true}));
+  const unicodeTmp = join(base, '\u0418\u0432\u0430\u043d-J\u00fcrgen-\u4e2d\u6587');
+  mkdirSync(unicodeTmp);
+  const {server, calls} = harness(t, {freeVramMiB: () => 9000, processOptions: {env: {}, tmpDir: unicodeTmp, pollMs: 20, platform: 'win32'}});
+  const info = await server.ensure();
+  const args = calls[0].args;
+  assert.ok(!args.includes('--api-key-file'), 'no key file argument');
+  assert.ok(!args.join(' ').includes(info.apiKey), 'the key is not on the command line');
+  assert.equal(args[args.indexOf('--port') + 1], new URL(info.endpoint).port, 'the rest of the command line is unchanged');
+  assert.deepEqual(readdirSync(unicodeTmp), [], 'nothing was written to the non-ASCII folder');
+  const ok = await fetch(info.endpoint, {method: 'POST', headers: {authorization: 'Bearer ' + info.apiKey, 'content-type': 'application/json'},
+    body: JSON.stringify({messages: [{role: 'user', content: 'hello there'}], max_tokens: 1})});
+  assert.equal(ok.status, 200);
+  assert.equal((await fetch(info.endpoint, {method: 'POST', headers: {authorization: 'Bearer nope'}, body: '{}'})).status, 401);
+});
+
+test('an ASCII temporary folder on Windows keeps the key in a file, and a non-ASCII one is told apart', async t => {
+  const {server, calls, tmpDir} = harness(t, {freeVramMiB: () => 9000, processOptions: {env: {}, pollMs: 20, platform: 'win32'}});
+  void tmpDir;
+  await server.ensure();
+  assert.ok(calls[0].args.includes('--api-key-file'), 'the default (the system temp folder of this machine or the harness folder) is not changed when it is ASCII or the platform is not Windows');
+  assert.equal(isAsciiPath('C:\\Users\\akshi\\AppData\\Local\\Temp'), true);
+  assert.equal(isAsciiPath('C:\\Users\\J\u00fcrgen\\AppData\\Local\\Temp'), false);
+  assert.equal(isAsciiPath('C:\\Users\\\u0418\u0432\u0430\u043d\\Temp'), false);
+  assert.deepEqual(withoutKeyFile(['-m', 'M', '--api-key-file', 'K', '--port', '1']), ['-m', 'M', '--port', '1']);
 });
 
 test('without an injected device list, --list-devices of the server is parsed and the iGPU is skipped', async t => {
