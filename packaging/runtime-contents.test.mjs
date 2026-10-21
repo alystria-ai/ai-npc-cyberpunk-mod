@@ -27,7 +27,7 @@ async function zipOf(directory, name, names) {
 }
 
 test('the required files come from the repository: the V manifest and the OmniVoice lists', async () => {
-  assert.deepEqual(required["V's voice clips"], ['v-voice.json', 'v-male.wav', 'v-female.wav'].map(file => `${PLUGIN}/voices/v-voice/${file}`));
+  assert.deepEqual(required["V's voice clips"], ['v-voice.json', 'v-male.wav', 'v-female.wav', 'v-mod-lines.json'].map(file => `${PLUGIN}/voices/v-voice/${file}`));
   // The manifest names exactly the clips that exist beside it in a development checkout; the tracked file is what the build validates.
   const manifest = JSON.parse(await read('assets/v-voice/v-voice.json'));
   assert.deepEqual(Object.values(manifest.voices).map(row => row.file).sort(), ['v-female.wav', 'v-male.wav']);

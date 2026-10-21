@@ -523,6 +523,24 @@ export function voiceLanguagePacksSection(value) {
   };
 }
 
+/**
+ * V's voice mods as the service reports them (bridge/v-voice-mod-service.mjs): whether the step ran or why not, the game's voice-over language, whether the
+ * decoder is there, what the scan did (counts and milliseconds), the archives that replace part of V's voice (file name and the share of V's lines of each gender
+ * they replace), and which reference V speaks from per gender ('manual', 'mod:<archive file name>' or 'shipped'). No path. null when the report was made
+ * without the service.
+ */
+export function vVoiceModsSection(value) {
+  if (!value || typeof value !== 'object') return null;
+  const number = field => Number.isFinite(field) ? field : null;
+  const label = field => typeof field === 'string' ? clip(field, 140) : null;
+  const scan = value.scan && typeof value.scan === 'object' ? {archives: number(value.scan.archives), inspected: number(value.scan.inspected), cached: number(value.scan.cached),
+    failed: number(value.scan.failed), ms: number(value.scan.ms)} : null;
+  const mods = Array.isArray(value.mods) ? value.mods.slice(0, 12).map(row => ({archive: clip(row?.archive, 80), male: number(row?.male), female: number(row?.female)})) : [];
+  const pair = object => ({male: label(object?.male), female: label(object?.female)});
+  return {enabled: value.enabled !== false, ignored: label(value.ignored), voiceOverLanguage: label(value.voiceOverLanguage), decoder: label(value.decoder), scan, mods,
+    built: pair(value.built), references: pair(value.references)};
+}
+
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
@@ -553,7 +571,7 @@ function companionProviders({settings, voice, routing, party}) {
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
-  const {voiceLanguagePacks: languagePackFacts, ...bridgeFacts} = bridge;
+  const {voiceLanguagePacks: languagePackFacts, vVoiceMods: vVoiceModFacts, ...bridgeFacts} = bridge;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
   // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
@@ -635,6 +653,8 @@ export async function collectReport(options) {
     voiceClips,
     // The voice language packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
     voiceLanguagePacks: voiceLanguagePacksSection(languagePackFacts),
+    // Which reference V's typed-line voice is cloned from (the player's clip, a V voice mod's or the shipped one) and what the mod scan found (docs/V_VOICE.md).
+    vVoiceMods: vVoiceModsSection(vVoiceModFacts),
     recentErrors, logs: index,
   });
   summary.privacy.redactions = {...redact.stats};

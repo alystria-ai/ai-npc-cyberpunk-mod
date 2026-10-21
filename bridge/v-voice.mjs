@@ -211,12 +211,12 @@ export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('
  * 'dropped' (not spoken: too slow, stopped or failed). `clear` resolves when the line is no longer audible or pending.
  */
 export class VLine {
-  constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
+  constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {}, reference = null,
     after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, onGrace = () => {},
     graceMs = V_GRACE_MS, rescueMs = V_RESCUE_BUDGET_MS, patient = false, now = () => performance.now()}) {
     // `patient`: the player chose an engine that is waited for (OmniVoice). There is no grace and no budget: the reply waits for V's first
     // audio for as long as the render takes, and only a failure or the end of the turn drops the line.
-    Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
+    Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log, reference,
       after, edges, token, onSettled, onAudible, onGrace, graceMs, rescueMs, patient, now});
     // The grace (V_GRACE_MS): started once, by the first time the reply asks while V is not audible yet.
     this.graceTimer = null; this.graceStarted = false; this.graceAt = 0; this.waitedMs = 0;
@@ -345,7 +345,7 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
@@ -460,13 +460,15 @@ export class VVoice {
    *          use (only while it is their committed voice). `problem` is null when it can render now, else a short reason (the companions are not on
    *          OmniVoice, the worker is not loaded, playback is off); `render` resolves to {audio: base64 WAV}, queued on the worker behind what it
    *          is doing and ahead of anything asked later; `prepare` is the voice's hidden warm-up render.
+   * referenceLabel  gender => 'manual' | 'mod:<archive file name>' | 'shipped': which reference V's voice is cloned from now (the player's own clip, a V voice
+   *          mod's, or the shipped one); it goes to each line's summary and log line. Without it the voice's own `source` (or 'shipped').
    * remember {gender, save(gender)} or null: V's gender kept between sessions (the bridge keeps it in the state folder). It lets the
    *          voice that will speak be prepared before the first typed line of a session, when the game has not said yet who V is.
    * graceMs  how long a ready reply waits for V's first audio (V_GRACE_MS)
    */
   constructor({voices = {}, planFor, ready, stream, play, prepare, warm, isLocal = () => true, helper = null, cloud = null, omni = null, log = () => {}, report = () => {},
-    remember = null, graceMs = V_GRACE_MS} = {}) {
-    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, omni, log, report, remember, graceMs});
+    remember = null, graceMs = V_GRACE_MS, referenceLabel = null} = {}) {
+    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, omni, log, report, remember, graceMs, referenceLabel});
     this.enabled = false;
     this.engine = 'pocket';
     this.lastGender = null;
@@ -597,7 +599,9 @@ export class VVoice {
         if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the Pocket voice has no ${voice.key} voice yet`); return this.skip('voice-not-ready'); }
         route = {plan: {engine: 'pocket', language: 'en'}, stream: this.stream, local: this.isLocal()};
       }
-      const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log,
+      let reference = voice.source ?? 'shipped';
+      try { reference = this.referenceLabel?.(gender) ?? reference; } catch { /* a label never affects speech */ }
+      const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log, reference,
         play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, render: route.render, local: route.local,
         patient: route.patient === true, after: this.previous, graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
         onAudible: () => clock?.mark('vAudible'), onGrace: () => clock?.mark('vGrace')});

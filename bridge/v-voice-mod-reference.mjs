@@ -158,18 +158,18 @@ export function vgmstreamDecoder(executable, {timeoutMs = 30_000, run = execFile
  * hold are skipped. Resolves to {wav (bytes), entry (the v-voice.json row: file, transcript, sha256, seconds, sampleRate, clips), report} or rejects
  * with an Error whose `code` says why ('no-lines', 'no-set', 'decoder').
  */
-export async function buildModReference({archive, lines, decode, recipe = REFERENCE_RECIPE, file = 'v-voice.wav'}) {
+export async function buildModReference({archive, lines, decode, recipe = REFERENCE_RECIPE, file = 'v-voice.wav', log = () => {}}) {
   const opened = typeof archive === 'string' ? await openArchive(archive) : archive;
   try {
     const hashed = lines.map(line => ({line, hex: depotHash(line.path)})), held = opened.scan(hashed.map(({hex}) => hex));
     const present = hashed.filter(({hex}) => held.has(hex)).slice(0, recipe.maxLines);
     if (!present.length) throw Object.assign(Error('the archive holds none of the lines'), {code: 'no-lines'});
     const candidates = [], usable = [];
-    let picked = [];
+    let picked = [], compressed = 0;
     // Lines are decoded in the recipe's order and only until the set reaches its target length (normally the three English picks: about 11 s).
     for (const {line, hex} of present) {
       let wem;
-      try { wem = await opened.read(hex); } catch (error) { candidates.push({line, skipped: error.code ?? 'unreadable'}); continue; }
+      try { wem = await opened.read(hex); } catch (error) { candidates.push({line, skipped: error.code ?? 'unreadable'}); if (error.code === 'compressed') compressed++; continue; }
       let wav;
       try { wav = await decode(wem); } catch (error) { throw Object.assign(Error(`the decoder failed: ${String(error?.message ?? error).slice(0, 120)}`), {code: 'decoder'}); }
       const candidate = {line, ...prepareClip(wav)};
@@ -180,6 +180,8 @@ export async function buildModReference({archive, lines, decode, recipe = REFERE
       const total = picked.reduce((sum, index) => sum + usable[index].seconds, 0) + recipe.gapSeconds * Math.max(0, picked.length - 1);
       if (picked.length && total >= recipe.targetSeconds) break;
     }
+    // One line in the log for lines the mod stores compressed (Oodle): reading them is not supported, they are skipped.
+    if (compressed) log(`${compressed} line(s) of the mod are stored compressed, which is not supported; they were skipped`);
     if (!picked.length) throw Object.assign(Error('no set of the lines in the mod fits the reference recipe'), {code: 'no-set'});
     const clips = picked.map(index => usable[index]);
     const samples = joinClips(clips.map(clip => clip.samples), {rate: recipe.rate, gap: recipe.gapSeconds});

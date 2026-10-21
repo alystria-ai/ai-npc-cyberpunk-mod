@@ -1,4 +1,4 @@
-// Does a mod in archive/pc/mod replace V's voice-over? (prototype, docs/V_VOICE_MODS.md)
+// Does a mod in archive/pc/mod (or a REDmod mod's archives) replace V's voice-over? (docs/V_VOICE.md, "V voice mods")
 //
 // A voice mod ships V's lines as .wem files under the game's own depot paths (base\localization\en-us\vo\v_<scene>_<f|m>_<id>.wem, and ep1\...), so its
 // archive's index holds the same path hashes as the game's. assets/v-voice/v-mod-lines.json lists, per V gender, the lines of the shipped English
@@ -12,7 +12,7 @@
 // in the bridge's service (never the game), once at start and again only when the folder's listing changes; nothing here runs per frame or per reply.
 import {mkdir, readdir, readFile, rm, stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {join, relative, resolve, sep} from 'node:path';
+import {basename, join, relative, resolve, sep} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 import {depotHash, openArchive} from './rdar.mjs';
 import {buildModReference} from './v-voice-mod-reference.mjs';
@@ -74,15 +74,31 @@ export async function listArchives(folder, {depth = V_MOD_DETECTION.maxDepth, li
   return out.sort((a, b) => a.relative.toLowerCase() < b.relative.toLowerCase() ? -1 : a.relative.toLowerCase() > b.relative.toLowerCase() ? 1 : 0);
 }
 
+const byName = (a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0;
+
 /**
- * The scan: lists the folder, answers each archive from the cache when its path, size and time are the same, inspects the others (one at a time), saves the
+ * Every archive that can hold V's voice-over, in the order the game loads them as far as is known: archive/pc/mod (alphabetical), then the archives of each
+ * REDmod mod (mods/<name>/archives, mods alphabetical). `relative` is 'x.archive', 'sub/x.archive' or 'redmod/<mod>/x.archive'. A folder that is not there adds nothing.
+ */
+export async function listVoiceModArchives({game, limit = V_MOD_DETECTION.maxArchives} = {}) {
+  const out = await listArchives(join(game, 'archive', 'pc', 'mod'));
+  let mods = [];
+  try { mods = (await readdir(join(game, 'mods'), {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort(byName); } catch { /* no REDmod folder */ }
+  for (const name of mods) {
+    for (const item of await listArchives(join(game, 'mods', name, 'archives'), {depth: 1})) out.push({...item, relative: `redmod/${name}/${item.relative}`});
+  }
+  return out.slice(0, limit);
+}
+
+/**
+ * The scan: lists the folder (`list`, an async function returning the same rows, replaces it: listVoiceModArchives), answers each archive from the cache when its path, size and time are the same, inspects the others (one at a time), saves the
  * cache when anything changed. `cachePath` may be null (no cache). Resolves to {archives: [{relative, size, cached, error?, male?, female?}], winners: {male, female},
  * stats: {total, inspected, cached, failed, ms}} where winners[gender] is the archive the game would use for V's lines of that gender (the last that
  * qualifies in alphabetical order: the game loads archives alphabetically and a later one replaces an earlier one's files; to be confirmed in game) or null.
  */
-export async function detectVoiceMods({folder, modLines, cachePath = null, now = () => performance.now(), log = () => {}, files = {readFile, atomicFile}, inspect = inspectArchive, shouldStop = () => false} = {}) {
+export async function detectVoiceMods({folder, list = null, modLines, cachePath = null, now = () => performance.now(), log = () => {}, files = {readFile, atomicFile}, inspect = inspectArchive, shouldStop = () => false} = {}) {
   const started = now();
-  const found = await listArchives(folder);
+  const found = list ? await list() : await listArchives(folder);
   let cache = {};
   if (cachePath) {
     try {
@@ -102,7 +118,7 @@ export async function detectVoiceMods({folder, modLines, cachePath = null, now =
       catch (error) { result = {size: item.size, mtimeMs: item.mtimeMs, error: String(error?.code ?? 'unreadable')}; failed++; }
     }
     next[key] = result;
-    archives.push({relative: item.relative, size: item.size, mtimeMs: item.mtimeMs, cached: result === hit, ...(result.error ? {error: result.error} : result.result)});
+    archives.push({path: item.path, relative: item.relative, size: item.size, mtimeMs: item.mtimeMs, cached: result === hit, ...(result.error ? {error: result.error} : result.result)});
   }
   if (cachePath && (inspected || failed || Object.keys(cache).length !== Object.keys(next).length)) {
     try { await files.atomicFile(cachePath, JSON.stringify({version: V_MOD_CACHE_VERSION, lines: modLines.digest, archives: next})); } catch (error) { log(`the V voice mod cache could not be saved: ${error?.code ?? 'error'}`); }
@@ -110,7 +126,9 @@ export async function detectVoiceMods({folder, modLines, cachePath = null, now =
   const winners = {};
   for (const gender of GENDERS) {
     const {minCoverage, minLines} = V_MOD_DETECTION;
-    winners[gender] = [...archives].reverse().find(a => a[gender] && a[gender].probeHits / a[gender].probeTotal >= minCoverage && a[gender].lineHits.length >= minLines) ?? null;
+    const qualifying = archives.filter(a => a[gender] && a[gender].probeHits / a[gender].probeTotal >= minCoverage && a[gender].lineHits.length >= minLines);
+    winners[gender] = qualifying.at(-1) ?? null;
+    if (qualifying.length > 1) log(`${qualifying.length} mods replace V's ${gender} voice (${qualifying.map(a => basename(a.relative)).join(', ')}); the last in load order wins: ${basename(winners[gender].relative)}`);
   }
   return {archives, winners, stats: {total: found.length, inspected, cached, failed, ms: Math.round(now() - started)}};
 }
@@ -137,8 +155,8 @@ export async function findVgmstream({explicit = null, env = process.env, candida
  * and the result says so (`needsDecoder`), never an error. Resolves to {directory, voices: {male?, female?}: 'kept' | 'built' | 'removed' | 'needs-decoder'
  * | 'failed:<code>', detection}.
  */
-export async function ensureVoiceModReferences({modFolder, outFolder, modLines, decode = null, cachePath = null, log = () => {}, files = {readFile, atomicFile, rm, mkdir}, detect = detectVoiceMods, build = buildModReference} = {}) {
-  const detection = await detect({folder: modFolder, modLines, cachePath, log});
+export async function ensureVoiceModReferences({modFolder = null, list = null, outFolder, modLines, decode = null, cachePath = null, log = () => {}, files = {readFile, atomicFile, rm, mkdir}, detect = detectVoiceMods, build = buildModReference} = {}) {
+  const detection = await detect({folder: modFolder, list, modLines, cachePath, log});
   const manifestPath = resolve(outFolder, 'v-voice.json');
   let manifest = {version: 1, voices: {}};
   try { const raw = JSON.parse(String(await files.readFile(manifestPath, 'utf8')).replace(/^﻿/, '')); if (raw?.version === 1 && raw.voices && typeof raw.voices === 'object') manifest = raw; } catch { /* none yet */ }
@@ -156,7 +174,7 @@ export async function ensureVoiceModReferences({modFolder, outFolder, modLines, 
     }
     if (!decode) { voices[gender] = 'needs-decoder'; continue; }
     try {
-      const made = await build({archive: resolve(modFolder, winner.relative), lines: linesHeld(modLines, gender, winner), decode, file: wavName(gender)});
+      const made = await build({archive: winner.path ?? resolve(modFolder, winner.relative), log, lines: linesHeld(modLines, gender, winner), decode, file: wavName(gender)});
       await files.mkdir(outFolder, {recursive: true});
       await files.atomicFile(resolve(outFolder, wavName(gender)), made.wav);
       manifest.voices[gender] = {...made.entry, source};

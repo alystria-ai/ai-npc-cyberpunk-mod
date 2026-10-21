@@ -165,7 +165,7 @@ test('the bridge opens the store before the voices, gives it to the prompt, the 
   // The player's voice clips (story characters' and their own characters'): opened before the store, offered only for keys that still have a
   // character, merged with the voices of the add-ons and of V and read from the data folder (playerVoiceDirectory), never copied.
   assert(bridge.indexOf('const playerVoices = await PlayerVoices.open') < bridge.indexOf('const customCharacters = await CustomCharacters.open'));
-  assert.match(bridge, /const playerVoiceAllowed = key => isCustomKey\(key\) \? customCharacters\.has\(key\) : roster\.some\(row => row\?\.key === key && row\.kind === 'named'\);/);
+  assert.match(bridge, /const playerVoiceAllowed = key => isCustomKey\(key\) \? customCharacters\.has\(key\) : Object\.values\(V_VOICE_KEYS\)\.includes\(key\) \|\| roster\.some\(row => row\?\.key === key && row\.kind === 'named'\);/);
   assert.match(bridge, /await playerVoices\.prune\(key => !isCustomKey\(key\) \|\| customCharacters\.has\(key\)\);/, 'a clip of a deleted character is removed, a story character\'s never');
   assert.match(bridge, /const playerVoiceExtras = await playerVoices\.extras\(playerVoiceAllowed\);/);
   assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)\.concat\(playerVoiceExtras\), playerVoiceDirectory: playerVoices\.folder\}\)/, 'a clip joins the voices of the add-ons and of V');

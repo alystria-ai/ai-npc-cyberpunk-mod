@@ -171,6 +171,18 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   return record;
 }
 
+/**
+ * The routing record of one V typed line (bridge/v-voice.mjs): V's voice key, the engine that spoke it and which reference it was cloned from: 'manual' (the
+ * player's own clip), 'mod:<archive file name>' (a V voice mod) or 'shipped'. Nothing else about the mod: no path.
+ */
+export function describeVLine({summary, now = Date.now}) {
+  const engine = summary?.engine === 'pocket-helper' ? 'pocket' : summary?.engine;
+  return {time: now(), profile: 'V', name: 'V (typed line)', requested: 'V’s voice', engine, voiceKey: summary?.voice,
+    used: engine === 'omni' ? 'OmniVoice' : engine === 'voxtral' ? CLOUD_NAMES.voxtral : 'Pocket',
+    reference: summary?.reference ? {set: String(summary.reference)} : null,
+    fallback: summary?.result === 'dropped' ? `V line dropped (${summary.reason ?? 'not heard'})` : null};
+}
+
 const pad = number => String(number).padStart(2, '0');
 function stamp(time) {
   const date = new Date(time);

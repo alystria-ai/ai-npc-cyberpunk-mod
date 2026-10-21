@@ -15,6 +15,8 @@ import {OMNI_CONFIGS} from '../runtime/prepare-state.mjs';
 
 export const V_VOICE_FOLDER = 'voices/v-voice';
 export const V_MANIFEST_SOURCE = 'assets/v-voice/v-voice.json';
+// The line list a V voice mod is recognised and read with (bridge/v-voice-mods.mjs): it ships beside V's clips.
+export const V_MOD_LINES = 'v-mod-lines.json';
 
 // {group: [game-relative path, ...]} for a Runtime built from the repository at `root`.
 export async function requiredRuntimeFiles(root) {
@@ -26,7 +28,7 @@ export async function requiredRuntimeFiles(root) {
     throw Error(`${V_MANIFEST_SOURCE} names no usable clips.`);
   }
   return {
-    "V's voice clips": ['v-voice.json', ...clips].map(file => `${plugin}/${V_VOICE_FOLDER}/${file}`),
+    "V's voice clips": ['v-voice.json', ...clips, V_MOD_LINES].map(file => `${plugin}/${V_VOICE_FOLDER}/${file}`),
     "Runtime's OmniVoice lists": Object.values(OMNI_CONFIGS).map(name => `${app}/defaults/${name}`),
     // The llama.cpp engine of Local AI (docs/LOCAL_AI.md, "The engine is in the Runtime"): the update zips deliver engine fixes only if the Runtime carries it.
     'llama.cpp engine': config.localAi.server.require.map(name => `${app}/${config.localAi.server.runtimeFolder}/${name}`),

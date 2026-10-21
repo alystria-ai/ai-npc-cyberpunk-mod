@@ -466,7 +466,7 @@ async function runtimePackage(source, config, models, key) {
   // them still works: the setting then has no voice to use and says so in the log.
   const vVoiceFiles = await vVoiceReferenceFiles();
   for (const [rel, path] of vVoiceFiles) pkg.file(`${plugin}/voices/v-voice/${rel}`, path);
-  log(vVoiceFiles.size ? `V voice: ${vVoiceFiles.size - 1} reference clips in the Runtime package.` : 'V voice: assets/v-voice has no clips; this build ships none (the setting stays silent).');
+  log(vVoiceFiles.size ? `V voice: ${vVoiceFiles.size - 2} reference clips (and the V voice mod line list) in the Runtime package.` : 'V voice: assets/v-voice has no clips; this build ships none (the setting stays silent).');
   // The Mistral voice's reference clips, already cut and encoded, in the Runtime's own slot folder (voices/prepared-runtime, which the bridge reads
   // after its cache in voices/prepared). The OmniVoice pack ships slots for its clips in voices/prepared, so the Runtime must not: the same path
   // with other bytes would make Windows offer to replace one with the other.
@@ -602,6 +602,8 @@ async function vVoiceReferenceFiles() {
   if (!Object.keys(found.voices).length) return files;
   files.set('v-voice.json', resolve(directory, 'v-voice.json'));
   for (const voice of Object.values(found.voices)) files.set(basename(voice.reference), voice.reference);
+  // The line list that lets the bridge recognise a player's V voice mod and read V's lines from it (bridge/v-voice-mods.mjs): it is committed, not generated.
+  files.set('v-mod-lines.json', resolve(directory, 'v-mod-lines.json'));
   return files;
 }
 

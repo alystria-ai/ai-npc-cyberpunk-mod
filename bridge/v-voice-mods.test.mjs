@@ -324,3 +324,50 @@ test('findVgmstream takes an explicit path, then the environment, then the candi
   assert.equal(await findVgmstream({env: {}, candidates: ['/missing/c', '/there/c'], exists}), '/there/c');
   assert.equal(await findVgmstream({env: {}, candidates: ['/missing/c'], exists}), null);
 });
+
+// ---- REDmod, load order, compressed lines ------------------------------------------------------------------------------------------------
+
+test('listVoiceModArchives lists archive/pc/mod, then REDmod\'s mods/<name>/archives, mods alphabetically', async () => {
+  await withFolder(async game => {
+    const {mkdir} = await import('node:fs/promises');
+    const {listVoiceModArchives} = await import('./v-voice-mods.mjs');
+    const junk = makeArchive([{path: 'base/x.bin', bytes: Buffer.alloc(8)}]);
+    for (const dir of ['archive/pc/mod', 'mods/Beta/archives', 'mods/alpha/archives', 'mods/NoArchives']) await mkdir(join(game, dir), {recursive: true});
+    await writeFile(join(game, 'archive/pc/mod/zz.archive'), junk); await writeFile(join(game, 'archive/pc/mod/aa.archive'), junk); await writeFile(join(game, 'archive/pc/mod/readme.txt'), 'x');
+    await writeFile(join(game, 'mods/Beta/archives/b.archive'), junk); await writeFile(join(game, 'mods/alpha/archives/a.archive'), junk);
+    assert.deepEqual((await listVoiceModArchives({game})).map(row => row.relative), ['aa.archive', 'zz.archive', 'redmod/alpha/a.archive', 'redmod/Beta/b.archive']);
+    assert.deepEqual(await listVoiceModArchives({game: join(game, 'missing')}), [], 'no game folder: nothing');
+  });
+});
+
+test('with two V voice mods the winner is logged; a REDmod mod loads after archive/pc/mod', async () => {
+  await withFolder(async game => {
+    const {mkdir} = await import('node:fs/promises');
+    const {listVoiceModArchives} = await import('./v-voice-mods.mjs');
+    const files = [...PATHS.female, ...PROBES.female].map((path, i) => ({path, bytes: wem(i)}));
+    await mkdir(join(game, 'archive/pc/mod'), {recursive: true}); await mkdir(join(game, 'mods/Voice/archives'), {recursive: true});
+    await writeFile(join(game, 'archive/pc/mod/zzz_first.archive'), makeArchive(files)); await writeFile(join(game, 'mods/Voice/archives/Voice.archive'), makeArchive(files));
+    const logs = [];
+    const result = await detectVoiceMods({list: () => listVoiceModArchives({game}), modLines, log: line => logs.push(line)});
+    assert.equal(result.winners.female.relative, 'redmod/Voice/Voice.archive');
+    assert.equal(logs.length, 1);
+    assert.match(logs[0], /2 mods replace V's female voice \(zzz_first\.archive, Voice\.archive\); the last in load order wins: Voice\.archive/);
+    assert.doesNotMatch(logs[0], /[\/]/, 'file names only');
+  });
+});
+
+test('compressed lines are skipped with one log line; a mod of only compressed lines builds nothing', async () => {
+  await withFolder(async folder => {
+    const logs = [];
+    const decode = async () => wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000);
+    const mixed = PATHS.male.map((path, i) => ({path, bytes: wem(i), ...(i === 0 ? {storedSize: 20} : {})}));
+    await writeFile(join(folder, 'mixed.archive'), makeArchive(mixed));
+    const made = await buildModReference({archive: join(folder, 'mixed.archive'), lines: modLines.genders.male.lines, decode, log: line => logs.push(line)});
+    assert.deepEqual(made.entry.clips.map(c => c.stringId), ['male1', 'male2', 'male3'], 'the compressed pick is skipped, a spare line takes its place');
+    assert.deepEqual(logs, ['1 line(s) of the mod are stored compressed, which is not supported; they were skipped']);
+    logs.length = 0;
+    await writeFile(join(folder, 'all.archive'), makeArchive(PATHS.male.map((path, i) => ({path, bytes: wem(i), storedSize: 20}))));
+    await assert.rejects(buildModReference({archive: join(folder, 'all.archive'), lines: modLines.genders.male.lines, decode, log: line => logs.push(line)}), {code: 'no-set'});
+    assert.equal(logs.length, 1);
+  });
+});
