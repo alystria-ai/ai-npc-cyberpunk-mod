@@ -273,8 +273,10 @@ def build_voice(key, row, dub: Dub, subs: vp_text.Subtitles, english: English, s
         gone = clips.pop()
         report["dropped"].append({"hex": gone.line["hex"], "seconds": round(gone.seconds, 2), "because": f"set over {MAX_SECONDS} s"})
     # a set that shrank to under 12 s (a long dub line was dropped) is topped up with the next ranked line that fits and sounds like the same speaker
+    # Also any set under 8 s, whatever made it short (lines swapped for shorter ones, lines missing in the dub): extended up to 12 s.
     topup = 0
-    while report["dropped"] and 0 < total(clips) < 12.0 and tries < MAX_TRIES and topup < 6:
+    triggered = 0 < total(clips) < 8.0 or (bool(report["dropped"]) and 0 < total(clips) < 12.0)
+    while triggered and 0 < total(clips) < 12.0 and tries < MAX_TRIES and topup < 6:
         repl = next_replacement()
         if repl is None:
             break
@@ -291,7 +293,7 @@ def build_voice(key, row, dub: Dub, subs: vp_text.Subtitles, english: English, s
                 continue
         clips.append(candidate)
         topup += 1
-        report["notes"].append(f"topped up with line {candidate.line['hex']} ({candidate.seconds:.1f} s) after a long line was dropped")
+        report["notes"].append(f"topped up with line {candidate.line['hex']} ({candidate.seconds:.1f} s) because the set was short")
     if total(clips) > MAX_SECONDS:
         report["notes"].append("single clip over the limit")
         return {"report": report, "ok": False}
