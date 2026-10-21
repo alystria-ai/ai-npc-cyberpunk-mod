@@ -81,6 +81,30 @@ function M.recentLine(rows, now, key, window)
     return false
 end
 
+-- Seconds since the game last gave Johnny a line (rows as for recentLine), or nil when none is in the buffer. Pure. For the refusal's
+-- log line only: it says whether "johnny-speaking" came from a line a moment ago or a long way back.
+function M.lineAge(rows, now, key)
+    if type(rows) ~= 'table' or type(now) ~= 'number' then return nil end
+    for index = #rows, math.max(1, #rows - 39), -1 do
+        local row = rows[index]
+        if type(row) == 'table' and type(row.at) == 'number' and row.profileKey == key then return math.max(0, now - row.at) end
+    end
+    return nil
+end
+
+-- The facts behind a refusal as one plain line for the probe log (a refusal only): V's scene facts (the sample of
+-- mod/battle-observer.lua) and the age of his last game line. "?" for a fact that was not read. Pure.
+function M.describe(sample, lineAge)
+    if type(sample) ~= 'table' then return 'sample=none' end
+    local parts = {}
+    for _, name in ipairs({'tier', 'dialogue', 'choices', 'call', 'replacer', 'combat', 'sitting', 'vehicle', 'scene'}) do
+        local value = sample[name]
+        parts[#parts + 1] = name .. '=' .. (value == nil and '?' or tostring(value))
+    end
+    parts[#parts + 1] = 'lastLine=' .. (type(lineAge) == 'number' and (math.floor(lineAge) .. 's') or 'none')
+    return table.concat(parts, ' ')
+end
+
 -- Why the game has the floor now, from the player-side sample of mod/battle-observer.lua, or nil. Pure.
 --   unreadable       no sample
 --   replacer         V is replaced by another character (a flashback where the player is Johnny)
@@ -151,7 +175,7 @@ function M.new(options)
     -- with the setting off); the busy reasons mean he is there but the game has the floor. Held HOLD_SECONDS.
     function service:refusal(player)
         local at = clock()
-        if held and at >= held.at and at - held.at < M.HOLD_SECONDS then return held.reason end
+        if held and at >= held.at and at - held.at < M.HOLD_SECONDS then self.basis = held.basis; return held.reason end
         local reason = M.story(self:facts())
         if reason == 'active' then
             local sample = nil
@@ -165,9 +189,19 @@ function M.new(options)
                 rows = ok and value or nil
             end
             reason = M.busy(sample, M.recentLine(rows, now(), M.KEY, M.LINE_SECONDS))
+            -- What the refusal rests on, kept as plain values (the sample is a table of booleans and numbers) until the log line asks.
+            if reason ~= nil then self.basis = {sample = sample, lineAge = M.lineAge(rows, now(), M.KEY)} else self.basis = nil end
+        else
+            self.basis = nil
         end
-        held = {at = at, reason = reason}
+        held = {at = at, reason = reason, basis = self.basis}
         return reason
+    end
+
+    -- The facts behind the last refusal, as one line for the probe log (called only when a refusal is logged).
+    function service:detail()
+        local basis = self.basis
+        return basis and M.describe(basis.sample, basis.lineAge) or 'story=' .. tostring(M.story(self:facts()))
     end
 
     -- The talk partner: V's own entity (no body of his; the holocall's audio route), his profile and the head field. nil when V's
@@ -180,7 +214,7 @@ function M.new(options)
             head = M.headField(stage, reached)}
     end
 
-    function service:reset() self.cached, factsAt, held = nil, nil, nil end
+    function service:reset() self.cached, factsAt, held, self.basis = nil, nil, nil, nil end
     return service
 end
 

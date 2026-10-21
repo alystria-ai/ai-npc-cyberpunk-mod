@@ -2375,7 +2375,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
                 return partner
             end
         elseif head and why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
-            log('Johnny in your head: refused reason=' .. why)
+            log('Johnny in your head: refused reason=' .. why .. ' facts[' .. head:detail() .. ']')
             convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
             return nil
         elseif head then
@@ -2412,11 +2412,15 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- The face writer then judges this one speaker by the story rules (no scene flag: it stays true in ordinary gameplay).
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = convaiStory and convaiStory.entity or nil end
     if primary.story then
-        local why = convaiWorldTalk:refusal(npc, player)
+        local why = convaiWorldTalk:refusal(npc, player, nil, key)
         if why then
             convaiStory = nil
+            -- The facts behind the refusal (a refusal only, once per key press): every game fact read, V's scene facts, the record and
+            -- the quest flag. A player's "busy right now" with no quest running is told apart from a real scene by exactly these.
             log('World conversation refused: profile=' .. key .. ' reason=' .. why
-                .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or ''))
+                .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
+                .. (convaiWorldTalk.facts and (' facts[' .. convaiWorldTalk.facts .. ']') or '')
+                .. (convaiUnprofiledWhy and convaiUnprofiledWhy(npc) or ''))
             convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = name}))
             return nil
         end
@@ -2788,7 +2792,7 @@ local function toggleVoice(groupMode, source)
                 return head ~= nil and head:refusal(Game.GetPlayer()) == nil
             end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
-            if primary.story and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity) then return false end
+            if primary.story and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity, primary.profileKey) then return false end
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
@@ -2981,16 +2985,19 @@ speech.storyGuard = function(actor, context, starting)
         local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
         local why = head == nil and 'off' or head:refusal(Game.GetPlayer())
         if not why then return false end
-        log('Johnny in your head: reply ended reason=' .. why .. (starting and ' (before the reply began)' or ''))
+        log('Johnny in your head: reply ended reason=' .. why .. (starting and ' (before the reply began)' or '')
+            .. ' facts[' .. (head and head:detail() or 'off') .. ']')
         if starting then return true end
         retirePrivateReply(context.entity, 'head-' .. why)
         return true
     end
     local story = convaiStory
     if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
-    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity)
+    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity, story.key)
     if not why then return false end
-    log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or ''))
+    log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or '')
+        .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or '')
+        .. (convaiWorldTalk.facts and (' facts[' .. convaiWorldTalk.facts .. ']') or ''))
     if starting then return true end
     retirePrivateReply(context.entity, 'story-' .. why)
     return true

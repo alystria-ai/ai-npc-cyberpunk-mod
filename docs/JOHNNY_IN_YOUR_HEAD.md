@@ -94,6 +94,10 @@ Read once on the key press, from a fresh `battleObserver.sample(player)` (the sa
 
 A dialogue choice on screen at tier 1 is the game's own "Talk" prompt on a vendor or a fixer, not a conversation, and does not refuse (the rule of `mod/world-talk.lua`).
 
+Every refusal writes one probe-log line with the facts it rests on (2026-10-21, after a player's "busy right now" with no quest running): `Johnny in your head: refused reason=<reason> facts[tier=.. dialogue=.. choices=.. call=.. replacer=.. combat=.. sitting=.. vehicle=.. scene=.. lastLine=<n>s]`, where `lastLine` is the age of his last game line (`none` when the buffer holds none of his). Only on a refusal; the support report carries it with the rest of probe.log.
+
+When the game's own Johnny stands in the world (the passenger seat of V's car, V's apartment) and V aims at him, the talk key takes the story-character path of `mod/world-talk.lua`, not this one; there a scene-commanded AI or a ride does not refuse him (docs/WORLD_CHARACTERS.md, "Johnny Silverhand is a projection").
+
 A reply Johnny is speaking when one of these starts is ended, through the same speech hook that ends a story character's reply (`speech.storyGuard`, the refusal held 0.4 s, read only while his reply is heard). A menu pauses it as it pauses every speaker.
 
 ## Cost (FPS and latency)
@@ -279,6 +283,7 @@ Needs the Scripts install (all committed `mod/` files, including the new `mod/jo
 4. Ask "What should I do next?": he names one of V's actual open jobs, in his voice, and says why. Ask about Rogue and Kerry: answers fit the save (the date, the reunion if done). Ask "What do you think of me?": the tone fits the standing row.
 5. Ask "Where are you right now?": he says he is in V's head (or words to that effect), never a place or task of his own.
 6. The game first: press the text key with nobody in front during (a) a dialogue choice with any NPC, (b) a phone call, (c) a fight, (d) a cutscene: each time "Johnny Silverhand is busy right now." and nothing starts; `probe.log` names the reason (`dialogue`, `call`, `combat`, `scene`). Start a reply, then walk into a scene or start a fight while he talks: his reply stops, `Johnny in your head: reply ended reason=...`. At Viktor's clinic or Misty's shop (scene tier 2) with nobody in front, he answers (tier 2 is open since the user's decision).
+6b. Ambient Johnny, no quest running: ride in V's car with the game's own Johnny in the passenger seat, or stand in V's apartment with him visible, aim at him and press the key: he answers (it was "busy right now" for a scene-commanded AI or a ride). During a quest cutscene or a dialogue choice with him it is still busy. Any "busy" with no quest: send the support report; `probe.log` has `World conversation refused: profile=johnny-silverhand reason=...` or `Johnny in your head: refused reason=...` with the facts.
 7. Right after the game's own Johnny says something (an ambient comment of his), press the key within 10 s: busy (`johnny-speaking`); after 10 s he answers.
 8. Story gate: on a save before Playing for Time is done (the prologue or the first heist) the key behaves as with the setting off ("Face a nearby character to talk.", `Johnny in your head: not in V's head (before)`).
 9. FPS and latency: with the setting on, the perf probe shows no new per-frame row; `runtime/bridge-latency.json` for a Johnny turn is in line with a companion turn on the same provider.
