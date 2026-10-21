@@ -517,6 +517,8 @@ export class LocalLlmServer extends EventEmitter {
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
+  // What a start is doing right now and since when (loadProgress): one word-string per stage, set a handful of times per start, never per request or per frame.
+  #phase = {name: null, at: 0}; #launchedAt = null;
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
@@ -581,6 +583,19 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#firstTime) status.firstTime = true;
     if (this.#info?.external && this.#state === 'ready') status.external = true;
     return status;
+  }
+
+  #mark(name) { this.#phase = {name, at: this.now()}; }
+
+  /**
+   * Where a start stands, for the log line of a turn that gave up waiting for the model (bridge/text-provider-host.mjs, 'still loading', report d8c0d2f9): the state, how long this
+   * start has run, what it is waiting on and for how long. `loadMs` is null when no start is under way. Plain numbers and a fixed phrase: no path, no key.
+   */
+  loadProgress() {
+    const now = this.now(), starting = this.#starting !== null || this.#state === 'starting' || this.#state === 'warming';
+    return {state: this.#state, loadMs: starting && this.#launchedAt !== null ? Math.max(0, now - this.#launchedAt) : null,
+      waitingOn: starting ? this.#phase.name : null, waitingMs: starting && this.#phase.name ? Math.max(0, now - this.#phase.at) : null,
+      stepping: this.#stepping === true, model: this.#model, idleStopped: this.#state === 'stopped' && this.#starting === null};
   }
 
   #setState(state, reason = null) {
@@ -670,6 +685,7 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   #launch(recovering) {
+    this.#launchedAt = this.now(); this.#mark(recovering ? 'restarting after the server stopped' : 'beginning to start');
     const promise = this.#bringUp(recovering).then(
       handle => {
         if (this.#starting === promise) this.#starting = null;
@@ -726,6 +742,7 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#coolDownMs > 0) {
       const pause = this.#coolDownMs, generation = this.#generation;
       this.#coolDownMs = 0;
+      this.#mark('waiting for the graphics driver to reset after a lost device');
       await delay(this.setTimer, this.clearTimer, pause);
       if (generation !== this.#generation) throw new LocalAiUnavailable('stopped');
     }
@@ -741,6 +758,7 @@ export class LocalLlmServer extends EventEmitter {
         remaining--; attempt++;
         if (remaining <= 0) throw recovering ? new LocalAiUnavailable('crashed') : error;
         this.log('[local] restarting the local model server (attempt ' + attempt + ')');
+        this.#mark('pausing before the next start attempt');
         const generation = this.#generation;
         await delay(this.setTimer, this.clearTimer, this.backoffMs * attempt);
         if (generation !== this.#generation) throw new LocalAiUnavailable('stopped');
@@ -755,6 +773,7 @@ export class LocalLlmServer extends EventEmitter {
   // The host may hold the start back (the bridge waits while OmniVoice is loading) so the free VRAM read next is what Omni leaves.
   async #waitBeforeStart() {
     if (typeof this.beforeStart !== 'function') return;
+    this.#mark('waiting for the voice to finish loading (it loads first so the free graphics memory is read after it)');
     let timer = null;
     try {
       await Promise.race([Promise.resolve(this.beforeStart()), new Promise(resolveWait => { timer = this.setTimer(resolveWait, this.beforeStartMs); timer?.unref?.(); })]);
@@ -765,6 +784,7 @@ export class LocalLlmServer extends EventEmitter {
   // `llama-server --list-devices`. A run that fails is logged with its error code and message (the file name only, no folder), tried once more after deviceListRetryMs
   // (the 2026-10-21 reports failed twice in the same second on a PC where the same listing worked in the next sessions), and then ends the start. Never a cloud fallback.
   async #listDevices() {
+    this.#mark('listing the graphics devices');
     const generation = this.#generation, name = basename(String(this.command ?? ''));
     for (let attempt = 1; ; attempt++) {
       try {
@@ -962,6 +982,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#guard(generation);
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
+    this.#mark('checking which model fits the free graphics memory');
     const realFit = await this.#probeFits(selected, freeMiB, device);
     this.#guard(generation);
     let choice = this.#choose(pack, freeMiB, selected, realFit);
@@ -1028,6 +1049,7 @@ export class LocalLlmServer extends EventEmitter {
       ...this.processOptions});
     this.#proc = proc;
     proc.on('exit', info => this.#onExit(proc, info));
+    this.#mark('loading the model into the server (waiting for it to answer)');
     try {
       await proc.start();
     } catch (error) {
@@ -1040,6 +1062,7 @@ export class LocalLlmServer extends EventEmitter {
       throw new LocalAiUnavailable('start-failed', looksBlocked(error) ? BLOCKED : error?.code);
     }
     this.#guard(generation);
+    this.#mark('reading the server settings');
     const props = await this.#readProps(proc, contextSize);
     const serverContext = props.contextSize;
     this.#guard(generation);
@@ -1051,6 +1074,7 @@ export class LocalLlmServer extends EventEmitter {
 
     if (this.warmup) {
       const warmBegan = this.now();
+      this.#mark(this.#firstTime ? 'the first warm-up request (shaders compile)' : 'a warm-up request');
       const warmed = await this.#warmUp(proc, generation, this.#firstTime);
       this.#loaded.warmMs = this.now() - warmBegan;
       if (warmed && this.#firstTime) this.#saveWarmed(signature);

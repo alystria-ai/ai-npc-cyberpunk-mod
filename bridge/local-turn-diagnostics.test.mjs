@@ -14,7 +14,7 @@ import fengari from 'fengari';
 import {streamChat, MistralError, failureDetail, stallReason, newTrace, errorCodeFor, retryable, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {constants as osConstants} from 'node:os';
 import {LlamaProcess, LocalAiUnavailable, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
-import {TextProviderHost, localRoute, describeLocalTurn, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
+import {TextProviderHost, localRoute, describeLocalTurn, loadingLine, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
 import {PersonaBook, cleanReply} from './mistral-prompt.mjs';
@@ -452,6 +452,18 @@ test('the turn budget covers the whole turn: when it is spent no request is sent
   assert(logs.some(entry => /^\[LocalTurn\] FAILED: ran out of the turn's time/.test(entry)), logs.join('\n'));
 });
 
+test('loadingLine: the wait, the state, how long the load has run and what it waits on; a server without progress, or one that throws, gives the wait alone', () => {
+  const server = progress => ({loadProgress: () => progress});
+  assert.equal(loadingLine(server({state: 'warming', loadMs: 95_400, waitingOn: 'the first warm-up request (shaders compile)', waitingMs: 41_250, stepping: false}), 80_000),
+    'The local AI is still loading the model: this turn waited 80.0 s for it; server state warming; this start has run 95.4 s; waiting on: the first warm-up request (shaders compile) for 41.3 s');
+  assert.match(loadingLine(server({state: 'stopped', loadMs: null, waitingOn: null, idleStopped: true}), 80_000), /; server state stopped; no start is under way \(the model was stopped, for instance after the idle time, and no start has begun\)$/);
+  assert.match(loadingLine(server({state: 'starting', loadMs: 5000, waitingOn: 'listing the graphics devices', waitingMs: 100, stepping: true}), 1000), /a model change \(step-down or reload\) is in progress$/);
+  const alone = 'The local AI is still loading the model: this turn waited 80.0 s for it';
+  assert.equal(loadingLine({}, 80_000), alone);
+  assert.equal(loadingLine(undefined, 80_000), alone);
+  assert.equal(loadingLine({loadProgress: () => { throw Error('x'); }}, 80_000), alone);
+});
+
 test('a model that is still loading when the budget ends: the turn says so at once, the load goes on, and the next turn is answered', async t => {
   const {host, route, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_DELAY_MS: '3000', FAKE_LLAMA_REPLY: 'Ready now, V.'}, preload: false});
   route.turnBudgetMs = 600;
@@ -461,6 +473,8 @@ test('a model that is still loading when the budget ends: the turn says so at on
   assert.ok(performance.now() - began < 30_000);
   assert.equal(error.reason, 'loading'); assert.equal(error.noRetry, true); assert.equal(errorCodeFor(error), 'local-failed');
   assert(logs.some(entry => /^\[LocalTurn\] FAILED: the model was still loading after \d+ s/.test(entry)), logs.join('\n'));
+  // The cause is in the log too (report d8c0d2f9): how long the turn waited, how long the load has run and what it was waiting on.
+  assert(logs.some(entry => /^The local AI is still loading the model: this turn waited \d+\.\d s for it; server state (starting|warming); this start has run \d+\.\d s; waiting on: [a-z].* for \d+\.\d s/.test(entry)), logs.join('\n'));
   // The load was not stopped by that: a later turn finds the model, with a normal budget.
   route.turnBudgetMs = 90_000;
   const later = await host.reply(turn('hello again'));

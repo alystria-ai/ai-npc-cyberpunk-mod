@@ -175,6 +175,26 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     label: 'The custom provider'};
 }
 
+const seconds = ms => (Number.isFinite(ms) ? (ms / 1000).toFixed(1) : '?') + ' s';
+/**
+ * The log line of a turn that gave up waiting for the local model ("is still loading the model", error report d8c0d2f9: the report's own log was the next session's, so the
+ * load that took 80 s was nowhere in it): how long this turn waited, the state of the server, how long the load has run and what it is waiting on. Numbers and fixed phrases only.
+ * Never throws; a server without loadProgress() gives the waited time alone.
+ */
+export function loadingLine(server, waitedMs) {
+  const head = `The local AI is still loading the model: this turn waited ${seconds(waitedMs)} for it`;
+  try {
+    const progress = server?.loadProgress?.();
+    if (!progress) return head;
+    const parts = [`server state ${progress.state ?? 'unknown'}`];
+    if (progress.loadMs !== null && progress.loadMs !== undefined) parts.push(`this start has run ${seconds(progress.loadMs)}`);
+    else parts.push('no start is under way' + (progress.idleStopped ? ' (the model was stopped, for instance after the idle time, and no start has begun)' : ''));
+    if (progress.waitingOn) parts.push(`waiting on: ${progress.waitingOn} for ${seconds(progress.waitingMs)}`);
+    if (progress.stepping) parts.push('a model change (step-down or reload) is in progress');
+    return `${head}; ${parts.join('; ')}`;
+  } catch { return head; }
+}
+
 /**
  * The fully local AI: the supervised llama-server (bridge/local-llm-server.mjs), or a server the player runs themselves (an `endpoint` entry of
  * the custom manifest; the supervisor then hands out its address, key and model id instead). No pacing, no key of the player's: the
@@ -277,6 +297,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       catch (error) {
         lastRetry = now();
         if (bounded?.aborted && !signal?.aborted && error?.name === 'TimeoutError') {
+          // The report of a turn that gave up on the load shows only the next session's log, so the cause is written here: how long this turn waited, how long the load has run and what it is waiting on.
+          log(loadingLine(server, waitMs));
           throw new MistralError('network', 'is still loading the model', {provider: 'local', slow: true, reason: 'loading', noRetry: true, trace: {...newTrace(), elapsedMs: Math.round(waitMs)}});
         }
         throw error;
