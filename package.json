@@ -8,7 +8,7 @@
     "test:reference-picker": "node --test scripts/reference-picker/audio.test.mjs scripts/reference-picker/picks.test.mjs scripts/reference-picker/pool.test.mjs scripts/reference-picker/server.test.mjs scripts/reference-picker/apply.test.mjs scripts/reference-picker/autobest.test.mjs scripts/reference-picker/voice-report-page.test.mjs scripts/reference-picker/launch.test.mjs",
     "build:voice": "node scripts/Build-VoiceClient.mjs",
     "test": "node scripts/run-tests.mjs",
-    "test:runtime": "node --test packaging/runtime-bootstrap.test.mjs bridge/packaging-plan.test.mjs bridge/resident-voice.test.mjs bridge/phonetic-lipsync.test.mjs bridge/voice-worker-profiles.test.mjs bridge/voice-profile-registry.test.mjs",
+    "test:runtime": "node --test packaging/runtime-bootstrap.test.mjs bridge/packaging-plan.test.mjs bridge/resident-voice.test.mjs bridge/mouth-cues.test.mjs bridge/voice-worker-profiles.test.mjs bridge/voice-profile-registry.test.mjs",
     "test:support": "node --test bridge/support-report.test.mjs bridge/support-report-lua.test.mjs bridge/support-help-ui.test.mjs bridge/ui-catalog.test.mjs",
     "test:editor": "node --test bridge/character-overrides.test.mjs bridge/character-editor.test.mjs bridge/character-editor-browser.test.mjs bridge/custom-characters.test.mjs bridge/custom-characters-lua.test.mjs bridge/custom-characters-bridge.test.mjs bridge/voice-selection.test.mjs bridge/mistral-prompt.test.mjs bridge/memory-store.test.mjs bridge/support-help-ui.test.mjs",
     "test:autostart": "node --test bridge/bridge-supervisor.test.mjs bridge/service-status.test.mjs bridge/autostart-plugin.test.mjs",

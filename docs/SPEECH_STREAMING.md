@@ -55,6 +55,8 @@ the FIFO worker never delays that speaker's own next phrase.
 
 ## Phonetic face driver
 
+> **2026-10-21:** the bridge no longer runs Rhubarb and the Runtime does not ship it; a phrase without cues from the lip-sync model plays on the audio envelope. This section is the history of that driver (the cue renderer, `phonetic-poses.mjs`, is still used for mouth cues).
+
 Rhubarb Lip Sync 1.14.0's phonetic recognizer runs on two CPU threads, one job at a
 time. It analyses a byte-for-byte temporary WAV copy and produces timed mouth
 cues. Our `phonetic-poses.mjs` retargets them to 17 of the already installed native

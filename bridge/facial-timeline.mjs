@@ -1,6 +1,6 @@
 import {readPcmWav} from './speech-audio.mjs';
 import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
-import {validateMouthCues} from './phonetic-lipsync.mjs';
+import {validateMouthCues} from './mouth-cues.mjs';
 import {PROVIDER_EXPRESSION_INDICES, ownedExpressionReceipt} from './companion-expressions.mjs';
 import {attachExpressionTrack} from './expression-timeline.mjs';
 import {FaceModelFrames} from './jali-face-model.mjs';
