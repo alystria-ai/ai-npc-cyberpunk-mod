@@ -3318,7 +3318,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  localStatus: localAiStatus, localReason: localAiReason, localDetail: () => { const {state, reason, detail} = localServer.status(); return state === 'failed' ? unavailableDetail(reason, detail) ?? null : null; }, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 // The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
   publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),

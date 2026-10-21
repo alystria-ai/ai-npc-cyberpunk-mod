@@ -261,6 +261,8 @@ If you already run a model in a program of your own, Local AI can talk to it ins
 LM Studio, Ollama, text-generation-webui, a llama.cpp `llama-server` and anything else with an OpenAI-compatible chat API (the `/v1`
 address). You do not need a Local AI pack for this: with only your own server listed, Local AI uses it. While your server is the chosen model, Local AI uses none of this computer's graphics memory.
 
+When the server cannot be used, the Local AI model row says which: "the model server you added does not answer: start it (and load its model), then the next turn tries again", "did not accept the API key" or "answers, but not like an OpenAI-style API (the address usually ends in /v1)" (`SERVER_DETAILS`, `bridge/local-llm-server.mjs`; published as `localDetail` in `mistral-state.json`). The conversation service is a different thing: "Service not running" in that row means the bridge itself is down, not your server. A saved choice of your server keeps working when its id changes (the id is made from the address and the entry's `model`): the same address, or the only server listed, stands for it (`resolveServerPin`, `bridge/local-model-choice.mjs`).
+
 **1. Start your server** with its model loaded, and leave it running while you play.
 
 **2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder: `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`, which survives reinstalls, or `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` as before; if the folder does not exist yet, make it), with an `endpoint` instead of a `file`:

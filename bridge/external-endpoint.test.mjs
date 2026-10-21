@@ -12,7 +12,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CustomModelScanner, checkEndpoint, hostKind, validateEntry} from './custom-models.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
-import {LocalLlmServer, LocalAiUnavailable, NO_KEY} from './local-llm-server.mjs';
+import {LocalLlmServer, LocalAiUnavailable, NO_KEY, unavailableDetail} from './local-llm-server.mjs';
 import {chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, stillSatisfies} from './local-model-choice.mjs';
 import {TextProviderHost, localRoute, mistralRoute, isLocalUnavailable} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
@@ -325,6 +325,10 @@ test('a server that cannot be reached, refuses the key or has the wrong address 
   assert.equal(down.server.status().state, 'failed');
   assert.equal(down.spawned.length, 0);
   assert(down.logs.some(line => /did not answer: could not be reached \(ECONNREFUSED\)/.test(line)), down.logs.join('\n'));
+  // The game's line names the server (not "the model server did not start", which is about our own llama-server) and says what to do.
+  assert.equal(down.server.status().detail, 'server-unreachable');
+  assert.deepEqual(down.failures.map(event => event.detail), ['server-unreachable']);
+  assert.match(unavailableDetail('start-failed', down.server.status().detail), /^the model server you added does not answer: start it/);
   // Until reset(): the same failure is not tried again on every turn.
   await assert.rejects(down.server.ensure(), /local:unavailable/);
   down.server.reset();
@@ -333,12 +337,18 @@ test('a server that cannot be reached, refuses the key or has the wrong address 
   const noKey = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(locked, {apiKey: 'a-wrong-key-12345'})]).models}});
   await assert.rejects(noKey.server.ensure(), /local:unavailable/);
   assert(noKey.logs.some(line => /did not accept the API key/.test(line)));
+  assert.equal(noKey.server.status().detail, 'server-key-refused');
+  assert.match(unavailableDetail('start-failed', 'server-key-refused'), /apiKey/);
   assert(!noKey.logs.join('\n').includes('a-wrong-key-12345'));
 
   const wrongPath = await fakeServer(t);
   const noV1 = supervisor(t, {project, selected: {customModels: scanManifest(project, [{endpoint: wrongPath.origin + '/api', name: 'No v1'}]).models}});
   await assert.rejects(noV1.server.ensure(), /local:unavailable/);
   assert(noV1.logs.some(line => /HTTP 404 at \/models \(the address usually ends in \/v1\)/.test(line)), noV1.logs.join('\n'));
+  assert.equal(noV1.server.status().detail, 'server-bad-address');
+  // reset() forgets why: the next failure says its own reason.
+  noV1.server.reset();
+  assert.equal(noV1.server.status().detail, undefined);
 });
 
 test('with a pack installed: a pinned server that is down falls back to our model with one model-fallback, and a pinned server that is up starts nothing of ours', async t => {

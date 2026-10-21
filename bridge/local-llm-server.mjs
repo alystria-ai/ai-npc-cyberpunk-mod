@@ -53,6 +53,13 @@ const REASON_TEXT = Object.freeze({
 export const TOO_SMALL = 'too-small';
 /** The `detail` of a 'start-failed' refusal: the part of the model that runs on the processor (and its cache) does not fit the free system memory. */
 export const LOW_RAM = 'low-ram';
+/** The `detail` of a 'start-failed' for a server the player runs, by what its first look found (bridge/local-llm-server.mjs #lookAtServer): it does not answer, refuses the key, or the address is not an OpenAI-style one. */
+export const SERVER_DETAILS = Object.freeze({unreachable: 'server-unreachable', 'key-refused': 'server-key-refused', 'bad-address': 'server-bad-address'});
+const SERVER_DETAIL_TEXT = Object.freeze({
+  'server-unreachable': 'the model server you added does not answer: start it (and load its model), then the next turn tries again',
+  'server-key-refused': 'the model server you added did not accept the API key (check "apiKey" in manifest.custom.json)',
+  'server-bad-address': 'the model server you added answers, but not like an OpenAI-style API (the address usually ends in /v1)',
+});
 
 export class LocalAiUnavailable extends Error {
   // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
@@ -79,6 +86,7 @@ export function unavailableDetail(reason, detail) {
   // A model that cannot stay on the card even with part of it on the CPU (TOO_SMALL): the sentence says what to do about it, locally (no cloud provider is suggested).
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
+  if (reason === 'start-failed' && SERVER_DETAIL_TEXT[detail]) return SERVER_DETAIL_TEXT[detail];
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
@@ -505,7 +513,7 @@ const CONTEXT_FLOOR = 2048;   // the least a server's context is stepped down to
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
-  #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
+  #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #serverWhy = null; #broken = new Map();
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
@@ -674,7 +682,7 @@ export class LocalLlmServer extends EventEmitter {
           // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
           const tooSmall = error.detail === TOO_SMALL || error.detail === LOW_RAM;
           if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason, tooSmall ? error.detail : null);
+          this.#fail(error.reason, tooSmall || SERVER_DETAIL_TEXT[error.detail] ? error.detail : null);
         }
         throw error;
       });
@@ -698,6 +706,7 @@ export class LocalLlmServer extends EventEmitter {
   // Clears a failure so the next ensure() tries again (the settings screen / a new session).
   reset() {
     this.#broken.clear();   // a custom model that failed to start gets another chance
+    this.#serverWhy = null;
     this.#deviceLosses = 0; this.#lostProc = null;
     this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
     this.#refitted.clear(); this.#refitPlan = null; this.#forcedOffload = null; this.#offloadTried.clear();   // and a model that spilled into shared memory may be fitted again
@@ -883,6 +892,7 @@ export class LocalLlmServer extends EventEmitter {
   // again with what the default rule chooses now.
   #modelFailed(model, why) {
     this.#broken.set(model.id, this.#sizeKey(model));
+    if (model.external) this.#serverWhy = SERVER_DETAILS[why] ?? SERVER_DETAILS.unreachable;
     this.#failedPin = model.id;
     this.log(model.external ? '[local] the server of the model "' + model.name + '" cannot be used (' + why + '): the default model is chosen instead'
       : '[local] the custom model "' + model.name + '" did not start (' + why + '): the default model is chosen instead');
@@ -927,7 +937,7 @@ export class LocalLlmServer extends EventEmitter {
     // not the default while Mature content is off (it runs when it is chosen in the row, or once Mature content is on: clearLocalFailure('mature-off')).
     if (!early && !pack?.installed) {
       if (!selected.models.length) throw new LocalAiUnavailable('not-installed');
-      throw selected.models.some(model => model.broken) ? new LocalAiUnavailable('start-failed', 'the server you added did not answer')
+      throw selected.models.some(model => model.broken) ? new LocalAiUnavailable('start-failed', this.#serverWhy ?? SERVER_DETAILS.unreachable)
         : new LocalAiUnavailable('mature-off', 'the server you added is marked uncensored: choose it in the Local AI model row, or turn Mature content on');
     }
     this.#setState('starting');
