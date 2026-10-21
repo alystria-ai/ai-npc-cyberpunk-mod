@@ -303,7 +303,9 @@ test('a server that does not start leaves its last output in the log, and one th
   const dead = rig(t, {env: {FAKE_LLAMA_EXIT_AT_START: '3'}});
   await assert.rejects(dead.server.ensure(), /start-failed|did not start/i);
   assert(dead.logs.some(line => /did not start: exited .*Gemma4-E4B-MiniFantasy-V1-Q4_K_M\.gguf, context 16384/.test(line)), dead.logs.join('\n'));
-  assert(dead.logs.some(line => /last llama-server output \(it did not start\): .*fake-llama: exiting at start/.test(line)), dead.logs.join('\n'));
+  assert(dead.logs.some(line => /last llama-server output \(it did not start\) \d+\/\d+: .*fake-llama: exiting at start/.test(line)), dead.logs.join('\n'));
+  // Each output line is its own log line, short enough for the error report's 300-character line cap (the reason is the newest line).
+  assert(dead.logs.filter(line => /last llama-server output/.test(line)).every(line => line.length <= 300), dead.logs.join('\n'));
   assert.equal(dead.logs.some(line => line.includes(dead.directory + '\\tmp') && /api-key/.test(line)), false, 'the key file is not in the output');
 
   const crashing = rig(t, {env: {FAKE_LLAMA_CRASH_AFTER: '1'}, maxRestarts: 0});

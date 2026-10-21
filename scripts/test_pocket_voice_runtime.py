@@ -924,6 +924,17 @@ class Priority(unittest.TestCase):
         self.assertEqual(source.count('gate.request()'), 2, 'when a reply starts and when it ends')
         self.assertIn('gate.settle()', source)
 
+    def test_the_start_runs_at_normal_priority_and_the_worker_is_lowered_only_when_ready(self):
+        # 0.2.7 reports: a start lowered from its first instruction got about 1% of a core under a loading game and timed out at 240 s.
+        source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
+        main = source[source.index('def main():'):]
+        self.assertEqual(main.count('lower_priority()'), 1, 'lowered once, when ready')
+        self.assertEqual(main.count('raise_priority()'), 1, 'raised once, at the start')
+        self.assertLess(main.index('raise_priority()'), main.index('importing-dependencies'))
+        self.assertGreater(main.index('lower_priority()'), main.index('started.set()'))
+        self.assertLess(main.index('lower_priority()'), main.index('"op": "ready"'))
+        self.assertGreater(main.index('lower_priority()'), main.index('cache.prepare(key)'), 'the warm-up is part of the start')
+
     def test_the_classes_are_the_windows_values(self):
         self.assertEqual((worker.NORMAL_PRIORITY_CLASS, worker.BELOW_NORMAL_PRIORITY_CLASS), (0x20, 0x4000))
 
