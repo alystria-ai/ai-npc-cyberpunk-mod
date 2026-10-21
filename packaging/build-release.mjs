@@ -477,6 +477,8 @@ async function runtimePackage(source, config, models, key) {
 
   // The llama.cpp engine of Local AI: the server, llama-fit-params and their libraries (docs/LOCAL_AI.md, "The engine is in the Runtime").
   log(`llama.cpp engine: ${await addRuntimeEngine(pkg, source, config, app, notices)} files in app/${config.localAi.server.runtimeFolder}/.`);
+  // vgmstream-cli and its libraries: the decoder of a player's V voice mod (docs/PACKAGING.md, "vgmstream in the Runtime").
+  log(`vgmstream ${tool.vgmstream.version}: ${await addRuntimeVgmstream(pkg, source, config, app, notices)} files in app/${tool.vgmstream.runtimeFolder}/.`);
 
   // Launcher scripts, application metadata and notices.
   for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs', 'apply-removals.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
@@ -744,6 +746,36 @@ async function addRuntimeEngine(pkg, source, config, app, notices) {
     + ` Copyright (c) 2023-2026 The ggml authors: app/licenses/llama.cpp-MIT.txt; the LLVM OpenMP runtime it includes (libomp.dll) has its licence in app/${folder}/LICENSE-LLVM-OpenMP`
     + ` - https://github.com/ggml-org/llama.cpp/tree/${spec.server.version}`);
   return shipped.length;
+}
+
+// vgmstream-cli.exe and the ten libraries it loads, in app/vgmstream/ (docs/PACKAGING.md, "vgmstream in the Runtime"). The bridge decodes the Wwise voice-over of a
+// player's V voice mod with it. The unmodified files of the official release are read from <checkout>/vendor/vgmstream/ (git-ignored, never downloaded) and each is checked
+// against the size and SHA-256 pinned in release.config.json (toolchain.vgmstream); a missing or different file stops the build. The licence texts are committed in
+// packaging/licenses/vgmstream/ and go to app/licenses/vgmstream/, and the notice joins the Runtime's THIRD-PARTY-NOTICES.
+async function addRuntimeVgmstream(pkg, source, config, app, notices) {
+  const spec = config.toolchain.vgmstream, folder = spec.runtimeFolder;
+  if (!folder || !/^[a-z0-9-]+$/.test(folder)) throw Error('toolchain.vgmstream.runtimeFolder in release.config.json names the Runtime folder of vgmstream.');
+  const vendor = resolve(project, spec.vendorFolder); // the working checkout, not the exported commit: vendor/ is not in git, like assets/v-voice/*.wav
+  const names = Object.keys(spec.files);
+  if (!names.includes(spec.executable)) throw Error(`toolchain.vgmstream.files does not list ${spec.executable}.`);
+  for (const name of names) {
+    const path = resolve(vendor, name), pinned = spec.files[name];
+    if (!existsSync(path)) throw Error(`${spec.vendorFolder}/${name} is missing: copy the ${names.length} files of the official vgmstream ${spec.version} Windows release (listed in toolchain.vgmstream.files) into ${spec.vendorFolder}/.`);
+    if ((await stat(path)).size !== pinned.size || await sha256File(path) !== pinned.sha256) throw Error(`${spec.vendorFolder}/${name} differs from the pinned file (${pinned.size} bytes, SHA-256 ${pinned.sha256}).`);
+    pkg.file(`${app}/${folder}/${name}`, path);
+  }
+  for (const [name, licence] of Object.entries(spec.licences)) {
+    const path = resolve(source.root, licence.path);
+    if (licence.sha256 && await sha256File(path) !== licence.sha256) throw Error(`${licence.path} differs from the pinned licence text.`);
+    pkg.file(`${app}/${spec.licenceFolder}/${name}`, path);
+  }
+  notices.push(`vgmstream ${spec.version} (vgmstream-cli.exe with its libraries, the unmodified official Windows release; decodes the voice-over of a player's V voice mod on the player's PC) - ${spec.license}, `
+    + `Copyright (c) 2008-2025 Adam Gashlin, Fastelbja, Ronny Elfert, bnnm, Christopher Snowhill, NicknineTheEagle, bxaimc, Thealexbarney, CyberBotX, et al: app/${spec.licenceFolder}/COPYING,`
+    + ` source ${spec.source}`);
+  notices.push(`vgmstream's libraries (app/${folder}/, unmodified vgmstream release DLLs, dynamically linked and replaceable): FFmpeg n5.1.2 (avcodec, avformat, avutil; LGPL-2.1-or-later) and mpg123 (libmpg123; LGPL-2.1-or-later), `
+    + 'with the Opus library linked into the FFmpeg build (BSD-3-Clause); libvorbis 1.3.7 (BSD-3-Clause); Speex and CELT (libspeex, libcelt; BSD-3-Clause); LibAtrac9 (MIT); libg719_decode (the vgmstream release gives no licence text for it).'
+    + ` Licences and the source location of each: app/${spec.licenceFolder}/NOTICE-bundled-libraries.txt; the sources and build scripts are in ${spec.source}`);
+  return names.length;
 }
 
 // What every Local AI pack and every Mature pack ships, byte for byte the same files at the same paths, so installing one pack over another

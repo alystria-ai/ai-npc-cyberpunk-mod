@@ -4,6 +4,8 @@
 //   - V's voice: voices/v-voice/ holds the manifest and the clips assets/v-voice/v-voice.json names. The 0.2 and 0.2.1 Runtimes shipped
 //     without them, so V's typed lines had no voice to clone.
 //   - The llama.cpp engine in app/<localAi.server.runtimeFolder>/ (the server, llama-fit-params and the libraries they load).
+//   - vgmstream in app/<toolchain.vgmstream.runtimeFolder>/ (vgmstream-cli.exe and the ten libraries it loads) with its licence texts: the decoder of a player's V voice
+//     mod (docs/PACKAGING.md, "vgmstream in the Runtime"). Without them a voice mod cannot be read.
 //   - The Runtime's own OmniVoice lists in app/defaults, which the launcher reads before the OmniVoice pack's older copy (packaging/runtime/
 //     prepare-state.mjs; docs/PACKAGING.md, "Packs reused unchanged"). Without them a pack reused from an earlier version runs on its own
 //     older lists (0.2's lack the 30 voices 0.2.1 added), and a list an earlier Runtime left in app/defaults stays in charge.
@@ -28,6 +30,9 @@ export async function requiredRuntimeFiles(root) {
     "Runtime's OmniVoice lists": Object.values(OMNI_CONFIGS).map(name => `${app}/defaults/${name}`),
     // The llama.cpp engine of Local AI (docs/LOCAL_AI.md, "The engine is in the Runtime"): the update zips deliver engine fixes only if the Runtime carries it.
     'llama.cpp engine': config.localAi.server.require.map(name => `${app}/${config.localAi.server.runtimeFolder}/${name}`),
+    // vgmstream-cli and its libraries (the decoder of a player's V voice mod), and the licence texts that must travel with them.
+    'vgmstream decoder': Object.keys(config.toolchain.vgmstream.files).map(name => `${app}/${config.toolchain.vgmstream.runtimeFolder}/${name}`),
+    'vgmstream licences': Object.keys(config.toolchain.vgmstream.licences).map(name => `${app}/${config.toolchain.vgmstream.licenceFolder}/${name}`),
   };
 }
 
