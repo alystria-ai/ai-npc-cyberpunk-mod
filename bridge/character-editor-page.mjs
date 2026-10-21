@@ -99,12 +99,14 @@ export function editorClient() {
   };
 
   const customDirty = () => !!model.custom && (!model.data || !same(model.custom.draft, model.data.key ? model.data.custom : blankCustom()));
+  // V's two voice rows: the server names them in English, the page shows them in the player's language.
+  const vName = (key, name) => key === 'v-male' ? T('V (male voice)') : key === 'v-female' ? T('V (female voice)') : name;
   // A file chosen and not saved, or words changed for a clip that is saved, are changes that are not saved. Words typed with no clip are not (nothing keeps them).
   const voiceDirty = () => !!model.voice && (!!model.voice.chosen || (!!model.data && !!model.data.voice && !!model.data.voice.clip && model.voice.words !== model.data.voice.transcript));
   const worldDirty = () => !!model.world && model.world.draft.worldRules !== model.state.worldRules.text;
   const dirtyFields = () => {
     if (model.world) return worldDirty() ? ['world'] : [];
-    const text = model.custom ? (customDirty() ? ['custom'] : []) : model.data ? FIELDS.filter(field => !same(model.draft[field], model.data.values[field])) : [];
+    const text = model.custom ? (customDirty() ? ['custom'] : []) : model.data && model.draft ? FIELDS.filter(field => !same(model.draft[field], model.data.values[field])) : [];
     return voiceDirty() ? [...text, 'voice'] : text;
   };
   const leave = () => !dirtyFields().length || confirm(T('You have changes that are not saved. Leave without saving?'));
@@ -164,7 +166,7 @@ export function editorClient() {
   // ---- saving and resetting
   let buttons = [];
   const refreshButtons = () => {
-    if (model.custom || !model.data) return;
+    if (model.custom || !model.data || model.data.voiceOnly) return;
     const dirty = dirtyFields();
     for (const {node, fields, kind} of buttons) {
       const touched = fields.some(field => dirty.includes(field)), edited = fields.some(field => model.data.edited[field]);
@@ -178,6 +180,7 @@ export function editorClient() {
   const syncEntry = data => {
     const row = model.state.characters.find(item => item.key === data.key);
     const voice = !!(data.voice && data.voice.clip);
+    if (data.voiceOnly) { if (row) row.voice = voice; return; }
     if (data.group === 'custom') {
       if (row) { row.name = data.name; row.voice = voice; }
       else model.state.characters.push({key: data.key, name: data.name, group: 'custom', edited: false, voice});
@@ -187,7 +190,9 @@ export function editorClient() {
   // one that cannot have a clip) drops the chosen file and its blob addresses.
   const apply = (data, keepDraft) => {
     model.data = data; model.world = null;
-    if (data.group === 'custom') {
+    if (data.voiceOnly) data.name = vName(data.key, data.name);
+    if (data.voiceOnly) { model.custom = null; model.draft = null; }
+    else if (data.group === 'custom') {
       if (!(keepDraft && model.custom)) model.custom = {draft: clone(data.custom)};
       model.draft = null;
     } else { model.custom = null; if (!(keepDraft && model.draft)) model.draft = clone(data.values); }
@@ -399,7 +404,8 @@ export function editorClient() {
       } catch (error) { busy = false; refresh(); say(problem(error), true); }
     };
     const removeClip = async () => {
-      if (!confirm(own ? T('Remove the voice clip? The character goes back to a generic voice.') : T('Remove the voice clip? {name} goes back to the shipped voice.', {name: model.data.name}))) return;
+      if (!confirm(model.data.voiceOnly ? T('Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice.')
+        : own ? T('Remove the voice clip? The character goes back to a generic voice.') : T('Remove the voice clip? {name} goes back to the shipped voice.', {name: model.data.name}))) return;
       try { hush(); landed(await api('DELETE', voicePath(key))); say(T('Clip removed.')); }
       catch (error) { say(problem(error), true); }
     };
@@ -419,7 +425,8 @@ export function editorClient() {
       // (replaceChildren would write the word null for a missing part, so the parts that are not there are taken out)
       box.replaceChildren(...[
         heading ? h('h3', {}, T('Voice')) : null,
-        h('p', {class: 'help'}, own ? T('Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.')
+        h('p', {class: 'help'}, model.data.voiceOnly ? T('Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it.')
+          : own ? T('Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.')
           : T('A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.')),
         h('p', {class: 'help'}, T('Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.',
           {min: spec.minSeconds, max: spec.maxSeconds, goodMin: spec.goodMin, goodMax: spec.goodMax})),
@@ -427,7 +434,8 @@ export function editorClient() {
           ? h('div', {}, h('p', {class: 'status', role: 'status'}, T('Saved clip: {seconds} seconds.', {seconds: clip.seconds})),
             voice.saved ? h('audio', {class: 'saved', controls: true, preload: 'metadata', 'aria-label': T('Saved clip: {seconds} seconds.', {seconds: clip.seconds})})
               : h('div', {class: 'actions'}, h('button', {type: 'button', class: 'secondary', onclick: playSaved}, T('Play saved clip'))))
-          : h('p', {class: 'status', role: 'status'}, T('No clip yet.') + ' ' + (info.fallback === 'shipped' ? T('This character speaks with the shipped voice.') : T('This character speaks with a generic voice that fits the gender.'))),
+          : h('p', {class: 'status', role: 'status'}, T('No clip yet.') + ' ' + (info.fallback === 'v' ? T('V speaks with the voice of your installed V voice mod, or the shipped V voice.')
+          : info.fallback === 'shipped' ? T('This character speaks with the shipped voice.') : T('This character speaks with a generic voice that fits the gender.'))),
         h('div', {class: 'field'}, h('label', {for: 'f-clip'}, T('Add voice clip')), input),
         chosen ? h('div', {}, h('p', {class: 'status', role: 'status'}, chosenText), chosen.preview ? h('audio', {class: 'preview', controls: true, 'aria-label': chosenText}) : null) : null,
         h('div', {class: 'field'}, h('label', {for: 'f-voiceText'}, T('Words said in the clip')),
@@ -537,6 +545,10 @@ export function editorClient() {
       main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, title), h('span', {class: 'chip edited'}, T('Your character'))), h('div', {class: 'panel'}, customPanel()));
       return;
     }
+    if (data.voiceOnly) {
+      main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, data.name)), h('div', {class: 'panel'}, model.voice ? voiceSection(false) : null));
+      return;
+    }
     const edited = FIELDS.some(field => data.edited[field]);
     const labels = {bio: T('Bio'), style: T('Speaking style'), rules: T('Speaking rules'), memories: T('Memories'), voice: T('Voice')};
     const tabs = h('div', {role: 'tablist', class: 'tabs', 'aria-label': T('Parts of the character')}, TABS.filter(([id]) => id !== 'voice' || model.voice).map(([id]) => h('button', {
@@ -552,7 +564,7 @@ export function editorClient() {
   function drawList() {
     $('world').classList.toggle('on', !!model.world);
     const query = model.filter.trim().toLowerCase();
-    const groups = [['custom', T('Your characters')], ['story', T('Story characters')], ['everyday', T('Everyday people')]];
+    const groups = [['custom', T('Your characters')], ['v', T('V’s voice')], ['story', T('Story characters')], ['everyday', T('Everyday people')]];
     const nodes = [];
     for (const [group, title] of groups) {
       const rows = model.state.characters.filter(item => item.group === group && (!query || item.name.toLowerCase().includes(query)));
@@ -608,6 +620,7 @@ export function editorClient() {
     try {
       model.state = await api('GET', '/api/state');
       strings = model.state.strings || {};
+      for (const item of model.state.characters) if (item.voiceOnly) item.name = vName(item.key, item.name);
       chrome(); drawList(); drawMain();
     } catch (error) {
       document.body.replaceChildren(h('main', {class: 'gone'}, h('p', {}, 'The editor could not start. Open it again from the game settings.')));

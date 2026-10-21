@@ -5,7 +5,7 @@ import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CharacterOverrides, EDIT_LIMITS} from './character-overrides.mjs';
-import {CharacterEditor} from './character-editor.mjs';
+import {CharacterEditor, V_EDITOR_KEYS} from './character-editor.mjs';
 import {EditorServer, cleanStrings} from './character-editor-server.mjs';
 import {EditorControl, parseEditorCommand} from './character-editor-control.mjs';
 import {renderEditorPage} from './character-editor-page.mjs';
@@ -532,6 +532,47 @@ test('a voice clip goes through the server: the file is the body, the words are 
   assert.deepEqual(await clipFiles(bench), []);
   assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`)).status, 404, 'no clip, no audio');
   assert.equal((await call(bench.server, 'DELETE', `/api/voice/${key}`)).status, 200, 'removing a second time is not an error');
+});
+
+test('V has two voice-only rows: a clip under v-male or v-female works through the editor and the server, and nothing else about V can be edited', async t => {
+  const bench = await workbench({custom: true, voices: true}); t.after(bench.done);
+  await bench.server.start();
+  // The keys are the ones V's typed lines are spoken with.
+  const {V_VOICE_KEYS} = await import('./v-voice.mjs');
+  assert.deepEqual([...V_EDITOR_KEYS], [V_VOICE_KEYS.male, V_VOICE_KEYS.female]);
+  const list = bench.editor.catalog(), v = list.filter(item => item.group === 'v');
+  assert.deepEqual(v, [{key: 'v-female', name: 'V (female voice)', group: 'v', edited: false, voiceOnly: true, voice: false},
+    {key: 'v-male', name: 'V (male voice)', group: 'v', edited: false, voiceOnly: true, voice: false}], 'by name, like every group');
+  const first = list.findIndex(item => item.group === 'v'), story = list.findIndex(item => item.group === 'story');
+  assert(first >= 0 && first < story && list.slice(first, first + 2).every(item => item.group === 'v'), 'V rows come before the story characters');
+  assert.deepEqual(bench.editor.details('v-male'), {key: 'v-male', name: 'V (male voice)', group: 'v', voiceOnly: true, voice: {clip: null, transcript: '', fallback: 'v'}});
+  assert.deepEqual((await call(bench.server, 'GET', '/api/character/v-female')).json.voice, {clip: null, transcript: '', fallback: 'v'});
+  // A clip: saved, played back, listed as having one, removed (V goes back to the mod's or the shipped voice: the row stays).
+  const saved = await put(bench, 'v-male', speechWav({seconds: 12}));
+  assert.equal(saved.status, 200);
+  assert.deepEqual([saved.json.voice.clip.seconds, saved.json.voice.fallback, saved.json.voiceOnly, saved.json.group], [12, 'v', true, 'v']);
+  assert.equal(bench.voices.has('v-male'), true);
+  assert.equal((await call(bench.server, 'GET', '/api/state')).json.characters.find(item => item.key === 'v-male').voice, true);
+  assert.equal((await call(bench.server, 'GET', '/api/voice/v-male/audio')).status, 200);
+  assert.equal((await call(bench.server, 'PUT', '/api/voice/v-male/text', {body: {text: 'Other words, said the same way.'}})).json.voice.transcript, 'Other words, said the same way.');
+  const gone = await call(bench.server, 'DELETE', '/api/voice/v-male');
+  assert.deepEqual([gone.status, gone.json.voice, gone.json.group], [200, {clip: null, transcript: '', fallback: 'v'}, 'v']);
+  assert.equal((await call(bench.server, 'GET', '/api/voice/v-male/audio')).status, 404);
+  assert.equal(bench.editor.catalog().find(item => item.key === 'v-male').voice, false);
+  // Nothing else of V is editable: no text, no memories, no reset, no custom character route.
+  for (const key of ['v-male', 'v-female']) {
+    await assert.rejects(bench.editor.save(key, {bio: 'x'.repeat(200)}), {status: 404}, key);
+    await assert.rejects(bench.editor.reset(key, null), {status: 404}, key);
+    assert.throws(() => bench.editor.setSummary(key, 'text'), {status: 404}, key);
+    await assert.rejects(bench.editor.deleteCustom(key), {status: 404}, key);
+    assert.equal((await call(bench.server, 'PUT', `/api/character/${key}`, {body: {bio: 'x'}})).status, 404, key);
+  }
+  // Only these two keys: other near-misses still have no clip.
+  for (const key of ['v', 'v-other', 'v-male2', 'V-male']) await assert.rejects(bench.editor.setVoice(key, speechWav(), WORDS), {status: 404}, key);
+  // Without a clip store the rows do not exist.
+  const none = await workbench(); t.after(none.done);
+  assert.equal(none.editor.catalog().some(item => item.group === 'v'), false);
+  assert.throws(() => none.editor.details('v-male'), {status: 404});
 });
 
 test('the saved clip is played through a route that needs the session code, and the old address of a clip is gone', async t => {

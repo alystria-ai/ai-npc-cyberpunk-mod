@@ -229,7 +229,7 @@ export class EditorServer {
     throw new EditorError(404, 'not-found');
   }
 
-  // Voice clips, for a story character or one of the player's own: /api/voice/<key> (PUT the file with its words in X-Voice-Text, DELETE the clip),
+  // Voice clips, for a story character, one of the player's own or one of V's two voice keys (v-male, v-female): /api/voice/<key> (PUT the file with its words in X-Voice-Text, DELETE the clip),
   // /api/voice/<key>/text (PUT {text}: only the words), /api/voice/<key>/audio (GET the saved clip as a WAV). The key is checked before a body is read.
   async #voiceRoute(request, method, parts) {
     const [key, ...rest] = parts;

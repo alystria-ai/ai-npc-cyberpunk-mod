@@ -6,8 +6,10 @@
 // object) and, when one character's clip changes, edits that one key in each of them:
 //   a clip         the key's descriptor becomes {reference: runtime/player-voices/<key>.wav, sha256, transcript}, the player's clip as the index and the
 //                  file agree on it (PlayerVoices.extras checks the hash);
-//   no clip        the key goes back to the descriptor the shipped configuration has (read from the original, unmerged file), or leaves the table when
-//                  the shipped configuration has none (a character the player made, which then speaks with the voice of its gender again).
+//   no clip        the key goes back to the descriptor the shipped configuration has (read from the original, unmerged file); when that has none, to the
+//                  descriptor the optional `fallback(key)` gives (V's voice keys: V is merged as an extra, so the shipped files do not have them, and the
+//                  bridge supplies the mod-built or shipped V reference); and when there is neither, the key leaves the table (a character the player
+//                  made, which then speaks with the voice of its gender again).
 // The new tables go to VoiceSelection.setVoices, which applies them at the next moment no reply is in flight, sends each running worker only the
 // difference, and drops only that character's prepared voice (bridge/voice-selection.mjs). The cloud voices read the same registries and forget only
 // that character. Nothing here runs on a timer or per turn: it runs when the player saves or removes a clip.
@@ -22,11 +24,12 @@ const ENGINES = Object.freeze(['pocket', 'short', 'long']);
 /** The `voices` object of a configuration (the parsed JSON), or null when it has none (that engine is not set up, so nothing is changed for it). */
 export const voicesOf = config => plain(config) && plain(config.voices) ? config.voices : null;
 
-/** The table of one engine with one character's clip applied: `descriptor` (the clip), else the shipped descriptor, else the key is gone. A new table. */
-export function withPlayerVoice(voices, key, descriptor, shipped = null) {
+/** The table of one engine with one character's clip applied: `descriptor` (the clip), else the shipped descriptor, else `fallback` ({reference, sha256, transcript}), else the key is gone. A new table. */
+export function withPlayerVoice(voices, key, descriptor, shipped = null, fallback = null) {
   const next = {...voices};
   if (descriptor) next[key] = {reference: descriptor.reference, sha256: descriptor.sha256, transcript: descriptor.transcript};
   else if (plain(shipped?.[key])) next[key] = shipped[key];
+  else if (plain(fallback)) next[key] = {reference: fallback.reference, sha256: fallback.sha256, transcript: fallback.transcript};
   else delete next[key];
   return next;
 }
@@ -39,10 +42,13 @@ export class LiveVoices {
    *   allowed     key => boolean: a story character or a character the player still has; any other key has no clip
    *   folder      the player voice folder the clips are in (PlayerVoices.folder)
    *   apply       update => boolean: VoiceSelection.setVoices
+   *   fallback    optional, sync: key => {reference, sha256, transcript} | null. What a key speaks with when it has no clip and the shipped configuration has
+   *               no descriptor for it (V's `v-male` / `v-female`: the mod-built or shipped V reference). Without it, or when it gives null or throws, such a
+   *               key leaves the tables as before. It gets the same descriptor for every engine, so it is only for keys every engine can read.
    *   log         (message) => void: never given the words said in a clip
    */
-  constructor({voices = {}, shipped = async () => ({}), players, allowed = () => true, folder = null, apply, log = () => {}} = {}) {
-    Object.assign(this, {shipped, players, allowed, folder, apply, log});
+  constructor({voices = {}, shipped = async () => ({}), players, allowed = () => true, folder = null, apply, fallback = null, log = () => {}} = {}) {
+    Object.assign(this, {shipped, players, allowed, folder, apply, fallback: typeof fallback === 'function' ? fallback : null, log});
     this.voices = Object.fromEntries(ENGINES.map(engine => [engine, plain(voices[engine]) ? {...voices[engine]} : null]));
     this.chain = Promise.resolve();
   }
@@ -59,10 +65,12 @@ export class LiveVoices {
       const descriptor = await this.descriptor(key);
       let shipped = {};
       if (!descriptor) { try { shipped = await this.shipped() ?? {}; } catch { shipped = {}; } }
+      let spare = null;
+      if (!descriptor && this.fallback) { try { spare = this.fallback(key) ?? null; } catch { spare = null; } }
       const update = {changed: [key], playerVoiceDirectory: this.folder, omni: {}};
       for (const engine of ENGINES) {
         if (!this.voices[engine]) continue;
-        this.voices[engine] = withPlayerVoice(this.voices[engine], key, descriptor, shipped[engine]);
+        this.voices[engine] = withPlayerVoice(this.voices[engine], key, descriptor, shipped[engine], spare);
         if (engine === 'pocket') update.pocket = this.voices.pocket; else update.omni[engine] = this.voices[engine];
       }
       return this.apply(update);
