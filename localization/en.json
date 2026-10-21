@@ -734,7 +734,7 @@
     "TALK TO {character}": "TALK TO {character}",
     "TEXT  >": "TEXT  >",
     "Talk to ordinary NPCs": "Talk to ordinary NPCs",
-    "Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.": "Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.",
+    "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.": "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.",
     "Talk to story characters": "Talk to story characters",
     "Test": "Test",
     "Test connection": "Test connection",
@@ -1095,7 +1095,7 @@
     "{name} dismissed.": "{name} dismissed.",
     "{name} does not have a conversation profile configured yet.": "{name} does not have a conversation profile configured yet.",
     "{name} is a child and cannot be talked to.": "{name} is a child and cannot be talked to.",
-    "{name} is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.": "{name} is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.",
+    "{name} is a story character. Turn on Talk to story characters in Esc > Mods.": "{name} is a story character. Turn on Talk to story characters in Esc > Mods.",
     "{name} is already with you.": "{name} is already with you.",
     "{name} is busy right now.": "{name} is busy right now.",
     "{name} is coming with you.": "{name} is coming with you.",
@@ -2134,7 +2134,7 @@
       "Story characters",
       "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Needs Local AI or Custom.",
       "Support report saved: {path}",
-      "Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.",
+      "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.",
       "Test",
       "Test connection",
       "Testing the connection…",
@@ -2381,7 +2381,7 @@
       "{name} dismissed.",
       "{name} does not have a conversation profile configured yet.",
       "{name} is a child and cannot be talked to.",
-      "{name} is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.",
+      "{name} is a story character. Turn on Talk to story characters in Esc > Mods.",
       "{name} is already with you.",
       "{name} is busy right now.",
       "{name} is coming with you.",
@@ -8120,7 +8120,7 @@
         "mod/manager-ui.lua:1402"
       ]
     },
-    "Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.": {
+    "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11158,7 +11158,7 @@
         "mod/init.lua:797"
       ]
     },
-    "{name} is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.": {
+    "{name} is a story character. Turn on Talk to story characters in Esc > Mods.": {
       "contexts": [
         "ui.localized"
       ],

@@ -789,10 +789,10 @@ function convaiUnprofiledNotice(npc, name)
         local reason = characterCatalog.noProfileReason(catalog, {record = recordOk and record or '',
             name = tostring(npc:GetTweakDBFullDisplayName(true) or ''), facts = facts, bodyType = body})
         if reason == 'named' and not manager.storyConversations() then
-            return ui.t('{name} is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.', {name = name})
+            return ui.t('{name} is a story character. Turn on Talk to story characters in Esc > Mods.', {name = name})
         end
         if reason ~= 'named' and not manager.archetypeConversations() then
-            return ui.t('Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.')
+            return ui.t('Talk to ordinary NPCs is off. Turn it on in Esc > Mods.')
         end
         if reason == 'child' then return ui.t('{name} is a child and cannot be talked to.', {name = name}) end
         if reason == 'not-human' then return ui.t('{name} is not a person and cannot be talked to.', {name = name}) end

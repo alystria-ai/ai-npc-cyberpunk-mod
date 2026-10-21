@@ -582,7 +582,7 @@ test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk
   storyOn = false
   assert(key(rogue) == nil, 'story setting off: no profile')
   local told = convaiUnprofiledNotice(rogue, 'Rogue Amendiares')
-  assert(told == 'Rogue Amendiares is a story character, and Talk to story characters is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.', tostring(told))
+  assert(told == 'Rogue Amendiares is a story character. Turn on Talk to story characters in Esc > Mods.', tostring(told))
   storyOn = true
   assert(key(rogue) == 'rogue-amendiares', 'the setting on: her own profile')
   -- the other plain-word notices
@@ -596,7 +596,7 @@ test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk
   -- Talk to ordinary NPCs off: a person who is no crowd member is told which setting; a roster character is still told it is a story character.
   archetypesOn = false
   assert(key(worker) == nil, 'the setting off: facts are not read, a non-crowd person has no profile')
-  assert(convaiUnprofiledNotice(worker, 'Worker') == 'Talk to ordinary NPCs is off. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod.')
+  assert(convaiUnprofiledNotice(worker, 'Worker') == 'Talk to ordinary NPCs is off. Turn it on in Esc > Mods.')
   storyOn = false
   assert(convaiUnprofiledNotice(rogue, 'Rogue Amendiares'):find('story character', 1, true))
   -- A person nothing explains keeps the old line (the caller's fallback), and an unreadable one gives nil instead of an error.
@@ -610,6 +610,6 @@ test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk
     assert.match(code, /local told = key == nil and convaiUnprofiledNotice and convaiUnprofiledNotice\(npc, name\) or nil\s+convaiNotices\.send\(player, 'talk-no-profile', told or ui\.t\('\{name\} does not have a conversation profile configured yet\.',\{name=name\}\)\)/);
     assert.match(code, /\nfunction convaiUnprofiledNotice\(npc, name\)/);
     // The three sentences the owner asked for, with the menu path.
-    assert.match(init, /ui\.t\('\{name\} is a story character, and Talk to story characters is off\. Turn it on in Esc > Mods > AI NPC Cyberpunk Mod\.'/);
+    assert.match(init, /ui\.t\('\{name\} is a story character\. Turn on Talk to story characters in Esc > Mods\.'/);
   });
 }
