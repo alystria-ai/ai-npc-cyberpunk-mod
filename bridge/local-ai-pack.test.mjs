@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
-import {detectLocalAiPack} from './local-ai-pack.mjs';
+import {detectLocalAiPack, ENGINE_FILES, LOCAL_AI_ENV, RUNTIME_ENGINE_FOLDER, describePackFiles, packPlaceLines, runtimeEngineFolder} from './local-ai-pack.mjs';
 
 const project = resolve('project-fixture');
 const root = resolve('pack-fixture');
@@ -240,4 +240,118 @@ test('Mature and Local AI packs together: the Local AI manifest names the pieces
   const noStandard = detectFolder({'manifest.standard.json': standard, 'manifest.mature-lite.json': matureLiteMarker},
     ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf']);
   assert.equal(noStandard.installed, true); assert.equal(noStandard.tiers.standard, null);
+});
+
+// ---- The engine in the Runtime (app/llama-cpp/, docs/LOCAL_AI.md "The engine is in the Runtime") --------------------------------------------------------------------------
+const engineDir = resolve(project, RUNTIME_ENGINE_FOLDER);
+const engineAt = name => resolve(engineDir, name);
+const wholeEngine = ENGINE_FILES.map(engineAt);
+const engineFolderSet = (fragments, files, engine = wholeEngine, environment = {CYBERPUNK_CONVAI_LOCAL_AI: root}) => {
+  const present = new Set([...files.map(at), ...Object.keys(fragments).map(at), ...engine]);
+  return detectLocalAiPack({project, environment, exists: path => present.has(path),
+    readText: path => JSON.stringify(fragments[Object.keys(fragments).find(name => at(name) === path)])});
+};
+const standardFragment = {version: 1, server: manifest.server, standard: manifest.standard, embed: manifest.embed};
+const modelsOnlyFragment = {version: 1, standard: manifest.standard, embed: manifest.embed};   // a pack built with localAi.server.inPacks false
+const packFilesWithEngine = ['llama/llama-server.exe', 'models/q4.gguf', 'models/embed.gguf'];
+
+test('the Runtime engine is used before the server an older pack carries, and says so', () => {
+  const found = engineFolderSet({'manifest.standard.json': standardFragment}, packFilesWithEngine);
+  assert.equal(found.installed, true);
+  assert.equal(found.server, engineAt('llama-server.exe'));
+  assert.deepEqual(found.engine, {source: 'runtime'});
+  assert.deepEqual(found.missing, []);
+});
+
+test('an older Runtime (no app/llama-cpp) and an old pack behave exactly as before: the pack\'s server, no extra field', () => {
+  const found = engineFolderSet({'manifest.standard.json': standardFragment}, packFilesWithEngine, []);
+  assert.equal(found.server, at('llama/llama-server.exe'));
+  assert.equal('engine' in found, false);
+  assert.equal(found.installed, true);
+});
+
+test('a pack that carries models only runs on the Runtime\'s engine, and is not installed without it', () => {
+  const found = engineFolderSet({'manifest.standard.json': modelsOnlyFragment}, ['models/q4.gguf', 'models/embed.gguf']);
+  assert.equal(found.installed, true);
+  assert.equal(found.server, engineAt('llama-server.exe'));
+  const without = engineFolderSet({'manifest.standard.json': modelsOnlyFragment}, ['models/q4.gguf', 'models/embed.gguf'], []);
+  assert.equal(without.installed, false);
+  assert.deepEqual(without.missing, ['server']);
+});
+
+test('the new Runtime with no pack: the engine is there, nothing is installed, and the only things missing are the model and the embedding model (an own-server player is told nothing new)', () => {
+  const found = engineFolderSet({}, []);
+  assert.equal(found.installed, false);
+  assert.equal(found.server, engineAt('llama-server.exe'));
+  assert.deepEqual(found.missing, ['model', 'embed']);
+  assert.deepEqual(found.tiers, {standard: null, lite: null});
+  assert.equal(found.embed, null);
+});
+
+test('an engine that lost a file (an antivirus tool took a DLL) is passed over for the pack\'s own server, and the report names what is missing', () => {
+  const lost = wholeEngine.filter(path => !path.endsWith('ggml-vulkan.dll'));
+  const withPack = engineFolderSet({'manifest.standard.json': standardFragment}, packFilesWithEngine, lost);
+  assert.equal(withPack.server, at('llama/llama-server.exe'));
+  assert.deepEqual(withPack.engine, {source: 'pack', runtimeMissing: ['ggml-vulkan.dll']});
+  assert.equal(withPack.installed, true);
+  const modelsOnly = engineFolderSet({'manifest.standard.json': modelsOnlyFragment}, ['models/q4.gguf', 'models/embed.gguf'], lost);
+  assert.equal(modelsOnly.installed, false);
+  assert.equal(modelsOnly.server, null);
+  assert.deepEqual(modelsOnly.engine, {source: null, runtimeMissing: ['ggml-vulkan.dll']});
+});
+
+test('Mature packs: a marker with no server counts when the Runtime has the engine, a Mature pack alone is installed, and an older marker without an engine still adds nothing', () => {
+  const noServerMature = {version: 1, pack: 'mature', lite: matureLiteMarker.lite, embed: matureEmbed};
+  const files = ['models/embed.gguf', 'models/uncensored-lite.gguf'];
+  const alone = engineFolderSet({'manifest.mature-lite.json': noServerMature}, files);
+  assert.equal(alone.installed, true);
+  assert.equal(alone.server, engineAt('llama-server.exe'));
+  assert.deepEqual(alone.tiers, {standard: null, lite: null});
+  assert.equal(engineFolderSet({'manifest.mature-lite.json': noServerMature}, files, []).installed, false);
+  // A Mature pack that still carries its own engine, beside the new Runtime: the Runtime's engine is the one used.
+  const both = engineFolderSet({'manifest.mature-lite.json': matureLiteMarker}, ['llama/llama-server.exe', ...files]);
+  assert.equal(both.server, engineAt('llama-server.exe'));
+  // Local AI beside Mature, both models-only: one engine, both models.
+  const together = engineFolderSet({'manifest.standard.json': modelsOnlyFragment, 'manifest.mature-lite.json': noServerMature}, ['models/q4.gguf', ...files]);
+  assert.equal(together.installed, true);
+  assert.equal(together.tiers.standard.name, 'Qwen3.5-4B');
+  assert.equal(together.server, engineAt('llama-server.exe'));
+});
+
+test('a developer\'s folder keeps its own engine, and CYBERPUNK_CONVAI_LOCAL_ENGINE names the Runtime folder', () => {
+  const devRoot = resolve('dev-fixture');
+  const dev = file => resolve(devRoot, file);
+  const present = new Set([dev('llama-vulkan/llama-server.exe'), dev('dl-gemma4-e4b/m.gguf'), ...wholeEngine]);
+  const found = detectLocalAiPack({project, environment: {CYBERPUNK_CONVAI_LOCAL_AI_DEV: devRoot}, exists: path => present.has(path),
+    list: folder => (folder === dev('dl-gemma4-e4b') ? ['m.gguf'] : [])});
+  assert.equal(found.dev, true);
+  assert.equal(found.server, dev('llama-vulkan/llama-server.exe'), 'the developer\'s engine, not the Runtime\'s');
+  assert.equal(found.engine.source, 'pack');
+  const elsewhere = resolve('engine-elsewhere');
+  const named = engineFolderSet({'manifest.standard.json': modelsOnlyFragment}, ['models/q4.gguf'], ENGINE_FILES.map(name => resolve(elsewhere, name)),
+    {CYBERPUNK_CONVAI_LOCAL_AI: root, [LOCAL_AI_ENV.engine]: elsewhere});
+  assert.equal(named.server, resolve(elsewhere, 'llama-server.exe'));
+  assert.equal(runtimeEngineFolder({project, environment: {}}), engineDir);
+  assert.equal(runtimeEngineFolder({environment: {}}), null);
+});
+
+test('the engine files the bridge requires are the ones the release requires, and the folder is the one the build writes', async () => {
+  const {readFile} = await import('node:fs/promises');
+  const server = JSON.parse(await readFile(new URL('../packaging/release.config.json', import.meta.url), 'utf8')).localAi.server;
+  for (const name of ENGINE_FILES) assert(server.require.includes(name), `${name} is in localAi.server.require`);
+  for (const name of ['llama-fit-params.exe', 'llama-fit-params-impl.dll']) assert(server.require.includes(name), `${name} ships with the engine`);
+  assert.equal(server.runtimeFolder, RUNTIME_ENGINE_FOLDER);
+  // The fit tool is found beside the Runtime's server (bridge/local-vram-fit.mjs), so the free-memory fit works on the engine a pack no longer carries.
+  const {fitToolPath} = await import('./local-vram-fit.mjs');
+  assert.equal(fitToolPath(engineAt('llama-server.exe'), {exists: path => path === engineAt('llama-fit-params.exe'), platform: 'win32'}), engineAt('llama-fit-params.exe'));
+});
+
+test('describePackFiles and packPlaceLines say where the engine came from', () => {
+  const present = new Set([...wholeEngine, at('manifest.standard.json'), at('models/q4.gguf'), at('models/embed.gguf')]);
+  const options = {project, environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => present.has(path), readText: () => JSON.stringify(modelsOnlyFragment), sizeOf: () => 1, list: () => []};
+  assert.deepEqual(describePackFiles(options).engine, [{piece: 'server', source: 'runtime'}]);
+  assert.match(packPlaceLines(options).join('\n'), /the Runtime's engine/);
+  present.delete(engineAt('ggml.dll'));
+  assert.deepEqual(describePackFiles(options).engine, [{piece: 'server', source: null, runtimeMissing: ['ggml.dll']}]);
+  assert.match(packPlaceLines(options).join('\n'), /Runtime's engine is incomplete \(missing: ggml\.dll\); no server to use/);
 });

@@ -397,13 +397,39 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
 runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
-`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782 (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
+`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782, which ships in the Runtime (`app/llama-cpp/`, see "The engine is in the Runtime" below; a pack built now still carries a copy while `localAi.server.inPacks` is true) (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
 Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11782 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
 licence texts and `THIRD-PARTY-NOTICES.txt`; `prepare-state.mjs` points `CYBERPUNK_CONVAI_LOCAL_AI` there. With `--models local` the
 developer folder (`--local-ai-source`, default `CYBERPUNK_CONVAI_LOCAL_AI_DEV`) supplies the files, each still checked against its
 pinned hash. See `docs/PACKAGING.md`.
+
+### The engine is in the Runtime (2026-10-21)
+
+The llama.cpp engine used to ship inside every Local AI and Mature pack (`app/local-ai/llama/`), so an engine fix needed a 1.4 to 5.3 GB pack to be built and downloaded again. It is
+now part of the **Runtime**: `app/llama-cpp/` holds `llama-server.exe`, `llama-fit-params.exe` and the 24 libraries they load (b11782: 26 files, 82.5 MiB, 29.8 MiB zipped). A Runtime
+update zip carries a new build like any other changed files, and the packs can shrink to models.
+
+- **Lookup.** `detectLocalAiPack` (`bridge/local-ai-pack.mjs`, the one place the server path is made; `LocalLlmServer`, `LlamaEmbedder` and `fitToolPath` take it from there) looks for the Runtime's
+  engine first, in `CYBERPUNK_CONVAI_LOCAL_ENGINE` (the service sets it to the Runtime's real `app/llama-cpp`) or `<project>/llama-cpp`. It counts when `ENGINE_FILES` (the server and the libraries it
+  loads) are all beside the server; it is then used whatever `server` a pack's manifest names. Otherwise the pack's own `llama/llama-server.exe` is used as before, chosen from one real folder
+  under Mod Organizer 2. The developer layout (`CYBERPUNK_CONVAI_LOCAL_AI_DEV`) keeps its own engine.
+- **Every combination works.** (1) Old pack + older Runtime: unchanged, the answer carries no new field. (2) Old pack + new Runtime: the Runtime's engine runs the pack's models; the pack's copy is dead weight. (3) New
+  models-only pack (no `server` in its manifest or Mature marker) + new Runtime: works; the same pack on an older Runtime has no engine, is "not installed" and says what it said before
+  ("the Local AI pack is not installed"). (4) New Runtime and no pack, or an own server (KoboldCpp, Ollama, LM Studio, Custom): nothing to detect, `installed` false with `missing` `['model','embed']`, no
+  engine process, no notice, nothing new in the model row. (5) A Mature pack alone: installed on the Runtime's engine, models-only or not. (6) The Runtime's engine incomplete (an antivirus tool took
+  a DLL): the pack's copy is used when there is one, else Local AI is unavailable; `describePackFiles` and the support report's `packFiles.engine` say `source` (`runtime`, `pack` or none) and
+  `runtimeMissing` (the file names), and the Mod Organizer 2 log lines say "the Runtime's engine, <path>" or "is incomplete (missing: ...)".
+- **Mod Organizer 2.** The engine is one folder of the Runtime's mod, so the server, its DLLs and the fit tool are neighbours whatever mods the packs are in; the packs' markers and models are
+  found through the merged virtual folder as before (`packaging/engine-in-runtime.test.mjs`).
+- **The fit tool.** `llama-fit-params.exe` is beside the Runtime's server, so the free-memory fit and the partial-offload plan run on every install with the Runtime's engine (they never ran on a pack's
+  engine: the packs did not carry it until the same release).
+- **Removal.** `apply-removals` protects `app/local-ai/` as a whole (a test names `llama/llama-server.exe` and the DLLs), so a pack's engine is never deleted; the Runtime's own folder can be cleaned by a
+  later update's removal list.
+- **What players see.** Nothing, apart from the size of the Runtime (about +30 MB zipped, +82.5 MiB on disk) and, with Local AI, the engine's version in the log and report (`engine.build`). The engine's
+  binaries are unsigned, as in the packs. Smart App Control or an Application Control policy that blocks them still ends a start with the "Windows blocked a file of the model server" reason (below),
+  now also for a player whose pack was not the source; the files sit unused in `app/llama-cpp/` for everyone who never turns Local AI on, and nothing runs them (no process, no `--list-devices`).
 
 **Engine build b11782 (21 Oct 2026; was b11560).** Measured 2026-10-21 on the RTX 4080 Laptop (Balanced power, game closed, the GPU lock held), old and new alternating, three
 runs each, the mod's real `buildServerArgs` (`-ngl 99 -fa on -c 16384 -np 1 --reasoning off --cache-ram <n> --ctx-checkpoints 32 -fit off`) and its real prompts (`PersonaBook` and

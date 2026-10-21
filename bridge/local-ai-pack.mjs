@@ -26,6 +26,13 @@
 // only when CYBERPUNK_CONVAI_USVFS=1: realpathSync.native of the opened file), because llama-server reads real files. A server folder is
 // taken whole from one real place: the exe and the DLLs it loads must be neighbours there (chooseServer). Outside usvfs nothing is mapped.
 //
+// The engine (llama-server, its DLLs and llama-fit-params) ships in the Runtime, in app/llama-cpp/ (docs/LOCAL_AI.md, "The engine is in the Runtime"), so an engine
+// fix reaches players through the Runtime update zip. It is looked for first: when it is complete (the server and the libraries it loads, ENGINE_FILES) every pack
+// uses it, whatever `server` its manifest names. A pack that ships its own copy (llama/ inside the pack, every pack up to 0.2.7) is the fall-back: an older Runtime
+// has no app/llama-cpp, and a Runtime whose engine lost a file (an antivirus tool quarantined a DLL) runs the pack's. A pack without a `server` entry (later packs carry
+// models only) needs the Runtime's engine. Without any pack the engine is simply there and nothing is installed: an own-server player needs no engine and is told nothing.
+// The folder is next to the bridge (<project>/llama-cpp), or CYBERPUNK_CONVAI_LOCAL_ENGINE (the service sets it). The developer layout below never looks for it.
+//
 // Developer layout (a folder shaped like E:\CyberpunkConvai-offload\work\local-llm\), used when the real pack has no
 // manifest: llama-vulkan/llama-server.exe and the single .gguf in dl-gemma4-e4b/, else dl-qwen35-4b/ (standard), dl-bonsai2-4b/ (lite; the earlier lite model's dl-qwen35-2b/ is still read) and
 // dl-granite-emb/ (embed). Each file can be overridden by an environment variable.
@@ -59,9 +66,33 @@ export function placeLabel(real, virtual) {
 }
 
 export const LOCAL_AI_ENV = Object.freeze({
-  root: 'CYBERPUNK_CONVAI_LOCAL_AI', dev: 'CYBERPUNK_CONVAI_LOCAL_AI_DEV', server: 'CYBERPUNK_CONVAI_LOCAL_SERVER',
+  root: 'CYBERPUNK_CONVAI_LOCAL_AI', dev: 'CYBERPUNK_CONVAI_LOCAL_AI_DEV', server: 'CYBERPUNK_CONVAI_LOCAL_SERVER', engine: 'CYBERPUNK_CONVAI_LOCAL_ENGINE',
   standard: 'CYBERPUNK_CONVAI_LOCAL_MODEL', lite: 'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', embed: 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL',
 });
+
+/** The folder of the Runtime's engine under the app folder, and the files that must all be there for it to count (the `require` list of packaging/release.config.json, which a test keeps equal). */
+export const RUNTIME_ENGINE_FOLDER = 'llama-cpp';
+export const ENGINE_FILES = Object.freeze(['llama-server.exe', 'llama-server-impl.dll', 'llama.dll', 'ggml.dll', 'ggml-base.dll', 'ggml-vulkan.dll', 'ggml-cpu-x64.dll']);
+
+/** Where the Runtime's engine folder is, or null when neither CYBERPUNK_CONVAI_LOCAL_ENGINE nor a project folder says. */
+export function runtimeEngineFolder({project, environment = process.env} = {}) {
+  const named = environment?.[LOCAL_AI_ENV.engine];
+  if (typeof named === 'string' && named.trim()) return resolve(named);
+  return project ? resolve(project, RUNTIME_ENGINE_FOLDER) : null;
+}
+
+/**
+ * The Runtime's engine: null when its server is not there (an older Runtime, a developer's checkout), else {server, folder, missing}: the real path of the server,
+ * its folder and the names from ENGINE_FILES that are not beside it (empty when it is whole). It is one folder of one mod, so under Mod Organizer 2 its DLLs are always neighbours.
+ */
+export function findRuntimeEngine({project, environment = process.env, exists = fileExists, realPath = realPathFor(environment)} = {}) {
+  const folder = runtimeEngineFolder({project, environment});
+  if (!folder) return null;
+  const server = realPath(resolve(folder, ENGINE_FILES[0]));
+  if (!exists(server)) return null;
+  const beside = dirname(server);
+  return {server, folder: beside, missing: ENGINE_FILES.filter(name => !exists(resolve(beside, name)))};
+}
 
 // A manifest path must stay inside the pack: relative, no drive, no `..` segment.
 function packPath(root, value) {
@@ -83,7 +114,9 @@ export function detectLocalAiPack({project, environment = process.env, exists = 
   const primary = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
   const manifestPaths = ['manifest.json', 'manifest.standard.json', 'manifest.lite.json'].map(name => resolve(primary, name)).filter(path => exists(path));
   let layout = null;
-  const matureLayouts = MATURE_ENGINE_MARKERS.map(name => resolve(primary, name)).filter(path => exists(path)).map(path => matureLayout(primary, path, readText, exists, realPath)).filter(Boolean);
+  const runtimeEngine = findRuntimeEngine({project, environment, exists, realPath});
+  const useRuntime = Boolean(runtimeEngine) && runtimeEngine.missing.length === 0;
+  const matureLayouts = MATURE_ENGINE_MARKERS.map(name => resolve(primary, name)).filter(path => exists(path)).map(path => matureLayout(primary, path, readText, exists, realPath, useRuntime)).filter(Boolean);
   if (manifestPaths.length || matureLayouts.length) {
     layout = mergeLayouts(primary, [...manifestPaths.map(path => realLayout(primary, path, readText)), ...matureLayouts]);
   } else {
@@ -95,7 +128,9 @@ export function detectLocalAiPack({project, environment = process.env, exists = 
   // Each file a manifest names is looked at where it really is (the identity outside usvfs); the manifests themselves were read at their virtual place.
   const places = {};
   const place = (piece, file) => { const real = realPath(file); if (!same(real, file)) places[piece] = {virtual: file, real}; return real; };
-  const picked = layout.server ? chooseServer(layout, {realPath, exists, list}) : null;
+  // The Runtime's engine first (never for a developer's folder, which brings its own); else the server the pack names, taken whole from one real folder.
+  const runtimeFirst = useRuntime && !layout.dev;
+  const picked = runtimeFirst ? {file: runtimeEngine.server, mapped: false} : layout.server ? chooseServer(layout, {realPath, exists, list}) : null;
   if (picked?.mapped) places.server = {virtual: layout.server, real: picked.file, complete: picked.complete, missing: picked.missing};
   const server = picked ? picked.file : null;
   const matureEngine = Boolean(server) && layout.matureModel === true;
@@ -108,8 +143,10 @@ export function detectLocalAiPack({project, environment = process.env, exists = 
   if (!server) missing.push('server');
   if (!standard && !lite && !matureEngine) missing.push('model');
   if (!embed) missing.push('embed');
+  // Where the server came from, only when the Runtime has an engine folder (a pack-only install carries no extra field).
+  const engine = runtimeEngine ? {source: runtimeFirst ? 'runtime' : (server ? 'pack' : null), ...(runtimeEngine.missing.length ? {runtimeMissing: runtimeEngine.missing.slice(0, 12)} : {})} : null;
   return {installed: Boolean(server && (standard || lite || matureEngine)), missing, root: layout.root, server, tiers: {standard, lite}, embed, dev: layout.dev,
-    ...(Object.keys(places).length ? {places} : {})};
+    ...(engine ? {engine} : {}), ...(Object.keys(places).length ? {places} : {})};
 }
 
 // The server exe and the DLLs it loads must be neighbours in ONE real folder (Windows looks beside the real exe). Under usvfs each file of a
@@ -147,13 +184,14 @@ function mergeLayouts(root, layouts) {
 }
 
 // A Mature marker's contribution: its `server` and `embed` only, and whether one of its model files is on disk. Null for a marker that is
-// unreadable, not ours, or names no server (an older Mature pack: it adds nothing here).
-function matureLayout(root, markerPath, readText, exists, realPath) {
+// unreadable, not ours, or names no server while the Runtime has no engine (an older Mature pack: it adds nothing here).
+function matureLayout(root, markerPath, readText, exists, realPath, runtimeEngine = false) {
   let marker;
   try { marker = JSON.parse(readText(markerPath)); } catch { return null; }
   if (!marker || typeof marker !== 'object' || marker.version !== 1 || marker.pack !== 'mature') return null;
+  // A marker without a server (a pack that carries models only, or an older Mature pack) counts when the Runtime has the engine.
   const server = packPath(root, marker.server);
-  if (!server) return null;
+  if (!server && !runtimeEngine) return null;
   const matureModel = ['lite', 'good'].some(tier => { const file = packPath(root, marker[tier]?.file); return Boolean(file) && exists(realPath(file)); });
   return {...realLayout(root, markerPath, readText), standard: null, lite: null, server, matureModel};
 }
@@ -238,7 +276,8 @@ export function describePackFiles({project, environment = process.env, exists = 
     });
   const engine = [];
   try {
-    const {places = {}} = detectLocalAiPack({project, environment, exists, readText, list, realPath});
+    const {places = {}, engine: where} = detectLocalAiPack({project, environment, exists, readText, list, realPath});
+    if (where) engine.push({piece: 'server', source: where.source, ...(where.runtimeMissing ? {runtimeMissing: where.runtimeMissing} : {})});
     if (places.server) engine.push({piece: 'server', foundIn: placeLabel(places.server.real, places.server.virtual), dllsBeside: places.server.complete, dllsMissing: places.server.missing.slice(0, 12)});
     if (places.embed) engine.push({piece: 'embed', foundIn: placeLabel(places.embed.real, places.embed.virtual)});
   } catch { /* the engine rows are extra */ }
@@ -271,7 +310,9 @@ export function packPlaceLines({project, environment = process.env, exists = fil
         if (file) line(`  ${tier} model ${basename(file)}`, file);
       }
     }
-    const {places = {}} = detectLocalAiPack({project, environment, exists, readText, list, realPath});
+    const {places = {}, engine, server} = detectLocalAiPack({project, environment, exists, readText, list, realPath});
+    if (engine?.source === 'runtime') lines.push(`server ${basename(server)}: the Runtime's engine, ${server}`);
+    else if (engine?.runtimeMissing) lines.push(`the Runtime's engine is incomplete (missing: ${engine.runtimeMissing.join(', ')}); ${server ? "the pack's server is used" : 'no server to use'}`);
     if (places.server) {
       lines.push(`server ${basename(places.server.virtual)}: ${places.server.real}; its DLLs are ${places.server.complete ? 'all beside it'
         : `NOT all beside it (missing: ${places.server.missing.slice(0, 12).join(', ')})`}`);

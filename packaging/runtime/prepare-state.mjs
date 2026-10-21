@@ -66,7 +66,10 @@ export function installLayout({appDirectory, gameRoot, dataHome = null, packRoot
     omni, omniPython: resolve(omni, 'python/python.exe'),
     omniModel: resolve(omni, 'model'), omniAdapter: resolve(omni, 'voicestudio/backend'),
     omniDefaults: resolve(omni, 'defaults'),
-    // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, llama/, models/).
+    // The llama.cpp engine (llama-server, its DLLs, llama-fit-params) is part of the Runtime: bridge/local-ai-pack.mjs uses it before the copy an older pack carries.
+    // It is in the Runtime's own folder, which under Mod Organizer 2 is the real folder of the Runtime's mod, so the server and its DLLs are neighbours.
+    engine: resolve(app, 'llama-cpp'),
+    // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, models/; llama/ in a pack that still carries the engine).
     localAi: packRoots.localAi ? resolve(packRoots.localAi) : resolve(app, 'local-ai'),
     ...(packRoots.stt ? {sttPacks: resolve(packRoots.stt)} : {}),
   });
@@ -204,7 +207,7 @@ export function serviceEnvironment(layout, {omni, keyFile, usvfs = false}, sourc
     'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT', 'CYBERPUNK_CONVAI_GAME_STATE',
     // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
     'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
-    'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL']) delete env[name];
+    'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL', 'CYBERPUNK_CONVAI_LOCAL_ENGINE']) delete env[name];
   Object.assign(env, {
     PYTHONNOUSERSITE: '1',
     CYBERPUNK_CONVAI_GAME: layout.gameRoot,
@@ -212,6 +215,7 @@ export function serviceEnvironment(layout, {omni, keyFile, usvfs = false}, sourc
     CYBERPUNK_CONVAI_KEY_FILE: keyFile,
     CYBERPUNK_CONVAI_CLIENT_ASSETS: layout.assets,
     CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi,
+    CYBERPUNK_CONVAI_LOCAL_ENGINE: layout.engine,
     // The folder 'runtime/voice-references/' maps to. Besides OmniVoice, the Mistral cloud voice (Voxtral) reads its reference clips
     // and its pre-built prepared/ clips from here, so it is set with or without the OmniVoice pack.
     CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,
