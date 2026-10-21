@@ -59,6 +59,8 @@ const values = name => argv.flatMap((item, index) => (item === name && argv[inde
 const updateFrom = values('--update-from');
 const updateFromScripts = values('--update-from-scripts');
 const updateZipArgument = values('--update-zip')[0];
+// A manual script that needs built packages: `node --test packaging/` picks the file up like a test, so under the test runner (NODE_TEST_CONTEXT) a run without --version is a skip, not a failure.
+if (!version && process.env.NODE_TEST_CONTEXT) { console.log('skipped: a manual script (needs built packages and --version)'); process.exit(0); }
 if (!version) { console.error('--version is required'); process.exit(2); }
 
 const results = [];
