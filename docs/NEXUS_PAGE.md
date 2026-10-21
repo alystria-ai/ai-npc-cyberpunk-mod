@@ -14,7 +14,7 @@
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
 [*][b]The game's named cast.[/b] Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
 [*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers you come back to remember you. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
-[*][b]Talk has consequences.[/b] Clearly threaten or insult an ordinary passer-by (not a joke) and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
+[*][b]Talk has consequences.[/b] Threaten an ordinary pedestrian and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
 [*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
 [*][b]Group chat.[/b] Talk to two or three companions at once; they take turns and pick up from each other.
 [*][b]Phone Chat and holocalls.[/b] Text any supported contact from a Chat tab on V's phone, or call them and watch them pick up live on screen.
