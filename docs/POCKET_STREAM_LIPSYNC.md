@@ -1,6 +1,6 @@
 # Pocket streaming facial timing
 
-> **October 5:** local voices and continuous Convai speech now use a model trained on the game's own JALI dialogue lipsync when local weights exist; see [GAME_LIPSYNC_MODEL.md](GAME_LIPSYNC_MODEL.md). The paths below remain the fallback.
+> **October 5:** local voices and continuous Convai speech now use a model trained on the game's own JALI dialogue lipsync when local weights exist; see [GAME_LIPSYNC_MODEL.md](GAME_LIPSYNC_MODEL.md). The paths below remain the fallback for Pocket; Rhubarb itself was removed on 2026-10-21 (Omni phrases without cues play on the audio envelope).
 
 ## October 3 correction
 

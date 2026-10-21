@@ -165,7 +165,7 @@ uses the aligned phones (`bridge/jali-face-text.mjs`; measurements and fallbacks
   is covered. The PocketSphinx/Rhubarb analysers are not started while the
   model is available.
 - **Omni (phrase WAVs):** each phrase is analysed whole by the model instead of
-  Rhubarb (Rhubarb remains the fallback). This is also faster: the retained
+  Rhubarb (Rhubarb was the fallback until 2026-10-21; now a phrase the model gives no cues for plays on the audio envelope). This is also faster: the retained
   2.96 s Judy phrase took 0.48 s through the worker versus 1.99 s in Rhubarb,
   and a 30.4 s file 3.6 s versus 4.1 s (measured while training ran).
 - Timelines use source `local-jali`, articulation `jali-audio-v1`, 25 tracks
@@ -211,7 +211,7 @@ audio with the previous local mouth or the model for the replay probe
 The corpus (`runtime/lipsync-corpus2`) and trained weights
 (`runtime/lipsync-model/face-model.{json,bin}`) are derived from game assets.
 They stay in the ignored `runtime/` folder during development. **Distribution (user decision, 2026-10-07):** the trained weights ship with the free mod, so players never train anything (CD Projekt permits free fan content made from game material). Without weights
-the bridge keeps the previous phone/Rhubarb paths unchanged
+the bridge keeps the previous phone path for Pocket, and Omni phrases play on the audio envelope (Rhubarb was removed 2026-10-21)
 (`CYBERPUNK_CONVAI_FACE_MODEL=off` also disables the model).
 
 ## Reproduce

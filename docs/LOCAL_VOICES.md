@@ -244,7 +244,7 @@ No cloned/generated speech is used as a reference.
   enters that splitter, and Pocket remains on its own continuous decoder.
 - Native lips use the existing phonetic/native-shape mapping. Pocket's prepared
   path uses resident CPU allphone analysis on copied PCM, warmed alongside voice
-  preparation; Omni retains Rhubarb phrase analysis. Audio never waits for local
+  preparation; Omni has no phrase analyser beside the facial model (Rhubarb was removed 2026-10-21; a phrase without cues plays on the audio envelope). Audio never waits for local
   lip analysis. Faces, subtitles and audible drain share the renderer's consumed
   sample clock and exact request/entity/generation owner.
 - Cancellation stops the owned native generator, drains its decoder to actual

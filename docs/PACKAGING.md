@@ -766,8 +766,9 @@ permission can stay read-only.
 Tests, fixtures, research scripts and caches, training data and notebooks, benchmark audio,
 `misc/` (developer launchers and benchmark runs), `vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files
 (`diagnostics.lua` and the probes it loads, `face-test.lua`, `gesture-probe.lua`), the retired
-`KnowledgeState.reds`, Rhubarb (only a last fallback behind the lip-sync model) and the resident
-phone analyser (not started when the lip-sync model is present).
+`KnowledgeState.reds` and the resident phone analyser (not started when the lip-sync model is present).
+There is no Rhubarb Lip Sync fallback (owner decision 2026-10-21; shipping it would add 62 MB): the bridge no longer looks for it, the
+Runtime does not carry it, and a line the lip-sync model gives no cues for plays on its audio envelope on the developer's machine exactly as on a player's.
 
 ## Licences to keep in view
 
