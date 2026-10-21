@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync, statSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {nativeOffText} from '../packaging/lib/native-off.mjs';
 
 // The switch between the native plugin and the Lua fallback is a set of NAMES that three languages have to agree on: the system names
 // the plugin registers (C++), the names the Lua asks convaiNative.use() for, the names runtime/native-off.txt lists, and the class and
@@ -247,10 +248,16 @@ test('every system the Lua gates on is a system the plugin registers, and every 
   for (const name of failures) if (name !== '(variable)') assert.ok(bases.has(name), `fail('${name}') names no gated system`);
 });
 
-test('the systems that ship off in native-off.txt are registered systems the Lua gates on, once each, in lower case', () => {
+test('the systems that ship off in native-off.txt (none from 0.2.7) are registered systems the Lua gates on, once each, in lower case', () => {
   const {gates} = luaSystemNames();
   const bases = new Set([...gates].map(name => name.split('.')[0]));
-  assert.ok(config.native.off.length >= 5);
+  // The five systems that shipped off through 0.2.6 keep a working kill switch whether or not the list names them: each is a
+  // registered system and a name the Lua asks convaiNative.use() for, so a line in native-off.txt reaches it.
+  for (const name of ['actuator', 'vehicles', 'chauffeur', 'passage', 'faces']) {
+    assert.ok(pluginSystems.has(name), `${name} is not a registered system: a line naming it would be ignored`);
+    assert.ok(bases.has(name), `${name} is not a system the Lua gates on: a line naming it would not reach the Lua`);
+  }
+  assert.deepEqual(config.native.off, [], 'every native system ships on; list a name here only to ship that system off');
   assert.equal(new Set(config.native.off).size, config.native.off.length, 'a name listed twice');
   for (const name of config.native.off) {
     assert.match(name, /^[a-z]+$/, `${name}: the plugin lower-cases lines, but the clean-install test compares the raw names`);
@@ -310,7 +317,7 @@ test('native-off.txt is never an empty placeholder: an empty file means every sy
   assert.ok(!/native-off/.test(scripts), 'the Scripts package builder does not name native-off.txt');
   // Only the Runtime package (the one that carries the DLL) writes it, and only when the DLL is built into the package.
   const runtime = builder.slice(builder.indexOf('async function runtimePackage'));
-  const at = runtime.indexOf('pkg.text(config.native.offFile, nativeOffText(config))');
+  const at = runtime.indexOf('pkg.text(config.native.offFile, nativeOffText(config.native.off))');
   assert.ok(at > 0, 'the Runtime package writes the switch file');
   assert.ok(runtime.lastIndexOf('if (nativeDll) {', at) > 0, 'and only beside the DLL: no plugin, no switch file');
   assert.equal(runtime.indexOf('native.offFile'), at + 'pkg.text(config.'.length, 'it is written once');
@@ -318,11 +325,8 @@ test('native-off.txt is never an empty placeholder: an empty file means every sy
 });
 
 test('the native-off.txt the Runtime package writes switches off exactly the configured systems, and the docs list the same names', () => {
-  const builder = read('packaging/build-release.mjs');
-  const found = /function nativeOffText\(config\) \{[\s\S]*?\n\}/.exec(builder);
-  assert.ok(found, 'nativeOffText was renamed: update this test');
-  const nativeOffText = new Function(`${found[0]}; return nativeOffText;`)();
-  const text = nativeOffText(config);
+  assert.match(read('packaging/build-release.mjs'), /import \{nativeOffText\} from '\.\/lib\/native-off\.mjs';/, 'the builder uses the shared writer');
+  const text = nativeOffText(config.native.off);
   const parsed = parseSwitchFile(text);
   assert.equal(parsed.all, false, 'the shipped file must not say "all": io, which ships proven, would go to Lua with the rest');
   assert.deepEqual(parsed.off, config.native.off);
@@ -334,11 +338,15 @@ test('the native-off.txt the Runtime package writes switches off exactly the con
   assert.match(text, /a missing file turns every system on/);
   // The layout paths agree: the Runtime package writes the file where the Lua and the plugin read it.
   assert.equal(config.native.offFile, `${config.layout.modDirectory}/runtime/native-off.txt`);
-  for (const [file, pattern] of [['README.md', /listing exactly((?:\s+`[a-z]+`,?|\s+and)+)/], ['README.md', /ships `runtime\/native-off\.txt` with exactly((?:\s+`[a-z]+`,?|\s+and)+)/],
-    ['docs/PACKAGING.md', /native-off\.txt` ships with exactly((?:\s+`[a-z]+`,?|\s+and)+)/]]) {
-    const match = pattern.exec(read(file));
-    assert.ok(match, `${file}: the sentence that lists the shipped switch names moved`);
-    assert.deepEqual([...match[1].matchAll(/`([a-z]+)`/g)].map(item => item[1]), config.native.off, file);
+  // The kill switch is documented even with nothing listed: the file keeps its header, and the docs say the list is empty.
+  assert.ok(text.split('\n').filter(line => line.startsWith('#')).length >= 3, 'the header documents the switch');
+  if (config.native.off.length === 0) {
+    assert.match(text, /every native system is on/i);
+    assert.match(read('README.md'), /comment header and no system listed/);
+    assert.match(read('README.md'), /Its list \(`native\.off`[^)]*\) is empty/);
+    assert.match(read('docs/PACKAGING.md'), /the list is empty \(`native\.off`/);
+  } else {
+    for (const file of ['README.md', 'docs/PACKAGING.md']) for (const name of config.native.off) assert.ok(read(file).includes(`\`${name}\``), `${file} names ${name}`);
   }
 });
 

@@ -50,6 +50,8 @@ std::string StatusJson()
     out += ",\"runtime\":\"" + JsonEscape(paths::WideToUtf8(GlobalFileIo().RuntimeDirectory())) + "\"";
     out += ",\"systems\":" + names;
     out += ",\"switches\":" + GlobalSwitches().DescribeJson();
+    // How an NPC's combat flag is read (unresolved until a companion first asks, then the route or "none").
+    out += ",\"combat\":" + game::CombatRouteJson();
     out += ",\"io\":";
     out += ioJson;
     out += ",\"lastProblem\":\"" + JsonEscape(log::LastProblem()) + "\"}";

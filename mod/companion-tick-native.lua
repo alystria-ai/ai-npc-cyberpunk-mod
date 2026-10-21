@@ -109,17 +109,18 @@ end
 -- Parity proof ----------------------------------------------------------------------------------
 local PROOF_TICKS, PROOF_MOVING, CANARY_EVERY, MAX_MISMATCHES = 40, 10, 100, 3
 local proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0,
-    combatSeen = 0, combatCompared = 0, proven = false}
+    combatSeen = 0, combatCompared = 0, combatMismatches = 0, combatOff = false, proven = false}
 
 -- Test hook: how long the proof runs and how often the canary compares (0 skips each).
 function M.configure(ticks, moving, every)
     PROOF_TICKS, PROOF_MOVING, CANARY_EVERY = ticks, moving, every
     proof = {ticks = 0, moving = 0, mismatches = 0, compared = 0, calls = 0, lifeCalls = 0,
-        combatSeen = 0, combatCompared = 0, proven = false}
+        combatSeen = 0, combatCompared = 0, combatMismatches = 0, combatOff = false, proven = false}
 end
 function M.state()
     return {proven = proof.proven, ticks = proof.ticks, moving = proof.moving, mismatches = proof.mismatches,
-        compared = proof.compared, combatSeen = proof.combatSeen, combatCompared = proof.combatCompared}
+        compared = proof.compared, combatSeen = proof.combatSeen, combatCompared = proof.combatCompared,
+        combatMismatches = proof.combatMismatches, combatOff = proof.combatOff}
 end
 
 -- While the proof runs, every plugin read is made twice (the plugin's and Lua's own), so a companion
@@ -190,6 +191,23 @@ local function luaLabel(npc, command)
     return ok and label or nil
 end
 
+-- The combat flag is a read of its own (the plugin reaches it through whichever route of
+-- convai::game::PuppetInCombat resolved, native/core/src/plugin/GameAccess.hpp). When it differs from the
+-- game's own answer it is the plugin's combat read that is wrong, not the actuator: after MAX_MISMATCHES
+-- differences that one read goes back to Lua for the session and the rest of the system stays native.
+local function combatMismatch(plugin, lua)
+    proof.combatMismatches = proof.combatMismatches + 1
+    if proof.combatMismatches <= 20 then
+        note('Native core: actuator PARITY MISMATCH in combat: plugin ' .. tostring(plugin) .. ', Lua ' .. tostring(lua))
+    end
+    if proof.combatMismatches >= MAX_MISMATCHES and not proof.combatOff then
+        proof.combatOff = true
+        proof.combatSeen, proof.combatCompared = 0, 0
+        note('Native core: actuator combat flag: the plugin and the game differ ' .. proof.combatMismatches
+            .. ' times; the plugin\'s combat read is off and Lua reads it (the rest of the actuator stays native)')
+    end
+end
+
 -- Compares the plugin's reading with the same reads made by Lua, now. Counts the proof, and may
 -- switch the system off.
 local function compareSense(entry, player, step, reading, command)
@@ -234,20 +252,22 @@ local function compareSense(entry, player, step, reading, command)
             local asked, fighting = pcall(function() return NPCPuppet.IsInCombat(npc) end)
             if asked then
                 proof.combatCompared = proof.combatCompared + 1
-                if (fighting == true) ~= reading.combat then mismatch('in combat', reading.combat, fighting) end
+                if (fighting == true) ~= reading.combat then combatMismatch(reading.combat, fighting) end
             end
         end
         proof.compared = proof.compared + 1
         if not proof.proven then
             proof.ticks = proof.ticks + 1
             if speed > 0.5 then proof.moving = proof.moving + 1 end
-            local combatProven = proof.combatSeen == 0 or proof.combatCompared >= math.min(proof.ticks, PROOF_TICKS)
+            local combatProven = (proof.combatSeen == 0 or proof.combatCompared >= math.min(proof.ticks, PROOF_TICKS))
+                and (proof.combatMismatches == 0 or proof.combatOff)
             if proof.ticks >= PROOF_TICKS and proof.moving >= PROOF_MOVING and proof.mismatches == 0 and combatProven then
                 proof.proven = true
                 note('Native core: actuator parity proven over ' .. proof.ticks .. ' senses (' .. proof.moving
                     .. ' with the companion walking); combat flag '
                     .. (proof.combatSeen > 0 and ('read by the plugin, compared ' .. proof.combatCompared .. ' times')
-                        or 'read by Lua (the plugin could not read it)')
+                        or (proof.combatOff and 'read by Lua (the plugin\'s read differed from the game\'s)'
+                            or 'read by Lua (the plugin could not read it)'))
                     .. '; the plugin reads are in use')
             end
         elseif proof.mismatches == before and proof.compared % 250 == 0 then
@@ -338,7 +358,7 @@ function M.sense(entry, player, step)
     end
     local reading = {at = {x = x, y = y, z = z, w = w}, direction = {x = dx, y = dy}, speed = speed,
         playerGap = gap, facingError = facing, command = command}
-    if hasBit(flags, M.FLAG.combatKnown) then reading.combat = hasBit(flags, M.FLAG.inCombat) end
+    if hasBit(flags, M.FLAG.combatKnown) and not proof.combatOff then reading.combat = hasBit(flags, M.FLAG.inCombat) end
     if command then
         if hasBit(flags, M.FLAG.stateKnown) then reading.label = LABEL[state] end
         if hasBit(flags, M.FLAG.idKnown) then reading.id = id end

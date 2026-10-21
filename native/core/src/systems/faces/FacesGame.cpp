@@ -61,8 +61,8 @@ const Layout& LayoutFor(RED4ext::IScriptable* aFeature)
     return g_layout;
 }
 
-// A static function of a class (NPCPuppet.IsInCombat, registered as "IsInCombat;ScriptedPuppet"), no
-// instance; found by script name and parameter count.
+// A static function of a class (StatusEffectSystem.ObjectHasStatusEffectWithTag), no instance; found by script name
+// and parameter count.
 template<typename TOut, typename... TArgs>
 bool CallStatic(const char* aClass, const char* aFunction, TOut* aOut, TArgs&&... aArgs)
 {
@@ -166,8 +166,10 @@ int SafeCheck(const Object& aActor)
     }
     Object actor = aActor; // the calls below take the address of their arguments
     RED4ext::WeakHandle<RED4ext::IScriptable> weak(aActor);
+    // The combat flag through whichever route resolved (convai::game::PuppetInCombat); unknown answers -1, and the
+    // Lua check decides, as it did while the plugin could not find the function.
     bool inCombat = false;
-    if (!CallStatic("NPCPuppet", "IsInCombat", &inCombat, actor))
+    if (!convai::game::PuppetInCombat(actor, inCombat))
     {
         return -1;
     }
@@ -263,7 +265,7 @@ std::string InfoJson()
                   feature ? "true" : "false", fields, base, has(puppet, "ConvaiFaceApply") ? "true" : "false",
                   has(puppet, "ConvaiFaceReady") ? "true" : "false", has(puppet, "IsAttached") ? "true" : "false",
                   has(puppet, "IsDeadNoStatPool") ? "true" : "false", has(puppet, "IsOnAutonomousAI") ? "true" : "false",
-                  convai::game::StaticFunction("NPCPuppet", "IsInCombat", 1) ? "true" : "false", has(puppet, "GetEntityID") ? "true" : "false",
+                  convai::game::CombatAvailable() ? "true" : "false", has(puppet, "GetEntityID") ? "true" : "false",
                   sceneGlobal ? "true" : "false", has(status, "ObjectHasStatusEffectWithTag") ? "true" : "false");
     return text;
 }

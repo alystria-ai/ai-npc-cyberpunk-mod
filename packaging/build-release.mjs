@@ -56,6 +56,7 @@ import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
+import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 
@@ -285,14 +286,6 @@ async function buildNative(source) {
   return dll;
 }
 
-// runtime/native-off.txt: the systems that start off because they are not yet proven in the real game. The plugin and the
-// Lua read it (native/core/src/core/Switches.hpp); a missing file means every system is on.
-function nativeOffText(config) {
-  return ['# Native systems that start off in this release because they are not yet proven in the real game.',
-    "# Each one runs the mod's own script path instead. One name per line; \"all\" turns every system off;",
-    '# a missing file turns every system on. A later update changes this list.',
-    ...config.native.off, ''].join('\n');
-}
 
 async function installPython(spec, lockFile, target, pthExtra) {
   const zip = await download(spec.url, resolve(cache, 'downloads', basename(spec.url)), spec.sha256, log);
@@ -361,8 +354,8 @@ async function runtimePackage(source, config, models, key) {
   const visionExe = await buildVision(source);
   if (visionExe) pkg.file(`${app}/vision/CyberpunkConvaiVision.exe`, visionExe);
 
-  // The optional native plugin: RED4ext loads it from red4ext/plugins/<name>/, and runtime/native-off.txt keeps the systems
-  // that are not yet proven in the real game on their script path.
+  // The optional native plugin: RED4ext loads it from red4ext/plugins/<name>/, and runtime/native-off.txt (the kill switch, always
+  // shipped; native.off in release.config.json lists the systems that start off, none at present) keeps those on their script path.
   const nativeDll = await buildNative(source);
   if (nativeDll) {
     const native = config.layout.nativeDirectory;
@@ -370,8 +363,8 @@ async function runtimePackage(source, config, models, key) {
     for (const [name, rel] of Object.entries(config.native.licences)) pkg.file(`${native}/${name}`, resolve(source.root, rel));
     pkg.text(`${native}/README.txt`, 'Optional speed-up plugin for AI NPC Cyberpunk Mod, loaded by RED4ext.\r\n'
       + 'AI NPC Cyberpunk Mod works the same without it: delete this folder and the mod runs entirely from its scripts.\r\n'
-      + 'Systems that are not yet proven in the game start switched off; see runtime\\native-off.txt in the mod folder.\r\n');
-    pkg.text(config.native.offFile, nativeOffText(config));
+      + 'To switch one native system off, put its name on a line of runtime\\native-off.txt in the mod folder.\r\n');
+    pkg.text(config.native.offFile, nativeOffText(config.native.off));
     notices.push('Native plugin (red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll, built from native/core in this release): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)'
       + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in that folder.');
   }

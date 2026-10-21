@@ -82,7 +82,7 @@ red4ext/plugins/AiNpcCyberpunkModNative/
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
   *.lua, locales/, *.json    Scripts package
   runtime/                   Lua <-> bridge exchange files (the only folder the service writes in the game folder's CET mod)
-    native-off.txt           which native systems stay off (Runtime package, see below)
+    native-off.txt           the native kill switch, no system listed from 0.2.7 (Runtime package, see below)
 r6/scripts/CyberpunkConvai/  redscript (Scripts package)
 r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots (Runtime)
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
@@ -144,11 +144,14 @@ before building and the clean-install test inspects the DLL with `convai_plugin_
 code). The package works without it: `--no-native` leaves it out and the Lua falls back to its own path for every system
 (`mod/native-core.lua`). The plugin's licence texts (RED4ext.SDK, yyjson) sit next to the DLL.
 
-`bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt` ships with exactly `actuator`, `vehicles`,
-`chauffeur`, `passage` and `faces`: the systems that are not yet proven in the real game start switched off. One name per line,
-`#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. A
-**missing file means every system is on**, so the file is part of the package, and a player turns a system on by deleting its line.
-The list lives in `native.off` in `packaging/release.config.json`; change it there when a system has been proven.
+`bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt` is the kill switch and ships in every Runtime
+package that carries the plugin. Through 0.2.6 it listed `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not
+yet proven in the real game, which started switched off. From 0.2.7 the list is empty (`native.off` in
+`packaging/release.config.json` is `[]`), so the file holds only its comment header (`packaging/lib/native-off.mjs` writes it) and
+every system is on. One name per line, `#` starts a comment, `all` switches everything off; the plugin polls the file about once a
+second and the Lua reads it too. A **missing file means every system is on**, so a player or a developer switches a system off by
+adding its name on a line. The file stays in the package so the switch is documented where it is used, and so an update replaces
+an older file that still listed systems. To ship a system off again, put its name in `native.off` (the header then says so).
 
 ### Local AI packs
 

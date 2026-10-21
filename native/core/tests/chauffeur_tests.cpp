@@ -375,6 +375,24 @@ TEST(chauffeur_pure_helpers)
     ActorRaw otherEntity = ValidActor();
     otherEntity.sameEntity = false;
     CHECK(!DecideActor(otherEntity).valid);
+
+    // An unreadable combat flag is unknown, not an unavailable sample: a valid actor answers with calm marked "?",
+    // and the flag's value, whatever it holds, is not used. An actor that is not valid has no combat read to miss.
+    ActorRaw unknown = ValidActor();
+    unknown.combatKnown = false;
+    unknown.inCombat = true;
+    const ActorResult unknownResult = DecideActor(unknown);
+    CHECK(unknownResult.valid);
+    CHECK(!unknownResult.calmKnown);
+    CHECK(!unknownResult.calm);
+    CHECK_WIRE(FormatActor(unknownResult), "A 1 0 1 ?");
+    ActorRaw unknownDead = ValidActor();
+    unknownDead.combatKnown = false;
+    unknownDead.dead = true;
+    const ActorResult unknownDeadResult = DecideActor(unknownDead);
+    CHECK(unknownDeadResult.calmKnown);
+    CHECK_WIRE(FormatActor(unknownDeadResult), "A 1 1 0 0");
+    CHECK_WIRE(FormatActor(DecideActor(ValidActor())), "A 1 0 1 1");
 }
 
 TEST(chauffeur_wire_format)

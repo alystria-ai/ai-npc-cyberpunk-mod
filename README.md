@@ -459,11 +459,11 @@ Because the game never waits on the network, the Lua side stays simple: it write
 | `io` | leases, mailboxes, continuous-speech frames, logs: file I/O off the script thread | on |
 | `clearance` | body, segment, box, sight and floor queries for companion placement and walking | on |
 | `gaze` | fills the look-at request a companion's eyes and head use, in one native call instead of about thirty script calls | on |
-| `faces` | applies facial data to the rig | **off** (not yet proven in game) |
-| `actuator` | movement commands and the sensing one-liner | **off** |
-| `vehicles`, `chauffeur`, `passage` | seat sensing and mounting, the companion driver, lift (elevator) standing spots | **off** |
+| `faces` | applies facial data to the rig | on |
+| `actuator` | the per-tick companion senses (position, command state, life) | on |
+| `vehicles`, `chauffeur`, `passage` | seat sensing and mounting, the companion driver, lift (elevator) standing spots | on |
 
-The release ships `runtime/native-off.txt` listing exactly `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`. A missing file means every system is on. A player turns a system on by deleting its line, and `runtime/native-verify.txt` runs both the native and the Lua path and logs `MISMATCH` on any difference. Lua reaches all of this through `mod/native-core.lua`, which re-reads the switch files about every half second and falls back to the Lua path when a system is off or unavailable. The plugin is built with `scripts/Build-NativeCore.ps1` (CMake, MSVC, static CRT, `/Brepro`; RED4ext.SDK at the commit pinned in `native/core/CMakeLists.txt`; yyjson vendored) and has headless tests in `native/core/tests/`. Design notes: [NATIVE_REWRITE_PLAN](docs/NATIVE_REWRITE_PLAN.md), [NATIVE_PORT_BRIEF](docs/NATIVE_PORT_BRIEF.md), [NATIVE_ACTUATOR](docs/NATIVE_ACTUATOR.md), [NATIVE_CLEARANCE](docs/NATIVE_CLEARANCE.md), [NATIVE_VEHICLES](docs/NATIVE_VEHICLES.md), [PERFORMANCE_NATIVE_PLAN](docs/PERFORMANCE_NATIVE_PLAN.md).
+The release ships `runtime/native-off.txt` as the kill switch, with a comment header and no system listed, so every system is on (through 0.2.6 it listed `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`; 0.2.7 turns them on once the live test in `TODO.md` passes). A missing file also means every system is on. A line with a system name (or `all`) switches it off within about a second, and `runtime/native-verify.txt` runs both the native and the Lua path and logs `MISMATCH` on any difference. Lua reaches all of this through `mod/native-core.lua`, which re-reads the switch files about every half second and falls back to the Lua path when a system is off or unavailable. The plugin is built with `scripts/Build-NativeCore.ps1` (CMake, MSVC, static CRT, `/Brepro`; RED4ext.SDK at the commit pinned in `native/core/CMakeLists.txt`; yyjson vendored) and has headless tests in `native/core/tests/`. Design notes: [NATIVE_REWRITE_PLAN](docs/NATIVE_REWRITE_PLAN.md), [NATIVE_PORT_BRIEF](docs/NATIVE_PORT_BRIEF.md), [NATIVE_ACTUATOR](docs/NATIVE_ACTUATOR.md), [NATIVE_CLEARANCE](docs/NATIVE_CLEARANCE.md), [NATIVE_VEHICLES](docs/NATIVE_VEHICLES.md), [PERFORMANCE_NATIVE_PLAN](docs/PERFORMANCE_NATIVE_PLAN.md).
 
 ### Startup
 
@@ -823,7 +823,7 @@ States: on foot, releasing, waiting for seat, boarding (20 s), riding, convoy, e
 
 Measured live: a bounded Johnny/Porsche prototype drove 175.654 m in 30 s at the 8 m/s setting, and on 2026-10-03 the owner confirmed boarding, manual passenger entry, driving, a changed waypoint, arrival and exit, and following afterwards. Not verified in the game: overflow convoys, reload retirement of a version-3 receipt in production, cancellation paths, and a driver pause at the door.
 
-**Native vehicles system (`vehicles`, `chauffeur`, `passage`).** The optional plugin (`native/core/src/systems/vehicles`, `chauffeur`, `passage`) replaces about 58 CET calls per car inspection, 80 to 120 per chauffeur sample (10 Hz during a trip) and up to 24 query units per lift boarding with one call each, with 8 compare-both-paths checks before trusting it and a Lua fallback on any fault. It is built and tested headless but has never run in the game, so `packaging/release.config.json` ships `runtime/native-off.txt` listing `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`. A missing file means every system is on; a player or developer turns one on by deleting its line. The Lua paths above are what runs by default.
+**Native vehicles system (`vehicles`, `chauffeur`, `passage`).** The optional plugin (`native/core/src/systems/vehicles`, `chauffeur`, `passage`) replaces about 58 CET calls per car inspection, 80 to 120 per chauffeur sample (10 Hz during a trip) and up to 24 query units per lift boarding with one call each, with 8 compare-both-paths checks before trusting it and a Lua fallback on any fault. It is built and tested headless; in the game, `vehicles.mounting` has run natively for many sessions, but the chauffeur sample has fallen back to Lua (see `TODO.md`, native live proving) and the lift (`passage`) path has never run live. `packaging/release.config.json` lists no system in `runtime/native-off.txt`, so every system is on; a line with a system name switches it back to the Lua path above within a second.
 
 **Lifts.** `mod/companion-passage.lua` handles lift cars (not vehicles): a standing spot found by physics rays, a straight `ignoreNavigation` walk in, the carried or hidden ride, and a walk out. Boarding gait is `Walk` up to 1.5 m, `Run` to 5 m and `Sprint` beyond.
 
@@ -1369,7 +1369,7 @@ RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the
 
 ### Native plugin switches (`native-off.txt`)
 
-The Runtime package ships `runtime/native-off.txt` with exactly `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not yet proven in the real game. A **missing file means every system is on**; one name per line, `#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. The list lives in `native.off` in `packaging/release.config.json`. `--no-native` leaves the plugin out and the Lua falls back to its own path for every system (`mod/native-core.lua`).
+The Runtime package always ships `runtime/native-off.txt`, the kill switch. Its list (`native.off` in `packaging/release.config.json`) is empty from 0.2.7, so the file holds only its comment header and every system is on; through 0.2.6 it listed `actuator`, `vehicles`, `chauffeur`, `passage` and `faces`, the systems not yet proven in the real game. A **missing file means every system is on**; one name per line, `#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. The list lives in `native.off` in `packaging/release.config.json`. `--no-native` leaves the plugin out and the Lua falls back to its own path for every system (`mod/native-core.lua`).
 
 ### Building
 
@@ -1489,7 +1489,7 @@ Everything in this README describes current `main`. Tests cover the logic; they 
 | Your own characters (New character in the editor, matching in the game, voice clip) | Built and tested headless and in Lua; not seen live |
 | Voice clips for story characters and your own characters (Pocket, OmniVoice, Voxtral) | Built and tested (unit, worker, headless browser); not heard live |
 | Seated free-look, overflow convoys, fast-travel recovery | Built; not confirmed live |
-| Native `faces`, `actuator`, `vehicles`, `chauffeur`, `passage` | Ship **off** through `native-off.txt` until proven in the game; the Lua paths are the proven ones |
+| Native `faces`, `actuator`, `vehicles`, `chauffeur`, `passage` | On in the release (empty `native-off.txt`), pending the live proving pass in `TODO.md`; the chauffeur sample fell back to Lua in the one trip logged, and `passage` has not run in the game |
 | The tactic command, decision ledger | The ledger is off and has no UI; the tactic command is built but not confirmed live |
 | Add-ons (Skippy, Delamain) | Separate repositories, planned for later dates; the add-on API is the part in the main mod |
 

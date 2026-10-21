@@ -138,13 +138,14 @@ bool ReadActor(const SampleArgs& aArgs, ActorRaw& aRaw)
     {
         return true;
     }
-    // Lua: NPCPuppet.IsInCombat(npc), only for a valid actor.
-    RED4ext::CBaseFunction* function = StaticFunction("NPCPuppet", "IsInCombat", 1);
-    Value value;
-    Object npc = aArgs.npc;
-    if (!function || !Invoke(nullptr, function, &value, {&npc}) || !value.Bool(aRaw.inCombat))
+    // Lua: NPCPuppet.IsInCombat(npc), only for a valid actor. The flag is read through whichever route of
+    // convai::game::PuppetInCombat resolved. When none did (or the call failed) it is UNKNOWN, not an unavailable
+    // section: the actor section still answers, with calm marked "?", and the Lua asks the one field itself.
+    // Live 2026-10-18 a missing function here failed every sample and put the system on Lua after 20 of them.
+    aRaw.combatKnown = convai::game::PuppetInCombat(aArgs.npc, aRaw.inCombat);
+    if (!aRaw.combatKnown)
     {
-        return false;
+        aRaw.inCombat = false;
     }
     return true;
 }
