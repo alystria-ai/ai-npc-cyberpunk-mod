@@ -53,6 +53,13 @@ const REASON_TEXT = Object.freeze({
 export const TOO_SMALL = 'too-small';
 /** The `detail` of a 'start-failed' refusal: the part of the model that runs on the processor (and its cache) does not fit the free system memory. */
 export const LOW_RAM = 'low-ram';
+/** The `detail` of a 'start-failed' refusal when the computer refused to run a file of the model server (spawn UNKNOWN / EPERM / EACCES, or the words of Smart App Control or an Application Control policy). */
+export const BLOCKED = 'windows-blocked';
+/** The code or words of a file the system would not run. Smart App Control and a company's or school's Application Control (WDAC) policy refuse an unsigned executable at spawn: Node reports `spawn UNKNOWN`, EPERM or EACCES
+ *  (error reports b6014b54 and 1aa616f1, and "An Application Control policy has blocked this file" in the same install's earlier report). */
+const BLOCKED_CODE = /^(UNKNOWN|EPERM|EACCES)$/;
+const BLOCKED_TEXT = /Application Control|has blocked this file|blocked by (?:a |your )?(?:group )?policy|Smart App Control|\bspawn (?:UNKNOWN|EPERM|EACCES)\b/i;
+export const looksBlocked = error => BLOCKED_CODE.test(String(error?.code ?? '')) || BLOCKED_TEXT.test(String(error?.message ?? ''));
 
 export class LocalAiUnavailable extends Error {
   // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
@@ -79,6 +86,8 @@ export function unavailableDetail(reason, detail) {
   // A model that cannot stay on the card even with part of it on the CPU (TOO_SMALL): the sentence says what to do about it, locally (no cloud provider is suggested).
   if (reason === 'low-memory' && detail === TOO_SMALL) return 'this graphics card is too small for the model: choose a smaller model in Settings, or use the Custom provider';
   if (reason === 'start-failed' && detail === LOW_RAM) return 'not enough free system memory to run this model on the processor: close programs, or choose a smaller model or the Custom provider';
+  // The same words as the Pocket voice row (voice-selection.mjs): restarting changes nothing until the player allows the file or chooses another provider.
+  if (reason === 'start-failed' && detail === BLOCKED) return 'Windows blocked a file of the model server (Smart App Control or an Application Control policy), so Local AI cannot run on this PC';
   const text = PLAYER_REASON[reason];
   if (!text) return undefined;
   const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
@@ -104,6 +113,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   maxRestarts: 2,
   deviceLostStepDown: 2,       // the graphics device was lost (Vulkan ErrorDeviceLost) this many times in a session: the first loss restarts llama-server, the second steps down a model size
   offloadReloads: 3,           // a model that spilled, was lost or stalled again is loaded again with part of it on the CPU at most this many times a session, then Local AI is unavailable
+  deviceListRetryMs: 1500,     // the listing of the graphics devices (llama-server --list-devices) failed to run: one more try after this long, then the start fails and names the error
   deviceLostPauseMs: 2000,     // the driver needs a moment to reset the device: the server it is restarted on waits this long before it starts
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
   externalContext: 8192,       // its context when neither the entry, the listing nor /props says
@@ -541,13 +551,13 @@ export class LocalLlmServer extends EventEmitter {
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
-      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
+      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, deviceListRetryMs = LOCAL_LLM_LIMITS.deviceListRetryMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
       externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory, cpuCount = () => cpus().length} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
-      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, argsPrefix, processOptions, freeMemMiB,
+      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, deviceListRetryMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
@@ -674,7 +684,8 @@ export class LocalLlmServer extends EventEmitter {
           // through the failure itself (a local notice: smaller model or Custom provider); any other lack of room is the step-down's own event, as before.
           const tooSmall = error.detail === TOO_SMALL || error.detail === LOW_RAM;
           if (this.#stepFrom) { this.#stepFrom = null; if (!tooSmall) this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
-          this.#fail(error.reason, tooSmall ? error.detail : null);
+          // A blocked file keeps its word too: the player's notice names Windows, not a generic start failure.
+          this.#fail(error.reason, tooSmall || error.detail === BLOCKED ? error.detail : null);
         }
         throw error;
       });
@@ -751,14 +762,28 @@ export class LocalLlmServer extends EventEmitter {
     finally { if (timer) this.clearTimer(timer); }
   }
 
-  async #selectDevice() {
-    let devices;
-    try {
-      const listing = await this.listDevices();
-      devices = Array.isArray(listing) ? listing : parseDeviceList(listing);
-    } catch (error) {
-      throw new LocalAiUnavailable('start-failed', 'could not list the graphics devices');
+  // `llama-server --list-devices`. A run that fails is logged with its error code and message (the file name only, no folder), tried once more after deviceListRetryMs
+  // (the 2026-10-21 reports failed twice in the same second on a PC where the same listing worked in the next sessions), and then ends the start. Never a cloud fallback.
+  async #listDevices() {
+    const generation = this.#generation, name = basename(String(this.command ?? ''));
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const listing = await this.listDevices();
+        return Array.isArray(listing) ? listing : parseDeviceList(listing);
+      } catch (error) {
+        const blocked = looksBlocked(error);
+        const words = oneLine(String(error?.message ?? error ?? '').split(String(this.command ?? '\u0000')).join(name), 200);
+        this.log(`[local] could not list the graphics devices (try ${attempt} of 2): code ${error?.code ?? 'none'}${error?.signal ? ', signal ' + error.signal : ''}${error?.killed ? ', timed out' : ''}: ${words}`
+          + (blocked ? ' (looks like Windows blocking the file)' : ''));
+        if (attempt >= 2) throw new LocalAiUnavailable('start-failed', blocked ? BLOCKED : 'could not list the graphics devices');
+        await delay(this.setTimer, this.clearTimer, this.deviceListRetryMs);
+        this.#guard(generation);
+      }
     }
+  }
+
+  async #selectDevice() {
+    const devices = await this.#listDevices();
     const device = pickDevice(devices);
     // Which cards the computer has and which one was taken: a model that "loads but never answers" on the wrong adapter is slow, not broken.
     this.log('[local] graphics devices: ' + (devices.map(item => `${item.id} ${String(item.name).slice(0, 60)} (${item.totalMiB} MiB${isIntegratedGpu(item.name) ? ', integrated: not used' : isAmdApu(item.name) ? ', integrated AMD: last resort' : ''})`).join('; ') || 'none')
@@ -1012,7 +1037,7 @@ export class LocalLlmServer extends EventEmitter {
       this.log('[local] llama-server did not start: ' + (error?.code || error?.message) + ' (' + this.#loaded.file + ', context ' + contextSize + ')');
       this.#logTail(proc, 'it did not start');
       if (tier.custom && error?.code !== 'stopped') { this.#modelFailed(tier, error?.code || 'error'); return this.#startOnce(); }
-      throw new LocalAiUnavailable('start-failed', error?.code);
+      throw new LocalAiUnavailable('start-failed', looksBlocked(error) ? BLOCKED : error?.code);
     }
     this.#guard(generation);
     const props = await this.#readProps(proc, contextSize);
