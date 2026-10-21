@@ -359,6 +359,9 @@ local function profileDescription(profile, snapshot, shared, count)
     if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
         voice = ui.t('{voice} · needs Omni pack',
             {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
+    elseif not routed and settings.voiceProvider == 'omni' and shared.pack.noNvidia then
+        voice = ui.t('{voice} · needs NVIDIA card',
+            {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
     end
     local conversing = settings.enabledByKey[profile.key] ~= false
     local lines = {(profile.summary or profile.name) .. '\n', ui.t('Voice: {voice}',{voice=voice}),
@@ -1065,7 +1068,7 @@ local function pageSignature(snapshot)
     if view == 'characters' then
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
-            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed),
+            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia),
             tostring((snapshot.mistral or {}).saved)}, '|'))
     end
     if view == 'models' then
@@ -1097,7 +1100,7 @@ local function pageSignature(snapshot)
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
-            tostring(pack.known), tostring(pack.installed), tostring(snapshot.settings.developerMode)}, '|'))
+            tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(snapshot.settings.developerMode)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
         modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
@@ -1443,7 +1446,9 @@ local function schema()
         local pack = manager.omniPack()
         -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
         local voiceName = ui.t('Companion voices')
-        if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')' end
+        if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
+        -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
+        elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')' end
         -- Why OmniVoice cannot speak for V now ('pack' before 'voice'), from the saved settings; nil when it can.
         local vOmniBlock = manager.vOmniBlock(snapshot.settings)
         local voicesCategory = category('voices', 'Voices', {
@@ -1479,6 +1484,11 @@ local function schema()
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
+            end
+            -- First paragraph, so a long description that is cut keeps it.
+            if voiceRow.id == 'voiceProvider' and pack.noNvidia then
+                voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
+                    .. '\n\n' .. voiceRow.description
             end
             if voiceRow.id == 'vVoice' then
                 local greyed, reason = {}, nil

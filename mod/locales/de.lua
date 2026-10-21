@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "Verwendet für V’s getippte Zeilen: Pocket, OmniVoice und die Voxtral-Cloudstimme kopieren sie.",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V spricht mit der Stimme deines installierten V-Stimmen-Mods oder mit der Originalstimme von V.",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "Sprachclip entfernen? V kehrt zur Stimme deines installierten V-Stimmen-Mods oder zur Originalstimme zurück.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "OmniVoice braucht eine NVIDIA-Grafikkarte, und in diesem PC ist keine funktionierende vorhanden. Antworten erscheinen als Text. Wähle in den Einstellungen Pocket, um Stimmen zu hören.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "OmniVoice braucht eine NVIDIA-Grafikkarte, und in diesem PC ist keine funktionierende vorhanden. Deine Begleiter verwenden stattdessen {voice}.",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice braucht NVIDIA",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Dieser PC hat keine NVIDIA-Grafikkarte, die OmniVoice braucht. OmniVoice startet hier nicht. Wähle Pocket, um Stimmen zu hören.",
+    ["{voice} · needs NVIDIA card"] = "{voice} · braucht NVIDIA-Karte",
 }

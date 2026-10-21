@@ -73,6 +73,7 @@ import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
+import {gpuVendors} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
@@ -316,7 +317,12 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
   referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks,
   prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
+// The graphics card vendors (names only, bridge/gpu-vendors.mjs), from the card list the setup check and the error report read too (looked up once):
+// the OmniVoice start line names them and the game's voice menu says OmniVoice needs an NVIDIA card when the PC has none. null until the list is read.
+let graphicsVendors = null;
+cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); }, () => {});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
+  gpuVendors: () => graphicsVendors,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,

@@ -31,6 +31,9 @@ MAX_CACHED_PROFILES = 8
 MAX_INPUT = 48_000
 MAX_CONFIG_BYTES = 4 * 1024 * 1024
 MAX_SECONDS = 120
+# The exit code of a worker whose PyTorch has no CUDA (an AMD or Intel card, or an NVIDIA driver that does not work). The same on every try, so the bridge
+# (bridge/resident-voice.mjs NO_CUDA_EXIT_CODE) reads this code, not the message, and does not start the worker again.
+NO_CUDA_EXIT_CODE = 78
 MAX_REFERENCE_SECONDS = 20
 MAX_REFERENCE_BYTES = 32 * 1024 * 1024
 WARM_PHRASE = 'Ready when you are, V.'
@@ -768,7 +771,8 @@ def run_worker(registry):
     if paths['portable'] and Path(tts_backend.__file__).resolve() != asset_file(paths['adapterDirectory'], 'services/tts_backend.py'):
         raise RuntimeError('The voice adapter does not belong to the application directory')
     if not torch.cuda.is_available():
-        raise RuntimeError('OmniVoice requires CUDA in this installation')
+        print('[no-cuda] OmniVoice requires CUDA, which this PC does not have (it needs an NVIDIA graphics card)', file=sys.stderr, flush=True)
+        raise SystemExit(NO_CUDA_EXIT_CODE)
     # Progress marks. The bridge's startup limit restarts at every frame it receives, so a start that is slow
     # (a throttled CPU while the game loads) is told apart from one that is stuck. Same frame, no protocol change.
     send({'op': 'state', 'state': 'loading'})

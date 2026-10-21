@@ -1068,4 +1068,9 @@ return {
     ["Used for V’s typed lines: Pocket, OmniVoice and the Voxtral cloud voice copy it."] = "V begépelt soraihoz használják: a Pocket, az OmniVoice és a Voxtral felhőhang másolja.",
     ["V speaks with the voice of your installed V voice mod, or the shipped V voice."] = "V a telepített V-hangmod hangján vagy az eredeti V-hangon szólal meg.",
     ["Remove the voice clip? V goes back to the voice of your installed V voice mod, or the shipped V voice."] = "Eltávolítod a hangklipet? V visszatér a telepített V-hangmod hangjához, vagy az eredeti V-hanghoz.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices."] = "Az OmniVoice NVIDIA videokártyát igényel, és ezen a gépen nincs működő. A válaszok szövegként jelennek meg. A hangokhoz a Beállításokban válaszd a Pocketet.",
+    ["OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Companions are using {voice} instead."] = "Az OmniVoice NVIDIA videokártyát igényel, és ezen a gépen nincs működő. A társak helyette {voice} hangot használnak.",
+    ["OmniVoice needs NVIDIA"] = "OmniVoice NVIDIA-t igényel",
+    ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Ezen a gépen nincs NVIDIA videokártya, pedig az OmniVoice-nak szüksége van rá. Az OmniVoice itt nem indul el. A hangokhoz válaszd a Pocketet.",
+    ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA-kártya kell",
 }

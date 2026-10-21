@@ -1,5 +1,6 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
-import {ResidentVoice, pathAttestationFailed} from './resident-voice.mjs';
+import {ResidentVoice, pathAttestationFailed, noCudaFailed} from './resident-voice.mjs';
+import {lacksNvidia} from './gpu-vendors.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -129,6 +130,9 @@ export class VoiceSelection {
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
     this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
+    // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
+    // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
+    this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.omniNoCuda=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
@@ -340,7 +344,8 @@ export class VoiceSelection {
   get fallback(){
     const want=this.resolvedProvider;
     if(want===this.requestedProvider||this.provider!==want)return null;
-    const value={from:this.requestedCloud??this.requestedProvider,to:want};
+    // `reason: 'omni-no-nvidia'`: OmniVoice cannot run on this PC at all (no CUDA), so the game says that instead of a generic "unavailable".
+    const value={from:this.requestedCloud??this.requestedProvider,to:want,...(this.omniNoCuda&&this.requestedProvider==='omni'&&!this.requestedCloud?{reason:'omni-no-nvidia'}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
   // Why a character has no local voice: the Convai voice was chosen, or the local voice cannot serve it (its reply is then written).
@@ -393,7 +398,7 @@ export class VoiceSelection {
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
-        this.failedBackends.delete(chosen);
+        if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
         if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;
@@ -526,6 +531,7 @@ export class VoiceSelection {
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
+      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,
       keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
@@ -607,7 +613,7 @@ export class VoiceSelection {
       this.details = value; this.publish(value.state);
     }};
     client=this.client=this.primed(factory(backend==='omni'?this.baseConfigs.omni[this.clientReference]:this.baseConfigs[backend],hooks),backend,this.clientReference);
-    if(backend==='omni')client.setSteps(this.warmSteps);
+    if(backend==='omni'){client.setSteps(this.warmSteps);this.log(`starting OmniVoice (${this.graphicsNote})`,'OmniVoice');}
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
     // Pocket's work folder has one lock: V's helper Pocket worker (beside OmniVoice) is gone before this worker starts.
@@ -634,7 +640,8 @@ export class VoiceSelection {
   }
   // A voice that could not start, told to whoever listens (the bridge records it for an error report, bridge/error-events.mjs). Never throws.
   // `gpu` ({dedicatedMiB, sharedMiB}): the worker's graphics memory when a render ran out of time, when it was read.
-  noteFailure(engine,reason,gpu){try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
+  // A worker with no CUDA is this PC's setup (no NVIDIA card), not a bug: no report is filed for it.
+  noteFailure(engine,reason,gpu){if(noCudaFailed(reason))return;try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200),...(gpu?{gpu}:{})});}catch{}}
   /**
    * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
    * Pocket worker counts only while it is the voice they need (Pocket chosen, or OmniVoice that cannot run); V's own worker only while V's voice wants it.
@@ -654,6 +661,13 @@ export class VoiceSelection {
     const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
     // A worker that loaded both models and then could not confirm its paths fails the same way on every try, and each try loads the models again (a
     // minute or more of CPU and graphics memory, beside Local AI and the game): the paths are fixed for the life of the service, so it is not tried again.
+    // A worker whose PyTorch has no CUDA (an AMD or Intel card) fails the same way on every try: it is not tried again, and Omni is not started again
+    // until the service restarts (request() keeps the failure when the player chooses Omni again).
+    if(noCudaFailed(reason)){
+      this.omniNoCuda=true;
+      this.log(`not trying again: OmniVoice needs an NVIDIA graphics card and this PC has none that works (${this.graphicsNote})`);
+      this.omniRetry=null;return;
+    }
     if(pathAttestationFailed(reason)){
       this.log(`not trying again: the worker did not confirm its asset and data paths, and they do not change until the game is restarted${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
@@ -665,6 +679,11 @@ export class VoiceSelection {
     this.omniRetry={failures,nextAt:this.clock()+delay};
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
   }
+  // The card vendors for the Omni start and failure lines: names only.
+  get graphicsVendors(){try{const found=this.gpuVendorsSource();return Array.isArray(found)?found:null;}catch{return null;}}
+  get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
+  // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones. Unknown claims nothing.
+  get omniNoNvidia(){return this.omniNoCuda||lacksNvidia(this.graphicsVendors);}
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
   // place. A cloud voice and the Convai voice want no Pocket worker.
@@ -734,7 +753,7 @@ export class VoiceSelection {
     entry.client.setSteps?.(this.requestedOmniSteps);
     entry.client.setKeepPrepared?.(this.keepPrepared);
     this.candidate=entry;
-    this.log(`loading OmniVoice in the background (retry ${this.omniRetry.failures})`);
+    this.log(`loading OmniVoice in the background (retry ${this.omniRetry.failures}; ${this.graphicsNote})`);
     entry.starting=Promise.all([this.retiring,this.candidateExit]).then(()=>{
       if(this.candidate!==entry||this.closed)throw cancelled('Background voice load was dropped');
       return entry.client.start();
