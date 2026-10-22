@@ -50,7 +50,7 @@ export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 export const TEXT_ROUTE = 'text';
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
-export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000});
+export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 6000});
 const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 export const CLOUD_WAIT_OUT_MS = 1500;
 // A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni

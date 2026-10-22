@@ -55,7 +55,11 @@ export const VOXTRAL_MODEL = VOXTRAL_TTS_MODEL;
 export const VOXTRAL_FALLBACK_MODEL = VOXTRAL_TTS_FALLBACK_MODEL;
 export const VOXTRAL_RATE = 24000;
 export const VOXTRAL_LIMITS = Object.freeze({
-  firstAudioMs: 7000,        // no audio this long after the request was sent: it is asked again once with a longer wait, then the reply is written (a long reply is split to stay well inside)
+  firstAudioMs: 5000,        // no audio this long after the request was sent: it is asked again once with a longer wait, then the reply is written (a long reply is split to stay well inside)
+  // The written reply appears with the first audio, so a stalled request holds the text (measured first audio: 90% within 1.4 s, at most 2.5 s; a stall is one call
+  // in ten, 5 to 11 s, and a second ask is nearly always quick). A first ask that has given no audio after hedgeMs is asked a second time in parallel, and the
+  // first audio of either is the reply's (the other is cancelled before it hands on a sample). 2026-10-22 review: the text waited up to 17 s, 29 s with queueing.
+  hedgeMs: 2500,
   // The rest of a reply whose first part was heard in this voice is never given to another voice. It is asked for as soon as the text
   // is known, with these limits, and again once if the first ask fails before any audio (the first part's audio buys the time;
   // Voxtral's server-side spikes are 5 to 11 s on about one call in ten, and a second ask is nearly always quick):
@@ -669,7 +673,7 @@ export class VoxtralVoice {
     };
     // Asked for again once (longer limits) when it is a rest of the reply: its first part, or an earlier part, was heard in this voice.
     // `firstAudioMs` (the caller asking again after a first ask gave no audio) replaces the default wait for the first audio.
-    const part = (partText, partSignal, onSamples, again = continuation) => (again ? this.fetchPartAgain : this.fetchPart).call(this,
+    const part = (partText, partSignal, onSamples, again = continuation) => (again ? this.fetchPartAgain : firstAudioMs ? this.fetchPart : this.fetchHedged).call(this,
       {text: partText, apiKey, reference, signal: partSignal, fail, onSamples, ahead, lane, ...(firstAudioMs && !again ? {firstAudioMs} : {})});
     const summary = (first, extra = {}) => {
       const truncated = !first.done || !!extra.truncated;
@@ -771,6 +775,60 @@ export class VoxtralVoice {
   }
 
   /**
+   * The first ask of a reply's first part, hedged: when it has given no audio `hedgeMs` after it was SENT (not queued: a wait behind the gate or the scheduler is not a
+   * stall), the same text is asked a second time in parallel and the first audio of either wins (the winner's samples are the only ones handed on; the other request is
+   * cancelled before it hands on a single one). A failure before the hedge is due is the first ask's own (its quick retries and the caller's second ask follow as ever);
+   * once both are running the reply fails only when both have, and with the FIRST ask's error (the hedge is a secondary: its 429 or its retried flag never replaces it, and
+   * a limit it earns holds the scheduler for a moment only, like V's). V's own lines (lane 'v') are not hedged: they would double the key's quota for a line that can wait.
+   */
+  fetchHedged(args) {
+    const {hedgeMs} = this.limits;
+    if (!(hedgeMs > 0) || args.signal?.aborted || args.lane === 'v') return this.fetchPart(args);
+    return new Promise((resolve, reject) => {
+      const own = [new AbortController(), new AbortController()], errors = [null, null];
+      let winner = null, running = 1, done = false, armed = false, hedged = false, timer = null;
+      const relay = () => own.forEach(controller => controller.abort(args.signal.reason ?? cancelled()));
+      args.signal?.addEventListener('abort', relay, {once: true});
+      const finish = settle => {
+        if (done) return; done = true;
+        this.clearTimer(timer); args.signal?.removeEventListener('abort', relay);
+        for (const controller of own) if (!controller.signal.aborted) controller.abort(cancelled('Voxtral ask finished'));
+        settle();
+      };
+      const guard = index => async samples => {
+        if (winner === null) { winner = index; if (index === 1) this.log('the second ask of the line was first to give audio'); own[1 - index].abort(cancelled('the other ask of this line was first')); }
+        if (winner !== index) throw cancelled();
+        return args.onSamples(samples);
+      };
+      const run = index => {
+        this.fetchPart({...args, signal: own[index].signal, onSamples: guard(index), secondary: index === 1,
+          ...(index === 0 ? {onSent: () => arm()} : {})}).then(value => {
+          if (winner === index || (winner === null && !done)) finish(() => resolve(value));
+        }, error => {
+          if (done || (winner !== null && winner !== index)) return;
+          if (winner === index) { finish(() => reject(error)); return; }
+          errors[index] = error; running--;
+          // The hedge was not due yet, or both asks have failed: the first ask's own failure stands.
+          if (running === 0) finish(() => reject(errors[0] ?? errors[1]));
+        });
+      };
+      // Armed once, when the first ask is actually sent.
+      const arm = () => {
+        if (armed || done) return; armed = true;
+        timer = this.setTimer(() => {
+          timer = null;
+          if (done || winner !== null || args.signal?.aborted) return;
+          hedged = true; running++;
+          this.log(`no audio ${hedgeMs} ms after the request was sent; the same line is asked a second time in parallel`);
+          run(1);
+        }, hedgeMs);
+        timer?.unref?.();
+      };
+      run(0);
+    });
+  }
+
+  /**
    * How long to wait before the one quick second ask after `error` (attempt 0 failed), or null for none. Only an answer the server gave
    * before any audio can be asked again, and only one that can be a hiccup: an HTTP 403 (if it is still there on the second ask it is
    * reported as a refused key), a 408, a 5xx, or a 429 whose Retry-After fits `retryBudgetMs` (none given: `retryWaitMs`). A 401 is a
@@ -832,7 +890,7 @@ export class VoxtralVoice {
    * failure throws a VoxtralError; after that a failure ends this request's audio where it stopped (done: false).
    * `ahead`: the held next speaker of a group round (it never takes the slots the speaker being heard needs, see bridge/request-gate.mjs).
    */
-  async fetchOnce({text, model = this.model, apiKey, reference, signal, fail, onSamples, ahead = false, lane = 'companion', firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
+  async fetchOnce({text, model = this.model, apiKey, reference, signal, fail, onSamples, ahead = false, lane = 'companion', secondary = false, onSent, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -890,6 +948,7 @@ export class VoxtralVoice {
           // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
           sentAt = this.now();
           arm(firstAudioMs, 'timeout');
+          try { onSent?.(); } catch { /* a hedge timer never affects the request */ }
           return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal, ...pooled,
             headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
             body: JSON.stringify({model, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
@@ -904,10 +963,11 @@ export class VoxtralVoice {
         const body = await response.text().catch(() => '');
         const failure = mapStatus(response.status, body, {headers: response.headers, apiKey});
         // A 429 holds every Mistral request (text included) for the server's retry-after; one that V's line earned holds them only briefly (vPauseCapMs).
-        if (failure.kind === 'limit') this.scheduler.pause(lane === 'v' ? Math.min(failure.retryAfterMs ?? this.limits.vPauseCapMs, this.limits.vPauseCapMs) : failure.retryAfterMs);
+        // The hedge's own request (a secondary) is held to the same short pause: it is the reply's second try, not its only one.
+        if (failure.kind === 'limit') this.scheduler.pause(lane === 'v' || secondary ? Math.min(failure.retryAfterMs ?? this.limits.vPauseCapMs, this.limits.vPauseCapMs) : failure.retryAfterMs);
         // A refusal that can be a burst limit (a 403, a 429, a server fault): fewer speech requests at once for a while. A guardrail
         // refusal of this line's text is not one.
-        if (failure.kind !== 'content' && (failure.status === 403 || failure.status === 429 || failure.status >= 500)) this.gate.tighten();
+        if (!secondary && failure.kind !== 'content' && (failure.status === 403 || failure.status === 429 || failure.status >= 500)) this.gate.tighten();
         if (failure.status === 400 && reference.format === 'ogg' && !this.safeFormat && /audio|mp3|wav/i.test(body)) {
           this.safeFormat = true; this.references.clear();
           this.log('the Ogg reference was refused; the references are prepared as MP3 from now on');
