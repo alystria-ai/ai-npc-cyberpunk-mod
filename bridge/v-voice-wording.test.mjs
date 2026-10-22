@@ -9,17 +9,17 @@ const menu = read('../mod/manager-ui.lua');
 const catalog = JSON.parse(read('../localization/en.json')).strings;
 
 test('the companion voice row says the companions\' voice loads no local model and V follows its own setting', () => {
-  const row = Object.keys(catalog).find(key => key.startsWith('Pocket: the lightest, runs on your CPU'));
+  const row = Object.keys(catalog).find(key => key.startsWith('Pocket: the lightest, on your CPU'));
   assert(row, 'the Companion voices help is in the catalogue');
   assert(row.includes('The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.'));
   assert(!/It loads no local voice model/.test(row) && !/It loads no local voice model/.test(menu));
   assert(menu.includes(row.replace(/\n/g, '\\n')), 'the row in the menu is this text');
   // the V row still says what its own engines load
-  assert(menu.includes('If the companions use another voice, it loads its own small voice model just for V.'));
+  assert(menu.includes('it loads its own small model if the companions use another voice'));
 });
 
 test('every language carries the changed row', () => {
-  const row = Object.keys(catalog).find(key => key.startsWith('Pocket: the lightest, runs on your CPU'));
+  const row = Object.keys(catalog).find(key => key.startsWith('Pocket: the lightest, on your CPU'));
   const escaped = row.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
   for (const name of readdirSync(new URL('../mod/locales/', import.meta.url)).filter(file => file.endsWith('.lua'))) {
     assert(read(`../mod/locales/${name}`).includes(`["${escaped}"] =`), `${name} has no translation of the Companion voices help`);
