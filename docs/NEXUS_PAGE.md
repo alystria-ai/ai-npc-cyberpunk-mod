@@ -30,7 +30,7 @@
 [/list][b]Faces and voices[/b][list]
 [*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
 [*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
-[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a free Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
+[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
 [*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket. OmniVoice for V is offered only while your companions use OmniVoice (Settings > Voices), so it never loads just for V. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
@@ -53,7 +53,7 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)[list]
 [*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 500 turns a day and Settings shows how many are left.
 [*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
-[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters. If Voxtral cannot speak (no key, a limit), replies show as text until it can: the mod never switches your voice to another one.
+[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters. If Voxtral cannot speak (no key, a limit, a Mistral plan that does not include it), replies show as text until it can: the mod never switches your voice to another one.
 [/list][b]2. Local: no internet, no account, no limit[/b][list]
 [*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card the model may not fit whole: Local AI then runs part of it on your processor, which works but is slower, and tells you once. Cloud text is faster there.
 [*]Install a Local AI pack: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-Cyberpunk-Mod-LocalAI-Standard.zip][b]Local AI standard[/b][/url], or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/AI-NPC-Cyberpunk-Mod-LocalAI-Lite.zip][b]Local AI lite[/b][/url] for smaller graphics cards. A Mature pack works too.
