@@ -993,7 +993,7 @@ export class VoiceSelection {
     try {
       if (this.hasPlayerClip(profile)) {
         const own = this.registries.pocket.profiles[profile];
-        // Only the player's own clip is a language voice of Pocket's worker (it refuses any other path outside multilingual/<lang>/): a reference kept for a V voice mod is spoken by the English student.
+        // Only the player's own clip is a language voice of Pocket's worker (it refuses any other path outside the language pack folder): a reference kept for a V voice mod is spoken by the English student.
         if (own && !isPlayerReference(own.reference)) return null;
         descriptor = own ? {reference: own.reference, sha256: own.sha256, transcript: own.transcript} : null;
       } else descriptor = await this.languagePacks?.omniDescriptor(language, profile) ?? null;
