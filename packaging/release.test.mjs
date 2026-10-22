@@ -837,11 +837,11 @@ test('the main page texts say the Mature packs work alone and give their new siz
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const nexus = (await readFile(resolve(project, 'docs/NEXUS_PAGE.md'), 'utf8')).replaceAll('\r\n', '\n');
   const row = name => readme.split('\n').find(line => line.includes(`**${name}**`) && line.includes('/blob/main/'));
-  assert.match(row('Mature lite'), /about 2\.9 GB/); assert.match(row('Mature standard'), /about 5\.5 GB/);
+  assert.match(row('Mature lite'), /about 2\.8 GB/); assert.match(row('Mature standard'), /about 5\.5 GB/);
   for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
   assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
   const optional = nexus.split('\n').find(line => line.includes('[b]Mature lite[/b]'));
-  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
+  assert.match(optional, /about 2\.8 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
   assert.doesNotMatch(optional, /They need a Local AI pack/);
   // The Nexus page's Recommended settings block (owner's choice, 2026-10-20) is the one place the word is allowed.
   const nexusNeutral = nexus.replace('[size=4][b]Recommended settings[/b][/size]', '');

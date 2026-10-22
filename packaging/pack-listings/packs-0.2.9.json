@@ -2,15 +2,15 @@
  "schema": 1,
  "note": "The optional packs as rebuilt for 0.2.9 (the OmniPack in float16 without its tests folders, the Local AI and Mature packs without the llama.cpp engine): path, size and CRC-32 of every file, except the OmniVoice pack's own trees (listed under \"claimed\" with their file counts). Made by packaging/check-pack-overlap.mjs listing; read by the same tool and by packaging/pack-overlap.test.mjs.",
  "packs": [
-  {"name": "OmniPack", "file": "OmniPack.zip", "bytes": 5341619390, "entries": 18098,
-   "claimed": [{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/python/","entries":16984},{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/voicestudio/","entries":159},{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/model/","entries":11}],
+  {"name": "OmniPack", "file": "OmniPack.zip", "bytes": 5341621300, "entries": 18099,
+   "claimed": [{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/python/","entries":16985},{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/voicestudio/","entries":159},{"prefix":"red4ext/plugins/AiNpcCyberpunkMod/app/omni/model/","entries":11}],
    "files": [
     ["HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt", 574, "0c69b021"],
     ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/LICENSE.txt", 3232, "69a5282f"],
     ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/THIRD-PARTY-NOTICES.txt", 1463, "d577de36"],
     ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/defaults/local-voices.autobest-long.json", 238816, "7754c951"],
     ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/defaults/local-voices.autobest-short.json", 204146, "ea1c6596"],
-    ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/omni-pack.json", 502, "52edfccd"],
+    ["red4ext/plugins/AiNpcCyberpunkMod/app/omni/omni-pack.json", 502, "fbf64cd1"],
     ["red4ext/plugins/AiNpcCyberpunkMod/voices/archetypes/omni-long/npc-aldecaldos-female-v2.wav", 856084, "2a5397b7"],
     ["red4ext/plugins/AiNpcCyberpunkMod/voices/archetypes/omni-long/npc-aldecaldos-female.wav", 855784, "c966f5f7"],
     ["red4ext/plugins/AiNpcCyberpunkMod/voices/archetypes/omni-long/npc-aldecaldos-male-v2.wav", 841222, "70127804"],

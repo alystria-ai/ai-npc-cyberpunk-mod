@@ -369,10 +369,10 @@ const listing29 = validateListing(await readJson('packaging/pack-listings/packs-
 
 test('the committed 0.2.9 listing describes the five rebuilt packs and adds up: no engine copy, no tests folders, no draft clips', () => {
   assert.deepEqual(listing29.packs.map(pack => [pack.name, pack.entries, pack.file]), [
-    ['OmniPack', 18098, 'OmniPack.zip'], ['LocalAI-Standard', 8, 'LocalAI-Standard.zip'], ['LocalAI-Lite', 8, 'LocalAI-Lite.zip'],
+    ['OmniPack', 18099, 'OmniPack.zip'], ['LocalAI-Standard', 8, 'LocalAI-Standard.zip'], ['LocalAI-Lite', 8, 'LocalAI-Lite.zip'],
     ['Mature-Standard', 10, 'Mature-Standard.zip'], ['Mature-Lite', 10, 'Mature-Lite.zip']]);
-  assert.deepEqual(listing29.packs[0].claimed.map(item => [item.prefix, item.entries]), PACK_OWN_TREES.map((prefix, index) => [prefix, [16984, 159, 11][index]]),
-    'the Python environment lost its 4,100 tests files and its two DLL copies: 21086 entries before, 16984 now');
+  assert.deepEqual(listing29.packs[0].claimed.map(item => [item.prefix, item.entries]), PACK_OWN_TREES.map((prefix, index) => [prefix, [16985, 159, 11][index]]),
+    'the Python environment lost its 4,099 tests files and its two DLL copies: 21086 entries before, 16985 now');
   for (const pack of listing29.packs) {
     for (const [path] of pack.files) {
       assert(!/\/app\/local-ai\/llama\//.test(path), `${pack.name} carries the engine: ${path}`);

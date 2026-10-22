@@ -416,7 +416,7 @@ disk, 30.9 MB less to download each (LocalAI-Lite 1,364.0 to 1,333.1 MB, LocalAI
 markers name no `server` (`{version: 1, standard|lite: {...}, embed: {...}}`; the Mature ones `{version: 1, pack: 'mature', lite|good: {...}, embed: {...}}`), so every pack needs the Runtime's engine:
 the notices in the packs, the Mature README, the Hugging Face card and the Nexus requirements say "the Runtime of version 0.2.7 or newer". Checked on the real packs: `detectLocalAiPack` with the
 installed Runtime's `app/llama-cpp` finds the pack installed with `engine.source: 'runtime'`, and without any engine folder reports `missing: ['server']` (a Mature pack alone: `server`, `model`, `embed`),
-so on a Runtime older than 0.2.7 the pack reads as not installed, as in combination (3) below.
+so on a Runtime older than 0.2.7 the pack reads as not installed, as in combination (3) below. A real `LocalLlmServer` (the Runtime's `llama-server.exe` b11782, Vulkan, the RTX 4080 Laptop in Silent power mode, first load without warm-up) reached ready on each new pack and answered a tiny completion: LocalAI-Lite 6.4 s, LocalAI-Standard 12.3 s, Mature-Lite 8.2 s, Mature-Standard 10.3 s, and after `stop()` no `llama-server.exe` was left.
 
 - **Lookup.** `detectLocalAiPack` (`bridge/local-ai-pack.mjs`, the one place the server path is made; `LocalLlmServer`, `LlamaEmbedder` and `fitToolPath` take it from there) looks for the Runtime's
   engine first, in `CYBERPUNK_CONVAI_LOCAL_ENGINE` (the service sets it to the Runtime's real `app/llama-cpp`) or `<project>/llama-cpp`. It counts when `ENGINE_FILES` (the server and the libraries it
