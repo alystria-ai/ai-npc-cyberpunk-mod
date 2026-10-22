@@ -23,7 +23,8 @@ SOURCE_SHA256 = "b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a766
 # "differs from the pinned official revision" on a Vortex install, with that file in the Runtime's folders), so it is not part of the source.
 # desktop.ini and Thumbs.db are what Windows Explorer leaves in a folder it has shown; .DS_Store is the same from a zip made on a Mac.
 SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache", "__folder_managed_by_vortex", "desktop.ini", "Thumbs.db", ".DS_Store"}
-# The files the pinned revision ships (path -> SHA-256 of the file as upstream has it), all 140 of them. The source check reads this list, so a
+# The files the pinned revision ships (path -> SHA-256 of the file as upstream has it), all 140 of them (the Runtime installs the pocket_tts/
+# package and the licence of them: SOURCE_SHIPPED_PREFIX below). The source check reads this list, so a
 # file that is NOT here (a Vortex marker or backup, a leftover from an older Runtime, a __pycache__, an antivirus note) is ignored by design:
 # only a listed file that is missing or changed counts. SOURCE_SHA256 above is the digest of exactly this list (digest_manifest()), and
 # packaging/build-release.mjs refuses to build when the files it ships differ from it. Do not edit by hand.
@@ -175,6 +176,12 @@ SOURCE_FILES = {
 # changed README, test, notebook or picture in the pinned tree is reported in the log but never stops the voice.
 SOURCE_RUNS_PREFIX = "pocket_tts/"
 SOURCE_RUNS_SUFFIXES = (".py", ".pyd", ".pyc")
+# The Runtime ships the pocket_tts/ package and the licence only (the upstream tests, training code, docs, Docker and CI files stay out:
+# packaging/lib/runtime-prune.mjs, which must name the same files). The check below looks at those; the other pinned files still count in the
+# digest above, so the pin is still the whole revision. A copy that has the extra files (a development checkout, an older Runtime) is not
+# looked at beyond them.
+SOURCE_SHIPPED_PREFIX = "pocket_tts/"
+SOURCE_SHIPPED_FILES = ("LICENSE",)
 # Text files whose line endings a tool may have converted (a zip made with CRLF conversion); the same bytes with LF endings count as unchanged.
 SOURCE_TEXT_SUFFIXES = (".py", ".yaml", ".yml", ".json", ".toml", ".md", ".txt", ".html", ".sh", ".hcl", ".ipynb", ".lock")
 SOURCE_NAMED_LIMIT = 3
@@ -238,12 +245,19 @@ def source_runs(rel):
     return rel.startswith(SOURCE_RUNS_PREFIX) or rel.lower().endswith(SOURCE_RUNS_SUFFIXES)
 
 
+def source_shipped(rel):
+    """True for a file of the pinned revision that the Runtime ships (the package and the licence)."""
+    return rel.startswith(SOURCE_SHIPPED_PREFIX) or rel in SOURCE_SHIPPED_FILES
+
+
 def source_differences(root, files=None):
     """(critical, other): the pinned files that are missing, changed or linked under `root`, as [(relative path, "missing"|"changed"|"linked")].
-    Files that are not in the pinned list are never looked at, so a marker, a backup or a leftover beside the source cannot fail it."""
+    Files that are not in the pinned list are never looked at, so a marker, a backup or a leftover beside the source cannot fail it. With no
+    `files` the list is the pinned revision's files that the Runtime ships (source_shipped()); a list that is passed in is checked whole."""
     root = Path(root)
     critical, other = [], []
-    for rel, expected in sorted((SOURCE_FILES if files is None else files).items()):
+    wanted = {rel: expected for rel, expected in SOURCE_FILES.items() if source_shipped(rel)} if files is None else files
+    for rel, expected in sorted(wanted.items()):
         path = root.joinpath(*rel.split("/"))
         try:
             if path.is_symlink():
