@@ -280,8 +280,10 @@
   "devOnlyLua": [
     "diagnostics.lua", "face-probe.lua", "face-test.lua", "fact-identity-probe.lua", "gesture-probe.lua",
     "knowledge-probe.lua", "loot-probe.lua", "lua-heap-probe.lua", "save-identity-probe.lua", "speech-cadence-probe.lua",
-    "speech-replay-probe.lua"
+    "speech-replay-probe.lua",
+    "combat-feats-probe.lua", "johnny-probe.lua", "johnny-relic-probe.lua", "fact-identity.lua", "knowledge-state.lua"
   ],
+  "devOnlyLuaNotes": "Added in 0.2.9: johnny-probe.lua (with its two feature files johnny-relic-probe.lua and combat-feats-probe.lua) is loaded only by init.lua's guarded pcall(dofile, ...) with Developer mode on and a johnny-probe request that scripts/Send-JohnnyProbe.ps1 writes; fact-identity.lua is loaded only by diagnostics.lua; knowledge-state.lua is loaded by no Lua file (it is the Lua side of the retired native knowledge state: KnowledgeState.reds is in retiredRedscript and the bridge's knowledge-service.mjs is not in the Runtime). The Scripts zip is extracted over an old install, so a copy an earlier Scripts zip left stays in the player's folder, unused.",
   "retiredRedscript": ["KnowledgeState.reds"],
   "catalogs": [
     {"source": "characters/world-knowledge.json", "target": "world-knowledge.json"},

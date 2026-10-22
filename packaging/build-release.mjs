@@ -62,6 +62,7 @@ import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
+import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
 
@@ -388,7 +389,9 @@ async function runtimePackage(source, config, models, auth) {
   // Python for the Pocket voice worker.
   const pythonDir = resolve(stage, 'python');
   await installPython(tool.python, resolve(source.root, tool.python.lock), pythonDir, ['..\\bridge']);
-  await pkg.tree(`${app}/python`, pythonDir, {skip: PYTHON_SKIP});
+  // Besides PYTHON_SKIP, the Runtime leaves out what nothing loads (packaging/lib/runtime-prune.mjs): the sherpa-onnx wheel's second DLL copy, torch/bin's
+  // duplicates and the packages' own tests folders.
+  await pkg.tree(`${app}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || pythonPruned(rel)});
   notices.push(`Python ${tool.python.version} embeddable distribution - PSF License: app/python/LICENSE.txt - ${tool.python.url}`);
   notices.push(`Python packages (${basename(tool.python.lock)}) - each package's licence is in its *.dist-info folder under app/python/Lib/site-packages`);
 
@@ -402,7 +405,10 @@ async function runtimePackage(source, config, models, auth) {
   // The worker checks the installed source against the list of these files in bridge/pocket_voice_runtime.py (extra files beside them are ignored);
   // a list that is not these files would fail every player's voice, so the build stops here instead.
   checkPocketSourceList(parsePocketSourceList(await readFile(resolve(source.root, 'bridge/pocket_voice_runtime.py'), 'utf8')), hashed);
-  for (const rel of pocketFiles) pkg.file(`${app}/pocket-tts/${rel}`, resolve(pocketDir, rel));
+  // Only the package and the licence ship (packaging/lib/runtime-prune.mjs); the check above covered the whole upstream tree.
+  const pocketShipping = pocketFiles.filter(pocketShipped);
+  for (const rel of pocketShipping) pkg.file(`${app}/pocket-tts/${rel}`, resolve(pocketDir, rel));
+  log(`Pocket TTS source: ${pocketShipping.length} of ${pocketFiles.length} upstream files shipped (the package and the licence).`);
   notices.push(`Pocket TTS (Kyutai) ${tool.pocketTts.revision} - ${tool.pocketTts.license}: app/pocket-tts/LICENSE - ${tool.pocketTts.repository}`);
 
   // Bridge: the production import closure plus the worker scripts it starts by path.
@@ -412,7 +418,7 @@ async function runtimePackage(source, config, models, auth) {
   for (const name of config.nodePackages) {
     const directory = resolve(project, 'node_modules', name);
     if (!existsSync(directory)) throw Error(`node_modules/${name} is missing: run npm ci first.`);
-    await pkg.tree(`${app}/node_modules/${name}`, directory);
+    await pkg.tree(`${app}/node_modules/${name}`, directory, {skip: rel => nodePackagePruned(name, rel)});
     const info = await readJson(resolve(directory, 'package.json'));
     notices.push(`${name} ${info.version} - ${info.license}: app/node_modules/${name}/LICENSE`);
   }

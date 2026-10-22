@@ -154,6 +154,25 @@ class SourceCheck(unittest.TestCase):
             self.skipTest('symbolic links are not available here')
         self.assertIn('pocket_tts/models/flow.py linked', self.fails())
 
+    def test_the_runtime_ships_the_package_and_the_licence_and_the_default_check_looks_at_those(self):
+        shipped = [rel for rel in runtime.SOURCE_FILES if runtime.source_shipped(rel)]
+        self.assertEqual(len(shipped), 53)
+        self.assertIn('LICENSE', shipped)
+        self.assertTrue(all(rel == 'LICENSE' or rel.startswith('pocket_tts/') for rel in shipped))
+        for rel in ('tests/test_audio.py', 'training/train.py', 'scripts/generate_default_voices.py', 'README.md', 'docs/index.md',
+                    '.github/workflows/run-tests.yml', 'pyproject.toml', 'uv.lock', 'Dockerfile', 'mkdocs.yml'):
+            self.assertIn(rel, runtime.SOURCE_FILES)
+            self.assertFalse(runtime.source_shipped(rel), rel)
+        # A Runtime that has only those files passes: the pinned files it does not ship are not "missing". A changed shipped file still fails.
+        for rel in ('training/train.py', 'README.md', 'docs/guide.md', '.gitignore', 'uv.lock'):
+            (self.root / rel).unlink()
+        with patch.dict(runtime.SOURCE_FILES, self.manifest, clear=True):
+            self.assertEqual(runtime.source_differences(self.root), ([], []))
+            (self.root / 'pocket_tts/models/flow.py').write_text('x = 2\n')
+            self.assertEqual(runtime.source_differences(self.root), ([('pocket_tts/models/flow.py', 'changed')], []))
+        # A list that is passed in is checked whole (the tests above rely on it): the files stay required there.
+        self.assertIn('training/train.py missing', self.fails())
+
     def test_a_manifest_that_is_not_the_pinned_one_is_refused(self):
         with patch.dict(runtime.SOURCE_FILES, {'pocket_tts/extra.py': 'a' * 64}):
             with self.assertRaisesRegex(ValueError, 'does not match its pinned digest'):
