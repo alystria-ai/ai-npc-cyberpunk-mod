@@ -66,7 +66,8 @@ bool ReadSeatRecords(const Object& aEntity, RED4ext::CRTTIBaseArrayType*& aType,
     }
     aType = static_cast<RED4ext::CRTTIBaseArrayType*>(function->params[0]->type);
     aType->Construct(aStorage);
-    if (!Invoke(seatSet.instance, function, nullptr, {aStorage}))
+    // The storage is a DynArray (16 bytes); the parameter is the array type, whatever its element.
+    if (!Invoke(seatSet.instance, function, nullptr, {TypedArg(static_cast<void*>(aStorage), nullptr, 16)}))
     {
         aType->Destruct(aStorage);
         aType = nullptr;

@@ -24,11 +24,14 @@
 //     only mod-spawned copies get mod systems, ordinary NPCs get the talk path only, game-placed
 //     named characters get nothing).
 
+#include "plugin/CheckedCall.hpp"
+
 #include <RED4ext/RED4ext.hpp>
 #include <RED4ext/Scripting/Natives/ScriptGameInstance.hpp>
 #include <RED4ext/Scripting/Natives/Vector4.hpp>
 
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace convai::game
@@ -115,7 +118,14 @@ const char* CombatRouteName();
 // {"route":"static-chain","function":"NPCPuppet::IsInCombat;ScriptedPuppet","attempts":1,"tried":"..."}
 std::string CombatRouteJson();
 
-// aObject.<aMethod>(aArgs...) -> *aOut. aOut may be nullptr for void methods.
+// The checked-call rules (plugin/CheckedCall.hpp) apply to every call below: a function whose parameters or
+// return value do not match what the call site passes and expects is not called. The call then answers false
+// ("unavailable") and the system keeps its Lua path.
+
+// aObject.<aMethod>(aArgs...) -> *aOut. aOut may be nullptr for void methods. The arguments' C++ types give the
+// expected parameter sizes (and the RTTI names of Bool, Float, Double, CName, String, Vector4 and handles); an
+// Object* aOut also accepts a function that returns a weak handle (converted), never writing it into the strong
+// Handle as is.
 template<typename TOut, typename... TArgs>
 bool Call(const Object& aObject, const char* aMethod, TOut* aOut, TArgs&&... aArgs)
 {
@@ -129,9 +139,58 @@ bool Call(const Object& aObject, const char* aMethod, TOut* aOut, TArgs&&... aAr
     {
         return false;
     }
+    constexpr bool kObjectOut = std::is_same_v<TOut, Object>;
+    Returns returns = Returns::Nothing();
+    if (aOut)
+    {
+        returns = kObjectOut ? Returns::Unchecked() : Returns::Fits(RttiNameOf<TOut>(), static_cast<uint32_t>(sizeof(TOut)));
+    }
+    if (!Verified(function, {ArgOf<TArgs>()...}, returns))
+    {
+        return false;
+    }
     RED4ext::StackArgs_t args;
     ((args.emplace_back(nullptr, &aArgs)), ...);
+    if constexpr (kObjectOut)
+    {
+        if (aOut)
+        {
+            return ExecuteForObject(aObject.instance, function, args, *aOut);
+        }
+    }
     return RED4ext::ExecuteFunction(aObject.instance, function, aOut, args);
+}
+
+// A static function of a class (StatusEffectSystem.ObjectHasStatusEffectWithTag), no instance; found by script name
+// and parameter count (StaticFunction), checked like Call.
+template<typename TOut, typename... TArgs>
+bool CallStatic(const char* aClass, const char* aFunction, TOut* aOut, TArgs&&... aArgs)
+{
+    auto* function = StaticFunction(aClass, aFunction, static_cast<uint32_t>(sizeof...(TArgs)));
+    if (!function)
+    {
+        return false;
+    }
+    constexpr bool kObjectOut = std::is_same_v<TOut, Object>;
+    Returns returns = Returns::Nothing();
+    if (aOut)
+    {
+        returns = kObjectOut ? Returns::Unchecked() : Returns::Fits(RttiNameOf<TOut>(), static_cast<uint32_t>(sizeof(TOut)));
+    }
+    if (!Verified(function, {ArgOf<TArgs>()...}, returns))
+    {
+        return false;
+    }
+    RED4ext::StackArgs_t args;
+    ((args.emplace_back(nullptr, &aArgs)), ...);
+    if constexpr (kObjectOut)
+    {
+        if (aOut)
+        {
+            return ExecuteForObject(nullptr, function, args, *aOut);
+        }
+    }
+    return RED4ext::ExecuteFunction(static_cast<void*>(nullptr), function, aOut, args);
 }
 
 // A property by name, e.g. Property<bool>(player, "inCrouch", value).

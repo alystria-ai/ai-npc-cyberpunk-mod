@@ -251,9 +251,18 @@ RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName
 
 Object Player()
 {
-    Object player;
+    auto* rtti = RED4ext::CRTTISystem::Get();
+    RED4ext::CBaseFunction* function = rtti ? rtti->GetFunction(RED4ext::CName("GetPlayer;GameInstance")) : nullptr;
+    // GetPlayer(GameInstance) -> a handle (strong or weak: ExecuteForObject converts either).
+    if (!function || !Verified(function, {ArgOf<RED4ext::ScriptGameInstance>()}, Returns::Unchecked()))
+    {
+        return {};
+    }
     RED4ext::ScriptGameInstance gameInstance;
-    if (!RED4ext::ExecuteGlobalFunction("GetPlayer;GameInstance", &player, gameInstance))
+    RED4ext::StackArgs_t args;
+    args.emplace_back(nullptr, &gameInstance);
+    Object player;
+    if (!ExecuteForObject(nullptr, function, args, player))
     {
         return {};
     }
@@ -428,7 +437,8 @@ Object GameSystem(const char* aShortName)
         Object system;
         RED4ext::StackArgs_t args;
         args.emplace_back(nullptr, &gameInstance);
-        if (RED4ext::ExecuteFunction(static_cast<void*>(nullptr), entry.function, &system, args))
+        if (Verified(entry.function, {ArgOf<RED4ext::ScriptGameInstance>()}, Returns::Unchecked()) &&
+            ExecuteForObject(nullptr, entry.function, args, system))
         {
             return system;
         }
@@ -661,14 +671,26 @@ std::string ListCombatNames(RED4ext::DynArray<RED4ext::CBaseFunction*>& aList)
     return out.empty() ? std::string("none") : out;
 }
 
-void SetCombat(CombatState& aState, CombatRoute aRoute, RED4ext::CBaseFunction* aFunction, RED4ext::CClass* aOwner)
+// Takes a route only when the function matches the way PuppetInCombat calls it: no parameters for a member, the
+// puppet (one handle) for a static, and a value that fits the 8-byte buffer (a Bool, or the 1 to 8 byte enum of the
+// high-level state). A function of another shape is skipped and the next route is tried.
+bool SetCombat(CombatState& aState, CombatRoute aRoute, RED4ext::CBaseFunction* aFunction, RED4ext::CClass* aOwner)
 {
+    const bool member = aRoute == CombatRoute::MemberIsPuppetInCombat || aRoute == CombatRoute::HighLevelState;
+    const Returns returns = aRoute == CombatRoute::HighLevelState ? Returns::Fits(nullptr, 8) : Returns::Fits("Bool", 1);
+    const bool matches = member ? Verified(aFunction, {}, returns)
+                                : Verified(aFunction, {Arg{"handle", static_cast<uint32_t>(sizeof(Object))}}, returns);
+    if (!matches)
+    {
+        return false;
+    }
     aState.route = aRoute;
     aState.function = aFunction;
     aState.owner = aOwner;
     aState.tried.clear();
     CONVAI_INFO("Game access: combat flag read through %s: %s (owner class %s)", RouteName(aRoute),
                 Describe(aFunction).c_str(), aOwner ? aOwner->GetName().ToString() : "?");
+    return true;
 }
 
 void ResolveCombat(CombatState& aState)
@@ -695,8 +717,10 @@ void ResolveCombat(CombatState& aState)
     // 1. The static on the class chain.
     if (RED4ext::CBaseFunction* function = ChainFunction(npc, "IsInCombat", 1, true))
     {
-        SetCombat(aState, CombatRoute::StaticChain, function, scripted);
-        return;
+        if (SetCombat(aState, CombatRoute::StaticChain, function, scripted))
+        {
+            return;
+        }
     }
     add("1 static IsInCombat(1 parameter) on the NPCPuppet class chain: none");
 
@@ -718,8 +742,10 @@ void ResolveCombat(CombatState& aState)
         loadLists();
         if (RED4ext::CBaseFunction* function = ListFunction(classList, "NPCPuppet", "IsInCombat", 1, 1))
         {
-            SetCombat(aState, CombatRoute::StaticClassList, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticClassList, function, scripted))
+            {
+                return;
+            }
         }
         add("2 static NPCPuppet::IsInCombat in the class-function list (" + std::to_string(classList.Size()) +
             " entries): none");
@@ -731,16 +757,20 @@ void ResolveCombat(CombatState& aState)
         RED4ext::CBaseFunction* function = rtti->GetFunction(RED4ext::CName(name));
         if (function && TakesPuppet(function))
         {
-            SetCombat(aState, CombatRoute::StaticGlobal, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticGlobal, function, scripted))
+            {
+                return;
+            }
         }
     }
     if (deep)
     {
         if (RED4ext::CBaseFunction* function = ListFunction(globalList, "NPCPuppet", "IsInCombat", 1, -1))
         {
-            SetCombat(aState, CombatRoute::StaticGlobal, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticGlobal, function, scripted))
+            {
+                return;
+            }
         }
     }
     add("3 global function NPCPuppet::IsInCombat (RTTI table, 3 names" +
@@ -761,8 +791,10 @@ void ResolveCombat(CombatState& aState)
         }
         if (function)
         {
-            SetCombat(aState, CombatRoute::MemberIsPuppetInCombat, function, npc);
-            return;
+            if (SetCombat(aState, CombatRoute::MemberIsPuppetInCombat, function, npc))
+            {
+                return;
+            }
         }
         add("4 member NPCPuppet.IsPuppetInCombat(): none");
     }
@@ -795,8 +827,10 @@ void ResolveCombat(CombatState& aState)
         {
             aState.combatValue = combat;
             aState.stateSize = state->actualSize > 0 && state->actualSize <= 8 ? static_cast<uint32_t>(state->actualSize) : 1;
-            SetCombat(aState, CombatRoute::HighLevelState, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::HighLevelState, function, scripted))
+            {
+                return;
+            }
         }
         add(std::string("5 member ScriptedPuppet.GetHighLevelStateFromBlackboard() with the enum value: ") +
             (function ? "found" : "function missing") + (returnsState ? "" : ", return type not the state enum") +
@@ -881,8 +915,7 @@ bool PuppetInCombat(const Object& aPuppet, bool& aOut)
     {
         return false;
     }
-    static RED4ext::StackArgs_t args;
-    args.clear();
+    RED4ext::StackArgs_t args; // a local: another script mod's observer of IsInCombat can re-enter during the call
     uint64_t buffer = 0;
     bool executed = false;
     if (state.route == CombatRoute::MemberIsPuppetInCombat || state.route == CombatRoute::HighLevelState)

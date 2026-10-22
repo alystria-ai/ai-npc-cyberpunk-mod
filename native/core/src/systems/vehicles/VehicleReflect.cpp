@@ -117,208 +117,7 @@ CBaseFunction* Find(Slot& aSlot, RED4ext::IScriptable* aInstance, const char* aN
     return function;
 }
 
-Value::~Value()
-{
-    if (m_live && m_type)
-    {
-        m_type->Destruct(m_storage);
-    }
-}
-
-bool Value::Prepare(const CBaseFunction* aFunction)
-{
-    if (m_live)
-    {
-        return false;
-    }
-    if (!aFunction || !aFunction->returnType || !aFunction->returnType->type)
-    {
-        return false;
-    }
-    const rt::IType* type = aFunction->returnType->type;
-    if (type->GetSize() > sizeof(m_storage))
-    {
-        return false;
-    }
-    m_type = type;
-    m_type->Construct(m_storage);
-    m_live = true;
-    return true;
-}
-
-std::string Value::TypeName() const
-{
-    return m_type ? std::string(m_type->GetName().ToString()) : std::string();
-}
-
-bool Value::Bool(bool& aOut) const
-{
-    if (!m_live || !m_type || m_type->GetType() != rt::ERTTIType::Fundamental ||
-        std::strcmp(m_type->GetName().ToString(), "Bool") != 0)
-    {
-        return false;
-    }
-    aOut = m_storage[0] != 0;
-    return true;
-}
-
-namespace
-{
-template<typename T>
-double As(const unsigned char* aStorage)
-{
-    T value;
-    std::memcpy(&value, aStorage, sizeof(value));
-    return static_cast<double>(value);
-}
-} // namespace
-
-bool Value::Number(double& aOut) const
-{
-    if (!m_live || !m_type)
-    {
-        return false;
-    }
-    if (m_type->GetType() == rt::ERTTIType::Enum)
-    {
-        switch (m_type->GetSize())
-        {
-        case 1:
-            aOut = As<int8_t>(m_storage);
-            return true;
-        case 2:
-            aOut = As<int16_t>(m_storage);
-            return true;
-        case 4:
-            aOut = As<int32_t>(m_storage);
-            return true;
-        case 8:
-            aOut = As<int64_t>(m_storage);
-            return true;
-        default:
-            return false;
-        }
-    }
-    if (m_type->GetType() != rt::ERTTIType::Fundamental)
-    {
-        return false;
-    }
-    const char* name = m_type->GetName().ToString();
-    if (std::strcmp(name, "Float") == 0)
-    {
-        aOut = As<float>(m_storage);
-    }
-    else if (std::strcmp(name, "Double") == 0)
-    {
-        aOut = As<double>(m_storage);
-    }
-    else if (std::strcmp(name, "Int8") == 0)
-    {
-        aOut = As<int8_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Uint8") == 0)
-    {
-        aOut = As<uint8_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Int16") == 0)
-    {
-        aOut = As<int16_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Uint16") == 0)
-    {
-        aOut = As<uint16_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Int32") == 0)
-    {
-        aOut = As<int32_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Uint32") == 0)
-    {
-        aOut = As<uint32_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Int64") == 0)
-    {
-        aOut = As<int64_t>(m_storage);
-    }
-    else if (std::strcmp(name, "Uint64") == 0)
-    {
-        aOut = As<uint64_t>(m_storage);
-    }
-    else
-    {
-        return false;
-    }
-    return true;
-}
-
-bool Value::Id(uint64_t& aOut) const
-{
-    if (!m_live || !m_type || m_type->GetSize() != sizeof(uint64_t))
-    {
-        return false;
-    }
-    std::memcpy(&aOut, m_storage, sizeof(aOut));
-    return true;
-}
-
-bool Value::Name(RED4ext::CName& aOut) const
-{
-    if (!m_live || !m_type || m_type->GetType() != rt::ERTTIType::Name)
-    {
-        return false;
-    }
-    std::memcpy(&aOut, m_storage, sizeof(aOut));
-    return true;
-}
-
-bool Value::Handle(Object& aOut) const
-{
-    if (!m_live || !m_type)
-    {
-        return false;
-    }
-    if (m_type->GetType() == rt::ERTTIType::Handle)
-    {
-        aOut = *reinterpret_cast<const Object*>(m_storage);
-        return true;
-    }
-    if (m_type->GetType() == rt::ERTTIType::WeakHandle)
-    {
-        const auto& weak = *reinterpret_cast<const RED4ext::WeakHandle<RED4ext::IScriptable>*>(m_storage);
-        aOut = Object(weak);
-        return true;
-    }
-    return false;
-}
-
-bool Invoke(RED4ext::IScriptable* aInstance, CBaseFunction* aFunction, Value* aValue,
-            std::initializer_list<void*> aArgs)
-{
-    if (!aFunction || aFunction->params.Size() != aArgs.size())
-    {
-        return false;
-    }
-    RED4ext::StackArgs_t args;
-    args.reserve(aArgs.size());
-    for (void* value : aArgs)
-    {
-        args.emplace_back(nullptr, value);
-    }
-    Value scratch;
-    Value* value = aValue ? aValue : &scratch;
-    void* out = nullptr;
-    if (aFunction->returnType)
-    {
-        if (!value->Prepare(aFunction))
-        {
-            return false;
-        }
-        out = value->Data();
-    }
-    return RED4ext::ExecuteFunction(static_cast<void*>(aInstance), aFunction, out, args);
-}
-
-bool Call(Slot& aSlot, const Object& aObject, const char* aName, Value* aValue, std::initializer_list<void*> aArgs)
+bool Call(Slot& aSlot, const Object& aObject, const char* aName, Value* aValue, std::initializer_list<TypedArg> aArgs)
 {
     if (!aObject || !aObject.instance)
     {
@@ -328,27 +127,27 @@ bool Call(Slot& aSlot, const Object& aObject, const char* aName, Value* aValue, 
     return function && Invoke(aObject.instance, function, aValue, aArgs);
 }
 
-bool CallBool(Slot& aSlot, const Object& aObject, const char* aName, bool& aOut, std::initializer_list<void*> aArgs)
+bool CallBool(Slot& aSlot, const Object& aObject, const char* aName, bool& aOut, std::initializer_list<TypedArg> aArgs)
 {
     Value value;
     return Call(aSlot, aObject, aName, &value, aArgs) && value.Bool(aOut);
 }
 
 bool CallNumber(Slot& aSlot, const Object& aObject, const char* aName, double& aOut,
-                std::initializer_list<void*> aArgs)
+                std::initializer_list<TypedArg> aArgs)
 {
     Value value;
     return Call(aSlot, aObject, aName, &value, aArgs) && value.Number(aOut);
 }
 
-bool CallId(Slot& aSlot, const Object& aObject, const char* aName, uint64_t& aOut, std::initializer_list<void*> aArgs)
+bool CallId(Slot& aSlot, const Object& aObject, const char* aName, uint64_t& aOut, std::initializer_list<TypedArg> aArgs)
 {
     Value value;
     return Call(aSlot, aObject, aName, &value, aArgs) && value.Id(aOut);
 }
 
 bool CallObject(Slot& aSlot, const Object& aObject, const char* aName, Object& aOut,
-                std::initializer_list<void*> aArgs)
+                std::initializer_list<TypedArg> aArgs)
 {
     Value value;
     return Call(aSlot, aObject, aName, &value, aArgs) && value.Handle(aOut);
