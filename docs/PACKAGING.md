@@ -172,7 +172,8 @@ install test refuse a Runtime without them. The bridge uses the Runtime's engine
 `apply-removals` already protects `app/local-ai/`, so a pack's own `llama/` is never deleted. **The packs:** `localAi.server.inPacks` (true now) keeps a copy of the engine in the packs'
 `llama/` folder, so a pack downloaded by a player who has not updated the Runtime still runs; no pack has to be rebuilt for this change (the packs on Hugging Face are reused
 unchanged, and the old ones work with the new Runtime). The next time a pack is rebuilt for another reason, set `inPacks` to false: the pack then carries models only (about 37 MB
-smaller), its marker names no `server`, and it needs a Runtime from 0.2.7 on (say so on the Nexus requirements and the model card).
+smaller), its marker names no `server`, and it needs a Runtime from 0.2.7 on (say so on the Nexus requirements and the model card). **Set it to false when the packs are rebuilt:
+a pack with the engine's DLLs cannot be added with Vortex** ("Packs and Vortex" below).
 
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Bonsai 2 4B (PrismML, a Qwen3.5-based model) Apache-2.0, granite-embedding
@@ -235,6 +236,30 @@ on the GitHub release, never in the default set, nothing of them in the Runtime 
 - **Tests.** `packaging/mic-packs.test.mjs` (builds both packs with stand-in files, and from a generated archive served over HTTP; with
   `CYBERPUNK_CONVAI_MIC_PACKS_DEV` set it also builds the real files), the pack tests at the end of `packaging/place-packs.test.mjs`, and the source tests in
   `packaging/release.test.mjs`.
+
+### Packs and Vortex (a pack must hold no `.dll`)
+
+Discord, 2026-10-23: adding the Local AI Standard pack to Vortex (Cyberpunk 2077 extension v0.13.0, `E1337Kat/cyberpunk2077_ext_redux`) stopped with
+`Error: Red4Ext installer failed to generate any instructions! at Object.installRed4ExtMod`. What the extension does (read from its source, `src/installers.ts`,
+`src/installer.red4ext.ts`, `src/installer.fallback.ts`; nothing was downloaded):
+- It asks its installers in a fixed order (core mods, ASI, multi-type, **RED4ext**, REDmod, AMM, CET, redscript, Audioware, TweakXL, INI, JSON, XML, preset, archive) and the
+  first whose test says "supported" installs. The last one, the fallback, supports everything. Vortex's own FOMOD installer (priority 20) runs before all of them.
+- The RED4ext test (`testForRed4ExtMod`) says "supported" for **any zip that has a file ending in `.dll` at any depth**. Its install then knows four layouts, and each needs a
+  `.dll` directly in `red4ext/plugins/`, directly in a folder of it (`red4ext/plugins/<name>/x.dll`), at the top of the zip, or directly in one top-level folder. A DLL deeper than
+  that (ours: `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/llama/ggml-*.dll`, 22 of them in each Local AI and Mature pack, and the Python of the OmniVoice pack) matches none, so the
+  install fails with the message above and does not fall back.
+- A zip with **no `.dll`** is not claimed by the RED4ext test, and nothing else in the list recognises a pack's files (no `r6/scripts`, `r6/tweaks`, CET mod folder, `archive/pc/mod`,
+  REDmod `info.json` or protected game config). It reaches the fallback installer, which asks the player "install anyway?" once (a dialog, with Cancel) and then copies every file to the
+  same path under the game folder, which is what a pack wants.
+
+**What the pack build must do:** no pack zip may contain a file ending in `.dll` (any case, any folder). For the Local AI and Mature packs that is `localAi.server.inPacks: false`
+(see "Local AI packs": the engine and its DLLs are in the Runtime since 0.2.7, a pack then carries models, manifest, licences and notices only). Run
+`node packaging/check-vortex-layout.mjs <pack zip or Hugging Face URL>...` on each pack before upload; it lists the DLLs and exits 1 when there are any
+(`packaging/check-vortex-layout.test.mjs`). **Open:** the OmniVoice pack carries Python (`app/omni/python/`, with `python3xx.dll` and the `.dll` files of its libraries), so it fails the
+same check; either move that tree into a Runtime-side download, or tell players to extract it by hand (the model card says so for any pack Vortex refuses). Two routes were
+looked at and not taken: a `fomod/ModuleConfig.xml` in the zip (Vortex's FOMOD installer would copy the files as they are before the extension looks at them, but every player who
+extracts by hand gets a stray `fomod/` folder in the game folder, and Mod Organizer 2 would open its FOMOD wizard, a change to the installs checked in `mo2-split-packs.test.mjs`); and a
+placeholder `.dll` directly in the plugin folder (RED4ext would try to load it at every start).
 
 ### Packs extracted one folder too deep (`place-packs.mjs`)
 
