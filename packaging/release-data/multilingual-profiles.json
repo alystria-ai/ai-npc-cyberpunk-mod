@@ -3689,6 +3689,60 @@
       "languageBoxField": "language_hardening_mode",
       "languageBoxOff": true,
       "notCloned": []
+    },
+    "hasan-demir": {
+      "phase": "verified",
+      "originalCharacterId": "40aa3218-ce63-11f1-b075-42010a7be02f",
+      "startedAt": "2026-10-22T21:55:47.788Z",
+      "key": "hasan-demir",
+      "name": "Hasan Demir Multilingual",
+      "multilingualCharacterId": "5a6fd66c-ce63-11f1-898e-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-22T21:56:06.026Z",
+      "voiceType": "AZURE-MULTILINGUAL-1aabb8bc8a",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "pedro-aimar": {
+      "phase": "verified",
+      "originalCharacterId": "4290df64-ce63-11f1-999e-42010a7be02f",
+      "startedAt": "2026-10-22T21:56:07.134Z",
+      "key": "pedro-aimar",
+      "name": "Pedro Aimar Multilingual",
+      "multilingualCharacterId": "64a5f314-ce63-11f1-b07f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-22T21:56:23.611Z",
+      "voiceType": "RyanMultilingualNeural",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "mr-blue-eyes": {
+      "phase": "verified",
+      "originalCharacterId": "44d205c8-ce63-11f1-b9d5-42010a7be02f",
+      "startedAt": "2026-10-22T21:56:24.215Z",
+      "key": "mr-blue-eyes",
+      "name": "Mr Blue Eyes Multilingual",
+      "multilingualCharacterId": "6f6d943c-ce63-11f1-b9d5-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-22T21:56:46.691Z",
+      "voiceType": "AZURE-MULTILINGUAL-3ea74315c9",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
     }
   }
 }
