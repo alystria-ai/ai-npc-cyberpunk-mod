@@ -16,7 +16,7 @@ export const DEFAULTS = Object.freeze({
   dailyTurnCap: 100,
   remintMarginSeconds: 300,
   // Error reports (api/_lib/errors.js)
-  errorInstallPerDay: 10,
+  errorInstallPerDay: 40,
   errorIpPerHour: 30,
   errorStorePerDay: 300,
   errorSamples: 10,
