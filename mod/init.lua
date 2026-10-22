@@ -67,6 +67,12 @@ convaiNotices.configure(function() return manager.developerMode() end)
 -- Automatic error reports, game side (mod/error-reports.lua): a global, so this chunk gains no local.
 pcall(function() dofile('error-reports.lua').configure(manager) end)
 local managerUi = dofile('nsui.lua')
+-- The Conversation provider the player has chosen, for the requests and microphone commands the game writes (the bridge follows it for that turn). Settings
+-- are cached; nothing is read from a file here.
+local function chosenProvider()
+    local ok, provider = pcall(function() return manager.conversationProvider() end)
+    return ok and type(provider) == 'string' and provider or nil
+end
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
@@ -2858,6 +2864,7 @@ local function toggleVoice(groupMode, source)
             if (primary.story or primary.guarded) and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity, primary.profileKey, primary.guarded) then return false end
             return voiceTargetValid(npc, context)
         end
+        context.provider = chosenProvider()
         if microphone.begin(context, targetValid, 'press') then
             if not primary.voiceOnly and not primary.holocall and not primary.story then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
@@ -2902,8 +2909,8 @@ local function sendRequest(context)
     -- In place over the shipped placeholder (Mod Organizer 2 never sees a new or deleted file). The bridge retries a
     -- half-written read on the file's next change; an empty file means "no request".
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
-    local providerOk, provider = pcall(function() return manager.conversationProvider() end)
-    context.provider = providerOk and type(provider) == 'string' and provider or nil
+    local providerOk, provider = pcall(function() return chosenProvider() end)
+    context.provider = providerOk and provider or nil
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)

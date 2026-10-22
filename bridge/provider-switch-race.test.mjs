@@ -119,15 +119,25 @@ test('a switch away from Local AI waits for the idle boundary: the line goes to 
   assert.equal(w.mistral.preference, 'convai', 'the preference follows, so the settings poll applies it at the boundary');
 });
 
-test('wiring: only the request poll asks for the provider, after the look-ahead claim and before the turn starts; look-ahead turns never do', () => {
-  assert.equal((source.match(/providerForTurn\(/g) ?? []).length, 2, 'the definition and one call');
-  const claim = source.indexOf('const held = lookahead.claim(input, owner);'), call = source.indexOf('await providerForTurn(input);'), start = source.indexOf('const controller = new AbortController();', call);
-  assert.ok(claim > 0 && call > claim && start > call && start - call < 120);
+test('wiring: the request poll and the microphone start ask for the provider (the request poll before the look-ahead claim), a started switch is waited for first, look-ahead turns never ask', () => {
+  assert.equal((source.match(/providerForTurn\(/g) ?? []).length, 4, 'the definition, the request poll and two microphone starts');
+  const abort = source.indexOf('active?.controller.abort();\n    // The provider the player chose'), call = source.indexOf('await providerForTurn(input);'), claim = source.indexOf('const held = lookahead.claim(input, owner);');
+  assert.ok(abort > 0 && call > abort && claim > call, 'the provider is settled before a held look-ahead turn is claimed (the switch drops held turns)');
+  assert.equal((source.match(/await providerForTurn\(input, \{mic: true\}\);/g) ?? []).length, 2, 'a recording goes to the chosen provider too');
   const ahead = between('function startAhead(entry) {', '// Runs the turn under its own TurnClock');
   assert.ok(!/providerForTurn|applyProviderChoice|lightApplyProvider/.test(ahead));
   // no settings.json read on the turn path
-  assert.ok(!/settings\.json/.test(between('async function providerForTurn(input) {', '// Resources the current settings do not use')));
+  const body = between('async function providerForTurn(input, {mic = false} = {}) {', '// Resources the current settings do not use');
+  assert.ok(!/settings\.json/.test(body));
+  // a switch the settings poll has started is waited for before anything is decided, and a line for Local AI is lightly applied even if it is still running
+  assert.ok(body.indexOf('providerSwitching && waited') < body.indexOf('if (!mistral.pending) return;'));
+  assert.match(body, /if \(mistral\.pending && mistral\.requested === 'local'\) lightApplyProvider\(\);/);
+  // no group look-ahead is started while another provider than the one in use is chosen
+  assert.match(source, /textProvider: mistral\.active \|\| mistral\.requested !== 'convai'\}\);/);
   assert.match(source, /await adoptProviderSetting\(settings\);\n\s*await mistralControl\.poll\(\)/, 'the settings poll adopts the setting through the same function');
+  // the microphone command carries the provider
+  const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('');
+  assert.match(lua, /context\.provider = chosenProvider\(\)\n\s*if microphone\.begin\(context, targetValid, 'press'\) then/);
 });
 
 test('the game writes the provider into the request and the bridge reads only the four known names', async () => {
@@ -138,5 +148,19 @@ test('the game writes the provider into the request and the bridge reads only th
   const { inputIdentity } = await import('./group-prefetch.mjs');
   assert.equal(inputIdentity(JSON.parse(request(3, 'same line', 'local'))), inputIdentity(JSON.parse(request(3, 'same line', 'convai'))), 'a prediction does not depend on the provider field');
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('');
-  assert.match(lua, /local providerOk, provider = pcall\(function\(\) return manager\.conversationProvider\(\) end\)\n\s*context\.provider = /);
+  assert.match(lua, /local function chosenProvider\(\)\n\s*local ok, provider = pcall\(function\(\) return manager\.conversationProvider\(\) end\)/);
+  assert.match(lua, /local providerOk, provider = pcall\(function\(\) return chosenProvider\(\) end\)\n\s*context\.provider = providerOk and provider or nil\n\s*local encodedOk, encoded = pcall\(json\.encode, context\)/);
+});
+
+test('a microphone start: its own polling flag does not hold the switch back, a recording for Local AI goes local even while something else runs', async () => {
+  const own = world({micPolling: true});
+  await own.api.providerForTurn({provider: 'mistral'}, {mic: true});
+  assert.equal(own.mistral.applied, 'mistral', 'the microphone poll itself is not other work');
+  const typed = world({micPolling: true});
+  await typed.api.providerForTurn({provider: 'mistral'});
+  assert.equal(typed.mistral.applied, 'convai', 'for a typed line a recording in progress still is');
+  const busy = world({micPolling: true, phone: {active: true, forgetSessions: async () => {}}});
+  await busy.api.providerForTurn({provider: 'local'}, {mic: true});
+  assert.equal(busy.mistral.applied, 'local', 'Local AI is chosen: the recording must not go to the cloud');
+  assert.ok(!busy.calls.includes('close-realtime'));
 });

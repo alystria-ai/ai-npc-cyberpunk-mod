@@ -563,7 +563,7 @@ const singleSession = () => keys.singleSession || mistral.active;
 let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
 const spawnedConnections = () => spawnedWarmLimit({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
-const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
+const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active || mistral.requested !== 'convai'});
 // A text provider answered in a language the chosen voice cannot speak (Pocket speaks English only, Voxtral the languages its model lists): the reply is shown as text, and
 // the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
 const voiceLanguageNotice = new VoiceLanguageNotice();
@@ -1464,8 +1464,8 @@ let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = fa
 const relationshipRoutePending = new Map();
 // `ownTurn`: asked by the request poll for the turn it is about to start. That turn's own flags (`active`, `polling`) are not other work; everything
 // else (the microphone, Phone Chat, memory saving, look-ahead, a stream still being written) still is.
-function voiceBoundaryBusy({ownTurn = false} = {}) {
-  return !!((!ownTurn && (active || polling)) || streaming || micPolling || mic.current || prefetchPolling || memoryQuiescing
+function voiceBoundaryBusy({ownTurn = false, ownMic = false} = {}) {
+  return !!((!ownTurn && (active || polling)) || streaming || (!ownMic && micPolling) || mic.current || prefetchPolling || memoryQuiescing
     || phone.active || relationshipRouteReservation || lookahead.busy);
 }
 // Read-only observability for the Relationships setting: which profile variant
@@ -2427,6 +2427,8 @@ async function pollMicrophone() {
       else if (addonVoice.voice(input)) {
         // An add-on speaker has no Convai character, knowledge route or memory to prepare, and its subtitles need no game audio.
         if (!profileFor(input, roster)) { await mic.onError(input, Error('Voice service or character is unavailable')); return; }
+        // The provider the player chose rides in the command (mod/init.lua): the recording goes to it, as a typed line does (providerForTurn).
+        await providerForTurn(input, {mic: true});
         void companionActions.revoke();
         active?.controller.abort(); dropPrefetch();
         await cancelMicrophone();
@@ -2441,6 +2443,7 @@ async function pollMicrophone() {
         }
         // The talk key: the surroundings picture is published on the voice page as soon as the recording runs, while V talks.
         companionVision.beginVoice(input.requestId);
+        await providerForTurn(input, {mic: true});
         // A new microphone turn supersedes a pending text reply.
         void companionActions.revoke();
         active?.controller.abort(); dropPrefetch();
@@ -2566,6 +2569,10 @@ async function tick() {
     lastAcceptedIdentity = identity;
     void companionActions.revoke();
     active?.controller.abort();
+    // The provider the player chose is in the request (mod/init.lua sendRequest): a line sent right after picking Local AI is answered by Local AI even if the
+    // settings poll has not read the change yet. Before the look-ahead claim: a held turn prepared on the old provider is dropped by the switch (dropPrefetch).
+    // Look-ahead turns themselves (startAhead) never come through here.
+    await providerForTurn(input);
     const owner = new RequestFileOwner(inputPath, raw, stamp);
     // The exact turn may already be generated and held back (group look-ahead):
     // adopt it instead of starting another provider request.
@@ -2577,9 +2584,6 @@ async function tick() {
       void measure(held.input, {claimedAt: Date.now(), lookahead: lookahead.stats(held.lookahead)});
       return;
     }
-    // The provider the player chose is in the request (mod/init.lua sendRequest): a line sent right after picking Local AI is answered by Local AI
-    // even if the settings poll has not read the change yet. Look-ahead turns (startAhead) never come through here.
-    await providerForTurn(input);
     const controller = new AbortController();
     const request = active = {input, raw, owner, controller, receivedAt: Date.now(), writtenAt: stamp.mtimeMs};
     // Native decision/history context is projected at actual submission. A
@@ -3233,8 +3237,8 @@ async function finishProviderSwitch() {
   await mistralControl.publishStatus().catch(() => {});
 }
 // `ownTurn`: called for the turn the request poll is about to start (see providerForTurn).
-async function applyProviderChoice({ownTurn = false} = {}) {
-  if (providerSwitching || stopped || !(mistral.pending || providerTeardownDue) || voiceBoundaryBusy({ownTurn}) || voiceRouteReservation) return;
+async function applyProviderChoice({ownTurn = false, ownMic = false} = {}) {
+  if (providerSwitching || stopped || !(mistral.pending || providerTeardownDue) || voiceBoundaryBusy({ownTurn, ownMic}) || voiceRouteReservation) return;
   providerSwitching = true;
   try {
     if (mistral.pending) lightApplyProvider();
@@ -3246,17 +3250,17 @@ async function applyProviderChoice({ownTurn = false} = {}) {
 // the request poll starts (never a look-ahead turn): the preference follows the request; the whole switch is made if nothing else is running; and when
 // something else is (the microphone, Phone Chat, memory saving, a look-ahead, a voice change being applied) a switch TO Local AI is still made lightly,
 // so that this turn never goes to the cloud, and its teardown waits for the settings poll's idle boundary. No file is read. Never throws.
-async function providerForTurn(input) {
+async function providerForTurn(input, {mic = false} = {}) {
   try {
     const wanted = input?.provider;
     if (stopped || !PROVIDERS.includes(wanted)) return;
+    // A switch the settings poll has already started finishes first: its teardown closes the pages and sessions this turn would use.
+    for (let waited = 0; providerSwitching && waited < 3000; waited += 20) await new Promise(done => setTimeout(done, 20));
     if (wanted !== mistral.preference) await adoptProviderSetting({conversationProvider: wanted});
     if (!mistral.pending) return;
-    // A switch the settings poll has already started finishes first.
-    for (let waited = 0; providerSwitching && waited < 3000; waited += 20) await new Promise(done => setTimeout(done, 20));
-    if (!mistral.pending) return;
-    await applyProviderChoice({ownTurn: true});
-    if (mistral.pending && mistral.requested === 'local' && !providerSwitching) lightApplyProvider();
+    await applyProviderChoice({ownTurn: true, ownMic: mic});
+    // The whole switch had to wait (or was still running after the wait): a line for Local AI must still not go to the old provider.
+    if (mistral.pending && mistral.requested === 'local') lightApplyProvider();
   } catch (error) { pollLog('[CyberpunkConvai] Provider for the turn:', error); }
 }
 // Resources the current settings do not use are released (docs/RESOURCE_LIFECYCLE.md). Due-checked from the 500 ms settings poll: a few property
