@@ -19,7 +19,7 @@ import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
-import {ReplyStream} from './reply-stream.mjs';
+import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -1763,6 +1763,9 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     const final = await finishedReply(streamed, spoken);
     const merged = mergeFinishedReply(spoken, final, streamed);
     const {expressionSignal: _signal, expressionPlan: _plan, ...base} = merged;
+    // Convai's late label (a streamed Convai reply): normally in long before the voice has ended; when it is not yet, it is waited for here (the wait is capped by waitLateEmotion),
+    // so the mood carried to the next turn and the receipt have it.
+    if (!late.settled && late.promise) await late.promise.catch(() => {});
     const known = final?.expressionSignal ?? (late.settled ? late.signal : undefined);
     result = {...base, ...(known !== undefined ? {expressionSignal: known} : {})};
     plan = planFor(result.expressionSignal);
@@ -2002,8 +2005,8 @@ async function respondConvaiStreamed(input, profile, {signal, current}) {
   const stream = newReplyStream(config, profile);
   const final = Promise.resolve(realtime.reply(config, {signal, textStream: stream})).then(result => {
     markStage('fullText');
-    // The finished text agrees with the sentence already given to the voice, or is cut back to it (the text never contradicts the audio).
-    const text = stream.reconcile(result.text);
+    // The finished text is cleaned the way the sentence given to the voice was, then agrees with it or is cut back to it (the text never contradicts the audio).
+    const text = finishedText(stream, result.text);
     const done = {...result, text, transport: 'realtime'};
     stream.finish(text, done);
     return done;

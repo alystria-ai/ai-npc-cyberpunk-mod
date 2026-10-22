@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {RealtimeHost, TEXT_STREAM_POLL_MS} from './realtime-host.mjs';
-import {ReplyStream} from './reply-stream.mjs';
+import {ReplyStream, finishedText} from './reply-stream.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const config = {key: 'offline-test-key', characterId: 'judy', endUserId: 'offline-player', scope: 'private:offline-world', ttsEnabled: false, text: 'Hello'};
@@ -88,6 +88,68 @@ test('a reply that is cancelled stops the polling', async () => {
   assert.ok(page.calls.polls <= seen + 1);
 });
 
+test('the poll ends once the stream has its head: only the first sentence is read this way', async () => {
+  const host = new RealtimeHost({});
+  const page = fakePage({finishMs: 900, steps: [[0, 'Sure thing, V. I can take you there right now. Hop in.']]});
+  const stream = new ReplyStream({name: 'Judy Alvarez'});
+  await host.evaluateSpeech(page, 'reply', config, {textStream: stream});
+  assert.equal(stream.committed, true);
+  assert.ok(page.calls.polls <= 3, `${page.calls.polls} polls for a 900 ms reply whose head was there at once`);
+});
+
+test('a page whose client bundle has no early text ends the polling at once and says so once', async () => {
+  const lines = [];
+  const host = new RealtimeHost({log: line => lines.push(line)});
+  let polls = 0;
+  const page = {evaluate: async (fn, arg) => {
+    if (arg && typeof arg === 'object' && 'method' in arg) { await sleep(300); return {text: 'Hi.', sessionID: 's', timing: {}}; }
+    polls++;
+    // What the page function itself answers when the bundle has no partialReply.
+    return fn.call(null, arg);
+  }};
+  globalThis.window = {convaiRealtime: {}};
+  try {
+    await host.evaluateSpeech(page, 'reply', config, {textStream: new ReplyStream({})});
+    await host.evaluateSpeech(page, 'reply', config, {textStream: new ReplyStream({})});
+  } finally { delete globalThis.window; }
+  assert.equal(polls, 2, 'one poll per reply, then nothing');
+  assert.equal(lines.filter(line => /no early reply text/.test(line)).length, 1);
+});
+
+// The finished Convai text is cleaned the way the head was: the head is a prefix of it, so the reply is not cut to its first sentence (review 2026-10-22).
+for (const [label, text, name] of [
+  ['an em dash', 'Hey there, V \u2014 good to see you again. How are you doing today, choom?', 'Judy Alvarez'],
+  ['an emoji', 'Hey there, V, good to see you \u{1F60A}. How are you doing today, choom?', 'Judy Alvarez'],
+  ['a name label', 'Judy Alvarez: Hey there, V, good to see you. How are you doing today, choom?', 'Judy Alvarez'],
+  ['a stage direction', '*smiles* Hey there, V, good to see you. How are you doing today, choom?', 'Judy Alvarez'],
+  ['a line break', 'Hey there, V, good to see you.\nHow are you doing today, choom?', 'Judy Alvarez'],
+  ['markdown', '**Hey there, V**, good to see you. How are you doing today, choom?', 'Judy Alvarez'],
+  ['nothing to clean', 'Hey there, V, good to see you. How are you doing today, choom?', 'Judy Alvarez'],
+]) {
+  test(`a Convai reply with ${label} in its first sentence is finished whole, not cut to the sentence the voice has`, () => {
+    const stream = new ReplyStream({name});
+    for (let at = 12; at < text.length; at += 9) stream.update(text.slice(0, at));
+    stream.update(text);
+    assert.ok(stream.committed, 'a head was found while the text arrived');
+    const finished = finishedText(stream, text);
+    assert.ok(finished.length > stream.head.length + 20, `cut to the head: ${JSON.stringify(finished)}`);
+    assert.ok(finished.startsWith(stream.head));
+    assert.match(finished, /How are you doing today, choom\?$/);
+    stream.finish(finished, {text: finished});
+    assert.ok(stream.tail.length > 20, 'the rest of the reply is still voiced after the head');
+    assert.doesNotMatch(finished, /[\u2014*\u{1F60A}\n]|^Judy Alvarez:/u);
+  });
+}
+
+test('a finished Convai reply that really disagrees with the head is cut back to it, as on the text routes', () => {
+  const stream = new ReplyStream({name: 'Judy Alvarez'});
+  stream.update('Hey there, V, good to see you. How are');
+  assert.ok(stream.committed);
+  assert.equal(finishedText(stream, 'Oh, hello again. Something else entirely, V.'), stream.head);
+  const empty = new ReplyStream({name: 'Judy'});
+  assert.equal(finishedText(empty, '\u{1F60A}'), '\u{1F60A}', 'nothing left after cleaning and no head: the text as it came');
+});
+
 test('the bridge routes a Convai text turn with a local voice through the reply stream, finishes or fails that stream, and keeps the setting and look-ahead exclusions', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').split('\r\n').join('\n');
   assert.ok(bridge.includes('if (!mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondConvaiStreamed('), 'the route: setting on, no held look-ahead speaker, no reaction line');
@@ -95,7 +157,7 @@ test('the bridge routes a Convai text turn with a local voice through the reply 
   assert.ok(body.includes('textStream: stream'));
   assert.ok(body.includes('stream.finish(text, done)'));
   assert.ok(body.includes('stream.fail(error)'));
-  assert.ok(body.includes('stream.reconcile(result.text)'), 'the finished text is cut back to the sentence the voice already has when it disagrees');
+  assert.ok(body.includes('finishedText(stream, result.text)'), 'the finished text is cleaned like the head, then cut back to it only when it disagrees');
   // A turn that speaks with Convai's own voice never reaches it (convaiReply returns first).
   assert.ok(bridge.indexOf('return convaiReply(input, profile, current, signal);') < bridge.indexOf('return respondConvaiStreamed(input'));
 });

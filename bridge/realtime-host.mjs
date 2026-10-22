@@ -348,9 +348,15 @@ export class RealtimeHost {
       if (textKey) {
         let over = false, last = '';
         const poll = (async () => {
-          while (!over && !signal?.aborted) {
+          // Only the first sentence is read this way (the rest comes from the finished reply): the polling ends when the stream has its head, or is over.
+          while (!over && !signal?.aborted && !textStream.committed && !textStream.complete) {
             try {
-              const text = await page.evaluate(key => window.convaiRealtime.partialReply?.(key) ?? '', textKey);
+              // null: this page runs a client bundle older than the source (npm run build:voice) and cannot hand its text over; no polling, one line.
+              const text = await page.evaluate(key => window.convaiRealtime.partialReply ? window.convaiRealtime.partialReply(key) : null, textKey);
+              if (text === null) {
+                if (!this.earlyTextMissing) { this.earlyTextMissing = true; try { this.log('The conversation page has no early reply text (an older voice client bundle: npm run build:voice); replies are voiced when finished'); } catch { /* a line never fails a turn */ } }
+                break;
+              }
               if (!over && typeof text === 'string' && text && text !== last) { last = text; textStream.update(text); }
             } catch { /* the reply call reports a real failure */ }
             if (over) break;

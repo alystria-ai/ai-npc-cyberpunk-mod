@@ -71,6 +71,16 @@ const deferred = () => {
   return {promise, resolve, reject};
 };
 
+/**
+ * The finished text of a reply whose first sentence was voiced while it was being written, for a source that does not clean its text itself (Convai): cleaned the way
+ * the head was (dashes, emoji, a name label, stage directions, line breaks: cleanReply), then made to agree with the head (reconcile). The text routes clean the finished
+ * reply the same way before they reconcile it; without this a head that was cleaned would never be a prefix of a reply that was not, and the reply would be cut to the head.
+ */
+export function finishedText(stream, text) {
+  const cleaned = cleanReply(text, {name: stream.name, isTag: stream.isTag});
+  return stream.reconcile(cleaned || String(text ?? ''));
+}
+
 export class ReplyStream {
   /**
    * name         the speaker's name (a leading "Name:" label is cleaned off)
