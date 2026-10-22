@@ -21,7 +21,7 @@ The commit copies each file to its new path (CommitOperationCopy, server side: n
 deletes every checksum file. The same commit also replaces the three README files (the model card at the root, updates/README.md and
 multilingual/README.md) with the texts of this checkout (packaging/HF_MODEL_CARD.md, HF_UPDATES_README.md, HF_MULTILINGUAL_README.md), because
 the old ones name the old paths and the checksum files: --no-readmes leaves them out. The release step adds its own row to updates/README.md.
-The commit message carries no version: the file list of the repository shows it beside every file, and these files keep their own versions.
+The commit message carries no version. Hugging Face shows the last commit message beside each file, so the moved files show this one until a release uploads them again.
 
 The token is read from runtime/huggingface-alystria-token.txt (of this checkout, or of the main checkout when this is a git worktree) and is never
 printed. A dry run only reads the repository's file list.
@@ -36,7 +36,7 @@ from pathlib import Path
 
 REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
 TOKEN_FILE = "runtime/huggingface-alystria-token.txt"
-# No version in the message: Hugging Face shows the last commit message beside every file, and the moved files keep the version they were uploaded in.
+# No version in the message: a version here would be shown beside every moved file, including packs that did not change.
 COMMIT_MESSAGE = ("Reorganised into folders by kind (local-ai, mature, mic, voice), file names without the product prefix, "
                   "PocketTTS models, no checksum files (the files themselves are unchanged)")
 PREFIX = "AI-NPC-Cyberpunk-Mod-"
@@ -61,8 +61,6 @@ PATTERNS = (
     (re.compile(rf"^multilingual/{re.escape(PREFIX)}Pocket-(.+\.zip)$"), r"multilingual/PocketTTS-Model-\1"),
 )
 CHECKSUM = re.compile(r"(?:^|/)SHA256SUMS[^/]*$", re.IGNORECASE)
-# Files that stay exactly where they are.
-KEEP = {"README.md", "LICENSE", ".gitattributes", "updates/README.md", "multilingual/README.md"}
 # The three README files replaced in the same commit: path in the repository -> (source file in this checkout, True when the text starts below the first '---' line).
 READMES = {
     "README.md": ("packaging/HF_MODEL_CARD.md", False),
@@ -201,6 +199,8 @@ def main() -> int:
         parent = info.sha
     result = plan(files)
     result["readmes"] = [] if args.no_readmes else [(path, source) for path, (source, _) in READMES.items()]
+    for path, source in result["readmes"]:
+        readme_text(source, READMES[path][1])  # a missing source or a missing '---' line stops the dry run too
     show(result)
     if not args.apply:
         print("\nDry run: nothing was changed. Run with --apply to make the commit.")
