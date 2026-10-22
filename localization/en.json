@@ -599,7 +599,7 @@
     "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
-    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
+    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run is not replaced: replies show as text, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run is not replaced: replies show as text, with one notice.",
     "Portuguese": "Portuguese",
     "Preparing connection to {name}…": "Preparing connection to {name}…",
     "Preparing to drive": "Preparing to drive",
@@ -1628,7 +1628,7 @@
       "Natural speech",
       "Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.",
       "Page",
-      "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
+      "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run is not replaced: replies show as text, with one notice.",
       "React to battles",
       "React to collected loot",
       "Send error reports automatically",
@@ -7031,7 +7031,7 @@
         "mod/manager.lua:952"
       ]
     },
-    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": {
+    "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run is not replaced: replies show as text, with one notice.": {
       "contexts": [
         "page.setting"
       ],

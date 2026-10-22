@@ -217,7 +217,7 @@ For more Convai than the free tier gives, the **Convai paid tier** row right bel
 |---|---|---|---|---|---|
 | **Pocket · Performance** (default, Pocket TTS) | Your processor, no video memory | Nothing extra: it comes with the Runtime | About 0.15 to 0.2 s | Each character's own voice, cloned on your PC. Close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
 | **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, about 12 GB of video memory or more and a current driver. About 2 GB extra while it runs | Balanced about 1.3 s, Quality 1.45 s, High Quality 2.1 s, Ultra Quality 2.5 s | Richer, especially on harder voices, and it can laugh and sigh. Higher tiers sound better and start slower | Many |
-| **Voxtral · Mistral cloud** | Mistral's servers: nothing runs on your PC | Your free Mistral key and internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
+| **Voxtral · Mistral cloud** | Mistral's servers: nothing runs on your PC | Your free Mistral key and internet. The companions' voice loads no local model (V's typed lines follow V's own voice setting, Pocket by default) | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
 | **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, and Natural speech is off. V's typed-line voice has its own engine and still speaks | Many |
 
 Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
@@ -233,11 +233,11 @@ The same page also holds **Voice playback** (Off means text only), **Voice volum
 
 ## Smooth frames, fast replies
 
-The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Pair Mistral or Convai with the **Voxtral** voice and everything happens in the cloud: no voice model on your processor or graphics card. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
+The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Pair Mistral or Convai with the **Voxtral** voice and the companions' voices come from the cloud: no companion voice model on your processor or graphics card. V's typed lines follow V's own voice setting: Pocket (the default) runs a small voice model on your processor, so set V's voice to Off or Voxtral for nothing local at all. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
 
 Every voice sounds like the character, Pocket and Voxtral included, so pick by what matters to you:
 
-- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (cloud text with Pocket) is nearly as light: no video memory, a little processor time while it speaks.
+- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC for the companions (set V's voice for typed lines to Off or Voxtral to keep V's line off your processor too). The default (cloud text with Pocket) is nearly as light: no video memory, a little processor time while it speaks.
 - **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in 0.15 to 0.2 s, and a reply began speaking a second or two after sending. Voxtral starts in about a second.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card). No account, no internet.
 - **Fully local, lightweight:** Local AI lite with Pocket, about 1.8 GB of extra video memory.

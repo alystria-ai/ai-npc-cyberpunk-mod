@@ -167,7 +167,7 @@ Each paste reads the clipboard once, checks it and saves it on your computer; **
 
 Every voice sounds like the character, Pocket and Voxtral included, so pick by what matters to you:
 
-- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (Convai with the Pocket voice) is nearly as light.
+- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC for the companions (set V's voice for typed lines to Off or Voxtral to keep V's line off your processor too). The default (Convai with the Pocket voice) is nearly as light.
 - **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in a fraction of a second.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card).
 - **Fully local, lightweight:** Local AI lite with Pocket.
