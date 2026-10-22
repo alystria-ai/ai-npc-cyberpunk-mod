@@ -117,8 +117,10 @@ one lock). OmniVoice, the phone-analysis worker and the facial thread are closed
 synchronous kill on process exit (`killSync`), which covers a JavaScript-level exit only: a V8 out-of-memory, a native crash or "End task" on
 `node.exe` skips it. So every model server the bridge spawns is also written down in `runtime/children.json` (pid, exe path, start time, owning bridge;
 `bridge/child-registry.mjs`) and removed when it exits. The supervisor right after an unexpected bridge exit, and the next bridge at its start, stop what is
-still listed, and only a process that is exactly the exe and the start that were written down, whose owning bridge is gone; the exit is confirmed before the
-`[Resource]` line is written. Anything else is only dropped from the list.
+still listed, and only a process that is exactly the exe and the start (within 10 s) that were written down, whose owning bridge is gone. The check and the stop are one
+PowerShell call on the same process object, so a pid handed to another program meanwhile is never the one ended; the exit is confirmed before the `[Resource]` line is
+written. A record leaves the list only when its process was stopped, was gone or is someone else's: one that could not be looked at (a slow PowerShell) stays for the next
+start (three days at most), and a late cleanup removes only the records it dealt with, never a newer bridge's.
 
 ## Live checks (Task Manager, Details tab, or the bridge log)
 

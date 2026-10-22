@@ -7,7 +7,10 @@
 // So every child we spawn is recorded in `children.json` (next to the other state files: pid, the exe's path, when it started, the bridge that owns it) and removed
 // when it exits. Whoever finds an entry whose owning bridge is gone, the supervisor right after the bridge exits and the next bridge at its start, calls `reapChildren`:
 //   - the entry is stopped only when ALL of these hold: its owner (a bridge pid) is no longer running, a process with that pid is running right now, its image is
-//     exactly the exe path we recorded, and it started within a minute of the time we recorded (a pid that was handed to another program since never matches);
+//     exactly the exe path we recorded, and it started within ten seconds of the time we recorded (a pid that was handed to another program since never matches); the
+//     check and the stop are ONE PowerShell call on the same process object, so a pid handed to another program between the two can never be the one that is stopped;
+//   - a record is dropped only when its process was stopped, was gone or is someone else's now; one that could not be looked at (a slow PowerShell, a process we may not read)
+//     stays for the next start, and records of a bridge that started meanwhile are never overwritten (the file is re-read before the dealt-with ones are removed);
 //   - anything else is only dropped from the file. Nothing is ever stopped by name, by a search of the process list, or on a guess.
 // The exit of what was stopped is confirmed (polled) before the line saying so is written.
 import {readFileSync, writeFileSync, renameSync, mkdirSync, rmSync} from 'node:fs';
@@ -15,9 +18,10 @@ import {dirname, resolve as resolvePath} from 'node:path';
 import {execFile} from 'node:child_process';
 
 export const CHILDREN_FILE = 'children.json';
-// The recorded start and the process's own start time may differ by this much (the record is written just after the spawn).
-export const START_TOLERANCE_MS = 60_000;
+// The recorded start and the process's own start time may differ by this much (the record is written within milliseconds of the spawn).
+export const START_TOLERANCE_MS = 10_000;
 
+const keyOf = entry => entry.pid + ':' + entry.startedAt;
 const normal = path => resolvePath(String(path ?? '')).replace(/\//g, '\\').toLowerCase();
 
 function readEntries(file) {
@@ -58,17 +62,37 @@ export class ChildRegistry {
   }
 }
 
-const run = (file, args, timeout) => new Promise(resolveRun => {
-  execFile(file, args, {timeout, windowsHide: true, maxBuffer: 1 << 16}, (error, stdout) => resolveRun(error ? null : String(stdout ?? '')));
+const run = (file, args, timeout, env) => new Promise(resolveRun => {
+  execFile(file, args, {timeout, windowsHide: true, maxBuffer: 1 << 16, env: {...process.env, ...env}}, (error, stdout) => resolveRun(error ? null : String(stdout ?? '')));
 });
 
-/** The image path and start time (epoch ms) of the process running as `pid` right now, or null (no such process, or it cannot be read). Windows only. */
-export async function imageOf(pid, {runner = run, platform = process.platform} = {}) {
-  if (platform !== 'win32' || !Number.isSafeInteger(pid) || pid <= 0) return null;
-  const script = `$p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if ($p) { $p.Path; [DateTimeOffset]::new($p.StartTime).ToUnixTimeMilliseconds() }`;
-  const out = await runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], 8000);
-  const [path, start] = String(out ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  return path && /^\d+$/.test(start ?? '') ? {path, startMs: Number(start)} : null;
+// One PowerShell call checks and stops: the process object it looked at is the one it ends (a handle, so a pid that is handed to another program meanwhile is never the
+// target), and only when its image is exactly the recorded exe and it started within the tolerance of the recorded time. The values come in through the environment, never
+// through the command text; the pid is a checked integer.
+const STOP_SCRIPT = [
+  "$p = Get-Process -Id ([int]$env:CHILD_PID) -ErrorAction SilentlyContinue;",
+  "if (-not $p) { 'gone' } else {",
+  "  $path = $null; $start = 0;",
+  "  try { $path = $p.Path; $start = [DateTimeOffset]::new($p.StartTime).ToUnixTimeMilliseconds() } catch { }",
+  "  if (-not $path) { 'unreadable' }",
+  "  elseif (($path -ne $env:CHILD_EXE) -or ([Math]::Abs($start - [int64]$env:CHILD_START) -gt [int64]$env:CHILD_TOLERANCE)) { 'foreign' }",
+  "  else { $p.Kill(); if ($p.WaitForExit([int]$env:CHILD_CONFIRM)) { 'stopped' } else { 'still-running' } }",
+  "}"].join(' ');
+const OUTCOMES = new Set(['gone', 'unreadable', 'foreign', 'stopped', 'still-running']);
+
+/**
+ * Stops the process `entry` describes when, and only when, it is that very process: one PowerShell call that checks the image path and the start time and ends it on the same
+ * process object. Resolves 'stopped', 'still-running' (it was ours and did not exit in time), 'foreign' (another program has the pid: left alone), 'gone', or 'unreadable'
+ * (not on Windows, PowerShell failed or timed out, or the process cannot be looked at: nothing was stopped). Never rejects.
+ */
+export async function stopIfMatching(entry, {runner = run, platform = process.platform, toleranceMs = START_TOLERANCE_MS, confirmMs = 4000, timeoutMs = 15_000} = {}) {
+  try {
+    if (platform !== 'win32' || !Number.isSafeInteger(entry?.pid) || entry.pid <= 0 || typeof entry.exe !== 'string' || !Number.isFinite(entry.startedAt)) return 'unreadable';
+    const out = await runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', STOP_SCRIPT], timeoutMs,
+      {CHILD_PID: String(entry.pid), CHILD_EXE: normal(entry.exe).replace(/\//g, '\\'), CHILD_START: String(Math.round(entry.startedAt)), CHILD_TOLERANCE: String(toleranceMs), CHILD_CONFIRM: String(confirmMs)});
+    const word = String(out ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).at(-1);
+    return OUTCOMES.has(word) ? word : 'unreadable';
+  } catch { return 'unreadable'; }
 }
 
 /** Is a process running as `pid`? (Signal 0 only asks.) A process we may not look at counts as running. */
@@ -76,34 +100,36 @@ export function pidAlive(pid) {
   try { process.kill(pid, 0); return true; } catch (error) { return error?.code === 'EPERM'; }
 }
 
+// A record whose process could not be looked at is kept for the next start, for this long.
+export const UNREADABLE_KEEP_MS = 3 * 24 * 3600_000;
+
 /**
  * Stops the model servers a bridge that is gone left running (see the top of this file). Returns [{pid, label, outcome}] with outcome 'stopped', 'still-running',
- * 'gone' (not running any more), 'foreign' (the pid belongs to something else now: left alone), 'owner-running' (its bridge is alive: left alone) or 'unreadable'.
- * Never throws, never touches a process that does not match its record.
+ * 'gone' (not running any more), 'foreign' (the pid belongs to something else now: left alone), 'owner-running' (its bridge is alive: left alone), 'unreadable' or
+ * 'skipped' (the \`signal\` ended the look first). A record is dropped only when its process is stopped, gone or someone else's; one that could not be looked at, that did not exit,
+ * whose owner runs or that was not reached stays for the next start (an unreadable one for three days at most). The file is re-read when the work is done and only the records
+ * dealt with are removed, so a bridge that started meanwhile and wrote its own keeps them. Never throws, never touches a process that does not match its record.
  */
-export async function reapChildren({file, image = imageOf, alive = pidAlive, kill = pid => process.kill(pid), wait = ms => new Promise(done => setTimeout(done, ms)),
-    log = () => {}, confirmMs = 4000, toleranceMs = START_TOLERANCE_MS} = {}) {
-  const results = [];
+export async function reapChildren({file, stop = stopIfMatching, alive = pidAlive, log = () => {}, signal, now = Date.now, confirmMs = 4000, toleranceMs = START_TOLERANCE_MS} = {}) {
+  const results = [], dealt = new Set();
   try {
     const entries = readEntries(file);
     if (!entries.length) return results;
-    const keep = [];
     for (const entry of entries) {
       const note = outcome => results.push({pid: entry.pid, label: entry.label, outcome});
-      if (Number.isSafeInteger(entry.bridgePid) && alive(entry.bridgePid)) { keep.push(entry); note('owner-running'); continue; }
-      if (!alive(entry.pid)) { note('gone'); continue; }
-      let found = null;
-      try { found = await image(entry.pid); } catch { found = null; }
-      if (!found) { note('unreadable'); continue; }
-      if (normal(found.path) !== normal(entry.exe) || !Number.isFinite(found.startMs) || Math.abs(found.startMs - (entry.startedAt ?? 0)) > toleranceMs) { note('foreign'); continue; }
-      try { kill(entry.pid); } catch { /* the check below says whether it is gone */ }
-      let gone = !alive(entry.pid);
-      for (let waited = 0; !gone && waited < confirmMs; waited += 200) { await wait(200); gone = !alive(entry.pid); }
-      if (!gone) keep.push(entry);
-      note(gone ? 'stopped' : 'still-running');
-      try { log(`[Resource] ${entry.label ?? 'child'} (PID ${entry.pid}) was left running by a bridge that ended without cleaning up: ${gone ? 'stopped, exit confirmed' : 'it did not exit'}`); } catch { /* a log never fails */ }
+      if (signal?.aborted) { note('skipped'); continue; }
+      if (Number.isSafeInteger(entry.bridgePid) && alive(entry.bridgePid)) { note('owner-running'); continue; }
+      if (!alive(entry.pid)) { dealt.add(keyOf(entry)); note('gone'); continue; }
+      let outcome = 'unreadable';
+      try { outcome = await stop(entry, {confirmMs, toleranceMs}); } catch { outcome = 'unreadable'; }
+      if (outcome === 'unreadable' && now() - (entry.startedAt ?? 0) > UNREADABLE_KEEP_MS) dealt.add(keyOf(entry));
+      else if (outcome !== 'unreadable' && outcome !== 'still-running') dealt.add(keyOf(entry));
+      note(outcome);
+      if (outcome === 'stopped' || outcome === 'still-running') {
+        try { log(`[Resource] ${entry.label ?? 'child'} (PID ${entry.pid}) was left running by a bridge that ended without cleaning up: ${outcome === 'stopped' ? 'stopped, exit confirmed' : 'it did not exit'}`); } catch { /* a log never fails */ }
+      }
     }
-    writeEntries(file, keep);
+    if (dealt.size) writeEntries(file, readEntries(file).filter(entry => !dealt.has(keyOf(entry))));
   } catch { /* nothing here ever fails a start */ }
   return results;
 }
