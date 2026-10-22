@@ -12,6 +12,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstring>
+#include <exception>
 #include <vector>
 
 namespace convai
@@ -385,7 +386,9 @@ void FileIo::Stop(uint32_t aBudgetMs)
 {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (!m_running)
+        // A worker that ended itself (an exception) leaves m_running false, but its thread object and
+        // the watcher still need joining.
+        if (!m_running && !m_worker.joinable() && !m_watcher.joinable())
         {
             return;
         }
@@ -1171,6 +1174,25 @@ void FileIo::WatcherMain()
             flag.store(true);
         }
     } exited{m_watcherExited};
+    // Nothing may leave a plugin thread: an exception (std::bad_alloc, or with /EHa a structured
+    // exception) reaching the top of a std::thread ends the whole game. The watcher is an extra, so
+    // a failed one only costs the early wake-ups; the worker's polls still find every change.
+    try
+    {
+        WatcherLoop();
+    }
+    catch (const std::exception& error)
+    {
+        CONVAI_ERROR("File IO: the change watcher stopped on an exception (%s); polling only", error.what());
+    }
+    catch (...)
+    {
+        CONVAI_ERROR("File IO: the change watcher stopped on an unknown exception; polling only");
+    }
+}
+
+void FileIo::WatcherLoop()
+{
 
     constexpr DWORD kFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE |
                               FILE_NOTIFY_CHANGE_CREATION;
@@ -1212,90 +1234,100 @@ void FileIo::WatcherMain()
         return armed;
     };
 
-    while (true)
+    try
     {
-        if (folder == INVALID_HANDLE_VALUE)
+        while (true)
         {
-            folder = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY,
-                                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                 FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
-            if (folder == INVALID_HANDLE_VALUE || !arm())
+            if (folder == INVALID_HANDLE_VALUE)
             {
-                if (!warned)
+                folder = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                     FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
+                if (folder == INVALID_HANDLE_VALUE || !arm())
                 {
-                    warned = true;
-                    CONVAI_WARN("File IO: cannot watch %s for changes yet (error %lu); polling only until it can",
-                                paths::WideToUtf8(m_directory).c_str(), GetLastError());
+                    if (!warned)
+                    {
+                        warned = true;
+                        CONVAI_WARN("File IO: cannot watch %s for changes yet (error %lu); polling only until it can",
+                                    paths::WideToUtf8(m_directory).c_str(), GetLastError());
+                    }
+                    close();
+                    if (WaitForSingleObject(stop, 2000) == WAIT_OBJECT_0)
+                    {
+                        break;
+                    }
+                    continue;
                 }
-                close();
+                // Files may have changed while nobody watched.
+                NoteChanged({}, true);
+            }
+
+            const HANDLE handles[2] = {done, stop};
+            if (WaitForMultipleObjects(2, handles, FALSE, INFINITE) != WAIT_OBJECT_0)
+            {
+                break; // stop requested (or the wait failed)
+            }
+            DWORD bytes = 0;
+            const BOOL got = GetOverlappedResult(folder, &overlapped, &bytes, FALSE);
+            armed = false;
+            if (!got)
+            {
+                if (GetLastError() == ERROR_NOTIFY_ENUM_DIR)
+                {
+                    NoteChanged({}, true); // the buffer overflowed: something changed, we do not know what
+                    if (!arm())
+                    {
+                        close();
+                    }
+                    continue;
+                }
+                close(); // the folder went away or the handle broke: reopen after a pause
                 if (WaitForSingleObject(stop, 2000) == WAIT_OBJECT_0)
                 {
                     break;
                 }
                 continue;
             }
-            // Files may have changed while nobody watched.
-            NoteChanged({}, true);
-        }
-
-        const HANDLE handles[2] = {done, stop};
-        if (WaitForMultipleObjects(2, handles, FALSE, INFINITE) != WAIT_OBJECT_0)
-        {
-            break; // stop requested (or the wait failed)
-        }
-        DWORD bytes = 0;
-        const BOOL got = GetOverlappedResult(folder, &overlapped, &bytes, FALSE);
-        armed = false;
-        if (!got)
-        {
-            if (GetLastError() == ERROR_NOTIFY_ENUM_DIR)
+            const bool overflow = bytes == 0;
+            batch.assign(buffer.begin(), buffer.begin() + bytes);
+            if (!arm())
             {
-                NoteChanged({}, true); // the buffer overflowed: something changed, we do not know what
-                if (!arm())
-                {
-                    close();
-                }
+                close();
+            }
+            if (overflow)
+            {
+                NoteChanged({}, true);
                 continue;
             }
-            close(); // the folder went away or the handle broke: reopen after a pause
-            if (WaitForSingleObject(stop, 2000) == WAIT_OBJECT_0)
+            std::vector<std::string> names;
+            size_t offset = 0;
+            while (offset + sizeof(FILE_NOTIFY_INFORMATION) <= batch.size())
             {
-                break;
+                const auto* info = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(batch.data() + offset);
+                const size_t nameBytes = info->FileNameLength;
+                if (offset + offsetof(FILE_NOTIFY_INFORMATION, FileName) + nameBytes > batch.size())
+                {
+                    break;
+                }
+                names.push_back(paths::WideToUtf8(std::wstring_view(info->FileName, nameBytes / sizeof(wchar_t))));
+                if (info->NextEntryOffset == 0)
+                {
+                    break;
+                }
+                offset += info->NextEntryOffset;
             }
-            continue;
-        }
-        const bool overflow = bytes == 0;
-        batch.assign(buffer.begin(), buffer.begin() + bytes);
-        if (!arm())
-        {
-            close();
-        }
-        if (overflow)
-        {
-            NoteChanged({}, true);
-            continue;
-        }
-        std::vector<std::string> names;
-        size_t offset = 0;
-        while (offset + sizeof(FILE_NOTIFY_INFORMATION) <= batch.size())
-        {
-            const auto* info = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(batch.data() + offset);
-            const size_t nameBytes = info->FileNameLength;
-            if (offset + offsetof(FILE_NOTIFY_INFORMATION, FileName) + nameBytes > batch.size())
+            if (!names.empty())
             {
-                break;
+                NoteChanged(names, false);
             }
-            names.push_back(paths::WideToUtf8(std::wstring_view(info->FileName, nameBytes / sizeof(wchar_t))));
-            if (info->NextEntryOffset == 0)
-            {
-                break;
-            }
-            offset += info->NextEntryOffset;
         }
-        if (!names.empty())
-        {
-            NoteChanged(names, false);
-        }
+    }
+    catch (...)
+    {
+        // An armed request still writes into buffer: cancel it before the buffer goes away.
+        close();
+        CloseHandle(done);
+        throw;
     }
     close();
     CloseHandle(done);
@@ -1304,6 +1336,37 @@ void FileIo::WatcherMain()
 void FileIo::WorkerMain()
 {
     SetThreadDescription(GetCurrentThread(), L"CyberpunkConvai file IO");
+    // Nothing may leave a plugin thread (see WatcherMain). If the loop dies, mark IO as stopped so
+    // Write/Read/Flush/Stop stop waiting on it: the Lua side then runs its own file path.
+    try
+    {
+        WorkerLoop();
+        return;
+    }
+    catch (const std::exception& error)
+    {
+        CONVAI_ERROR("File IO: the worker stopped on an exception (%s); file IO is off", error.what());
+    }
+    catch (...)
+    {
+        CONVAI_ERROR("File IO: the worker stopped on an unknown exception; file IO is off");
+    }
+    try
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_busy = false;
+        m_running = false;
+    }
+    catch (...)
+    {
+        // The mutex itself failed: nothing more can be done safely, but nothing may escape either.
+    }
+    m_idle.notify_all();
+    m_wake.notify_all();
+}
+
+void FileIo::WorkerLoop()
+{
     // Normal priority: every reply, speech stream and playback lease passes through here, and below normal a game that keeps
     // every core busy starved it for seconds (2026-10-20 report: replies 5-7 s late in the foreground, 1-2 s after alt-tab).
     // The thread sleeps on its condition variable between requests, so it costs nothing while idle.

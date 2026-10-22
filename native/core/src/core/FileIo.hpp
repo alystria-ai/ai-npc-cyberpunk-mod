@@ -156,8 +156,11 @@ private:
         uint64_t wroteTime = 0;
     };
 
+    // The thread entry points catch everything; the loops hold the work.
     void WorkerMain();
+    void WorkerLoop();
     void WatcherMain();
+    void WatcherLoop();
     void NoteChanged(const std::vector<std::string>& aNames, bool aAll);
     void RunOp(Op& aOp);
     void PollDue(uint64_t aNow);
