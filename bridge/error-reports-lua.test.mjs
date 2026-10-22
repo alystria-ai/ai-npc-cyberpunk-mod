@@ -67,15 +67,20 @@ test('the first-load setup check gives the versions and check lines, and an even
   const text = run(`
     local checks = {game = {state = 'ok', code = 'tested', version = '2.31'}, cet = {state = 'ok', code = 'found', version = 'v1.35.0'},
       codeware = {state = 'problem', code = 'old', version = '1.12.0'}, audioware = {state = 'ok', code = 'found', version = '1.3.0'},
-      tweakxl = {state = 'problem', code = 'missing'}, redscript = {state = 'ok', code = 'loaded'}, files = {state = 'ok', code = 'found', version = '0.2.2'},
+      tweakxl = {state = 'ok', code = 'found', version = '1.11.4'}, red4ext = {state = 'problem', code = 'missing'},
+      redscript = {state = 'ok', code = 'loaded'}, files = {state = 'ok', code = 'found', version = '0.2.2'},
       service = {state = 'ok', code = 'running'}}
-    assert(M.noteSetup({'codeware', 'tweakxl', 'versions'}, checks) == true)
+    assert(M.noteSetup({'codeware', 'red4ext', 'versions'}, checks) == true)
     return file()`);
   const parsed = parseGameEvents(text);
   assert.deepEqual({game: parsed.game.game, cet: parsed.game.cet, codeware: parsed.game.codeware, scripts: parsed.game.scripts, redscript: parsed.game.redscript},
     {game: '2.31', cet: 'v1.35.0', codeware: '1.12.0', scripts: '0.2.2', redscript: 'loaded'});
   assert.ok(parsed.game.setup.includes('codeware: problem old'));
-  assert.deepEqual(parsed.events.map(row => row.message), ['codeware old', 'tweakxl missing'], 'only problems the game itself found');
+  assert.deepEqual(parsed.events.map(row => row.message), ['codeware old', 'red4ext missing'], 'only problems the game itself found');
+  // Audioware and TweakXL are no requirements: a check of theirs (an older caller) is not a version, a setup line or an event
+  assert.equal(parsed.game.audioware, undefined);
+  assert.equal(parsed.game.tweakxl, undefined);
+  assert.ok(!parsed.game.setup.some(line => /audioware|tweakxl/i.test(line)), parsed.game.setup.join('|'));
   assert.ok(parsed.events.every(row => row.frame === 'game-setup'));
   const quiet = parseGameEvents(run(`assert(M.noteSetup({}, {cet = {state = 'ok', code = 'found', version = 'v1.35.0'}}))
     return file()`));

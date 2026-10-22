@@ -17,8 +17,7 @@ test('plugin versions are read from the RED4ext log lines and from nothing else'
   const found = pluginVersions(RED4EXT_LOG + '[info] [RED4ext] Somebody (version: 9.9.9, author(s): x) mentioned\nCodeware (version: 0.0.1) outside the tag\n');
   assert.equal(found.red4ext, '1.30.0');
   assert.equal(found.plugins.get('codeware'), '1.20.5');
-  assert.equal(found.plugins.get('tweakxl'), '1.11.4');
-  assert.equal(found.plugins.get('audioware'), '1.9.9-rc.0');
+  assert.equal(found.plugins.get('archivexl'), '1.27.4');
   assert.equal(pluginVersions('').plugins.size, 0);
 });
 

@@ -135,14 +135,21 @@ print = function(...)
 end
 function put(path, value) files[path] = type(value) == 'string' and value or json.encode(value) end
 
--- the game as CET shows it: env says what is installed; applyEnv() builds the globals from it (call it again after changing env)
+-- the game as CET shows it: env says what is installed; applyEnv() builds the globals from it (call it again after changing env).
+-- env.tweakxl and env.audioware say whether a player still has TweakXL and Audioware (both are on by default): they are no requirements
+-- any more, so the setup check never asks them anything, and retiredProbes counts every time something does.
 env = {cet = '1.37.1', gameVersion = '2.31', codeware = '1.20.5', tweakxl = '1.11.4', audioware = '1.9.9', scripts = true,
   native = false, nsui = 'ok', mcm = 'none', player = true, paused = false, menu = false}
-gameCalls, requirementCalls = 0, 0
+gameCalls, requirementCalls, retiredProbes = 0, 0, 0
+local function watched(version)
+  return setmetatable({Version = function() retiredProbes = retiredProbes + 1; return version end},
+    {__index = function() retiredProbes = retiredProbes + 1; return nil end})
+end
 function applyEnv()
   GetVersion = env.cet and function() return env.cet end or nil
   Codeware = env.codeware and {Version = function() return env.codeware end} or nil
-  TweakXL = env.tweakxl and {Version = function() return env.tweakxl end} or nil
+  TweakXL = env.tweakxl and watched(env.tweakxl) or nil
+  AudioSystemExt = env.audioware and watched(env.audioware) or nil
   convaiNative = env.native and {present = true} or nil
   GetMod = function(name)
     assert(name == 'nativeSettings' or name == 'NativeSettings' or name == 'ModConfigurationMenuAPI')
@@ -176,7 +183,8 @@ function applyEnv()
       return {GetGameVersion = function() return env.gameVersion end,
         IsPreGame = function() return false end, IsGamePaused = function() return env.paused end}
     end,
-    GetAudioSystemExt = env.audioware and function() return {Version = function() return env.audioware end} end or nil,
+    GetAudioSystemExt = env.audioware and function() retiredProbes = retiredProbes + 1; return watched(env.audioware) end or nil,
+    GetScriptableSystemsContainer = function() retiredProbes = retiredProbes + 1; return {Get = function() return nil end} end,
     GetAllBlackboardDefs = function() return {UI_System = {IsInMenu = 'menu'}} end,
     GetBlackboardSystem = function() return {Get = function() return {GetBool = function() return env.menu end} end} end,
   }

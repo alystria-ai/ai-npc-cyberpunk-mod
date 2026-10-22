@@ -309,10 +309,12 @@ test('with the service up the Copy row keeps its ordinary help, and shows the pa
 `));
 
 // ---- Help > Setup check (docs/MANAGER_UI.md, mod/setup-check.lua): the first section of the page, over the real manager host
-// The game as it is with everything installed; a test changes one thing of it.
+// The game as it is with everything installed; a test changes one thing of it. TweakXL and Audioware are there too: they are no
+// requirements, so the page has no row for them and nothing about them is ever a problem.
 const setupWorld = `
   Codeware = {Version = function() return '1.20.5' end}
   TweakXL = {Version = function() return '1.11.4' end}
+  AudioSystemExt = {Version = function() return '1.9.9' end}
   GetVersion = function() return '1.37.1' end
   function player:ConvaiPhoneIsOpen() return false end
   for _, name in ipairs({'world-knowledge.json', 'manager-characters.json', 'conversation-characters.json', 'phone-contacts.json', 'locales/de.lua'}) do files[name] = 'x' end
@@ -343,10 +345,11 @@ test('the Help page opens with the setup check: the service row, one line per ch
   assert(first.settings[1].id == 'help-service', 'the Conversation service row first in the setup check (Back is the first section)')
   assert(loaded.categories[1].settings[1].id == 'help:back' and countBack() == 1, 'still one parent Back')
   assert(row('help-service').value == 'Running')
-  for _, id in ipairs({'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}) do
+  for _, id in ipairs({'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}) do
     local item = setupRow(id)
     assert(item and item.value == 'OK' and item.type == 'string' and item.description ~= '', id .. ' ' .. tostring(item and item.description))
   end
+  assert(not setupRow('tweakxl') and not setupRow('audioware'), 'TweakXL and Audioware are no requirements: no row')
   assert(setupRow('codeware').label == 'Codeware' and setupRow('codeware').description == 'Version 1.20.5.')
   assert(setupRow('game').label == 'Game version' and setupRow('game').description == 'Version 2.31.')
   -- the existing groups follow, unchanged
@@ -356,14 +359,14 @@ test('the Help page opens with the setup check: the service row, one line per ch
 
 test('a missing framework, a missing file and a service that never started are Problems with their fix, counted in the description', () => run(`${helpFixture(true, true)}
   ${setupWorld}
-  TweakXL = nil
+  Codeware = nil; convaiNative = {present = true}; function player:ConvaiRequirements() return '' end
   files['phone-contacts.json'] = nil
   files['runtime/knowledge-status.json'] = nil
   assert(invoke('tab:settings').ok and invoke('help').ok)
   assert(row('help-service').value == 'Not running' and row('help-service').description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
-  assert(setupRow('tweakxl').value == 'Problem' and setupRow('tweakxl').description == 'TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.')
+  assert(setupRow('codeware').value == 'Problem' and setupRow('codeware').description == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
   assert(setupRow('files').value == 'Problem' and setupRow('files').description:find('Missing: phone-contacts.json.', 1, true))
-  assert(setupRow('codeware').value == 'OK')
+  assert(setupRow('red4ext').value == 'OK')
   assert(category('help-setup').description == 'Problems found: 3. Select a line marked Problem to read what to do.', category('help-setup').description)
 `));
 
@@ -404,15 +407,15 @@ test('without the setup module the Help page keeps its groups and shows only the
 
 test('the first load: a missing framework is announced once in gameplay, after twelve seconds', () => run(`${helpFixture(true, true)}
   ${setupWorld}
-  TweakXL = nil
+  Codeware = nil; convaiNative = {present = true}; function player:ConvaiRequirements() return '' end
   files['runtime/knowledge-status.json'] = nil
   pump(true, 10)
   assert(#popups == 0, 'twelve seconds after the first world have not passed yet')
   pump(true, 20)
-  assert(#popups == 1 and popups[1] == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', popups[1] or 'no popup')
+  assert(#popups == 1 and popups[1] == 'Codeware is missing. Install it from Nexus Mods, then restart the game.', popups[1] or 'no popup')
   pump(true, 60)
   assert(#popups == 1, 'once per game session')
-  assert(consoleHas('TweakXL is missing'), 'the notice is logged too')
+  assert(consoleHas('Codeware is missing'), 'the notice is logged too')
   assert(not consoleHas('Native Settings UI is missing'), 'Native Settings UI is there, so its line is not printed')
 `));
 
@@ -486,7 +489,7 @@ test('a player with none of the scripts’ methods: the menu update and the mana
   assert(invoke('tab:settings').ok and invoke('help').ok, 'the settings and the Help page still open')
   assert(setupRow('redscript').value == 'Problem' and setupRow('redscript').description:find('r6/logs/redscript_rCURRENT.log', 1, true), setupRow('redscript').description)
   assert(setupRow('redscript').description:find('If the error names another mod, that mod is the problem.', 1, true))
-  for _, id in ipairs({'codeware', 'audioware'}) do assert(setupRow(id).value == 'OK' or setupRow(id).value == 'Unknown', id) end
+  assert(setupRow('codeware').value == 'OK' or setupRow('codeware').value == 'Unknown')
   menu = false
   frames(4)
   assert(#written == 1 and written[1].message == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.', written[1] and written[1].message or 'no notice')

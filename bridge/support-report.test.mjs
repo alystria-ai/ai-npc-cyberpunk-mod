@@ -693,16 +693,16 @@ test('the game side checks the Help page sends are kept short, at most 24 rows, 
   const f = await plantedInstall();
   try {
     const now = Date.now();
-    const setup = [{id: 'tweakxl', state: 'problem', code: 'missing'}, {id: 'codeware', state: 'ok', code: 'found', version: '1.20.5'},
+    const setup = [{id: 'redscript', state: 'problem', code: 'missing'}, {id: 'codeware', state: 'ok', code: 'found', version: '1.20.5'},
       {id: 'row of words '.repeat(10), state: 'bad state '.repeat(10), code: 'a long code '.repeat(20), version: 'version words '.repeat(10), extra: 'dropped'}, ...Array.from({length: 40}, (_, index) => ({id: `row${index}`, state: 'ok', code: 'found'}))];
     const {summary} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
       request: {id: 'r-lua', issuedAt: now, lua: {cetVersion: '1.37.1', setup}}, secrets: [], graphics: async () => [], now: () => now});
     assert.equal(summary.request.setup.length, 24);
-    assert.deepEqual(summary.request.setup[0], {id: 'tweakxl', state: 'problem', code: 'missing', version: undefined});
+    assert.deepEqual(summary.request.setup[0], {id: 'redscript', state: 'problem', code: 'missing', version: undefined});
     assert.deepEqual(summary.request.setup[1], {id: 'codeware', state: 'ok', code: 'found', version: '1.20.5'});
     assert.deepEqual(Object.keys(summary.request.setup[2]).sort(), ['code', 'id', 'state', 'version']);
     assert(summary.request.setup[2].id.length <= 40 && summary.request.setup[2].state.length <= 20 && summary.request.setup[2].code.length <= 60 && summary.request.setup[2].version.length <= 40 && summary.request.setup[2].code.length > 30);
-    assert.equal(summary.problems[0], 'Setup check (game): tweakxl missing');
+    assert.equal(summary.problems[0], 'Setup check (game): redscript missing');
     // no setup rows, a request of another shape
     for (const lua of [{}, {setup: 'text'}, {setup: null}, {setup: [null, 3, 'x']}]) {
       const result = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,

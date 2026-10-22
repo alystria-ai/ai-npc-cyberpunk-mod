@@ -4,9 +4,11 @@
 -- Native Settings UI (so without the Help page), as one line in the CET console and probe.log plus that notice.
 --
 -- Game side (works with no service): the mod's own data files, the game and Cyber Engine Tweaks versions, RED4ext, redscript (this
--- mod's scripts), Codeware, TweakXL, Audioware, Native Settings UI, and the service's status (service-status.lua).
--- This mod's scripts compile without Codeware and Audioware (a compile error would disable every redscript mod), so loaded scripts
--- no longer prove them: PlayerPuppet:ConvaiRequirements (Requirements.reds) names what they were compiled with, and a player
+-- mod's scripts), Codeware, Native Settings UI, and the service's status (service-status.lua). Audioware and TweakXL are not
+-- requirements any more (the mod plays every voice through its own audio path and uses no tweaks): they are never probed, never named
+-- and never a notice, whether the player has them or not.
+-- This mod's scripts compile without Codeware (a compile error would disable every redscript mod), so loaded scripts
+-- no longer prove it: PlayerPuppet:ConvaiRequirements (Requirements.reds) names what they were compiled with, and a player
 -- without that method has scripts that did not compile or older scripts (told apart by ConvaiPhoneIsOpen, which they have).
 -- Service side (only an answer of this game session is shown): the Scripts and Runtime versions, optional packs and packs one folder
 -- too deep, the browser, Local AI and why it is down, whether the chosen provider's server can be reached, the graphics card and a
@@ -33,16 +35,15 @@ local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['
     ['launcher-not-configured'] = true, ['launcher-program-missing'] = true, ['launcher-directory-missing'] = true}
 -- The order of the game-side lines on the page and in the notice's choice (the first critical problem is the one announced). RED4ext
 -- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
--- compile, and the probes of Codeware, TweakXL and Audioware), and without it Codeware's scripts never reach the compile, which alone
--- fails it (Audioware imports Codeware). This mod's scripts come next: when they did not load (a compile error anywhere disables every
+-- compile, and the probe of Codeware), and without it Codeware's scripts never reach the compile. This mod's scripts come next: when they did not load (a compile error anywhere disables every
 -- redscript mod), nothing below can be judged from them and the log, not a missing framework, is the thing to read.
-local CRITICAL = {'red4ext', 'redscript', 'codeware', 'audioware', 'tweakxl', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
+local CRITICAL = {'red4ext', 'redscript', 'codeware', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
 -- The requirements one first-load notice names together (Native Settings UI has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
-local REQUIREMENT_IDS = {red4ext = true, codeware = true, audioware = true, tweakxl = true}
+local REQUIREMENT_IDS = {red4ext = true, codeware = true}
 local MAX_NAMES = 4
 -- Every game-side check, in the order the reports list them.
-local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}
+local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
 -- The Companion Manager lives in Mod Configuration Menu 0.10.5 or newer (the default) or in Native Settings UI (the alternative): the
 -- check keeps its id, 'nsui', and is met by either.
 local NSUI_CONSOLE = 'AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer, '
@@ -52,20 +53,10 @@ local MCM_OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is older t
     .. 'Update Mod Configuration Menu to 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640), or install Native Settings UI '
     .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game. The manager works with either.'
 local MCM_MIN = {0, 10, 5}
--- Audioware: the version the mod was built and tested with and where it comes from (reports of 0.2.2: three players had none, and one
--- had one this mod's scripts were built without).
-local AUDIOWARE_MIN = '1.9.9'
-local AUDIOWARE_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is missing. Install Audioware ' .. AUDIOWARE_MIN .. ' or newer from Nexus Mods '
-    .. '(https://www.nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.'
-local AUDIOWARE_UNBUILT_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is installed, but this mod\'s scripts were built without it. '
-    .. 'Update Audioware to ' .. AUDIOWARE_MIN .. ' or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/12001), then restart the game.'
--- TweakXL: the player is told where it comes from and where it goes (report of 0.2.2: a player had none and installed it within minutes of the notice).
-local TWEAKXL_CONSOLE = 'AI NPC Cyberpunk Mod: TweakXL is missing. Install TweakXL from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/4197), '
-    .. 'extract it into the Cyberpunk 2077 folder, then restart the game.'
 -- The first-load lines for the CET console and probe.log, in English like the one above (a report is read in English).
 local SCRIPTS_CONSOLE = 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
     .. 'If the error names another mod, that mod is the problem. '
-    .. 'Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.'
+    .. 'Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.'
 local COMPILER_CONSOLE = 'AI NPC Cyberpunk Mod: redscript is missing. Install it from Nexus Mods, then restart the game.'
 local OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Codeware is too old (it lacks the text input this mod needs). '
     .. 'Update Codeware from Nexus Mods, then restart the game.'
@@ -172,11 +163,6 @@ local function frameworks()
     found.cet = text(try(function() return GetVersion() end), 40)
     found.codewareVersion = text(try(function() return Codeware.Version() end), 40)
     found.codeware = found.codewareVersion ~= nil or try(function() return Codeware ~= nil end) == true
-    found.tweakxlVersion = text(try(function() return TweakXL.Version() end), 40)
-    found.tweakxl = found.tweakxlVersion ~= nil or try(function() return TweakXL ~= nil end) == true
-    found.audiowareVersion = text(try(function() return Game.GetAudioSystemExt():Version() end), 40)
-    found.audioware = found.audiowareVersion ~= nil or try(function() return AudioSystemExt ~= nil end) == true
-        or try(function() return Game.GetScriptableSystemsContainer():Get('Audioware.AudiowareSystem') ~= nil end) == true
     -- This mod's own scripts (r6/scripts/CyberpunkConvai): ConvaiRequirements says they loaded and which frameworks they were
     -- compiled with; scripts of 0.2.1 and older only have ConvaiPhoneIsOpen, which proves they loaded. nil while there is no player
     -- to ask. found.requirements stays nil for old scripts and for none.
@@ -288,21 +274,16 @@ function M.run(now)
     else checks.game = {state = 'note', code = 'untested', version = version} end
     checks.cet = {state = found.cet and 'ok' or 'unknown', code = found.cet and 'found' or 'unknown', version = found.cet}
     local scripts, words = found.redscript, found.requirements
-    -- A framework this mod's own scripts were compiled against (Codeware, Audioware), or one only the CET side can see (TweakXL).
+    -- Codeware, the one framework this mod's own scripts are compiled against.
     --   scripts with ConvaiRequirements: the words are the answer (the scripts compile without a missing framework, so loading
     --     no longer proves it). Codeware without its UI or text input parts is too old for this mod.
-    --   scripts of 0.2.1 and older (ConvaiPhoneIsOpen only): they imported Codeware and Audioware, so loading proves both.
-    --   scripts that did not load: nothing is known from them, so a framework is OK when its own probe finds it and Unknown
+    --   scripts of 0.2.1 and older (ConvaiPhoneIsOpen only): they imported Codeware, so loading proves it.
+    --   scripts that did not load: nothing is known from them, so Codeware is OK when its own probe finds it and Unknown
     --     otherwise (the probes have not been confirmed in a game whose compile failed, and which mod broke the compile is the
     --     redscript log's to say). RED4ext below is the exception: this mod's own native plugin also answers for it.
     --   no player yet: its own probe alone.
     local function framework(id, present, version)
-        if words and (id == 'codeware' or id == 'audioware') then
-            -- Audioware whose own version answers (Game.GetAudioSystemExt():Version() is in its scripts, so they are loaded) while these
-            -- scripts were built without it: it is installed, so "install it" would be wrong. A release candidate or other build the compile
-            -- did not match (a report of 0.2.2: Audioware 1.9.9-rc.0, ModuleExists("Audioware") false). The fix is to update it; the code keeps
-            -- these players apart in the reports. The class alone (its plugin without its scripts) is not this: that one is missing.
-            if not words[id] and id == 'audioware' and version then return {state = 'problem', code = 'unbuilt', version = version} end
+        if words then
             if not words[id] then return {state = 'problem', code = 'missing'} end
             if id == 'codeware' and not (words[UI] and words[TEXT_INPUT]) then
                 return {state = 'problem', code = 'old', version = version}
@@ -310,13 +291,11 @@ function M.run(now)
             return {state = 'ok', code = 'found', version = version}
         end
         if present then return {state = 'ok', code = 'found', version = version} end
-        if scripts == true and (id == 'codeware' or id == 'audioware') then return {state = 'ok', code = 'implied'} end
+        if scripts == true and id == 'codeware' then return {state = 'ok', code = 'implied'} end
         if scripts == false then return {state = 'unknown', code = 'unknown'} end
         return {state = 'problem', code = 'missing'}
     end
     checks.codeware = framework('codeware', found.codeware, found.codewareVersion)
-    checks.audioware = framework('audioware', found.audioware, found.audiowareVersion)
-    checks.tweakxl = framework('tweakxl', found.tweakxl, found.tweakxlVersion)
     if scripts == true then checks.redscript = {state = 'ok', code = 'loaded'}
     elseif scripts == false then
         -- Scripts that did not load. When the service saw that the compiler's file is not there (bridge/setup-check.mjs, 'compiler') there is no
@@ -324,13 +303,12 @@ function M.run(now)
         local compiler = bridgeCheck('compiler')
         checks.redscript = {state = 'problem', code = compiler and compiler.code == 'missing' and 'no-compiler' or 'missing'}
     else checks.redscript = {state = 'unknown', code = 'unknown'} end
-    -- RED4ext loads Codeware, TweakXL, Audioware and this mod's native plugin; any one of them that answers proves it, and so do
-    -- the scripts of 0.2.1 (they could not load without it) and scripts that were compiled against Codeware or Audioware. When none
-    -- answers it is not loaded, also when this mod's scripts did not load: this mod's native plugin does not depend on the script
-    -- compile, and a game without RED4ext cannot compile Audioware's scripts (the Codeware they import is never added), so RED4ext is
-    -- then the cause to name, not a mod the redscript log lists.
-    local red4ext = found.native or found.codeware or found.tweakxl or found.audioware
-        or (words ~= nil and (words.codeware or words.audioware) == true) or (scripts == true and words == nil)
+    -- RED4ext loads Codeware and this mod's native plugin; either one answering proves it, and so do the scripts of 0.2.1 (they
+    -- could not load without it) and scripts that were compiled against Codeware. When none answers it is not loaded, also when this
+    -- mod's scripts did not load: this mod's native plugin does not depend on the script compile, and a game without RED4ext cannot
+    -- compile Codeware's scripts, so RED4ext is then the cause to name, not a mod the redscript log lists.
+    local red4ext = found.native or found.codeware
+        or (words ~= nil and words.codeware == true) or (scripts == true and words == nil)
     if red4ext then checks.red4ext = {state = 'ok', code = 'loaded'}
     else checks.red4ext = {state = 'problem', code = 'missing'} end
     -- The manager's host: Mod Configuration Menu 0.10.5 or newer first, otherwise Native Settings UI. An older Mod Configuration Menu
@@ -411,9 +389,8 @@ function M.serviceLine()
     return nil
 end
 
-local GAME_ORDER = {'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}
-local PRODUCT = {cet = 'Cyber Engine Tweaks', red4ext = 'RED4ext', redscript = 'redscript', codeware = 'Codeware', tweakxl = 'TweakXL',
-    audioware = 'Audioware', nsui = 'Native Settings UI'}
+local GAME_ORDER = {'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
+local PRODUCT = {cet = 'Cyber Engine Tweaks', red4ext = 'RED4ext', redscript = 'redscript', codeware = 'Codeware', nsui = 'Native Settings UI'}
 
 local function gameLine(id, check)
     local label = PRODUCT[id]
@@ -445,7 +422,7 @@ local function gameLine(id, check)
         return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
     end
     if id == 'redscript' then
-        return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.'))
+        return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.'))
     end
     if id == 'nsui' and check.code == 'mcm-old' then
         return line(id, label, 'problem', ui.t('Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.'))
@@ -454,17 +431,7 @@ local function gameLine(id, check)
         -- Missing, or a Native Settings UI that is too old: Mod Configuration Menu first, Native Settings UI as the alternative.
         return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.'))
     end
-    if id == 'tweakxl' then
-        return line(id, label, 'problem', ui.t('TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.'))
-    end
     if id == 'codeware' and check.code == 'old' then return line(id, label, 'problem', ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.')) end
-    if id == 'audioware' and check.code == 'unbuilt' then
-        return line(id, label, 'problem', ui.t('Audioware {version} is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.',
-            {version = check.version or '?'}))
-    end
-    if id == 'audioware' then
-        return line(id, label, 'problem', ui.t('Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.'))
-    end
     return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
 end
 
@@ -681,8 +648,8 @@ end
 
 -- Every sentence of the first-load notice is in this one function (bridge/setup-notice-fit.test.mjs measures each against the warning
 -- line). id 'redscript': this mod's scripts did not load. id 'requirements': names is the list of two or more requirement names
--- (old: one of them is installed but too old, or Audioware is installed and the scripts were built without it). id 'codeware-old': Codeware
--- without the parts this mod needs. id 'audioware-unbuilt': Audioware is installed, the scripts were built without it. Any other id: one check,
+-- (old: one of them is installed but too old). id 'codeware-old': Codeware
+-- without the parts this mod needs. Any other id: one check,
 -- named by PRODUCT or, for an id that has no entry, by `names`.
 local function shortText(id, names, old)
     if id == 'redscript' then return ui.t('Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.') end
@@ -691,7 +658,6 @@ local function shortText(id, names, old)
         return ui.t('Missing: {names}. Install them and restart the game.', {names = names})
     end
     if id == 'codeware-old' then return ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.') end
-    if id == 'audioware-unbuilt' then return ui.t('Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.') end
     if id == 'nsui' then return ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI') end
     if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
@@ -732,8 +698,8 @@ end
 -- of CRITICAL puts everything that stops the mod, and Native Settings UI, before the checks that need the Help page, so the text
 -- never sends the player to a page they cannot open.
 -- RED4ext that is not loaded comes first (it is also why scripts that need Codeware cannot compile). Otherwise scripts that did not load
--- come first and alone: no framework is blamed while the compile error is unread. Missing requirements (RED4ext, Codeware, Audioware,
--- TweakXL) are one notice naming them all, up to MAX_NAMES; Native Settings UI has its own.
+-- come first and alone: no framework is blamed while the compile error is unread. Missing requirements (RED4ext, Codeware)
+-- are one notice naming them all, up to MAX_NAMES; Native Settings UI has its own.
 local function firstLoad()
     local problems = M.problems()
     -- The automatic error reports (mod/error-reports.lua): the game-side versions and the problems the game found, once per session.
@@ -750,8 +716,6 @@ local function firstLoad()
         if id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or SCRIPTS_CONSOLE)
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or NSUI_CONSOLE)
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
-        elseif id == 'audioware' then say(check and check.code == 'unbuilt' and AUDIOWARE_UNBUILT_CONSOLE or AUDIOWARE_CONSOLE)
-        elseif id == 'tweakxl' then say(TWEAKXL_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')
         end
@@ -763,12 +727,10 @@ local function firstLoad()
             if REQUIREMENT_IDS[id] and #named < MAX_NAMES then
                 named[#named + 1] = PRODUCT[id] or id
                 if id == 'codeware' and game.checks[id].code == 'old' then old = true end
-                if id == 'audioware' and game.checks[id].code == 'unbuilt' then old = true end
             end
         end
         if #named > 1 then return shortText('requirements', table.concat(named, ', '), old) end
         if first == 'codeware' and game.checks.codeware.code == 'old' then return shortText('codeware-old') end
-        if first == 'audioware' and game.checks.audioware.code == 'unbuilt' then return shortText('audioware-unbuilt') end
     end
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
@@ -783,9 +745,9 @@ local function firstLoad()
 end
 
 -- Whether a requirement was in place when this mod's scripts compiled (Requirements.reds): true or false, or nil when that is not
--- known (no player yet, or scripts of 0.2.1 and older). Other modules ask it before a feature that needs Codeware or Audioware and
+-- known (no player yet, or scripts of 0.2.1 and older). Other modules ask it before a feature that needs Codeware and
 -- on a refused action, never per frame: the answer is read once and kept (it cannot change before the next game start).
--- word: 'codeware', 'codeware-ui', 'codeware-textinput' or 'audioware'. player: the caller's, when it has one.
+-- word: 'codeware', 'codeware-ui' or 'codeware-textinput'. player: the caller's, when it has one.
 function M.requirement(word, player)
     if requirementSet == nil then
         player = player or try(function() return Game.GetPlayer() end)
@@ -870,7 +832,7 @@ function M.reportLines()
         local words = {}
         for word in pairs(requirementSet) do words[#words + 1] = word end
         table.sort(words)
-        out[#out + 1] = 'scripts compiled with: ' .. (#words > 0 and table.concat(words, ' ') or 'no Codeware and no Audioware')
+        out[#out + 1] = 'scripts compiled with: ' .. (#words > 0 and table.concat(words, ' ') or 'no Codeware')
     end
     if type(bridge) == 'table' then
         for _, check in ipairs(bridge.checks) do

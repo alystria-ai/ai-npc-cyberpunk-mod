@@ -245,7 +245,6 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   add('redscript', join(game, 'r6', 'logs', 'redscript_rCURRENT.log'));
   const logs = join(game, 'red4ext', 'logs');
   add('red4ext', (await newest(logs, /^red4ext-.+\.log$/i))[0] ?? join(logs, 'red4ext-<date>.log'));
-  add('audioware', (await newest(logs, /^audioware-.+\.log$/i))[0] ?? join(logs, 'audioware-<date>.log'));
   const result = [], seen = new Set();
   for (const {id, paths, ...extra} of candidates) {
     if (seen.has(id)) continue;
