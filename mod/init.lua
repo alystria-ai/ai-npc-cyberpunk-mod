@@ -880,6 +880,7 @@ function convaiJohnnyHeadService()
         local loaded, module = pcall(dofile, 'johnny-head.lua')
         convaiJohnnyHead = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
             sample = function(player) return battleObserver.sample(player) end,
+            workspot = function(player) return Game.GetWorkspotSystem():IsActorInWorkspot(player) == true end,
             lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end}) or false
         if not convaiJohnnyHead then print('[CyberpunkConvai] johnny-head.lua unavailable: ' .. tostring(module)) end
     end
