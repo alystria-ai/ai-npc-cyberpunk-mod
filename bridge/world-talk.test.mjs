@@ -556,6 +556,34 @@ test('classify idle: a commanded AI at a workspot is not a scene, and every othe
   assert(W.classify(facts({workspot = true, mounted = true}), false, true) == 'vehicle')
 `));
 
+test('classify idle: a scene actor at a workspot (V past open gameplay) is busy, a post with V in open gameplay still talks', () => withModule(`
+  local function facts(over)
+    local f = {gone = false, hub = false, dialogue = false, driven = false, combat = false, hurt = false, mounted = false}
+    for k, v in pairs(over or {}) do f[k] = v end
+    return f
+  end
+  assert(W.classify(facts({driven = true, workspot = true, staged = false}), false, true) == nil, 'the bouncer at his post, V in open gameplay')
+  assert(W.classify(facts({driven = true, workspot = true, staged = true}), false, true) == 'driven', 'a scene actor seated or leaning in its workspot')
+  assert(W.classify(facts({driven = false, workspot = true, staged = true}), false, true) == nil, 'a person on its own AI is not refused for the workspot')
+  assert(W.describe(facts({workspot = true, staged = true})):find('staged=true', 1, true))
+  assert(not W.describe(facts({})):find('staged', 1, true), 'listed only when read')
+`));
+
+test('read: staged is read for an idle person only, from V scene tier (2 or more or unknown is staged)', () => withModule(`
+  ${fakeGame}
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function() return true end} end
+  state.autonomous = false
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  assert(W.read(npc, 'V', function() return playerSample end).staged == nil, 'not read for a story character')
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == false, 'tier 1: open gameplay')
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == nil, 'a post in open gameplay: no refusal')
+  playerSample.tier = 2
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == true)
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'a scene actor in a workspot with V at tier 2: busy')
+  playerSample.tier = nil
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'tier unknown: fail closed')
+`));
+
 test('read: the workspot is asked only for an idle (quest-bound, unnamed) person, and describe lists it only when read', () => withModule(`
   ${fakeGame}
   local asked = 0

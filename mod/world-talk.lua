@@ -34,7 +34,8 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 --   dialogue  the character is in a scene or quest dialogue
 --   driven    the game's AI is not on its own (a scene or quest commands it)
 --             idle (a quest-bound person with no roster profile: the receptionist, the Afterlife bouncer) lets a commanded AI through
---             while the person stands in a workspot: a post the quest gave them is not a scene. V's own scene, dialogue and call (hub),
+--             while the person stands in a workspot and V is in open gameplay (scene tier 1, `staged` not true): a post the quest gave
+--             them is not a scene, but a scene's own seated or waiting actor is in a workspot too, with V past tier 1. V's own scene, dialogue and call (hub),
 --             the person's dialogue, a fight, an injury and a ride still refuse
 --   combat    the character or V is in a fight
 --   hurt      the character is injured, defeated, unconscious, stunned or ragdolled
@@ -46,7 +47,7 @@ function M.classify(facts, projection, idle)
     if facts.gone == true then return 'gone' end
     if facts.hub == true then return 'hub' end
     if facts.dialogue == true then return 'dialogue' end
-    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true) then return 'driven' end
+    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true and facts.staged ~= true) then return 'driven' end
     if facts.combat == true or facts.playerCombat == true then return 'combat' end
     if facts.hurt == true then return 'hurt' end
     if facts.mounted == true and projection ~= true then return 'vehicle' end
@@ -61,10 +62,10 @@ end
 function M.describe(facts, projection)
     if type(facts) ~= 'table' then return 'facts=none' end
     local parts = {}
-    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
+    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'staged', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
         local value = facts[name]
-        -- workspot is read only for a quest-bound person with no roster profile (idle), so it is listed only when it was read.
-        if name ~= 'workspot' or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
+        -- workspot and staged are read only for a quest-bound person with no roster profile (idle), so they are listed only when read.
+        if (name ~= 'workspot' and name ~= 'staged') or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
     end
     if projection == true then parts[#parts + 1] = 'projection=true' end
     return table.concat(parts, ' ')
@@ -109,6 +110,8 @@ function M.read(npc, player, sample, idle)
         facts.hubWhy = 'dialogue=' .. tostring(seen.dialogue) .. ' choices=' .. tostring(seen.choices) .. ' call=' .. tostring(seen.call)
             .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true
+        -- Staged or limited gameplay (tier 2 or more) or an unknown tier: a workspot is then no proof of an idle post (idle persons only).
+        if idle == true then facts.staged = tier == nil or tier >= 2 end
     end
     return facts
 end

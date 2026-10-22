@@ -1747,6 +1747,7 @@ local FACE_REASONS = {
     {'^skipped:no%-record$', 'the character has no readable record, left to the game'},
     {'^skipped:dialogue$', 'the character is in a game dialogue'},
     {'^skipped:driven$', 'a quest or a scene commands this character'},
+    {'^skipped:staged$', 'a quest-marked character at a workspot while V is in a scene or staged gameplay, so a scene may be playing'},
 }
 function M.faceStatusReason(status)
     if type(status) ~= 'string' or status == '' then return nil end
