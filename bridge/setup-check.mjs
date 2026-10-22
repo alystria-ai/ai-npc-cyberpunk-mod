@@ -370,7 +370,7 @@ export function localAiCheck(settings, info = {}) {
   else if (info.status === 'no-memory') code = 'no-memory';
   else if (info.status === 'not-installed') code = 'not-installed';
   else code = LOCAL_REASONS[info.reason] ?? 'failed';
-  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed};
+  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {})};
 }
 
 const text = (value, size) => clip(value, size) ?? '';

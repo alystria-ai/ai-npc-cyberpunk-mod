@@ -373,6 +373,10 @@ test('local AI: not used, ready, warming, and every way it can be unavailable', 
   assert.equal((await check(selected, {...installed, status: 'failed', reason: 'low-memory'})).code, 'no-memory');
   assert.equal((await check(selected, {...installed, status: 'failed', reason: 'no-gpu'})).code, 'no-gpu');
   assert.equal((await check(selected, {...installed, status: 'failed', reason: 'start-failed'})).code, 'start-failed');
+  // A server the player runs that is down, blocked or wrongly set up: still a problem row (the Help page shows it), marked so no error report is filed for it (2026-10-22 report ee4689b6).
+  assert.deepEqual(await check(selected, {...installed, status: 'failed', reason: 'start-failed', playerServer: true}), {id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true, playerServer: true});
+  assert.equal('playerServer' in await check(selected, {...installed, status: 'failed', reason: 'start-failed'}), false, 'our own failed start is not marked');
+  assert.equal('playerServer' in await check(selected, {...installed, status: 'failed', reason: 'crashed', playerServer: true}), false, 'only a start that failed');
   assert.equal((await check(selected, {...installed, status: 'failed', reason: 'crashed'})).code, 'crashed');
   assert.equal((await check(selected, {...installed, status: 'failed', reason: 'stopped'})).code, 'failed');
   assert.equal((await check(selected, {...installed, status: 'failed'})).code, 'failed');
