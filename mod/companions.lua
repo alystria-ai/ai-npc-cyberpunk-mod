@@ -571,6 +571,28 @@ local function deleteOwnedCopy(entry)
     return false
 end
 
+-- A copy that failed (a spawn that timed out, a recovery after fast travel that could not finish, a refused attach): it is OUR spawned
+-- copy, never a game character, so it is not left standing with a follower role. The role is cleared while the body still exists and the
+-- delete is requested; the entry stays 'failed' (the manager shows why) with entry.removed once the game confirms it. A delete the game
+-- accepted but has not finished is pending, not an error. Five refused attempts end the retries (Dismiss still works). Returns
+-- removed, pending.
+local function retireFailedCopy(entry)
+    if entry.removed then return true,false end
+    if (entry.cleanupTries or 0)>=5 then return false,false end
+    if entry.role and entry.npc and not entry.roleCleared then
+        entry.roleCleared=true
+        pcall(function()
+            if entry.npc:IsAttached() then
+                local ai=entry.npc:GetAIControllerComponent()
+                entry.role:OnRoleCleared(entry.npc)
+                ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
+            end
+        end)
+    end
+    local deleted,pending=deleteOwnedCopy(entry)
+    if not deleted and not pending then entry.cleanupTries=(entry.cleanupTries or 0)+1 end
+    return deleted==true,pending==true
+end
 
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
@@ -1137,6 +1159,11 @@ function M.beginFastTravel()
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
         end
+        -- A failed copy that is still standing goes with the party's receipts (retired again by update), never dropped without a delete.
+        if entry.state=='failed' and not entry.removed and (entry.cleanupTries or 0)<5 then
+            pcall(retireFailedCopy,entry)
+            if not entry.removed then party[#party+1]=entry end
+        end
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
     end
@@ -1213,7 +1240,8 @@ local function recoverTransit(player,step)
                     local prepared,result=pcall(appearance.prepare,npc)
                     if not prepared then
                         entry.state,entry.error='failed',tostring(result)
-                        if not deleteOwnedCopy(entry) then
+                        local removed,pending=retireFailedCopy(entry)
+                        if not removed and not pending then
                             entry.error=entry.error..' The copy could not be removed; try Dismiss.'
                         end
                         return
@@ -2226,9 +2254,19 @@ function M.update(player,delta,focusEntity)
             if entry.state=='spawning' and runtimeClock-entry.requestedClock>12 then
                 entry.state,entry.error='failed','Spawn timed out'
             end
-            if entry.state=='failed' and not deleteOwnedCopy(entry) then
-                entry.error=entry.error..' The copy could not be removed; try Dismiss.'
+            if entry.state=='failed' then
+                local removed,pending=retireFailedCopy(entry)
+                entry.cleanupAt=runtimeClock+2
+                if not removed and not pending then entry.error=entry.error..' The copy could not be removed; try Dismiss.' end
             end
+        end
+    end
+    -- A failed copy that is still standing (a recovery that could not finish, a delete the game had not confirmed) is retired again every
+    -- two seconds, at most five refusals: one clock comparison per failed entry, and nothing once it is gone.
+    for _,entry in ipairs(entries) do
+        if entry.state=='failed' and not entry.removed and runtimeClock>=(entry.cleanupAt or 0) and (entry.cleanupTries or 0)<5 then
+            entry.cleanupAt=runtimeClock+2
+            pcall(retireFailedCopy,entry)
         end
     end
     for index=#entries,1,-1 do
