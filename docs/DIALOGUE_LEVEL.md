@@ -6,13 +6,17 @@ Dialogue up, all other sliders at 0, on an NC resident and on Judy).
 
 ## Where the audio plays today
 
+Updated 2026-10-22: every voice (Pocket, Voxtral, Convai, OmniVoice, V's typed-line voice, holocall and Johnny-in-your-head)
+plays through the one renderer below. The Audioware path (OmniVoice phrase WAVs in eight slots, and the complete-WAV Convai
+fallback) is gone and Audioware is no longer a requirement of the mod. The findings and the history further down describe that
+path as it was measured on 2026-10-08 and are kept as the record.
+
 | Voice | Renderer | Position | Game sliders |
 | --- | --- | --- | --- |
-| Pocket, Convai | Hidden Edge page, one AudioWorklet stream per reply (`continuous-pcm-player.mjs`), its own Windows audio session | Lua lease (`mod/continuous-speech.lua`): camera-relative equal-power pan, smoothstep distance gain 2 to 18 m | Master x Dialogue read from `/audio/volume`, linear |
-| OmniVoice | Audioware (Kira, in the game process) `DynamicEmitterEvent` on the speaker's entity, `voices` track, phrase WAVs in 8 on-demand slots | Kira spatial track at the entity (strength 0.75, min 2 m / max 18 m) | Master and Dialogue through Audioware's own curve (its routing docs: `voices` follows DialogueVolume) |
+| Pocket, Voxtral, Convai, OmniVoice | Hidden Edge page, one AudioWorklet stream per reply (`continuous-pcm-player.mjs`), its own Windows audio session. OmniVoice phrases are synthesized one at a time and fed as Float32 24 kHz PCM packets into the same stream | Lua lease (`mod/continuous-speech.lua`): camera-relative equal-power pan, smoothstep distance gain 2 to 18 m | Master x Dialogue read from `/audio/volume`, linear |
+| Holocall, Johnny in your head | The same renderer, at full level and centred | None (no distance, no pan) | Voice volume only |
 
-Neither path is the game's Wwise mixer. Audioware is a separate Kira engine
-with its own output stream inside the game process.
+The browser is not the game's Wwise mixer: it is a separate Windows audio session beside the game's.
 
 ## Findings
 
@@ -34,7 +38,8 @@ with its own output stream inside the game process.
 - **Audioware cannot stream.** v1.9.9 (installed, latest release) has no
   append-PCM call. Manifest sounds are `in-memory`, `on-demand` (whole file
   loaded per play) or `streaming` (from a file fixed at load). A runtime WAV can
-  only be played whole; Omni already does this per phrase.
+  only be played whole; Omni did this per phrase until 2026-10-22, when it moved
+  onto the browser renderer.
 - **Wwise external sources are not reachable.** Game VO plays Wwise .wem
   streams from the archive depot; producing and registering those at runtime
   is not possible with the installed tools.
@@ -53,10 +58,10 @@ Keep each renderer, and make both behave like game dialogue:
      +6 dB measured as +6.000 dB, a 0.9 sine boosted 6 dB peaks at 0.857, the
      look-ahead is exactly 6 ms. The heard-position clock (subtitles and lip
      sync) is held back by those 6 ms while the limiter is in the path.
-   - Audioware (Omni and the complete-WAV Convai fallback): `storeSpeech`
-     writes the slot WAV with the same gain and a 5 ms look-ahead limiter
+   - Audioware (Omni and the complete-WAV Convai fallback), superseded on 2026-10-22: `storeSpeech`
+     wrote the slot WAV with the same gain and a 5 ms look-ahead limiter
      (ceiling -1 dBFS), timing compensated, so `Position()` and the facial
-     timeline are unchanged. Cost: about 2 ms per second of audio in the bridge.
+     timeline were unchanged. Omni phrases now take the browser chain above, with the same makeup.
 2. **Slider.** Unchanged: Master x Dialogue from the game settings, refreshed
    every 0.5 s, applied before the makeup.
 3. **Position.** Unchanged gain law, pan narrowed to 0.7 (a speaker at V's side
@@ -82,8 +87,8 @@ read by the bridge every settings poll (no restart):
 ```
 
 - `"enabled": false` restores the previous path exactly: no makeup, the gain
-  stage connected straight to the device, the low-pass open, slot WAVs written
-  byte for byte.
+  stage connected straight to the device and the low-pass open (before
+  2026-10-22 it also wrote the Audioware slot WAVs byte for byte).
 - `makeupDb` is clamped to 0..12. Missing or unreadable file: default on, 6 dB.
 - If the browser cannot build the low-pass or limiter, the player falls back
   to the previous graph by itself.
@@ -102,8 +107,8 @@ every spoken voice through the two paths that already exist, and V's typed-line 
   through the same limiter as the dialogue level, so 200% on top of +6 dB never reaches full scale (real Edge, offline render: peaks of
   0.90 to 0.95 for full-scale speech at +12 and +18 dB). Below 100 it is a plain attenuation. With no limiter node (an old browser) a
   boost is skipped, as before, and an attenuation still applies.
-- **Audioware slot WAVs** (OmniVoice phrases, the complete-WAV Convai fallback): `storeSpeech` writes the same total with the look-ahead
-  limiter (ceiling -1 dBFS), timing compensated. A total of exactly 0 dB writes the original bytes.
+- **Audioware slot WAVs** (superseded on 2026-10-22, OmniVoice phrases now ride the browser renderer above): `storeSpeech` wrote the same
+  total with the look-ahead limiter (ceiling -1 dBFS), timing compensated. A total of exactly 0 dB wrote the original bytes.
 
 Why sample gain and not a game-side volume: both renderers already take a gain stage the bridge controls, with a limiter and a measured
 latency compensation, so one number covers every voice with no per-frame Lua, no extra buffering and no change to lip-sync or subtitle
@@ -113,7 +118,7 @@ still applies and the distance low-pass stays open.
 ## Phone and group
 
 Phone Chat is text only; no spoken phone path exists, so nothing changes there
-(Audioware's `PlayOverThePhone` is available if one is added later). Group
+(a holocall voice, when there is one, uses the same browser renderer). Group
 chat: each speaker has its own lease, so its own distance, pan and low-pass;
 the makeup is one process-wide value.
 
@@ -122,8 +127,8 @@ the makeup is one process-wide value.
 `scripts/audio-level/Measure-OutputLoudness.ps1` records what the player hears
 (WASAPI loopback of the default output, read only) and logs each application's
 peak meter, then prints every sounding segment's loudness and which process
-made it: `Cyberpunk2077` (vanilla Wwise and Audioware Omni) or `msedge`
-(Pocket, Convai). The last line gives the browser-minus-game difference; add it
+made it: `Cyberpunk2077` (vanilla Wwise, and Audioware Omni before 2026-10-22)
+or `msedge` (every mod voice now). The last line gives the browser-minus-game difference; add it
 to `makeupDb`.
 
 ```powershell
@@ -166,9 +171,8 @@ ChatterHelper.PlayVoiceOver(Game.GetTargetingSystem():GetLookAtObject(Game.GetPl
    the Current party Play row is gone). Then ask the companion one short question by text or voice and let
    the whole reply play. Keep 2 s of quiet between sounds.
 4. The table lists each segment with its source; `Cyberpunk2077` rows are the
-   game lines (or Omni replies), `msedge` rows are Pocket/Convai. Set
-   `makeupDb` = current value + the printed difference. For Omni, compare the
-   Omni reply row with the game line rows by hand (both are `Cyberpunk2077`).
+   game lines (and, before 2026-10-22, Omni replies), `msedge` rows are every mod voice. Set
+   `makeupDb` = current value + the printed difference.
 
 ## Tests
 
@@ -199,8 +203,8 @@ compensated exactly (on and off agree). The player now subtracts the reported
 latency, which puts the cursor within 1 ms of the mixed sample. Delay after
 the Windows mix (the device buffer, and a Bluetooth headset's link, often
 100 ms or more) is not visible to software and is not compensated; the game's
-own dialogue has the same delay. Omni plays through Audioware, whose
-`Position()` clock is unchanged.
+own dialogue has the same delay. Omni used to play through Audioware, whose
+`Position()` clock was unchanged; since 2026-10-22 it uses the browser clock like the other voices.
 
 ## Lip sync delay (Bluetooth)
 
@@ -211,14 +215,13 @@ Off, 50, 100, 150, 200, 250 ms (`audioDelay` in `runtime/settings.json`:
 `'auto'` or the number; Off is 0). It holds back the clock the face,
 expressions and subtitles follow, for every voice:
 
-- Pocket and Convai: the bridge sends `delayMs` with each control; the player
+- Pocket, Voxtral, Convai and (since 2026-10-22) Omni: the bridge sends `delayMs` with each control; the player
   subtracts it from its heard cursor (`bridge/continuous-pcm-player.mjs`).
   The reply is also reported finished that much later, so group turns wait
   until the speaker is actually heard to the end.
-- Omni (Audioware): the bridge writes `runtime/audio-delay.json`; `mod/speech.lua`
-  reads it once per utterance and subtracts it from the Audioware cursor for
-  the face and subtitles. The phrase itself still ends at its native end, so
-  the last moment of mouth movement of each phrase is cut by that delay.
+- Omni (Audioware, superseded on 2026-10-22): the bridge wrote `runtime/audio-delay.json`; `mod/speech.lua`
+  read it once per utterance and subtracted it from the Audioware cursor for
+  the face and subtitles. `mod/speech.lua` no longer reads that file: Omni phrases take the `delayMs` route above.
 
 Auto uses 150 ms while the default Windows output device is Bluetooth, and 0
 otherwise. Detection: `bridge/audio-output-probe.ps1`, one hidden below-normal

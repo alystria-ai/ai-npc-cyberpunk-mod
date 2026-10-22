@@ -437,13 +437,13 @@ call connects with the portrait, the usual `holo failed ... reason=no-studio-spo
 "Live picture unavailable" notice. `far=<n>` in the reasons counts near floors that were hidden but past 11 m. Setting
 `M.FAR_PICTURE = true` restores the farther columns.
 
-**Voice probe line.** Each holocall reply logs `Holocall voice: path=browser level=<0..1>` (the cloud and Pocket voices,
-the browser renderer, at the phone's full level) or `Holocall voice: path=audioware on=<class> away=<m>m` (an Omni or
-prepared WAV, played on V's weapon or chest item: full level within 2 m, silent past 18 m), once per reply.
-With the 2026-10-18 voice fix the Audioware line is `Holocall voice: path=audioware-v` (see below); `path=audioware on=...`
-only appears with an older `Speech.reds`.
+**Voice probe line.** Each holocall reply logs `Holocall voice: path=browser level=<0..1>` once per reply: every voice (Pocket,
+Voxtral, Convai and OmniVoice) comes through the browser renderer, at the phone's full level and centred. Since 2026-10-22 that
+is the only line: the `path=audioware on=<class> away=<m>m` and `path=audioware-v` lines described below no longer exist.
 
-**Native voice on a call (2026-10-18).** Seen live from an apartment (`floor=+4.5m away=4.5m`): a prepared OmniVoice
+**Native voice on a call (2026-10-18), superseded on 2026-10-22.** Every voice now plays through the browser renderer (see
+"Voice probe line" above), so the Audioware path below, `Speech.reds` and the V-owned sound event are gone. What follows is the
+record of the 2026-10-18 finding and fix. Seen live from an apartment (`floor=+4.5m away=4.5m`): a prepared OmniVoice
 WAV played on a holocall moved her lips (the Audioware cursor advanced, `nativePlaybackObserved: true`) but nothing was
 heard, while V's own voice and a Voxtral (browser) reply on the same kind of call were heard normally. The Audioware
 phrase was a spatial `DynamicEmitterEvent` on V's weapon or chest item (`bodyObject`, because Audioware refuses V as an

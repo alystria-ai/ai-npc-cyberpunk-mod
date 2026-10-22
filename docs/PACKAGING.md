@@ -9,7 +9,7 @@ How the player release is built, what it contains and how it starts. Players rea
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
 | `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
-| `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
 | `OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
 | `LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
@@ -27,10 +27,11 @@ until release day, when it goes public with the GitHub repository. The players' 
 Why this split: Nexus Mods scans every upload and holds files that its scanners flag for manual
 review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
 executables, but a text-only file never needs that review and is never quarantined. The Nexus page
-must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
-Native Settings UI): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
+must list RED4ext among the requirements (with CET, redscript, Codeware and
+Native Settings UI or Mod Configuration Menu): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
 binary runtime goes to the GitHub release as plain zips, which is how the core frameworks
-(RED4ext, Codeware, TweakXL, Audioware) are distributed too.
+(RED4ext, Codeware) are distributed too. Audioware and TweakXL are not requirements any more
+(2026-10-22): the mod ships no tweak files and plays all voices through its own audio path.
 
 All of them use game-root-relative paths and merge into one install. Versions must match;
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
@@ -85,7 +86,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
   runtime/                   Lua <-> bridge exchange files (the only folder the service writes in the game folder's CET mod)
     native-off.txt           the native kill switch, no system listed from 0.2.7 (Runtime package, see below)
 r6/scripts/CyberpunkConvai/  redscript (Scripts package)
-r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots (Runtime)
+(r6/audioware/CyberpunkConvai, speech.yml and eight silent reply slots, was shipped by Runtimes before 2026-10-22 and is no longer used)
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
 
 %LOCALAPPDATA%/AiNpcCyberpunkMod/   outside the game folder (packaging/runtime/state-home.mjs)
@@ -456,7 +457,7 @@ ever modify or replace them (no player usvfs log was available; the design works
   (nothing is displaced); the volatile files it purges from the new `runtime/` are emptied, not deleted.
 - **Not covered:** the Lua's own temp-file, backup and swap protocol for the `state` files is unchanged (what it leaves in
   `runtime/` is kept by the service's copy, see "the player's state" below); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
-  bank (`r6/audioware/CyberpunkConvai`) already ships its slot files and `speech.yml`, and only the transient `reply-pre-*.tmp` is new;
+  bank (`r6/audioware/CyberpunkConvai`, shipped by Runtimes before 2026-10-22) already shipped its slot files and `speech.yml`, and only the transient `reply-pre-*.tmp` was new;
   `knowledge-fact-commits/<generation>.json` (run-time names; dormant); CET's own `AiNpcCyberpunkMod.log`.
 - **Live check on MO2** (not done): install Scripts and Runtime physically, start the game from MO2 with the service on, talk to a
   companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
@@ -731,8 +732,9 @@ developer's and private testers' installs; on a player's machine it finds no old
   game runs) and `scripts/Install-DevelopmentMod.ps1` calls it first.
 - **Tests:** `packaging/migrate-legacy.test.mjs` (fake game folder with old-folder state, conflicts, copy fallback, failed
   verification, locked files, bindings, and an end-to-end `start-service.mjs --prepare-only`) and `packaging/test-release-install.mjs`.
-- Kept on purpose under the old name: `r6/scripts/CyberpunkConvai` and `r6/audioware/CyberpunkConvai` (redscript compiles before
-  RED4ext, so a renamed folder would give duplicate classes on an update-over install).
+- Kept on purpose under the old name: `r6/scripts/CyberpunkConvai` (redscript compiles before
+  RED4ext, so a renamed folder would give duplicate classes on an update-over install); `r6/audioware/CyberpunkConvai` was kept the same way
+  while it still shipped.
 
 ## Building
 
