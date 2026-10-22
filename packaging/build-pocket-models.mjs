@@ -1,4 +1,4 @@
-// Builds the optional Pocket TTS language model packs: AI-NPC-Cyberpunk-Mod-Pocket-<lang>.zip for fr, it, de, es-es and pt-br.
+// Builds the optional Pocket TTS language model packs: AI-NPC-Cyberpunk-Mod-Pocket-<Language>.zip (French, Italian, German, Spanish, Portuguese).
 //
 //   node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out E:/SteamLibrary/AiNpc-voice-packs/pocket
 //        [--token-file <path>] [--download]
@@ -308,7 +308,7 @@ export function buildManifest(lang, files) {
 }
 
 export const manifestText = manifest => JSON.stringify(manifest, null, 2) + '\n';
-export const packBase = lang => `AI-NPC-Cyberpunk-Mod-Pocket-${languageInfo(lang).lang}`;
+export const packBase = lang => `AI-NPC-Cyberpunk-Mod-Pocket-${languageInfo(lang).title}`;
 
 // The zip's entries in order: the install note, then the five pack files (sorted by name).
 export function zipEntryNames(lang) {

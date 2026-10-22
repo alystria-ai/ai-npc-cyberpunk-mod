@@ -49,7 +49,10 @@ if (manifest.language !== language) throw Error(`the manifest is for ${manifest.
 const names = (await walk(stage)).filter(name => !name.endsWith('.tmp') && !name.endsWith('.part')).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 if (!names.every(name => name.startsWith('red4ext/'))) throw Error('the stage folder holds files outside red4ext/');
 await mkdir(out, {recursive: true});
-const base = `AI-NPC-Cyberpunk-Mod-Voices-${language}`;
+// The zip is named after the language in full (the folder inside keeps the code).
+const LANGUAGE_NAMES = {'zh-cn': 'Chinese', ja: 'Japanese', ko: 'Korean', fr: 'French', de: 'German', it: 'Italian', 'es-es': 'Spanish', pl: 'Polish', 'pt-br': 'Portuguese', ru: 'Russian'};
+if (!LANGUAGE_NAMES[language]) throw Error(`no zip name for ${language}`);
+const base = `AI-NPC-Cyberpunk-Mod-Voices-${LANGUAGE_NAMES[language]}`;
 const temporary = resolve(out, `${base}.zip.tmp`);
 const writer = await ZipWriter.create(temporary, {timestamp: new Date(`${manifest.built}T00:00:00Z`)});
 const files = [];

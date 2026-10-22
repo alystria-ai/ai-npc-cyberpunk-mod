@@ -138,7 +138,7 @@ Neither pack is part of the Runtime package.
 
 ## Bundled in the optional Pocket language model packs
 
-Five optional downloads, one per language: `AI-NPC-Cyberpunk-Mod-Pocket-fr.zip`, `-it`, `-de`, `-es-es` and `-pt-br`, hosted on Hugging Face only
+Five optional downloads, one per language: `AI-NPC-Cyberpunk-Mod-Pocket-French.zip`, `-Italian`, `-German`, `-Spanish` and `-Portuguese`, hosted on Hugging Face only
 (never on Nexus Mods). Each unpacks into `red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/` (a sibling of the voice language
 pack's `multilingual/<lang>/` folder) and carries `model.safetensors`, `tokenizer.json`, `inference.yaml`, a `NOTICE.txt` with the licence, the
 attribution, Kyutai's prohibited-use terms and the changes, and a `pocket-model.json` marker (sizes and SHA-256 of the files). They are built by

@@ -6,7 +6,7 @@ For the player: get the voice language pack for your language (`docs/VOICE_LANGU
 
 ## What is shipped
 
-One zip per language, `AI-NPC-Cyberpunk-Mod-Pocket-<lang>.zip` (`<lang>` is the voice pack's folder name: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
+One zip per language, `AI-NPC-Cyberpunk-Mod-Pocket-<Language>.zip`, the language in full (`Pocket-French`, `Pocket-Italian`, `Pocket-German`, `Pocket-Spanish`, `Pocket-Portuguese`; the folder inside keeps the voice pack's code: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
 
 ```
 red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/         the voice pack (docs/VOICE_LANGUAGE_PACKS.md)

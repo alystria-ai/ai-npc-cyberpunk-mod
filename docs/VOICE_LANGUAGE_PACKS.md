@@ -17,7 +17,7 @@ red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/
   prepared/<key>.json + <key>.ogg   Voxtral slots for every WAV above, built with the bridge's own VoxtralVoice.build
 ```
 
-Zip name: `AI-NPC-Cyberpunk-Mod-Voices-<lang>.zip`. On Hugging Face they live in the `multilingual/` folder.
+Zip name: `AI-NPC-Cyberpunk-Mod-Voices-<Language>.zip`, the language in full (`Voices-Chinese`, `Voices-French`, ...); the folder inside keeps the code. On Hugging Face they live in the `multilingual/` folder.
 
 ## manifest.json
 

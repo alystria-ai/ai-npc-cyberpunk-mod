@@ -14,16 +14,16 @@ One zip per language. With a pack installed, when a character replies in that la
 
 | Language | File | Size |
 | --- | --- | --- |
-| Chinese (Mandarin) | [AI-NPC-Cyberpunk-Mod-Voices-zh-cn.zip](AI-NPC-Cyberpunk-Mod-Voices-zh-cn.zip) | 160 MB |
-| Japanese | [AI-NPC-Cyberpunk-Mod-Voices-ja.zip](AI-NPC-Cyberpunk-Mod-Voices-ja.zip) | 171 MB |
-| Korean | [AI-NPC-Cyberpunk-Mod-Voices-ko.zip](AI-NPC-Cyberpunk-Mod-Voices-ko.zip) | 167 MB |
-| French | [AI-NPC-Cyberpunk-Mod-Voices-fr.zip](AI-NPC-Cyberpunk-Mod-Voices-fr.zip) | 161 MB |
-| German | [AI-NPC-Cyberpunk-Mod-Voices-de.zip](AI-NPC-Cyberpunk-Mod-Voices-de.zip) | 162 MB |
-| Italian | [AI-NPC-Cyberpunk-Mod-Voices-it.zip](AI-NPC-Cyberpunk-Mod-Voices-it.zip) | 171 MB |
-| Spanish (Spain) | [AI-NPC-Cyberpunk-Mod-Voices-es-es.zip](AI-NPC-Cyberpunk-Mod-Voices-es-es.zip) | 170 MB |
-| Polish | [AI-NPC-Cyberpunk-Mod-Voices-pl.zip](AI-NPC-Cyberpunk-Mod-Voices-pl.zip) | 147 MB |
-| Portuguese (Brazil) | [AI-NPC-Cyberpunk-Mod-Voices-pt-br.zip](AI-NPC-Cyberpunk-Mod-Voices-pt-br.zip) | 164 MB |
-| Russian | [AI-NPC-Cyberpunk-Mod-Voices-ru.zip](AI-NPC-Cyberpunk-Mod-Voices-ru.zip) | 155 MB |
+| Chinese (Mandarin) | [AI-NPC-Cyberpunk-Mod-Voices-Chinese.zip](AI-NPC-Cyberpunk-Mod-Voices-Chinese.zip) | 160 MB |
+| Japanese | [AI-NPC-Cyberpunk-Mod-Voices-Japanese.zip](AI-NPC-Cyberpunk-Mod-Voices-Japanese.zip) | 171 MB |
+| Korean | [AI-NPC-Cyberpunk-Mod-Voices-Korean.zip](AI-NPC-Cyberpunk-Mod-Voices-Korean.zip) | 167 MB |
+| French | [AI-NPC-Cyberpunk-Mod-Voices-French.zip](AI-NPC-Cyberpunk-Mod-Voices-French.zip) | 161 MB |
+| German | [AI-NPC-Cyberpunk-Mod-Voices-German.zip](AI-NPC-Cyberpunk-Mod-Voices-German.zip) | 162 MB |
+| Italian | [AI-NPC-Cyberpunk-Mod-Voices-Italian.zip](AI-NPC-Cyberpunk-Mod-Voices-Italian.zip) | 171 MB |
+| Spanish (Spain) | [AI-NPC-Cyberpunk-Mod-Voices-Spanish.zip](AI-NPC-Cyberpunk-Mod-Voices-Spanish.zip) | 170 MB |
+| Polish | [AI-NPC-Cyberpunk-Mod-Voices-Polish.zip](AI-NPC-Cyberpunk-Mod-Voices-Polish.zip) | 147 MB |
+| Portuguese (Brazil) | [AI-NPC-Cyberpunk-Mod-Voices-Portuguese.zip](AI-NPC-Cyberpunk-Mod-Voices-Portuguese.zip) | 164 MB |
+| Russian | [AI-NPC-Cyberpunk-Mod-Voices-Russian.zip](AI-NPC-Cyberpunk-Mod-Voices-Russian.zip) | 155 MB |
 
 ## Pocket language models
 
@@ -33,11 +33,11 @@ The Pocket voice runs on your processor and speaks English. With the Pocket mode
 
 | Language | File | Size |
 | --- | --- | --- |
-| French | [AI-NPC-Cyberpunk-Mod-Pocket-fr.zip](AI-NPC-Cyberpunk-Mod-Pocket-fr.zip) | 219 MB |
-| Italian | [AI-NPC-Cyberpunk-Mod-Pocket-it.zip](AI-NPC-Cyberpunk-Mod-Pocket-it.zip) | 219 MB |
-| German | [AI-NPC-Cyberpunk-Mod-Pocket-de.zip](AI-NPC-Cyberpunk-Mod-Pocket-de.zip) | 219 MB |
-| Spanish (Spain) | [AI-NPC-Cyberpunk-Mod-Pocket-es-es.zip](AI-NPC-Cyberpunk-Mod-Pocket-es-es.zip) | 219 MB |
-| Portuguese (Brazil) | [AI-NPC-Cyberpunk-Mod-Pocket-pt-br.zip](AI-NPC-Cyberpunk-Mod-Pocket-pt-br.zip) | 219 MB |
+| French | [AI-NPC-Cyberpunk-Mod-Pocket-French.zip](AI-NPC-Cyberpunk-Mod-Pocket-French.zip) | 219 MB |
+| Italian | [AI-NPC-Cyberpunk-Mod-Pocket-Italian.zip](AI-NPC-Cyberpunk-Mod-Pocket-Italian.zip) | 219 MB |
+| German | [AI-NPC-Cyberpunk-Mod-Pocket-German.zip](AI-NPC-Cyberpunk-Mod-Pocket-German.zip) | 219 MB |
+| Spanish (Spain) | [AI-NPC-Cyberpunk-Mod-Pocket-Spanish.zip](AI-NPC-Cyberpunk-Mod-Pocket-Spanish.zip) | 219 MB |
+| Portuguese (Brazil) | [AI-NPC-Cyberpunk-Mod-Pocket-Portuguese.zip](AI-NPC-Cyberpunk-Mod-Pocket-Portuguese.zip) | 219 MB |
 
 Extract the Pocket model after the voice pack. It is Kyutai's Pocket TTS language model (kyutai/pocket-tts), licensed CC-BY-4.0 with Kyutai's prohibited-use terms; the zip carries the notice (NOTICE.txt). Needs the mod and Runtime from the release that announces the models, or newer. The Pocket voice keeps one language model loaded at a time: it changes only when a reply comes in a different language.
 
