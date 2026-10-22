@@ -527,8 +527,9 @@ def new_language_registry(registry, language, model_sha256):
             "cacheLimit": registry["cacheLimit"], "language": language}
 
 
-def add_language_voices(registry, voices):
-    """Adds voices (descriptors) to a language registry. A descriptor names a clip of this language's voice pack, or the player's own clip. All checked before any is added."""
+def add_language_voices(registry, voices, cache=None):
+    """Adds voices (descriptors) to a language registry. A descriptor names a clip of this language's voice pack, or the player's own clip. All checked before any is added.
+    A voice whose clip changed leaves the prepared-state cache (and the saved setup of its old clip), so the next reply prepares it from the new clip. Returns the changed keys."""
     if not isinstance(voices, dict) or len(voices) > MAX_VOICE_CHANGES or len(registry["descriptors"]) + len(voices) > MAX_PROFILES:
         raise ValueError("Invalid Pocket language voices")
     prefix = language_prefix(registry["language"])
@@ -554,6 +555,8 @@ def add_language_voices(registry, voices):
             registry["unavailable"][key] = "unavailable"
         if old is None or old["sha256"] != descriptor["sha256"]:
             changed.append(key)
+            if cache is not None:
+                cache.forget(key, old["sha256"] if old else None)
     return changed
 
 
