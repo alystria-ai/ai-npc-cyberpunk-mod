@@ -153,6 +153,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Речь не услышана — дождитесь появления «Запись», затем говорите до завершения.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "Микрофон {name} не передаёт звук. Проверьте устройство ввода в Windows.",
     ["Voice input only understands English for now. Typing works in any language."] = "Голосовой ввод пока понимает только английский. Печатать можно на любом языке.",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "Голосовой ввод не смог подключиться к Convai. Нажмите голосовой ключ ещё раз или введите текст.",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "Для голосового ввода на этом языке нужен дополнительный пакет «Микрофон» со страницы мода. Печатать можно на любом языке.",
     ["Off"] = "Выкл.",
     ["On"] = "Вкл.",

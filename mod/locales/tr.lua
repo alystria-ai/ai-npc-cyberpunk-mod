@@ -209,6 +209,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Konuşma algılanmadı - Dinleniyor yazısını bekle, sonra bitirmeden önce konuş.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "{name} mikrofonu hiç ses göndermiyor. Windows giriş aygıtını kontrol et.",
     ["Voice input only understands English for now. Typing works in any language."] = "Sesli giriş şimdilik yalnızca İngilizce anlıyor. Yazarak her dilde konuşabilirsin.",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "Sesli giriş Convai’ye ulaşamadı. Ses anahtarına yeniden bas ya da yaz.",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "Bu dildeki sesli giriş, mod sayfasındaki isteğe bağlı Mikrofon paketini gerektirir. Yazarak her dilde konuşabilirsin.",
     ["None yet"] = "Henüz yok",
     ["Not running"] = "Çalışmıyor",

@@ -209,6 +209,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nebyla zachycena žádná řeč - počkej na stav Poslouchání, pak mluv, než dokončíš.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "Mikrofon {name} neposílá žádný zvuk. Zkontroluj vstupní zařízení ve Windows.",
     ["Voice input only understands English for now. Typing works in any language."] = "Hlasový vstup zatím rozumí jen angličtině. Psaní funguje v jakémkoli jazyce.",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "Hlasový vstup se nepodařilo spojit s Convai. Stiskni znovu klíč hlasu, nebo napiš.",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "Hlasový vstup v tomto jazyce vyžaduje volitelný balíček Mikrofon ze stránky modu. Psaní funguje v jakémkoli jazyce.",
     ["None yet"] = "Zatím žádné",
     ["Not running"] = "Neběží",

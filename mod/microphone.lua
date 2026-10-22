@@ -238,6 +238,10 @@ function M.update(player)
                 -- Mistral could not take a recording in another language and nothing local could read it (bridge/local-stt-capture.mjs).
                 convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
                 M.cancel('microphone-language')
+            elseif value.state == 'error' and value.reason == 'connection' then
+                -- Convai's media server or the network did not answer at the start of the turn (bridge/realtime-host.mjs, microphoneConnectionFailure): the microphone is fine, the next press opens a fresh connection.
+                convaiNotices.send(player, 'mic-connection', ui.t('Voice input could not reach Convai. Press the voice key again, or type.'))
+                M.cancel('microphone-connection')
             elseif value.state == 'error' then
                 convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')

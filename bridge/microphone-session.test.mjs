@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate} from 'node:timers/promises';
-import {MicrophoneSession} from './microphone-session.mjs';
-const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; };
+import {MicrophoneSession, microphoneErrorState} from './microphone-session.mjs';
+import {microphoneConnectionFailure} from './realtime-host.mjs';
+const deferred = () => { let resolve, reject; const promise = new Promise((done, fail) => { resolve = done; reject = fail; }); return {promise, resolve, reject}; };
 function fixture(hooks = {}) {
   const opening = deferred(), response = deferred(), states = [], replies = [], replyInputs = [], errors = [];
   const begins = [], finishConfigs = [], finishOptions = [];
@@ -267,4 +268,40 @@ test('heard words are read from the open recording only, and never from a cancel
     heard: async () => { throw Error('page closed'); }, close: async () => {}}), onState: async () => {}, onReply: async () => {}, onError: async () => {}});
   await failing.start(recording({requestId: 'b'}), configuration());
   assert.equal(await failing.heard(), '', 'a failing page read never throws into the poll');
+});
+
+// 2026-10-22, signature 04af1621: LiveKit's "publication of local track timed out, no response from server" at the start of a turn was shown as a Windows input device fault.
+test('a Convai or LiveKit connection failure is told apart from a microphone fault; every other error keeps its state', () => {
+  const named = (name, message) => Object.assign(Error(message), {name});
+  for (const error of [
+    named('ConnectionError', 'publication of local track timed out, no response from server'),
+    named('ConnectionError', 'could not establish pc connection'),
+    Error('publication of local track timed out, no response from server'),
+    Error('Failed to fetch'),
+    Error('Convai realtime connection closed'),
+    Error('Convai realtime connection failed: 1006'),
+  ]) {
+    assert.equal(microphoneConnectionFailure(error), true, error.message);
+    assert.deepEqual(microphoneErrorState(error), {state: 'error', reason: 'connection'}, error.message);
+  }
+  for (const error of [
+    Error('Requested device not found'), Error('Permission denied'), Error('Microphone context no longer matches the recording'),
+    Error('Voice service or character is unavailable'), Error('Cannot read properties of undefined'), null, undefined, 'ConnectionError',
+    Object.assign(Error('publication of local track timed out'), {code: 'MIC_SILENT'}),
+    Object.assign(Error('Failed to fetch'), {code: 'STT_LANGUAGE'}),
+  ]) assert.equal(microphoneConnectionFailure(error), false, String(error?.message ?? error));
+  assert.deepEqual(microphoneErrorState(Error('Requested device not found')), {state: 'error'});
+  assert.deepEqual(microphoneErrorState(Error('No speech was heard')), {state: 'no-speech'});
+  assert.deepEqual(microphoneErrorState(Object.assign(Error('silent'), {code: 'MIC_SILENT', device: 'Headset'})), {state: 'silent', device: 'Headset'});
+  assert.deepEqual(microphoneErrorState(Object.assign(Error('x'), {code: 'STT_LANGUAGE'})), {state: 'error', reason: 'language'});
+});
+
+test('a start that fails with the LiveKit publication timeout closes the host and reaches onError as a connection failure', async () => {
+  const f = fixture();
+  const start = f.session.start(recording(), configuration());
+  await setImmediate();
+  f.opening.reject(Object.assign(Error('publication of local track timed out, no response from server'), {name: 'ConnectionError'}));
+  await start;
+  assert.equal(f.counts().stops, 1); assert.equal(f.errors.length, 1);
+  assert.deepEqual(microphoneErrorState(f.errors[0].error), {state: 'error', reason: 'connection'});
 });

@@ -240,8 +240,9 @@ test('the talk keys are registered as inputs (press and release), never as relea
 
 test('the bridge names a silent input and logs where each microphone command came from', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /error\?\.code === 'MIC_SILENT'/);
-  assert.match(bridge, /silent \? 'silent' : noSpeech \? 'no-speech' : 'error'/);
+  const session = readFileSync(new URL('./microphone-session.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /microphoneErrorState\(error\)/);
+  assert.match(session, /error\?\.code === 'MIC_SILENT'\) return \{state: 'silent'/);
   assert.match(bridge, /Microphone: ' \+ command\.action \+ ' command, source '/);
   assert.match(bridge, /mic\.stopCapture\(input\.requestId\)/);
   assert.match(source, /value\.state == 'silent'/);
@@ -250,7 +251,7 @@ test('the bridge names a silent input and logs where each microphone command cam
 test('the bridge reports a no-speech recording to the game as its own microphone state', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   const client = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /noSpeech \? 'no-speech' : 'error'/);
+  assert.match(readFileSync(new URL('./microphone-session.mjs', import.meta.url), 'utf8'), /return \{state: 'no-speech'\}/);
   assert.match(client, /NO_SPEECH_ERROR = 'No speech was heard'/);
   assert.match(source, /value\.state == 'no-speech'/);
 });
@@ -375,6 +376,14 @@ test('a recording in a language an optional pack hears (not installed) names the
  assert(mic.state=='recording')
  local want='Listening - press the same voice chat shortcut again to finish'..string.char(10)..'Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'
  assert(feedback[#feedback]==want,feedback[#feedback])
+`));
+
+test('Convai did not answer at the start of the turn: the connection notice, not the Windows input device one', () => check(`
+ assert(mic.begin(input(false)));files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='starting'});mic.update(player)
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='error',reason='connection'})
+ assert(mic.update(player)==nil)
+ assert(feedback[#feedback]=='Voice input could not reach Convai. Press the voice key again, or type.',feedback[#feedback])
+ assert(not mic.context and cancellations[#cancellations].reason=='microphone-connection')
 `));
 
 test('an unknown note adds no English-only line', () => check(`

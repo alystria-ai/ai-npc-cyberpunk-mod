@@ -209,6 +209,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Мовлення не почуто — зачекай, поки з’явиться «Слухаю», і говори, доки не завершиш.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "Мікрофон {name} не передає звук. Перевір пристрій введення у Windows.",
     ["Voice input only understands English for now. Typing works in any language."] = "Голосовий ввід поки розуміє лише англійську. Друкувати можна будь-якою мовою.",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "Голосовий ввід не зміг з’єднатися з Convai. Натисни голосовий ключ ще раз або введи текст.",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "Для голосового вводу цією мовою потрібен додатковий пакет «Мікрофон» зі сторінки моду. Друкувати можна будь-якою мовою.",
     ["None yet"] = "Поки немає",
     ["Not running"] = "Не запущено",

@@ -155,6 +155,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "No se oyó ninguna voz - espera a «Escuchando» y habla antes de terminar.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "El micrófono {name} no envía sonido. Revisa tu dispositivo de entrada de Windows.",
     ["Voice input only understands English for now. Typing works in any language."] = "La entrada de voz solo entiende inglés por ahora. Escribir funciona en cualquier idioma.",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "La entrada de voz no pudo conectar con Convai. Vuelve a pulsar la clave de voz o escribe.",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "La entrada de voz en este idioma necesita el paquete opcional de Micrófono de la página del mod. Escribir funciona en cualquier idioma.",
     ["Off"] = "Desactivado",
     ["On"] = "Activado",

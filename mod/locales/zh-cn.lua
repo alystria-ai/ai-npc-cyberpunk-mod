@@ -153,6 +153,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "没有听到语音，请等待“正在聆听”后再说话，结束前要开口。",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "麦克风 {name} 没有传出任何声音。请检查你的 Windows 输入设备。",
     ["Voice input only understands English for now. Typing works in any language."] = "语音输入目前只能识别英语。打字可以使用任何语言。",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "语音输入无法连接到 Convai。请再按一次语音密钥，或直接输入。",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "此语言的语音输入需要模组页面上的可选麦克风包。打字可以使用任何语言。",
     ["Off"] = "关",
     ["On"] = "开",

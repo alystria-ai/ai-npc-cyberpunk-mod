@@ -137,6 +137,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `mic-listening` | Player | Listening - press {key} again to finish | The microphone is recording | none |
 | `mic-finish-hint` | Player | Use {key} to finish this recording. | The other chat's voice key is pressed during a recording | 10 |
 | `mic-error` | Player | Microphone unavailable. Check your Windows input device. | The recorder reports an error | 15 |
+| `mic-connection` | Player | Voice input could not reach Convai. Press the voice key again, or type. | Convai's media server or the network did not answer at the start of a microphone turn (LiveKit connection error); the microphone is fine | 15 |
 | `mic-timeout` | Player | Microphone connection timed out. Please try again. | The recorder did not start in 35 s | 15 |
 | `mic-heard` | Player | You: {text} | While V speaks a voice message and the game's subtitles are off: the words Convai has recognised so far (newest 100 characters), replaced as they grow, until the reply starts. With subtitles on the same words show as V's line in the cinematic subtitles instead (no notice) | none |
 | `mic-no-speech` | Player | No speech was heard. Wait for Listening, then speak before you finish. | The recording held no speech: Convai returned no transcript or reply within 15 s of the finish | 15 |

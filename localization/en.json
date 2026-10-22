@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1223,
+    "strings": 1224,
     "dynamicTemplates": 54,
     "contexts": 37
   },
@@ -1090,6 +1090,7 @@
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
     "Voice": "Voice",
     "Voice conversation failed. Check your microphone and try again.": "Voice conversation failed. Check your microphone and try again.",
+    "Voice input could not reach Convai. Press the voice key again, or type.": "Voice input could not reach Convai. Press the voice key again, or type.",
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
     "Voice input only understands English for now. Typing works in any language.": "Voice input only understands English for now. Typing works in any language.",
     "Voice language pack ({code})": "Voice language pack ({code})",
@@ -1906,6 +1907,7 @@
       "No speech was heard. Wait for Listening, then speak before you finish.",
       "The microphone {name} sends no sound. Check your Windows input device.",
       "This contact has no companion mapping yet.",
+      "Voice input could not reach Convai. Press the voice key again, or type.",
       "Voice input only understands English for now. Typing works in any language.",
       "You: {text}"
     ],
@@ -2582,6 +2584,7 @@
       "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
       "Voice",
       "Voice conversation failed. Check your microphone and try again.",
+      "Voice input could not reach Convai. Press the voice key again, or type.",
       "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
       "Voice input only understands English for now. Typing works in any language.",
       "Voice language pack ({code})",
@@ -6578,7 +6581,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:251"
+        "mod/microphone.lua:255"
       ]
     },
     "Microphone unavailable. Check your Windows input device.": {
@@ -6587,7 +6590,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:242"
+        "mod/microphone.lua:246"
       ]
     },
     "Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.": {
@@ -11383,6 +11386,15 @@
       ],
       "references": [
         "mod/init.lua:3723"
+      ]
+    },
+    "Voice input could not reach Convai. Press the voice key again, or type.": {
+      "contexts": [
+        "phone.native",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:243"
       ]
     },
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": {
