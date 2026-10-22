@@ -138,6 +138,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/prompt-budget.mjs',
   'bridge/prompt-profile-store.mjs',
   'bridge/prompt-profiles.mjs',
+  'bridge/prompting-editor.mjs',
   'bridge/protocol.mjs',
   'bridge/quest-context.mjs',
   'bridge/quest-overview.mjs',
