@@ -961,7 +961,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -1210,7 +1210,7 @@ local function schema()
     -- The party has no size limit and nothing here shows or enforces one: an invitation that cannot be made is answered with a
     -- message from the queue.
     local canInvite = owner ~= nil
-    -- The first section of every page: the way back (or, on the home page, the four destinations) and the line of the last action.
+    -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
@@ -1222,6 +1222,14 @@ local function schema()
                 and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
                 or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
             nav[#nav + 1] = action('tab:' .. tab[1], tab[2], 'Open', description, function() return navigate(tab[1]) end)
+        end
+        -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
+        -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
+        -- the editor module loaded. Built with the page, never per frame.
+        if editor then
+            nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
+                'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
+                function() return editor.request() end)
         end
     elseif BACK[view] then
         local parent = BACK[view]

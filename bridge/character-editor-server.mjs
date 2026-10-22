@@ -9,7 +9,8 @@
 //     (a header the browser never sends on its own, so another site cannot forge a call), compared in constant time;
 //   - a call that carries an Origin must come from this server's own origin;
 //   - JSON bodies only, at most 128 KiB; only the character keys of the roster (and the keys the service made for the player's own
-//     characters, custom-<name>-<letters>) are accepted, and no file name is ever built from input. The one exception to JSON is a
+//     characters, custom-<name>-<letters>) are accepted; the prompting routes take only the ids of the prompt profile store's own list (a Custom profile's id
+//     is made from the endpoint's host and the model, never from the request), and no file name is ever built from input. The one exception to JSON is a
 //     character's voice clip (/api/voice/<key>): an audio file (WAV, MP3, OGG or FLAC; the page sends a 24 kHz WAV when its browser can
 //     decode the file), at most 16 MiB, checked as a recording before anything is kept (bridge/custom-voice-clip.mjs), with the words said
 //     in it in a header (base64url of UTF-8). Only story characters and the player's own characters may have a clip, never everyday people;
@@ -200,6 +201,7 @@ export class EditorServer {
       if (method === 'DELETE') return this.editor.clearWorldRules();
     }
     if (parts[0] === 'custom') return this.#customRoute(request, method, parts.slice(1));
+    if (parts[0] === 'prompting') return this.#promptingRoute(request, method, parts.slice(1));
     if (parts[0] === 'voice') return this.#voiceRoute(request, method, parts.slice(1));
     if (parts[0] !== 'character' || !parts[1]) throw new EditorError(404, 'not-found');
     const key = parts[1], rest = parts.slice(2);
@@ -214,6 +216,30 @@ export class EditorServer {
     } else if (rest[0] === 'memory' && rest.length === 2) {
       if (method === 'PUT') return this.editor.editRecord(key, rest[1], (await this.#body(request))?.text);
       if (method === 'DELETE') return this.editor.deleteRecord(key, rest[1]);
+    }
+    throw new EditorError(404, 'not-found');
+  }
+
+  // The prompting of each conversation option (bridge/prompting-editor.mjs): /api/prompting (the list), /api/prompting/<id> (GET the profile, PUT a change), .../validate (POST a change, nothing is
+  // stored), .../reset (POST {field} for one field, nothing for all of it) and .../preview (POST {name, talkWords, mature, patch}). The id is looked up in the store's own list before a body is read, so
+  // nothing is ever built from it; an unknown one is 404.
+  async #promptingRoute(request, method, parts) {
+    const prompting = this.editor.prompting;
+    if (!prompting) throw new EditorError(404, 'not-found');
+    if (!parts.length) {
+      if (method === 'GET') return {profiles: prompting.list()};
+    } else if (parts.length === 1) {
+      if (method === 'GET') return prompting.details(parts[0]);
+      if (method === 'PUT') { prompting.details(parts[0]); return prompting.set(parts[0], await this.#body(request)); }
+    } else if (parts.length === 2 && method === 'POST') {
+      prompting.details(parts[0]);
+      const body = await this.#body(request);
+      if (parts[1] === 'validate') return prompting.validate(parts[0], body);
+      if (parts[1] === 'reset') { if (body !== null && !(typeof body === 'object' && !Array.isArray(body))) throw new EditorError(400, 'bad-request'); return prompting.reset(parts[0], body?.field); }
+      if (parts[1] === 'preview') {
+        if (!body || typeof body !== 'object' || Array.isArray(body)) throw new EditorError(400, 'bad-request');
+        return prompting.preview(parts[0], {name: body.name, talkWords: body.talkWords, mature: body.mature}, body.patch);
+      }
     }
     throw new EditorError(404, 'not-found');
   }

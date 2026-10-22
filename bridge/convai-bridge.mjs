@@ -3671,7 +3671,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
-  voices: playerVoices, worldRules,
+  voices: playerVoices, worldRules, promptProfiles,
   // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
   // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.
   onChanged: () => { dropPrefetch(); prefetchObserved = ''; }});

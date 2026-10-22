@@ -4,6 +4,8 @@ Players change a character's bio, speaking style, speaking rules and memories fo
 
 Status: built and unit-tested on branch `character-editor`; headless-browser tested; NOT yet seen in the game.
 
+Prompting (the section of that name below, branch `feat/editor-prompting`, 2026-10-22): the same page edits the prompt wording of each conversation option (Mistral, Local AI Lite and Standard, Mature on, and the player's Custom models). Built; unit- and headless-browser tested; NOT yet seen in the game. The editor opens from Settings > Edit characters and from the **Character editor** destination of the manager's Home page (both send the same command).
+
 Your own characters (the section of that name below, branch `player-characters`): built; unit-, Lua- and headless-browser tested; NOT yet seen in the game.
 
 Voice clips (the section of that name below, branch `player-characters`, 2026-10-19): a reference clip for a story character or one of the player's own characters, cloned by Pocket, OmniVoice and Voxtral. Built and tested (unit, worker and headless browser); NOT yet heard in the game.
@@ -76,8 +78,43 @@ The longest shipped profile is 11,295 characters (bio 8,266), so every default f
 
 Page sentences are English sources written as `T('...')` in `bridge/character-editor-page.mjs`. `mod/character-editor.lua` lists them, translates them with the mod's dictionaries and sends them in the command file; the bridge serves them in `/api/state`. A missing translation shows the English. The sentences are in `localization/en.json` (via `scripts/Extract-UiCatalog.mjs`, which now reads `mod/character-editor.lua`) and translated in all 15 dictionaries. A test keeps the page, the Lua list and the catalogue in step, and checks that no sentence mentions keys, tokens, secrets, credentials or passwords.
 
+## Prompting (2026-10-22, branch `feat/editor-prompting`)
+
+A **Prompting** button above the character list (with World rules) opens a page that edits how each conversation option is told to answer. Where a character's bio says who somebody is, the prompting is the wording around it: the output rules, the example replies, the opening and closing lines, the headings, the sampling and the length limits. It is the player-facing side of the prompt profiles (`bridge/prompt-profiles.mjs`, `bridge/prompt-profile-store.mjs`; docs/LOCAL_AI.md, "Prompt profiles").
+
+**The options.** One entry per profile: Mistral, Local AI Lite, Local AI Standard, Local AI Lite with Mature on, Local AI Standard with Mature on, and one **Custom** entry per model and endpoint the player uses, named "Custom: <model> at <host>" (the host and the model, never a key). An earlier Custom model that has a saved change stays listed. The badge **In use now** marks the option the next reply would use (`PromptProfiles.list()`), **Edited** the options with a saved change. Convai has no entry: its prompting lives on Convai's side, and the page says so.
+
+**What a player can change, per option.**
+
+| Part | What it is | Limits |
+| --- | --- | --- |
+| Output rules | The numbered rules, in order: add, delete, move up or down, and for each rule its text, the version for a speaker with a reply length of its own (`talk`) and the version for Mature content (`mature`). `{name}` and `{words}` are filled in | 1 to 16 rules of up to 2,000 characters, 9,000 in all |
+| Example replies | Replies shown after the rules (none by default: a small model copies them) | 8 of up to 300, 1,500 in all |
+| Opening line | The first line of the character text, for a named character and for an ordinary person | 600 each |
+| Closing line | The last line before the model answers, and the version for a speaker with a reply length. The Mature setting's own clause is added by the code | 700 each |
+| Section headings | The nine headings of the prompt's sections | 240 each |
+| Layout | Whether the "where you are" sentence is repeated before V's words, and whether the notes of this turn go before or after V's line | |
+| Sampling | Temperature 0 to 2, Top P 0 to 1 and the repeat penalty 1 to 2 (the last two can be switched **Off**: not sent), the longest reply 16 to 2,000 tokens. A box left empty uses the shipped value | |
+| Length limits | The longest character description (2,000 to 16,000 characters) and the number of earlier turns kept (0 to 11); empty is the mod's own limit. A profile can only shorten | |
+| Stop texts | Texts that end a reply when the model writes one; line breaks count | 4 of up to 32 |
+
+**What cannot be changed here.** The facts the character gets from the game (the world block, the right-now block, memories), the safety guards and the Mature layer are not part of a profile, so no edit can reach them; the page says so in one sentence. An add-on speaker's own identity rule, the player's world rules and the length caps of a reply are likewise outside it.
+
+**The page.** The options are listed at the top; the one open shows its parts as sections, each with its own **Reset to default** (enabled while that part is changed), and **Reset everything** for the option. **Save** sends only what differs from the saved profile (lists whole, objects by sub-field; the server drops a value equal to the shipped one, so a file holds only real changes). **Revert changes** drops the unsaved edits, and leaving for another option, a character or another page asks first. The **Preview** shows the rules, the example replies and the closing line as the prompt builder writes them for a sample name, with switches for a speaker that has a reply length (and how many words) and for Mature content. It follows the keys a moment after the last one, **before** anything is saved: the page asks the server to render the unsaved change laid over the saved profile (`POST /api/prompting/<id>/preview` with a `patch`), so what is shown is what `renderRules`, `renderExamples` and `renderClosing` produce, not a second copy of them in the page. The same answer carries the problems found in the form: they appear at once under the section they belong to (and the box is marked invalid), in the player's language, while the preview keeps the last good text and says it is waiting. Save is refused with the same codes (422) and stores nothing.
+
+**Server** (`bridge/prompting-editor.mjs`, routes in `bridge/character-editor-server.mjs`). All under `/api/prompting`, with the same token, Host and Origin checks, JSON-only bodies and 128 KiB cap as the rest of the API: `GET /api/prompting` (the list), `GET /api/prompting/<id>` (the row, the shipped `default`, the `effective` profile and the stored `override`), `PUT /api/prompting/<id>` (a change; 422 with codes `[{field, key?, index?, code, max?, min?}]`), `POST .../validate` (a change; nothing is stored: `{ok, fields}` or `{ok: false, errors}`), `POST .../reset` (`{field}` for one part, nothing for the whole option) and `POST .../preview` (`{name, talkWords, mature, patch?}`). **The id is looked up in the profile store's own list** (`PromptProfiles.list()`) before a body is read, so no path, file name or key is ever built from it; a Custom profile's id is made by the store from the endpoint's host and the model. Anything the list does not hold, including `convai`, a look-alike, a path or a prototype name, is 404. The sample name of a preview is one short plain line (60 characters), the sample words an integer from 1 to 200. A change calls the bridge's `onChanged` like every other editor change, so a group reply prepared from the old wording is dropped.
+
+**Live apply.** The prompt builder resolves the profile of a turn with a plain map lookup (`PromptProfiles.resolve`), so a saved change is in the very next prompt and request (the wording, the sampling and the stop texts) with no restart, and **Reset** gives the shipped prompt back byte for byte; both are tested through the editor's own routes (`bridge/character-editor-prompting.test.mjs`). Nothing runs in the game while the page is open, apart from what the editor already did: the page only talks to the bridge's loopback server.
+
+**Storage.** `<state>/prompt-overrides/<profile id>.json`, one small file per option holding only the changed parts (`bridge/prompt-profile-store.mjs`), next to `character-overrides/`; an update of the mod never touches it.
+
+**Strings.** About 100 new page sentences, all through `T()`: listed in `mod/character-editor.lua`, in `localization/en.json` and in the 15 dictionaries (translated by Haiku helpers from the exact English with the editor's existing terms, then checked: tokens, glyph ranges, the size of the command file). The command file carries about 260 sentences now; the biggest language is about 35 KB against the 96 KiB limit, and a test keeps it so even if every non-ASCII character were escaped.
+
+**Tests.** `bridge/character-editor-prompting.test.mjs` (auth, Host, Origin, content type, body cap, ids, every limit and its code, save, reset of a part and of all, preview, a missing store, the size of the command file, an override reaching the next turn's prompt and Reset restoring the default byte for byte) and three tests in `bridge/character-editor-browser.test.mjs` (the whole path in real Edge: badges, live preview, edit, save, reset, inline errors; French sentences and markup shown as text at phone width; the light theme and the wide layout). NOT yet seen in the game.
+
 ## Files
 
+- `bridge/prompting-editor.mjs`: the Prompting part (the checked layer over the prompt profile store).
 - `bridge/character-overrides.mjs`: limits, validation, storage, merge.
 - `bridge/character-editor.mjs`: the editor logic (catalogue, state, save, reset, memory edits).
 - `bridge/character-editor-server.mjs`: the loopback server and routes.

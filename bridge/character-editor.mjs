@@ -10,6 +10,7 @@ import {STORE_LIMITS} from './memory-store.mjs';
 import {CUSTOM_LIMITS, isCustomKey} from './custom-characters.mjs';
 import {CLIP, CLIP_FORMATS} from './custom-voice-clip.mjs';
 import {WORLD_RULES_LIMIT} from './world-rules.mjs';
+import {PromptingEditor} from './prompting-editor.mjs';
 
 export class EditorError extends Error {
   constructor(status, code, errors = []) { super(code); this.status = status; this.code = code; this.errors = errors; }
@@ -31,12 +32,15 @@ export class CharacterEditor {
    *   custom     CustomCharacters (optional: without it the editor has no "New character")
    *   voices     PlayerVoices (optional: without it the editor has no voice clips)
    *   worldRules WorldRules (optional: without it the editor has no "World rules" page): one text for the whole world (bridge/world-rules.mjs)
+   *   promptProfiles PromptProfiles (optional: without it the editor has no "Prompting" page): the wording of the prompt per conversation option (bridge/prompt-profile-store.mjs)
    *   onChanged  (key) => void: after a save, reset, memory edit or character change reached the store. Everything the prompt reads is a plain lookup per
    *              turn (PersonaBook, CharacterOverrides, CustomCharacters, MemoryStore), so the next turn already uses it; what a speculative turn
    *              (a prepared group reply, a look-ahead) wrote before the save is the one thing that does not, and the bridge drops it here.
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, onChanged = () => {}} = {}) {
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, promptProfiles = null, onChanged = () => {}} = {}) {
     Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, onChanged});
+    // The Prompting page (bridge/prompting-editor.mjs). A saved change counts from the next turn like every other editor change.
+    this.prompting = promptProfiles ? new PromptingEditor({profiles: promptProfiles, onChanged: () => this.#changed('')}) : null;
   }
   /** What the page needs for the "World rules" page: the saved text and its limit. Null without a store. */
   get worldRulesForPage() { return this.worldRules ? {text: this.worldRules.get(), limit: this.worldRules.limit ?? WORLD_RULES_LIMIT} : null; }
@@ -71,7 +75,7 @@ export class CharacterEditor {
     return [...shipped, ...own, ...v]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
-  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage}; }
+  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage, prompting: this.prompting?.forPage ?? null}; }
 
   // ---- the world rules: one text for every character (bridge/world-rules.mjs). Saved at once; the next turn already reads it.
   /** Stores the text ('' clears it). Throws EditorError 422 with `errors` when it is over the limit; nothing is stored then. */
