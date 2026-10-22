@@ -637,7 +637,7 @@ class Assets(unittest.TestCase):
 
 
 class LanguageModels(Assets):
-    """Pocket language models (docs/POCKET_LANGUAGE_MODELS.md): a folder under the reference directory, checked against the hashes the bridge sends, and voices that are
+    """PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): a folder under the reference directory, checked against the hashes the bridge sends, and voices that are
     clips of the voice pack of the same language."""
     def setUp(self):
         super().setUp()

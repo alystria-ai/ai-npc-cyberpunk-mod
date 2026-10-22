@@ -1,10 +1,10 @@
-// Zip a built voice language pack like the release packs: AI-NPC-Cyberpunk-Mod-Voices-<lang>.zip, its .files.json and SHA256SUMS.txt.
+// Zip a built voice language pack like the release packs: Voices-<Language>.zip, its .files.json (no loose checksum file). Published in the multilingual/ folder of the Hugging Face repository.
 //
 //   node scripts/voice-packs/package_pack.mjs <lang> <stage folder (holds red4ext/...)> <output folder>
 //
 // The zip holds the stage folder's files under their game-relative names (red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/...) and the
 // same fixed "HOW TO INSTALL" note every package carries (its text is fixed: packaging/build-release.mjs). Written with the release builder's own
-// ZipWriter, so the layout, the listing (path, bytes, sha256 per file) and the checksum line are the ones the other packs have.
+// ZipWriter, so the layout, the listing (path, bytes, sha256 per file) are the ones the other packs have.
 import {mkdir, readdir, readFile, rename, stat, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
@@ -52,7 +52,7 @@ await mkdir(out, {recursive: true});
 // The zip is named after the language in full (the folder inside keeps the code).
 const LANGUAGE_NAMES = {'zh-cn': 'Chinese', ja: 'Japanese', ko: 'Korean', fr: 'French', de: 'German', it: 'Italian', 'es-es': 'Spanish', pl: 'Polish', 'pt-br': 'Portuguese', ru: 'Russian'};
 if (!LANGUAGE_NAMES[language]) throw Error(`no zip name for ${language}`);
-const base = `AI-NPC-Cyberpunk-Mod-Voices-${LANGUAGE_NAMES[language]}`;
+const base = `Voices-${LANGUAGE_NAMES[language]}`;
 const temporary = resolve(out, `${base}.zip.tmp`);
 const writer = await ZipWriter.create(temporary, {timestamp: new Date(`${manifest.built}T00:00:00Z`)});
 const files = [];
@@ -68,5 +68,4 @@ const zipPath = resolve(out, `${base}.zip`);
 await rename(temporary, zipPath);
 const zipSha = await sha256File(zipPath);
 await writeFile(resolve(out, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-await writeFile(resolve(out, 'SHA256SUMS.txt'), `${zipSha}  ${base}.zip\n`);
 console.log(JSON.stringify({zip: zipPath, bytes: archive.bytes, entries: archive.entries, sha256: zipSha, files: files.length}));

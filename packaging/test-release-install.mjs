@@ -21,7 +21,7 @@
 //    systems that start off.
 // 5. With --update-from (the Runtime update zip test): instead of the new full Runtime, the PREVIOUS full Runtime and Scripts are extracted
 //    first (--update-from <previous Runtime zip>, repeated for a Runtime in several zips; --update-from-scripts <previous Scripts zip>), then
-//    the Runtime update zip (--update-zip, default AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<version>.zip in --packages) and the new
+//    the Runtime update zip (--update-zip, default Runtime-Update-<from>-to-<version>.zip in --packages) and the new
 //    Scripts, as a player updates. The start step then runs (start-service --prepare-only): the files the update names in its removal list
 //    must go, and afterwards every file must match the NEW full Runtime's file list (paths, sizes, SHA-256; the new Runtime's own
 //    .files.json is read, its zip is not needed) with nothing of the previous Runtime left over that the new one does not ship, except
@@ -39,6 +39,9 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {childEnv, sha256File, walk} from './lib/files.mjs';
 import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
+
+// The names the build gives its packages (build-release.mjs): the Scripts keep the long name (the file for Nexus Mods), the others have no product prefix.
+const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}` : `${id}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
@@ -277,15 +280,15 @@ async function main() {
     // Exact names only: version 0.2 must not pick up files of 0.2.1 or 0.20.
     const escaped = text => text.replace(/[.+]/g, '\\$&');
     // Only the Runtime may still come in several zips; the optional packs (OmniVoice, Local AI) are one zip each.
-    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `AI-NPC-Cyberpunk-Mod-${prefix}-${version}.zip`
-      || (parts && new RegExp(`^AI-NPC-Cyberpunk-Mod-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name))).sort();
+    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `${packageBase(prefix, version)}.zip`
+      || (parts && new RegExp(`^${packageBase(prefix, escaped(version))}-part\\d+of\\d+\\.zip$`).test(name))).sort();
     const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
     // The update test extracts the previous version and the update zip instead of the new full Runtime (see the header).
-    const updateZips = names.filter(name => new RegExp(`^AI-NPC-Cyberpunk-Mod-Runtime-Update-.+-to-${escaped(version)}\\.zip$`).test(name));
+    const updateZips = names.filter(name => new RegExp(`^Runtime-Update-.+-to-${escaped(version)}\\.zip$`).test(name));
     const updateZip = updateFrom.length ? (updateZipArgument ?? (updateZips.length === 1 ? join(packagesDir, updateZips[0]) : null)) : null;
     const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)]
       : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
-    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `AI-NPC-Cyberpunk-Mod-Runtime-${version}.files.json`))
+    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `Runtime-${version}.files.json`))
       : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('OmniPack').length === 1) && localIds.every(id => pick(id).length === 1),
     updateFrom.length ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
@@ -308,7 +311,7 @@ async function main() {
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
     for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : []), ...localIds]) {
-      const list = JSON.parse(await readFile(join(packagesDir, `AI-NPC-Cyberpunk-Mod-${id}-${version}.files.json`), 'utf8'));
+      const list = JSON.parse(await readFile(join(packagesDir, `${packageBase(id, version)}.files.json`), 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
         // The one file that differs by design: the update's removal list (what went away since the previous Runtime) replaces the full Runtime's own; it is checked below.
@@ -348,7 +351,7 @@ async function main() {
       check('the start removed the files the update names, refusing and failing on none', removals.state === 'done' && removals.removed === update.present.length
         && removals.refused === 0 && removals.failed === 0 && update.present.every(rel => !existsSync(join(game, rel))),
       JSON.stringify(removals));
-      const newList = JSON.parse(await readFile(join(packagesDir, `AI-NPC-Cyberpunk-Mod-Runtime-${version}.files.json`), 'utf8'));
+      const newList = JSON.parse(await readFile(join(packagesDir, `Runtime-${version}.files.json`), 'utf8'));
       const shippedNow = new Set(newList.map(file => file.path.toLowerCase()));
       const dropped = [...update.previous].filter(name => !shippedNow.has(name.toLowerCase())).sort();
       // What the previous Runtime had and the new one has not: gone, or left on purpose (a path the removal step may not delete, or an optional pack's file).

@@ -64,12 +64,12 @@ async function tree(path, rel = '') {
 test('a pack extracted into a wrapper folder named after the zip is moved into place', async () => {
   const f = await fakeGame();
   try {
-    const wrapper = join(f.game, 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2');
+    const wrapper = join(f.game, 'LocalAI-Standard');
     await standardPack(wrapper);
     const log = lines();
     const report = await placeMisplacedPacks({layout: f.layout, log: log.log});
-    assert.deepEqual(log, ['Moved the Local AI standard files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2']);
-    assert.deepEqual(report.fixed, [{pack: 'Local AI standard', from: 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2'}]);
+    assert.deepEqual(log, ['Moved the Local AI standard files into place from LocalAI-Standard']);
+    assert.deepEqual(report.fixed, [{pack: 'Local AI standard', from: 'LocalAI-Standard'}]);
     const real = join(f.game, APP, 'local-ai');
     assert.equal(await read(join(real, 'models/chat.gguf')), 'MODEL-BYTES-standard');
     assert.equal(await read(join(real, 'llama/llama-server.exe')), 'server');
@@ -364,7 +364,7 @@ test('the packaged service places the pack before its checks and logs one line (
     await put(join(app, 'defaults/characters.json'), '{"v":2}');
     await put(join(app, 'defaults/multilingual-profiles.json'), '{"v":2}');
     await put(join(app, 'models/lipsync/face-model.json'), '{}');
-    const wrapper = join(f.game, 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2');
+    const wrapper = join(f.game, 'LocalAI-Standard');
     await standardPack(wrapper);
     await omniPack(wrapper);
     const home = join(f.root, 'LocalAppData', 'AiNpcCyberpunkMod'), state = join(home, 'data');
@@ -377,14 +377,14 @@ test('the packaged service places the pack before its checks and logs one line (
     assert.equal(await exists(wrapper), false);
     const log = (await read(join(state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line));
     assert.equal(log.length, 2, log.join('\n'));
-    assert.match(log.join('\n'), /Moved the Local AI standard files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
-    assert.match(log.join('\n'), /Moved the OmniVoice files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
+    assert.match(log.join('\n'), /Moved the Local AI standard files into place from LocalAI-Standard/);
+    assert.match(log.join('\n'), /Moved the OmniVoice files into place from LocalAI-Standard/);
     // What the move did is kept for the setup check on the Help page (bridge/setup-check.mjs readPackPlacement).
     const placement = JSON.parse(await read(join(state, PLACEMENT_FILE)));
     assert.equal(placement.version, 1);
     assert(Number.isFinite(placement.updated));
     assert.deepEqual(placement.fixed.map(row => row.pack).sort(), ['Local AI standard', 'OmniVoice']);
-    assert(placement.fixed.every(row => row.from === 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2'), JSON.stringify(placement.fixed));
+    assert(placement.fixed.every(row => row.from === 'LocalAI-Standard'), JSON.stringify(placement.fixed));
     assert.deepEqual([placement.conflicts, placement.errors], [[], []]);
     const second = run();
     assert.equal(second.status, 0, second.stderr);
@@ -444,6 +444,7 @@ test('a voice-input pack extracted into a wrapper folder moves into app/models/s
   const f = await fakeGame();
   try {
     await moonshine(f.game, 'RUNTIME-MOONSHINE');
+    // A folder named after an older, prefixed zip name is found just the same: the pack is recognised by its marker, never by the name.
     const wrapper = join(f.game, 'AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3');
     await micPack(wrapper, EUROPEAN);
     const log = lines();
@@ -574,7 +575,7 @@ test('across volumes (EXDEV) a voice-input pack is copied, verified by size, the
   } finally { await f.cleanup(); }
 });
 
-// ---------------------------------------------------------------- the voice language packs and the Pocket language models (voices/ only, no app/)
+// ---------------------------------------------------------------- the voice language packs and the PocketTTS models (voices/ only, no app/)
 async function languagePack(base, code, {marker = true, bytes = `VOICE-${code}`} = {}) {
   const folder = join(base, PLUGIN, 'voices/multilingual', code);
   await put(join(folder, 'references/judy.wav'), bytes);
@@ -610,7 +611,7 @@ test('a voice language pack extracted into a wrapper folder named after the zip 
   } finally { await f.cleanup(); }
 });
 
-test('a Pocket language model two folders deep is moved into voices/multilingual-pocket, beside a voice pack of the same language', async () => {
+test('a PocketTTS model two folders deep is moved into voices/multilingual-pocket, beside a voice pack of the same language', async () => {
   const f = await fakeGame();
   try {
     const wrapper = join(f.game, 'Pocket-German', 'Pocket-German');
@@ -618,7 +619,7 @@ test('a Pocket language model two folders deep is moved into voices/multilingual
     await languagePack(wrapper, 'de');
     const log = lines();
     await placeMisplacedPacks({layout: f.layout, log: log.log});
-    assert.deepEqual([...log].sort(), ['Moved the Pocket language model (de) files into place from ' + join('Pocket-German', 'Pocket-German'),
+    assert.deepEqual([...log].sort(), ['Moved the PocketTTS model (de) files into place from ' + join('Pocket-German', 'Pocket-German'),
       'Moved the Voice language pack (de) files into place from ' + join('Pocket-German', 'Pocket-German')]);
     assert.deepEqual(await tree(join(f.game, PLUGIN, 'voices/multilingual-pocket/de')), ['model.safetensors', 'pocket-model.json', 'tokenizer.json']);
     assert.equal(await read(join(f.game, PLUGIN, 'voices/multilingual/de/references/judy.wav')), 'VOICE-de');
@@ -687,7 +688,7 @@ test('the setup check names a language pack one folder too deep, like the other 
     await pocketModel(join(f.game, 'Pocket-German'), 'de');
     await languagePack(f.game, 'it');   // the installed pack is not reported
     const found = await findNestedPacks({game: f.game});
-    assert.deepEqual(found.sort((a, b) => a.pack.localeCompare(b.pack)), [{pack: 'Pocket language model (de)', folder: 'Pocket-German'}, {pack: 'Voice language pack (fr)', folder: 'Voices-French'}]);
+    assert.deepEqual(found.sort((a, b) => a.pack.localeCompare(b.pack)), [{pack: 'PocketTTS model (de)', folder: 'Pocket-German'}, {pack: 'Voice language pack (fr)', folder: 'Voices-French'}]);
   } finally { await f.cleanup(); }
 });
 

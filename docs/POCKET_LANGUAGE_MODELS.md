@@ -1,16 +1,16 @@
-# Pocket language models
+# PocketTTS models
 
 Optional downloads that let the Pocket voice (CPU, `bridge/pocket-voice-worker.py`) speak **French, Italian, German, Spanish (Spain) and Portuguese (Brazil)**, cloned from the game's own dub of the character in that language. Evaluation and numbers: `docs/POCKET_V4_MULTILINGUAL_EVAL_2026-10-22.md`. Implemented on `feat/pocket-languages` (2026-10-22).
 
-For the player: get the voice language pack for your language (`docs/VOICE_LANGUAGE_PACKS.md`); if you use the Pocket voice, also get the Pocket model for that language. Both are on Hugging Face only (`multilingual/` folder of `alystria-ai/ai-npc-cyberpunk-mod-packs`), never on Nexus Mods. The model needs the pack of the same language: it clones from the pack's clips.
+For the player: get the voice language pack for your language (`docs/VOICE_LANGUAGE_PACKS.md`); if you use the Pocket voice, also get the PocketTTS model for that language. Both are on Hugging Face only (`multilingual/` folder of `alystria-ai/ai-npc-cyberpunk-mod-packs`), never on Nexus Mods. The model needs the pack of the same language: it clones from the pack's clips.
 
 ## What is shipped
 
-One zip per language, `AI-NPC-Cyberpunk-Mod-Pocket-<Language>.zip`, the language in full (`Pocket-French`, `Pocket-Italian`, `Pocket-German`, `Pocket-Spanish`, `Pocket-Portuguese`; the folder inside keeps the voice pack's code: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
+One zip per language, `PocketTTS-Model-<Language>.zip`, the language in full (`PocketTTS-Model-French`, `PocketTTS-Model-Italian`, `PocketTTS-Model-German`, `PocketTTS-Model-Spanish`, `PocketTTS-Model-Portuguese`; the folder inside keeps the voice pack's code: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
 
 ```
 red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/         the voice pack (docs/VOICE_LANGUAGE_PACKS.md)
-red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/  the Pocket model for that language (a sibling folder)
+red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/  the PocketTTS model for that language (a sibling folder)
   pocket-model.json     the manifest below
   model.safetensors     Kyutai's file, unchanged
   tokenizer.json        Kyutai's file, unchanged
@@ -28,11 +28,11 @@ Found the way the voice packs are (`bridge/voice-language-packs.mjs`): one scan 
 
 `speaks(tag)` is true only when the model **and** the voice pack of that language are valid. `bridge/multilingual.mjs` then plans and finishes the turn with Pocket for that language (`local.pocket.speaks`), otherwise the reply is shown as text as before. The clone reference is the pack's clip of the character (and its transcript), through `VoiceLanguagePacks.omniDescriptor`; a player's own clip for the character is used as it is; a character the pack has no clip for gets a written reply (`audioError` says so), never the English student reading foreign text.
 
-**Model installed, pack missing.** The model is not loaded, the reply is written (`reason: pocket-language-pack-missing`), and the game says it once per language per game session, in the menu language: `keyNotice: "pocket-language-pack"` with `keyNoticeLanguage` on the reply, shown by `mod/init.lua` as "The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it." (notice ids `pocket-pack-fr|it|de|es|pt`, `docs/NOTIFICATIONS.md`; sixteen languages). The generic `voice-language` notice is not used for it.
+**Model installed, pack missing.** The model is not loaded, the reply is written (`reason: pocket-language-pack-missing`), and the game says it once per language per game session, in the menu language: `keyNotice: "pocket-language-pack"` with `keyNoticeLanguage` on the reply, shown by `mod/init.lua` as "{language} replies show as text: the {language} voice language pack is missing." (notice ids `pocket-pack-fr|it|de|es|pt`, `docs/NOTIFICATIONS.md`; sixteen languages). The generic `voice-language` notice is not used for it.
 
 **A model the worker refuses** (a file differs from its hash, it will not load) is not offered again until its files change (`markFailed`); the support report lists it with the reason.
 
-**Routing log.** A Pocket reply in a language logs `used="Pocket (language model)" ref="multilingual/<lang>/picked/<voice>" model=multilingual-pocket/<lang> lang=<tag>`; the written case logs the fallback `the Pocket model for this language is installed but its voice language pack is not`.
+**Routing log.** A Pocket reply in a language logs `used="Pocket (PocketTTS model)" ref="multilingual/<lang>/picked/<voice>" model=multilingual-pocket/<lang> lang=<tag>`; the written case logs the fallback `the PocketTTS model for this language is installed but its voice language pack is not`.
 
 **Support report.** `pocketLanguageModels`: per model the language, size in MB, version, whether its voice pack is installed, whether Pocket may speak it, why a model is not used; no path.
 
@@ -62,6 +62,6 @@ The English registry and its prepared voices stay in memory while a language is 
 
 The French zip was extracted into the dev install (a player install: the committed bridge and Lua files that changed were laid over it, each identical to `main` before, backed up) and `scripts/Check-InstalledPocketLanguage.mjs` ran with the installed `node.exe`, installed Python, Pocket source and student (`docs/POCKET_LANGUAGE_MODELS.installed-check.json`): both folders scanned valid, the plan for a French reply on Pocket is Pocket, the language model became resident in 0.95 s, a warm-up while "the reply is written" took 2.4 s, then the French reply of Panam from the pack clip had first audio in 181 ms (again, no swap: 181 ms), an English reply after it swapped back (first audio 2.6 s, the English voice was not prepared yet), and French again 1.0 s. The installed Parakeet transcribes the French renders back exactly, "Night City" included. The routing line the installed code writes for that reply:
 
-    profile=panam-palmer name="Panam Palmer" requested="Pocket · Performance" used="Pocket (language model)" ref="multilingual/fr/picked/panam-palmer" model=multilingual-pocket/fr lang=fr
+    profile=panam-palmer name="Panam Palmer" requested="Pocket · Performance" used="Pocket (PocketTTS model)" ref="multilingual/fr/picked/panam-palmer" model=multilingual-pocket/fr lang=fr
 
 With the model but no pack the same code plans a written reply (`pocket-language-pack-missing`) and gives the notice once. The swap measurement (`scripts/Measure-PocketLanguageSwap.mjs`, three rounds through all five languages and English) is `docs/POCKET_LANGUAGE_MODELS.swap-measurement.json`.

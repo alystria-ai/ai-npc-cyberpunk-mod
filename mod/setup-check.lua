@@ -364,8 +364,8 @@ local function packName(value)
     if type(value) ~= 'string' then return value end
     local code = value:match('^Voice language pack %(([%w-]+)%)$')
     if code then return ui.t('Voice language pack ({code})', {code = code}) end
-    code = value:match('^Pocket language model %(([%w-]+)%)$')
-    if code then return ui.t('Pocket language model ({code})', {code = code}) end
+    code = value:match('^PocketTTS model %(([%w-]+)%)$')
+    if code then return ui.t('PocketTTS model ({code})', {code = code}) end
     return value
 end
 

@@ -110,7 +110,7 @@ export class VoiceSelection {
     this.languagePacks=options.languagePacks||null;
     // keepsReference: key => boolean (the bridge): a voice whose reference a pack's clip must not replace although it is not the player's own clip (V with a V voice mod's reference, docs/V_VOICE.md).
     this.keepsReference=typeof options.keepsReference==='function'?options.keepsReference:()=>false;
-    // The Pocket language models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
+    // The PocketTTS models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
     // cloned from the pack's clip; without them Pocket speaks English only.
     this.pocketLanguages=options.pocketLanguages||null;
     this.clock = options.clock || Date.now;

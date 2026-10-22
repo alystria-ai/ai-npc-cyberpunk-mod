@@ -572,7 +572,7 @@ export class PocketVoice {
       }
       if (held === null) this.validateProfiles(frame); else this.validateProfiles(frame, this.languageView);
       const reason = typeof frame.reason === 'string' ? frame.reason.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) : '';
-      this.finishRequest(request, Object.assign(Error(`Pocket language model could not be loaded${reason ? ` (${reason})` : ''}`), {pocketLanguage: target, refused: true}));
+      this.finishRequest(request, Object.assign(Error(`PocketTTS model could not be loaded${reason ? ` (${reason})` : ''}`), {pocketLanguage: target, refused: true}));
       return;
     }
     if ((frame.language ?? null) !== target) throw Error('Pocket worker did not confirm the language');

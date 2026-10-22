@@ -9,7 +9,7 @@ choice: `docs/FREE_CLOUD_OPTION_RESEARCH.md`.
 local text-to-speech of any kind: a worker that was running is retired when the choice is committed (at the next idle moment, like any
 voice switch), and nothing replaces it. Not using local resources is the point of the choice. It borrows only Pocket's **route** (the
 routing name `pocket`, `provider: 'pocket'` in the state file) and its **audio packet format**, which is what drives the subtitles,
-the lip sync and the face; no Pocket model is loaded for that. A reply the cloud cannot deliver is therefore never spoken locally:
+the lip sync and the face; no PocketTTS model is loaded for that. A reply the cloud cannot deliver is therefore never spoken locally:
 see "Fallback rule". (Live record, 2026-10-13 13:08: with Pocket kept loaded as a backup, a Pocket worker that hung at "importing
 dependencies" on a CPU starved by other jobs held the reply for more than two minutes while Voxtral was never asked. That coupling is
 gone.)

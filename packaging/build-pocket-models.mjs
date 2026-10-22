@@ -1,4 +1,5 @@
-// Builds the optional Pocket TTS language model packs: AI-NPC-Cyberpunk-Mod-Pocket-<Language>.zip (French, Italian, German, Spanish, Portuguese).
+// Builds the optional PocketTTS models (the Pocket voice speaking another language): PocketTTS-Model-<Language>.zip (French, Italian, German, Spanish, Portuguese).
+// They are published in the multilingual/ folder of the Hugging Face repository.
 //
 //   node packaging/build-pocket-models.mjs --languages fr,it,de,es-es,pt-br --gated-cache <folder> --out E:/SteamLibrary/AiNpc-voice-packs/pocket
 //        [--token-file <path>] [--download]
@@ -308,7 +309,7 @@ export function buildManifest(lang, files) {
 }
 
 export const manifestText = manifest => JSON.stringify(manifest, null, 2) + '\n';
-export const packBase = lang => `AI-NPC-Cyberpunk-Mod-Pocket-${languageInfo(lang).title}`;
+export const packBase = lang => `PocketTTS-Model-${languageInfo(lang).title}`;
 
 // The zip's entries in order: the install note, then the five pack files (sorted by name).
 export function zipEntryNames(lang) {
@@ -372,7 +373,6 @@ export async function buildLanguage(lang, {modelPath, tokenizerPath, configText,
   await rename(temporary, zipPath);
   const zipSha = await sha256File(zipPath);
   await writeFile(resolve(folderOut, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-  await writeFile(resolve(folderOut, 'SHA256SUMS.txt'), `${zipSha}  ${base}.zip\n`);
   return {language: lang, zip: zipPath, bytes: archive.bytes, entries: archive.entries, sha256: zipSha, files: files.length};
 }
 

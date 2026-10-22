@@ -1,8 +1,8 @@
-"""After build_pack.py: Voxtral slots, the bridge's own validation, the zip with its listing and checksums, the listening sheet, a summary.
+"""After build_pack.py: Voxtral slots, the bridge's own validation, the zip with its listing, the listening sheet, a summary.
 
     python -I scripts/voice-packs/finish_pack.py --lang zh-cn [--bridge <bridge folder>]
 
-Outputs in E:/SteamLibrary/AiNpc-voice-packs/<lang>/: AI-NPC-Cyberpunk-Mod-Voices-<Language>.zip (the language in full, e.g. Voices-French), .files.json, SHA256SUMS.txt (the stage/ tree stays beside them).
+Outputs in E:/SteamLibrary/AiNpc-voice-packs/<lang>/: Voices-<Language>.zip (the language in full, e.g. Voices-French), .files.json (the stage/ tree stays beside them).
 Also writes work/<lang>/summary.json (per voice: lines used, replaced, missing, seconds, checks) and prints the exceptions.
 """
 from __future__ import annotations

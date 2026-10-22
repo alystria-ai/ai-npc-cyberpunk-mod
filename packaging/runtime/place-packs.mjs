@@ -3,7 +3,7 @@
 // The optional packs (Local AI lite/standard, Mature lite/standard, OmniVoice, MicPack-European, MicPack-Asian) are zips whose entries start at the game root
 // (red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/..., .../app/omni/..., .../app/models/stt/<id>/...). Windows "Extract All" and 7-Zip's "Extract to <name>\"
 // wrap everything in a folder named after the zip, so a player who extracts inside the game folder ends up with
-//   <game>/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2/red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/...
+//   <game>/LocalAI-Standard/red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/...
 // and the mod never finds the pack. Shipped as app/launcher/place-packs.mjs and run by start-service.mjs before the pack checks.
 // It imports nothing from the bridge.
 //
@@ -15,7 +15,7 @@
 //   local-ai/manifest.*.json (Local AI and Mature packs), local-ai/mature/, omni/omni-pack.json (OmniVoice), or
 //   models/stt/<id>/mic-pack.json for one of the two voice-input pack ids (MIC_PACKS below);
 // or when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holds a language pack: multilingual/<code>/manifest.json (a voice language
-// pack) or multilingual-pocket/<code>/pocket-model.json (a Pocket language model). Those zips hold only voices/, no app/.
+// pack) or multilingual-pocket/<code>/pocket-model.json (a PocketTTS model). Those zips hold only voices/, no app/.
 //
 // What it moves: only the pack folders of that misplaced app/ (local-ai/, omni/, models/stt/<id>/ of a voice-input pack), for the OmniVoice pack its
 // voices/ folder (the pack's reference clips, a sibling of app/), and for a language pack its own voices/multilingual/<code>/ or
@@ -43,11 +43,11 @@ const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
 export const MIC_PACKS = Object.freeze({'parakeet-tdt-0.6b-v3-int8': 'MicPack-European', 'sense-voice-int8': 'MicPack-Asian'});
 const MIC_MARKER = 'mic-pack.json';
 // The language packs: voices/multilingual/<code>/manifest.json (voice language pack, scripts/voice-packs/package_pack.mjs) and
-// voices/multilingual-pocket/<code>/pocket-model.json (Pocket language model, packaging/build-pocket-models.mjs). The folder names are the language codes
+// voices/multilingual-pocket/<code>/pocket-model.json (PocketTTS model, packaging/build-pocket-models.mjs). The folder names are the language codes
 // (fr, it, de, es-es, pt-br ...).
 export const LANGUAGE_PACKS = Object.freeze([
   {folder: 'multilingual', marker: 'manifest.json', label: 'Voice language pack'},
-  {folder: 'multilingual-pocket', marker: 'pocket-model.json', label: 'Pocket language model'},
+  {folder: 'multilingual-pocket', marker: 'pocket-model.json', label: 'PocketTTS model'},
 ]);
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const micTree = id => `models/stt/${id}`;

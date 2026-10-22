@@ -26,7 +26,7 @@ export const SETUP_REQUEST_FILE = 'setup-check-request.json';
 
 const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS = 5000;
 // The language packs one folder too deep are found by their manifests (the same as LANGUAGE_PACKS in the launcher's place-packs.mjs).
-const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Voice language pack'], ['multilingual-pocket', 'pocket-model.json', 'Pocket language model']];
+const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Voice language pack'], ['multilingual-pocket', 'pocket-model.json', 'PocketTTS model']];
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
@@ -208,7 +208,7 @@ const PACK_NAMES = Object.freeze({
  *   - the plugin folder (red4ext/... inside it, or inside one wrapper folder of it).
  * A candidate is <base>/red4ext/plugins/AiNpcCyberpunkMod/app holding local-ai/manifest.*.json, a non-empty local-ai/mature/ or
  * omni/omni-pack.json, or <base>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holding a language pack (multilingual/<code>/manifest.json, a voice
- * language pack, or multilingual-pocket/<code>/pocket-model.json, a Pocket language model). The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
+ * language pack, or multilingual-pocket/<code>/pocket-model.json, a PocketTTS model). The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
  * game folder. Only directory listings and a few dozen stats; never throws.
  */
 export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}) {

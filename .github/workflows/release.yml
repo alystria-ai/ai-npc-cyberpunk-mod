@@ -20,7 +20,7 @@
 # build compiles with MSVC and CMake (both are on the Windows runner; the RED4ext SDK is fetched by
 # CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack, the two Local AI
 # packs and the two Mature packs are built by their own jobs and uploaded to the Hugging Face repository HF_PACKS_REPO,
-# one zip each (no parts), in a folder per version, with a SHA256SUMS-<pack>.txt beside it; they are not attached to the GitHub
+# one zip each (no parts), in its own folder of the repository (local-ai/, mature/, mic/, voice/) under its unversioned name, with no checksum file; they are not attached to the GitHub
 # release. The Mature packs have an opt-in job (the `mature` input, off by default, never on a tag push), and so do the two voice-input
 # packs, MicPack-European and MicPack-Asian (the `micpacks` input, same rules). See docs/PACKAGING.md.
 name: Release
@@ -165,7 +165,6 @@ jobs:
           name: AI-NPC-Cyberpunk-Mod-Scripts-${{ steps.version.outputs.version }}
           path: |
             ${{ env.OUT }}\packages\AI-NPC-Cyberpunk-Mod-Scripts-*.zip
-            ${{ env.OUT }}\packages\SHA256SUMS.txt
             ${{ env.OUT }}\packages\release-manifest.json
           retention-days: 30
 
@@ -184,9 +183,8 @@ jobs:
           # The release page is long and its files sit at the very bottom under Assets, so the notes start by saying so, with direct links.
           # This note is only on the release page, not in the README.txt inside the zips.
           $base = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag"
-          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-NPC-Cyberpunk-Mod-Scripts-$version.zip]($base/AI-NPC-Cyberpunk-Mod-Scripts-$version.zip): the mod itself (also on Nexus Mods)`n> - [AI-NPC-Cyberpunk-Mod-Runtime-$version.zip]($base/AI-NPC-Cyberpunk-Mod-Runtime-$version.zip): the Runtime, with the Pocket TTS voices`n>`n> Then follow **Install** below.`n`n"
-          $download + (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for the files on this page are in SHA256SUMS-runtime.txt below. Each optional pack on Hugging Face has its own SHA256SUMS file next to it.`n" | Set-Content $notes -Encoding utf8
-          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
+          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [AI-NPC-Cyberpunk-Mod-Scripts-$version.zip]($base/AI-NPC-Cyberpunk-Mod-Scripts-$version.zip): the mod itself (also on Nexus Mods)`n> - [Runtime-$version.zip]($base/Runtime-$version.zip): the Runtime, with the Pocket TTS voices`n>`n> Then follow **Install** below.`n`n"
+          $download + (Get-Content packaging/PLAYER_README.md -Raw) | Set-Content $notes -Encoding utf8
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh @createArgs
@@ -197,11 +195,11 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Could not update the release notes.' }
           }
           $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
-          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
+          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the packages failed.' }
 
-  # The optional packs go to the Hugging Face model repository HF_PACKS_REPO, one zip each (no parts), in a folder per version, next to a
-  # SHA256SUMS-<pack>.txt (packaging/upload-packs.py). They are not attached to the GitHub release. Each job checks first that the
+  # The optional packs go to the Hugging Face model repository HF_PACKS_REPO, one zip each (no parts), in its own folder of the repository
+  # (packaging/upload-packs.py), with no checksum file. They are not attached to the GitHub release. Each job checks first that the
   # HF_PACKS_TOKEN secret can write to that repository, so a read-only token fails in seconds, not after the build.
   omni:
     name: OmniVoice pack

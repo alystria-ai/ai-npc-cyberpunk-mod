@@ -7,12 +7,12 @@
 //        [--listing <pack listing json> | --no-listing]
 //
 // It writes, into the folder:
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
+//   Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json, and app/defaults/runtime-steps/step-<from>-to-<to>.json
 //                                                                  (the step marker: a later setup check names an update step a player skipped)
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.sha256      the zip's SHA-256
+//   Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
+//   (no loose checksum file: the SHA-256 of the zip is in the summary this prints and returns)
 //
 // The removal list in the zip names the files the old Runtime had and the new one does not (and those the new Runtime's own list declares and
 // any --remove): extracting adds and replaces but never deletes, so the service deletes them itself at its next start
@@ -36,7 +36,6 @@ import {STEPS_DIR, stepFileName, stepText} from '../bridge/runtime-steps.mjs';
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
 export const RELEASE_ENTRY = `${PLUGIN}/app/release.json`;
-export const PRODUCT = 'AI-NPC-Cyberpunk-Mod';
 // The step marker this zip adds (bridge/runtime-steps.mjs): its own file, so zips applied one after the other leave one marker each. The
 // marker files of the two Runtimes compared (base.json, earlier steps) are never copied: they describe those Runtimes, not this step.
 export const STEPS_PREFIX = `${PLUGIN}/app/${STEPS_DIR}/`.toLowerCase();
@@ -108,7 +107,7 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
   const work = await mkdtemp(join(tmpdir(), 'runtime update '));
   try {
     await mkdir(out, {recursive: true});
-    const base = `${PRODUCT}-Runtime-Update-${from}-to-${to}`;
+    const base = `Runtime-Update-${from}-to-${to}`;
     const zipPath = resolve(out, `${base}.zip`), temporary = `${zipPath}.tmp`;
     const writer = await ZipWriter.create(temporary);
     const files = [];
@@ -135,7 +134,6 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     await rename(temporary, zipPath);
     const sha256 = await sha256File(zipPath);
     await writeFile(resolve(out, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-    await writeFile(resolve(out, `${base}.sha256`), `${sha256}  ${base}.zip\n`);
     const summary = {from, to, zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
       unchanged: diff.unchanged, removals: checked.ok.length, leftInPlace};
     log(`${base}.zip: ${(closed.bytes / 1024 ** 2).toFixed(1)} MiB, ${closed.entries} files (${diff.added.length} added, ${diff.changed.length} changed, ${diff.unchanged} unchanged and left out), `

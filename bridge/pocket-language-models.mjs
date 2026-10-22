@@ -1,4 +1,4 @@
-// Pocket language models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
+// PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
 // Portuguese, cloned from the game's own dub of a character in that language (the voice language pack of the same language, bridge/voice-language-packs.mjs).
 //
 // A model is a folder <references>/multilingual-pocket/<lang>/ (a sibling of <references>/multilingual/<lang>/, the voice pack) with pocket-model.json,
@@ -60,14 +60,14 @@ const reasonOf = error => String(error?.code === 'ENOENT' ? 'file missing' : err
 /** Reads and checks the model in `directory` (<root>/multilingual-pocket/<language>). Returns {model} or {problem: 'reason'}. */
 export async function loadPocketModel({directory, language, files = defaultFiles}) {
   const info = POCKET_LANGUAGES[language];
-  if (!info) return {problem: 'not a language a Pocket model exists for'};
+  if (!info) return {problem: 'not a language a PocketTTS model exists for'};
   let manifest;
   try {
     const size = (await files.stat(resolve(directory, POCKET_MODEL_MANIFEST))).size;
     if (size > POCKET_MODEL_LIMITS.manifestBytes) return {problem: `${POCKET_MODEL_MANIFEST} is too large`};
     manifest = JSON.parse(String(await files.readFile(resolve(directory, POCKET_MODEL_MANIFEST), 'utf8')).replace(/^﻿/, ''));
   } catch (error) { return {problem: error?.code === 'ENOENT' ? `${POCKET_MODEL_MANIFEST} is missing` : `${POCKET_MODEL_MANIFEST} is unreadable (${reasonOf(error)})`}; }
-  if (!plain(manifest) || manifest.version !== 1 || manifest.kind !== 'pocket-language-model') return {problem: `${POCKET_MODEL_MANIFEST} is not a version 1 Pocket language model`};
+  if (!plain(manifest) || manifest.version !== 1 || manifest.kind !== 'pocket-language-model') return {problem: `${POCKET_MODEL_MANIFEST} is not a version 1 PocketTTS model`};
   if (manifest.language !== language) return {problem: `${POCKET_MODEL_MANIFEST} says language "${String(manifest.language).slice(0, 20)}", the folder is ${language}`};
   if (manifest.languageTag !== info.tag) return {problem: `${POCKET_MODEL_MANIFEST} says languageTag "${String(manifest.languageTag).slice(0, 20)}", expected ${info.tag}`};
   if (manifest.pocketSource !== POCKET_MODEL_SOURCE) return {problem: `made for Pocket source ${String(manifest.pocketSource).slice(0, 20)}, this mod runs ${POCKET_MODEL_SOURCE}`};
@@ -136,7 +136,7 @@ export class PocketLanguageModels {
   markFailed(tag, reason) {
     if (!this.models.has(tag) || this.failed.has(tag)) return;
     this.failed.set(tag, String(reason ?? 'refused by the worker').replace(/[\r\n]+/g, ' ').slice(0, 100));
-    try { this.log(`Pocket language model ${this.models.get(tag).language} is not used: ${this.failed.get(tag)}`); } catch {}
+    try { this.log(`PocketTTS model ${this.models.get(tag).language} is not used: ${this.failed.get(tag)}`); } catch {}
   }
 
   async look() {
@@ -167,7 +167,7 @@ export class PocketLanguageModels {
       else {
         problems.set(language, result.problem);
         const notice = `${language}|${result.problem}`;
-        if (!this.noticed.has(notice)) { this.noticed.add(notice); try { this.log(`Pocket language model ${language} is not used: ${result.problem}`); } catch {} }
+        if (!this.noticed.has(notice)) { this.noticed.add(notice); try { this.log(`PocketTTS model ${language} is not used: ${result.problem}`); } catch {} }
       }
     }
     const before = this.describe();
@@ -179,7 +179,7 @@ export class PocketLanguageModels {
     this.models = models; this.problems = problems; this.signature = JSON.stringify(seen.map(({language, stamp}) => [language, stamp]));
     this.scannedAt = this.now();
     if (before !== this.describe()) {
-      for (const model of models.values()) try { this.log(`Pocket language model ${model.language} ready (${Math.round(model.bytes / 1e6)} MB)`); } catch {}
+      for (const model of models.values()) try { this.log(`PocketTTS model ${model.language} ready (${Math.round(model.bytes / 1e6)} MB)`); } catch {}
       if (this.hadScan) try { this.onChange(this.report()); } catch {}
     }
     this.hadScan = true;

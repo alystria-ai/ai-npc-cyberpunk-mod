@@ -97,7 +97,7 @@ test('the player\'s own clip for the character is the voice, in any language', a
 }, {player: true}));
 
 test('a model the worker refuses is not asked for again until its files change', async () => setup(async ({voice, calls, models, refuse}) => {
-  refuse('Pocket language model could not be loaded (ValueError: asset differs)');
+  refuse('PocketTTS model could not be loaded (ValueError: asset differs)');
   await assert.rejects(voice.synthesizeStream('panam-palmer', 'Salut.', {onPcm() {}, language: 'fr'}), /could not be loaded/);
   assert.equal(models.speaks('fr'), false);
   assert.equal(models.report().models[0].usable, false);
@@ -131,16 +131,16 @@ test('a warm-up while a language is resident prepares the voice in that language
   assert.equal(warmed.length, 1); assert.equal(englishWarmed.length, 2); assert.equal(englishWarmed[1].options.required, true);
 }));
 
-test('the routing line names the Pocket language model and the pack clip it cloned from', () => {
+test('the routing line names the PocketTTS model and the pack clip it cloned from', () => {
   const registry = {profiles: {'panam-palmer': {reference: 'runtime/voice-references/panam-palmer.wav'}}};
   const voice = {requestedProvider: 'pocket', provider: 'pocket', resolvedProvider: 'pocket', registries: {pocket: registry}, configuredByBackend: {pocket: true}, cloudActive: false};
   const record = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer', name: 'Panam'}, plan: {engine: 'pocket', language: 'fr'},
     reply: {engine: 'pocket', language: 'fr'}, voiceKey: 'panam-palmer', languageSet: 'multilingual/fr/picked/panam-palmer', pocketModel: {language: 'fr'}, now: () => 0});
-  assert.equal(record.used, 'Pocket (language model)');
+  assert.equal(record.used, 'Pocket (PocketTTS model)');
   assert.deepEqual(record.reference, {set: 'multilingual/fr/picked/panam-palmer'});
   assert.equal(record.model, 'multilingual-pocket/fr');
   const line = formatVoiceRoute(record);
-  assert.match(line, /used="Pocket \(language model\)" ref="multilingual\/fr\/picked\/panam-palmer" model=multilingual-pocket\/fr/);
+  assert.match(line, /used="Pocket \(PocketTTS model\)" ref="multilingual\/fr\/picked\/panam-palmer" model=multilingual-pocket\/fr/);
   assert.match(line, /lang=fr/);
   const english = formatVoiceRoute(describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer', name: 'Panam'}, plan: {engine: 'pocket', language: 'en'},
     reply: {engine: 'pocket', language: 'en'}, voiceKey: 'panam-palmer', now: () => 0}));
@@ -148,7 +148,7 @@ test('the routing line names the Pocket language model and the pack clip it clon
   assert.match(english, /used="Pocket"/);
   const none = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer'}, plan: {engine: 'pocket', language: 'de', reason: 'pocket-language-pack-missing'},
     reply: {engine: 'none', language: 'de', reason: 'pocket-language-pack-missing'}, now: () => 0});
-  assert.match(none.fallback, /Pocket model for this language is installed but its voice language pack is not/);
+  assert.match(none.fallback, /PocketTTS model for this language is installed but its voice language pack is not/);
 });
 
 // ---- the bridge's wiring and the support report ------------------------------------------------------------------------------------------

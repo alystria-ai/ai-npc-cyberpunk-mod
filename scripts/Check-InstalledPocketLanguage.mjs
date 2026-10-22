@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Offline end-to-end check of an installed Pocket language model, with the INSTALLED bridge code (nothing in the install is written).
+// Offline end-to-end check of an installed PocketTTS model, with the INSTALLED bridge code (nothing in the install is written).
 //
 //   <installed node.exe> scripts/Check-InstalledPocketLanguage.mjs [--lang fr] [--out <folder>]
 //

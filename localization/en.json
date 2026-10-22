@@ -662,12 +662,12 @@
     "Player unavailable": "Player unavailable",
     "Please wait for the current requests to finish.": "Please wait for the current requests to finish.",
     "Pocket could not load. See Help in Settings.": "Pocket could not load. See Help in Settings.",
-    "Pocket language model ({code})": "Pocket language model ({code})",
     "Pocket voice": "Pocket voice",
     "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
     "Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.": "Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.",
+    "PocketTTS model ({code})": "PocketTTS model ({code})",
     "Portuguese": "Portuguese",
     "Preparing connection to {name}…": "Preparing connection to {name}…",
     "Preparing to drive": "Preparing to drive",
@@ -2297,11 +2297,11 @@
       "Picked up in your talks",
       "Play saved clip",
       "Pocket could not load. See Help in Settings.",
-      "Pocket language model ({code})",
       "Pocket voice",
       "Pocket voice is ready.",
       "Pocket · On your PC",
       "Pocket · Performance",
+      "PocketTTS model ({code})",
       "Portuguese",
       "Preparing connection to {name}…",
       "Preparing {count} more companions…",
@@ -7805,14 +7805,6 @@
         "mod/manager-ui.lua:84"
       ]
     },
-    "Pocket language model ({code})": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/setup-check.lua:368"
-      ]
-    },
     "Pocket voice": {
       "contexts": [
         "ui.localized"
@@ -7853,6 +7845,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:1530"
+      ]
+    },
+    "PocketTTS model ({code})": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:368"
       ]
     },
     "Portuguese": {

@@ -94,8 +94,8 @@ test('the update holds only what changed, the new version stamp and a removal li
     const summary = await buildRuntimeUpdate({oldZips: [oldZip], newZips: [newZip], out: join(dir, 'out'), listing: packListing, log: line => log.push(line)});
     assert.equal(summary.from, '0.2.2');
     assert.equal(summary.to, '0.2.3');
-    const name = 'AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3';
-    assert.deepEqual((await readdir(join(dir, 'out'))).sort(), [`${name}.files.json`, `${name}.sha256`, `${name}.zip`]);
+    const name = 'Runtime-Update-0.2.2-to-0.2.3';
+    assert.deepEqual((await readdir(join(dir, 'out'))).sort(), [`${name}.files.json`, `${name}.zip`]);
     const zip = join(dir, 'out', `${name}.zip`);
     const held = await entriesOf(zip);
     assert.deepEqual(Object.keys(held).sort(), [`${APP}/bridge/convai-bridge.mjs`, `${APP}/bridge/new-module.mjs`, `${APP}/defaults/runtime-removals.json`, STEP_ENTRY, `${APP}/launcher/apply-removals.mjs`,
@@ -118,7 +118,6 @@ test('the update holds only what changed, the new version stamp and a removal li
     assert.deepEqual(files.map(file => file.path), Object.keys(held).sort());
     assert.deepEqual(files.find(file => file.path === `${APP}/bridge/new-module.mjs`), {path: `${APP}/bridge/new-module.mjs`, bytes: 10,
       sha256: (await import('node:crypto')).createHash('sha256').update('new module').digest('hex')});
-    assert.equal(await readFile(join(dir, 'out', `${name}.sha256`), 'utf8'), `${await sha256File(zip)}  ${name}.zip\n`);
     assert.equal(summary.sha256, await sha256File(zip));
     // Nothing from the work folder is left behind, and the zip the build wrote is complete (no .tmp).
     assert.equal((await readdir(join(dir, 'out'))).some(file => file.endsWith('.tmp')), false);
@@ -136,7 +135,7 @@ test('the same inputs give the same bytes', async () => {
     // And it does not matter how the new full zip was made: the same files in another order, stored or deflated, give the same update.
     const again = await makeZip(join(dir, 'new2.zip'), Object.fromEntries(Object.entries(next).reverse()), {level: 1});
     const three = await buildRuntimeUpdate({oldZips: [oldZip], newZips: [again], out: join(dir, 'three'), listing: packListing, log: quiet});
-    assert.equal((await entriesOf(join(dir, 'three', 'AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip')))[`${APP}/bridge/convai-bridge.mjs`], 'bridge v2 with more');
+    assert.equal((await entriesOf(join(dir, 'three', 'Runtime-Update-0.2.2-to-0.2.3.zip')))[`${APP}/bridge/convai-bridge.mjs`], 'bridge v2 with more');
     assert.equal(three.entries, one.entries);
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
@@ -270,7 +269,7 @@ test('the command line: usage with no arguments, and the same result as the func
     const oldZip = await makeZip(join(dir, 'old.zip'), old), newZip = await makeZip(join(dir, 'new.zip'), next);
     const run = spawnSync(process.execPath, [script, '--old', oldZip, '--new', newZip, '--out', join(dir, 'out')], {encoding: 'utf8'});
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /AI-NPC-Cyberpunk-Mod-Runtime-Update-0\.2\.2-to-0\.2\.3\.zip: .* MiB, 7 files \(4 added, 3 changed, 6 unchanged and left out\), 5 file\(s\) in the removal list\./);
+    assert.match(run.stdout, /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip: .* MiB, 7 files \(4 added, 3 changed, 6 unchanged and left out\), 5 file\(s\) in the removal list\./);
     assert.match(run.stdout, /left in place, not in the removal list: HOW TO INSTALL/);
     assert.equal(run.stdout.trim().split('\n').pop().startsWith('SHA-256 '), true);
     const failed = spawnSync(process.execPath, [script, '--old', join(dir, 'missing.zip'), '--new', newZip, '--out', join(dir, 'out2')], {encoding: 'utf8'});

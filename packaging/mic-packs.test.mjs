@@ -27,7 +27,8 @@ const TAR = process.platform === 'win32' ? resolve(process.env.SystemRoot || 'C:
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const temporary = () => mkdtemp(join(tmpdir(), 'ai npc mic packs '));
 const PACKS = Object.values(config.micPacks.packs);
-const zipName = pack => `${config.product}-${pack.title}-${VERSION}.zip`;
+// The packs carry no product prefix (the Scripts alone keep it); the version stays in the build folder, the Hugging Face upload drops it.
+const zipName = pack => `${pack.title}-${VERSION}.zip`;
 
 // A stand-in for each model file: deterministic bytes, a different size per file, never the real model.
 const standIn = (pack, name, index) => Buffer.from(`stand-in for ${pack.id}/${name} `.repeat(40 + 7 * index) + String(index));
@@ -129,9 +130,10 @@ test('both packs build from a developer folder: exactly the pinned files, marker
     for (const [key, pack] of Object.entries(config.micPacks.packs)) {
       await checkPackZip({zip: join(out, 'packages', zipName(pack)), pack, spec: copy.micPacks.packs[key], root});
     }
-    const sums = (await readFile(join(out, 'packages/SHA256SUMS.txt'), 'utf8')).trim().split('\n');
-    assert.deepEqual(sums.map(line => line.split('  ')[1]).sort(), names);
-    for (const line of sums) { const [hash, name] = line.split('  '); assert.equal(sha(await readFile(join(out, 'packages', name))), hash); }
+    // No loose checksum file is written any more; the manifest holds each zip's SHA-256.
+    assert.deepEqual((await readdir(join(out, 'packages'))).filter(name => /sha256sums/i.test(name)), []);
+    const written256 = JSON.parse(await readFile(join(out, 'packages/release-manifest.json'), 'utf8'));
+    for (const pack of PACKS) assert.equal(written256.packages[pack.packageId].archives[0].sha256, sha(await readFile(join(out, 'packages', zipName(pack)))));
     const manifest = JSON.parse(await readFile(join(out, 'packages/release-manifest.json'), 'utf8'));
     assert.deepEqual(Object.keys(manifest.packages).sort(), ['micpack-asian', 'micpack-european']);
     // The two packs share no path but the install note, with identical bytes, and neither shares one with the 0.2.1 packs or the Runtime's Moonshine folder.

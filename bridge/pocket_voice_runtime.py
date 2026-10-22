@@ -488,7 +488,7 @@ def checked_config(assets, yaml_load=None):
 
 
 # ---- language models (docs/POCKET_LANGUAGE_MODELS.md) ----------------------------------------------------------------------------
-# A Pocket language model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json, inference.yaml) the bridge has
+# A PocketTTS model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json, inference.yaml) the bridge has
 # checked; the worker checks the files against the hashes the bridge sends before it loads them, and a language's voices are clips of the voice language pack of
 # the same language (<referenceDirectory>/multilingual/<language>/), named like every other reference.
 LANGUAGE_FOLDER = "multilingual-pocket"
@@ -530,11 +530,11 @@ def inspect_language_export(paths, language, expected, *, yaml_load=None):
         raise ValueError("Pocket needs hashes for every language model asset")
     root = plain_absolute(str(Path(paths["referenceDirectory"]) / LANGUAGE_FOLDER / language), "language model directory")
     if not root.is_dir() or not root.is_relative_to(paths["referenceDirectory"]):
-        raise ValueError("Pocket language model is missing")
+        raise ValueError("PocketTTS model is missing")
     assets = {name: local_asset(root, name) for name in LANGUAGE_ASSETS}
     for name, field in LANGUAGE_ASSETS.items():
         if digest_known_file(assets[name]) != expected[field]:
-            raise ValueError("Pocket language model asset differs from its identity")
+            raise ValueError("PocketTTS model asset differs from its identity")
     return checked_config(assets, yaml_load)
 
 

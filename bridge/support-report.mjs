@@ -562,7 +562,7 @@ export function voiceLanguagePacksSection(value) {
 }
 
 /**
- * The Pocket language models as the service reports them (bridge/pocket-language-models.mjs report()): which model is installed (language, size, version), whether the
+ * The PocketTTS models as the service reports them (bridge/pocket-language-models.mjs report()): which model is installed (language, size, version), whether the
  * voice language pack it clones from is installed and whether Pocket may speak the language, and which installed model it ignores and why. No path. null when the report
  * was made without the service.
  */
@@ -713,7 +713,7 @@ export async function collectReport(options) {
     voiceClips,
     // The voice language packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
     voiceLanguagePacks: voiceLanguagePacksSection(languagePackFacts),
-    // The Pocket language models the service found (docs/POCKET_LANGUAGE_MODELS.md): language, size, whether their voice pack is installed, and why an installed model is not used.
+    // The PocketTTS models the service found (docs/POCKET_LANGUAGE_MODELS.md): language, size, whether their voice pack is installed, and why an installed model is not used.
     pocketLanguageModels: pocketLanguageModelsSection(pocketModelFacts),
     // Which reference V's typed-line voice is cloned from (the player's clip, a V voice mod's or the shipped one) and what the mod scan found (docs/V_VOICE.md).
     vVoiceMods: vVoiceModsSection(vVoiceModFacts),
