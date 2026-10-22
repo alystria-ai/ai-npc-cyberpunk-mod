@@ -56,6 +56,7 @@ Text and voice are separate choices. Pick one text option (Convai, Mistral, Loca
 1. Close the game.
 2. Extract each zip **into your Cyberpunk 2077 folder** (the one with `bin`, `archive` and `r6`), allowing folders to merge. Every zip already starts with the right folders (`bin`, `r6`, `archive` or `red4ext`). Use the same version of the Scripts and the Runtime, and extract the Runtime before the OmniVoice pack.
    - Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to *name*" do that by default). If it happens anyway with an optional pack, the mod moves the pack files into place by itself at the next start. The Scripts and Runtime are not moved: extract them again into the game folder.
+   - Using Vortex for a pack? If it stops with "Red4Ext installer failed to generate any instructions", Vortex's Cyberpunk extension has taken the pack for a RED4ext plugin because the zip holds `.dll` files. Don't add that pack to Vortex: extract it by hand as above. A pack with no `.dll` files makes Vortex ask "install anyway?": choose Install.
 3. Start the game. Open the Companion Manager, then Settings > Conversation provider to pick Local AI and a model, or Settings > Voices to pick OmniVoice.
 
 The Runtime runs its conversation page in an installed Chromium browser: Microsoft Edge, which comes with Windows, is enough, and Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too (Firefox does not).

@@ -3674,6 +3674,10 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'local-cpu' then
         return 'local-cpu', ui.t('Local AI runs mostly on your processor here, so replies will be slow.') .. localFailureSuffix(reply, 'keyNoticeDetail')
     end
+    -- Windows draws its yellow capture border around the game for the "Companions can see" pictures (only with Convai; docs/COMPANION_VISION.md): said once, with the next reply.
+    if reply.keyNotice == 'vision-border' then
+        return 'vision-border', ui.t('The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.')
+    end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
         local used = reply.keyNoticeModel
@@ -3750,6 +3754,7 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
+    elseif keyId == 'vision-border' then convaiNotices.send(player, 'vision-border', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
     elseif keyId == 'pocket-pack-fr' then convaiNotices.send(player, 'pocket-pack-fr', keyText)
     elseif keyId == 'pocket-pack-it' then convaiNotices.send(player, 'pocket-pack-it', keyText)
@@ -4945,7 +4950,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' or keyId == 'vision-border' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

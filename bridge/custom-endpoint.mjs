@@ -20,7 +20,7 @@ import {readFile, rm} from 'node:fs/promises';
 import {writePrivate, keyTail} from './mistral-key.mjs';
 import {readClipboardText} from './convai-key.mjs';
 import {checkEndpoint, hostKind} from './custom-models.mjs';
-import {streamChat, MistralError, failureKind, resetClock} from './mistral-client.mjs';
+import {streamChat, MistralError, failureKind, resetClock, newAdaptation} from './mistral-client.mjs';
 import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
@@ -29,6 +29,30 @@ export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 
 // Only OpenRouter gets its two optional attribution headers (https://openrouter.ai/docs: HTTP-Referer, X-Title). Never any other host.
 export const OPENROUTER_HOST = 'openrouter.ai';
 export const OPENROUTER_HEADERS = Object.freeze({'HTTP-Referer': 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs', 'X-Title': 'AI NPC Cyberpunk Mod'});
+
+export const OPENROUTER_API = `https://${OPENROUTER_HOST}/api/v1`;
+// The first path segments of openrouter.ai that are site pages, not a model's vendor (https://openrouter.ai/<vendor>/<model> is a model's page).
+const OPENROUTER_PAGES = new Set(['api', 'models', 'docs', 'chat', 'rankings', 'settings', 'keys', 'credits', 'activity', 'logs', 'providers', 'provider', 'apps', 'app', 'enterprise',
+  'pricing', 'terms', 'privacy', 'about', 'announcements', 'sign-in', 'sign-up', 'workspaces', 'support', 'status', 'collections', 'labs', 'fusion', 'compare', 'presets', 'integrations']);
+
+/**
+ * An address on openrouter.ai that is not the API (the web page of a model, the home page, a docs page) is the API address, and a model's page
+ * (`/<vendor>/<model>`, also `/models/<vendor>/<model>`, with `:free` and the like, and a tab such as `/api` after it) names the model too.
+ * Returns {endpoint, modelId?} to use instead, or null when the text is not such an address (an address already under /api/v1 is left alone).
+ * Only this one host: no other provider's website is guessed at. The query and #fragment of a page address are dropped, as the address is replaced whole.
+ */
+export function openRouterFix(value) {
+  let url; try { url = new URL(value); } catch { return null; }
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username || url.password) return null;
+  if (url.hostname.toLowerCase().replace(/^www\./, '') !== OPENROUTER_HOST || (url.port && url.port !== '443' && url.port !== '80')) return null;
+  const path = url.pathname.replace(/\/chat\/completions\/?$/i, '').replace(/\/+$/, '');
+  if (/^\/api\/v1(?:\/|$)/i.test(path)) return null;
+  let segments = path.split('/').filter(Boolean).map(part => { try { return decodeURIComponent(part); } catch { return part; } });
+  if (segments[0]?.toLowerCase() === 'models' && segments.length >= 3) segments = segments.slice(1);
+  const [vendor, model] = segments;
+  const modelId = vendor && model && !OPENROUTER_PAGES.has(vendor.toLowerCase()) && !looksLikeKey(vendor) ? parseModelId(`${vendor}/${model}`) : null;
+  return {endpoint: OPENROUTER_API, ...(modelId ? {modelId} : {})};
+}
 
 // Quotes around a pasted value, straight or the curly ones a web page or a chat app puts there.
 const unquote = value => value.replace(/^["'`<“”‘’«]+|["'`>“”‘’»]+$/g, '');
@@ -50,14 +74,17 @@ export function parseEndpointUrl(text) {
   if (/[\u0000-\u001f\u007f\s]/.test(value)) return {reason: 'not-a-url'};
   if (!/^https?:\/\//i.test(value)) return {reason: /^[a-z][a-z0-9+.-]*:\/\//i.test(value) || /^[\w.-]+(?::\d+)?(?:\/|$)/.test(value) ? 'scheme' : 'not-a-url'};
   const base = value.replace(/\/chat\/completions\/?$/i, '');
-  const checked = checkEndpoint(base, {remote: true});
+  // A page of openrouter.ai (a model's web page pasted instead of the API address) is the API address, and a model's page names the model.
+  const fixed = openRouterFix(base);
+  const checked = checkEndpoint(fixed ? fixed.endpoint : base, {remote: true});
   if (checked.error) {
     const reason = /user name or password|query or a #fragment/.test(checked.error) ? 'extras' : /must use https/.test(checked.error) ? 'insecure'
       : /must start with/.test(checked.error) ? 'scheme' : 'not-a-url';
     return {reason};
   }
   const url = new URL(checked.endpoint);
-  return {endpoint: checked.endpoint, origin: checked.origin, host: url.host, hostname: url.hostname, kind: checked.kind, secure: url.protocol === 'https:'};
+  return {endpoint: checked.endpoint, origin: checked.origin, host: url.host, hostname: url.hostname, kind: checked.kind, secure: url.protocol === 'https:',
+    ...(fixed ? {corrected: true, ...(fixed.modelId ? {modelId: fixed.modelId} : {})} : {})};
 }
 
 /** The API key in a pasted value (`api-key=...`, `Bearer ...` or the bare value). Null when it is not a plausible key: one run of printable characters, 8 to 512. */
@@ -119,6 +146,8 @@ export function parseCustomFile(text) {
       if (origin && origin !== 'null') out.keyOrigin = origin;
     }
   }
+  // A model's web page in `endpoint=` also names the model, when the file has no valid `model=` line of its own.
+  if (out.endpoint?.modelId && !out.model) out.model = out.endpoint.modelId;
   return out;
 }
 
@@ -264,6 +293,8 @@ export function describeFailure(error) {
   if (kind === 'empty') return {code: 'empty', detail};
   if (kind === 'network') {
     if (error.redirect) return {code: 'redirect', detail};
+    // The address answered with a web page: a site's page was pasted, not the API address.
+    if (error.webPage) return {code: 'webpage', status};
     if (status >= 500) return {code: 'server', status, detail};
     return {code: error.slow || /in time|went quiet/.test(error.message) ? 'timeout' : 'unreachable', detail};
   }
@@ -274,19 +305,22 @@ export function describeFailure(error) {
  * One tiny request to the saved endpoint with the saved model and key, through the same client every turn uses. Resolves
  * {state: 'ok', ms} or {state: 'failed', code, status?, waitS?, detail?, ms}; never throws and never carries the key.
  *   chat       the request function (streamChat; replaced in tests)
- *   adapt      the route's remembered refusals, when the caller has them (a refusal learned here is then known to the turns)
+ *   adapt      the route's remembered refusals (a refusal learned here is then known to the turns); a test with none of its own still asks again without a field the server refuses, as a turn does
  */
-export async function testConnection(custom, {chat = streamChat, adapt, fetchImpl, now = () => performance.now()} = {}) {
+export async function testConnection(custom, {chat = streamChat, adapt = newAdaptation(), fetchImpl, now = () => performance.now()} = {}) {
   if (!custom?.ready) return {state: 'failed', code: 'no-setup', ms: 0};
   const began = now();
   try {
     await chat({apiKey: custom.key ?? undefined, model: custom.model, provider: 'custom', endpoint: custom.chatUrl, trustedOrigin: custom.origin,
-      headers: custom.extraHeaders, reasoning: custom.reasoning, ...(adapt ? {adapt} : {}), ...(fetchImpl ? {fetchImpl} : {}),
+      headers: custom.extraHeaders, reasoning: custom.reasoning, adapt, ...(fetchImpl ? {fetchImpl} : {}),
       messages: [{role: 'system', content: 'You are a connection test. Reply with the single word OK.'}, {role: 'user', content: 'Test.'}],
       maxTokens: 24, temperature: 0, retries: 0, firstByteMs: custom.local ? 60000 : 25000, totalMs: custom.local ? 90000 : 35000});
     return {state: 'ok', ms: Math.round(now() - began)};
   } catch (error) {
-    return {state: 'failed', ...describeFailure(error), ms: Math.round(now() - began)};
+    const failure = describeFailure(error);
+    // The one provider whose API address is known here: its web page is told apart from the others, and the right address is named.
+    if (failure.code === 'webpage' && custom.address?.hostname === OPENROUTER_HOST) failure.code = 'webpage-openrouter';
+    return {state: 'failed', ...failure, ms: Math.round(now() - began)};
   }
 }
 
@@ -365,6 +399,8 @@ export class CustomControl {
       const parsed = parseEndpointUrl(text);
       if (!parsed.endpoint) return {state: 'invalid', reason: parsed.reason};
       await c.setUrl(parsed);
+      // A model's web page address (openrouter.ai/<vendor>/<model>) also names the model, when none is saved yet.
+      if (parsed.modelId && !c.model) await c.setModel(parsed.modelId);
       return {state: 'saved'};
     }
     if (action === 'paste-key') {

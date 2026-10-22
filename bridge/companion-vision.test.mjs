@@ -9,13 +9,15 @@ const QUEUED = Buffer.from('queued picture').toString('base64');
 const shotOf = n => Buffer.from(`frame ${String(n).padStart(3, '0')}`).toString('base64');
 
 // A helper that answers at once with a numbered picture; `running` follows start/stop/capture like VisionCapture.
-function fakeCapture({fail} = {}) {
-  const capture = {calls: 0, started: 0, stopped: 0, running: false,
+function fakeCapture({fail, border} = {}) {
+  const capture = {calls: 0, started: 0, stopped: 0, running: false, borderShown: false,
     start: async () => { capture.started++; capture.running = true; return true; },
     stop: () => { capture.stopped++; capture.running = false; },
     capture: async () => {
       capture.calls++; capture.running = true;
-      return fail ? {ok: false, reason: fail} : {ok: true, mime: 'image/jpeg', base64: shotOf(capture.calls), width: 768, height: 432, bytes: 9, ms: {total: 100}};
+      if (!fail && border === true) capture.borderShown = true;
+      return fail ? {ok: false, reason: fail} : {ok: true, mime: 'image/jpeg', base64: shotOf(capture.calls), width: 768, height: 432, bytes: 9, ms: {total: 100},
+        ...(border === undefined ? {} : {method: border ? 'wgc' : 'dxgi', border})};
     }};
   return capture;
 }
@@ -333,6 +335,60 @@ test('a minimised game gives no frame and the turn goes on without one', async (
   assert.ok(vision.diagnostics().minimised >= 2);
 });
 
+test('a game that is not in front (covered) is not a failure: no frame, one log line, counted apart', async () => {
+  const logs = [];
+  const {vision, run} = scene({capture: fakeCapture({fail: 'covered'}), log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 3);
+  assert.equal(await vision.imagesForTurn({visionTurn: 't'}), null);
+  const counts = vision.diagnostics();
+  assert.ok(counts.covered >= 3 && counts.failed === 0, JSON.stringify(counts));
+  assert.equal(logs.filter(line => /no picture .*covered/.test(line)).length, 1, 'said once');
+});
+
+test('the yellow border (Discord 2026-10-23): a capture that shows it stops the timer, pictures are taken only when a turn needs one, and the player is told once', async () => {
+  const logs = [];
+  const {vision, capture, run, state} = scene({capture: fakeCapture({border: true}), log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 10);
+  assert.equal(capture.calls, 1, 'one picture showed the border; no capture ran on the timer after it');
+  assert.equal(capture.running, false, 'the helper is released: nothing runs between turns');
+  assert.equal(vision.capturing, false);
+  assert.equal(vision.diagnostics().borderShown, true);
+  assert.equal(logs.filter(line => /capture border/.test(line)).length, 1);
+  // The notice is given once, with the next reply.
+  assert.equal(vision.takeBorderNotice(), true);
+  assert.equal(vision.takeBorderNotice(), false);
+  // A turn still gets a picture: one capture when it starts (the composer opens), and no more than that.
+  const before = capture.calls;
+  state.conversing = true;
+  vision.openComposer([{characterId: 'c'}]);
+  await run(1000);
+  assert.equal(capture.calls, before + 1, 'one capture for the turn');
+  assert.ok(await vision.imagesForTurn({visionTurn: 'turn-1'}));
+  assert.equal(capture.calls, before + 1, 'the turn reuses that picture');
+  assert.equal(vision.takeBorderNotice(), false, 'still said once');
+  // Long after the conversation, with someone near, nothing is captured on a timer.
+  state.conversing = false;
+  const after = capture.calls;
+  await run(TAIL_MS + FRAME_INTERVAL_MS * 10);
+  assert.equal(capture.calls, after);
+});
+
+test('a border-free capture keeps the buffer on its timer and never asks the player anything', async () => {
+  const {vision, capture, run} = scene({capture: fakeCapture({border: false})});
+  await run(FRAME_INTERVAL_MS * 6);
+  assert.ok(capture.calls >= 6);
+  assert.equal(vision.takeBorderNotice(), false);
+  assert.equal(vision.diagnostics().borderShown, false);
+  assert.equal(vision.diagnostics().captureMethod, null, 'the fake client reports no method of its own');
+});
+
+test('the border notice is not taken while another provider answers', async () => {
+  const {vision, run, state} = scene({capture: fakeCapture({border: true})});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.convai = false;
+  assert.equal(vision.takeBorderNotice(), false);
+});
+
 test('nothing is written to disk unless a developer names a debug folder', async () => {
   const writes = [];
   const plain = scene({debugDirectory: undefined, writeDebug: async path => writes.push(path)});
@@ -345,14 +401,14 @@ test('nothing is written to disk unless a developer names a debug folder', async
 });
 
 // ---- the helper client ----------------------------------------------------------------------------------------------------------
-function fakeChild(script) {
+function fakeChild(script, ready = '{"ready":true}') {
   const child = new EventEmitter();
   child.stdout = new EventEmitter();
   child.lines = [];
   child.stdin = {on() {}, write(line) { child.lines.push(line); const reply = script(line); if (reply !== undefined) setImmediate(() => child.stdout.emit('data', reply + '\n')); },
     end(line) { child.lines.push(line); setImmediate(() => child.emit('exit', 0)); }};
   child.kill = () => child.emit('exit', 1);
-  setImmediate(() => child.stdout.emit('data', '{"ready":true}\n'));
+  setImmediate(() => child.stdout.emit('data', ready + '\n'));
   return child;
 }
 
@@ -366,7 +422,7 @@ test('the helper client asks for one bounded picture and returns it', async () =
   assert.equal(result.ok, true);
   assert.equal(result.base64, QUEUED);
   assert.equal(capture.running, true);
-  assert.deepEqual(child.lines, ['capture 2048 88\n'], 'width is clamped; quality falls back to the default (1024 px, quality 88 when nothing is asked)');
+  assert.deepEqual(child.lines, ['capture 2048 88 auto\n'], 'width is clamped; quality falls back to the default (1024 px, quality 88 when nothing is asked)');
   assert.equal(CAPTURE_DEFAULTS.maxWidth, 1024);
   capture.stop();
   assert.equal(child.lines.at(-1), 'quit\n');
@@ -451,4 +507,31 @@ test('answered turns keep at most TURN_MEMORY ids and their picture times follow
   await run(FRAME_INTERVAL_MS * 2);
   for (let index = 0; index < 50; index++) await vision.imagesForTurn({characterId: 'judy', visionTurn: 'turn-' + String(index).padStart(8, '0')});
   assert.ok(vision.answered.size <= 32 && vision.answeredAt.size <= 32, `${vision.answered.size} ids, ${vision.answeredAt.size} times`);
+});
+
+test('the helper client tells a capture that shows the Windows border from one that does not, and keeps what the helper said about itself', async () => {
+  let border = false;
+  const reply = () => JSON.stringify({ok: true, width: 768, height: 432, sourceWidth: 1366, sourceHeight: 768, bytes: 3, method: border ? 'wgc' : 'dxgi', border, ms: {total: 30}, jpeg: QUEUED});
+  const capture = new VisionCapture({candidates: ['C:\\helper.exe'], exists: () => true,
+    spawnHelper: () => fakeChild(reply, '{"ready":true,"build":26200,"wgc":true,"borderless":false}')});
+  assert.equal(capture.borderShown, false, 'not known before the first picture');
+  let shot = await capture.capture();
+  assert.deepEqual([shot.method, shot.border, capture.borderShown], ['dxgi', false, false]);
+  assert.deepEqual(capture.info, {build: 26200, wgc: true, borderless: false});
+  border = true;
+  shot = await capture.capture();
+  assert.deepEqual([shot.method, shot.border, capture.borderShown], ['wgc', true, true]);
+  // A failure (the game is covered) leaves what the last picture showed as it was.
+  capture.stop();
+  const covered = new VisionCapture({candidates: ['C:\\helper.exe'], exists: () => true, spawnHelper: () => fakeChild(() => '{"ok":false,"reason":"covered","ms":{"total":1}}')});
+  const none = await covered.capture();
+  assert.deepEqual([none.ok, none.reason, covered.borderShown], [false, 'covered', false]);
+  assert.equal(normalise({ok: false, reason: 'dxgi-unavailable'}).reason, 'dxgi-unavailable');
+  covered.stop();
+  // A helper from before the border fields (nothing in the picture, nothing in its ready line) is not taken for one that shows it.
+  const old = new VisionCapture({candidates: ['C:\\helper.exe'], exists: () => true,
+    spawnHelper: () => fakeChild(() => JSON.stringify({ok: true, width: 768, height: 432, sourceWidth: 1366, sourceHeight: 768, bytes: 3, ms: {total: 30}, jpeg: QUEUED}))});
+  const oldShot = await old.capture();
+  assert.deepEqual([oldShot.ok, oldShot.border, old.borderShown, old.info], [true, undefined, false, null]);
+  old.stop();
 });

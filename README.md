@@ -442,7 +442,7 @@ flowchart LR
 | **redscript** | `r6/scripts/CyberpunkConvai/*.reds` | Things Lua cannot do safely: the text composer and movement-key tracker, the phone's Chat tab, the native Companion Manager popup, holocalls, the facial animation graph selection and the speech event owner. Wraps are narrow and always call `wrappedMethod`. |
 | **RED4ext launcher** | C, `native/autostart/` | Loaded by RED4ext, reads `launcher.ini`, starts the supervisor hidden with a pipe whose closing tells the service the game ended. |
 | **RED4ext native core** | C++20, `native/core/` | `CyberpunkConvaiNative.dll`: a plugin that registers reflection classes (RTTI only, no hooks or addresses) so that heavy mod work runs natively. Each system is separate and has a Lua fallback. See [Native plugins](#native-plugins). |
-| **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window through Windows Graphics Capture, only while it is needed. |
+| **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window, only while it is needed: by Desktop Duplication (no yellow capture border) while the game is in front, else through Windows Graphics Capture (docs/COMPANION_VISION.md, "The yellow border"). |
 | **Bridge** | Node.js ES modules, `bridge/` | The conversation service. Owns providers, memory, context assembly, the voices, speech recognition, lip-sync and facial data, playback, and every timer that must not run in the game. |
 | **Supervisor** | `bridge/bridge-supervisor.mjs`, `scripts/Supervise-ConversationBridge.mjs` | One bridge per game session, restarts after crashes with backoff, stops when the game exits, publishes `runtime/bridge-service.json` for the in-game status line. |
 | **Hidden browser** | The system's Microsoft Edge, else Google Chrome, else another installed Chromium browser (Brave, Vivaldi, Opera and others; nothing is bundled), driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
@@ -1070,7 +1070,7 @@ Companion vision gives a Convai character one recent picture of V's surroundings
 
 | Piece | File | Notes |
 |---|---|---|
-| Capture helper | `native/vision/CyberpunkConvaiVision.cpp` (builds to `CyberpunkConvaiVision.exe`, `scripts/Build-VisionCapture.ps1`) | C++/WinRT, below-normal priority, 35 to 50 MiB. Protocol on stdin and stdout: `capture <maxWidth 64..2048> <quality 1..100>` and `quit`; one JSON reply per line. |
+| Capture helper | `native/vision/CyberpunkConvaiVision.cpp` (builds to `CyberpunkConvaiVision.exe`, `scripts/Build-VisionCapture.ps1`) | C++/WinRT, below-normal priority, 35 to 50 MiB. Protocol on stdin and stdout: `capture <maxWidth 64..2048> <quality 1..100> [wgc|dxgi|auto]` and `quit`; one JSON reply per line. |
 | Helper client | `bridge/vision-capture.mjs` (`VisionCapture`) | Defaults: 1024 px wide, JPEG quality 88, 2.5 s timeout, 5 s ready timeout. A capture that overruns restarts the helper. |
 | Buffer and rules | `bridge/companion-vision.mjs` (`CompanionVision`) | Driven by the bridge's existing 500 ms settings poll. |
 | Page side | `bridge/convai-vision.mjs`, bundled into `runtime/realtime-client.js` | Composes, brightens dim frames, publishes, withdraws and reads acknowledgements. |

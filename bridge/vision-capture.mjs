@@ -1,7 +1,9 @@
 // The game-window still picture for "Companions can see" (docs/COMPANION_VISION.md): a thin client of the native helper
 // native/vision/CyberpunkConvaiVision.exe. The helper runs out of process at below-normal priority and holds no capture
-// session between requests, so an idle helper costs the game nothing; a capture is one Windows Graphics Capture frame of the
-// game's own window (never the desktop), scaled and encoded as a JPEG in memory. Nothing is written to disk here.
+// session between requests, so an idle helper costs the game nothing; a capture is one frame of the game's own window, cropped to
+// its client area, scaled and encoded as a JPEG in memory. Nothing is written to disk here. The helper takes the frame by Desktop
+// Duplication (no Windows capture border) while the game is in front, and by Windows Graphics Capture (which draws a yellow border,
+// `borderShown` here) only on a system where the duplication cannot be made.
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -22,7 +24,9 @@ export function helperCandidates({env = process.env, projectDirectory = project}
 // 1024 px at JPEG quality 88 (was 768 at 80). Measured against the running game: the capture takes the same time, because it is the
 // compositor's next frame that is waited for, not the scaling or the encoding (docs/COMPANION_VISION.md, section 4).
 export const CAPTURE_DEFAULTS = Object.freeze({maxWidth: 1024, quality: 88, timeoutMs: 2500, readyTimeoutMs: 5000});
-const REASONS = new Set(['no-window', 'minimised', 'unsupported', 'no-frame', 'failed', 'bad-request']);
+// 'covered': the border-free capture (Desktop Duplication) only takes the game while it is in front with nothing clickable over it; 'dxgi-unavailable': this
+// system cannot make that duplication (the helper then falls back to the capture that shows Windows' yellow border).
+const REASONS = new Set(['no-window', 'minimised', 'unsupported', 'no-frame', 'failed', 'bad-request', 'covered', 'dxgi-unavailable']);
 
 export class VisionCapture {
   // spawnHelper(path) -> a ChildProcess-like object (tests pass a fake). exists(path) -> boolean.
@@ -30,7 +34,13 @@ export class VisionCapture {
     exists = existsSync, log = () => {}} = {}) {
     Object.assign(this, {candidates, spawnHelper, exists, log});
     this.child = null; this.ready = null; this.queue = Promise.resolve(); this.waiting = []; this.buffer = '';
+    // What the helper said about itself when it started ({build, wgc, borderless}; null for a helper from before it told), and what its newest picture showed:
+    // `border` true when Windows drew its yellow capture border around the game for it, false when it did not, null when not known yet.
+    this.info = null; this.border = null; this.method = null;
   }
+  // True once a picture was taken with Windows' yellow capture border showing. The border flashes for as long as the capture lasts, so a caller must not capture on a
+  // timer while this is true: only when a reply needs a picture (bridge/companion-vision.mjs).
+  get borderShown() { return this.border === true; }
   get path() { return this.candidates.find(path => this.exists(path)) ?? null; }
   get available() { return this.path !== null; }
   // True while a helper process exists (starting or ready).
@@ -46,7 +56,11 @@ export class VisionCapture {
     this.child = child; this.buffer = '';
     const ready = new Promise(resolveReady => {
       const timer = setTimeout(() => { this.log('vision helper did not become ready'); this.stop(); resolveReady(false); }, readyTimeoutMs);
-      this.waiting.push({resolve: message => { clearTimeout(timer); resolveReady(message?.ready === true); }, ready: true});
+      this.waiting.push({resolve: message => {
+        clearTimeout(timer);
+        if (message?.ready === true && Number.isInteger(message.build)) this.info = {build: message.build, wgc: message.wgc === true, borderless: message.borderless === true};
+        resolveReady(message?.ready === true);
+      }, ready: true});
     });
     child.stdout.setEncoding?.('utf8');
     child.stdout.on('data', chunk => this.receive(String(chunk)));
@@ -83,10 +97,14 @@ export class VisionCapture {
       const reply = await new Promise(resolveReply => {
         const timer = setTimeout(() => { resolveReply({ok: false, reason: 'timeout'}); if (this.child === child) { this.stop(); } }, timeoutMs);
         this.waiting.push({resolve: message => { clearTimeout(timer); resolveReply(message); }});
-        try { child.stdin.write(`capture ${width} ${level}\n`); }
+        // "auto": a borderless capture where the system allows one, else Desktop Duplication (no border), else the capture that shows the border. A helper from before
+        // the third word ignores it.
+        try { child.stdin.write(`capture ${width} ${level} auto\n`); }
         catch { clearTimeout(timer); resolveReply({ok: false, reason: 'failed'}); }
       });
-      return normalise(reply);
+      const shot = normalise(reply);
+      if (shot.ok) { this.method = shot.method ?? null; this.border = typeof shot.border === 'boolean' ? shot.border : this.border; }
+      return shot;
     };
     const result = this.queue.then(run, run);
     this.queue = result.catch(() => {});
@@ -108,7 +126,8 @@ export function normalise(reply) {
   if (reply?.ok === true && typeof reply.jpeg === 'string' && reply.jpeg.length > 0
       && Number.isInteger(reply.width) && Number.isInteger(reply.height)) {
     return {ok: true, mime: 'image/jpeg', base64: reply.jpeg, width: reply.width, height: reply.height,
-      sourceWidth: reply.sourceWidth, sourceHeight: reply.sourceHeight, bytes: reply.bytes, ms: reply.ms ?? {}};
+      sourceWidth: reply.sourceWidth, sourceHeight: reply.sourceHeight, bytes: reply.bytes, ms: reply.ms ?? {},
+      ...(reply.method === 'dxgi' || reply.method === 'wgc' ? {method: reply.method} : {}), ...(typeof reply.border === 'boolean' ? {border: reply.border} : {})};
   }
   const reason = typeof reply?.reason === 'string' && (REASONS.has(reply.reason) || reply.reason === 'timeout' || reply.reason === 'unavailable')
     ? reply.reason : 'failed';

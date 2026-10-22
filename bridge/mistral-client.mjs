@@ -720,6 +720,7 @@ function applyAdaptation(body, adapt) {
     else delete body[name];
   }
 }
+const isHtml = headers => /^\s*(?:text\/html|application\/xhtml)/i.test(String(headers?.get?.('content-type') ?? ''));
 const isPlainJson = headers => { const type = String(headers?.get?.('content-type') ?? ''); return /\bjson\b/i.test(type) && !/event-stream/i.test(type); };
 
 // The body of a refused request. A custom server may answer in plain text or HTML (a proxy's "502 Bad Gateway"): its words become the message.
@@ -810,6 +811,14 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     markStage('llmHeaders');
     // The rate-limit headers go to the caller (the shared request scheduler reads a per-second limit from them).
     try { onHeaders?.(response.headers); } catch { /* an observer never fails a reply */ }
+    // A custom address that answers with a web page (a site's page pasted instead of its API address): said so, and never retried. A 5xx or a 401/403 page is a
+    // proxy's or a firewall's, which is told as what it is.
+    if (provider === 'custom' && isHtml(response.headers) && (response.status < 300 || [400, 404, 405, 410].includes(response.status))) {
+      try { await response.body?.cancel?.(); } catch { /* the page is not wanted */ }
+      const page = new MistralError('network', 'answered with a web page, not the API; check the endpoint URL', {apiKey, provider, status: response.status, noRetry: true, trace: {...trace, elapsedMs: since()}});
+      Object.assign(page, {webPage: true, permanent: true});
+      throw page;
+    }
     if (!response.ok) {
       const refused = await errorBody(response, provider);
       const failure = mapFailure(response.status, refused, {headers: response.headers, apiKey, provider});

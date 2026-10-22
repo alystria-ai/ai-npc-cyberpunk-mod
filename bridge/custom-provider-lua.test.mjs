@@ -296,6 +296,8 @@ test('the Test row: testing, ok, and a plain sentence for every failure code wit
     empty = 'The endpoint answered with no text. Check the model ID.',
     request = 'The endpoint refused the request. Check the model ID and the address.',
     redirect = 'The address sends you somewhere else. Use the final address from your provider.',
+    webpage = 'That address is a web page, not the API. Use the API address from your provider.',
+    ['webpage-openrouter'] = 'That address is a web page, not the API. For OpenRouter use https://openrouter.ai/api/v1.',
   }
   for code, sentence in pairs(SENTENCES) do
     publish(base({test = {id = id, state = 'failed', code = code, status = 400}}))

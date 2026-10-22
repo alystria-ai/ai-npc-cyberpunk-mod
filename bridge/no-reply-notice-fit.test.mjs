@@ -11,6 +11,7 @@ const NOTICES = [
   ['Local AI could not start. Check Local AI in Settings > Conversation provider.', ['init.lua', 'phone-chat.lua']],
   ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', ['init.lua', 'phone-chat.lua']],
   ['Local AI runs mostly on your processor here, so replies will be slow.', ['init.lua']],   // 'local-cpu': a model mostly on the processor; the bridge's few words after it are data
+  ['The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it.', ['init.lua']],   // 'vision-border': Windows' capture border around the game (Companions can see, Convai)
   ['Local AI is still loading its model. Try again in a moment.', ['service-status.lua']],
   ['Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.', ['service-status.lua']],
   ['Local AI is not ready, so Convai took that message and did not answer in time.', ['service-status.lua']],
