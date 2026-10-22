@@ -29,7 +29,7 @@ export const isTorchBinCopy = path => {
 
 // Draft clips of the first cast (the 0.2.1 lists named them; no list since does, and the Runtime of 0.2.1 dropped its copies too).
 export const DRAFT_CLIP_FOLDER = `${PLUGIN}/voices/full-cast-draft/`;
-export const isDraftClip = path => path.toLowerCase().startsWith(DRAFT_CLIP_FOLDER);
+export const isDraftClip = path => path.toLowerCase().startsWith(DRAFT_CLIP_FOLDER.toLowerCase());
 
 /** Why a file of the pack is left out (a short phrase), or null when it stays. `path` is the path inside the zip. */
 export function omniLeaveOutReason(path) {

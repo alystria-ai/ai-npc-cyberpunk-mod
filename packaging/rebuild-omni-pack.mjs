@@ -1,7 +1,7 @@
 // Makes the leaner OmniVoice pack from an existing OmniPack zip, without rebuilding its Python environment.
 //
 //   node packaging/rebuild-omni-pack.mjs --from <OmniPack zip> --out <folder> --version 0.2.9 --python <app/omni/python/python.exe of an installed pack>
-//        [--work <folder>] [--commit <sha>] [--timestamp <unix seconds>]
+//        [--work <folder>] [--commit <sha>] [--timestamp <unix seconds>] [--release-config <file>] [--keep-work]
 //
 // Why: the pack's contents have not changed since 0.2.1 (the Python environment, the VoiceStudio adapter, the reference clips and the Voxtral slots are
 // "reused unchanged", docs/PACKAGING.md), and the lists and clips of the characters added since live in the Runtime, so a build from scratch
@@ -48,14 +48,14 @@ async function main(argv) {
   const option = name => { const at = argv.indexOf(name); return at >= 0 ? argv[at + 1] : undefined; };
   const [from, outDirectory, version, python] = ['--from', '--out', '--version', '--python'].map(option);
   if (!from || !outDirectory || !version || !python) {
-    console.error('Usage: node packaging/rebuild-omni-pack.mjs --from <OmniPack zip> --out <folder> --version <v> --python <python.exe of an installed OmniPack> [--work <folder>] [--commit <sha>] [--timestamp <unix seconds>]');
+    console.error('Usage: node packaging/rebuild-omni-pack.mjs --from <OmniPack zip> --out <folder> --version <v> --python <python.exe of an installed OmniPack> [--work <folder>] [--commit <sha>] [--timestamp <unix seconds>] [--release-config <file>] [--keep-work]');
     return 2;
   }
   const out = resolve(outDirectory), work = resolve(option('--work') ?? resolve(out, 'work'));
   const git = args => spawnSync('git', args, {cwd: project, encoding: 'utf8'}).stdout.trim();
   const commit = option('--commit') ?? git(['rev-parse', 'HEAD']);
   const timestamp = new Date(Number(option('--timestamp') ?? git(['log', '-1', '--format=%ct', commit])) * 1000);
-  const config = JSON.parse((await readFile(resolve(project, 'packaging/release.config.json'), 'utf8')).replace(/^﻿/, ''));
+  const config = JSON.parse((await readFile(resolve(option('--release-config') ?? resolve(project, 'packaging/release.config.json')), 'utf8')).replace(/^﻿/, ''));
   const tool = config.toolchain, upstream = tool.omniModel.files['model.safetensors'], pin = tool.omniModel.converted['model.safetensors'];
   const log = message => console.log(`[omni] ${message}`);
 

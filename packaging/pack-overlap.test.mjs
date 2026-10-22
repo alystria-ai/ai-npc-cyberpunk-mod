@@ -1,7 +1,8 @@
 // A new version reuses the optional packs unchanged (server-side copies on Hugging Face), so its Scripts and Runtime meet the OLD pack files in
 // the player's game folder. These tests hold the rule that makes "Replace" always safe: the Runtime and the Scripts never carry a path a pack
-// carries with other bytes (docs/PACKAGING.md, "Packs reused unchanged"). They use a committed listing of the five 0.2.1 packs (path, size, CRC-32:
-// packaging/pack-listings/packs-0.2.1.json), never the packs themselves.
+// carries with other bytes (docs/PACKAGING.md, "Packs reused unchanged"). They use committed listings of the packs (path, size, CRC-32), never the packs
+// themselves: the five 0.2.1 packs (packs-0.2.1.json: the rule's history and the 0.2.1 Runtime that broke it) and the five packs rebuilt for 0.2.9
+// (packs-0.2.9.json: the stricter rule, the Runtime and the packs ship no file in common).
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -151,7 +152,11 @@ test('the Scripts package the builder makes shares only identical files with the
     // The command line says the same thing about the same zip.
     const cli = spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', zip], {encoding: 'utf8'});
     assert.equal(cli.status, 0, cli.stdout + cli.stderr);
-    assert.match(cli.stdout, /OK: every file shared with a pack has the same bytes/);
+    assert.match(cli.stdout, /OK: the zip ships no file a pack ships \(the install note apart\)/);
+    // The rule of 0.2.1 to 0.2.8 is still there for the old listing: a shared file may have the same bytes.
+    const lenient = spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', zip, '--listing', resolve(project, 'packaging/pack-listings/packs-0.2.1.json'), '--allow-identical'], {encoding: 'utf8'});
+    assert.equal(lenient.status, 0, lenient.stdout + lenient.stderr);
+    assert.match(lenient.stdout, /OK: every file shared with a pack has the same bytes/);
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 
