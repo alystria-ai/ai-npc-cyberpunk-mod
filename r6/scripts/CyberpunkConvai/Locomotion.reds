@@ -33,6 +33,9 @@ protected func UpdateCommand(context: ScriptExecutionContext, command: ref<AICom
     let outcome: AIbehaviorUpdateOutcome = wrappedMethod(context, command);
     let move: ref<AIMoveToCommand> = command as AIMoveToCommand;
     if IsDefined(move) && move.m_convaiOwned {
+        // Reported once per command: disarmed before the report, so Lua can arm it again (ConvaiMarkOwned) when its report could
+        // not finish, and every other AI tick of the command is this Bool read and nothing else. The next command is marked again.
+        move.m_convaiOwned = false;
         this.ConvaiOwnedMoveUpdate(context, command);
     };
     return outcome;

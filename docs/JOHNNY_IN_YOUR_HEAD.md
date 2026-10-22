@@ -88,13 +88,13 @@ Read once on the key press, from a fresh `battleObserver.sample(player)` (the sa
 | `replacer` | V is replaced by another character (a flashback where the player is Johnny) |
 | `call` | a phone call is incoming or running |
 | `dialogue` | V is in a quest conversation |
-| `scene` | scene tier 3 or above (limited gameplay, a cinematic), or a dialogue choice on screen while the tier is unknown: the same rule as talking to a story character (the user, 2026-10-19). Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and stays open; where the game stages its own Johnny at tier 2, his game line keeps Johnny quiet (`johnny-speaking`, below) |
+| `scene` | scene tier 5 (a full cinematic), or tier 3 or 4 (limited gameplay, an FPP interaction: a lift, a seat, a ride) together with a dialogue choice on screen or a game voice line of any character in the last 6 s; also a dialogue choice while the tier is unknown. Tier 3 or 4 alone no longer refuses (2026-10-22: a lift ride told a player Johnny was busy with nothing happening). The in-reply guard and the recording poll use the same rule. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and stays open; where the game stages its own Johnny at tier 2, his game line keeps Johnny quiet (`johnny-speaking`, below) |
 | `combat` | V is in a fight |
 | `johnny-speaking` | the game showed a line by Johnny in the last 10 s (the game-dialogue buffer, `mod/game-dialogue.lua`, which already attributes lines to `johnny-silverhand`; nothing new is observed) |
 
 A dialogue choice on screen at tier 1 is the game's own "Talk" prompt on a vendor or a fixer, not a conversation, and does not refuse (the rule of `mod/world-talk.lua`).
 
-Every refusal writes one probe-log line with the facts it rests on (2026-10-21, after a player's "busy right now" with no quest running): `Johnny in your head: refused reason=<reason> facts[tier=.. dialogue=.. choices=.. call=.. replacer=.. combat=.. sitting=.. vehicle=.. scene=.. lastLine=<n>s]`, where `lastLine` is the age of his last game line (`none` when the buffer holds none of his). Only on a refusal; the support report carries it with the rest of probe.log.
+Every refusal writes one probe-log line with the facts it rests on (2026-10-21, after a player's "busy right now" with no quest running): `Johnny in your head: refused reason=<reason> facts[tier=.. dialogue=.. choices=.. call=.. replacer=.. combat=.. sitting=.. vehicle=.. scene=.. workspot=.. lastLine=<n>s]`, where `workspot` is whether V is in a workspot (read only for a scene refusal, `?` otherwise) and `lastLine` is the age of his last game line (`none` when the buffer holds none of his). Only on a refusal; the support report carries it with the rest of probe.log.
 
 When the game's own Johnny stands in the world (the passenger seat of V's car, V's apartment) and V aims at him, the talk key takes the story-character path of `mod/world-talk.lua`, not this one; there a scene-commanded AI or a ride does not refuse him (docs/WORLD_CHARACTERS.md, "Johnny Silverhand is a projection").
 

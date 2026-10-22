@@ -436,3 +436,15 @@ test('phone-chat.lua checks phone-chat-output.json through revision() every 30 m
   assert.match(block, /M\.replyProbe >= 0\.03/);
   assert.match(block, /M\.tick = 0\.10/);
 });
+
+test('init.lua opens runtime/reply.json again only when its native revision changed (or once a second, or without the plugin)', () => {
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"));
+  const open = update.indexOf("io.open('runtime/reply.json', 'rb')");
+  assert.ok(open > 0);
+  const gate = update.slice(update.lastIndexOf('if pending then', open), open);
+  assert.match(gate, /convaiNative\.revision\('reply\.json'\)/);
+  assert.match(gate, /revision > 0 and revision == convaiHeartbeat\.replyReadRevision and replyRaw/);
+  assert.match(gate, /clock - convaiHeartbeat\.replyReadAt < 1/);
+  assert.match(gate, /raw = replyRaw/);
+  assert.match(update.slice(open, open + 400), /if replyFile then/);
+});

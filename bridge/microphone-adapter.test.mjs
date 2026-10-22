@@ -103,6 +103,27 @@ test('menu, lost target, changed world and device errors retire capture without 
  end
 `));
 
+test('a spoken turn that is waiting for its reply survives a menu and a target out of reach, and completes when the reply arrives; a changed world still ends it', () => check(`
+ local valid=true
+ local context=input(true);assert(mic.begin(context,function()return valid end))
+ state('recording');mic.update(player)
+ now=103;assert(mic.finish('group')==context and mic.state=='reply')
+ local sent=#commands
+ paused=true;valid=false
+ assert(mic.update(player)==nil and mic.context==context and mic.state=='reply' and #commands==sent and #cancellations==0, 'menu and distance do not cancel the pending turn')
+ paused=false
+ assert(mic.update(player)==nil and mic.context==context and #cancellations==0)
+ assert(mic.received('voice-1') and not mic.context and #cancellations==0, 'the reply completes the turn')
+ -- Before the finish the same menu still ends the recording.
+ paused=false;valid=true
+ context=input(false);assert(mic.begin(context,function()return valid end));state('recording');mic.update(player)
+ paused=true;assert(mic.update(player)==nil and not mic.context and cancellations[#cancellations].reason=='menu')
+ -- A new world still retires a pending turn.
+ paused=false
+ context=input(false);assert(mic.begin(context));state('recording');mic.update(player);now=110;assert(mic.finish('private')==context)
+ world=world+1;assert(mic.update(player)==nil and not mic.context)
+`));
+
 test('failed writes and opening timeout cannot leave a recording owner alive', () => check(`
  available=false;assert(not mic.begin(input(true))and not mic.context)
  available=true;assert(mic.begin(input(true)))
@@ -382,3 +403,8 @@ test('the language the mod resolved is published for the bridge only when it cha
  available=false;assert(mic.publishLanguage('de')==false,'a failed write is ignored')
  available=true;assert(mic.publishLanguage('de')==true and files['runtime/ui-language.txt']=='de','and tried again next time')
 `));
+
+test('wiring: a menu ends only a recording that is opening or running', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /if not worldReady then\s+gameplayActions\.revoke\('menu'\)\s+local round = groupChat\.round\s+if \(microphone\.context ~= nil and microphone\.state ~= 'reply'\) or \(round and round\.mode == 'voice' and round\.stage == 'recording'\) then\s+cancelVoice\('menu'\)/);
+});

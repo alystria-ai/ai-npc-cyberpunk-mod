@@ -548,6 +548,8 @@ export class TextProviderHost {
    * `confirmed` (optional promise): the reply was started on words that are not final yet (a stable live-words decode, bridge/local-stt-capture.mjs).
    * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
    * (the final words differ) the reply ends there with that error and leaves no trace.
+   * `deferRecord` (optional function): called with a one-shot `commit` instead of remembering the exchange at once; the caller commits it when the
+   * reply is published and drops it otherwise, so the character never remembers lines the player did not hear.
    */
   async reply(config, options = {}) {
     try {
@@ -572,7 +574,24 @@ export class TextProviderHost {
     } catch { return null; }
   }
 
-  async #reply(config, {signal, stream, confirmed} = {}) {
+  /**
+   * The exchange the character remembers (what the player read, tags stripped), summarised afterwards. A reply the player never heard must not be
+   * remembered: nothing is recorded once the turn is cancelled. With `deferRecord` (a function, from the bridge) the exchange is handed to it as a
+   * one-shot `commit` and recorded only when the bridge publishes the reply; without it the exchange is recorded now, as before.
+   */
+  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey}) {
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
+      this.#summarize(route, profileKey);
+    };
+    if (typeof deferRecord === 'function') deferRecord(commit);
+    else if (!signal?.aborted) commit();
+  }
+
+  async #reply(config, {signal, stream, confirmed, deferRecord} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -657,8 +676,7 @@ export class TextProviderHost {
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
         // hard-limit guard replaced is not remembered, and neither are the words that led to it.
         if (!reaction && !outcome.guarded) {
-          this.memory.record({...memoryKey, v: text, r: stripSpeechTags(reply)});
-          this.#summarize(route, local.profileKey);
+          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey});
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
@@ -693,7 +711,7 @@ export class TextProviderHost {
           continue;
         }
         if (confirmed) await confirmed;
-        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
+        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey, signal, deferRecord});
         if (standing) return standing;
         feed.fail(error);
         throw error;
@@ -745,14 +763,14 @@ export class TextProviderHost {
     return result;
   }
 
-  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
+  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey, signal, deferRecord}) {
     if (!(error instanceof MistralError) || route.name === 'local') return null;
     const head = feed.committed ? feed.head : '';
     // A route with `holdingLines: false` (custom) never answers with a holding line: its slow answers are errors the player is told about.
     if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
-    if (head && !reaction) { this.memory.record({...memoryKey, v: text, r: stripSpeechTags(head)}); this.#summarize(route, profileKey); }
+    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey});
     this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
       : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
     markStage('replyReturned');

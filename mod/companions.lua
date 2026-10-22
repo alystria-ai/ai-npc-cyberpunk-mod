@@ -44,13 +44,22 @@ end
 function M.reloadCleanupSnapshot()
     return reloadCleanup and reloadCleanupModule.snapshot(reloadCleanup) or {active=false,phase='idle'}
 end
-local spatialBudget,externalSpatialFrame
+local spatialBudget,externalSpatialFrame,spatialInjected,spatialLimit
 local function spatialFrame()
+    -- One budget table for the whole session, reset in place: no new table per frame, and no re-injection once every adapter holds it.
+    -- The adapters' useSpatialBudget also ask the native plugin for their switch (a log line) once its check has finished, so the
+    -- injection repeats until a frame ran with the plugin check over (or no plugin) and then stops.
+    if spatialInjected then
+        spatialBudget.limit,spatialBudget.used,spatialBudget.deferred=spatialLimit,0,0
+        return spatialBudget
+    end
     spatialBudget=clearance.newBudget()
+    spatialLimit=spatialBudget.limit
     clearance.useBudget(spatialBudget)
     actuator.useSpatialBudget(spatialBudget)
     placement.useSpatialBudget(spatialBudget)
     vehicleNative.useSpatialBudget(spatialBudget)
+    spatialInjected=type(convaiNative)~='table' or convaiNative.pending~=true
     return spatialBudget
 end
 -- The CET owner calls this before draining queued invitations or updating UI.
@@ -188,7 +197,14 @@ local function bodyName(value)
 end
 
 local function rounded(value) return value and math.floor(value*10+.5)/10 or nil end
+-- Copies the fleet gave up on (every unmount refused, still seated): dismissed at the start of the next tick, never inside the
+-- fleet update that asked, because that update still holds this tick's list of ready copies.
+local discardQueue = {}
 local vehicleHooks = {
+    discard = function(entry)
+        discardQueue[#discardQueue+1] = entry.serial
+        return true
+    end,
     release = function(entry)
         equipment.release(entry.equipment)
         -- Release standing movement/gaze in this same handoff even when the
@@ -555,6 +571,28 @@ local function deleteOwnedCopy(entry)
     return false
 end
 
+-- A copy that failed (a spawn that timed out, a recovery after fast travel that could not finish, a refused attach): it is OUR spawned
+-- copy, never a game character, so it is not left standing with a follower role. The role is cleared while the body still exists and the
+-- delete is requested; the entry stays 'failed' (the manager shows why) with entry.removed once the game confirms it. A delete the game
+-- accepted but has not finished is pending, not an error. Five refused attempts end the retries (Dismiss still works). Returns
+-- removed, pending.
+local function retireFailedCopy(entry)
+    if entry.removed then return true,false end
+    if (entry.cleanupTries or 0)>=5 then return false,false end
+    if entry.role and entry.npc and not entry.roleCleared then
+        entry.roleCleared=true
+        pcall(function()
+            if entry.npc:IsAttached() then
+                local ai=entry.npc:GetAIControllerComponent()
+                entry.role:OnRoleCleared(entry.npc)
+                ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
+            end
+        end)
+    end
+    local deleted,pending=deleteOwnedCopy(entry)
+    if not deleted and not pending then entry.cleanupTries=(entry.cleanupTries or 0)+1 end
+    return deleted==true,pending==true
+end
 
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
@@ -997,6 +1035,9 @@ function M.abandon(preserveTransit)
     if reloadCleanup then reloadCleanupModule.abandon(reloadCleanup) end
 end
 
+-- Mod shutdown or CET reload with a live world: removes the overflow party cars, which no update would clean up again.
+function M.destroyPartyCars() return vehicles.shutdown(fleet) end
+
 function M.vehicleSnapshot()
     local value=vehicles.snapshot(fleet)
     value.reloadCleanup=M.reloadCleanupSnapshot()
@@ -1082,11 +1123,17 @@ function M.chauffeurAutodriveToggled(enabled) return vehicles.chauffeurAutodrive
 function M.chauffeurArrived(entity) return vehicles.chauffeurArrived(fleet,entity) end
 
 function M.beginFastTravel()
-    if transit then return false end
+    -- A second fast travel can start while the first one's recovery still runs (a copy in transit or spawning, up to 12 s). It takes
+    -- over: copies already waiting in transit keep their receipts, the ones that came back become receipts again, and the fleet's
+    -- suspended state stays the first travel's (it resumes once, when the last recovery ends).
+    local previous=transit
     local party={}
     for _,entry in ipairs(entries) do
         local eligible=entry.state=='spawning'
-        if entry.state=='ready' then
+        if previous and entry.state=='transit' then
+            entry.retryAt=nil
+            party[#party+1]=entry
+        elseif entry.state=='ready' then
             local ok,alive=pcall(function() return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() end)
             eligible=ok and alive
         end
@@ -1112,10 +1159,15 @@ function M.beginFastTravel()
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
         end
+        -- A failed copy that is still standing goes with the party's receipts (retired again by update), never dropped without a delete.
+        if entry.state=='failed' and not entry.removed and (entry.cleanupTries or 0)<5 then
+            pcall(retireFailedCopy,entry)
+            if not entry.removed then party[#party+1]=entry end
+        end
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
     end
-    transit={phase='loading',clock=0,fleet=vehicles.suspend(fleet)}
+    transit={phase='loading',clock=0,fleet=previous and previous.fleet or vehicles.suspend(fleet)}
     entries=party; groupFrame=nil; elapsed=0
     passageState.trail,passageState.lift,passageState.z={},nil,nil
     return true
@@ -1188,7 +1240,8 @@ local function recoverTransit(player,step)
                     local prepared,result=pcall(appearance.prepare,npc)
                     if not prepared then
                         entry.state,entry.error='failed',tostring(result)
-                        if not deleteOwnedCopy(entry) then
+                        local removed,pending=retireFailedCopy(entry)
+                        if not removed and not pending then
                             entry.error=entry.error..' The copy could not be removed; try Dismiss.'
                         end
                         return
@@ -2180,6 +2233,14 @@ function M.update(player,delta,focusEntity)
     elapsed,runtimeClock=elapsed+dt,runtimeClock+dt
     if elapsed<0.1 then return end
     local step=elapsed; elapsed=0
+    if #discardQueue>0 then
+        local queued=discardQueue; discardQueue={}
+        for _,serial in ipairs(queued) do
+            local ok,done=pcall(M.dismiss,serial)
+            -- A refused removal reopens the fleet's own retry (it asks again ten seconds later).
+            if not ok or done==false then vehicles.discardRefused(fleet,serial) end
+        end
+    end
     local playerPosition=space.copy(player:GetWorldPosition())
     local gazeSettings=M.gazeSettings and M.gazeSettings() or nil
 
@@ -2193,9 +2254,19 @@ function M.update(player,delta,focusEntity)
             if entry.state=='spawning' and runtimeClock-entry.requestedClock>12 then
                 entry.state,entry.error='failed','Spawn timed out'
             end
-            if entry.state=='failed' and not deleteOwnedCopy(entry) then
-                entry.error=entry.error..' The copy could not be removed; try Dismiss.'
+            if entry.state=='failed' then
+                local removed,pending=retireFailedCopy(entry)
+                entry.cleanupAt=runtimeClock+2
+                if not removed and not pending then entry.error=entry.error..' The copy could not be removed; try Dismiss.' end
             end
+        end
+    end
+    -- A failed copy that is still standing (a recovery that could not finish, a delete the game had not confirmed) is retired again every
+    -- two seconds, at most five refusals: one clock comparison per failed entry, and nothing once it is gone.
+    for _,entry in ipairs(entries) do
+        if entry.state=='failed' and not entry.removed and runtimeClock>=(entry.cleanupAt or 0) and (entry.cleanupTries or 0)<5 then
+            entry.cleanupAt=runtimeClock+2
+            pcall(retireFailedCopy,entry)
         end
     end
     for index=#entries,1,-1 do

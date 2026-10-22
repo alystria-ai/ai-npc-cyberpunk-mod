@@ -165,16 +165,19 @@ local function command(ai,handle,owner)
     if accepted==false then operation.refused=true end
     return operation
 end
-function M.mount(entry,vehicle,seat,unmount)
+-- failsafe (an unmount only): the game's instant exit with its failsafe teleport, the last real attempt before the copy is moved
+-- out or removed.
+function M.mount(entry,vehicle,seat,unmount,failsafe)
     local cmd=NewObject(unmount and 'AIUnmountCommand' or 'AIMountCommand')
     local data=NewObject('gameMountEventData')
+    local instant=unmount==true and failsafe==true
     data.mountParentEntityId=vehicle.entityID
     data.slotName=CName.new(seat)
-    data.isInstant=false
+    data.isInstant=instant
     data.setEntityVisibleWhenMountFinish=true
     data.removePitchRollRotationOnDismount=false
     data.ignoreHLS=false
-    data.allowFailsafeTeleport=false
+    data.allowFailsafeTeleport=instant
     data.mountEventOptions=NewObject('gameMountEventOptions')
     data.mountEventOptions.silentUnmount=false
     -- This ID describes an existing occupant for the stealing path, not the car.
@@ -446,6 +449,30 @@ function M.destroy(vehicle)
     vehicle.deleteRequested,vehicle.retired=true,true
     if vehicle.system:IsReady() and not vehicle.system:IsManaged(vehicle.entityID) then return true end
     return false,'Waiting for the party car to finish despawning.'
+end
+-- Party cars a CET reload left behind: deletes every managed entity that carries the party-car tag (nothing else is ever touched,
+-- never a game or player vehicle) except the ids in `known` (cars of this load). A car with V in it or any passenger is skipped and
+-- counted. Returns how many were skipped, or nil,reason while the world is not ready. One call, never per frame.
+function M.sweepOwned(known)
+    local system=Game.GetDynamicEntitySystem()
+    if not system or not system:IsReady() then return nil,'Vehicle world is not ready.' end
+    local ids=system:GetTaggedIDs(CName.new(TAG))
+    if type(ids)~='table' then return 0 end
+    local left=0
+    for index=1,#ids do
+        local entityID=ids[index]
+        if not (known and known[id(entityID)]) and system:IsManaged(entityID)
+            and system:IsTagged(entityID,CName.new(TAG)) then
+            local entity=Game.FindEntityByID(entityID)
+            local busy=false
+            if entity then
+                local ok,occupied=pcall(function() return entity:IsPlayerMounted() or entity:HasPassengers() end)
+                busy=not ok or occupied==true
+            end
+            if busy or system:DeleteEntity(entityID)~=true then left=left+1 end
+        end
+    end
+    return left
 end
 function M.recover(entry,player,occupied)
     if not entry.npc or not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then

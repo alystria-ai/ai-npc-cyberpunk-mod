@@ -239,3 +239,27 @@ test('a ride the game refuses is reported to the bridge as one plain code, and n
  input=context('request-6');assert(q.capture(input,'private-text'))
  assert(input.chauffeurOffer and input.driveUnavailable==nil)
 `));
+
+test('with the native change counter the packet file is not read again until its revision changes, and still once a second', () => run(`
+ local revision,reads,realRead=5,0,nil
+ local second=(function() ${source} end)().new({
+  world=function()return world end,clock=function()return now end,normalizeOffer=function(v)return normalize(v)end,
+  offer=function()return offer end,queue=function(serial,snapshot,entity)queued[#queued+1]={serial=serial}return true,'ok'end,
+  read=function()reads=reads+1;return raw end,decode=function(value)return assert(packets[value])end,
+  revision=function(name)assert(name=='companion-actions.json');return revision end})
+ local input=context();second.capture(input,'private-text');publish(packet(context('other')))
+ second.update(true);assert(reads==1)
+ for _=1,20 do second.update(true) end
+ assert(reads==1,'An unchanged revision read the file again: '..reads)
+ -- A changed revision reads at once and the packet is acted on.
+ revision=6;publish(packet(input));second.update(true)
+ assert(reads==2 and #queued==1,'A changed revision was not read')
+ -- Without a counter every update reads, as before.
+ local plain=(function() ${source} end)().new({
+  world=function()return world end,clock=function()return now end,normalizeOffer=function(v)return normalize(v)end,
+  offer=function()return offer end,queue=function()return true,'ok'end,
+  read=function()reads=reads+1;return raw end,decode=function(value)return assert(packets[value])end})
+ plain.capture(context('request-2'),'private-text');local before=reads
+ for _=1,5 do plain.update(true) end
+ assert(reads==before+5,'Without the plugin each update must read')
+`));

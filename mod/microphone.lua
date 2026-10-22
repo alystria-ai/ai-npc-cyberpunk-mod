@@ -189,13 +189,18 @@ function M.update(player)
         local ok, current = pcall(M.currentKnowledgeOwner)
         if not ok or not sameOwner(M.knowledgeOwner, current) then M.cancel(); return nil end
     end
-    local defs = Game.GetAllBlackboardDefs()
-    if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then
-        M.cancel('menu'); return nil
-    end
-    if type(M.targetValid) == 'function' then
-        local ok, valid = pcall(M.targetValid, M.context)
-        if not ok or not valid then M.cancel('target-lost'); return nil end
+    -- A menu or a target out of reach ends a recording that is opening or running. Once V has finished speaking (state 'reply') the turn is
+    -- the bridge's and completes like a typed one: the reply shows or plays when V is back (a world change above, the 90 s deadline and the
+    -- player's next press still end it).
+    if M.state ~= 'reply' then
+        local defs = Game.GetAllBlackboardDefs()
+        if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then
+            M.cancel('menu'); return nil
+        end
+        if type(M.targetValid) == 'function' then
+            local ok, valid = pcall(M.targetValid, M.context)
+            if not ok or not valid then M.cancel('target-lost'); return nil end
+        end
     end
     local f = io.open('runtime/microphone-state.json', 'rb')
     if f then
