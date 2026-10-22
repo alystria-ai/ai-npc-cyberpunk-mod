@@ -44,13 +44,22 @@ end
 function M.reloadCleanupSnapshot()
     return reloadCleanup and reloadCleanupModule.snapshot(reloadCleanup) or {active=false,phase='idle'}
 end
-local spatialBudget,externalSpatialFrame
+local spatialBudget,externalSpatialFrame,spatialInjected,spatialLimit
 local function spatialFrame()
+    -- One budget table for the whole session, reset in place: no new table per frame, and no re-injection once every adapter holds it.
+    -- The adapters' useSpatialBudget also ask the native plugin for their switch (a log line) once its check has finished, so the
+    -- injection repeats until a frame ran with the plugin check over (or no plugin) and then stops.
+    if spatialInjected then
+        spatialBudget.limit,spatialBudget.used,spatialBudget.deferred=spatialLimit,0,0
+        return spatialBudget
+    end
     spatialBudget=clearance.newBudget()
+    spatialLimit=spatialBudget.limit
     clearance.useBudget(spatialBudget)
     actuator.useSpatialBudget(spatialBudget)
     placement.useSpatialBudget(spatialBudget)
     vehicleNative.useSpatialBudget(spatialBudget)
+    spatialInjected=type(convaiNative)~='table' or convaiNative.pending~=true
     return spatialBudget
 end
 -- The CET owner calls this before draining queued invitations or updating UI.
