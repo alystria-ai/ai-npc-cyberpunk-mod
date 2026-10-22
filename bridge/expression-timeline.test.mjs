@@ -1,11 +1,16 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {analyseReply, planRange, phraseOffsets, FAMILIES} from './emotion-analysis.mjs';
+import {runInNewContext} from 'node:vm';
+import {analyseReply, planRange, FAMILIES} from './emotion-analysis.mjs';
 import {speechActivity, findPauses, alignSegments, buildTrack, attachExpressionTrack, sampleTrack,
   LEAD_SECONDS, BLEND_SECONDS, TRACK_FORMAT, timelineRecord} from './expression-timeline.mjs';
-import {SpeechStream, SpeechSlots} from './speech-stream.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
-import {silentWav} from './speech-audio.mjs';
+import {createOmniPcmVoice, OMNI_RATE} from './omni-pcm.mjs';
+import {encodePcmWav} from './convai-audio-stream.mjs';
+import {deliverPocketSpeech} from './pocket-speech.mjs';
+import {LocalPcmClient} from './local-pcm-client.mjs';
+import {LocalPcmHost} from './local-pcm-host.mjs';
+import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {mixTarget} from './companion-expressions.mjs';
 
 const fam = name => FAMILIES.indexOf(name);
@@ -137,32 +142,78 @@ test('a bittersweet segment blends two families through the same mouth-priority 
   assert.ok(closed.lips_l_corner_up < .02, 'closure still wins');
 });
 
-// ---- Omni: each phrase is its own audio file and its own timeline ----------
-test('Omni: every phrase timeline carries the expression of ITS OWN phrase, starting at its own audio start', async () => {
-  const phrases = ['Haha, that was preem!', 'But honestly, I am worried about what comes next.'];
-  const full = phrases.join(' ');
-  const spans = phraseOffsets(full, phrases);
-  const p = analyseReply(full, {profile: 'some-fixer', breaks: spans.slice(1).map(span => span[0])});
-  const owner = {requestId: 'omni-expr', generation: 4, entity: 'judy-2'};
-  const state = {};
-  const manifests = [];
-  const slots = new SpeechSlots({depot: 'unused', readState: async () => state, store: async (b, d, slot) => ({slot, event: `convai_reply_${slot}`, duration: 2})});
-  const stream = new SpeechStream({input: owner, steps: 32, phrases, slots, current: async () => true, readState: async () => state,
-    writeManifest: async value => manifests.push(structuredClone(value)), wait: () => Promise.resolve(),
-    synthesize: async () => ({audio: silentWav().toString('base64'), timing: {}}), expressionPlan: p, spans});
-  const first = await stream.begin({audio: silentWav().toString('base64'), timing: {}, expressionPlan: p});
-  assert.ok(first.face?.expressionTrack, 'the first phrase gets a track');
-  assert.equal(first.face.expressionTrack.keys[0][0], 0, 'its track starts at its own audio start');
-  const joy = first.face.expressionTrack.keys[0][1 + fam('joy')];
-  assert.ok(joy > .5, 'phrase one is the laugh');
-  assert.equal(first.face.expressionTrack.segments.length, 1);
-  // Phrase two is built by finish(); acknowledge the first chunk so it may proceed.
-  state.requestId = owner.requestId; state.state = 'playing'; state.updated = Date.now(); state.streamId = stream.manifest.streamId; state.completedChunk = 1;
-  await stream.finish();
-  const second = stream.manifest.chunks[1].face.expressionTrack;
-  assert.ok(second.keys[0][1 + fam('anticipation')] === 0 || second.keys[0][1 + fam('fear')] > .3, 'phrase two reads the worry, not the laugh');
-  assert.ok(second.keys[0][1 + fam('joy')] < .2);
-  assert.equal(second.keys[0][0], 0);
+// ---- Omni: phrases rendered one at a time are ONE reply on the Pocket path --------
+// (Until 2026-10-22 each phrase was its own audio file with its own timeline and its own plan. Now the phrases are joined into one PCM stream
+// and the continuous planner plans the whole reply and anchors each part to its real start, found from the pauses between the phrases.)
+class OfflinePlayer {
+  constructor() { this.frames = 0; this.state = 'awaiting-admission'; this.ended = false; }
+  async open() {}
+  append(bytes) { this.frames += bytes.length / 2; return Promise.resolve(); }
+  snapshot() {
+    if (this.state === 'playing') { this.heard = Math.min(this.frames, (this.heard ?? 0) + 2400); if (this.sealed && this.heard >= this.frames) { this.ended = true; this.state = 'ended'; } }
+    return {state: this.state, sampleRate: 24000, channels: 1, receivedFrames: this.frames, playedFrames: this.heard ?? 0,
+      positionSeconds: (this.heard ?? 0) / 24000, bufferedFrames: this.frames - (this.heard ?? 0), ended: this.ended, error: null, underruns: 0};
+  }
+  control(value) { if (value.allow && this.state !== 'ended') this.state = 'playing'; }
+  async end() { this.sealed = true; }
+  async stop() {}
+}
+const OMNI_TEXT = 'Haha, that was preem, we really pulled it off! But honestly, I am worried about what comes next for all of us. I miss him so much.';
+async function omniReply({reply = OMNI_TEXT, expressionSignal, request = 'omni-expr'} = {}) {
+  const input = {requestId: request, entity: '17ULL', generation: 4, profileKey: 'some-fixer', source: 'typed'};
+  const profile = {key: input.profileKey}, documents = [];
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 20000, cleanupTimeoutMs: 5000, createPage: async () => {
+    const client = new LocalPcmClient({createPlayer: () => new OfflinePlayer()});
+    return {closed: false, window: {localPcm: client}, isClosed() { return this.closed; }, async close() { this.closed = true; },
+      async evaluate(fn, payload) { return runInNewContext(`(${fn.toString()})(payload)`, {window: this.window, payload}); }};
+  }});
+  const current = async () => true; current.sync = () => true;
+  const speech = new ConvaiContinuousSpeech({input, profile, current, token: `${request}-token`, faceBuilder: ownedPocketFace,
+    planExpression: (value, signal) => analyseReply(value, {profile: 'some-fixer'}),
+    writeState: async value => { documents.push(structuredClone(value)); return true; }, writeReply: async () => true,
+    readControl: async () => JSON.stringify({version: 1, id: `${request}-token`, requestId: request, entity: input.entity,
+      generation: input.generation, sequence: Date.now(), updated: Date.now(), allow: true, paused: false, volume: 1, pan: 0}),
+    onGenerated: async () => {}});
+  // A phrase is spoken at 60 ms a character, then 0.7 s of silence; `starts` are the real audio starts of the phrases.
+  const starts = [], spoken = [];
+  const voice = createOmniPcmVoice({synthesize: async (key, phrase) => {
+    starts.push(spoken.reduce((total, seconds) => total + seconds, 0)); spoken.push(phrase.length * .06 + .7);
+    const tone = Float32Array.from({length: Math.round(phrase.length * .06 * OMNI_RATE)}, (_, at) => .3 * Math.sin(at / 9) * (.6 + .4 * Math.sin(at / 700)));
+    return {audio: encodePcmWav(Float32Array.from([...tone, ...new Float32Array(16800)]), OMNI_RATE), timing: {}};
+  }});
+  try {
+    const result = {text: reply, sessionID: 's', timing: {}, ...(expressionSignal ? {expressionSignal} : {})};
+    const out = await deliverPocketSpeech({input, profile, result, current, signal: undefined, voice, host: {playLocalPcm: (...args) => host.play(...args)}, speech});
+    return {out, documents, starts};
+  } finally { await host.close(); }
+}
+
+test('Omni: the phrases of a reply get ONE expression track for the whole reply, each part anchored at its own phrase start', async () => {
+  const {out, documents, starts} = await omniReply();
+  assert.equal(starts.length, 3, 'the reply was rendered as three phrases');
+  assert.equal(out.continuous, true);
+  const final = documents.at(-1);
+  assert.equal(final.complete, true);
+  const track = final.face.expressionTrack;
+  assert.ok(track, 'the face carries an expression track');
+  assert.equal(track.segments.length, 3, 'one part per planned part of the whole reply, not one track per phrase');
+  starts.forEach((start, i) => assert.ok(Math.abs(track.segments[i].start - start) <= .15, `part ${i} starts at ${track.segments[i].start}, its phrase at ${start}`));
+  assert.ok(track.segments.every(segment => segment.anchored));
+  // Each phrase reads its own feeling: the laugh, then the worry, then the grief.
+  assert.ok(sampleTrack(track, .5)[fam('joy')] > .5, 'phrase one is the laugh');
+  assert.ok(sampleTrack(track, starts[1] + .6)[fam('joy')] < .2, 'phrase two is not the laugh');
+  assert.ok(sampleTrack(track, starts[1] + .6)[fam('fear')] > .2, 'phrase two reads the worry');
+  assert.ok(sampleTrack(track, starts[2] + .6)[fam('sadness')] > .2, 'phrase three is sad');
+  assert.equal(JSON.stringify(final.face).includes('worried'), false, 'no dialogue text in the track');
+});
+
+test('Omni: the correlated Convai expression receipt is carried once, with the reply, and never changes between phrases', async () => {
+  const expressionSignal = {version: 1, correlated: true, sequence: 0, emotion: 'Grief', scale: 2};
+  const {documents} = await omniReply({expressionSignal, request: 'omni-receipt'});
+  const receipts = documents.filter(document => document.expression);
+  assert.ok(receipts.length >= 1, 'the receipt is on the state documents');
+  for (const document of receipts) assert.deepEqual(document.expression, {version: 1, requestId: 'omni-receipt', generation: 4, entity: '17ULL', sequence: 0, emotion: 'Grief', scale: 2});
+  assert.equal(new Set(receipts.map(document => JSON.stringify(document.expression))).size, 1);
 });
 
 // ---- Pocket / Convai continuous streams -----------------------------------

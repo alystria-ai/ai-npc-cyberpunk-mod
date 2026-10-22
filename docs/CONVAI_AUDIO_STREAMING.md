@@ -2,18 +2,20 @@
 
 ## Current implementation: continuous original Convai PCM
 
-Convai and Omni now have separate playback producers:
+Convai and Omni have separate playback producers, and since 2026-10-22 both feed the same continuous renderer:
 
 | Provider | Generation | Playback start | Renderer |
 | --- | --- | --- | --- |
 | Convai | One player request; original PCM16 and indexed NeuroSync packets | At least 400 ms of source audio, reply text, and the exact game actor's admission | One continuous AudioWorklet ring for the entire reply |
-| Local OmniVoice | Convai text, then local phrase synthesis at the captured 16/32-step setting | After the first complete phrase and its facial analysis; later phrases generate during playback | Existing native Audioware phrase queue |
+| Local OmniVoice | Convai text, then local phrase synthesis at the captured 16/32-step setting | After the first complete phrase and its facial analysis; later phrases generate during playback | The same continuous AudioWorklet renderer as Convai: each phrase is synthesized on its own and fed as Float32 24 kHz PCM packets under one lease, with the same pan, distance gain, dialogue makeup and Voice volume, and its face from the streaming face model (as with Pocket). Before 2026-10-22 it was a native Audioware phrase queue. |
 
 Omni does not currently play samples from an unfinished individual phrase.
 Convai does not use Omni's text splitter, local model, phrase queue, browser
 recapture, WAV handoffs, or a complete-file wait. The complete-WAV compatibility
-route is used only until the running Lua adapter advertises continuous support.
-Once continuous audio has begun, a failure never replays a whole WAV over it.
+route that used to cover a Lua adapter without continuous support is gone
+(2026-10-22): a game session whose Lua adapter does not advertise continuous
+playback shows the reply as text only. A failure never replays a whole WAV over
+continuous audio.
 
 ### Boundaries and ownership
 
@@ -32,7 +34,7 @@ The operating system/browser still performs its normal output-device mixing.
 player and grants a fresh, sequence-numbered lease before any sound can play.
 The lease carries native Master/Dialogue volume, camera-relative pan and
 distance gain. Missing volume access reports an error condition and stays muted.
-The browser is a separate Windows audio session; it is not Audioware spatial
+The browser is a separate Windows audio session; it is not the game's own spatial
 audio, so native occlusion/reverb is not claimed.
 
 The bridge polls at 40 ms. The reader pauses on a stale heartbeat, menu pause,
@@ -122,9 +124,9 @@ The reference audit inspected Dawnwalker v0.5.6 at
 its private first speaker plays the live remote track; prefetched group speech
 uses a continuous worklet with a source-sample clock. Its buffers and spatial
 policy were not copied blindly. Cyberpunk needs its own actor admission, game
-pause, native volume, face mapping and delivery receipts. The installed
-Audioware API has no append-PCM entry point; appending a WAV does not turn its
-fixed-length native decoder into a safe streaming sink.
+pause, native volume, face mapping and delivery receipts. The Audioware
+API (then installed, and no longer used by the mod) had no append-PCM entry point;
+appending a WAV does not turn its fixed-length native decoder into a safe streaming sink.
 
 Tests execute the pure ring, real browser worklet, bridge pump and Lua adapter.
 They cover sample identity/order, pause/underrun clocks, stale ownership, final
@@ -142,8 +144,8 @@ that recording into native WAV files. Measured native handoffs left micro-gaps.
 
 That checkpoint requested the documented LiveKit data-only output. It collected
 original PCM16LE packets in reliable arrival order and writes one WAV header
-around those unchanged samples. One native Audioware clip represents the entire
-reply. There is no browser audio recapture, resampling, gain processing, silence
+around those unchanged samples. One native Audioware clip represented the entire
+reply (this path was removed on 2026-10-22). There is no browser audio recapture, resampling, gain processing, silence
 removal, fade, or per-packet native playback.
 
 NeuroSync frames use the provider's actual `fps` and `start_frame_index`; the

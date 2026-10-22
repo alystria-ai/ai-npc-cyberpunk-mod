@@ -535,19 +535,18 @@ deep, no Chromium browser, Native Settings UI missing, only a Mature pack instal
 a Mod Organizer 2 or Vortex install. The first section of the Help page answers all of these without a report. The value is OK, Problem,
 Note (worth knowing, never a problem) or Unknown (could not be asked yet); the line's help is the one-line fix, and the group's
 description says "No problem found." or "Problems found: N." Lines: Scripts and Runtime (`versions`, only when the service has
-answered), Mod files, Game version, Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, **Native Settings UI**, then the
+answered), Mod files, Game version, Cyber Engine Tweaks, RED4ext, redscript, Codeware, **Native Settings UI**, then the
 service's own lines Optional packs, Browser, Local AI, Internet, Graphics card and Mod manager. Product names are not translated; the
-sentences are, in all 15 languages. **Mod Configuration Menu is not checked and never produces a problem line.**
+sentences are, in all 15 languages. **Mod Configuration Menu is not checked and never produces a problem line.** **Audioware and TweakXL are not checked either** (since 2026-10-22 the mod plays every voice through its own browser audio path and ships no tweak files): the check never probes them, has no line, notice or report row for them, and a player who has them installed sees nothing different.
 
 | Line | Detected by | Problem when | Fix it names |
 | --- | --- | --- | --- |
 | Conversation service | Lua, `service-status.lua` (`reach()`, `unavailable()`, `failureCode()`) on `bridge-service.json` and the heartbeats | no trace of the service in this game session (`never`), or a failed start whose code says the Runtime's files are missing (`install-incomplete`, `bridge-missing`, `missing-character-ids`, `launcher-not-configured` (an older launcher with no `launcher.ini`: its own sentence names the file), `launcher-program-missing`, `launcher-directory-missing`), or any other failure with its code; a missing browser and a missing key keep their sentences | extract the Runtime zip straight into the game folder; download it again; restart and send a report |
 | Mod files | Lua, opens the four JSON catalogs, counts `locales/*.lua` (15), reads `release.json` for the Scripts version | a catalog or locale is missing | extract the Scripts zip again and let it replace the files |
 | Game version, Cyber Engine Tweaks | Lua, `GetGameVersion()` and `GetVersion()` | never: Note when the game is not 2.31 (the mod is tested on 2.31 only), Unknown when unreadable | none |
-| RED4ext | Lua: the native plugin, Codeware, TweakXL, Audioware or this mod's scripts answered | nothing answered | install RED4ext |
-| redscript | Lua: `player:ConvaiRequirements()` (`Requirements.reds`), or for scripts of 0.2.1 and older the getter `ConvaiPhoneIsOpen`; Unknown without a player | the player has neither: the scripts did not compile (a compile error anywhere disables every redscript mod) or are not installed. When the service's `compiler` check (`bridge/setup-check.mjs`: is `engine/tools/scc.exe` there?) says the compiler is missing, there is no compile log to open and the line, the notice and the console say "redscript is missing" with the sentence of any missing requirement | open `r6/logs/redscript_rCURRENT.log`: a mod it names is the cause; missing or old Codeware, Audioware or redscript, or a game other than 2.31, can also cause it. With the compiler missing: install redscript |
-| Codeware, Audioware | Lua: the words `ConvaiRequirements()` answers with (`codeware`, `codeware-ui`, `codeware-textinput`, `audioware`): the modules that existed when this mod's scripts compiled. The scripts compile without either (each file that needs one guards it with `@if(ModuleExists(...))` and carries stand-ins), so loaded scripts no longer prove them. Scripts of 0.2.1 and older still imported both, so for them loading is proof (the old probes `Codeware.Version()` and `Game.GetAudioSystemExt():Version()` decide the version shown). Scripts that did not load say nothing: the line is OK only when the plugin's own probe finds it, otherwise Unknown, so a compile error is never blamed on a framework | the word is missing; Codeware without `codeware-ui` and `codeware-textinput` is too old ("Codeware is too old. Update it from Nexus Mods, then restart the game."). Audioware has two codes: `missing` (nothing of it answers; the line says to install Audioware 1.9.9 or newer, with where it comes from) and `unbuilt` (its own version answers, so its scripts are loaded, but `ConvaiRequirements` has no `audioware`: these scripts were built without it, as with Audioware 1.9.9-rc.0 in a report of 0.2.2; the line says to update it, and the report signature is `audioware unbuilt`). The class alone, without a version, is `missing` | install or update it from Nexus Mods |
-| TweakXL | Lua: `TweakXL.Version()` (the static function the plugin registers); Unknown when this mod's scripts did not load and nothing found it | the probe fails | install it from Nexus Mods |
+| RED4ext | Lua: the native plugin, Codeware or this mod's scripts answered | nothing answered | install RED4ext |
+| redscript | Lua: `player:ConvaiRequirements()` (`Requirements.reds`), or for scripts of 0.2.1 and older the getter `ConvaiPhoneIsOpen`; Unknown without a player | the player has neither: the scripts did not compile (a compile error anywhere disables every redscript mod) or are not installed. When the service's `compiler` check (`bridge/setup-check.mjs`: is `engine/tools/scc.exe` there?) says the compiler is missing, there is no compile log to open and the line, the notice and the console say "redscript is missing" with the sentence of any missing requirement | open `r6/logs/redscript_rCURRENT.log`: a mod it names is the cause; missing or old Codeware or redscript, or a game other than 2.31, can also cause it. With the compiler missing: install redscript |
+| Codeware | Lua: the words `ConvaiRequirements()` answers with (`codeware`, `codeware-ui`, `codeware-textinput`): the modules that existed when this mod's scripts compiled. The scripts compile without it (each file that needs it guards it with `@if(ModuleExists(...))` and carries stand-ins), so loaded scripts no longer prove it. Scripts of 0.2.1 and older still imported it, so for them loading is proof (the probe `Codeware.Version()` decides the version shown). Scripts that did not load say nothing: the line is OK only when the plugin's own probe finds it, otherwise Unknown, so a compile error is never blamed on a framework. A stale `audioware` word from older scripts is ignored | the word is missing; Codeware without `codeware-ui` and `codeware-textinput` is too old ("Codeware is too old. Update it from Nexus Mods, then restart the game."). The class alone, without a version, is `missing` | install or update it from Nexus Mods |
 | Native Settings UI | Lua: `GetMod('nativeSettings')` (or `'NativeSettings'`) with its `data` table and the ten functions the host calls (`mod/setup-check.lua`) | missing, or present but too old | install 1.96 or newer from Nexus Mods |
 | Scripts and Runtime | bridge: `release.json` of the mod folder and of the Runtime (`package.json` in a development checkout). A running service that gave no answer to the request, with none earlier this game session (the bridge writes one when it starts), is a Runtime from before the setup check existed (0.2.1 and older cannot say their version): Lua marks the service silent and the line says the Runtime is probably older. Not claimed for a service that is not running or has stopped since the request | the versions differ, or the service is silent | download both for the same version |
 | Optional packs | bridge: Pocket, OmniVoice, Local AI standard and lite and the Mature models found; `findNestedPacks()` looks for `red4ext/plugins/AiNpcCyberpunkMod/app` under the game folder's child folders (and one level further), the mod folder and the plugin folder; `pack-placement.json` says what the launcher moved at this start | a pack is still one folder too deep, or the launcher could not move its files | restart the game (the launcher moves the pack at its start; the line says so), and if it is still there move the `red4ext` folder inside it into the game folder |
@@ -568,7 +567,7 @@ only); a request is **full** (browser, graphics card and mod managers looked up 
 time). Only an answer written this game session is shown (a 180 s window, as `service-status.lua`).
 
 **The first-load notice.** When something critical is wrong the player gets one notice, once per game session, in gameplay: the first
-problem in a fixed order (this mod's scripts, RED4ext, Codeware, Audioware, TweakXL, Native Settings UI, mod files, a service that never
+problem in a fixed order (this mod's scripts, RED4ext, Codeware, Native Settings UI, mod files, a service that never
 started, Scripts and Runtime, packs, Internet), one short text of at most two lines (`bridge/setup-notice-fit.test.mjs` holds all 15
 languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and Native Settings UI, before the texts that say "See
 Help in Settings", so a notice never sends the player to a page they cannot open. A service that failed has its own notice
@@ -584,34 +583,33 @@ this mod's scripts** (`worldReady` never becomes true) the notice is written str
 `M.screen.timed`) and shown when the game is no longer paused and no menu is open.
 
 **A missing requirement, and scripts that did not compile (2026-10-19).** A redscript compile error disables every redscript mod, so
-two players lost the whole game's scripts to this mod's files when Codeware or Audioware was not installed. `r6/scripts/CyberpunkConvai/`
-now always compiles: the code that needs Codeware or Audioware sits behind `@if(ModuleExists(...))` and each method Lua calls has a
+two players lost the whole game's scripts to this mod's files when Codeware or Audioware (a requirement then) was not installed. `r6/scripts/CyberpunkConvai/`
+now always compiles: the code that needs Codeware sits behind `@if(ModuleExists(...))` and each method Lua calls has a
 stand-in (see README, "A missing requirement never stops the compile"), and `Requirements.reds` adds `PlayerPuppet:ConvaiRequirements()`.
 What the setup check does with it, and what still runs when a requirement is missing:
 
 | Missing | Notice at the first load | What is left out |
 | --- | --- | --- |
-| Audioware | Audioware is missing (alone or in the list) | the voice played through Audioware (the OmniVoice phrases, and a holocall's voice where it uses Audioware); `speech.lua` stops offering audio to the service and says "Audioware is missing" when a voice does not start; the voices played in the browser are not affected |
 | Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop (the live picture is then not cut out either) |
 | Codeware without UI modules | Codeware is too old | the text box, the Chat tab and the old Manager window |
-| TweakXL, Native Settings UI | their own text | nothing in the scripts: they use neither |
+| Native Settings UI | its own text | nothing in the scripts: they do not use it |
 | scripts did not compile | "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load." | everything that needs a script (text box, phone, face, speech playback); the Lua side still loads and shows the notice |
 
-Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Native Settings UI keeps
+RED4ext and Codeware both missing are one notice naming both (the list is capped at four names in `MAX_NAMES`; Native Settings UI keeps
 its own notice, its name being long). The CET console and `probe.log` get one English line per problem. Because a compile error also takes
 away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, after RED4ext only, and the
-Codeware, Audioware and TweakXL lines turn Unknown instead of Problem while it is true. RED4ext stays a Problem when nothing it loads
+Codeware line turns Unknown instead of Problem while it is true. RED4ext stays a Problem when nothing it loads
 answers, this mod's native plugin included (which does not depend on the compile): Codeware's scripts then never reach the compile, so
 RED4ext, not a mod the redscript log lists, is the cause to name. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
-cannot be placed (it names a method of the missing scripts) no longer stops the Native Settings UI registration after it. Audioware
-needs Codeware itself: a game without it fails to compile because of Audioware, whatever this mod does, and
-the redscript popup then names it. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method
-(an old Audioware without `DynamicSoundEvent`): that still fails the compile and shows in `redscript_rCURRENT.log`. `Manager.reds` stays: it
+cannot be placed (it names a method of the missing scripts) no longer stops the Native Settings UI registration after it. Other mods
+that need Codeware fail the compile in a game without it, whatever this mod does, and the redscript popup then names them. Not covered by
+`ModuleExists`: a requirement that is installed but too old to have a class or method: that still fails the compile and shows in
+`redscript_rCURRENT.log`. `Manager.reds` stays: it
 holds the voice and subtitle on/off switches that `speech.lua`, `subtitles.lua` and `init.lua` read and `manager.lua` sets, although
 nothing opens its window.
 
 **In the reports.** The short report the game writes has a `== setup check ==` section: one plain line per check
-(`service: ok running`, `tweakxl: problem missing`, `service gpu: ok found name=... memoryMiB=...`). The full report's `summary.json`
+(`service: ok running`, `codeware: problem missing`, `service gpu: ok found name=... memoryMiB=...`). The full report's `summary.json`
 gets `system.graphics` (name and memory of up to eight cards; this was missing before), the setup document among the status files, the
 game-side rows under `request.setup` (at most 24 rows of four short tokens), and every Problem at the top as a `PROBLEM FOUND` line;
 a missing browser is told once, by the service status. A setup document of another bridge process counts for ten minutes only.

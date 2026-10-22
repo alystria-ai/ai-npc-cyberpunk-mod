@@ -158,7 +158,7 @@ above the players give each variant's text. Variant 5 is an OmniVoice tag
 <h3>Measured means per variant</h3>{summary(measure, lines)}
 <h3>Lines (whole line in one call)</h3>{table(ENGINES)}
 <h3>Lines as the bridge actually sends them to OmniVoice</h3>
-<p>The bridge splits every reply into phrases (6 to 34 words, ending at . ! ? or , ; : &mdash;, see <code>bridge/speech-stream.mjs</code>)
+<p>The bridge splits every reply into phrases (6 to 34 words, ending at . ! ? or , ; : &mdash;, see <code>bridge/speech-phrases.mjs</code>)
 and renders each phrase in its own call, seed 1042, then plays them back to back. This is the same text as above, so an
 ellipsis or dash that lands on a phrase edge gets only the engine's own trailing silence, and the voice's prosody resets.</p>{table(CHUNKED)}
 <h3>OmniVoice tag probe</h3>

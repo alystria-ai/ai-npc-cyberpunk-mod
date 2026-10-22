@@ -1,17 +1,22 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {runInNewContext} from 'node:vm';
 import {DIALOGUE_MAKEUP_DB, LIMITER_CEILING_DB, MAX_TOTAL_DB, MIN_TOTAL_DB, VOICE_VOLUME, activeMakeupDb, applyGainLimited,
-  dbToGain, updateDialogueLevel, updateVoiceVolume, voiceVolumeDb, voiceVolumeDbOf, voiceVolumePercent, voiceVolumePercentNow} from './dialogue-level.mjs';
-import {readPcmWav, storeSpeech} from './speech-audio.mjs';
+  dbToGain, levelWav, updateDialogueLevel, updateVoiceVolume, voiceVolumeDb, voiceVolumeDbOf, voiceVolumePercent, voiceVolumePercentNow} from './dialogue-level.mjs';
+import {readPcmWav} from './speech-audio.mjs';
 import {playbackControl} from './continuous-pcm-core.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {VLine} from './v-voice.mjs';
 import {TurnClock} from './turn-clock.mjs';
+import {createOmniPcmVoice, OMNI_RATE} from './omni-pcm.mjs';
+import {encodePcmWav} from './convai-audio-stream.mjs';
+import {deliverPocketSpeech} from './pocket-speech.mjs';
+import {LocalPcmClient} from './local-pcm-client.mjs';
+import {LocalPcmHost} from './local-pcm-host.mjs';
+import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
+import {ownedPocketFace} from './pocket-facial-stream.mjs';
 
-// Nothing here opens an audio device: the WAVs are written to a temporary folder, the player is a fake, and the browser's own
+// Nothing here opens an audio device: the WAVs are levelled in memory, the player is a fake, and the browser's own
 // limiter is covered by dialogue-level-browser.test.mjs (offline rendering).
 
 const sine = (rate, seconds, amplitude, hz = 997) =>
@@ -60,29 +65,25 @@ test('the voice volume adds to the dialogue level and the sum stays inside what 
   } finally { reset(); }
 });
 
-test('Audioware slot WAVs: 100% is the original bytes, 200% never clips, 50% is half amplitude', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'voice-volume-'));
+test('levelWav (the offline helper) with the active level: 100% is untouched loudness, 200% never clips, 50% is half amplitude', () => {
   const rate = 24000;
   try {
     updateDialogueLevel('{"enabled": false}');   // the volume alone, without the dialogue-level gain
     const quiet = wav16(sine(rate, 1.5, .1), rate), loud = wav16(sine(rate, 1.5, .95), rate);
-    await storeSpeech(quiet.toString('base64'), directory, 0);
-    assert.deepEqual(await readFile(join(directory, 'reply-0.wav')), quiet, '100% with matching off writes the bytes untouched');
+    const at = source => pcmOf(levelWav(readPcmWav(source), activeMakeupDb()));
+    assert.ok(Math.abs(rms(at(quiet)) / rms(pcmOf(quiet)) - 1) < .001, '100% with matching off keeps the loudness');
 
     updateVoiceVolume({voiceVolume: 200});
-    await storeSpeech(quiet.toString('base64'), directory, 1);
-    const doubled = pcmOf(await readFile(join(directory, 'reply-1.wav')));
+    const doubled = at(quiet);
     assert.ok(Math.abs(rms(doubled) / rms(pcmOf(quiet)) - 2) < .01, 'below the ceiling 200% is exactly twice the amplitude');
-    await storeSpeech(loud.toString('base64'), directory, 2);
-    const clipped = pcmOf(await readFile(join(directory, 'reply-2.wav')));
+    const clipped = at(loud);
     assert.equal(clipped.length, pcmOf(loud).length, 'the length, and so the lip-sync timing, is unchanged');
     assert.ok(peak(clipped) <= dbToGain(LIMITER_CEILING_DB) + 1e-3, `peak ${peak(clipped)} stays under the limiter ceiling`);
     assert.ok(peak(clipped) < .91 && peak(clipped) > .5, 'the limiter holds the peak down instead of flattening it to full scale');
 
     updateVoiceVolume({voiceVolume: 50});
-    await storeSpeech(quiet.toString('base64'), directory, 3);
-    assert.ok(Math.abs(rms(pcmOf(await readFile(join(directory, 'reply-3.wav')))) / rms(pcmOf(quiet)) - .5) < .01);
-  } finally { reset(); await rm(directory, {recursive: true, force: true}); }
+    assert.ok(Math.abs(rms(at(quiet)) / rms(pcmOf(quiet)) - .5) < .01);
+  } finally { reset(); }
 });
 
 test('the worst case (full-scale speech, the most dialogue level, 200%) cannot reach full scale', () => {
@@ -137,5 +138,60 @@ test('the browser player scales a lower Voice volume even without a limiter node
   for (const [makeupDb, expected] of [[0, 1], [-6.0206, .5], [6.0206, 1]]) {
     player.admission = {...player.admission, volume: 1, makeupDb}; player.appliedVolume = undefined; player.applyGain();
     assert.ok(Math.abs(context.gain.gain.value - expected) < 1e-3, `${makeupDb} dB gives ${context.gain.gain.value}`);
+  }
+});
+
+// ---- OmniVoice: the Voice volume reaches the renderer through the game lease, exactly as it does for Pocket ----
+
+class OfflinePlayer {
+  constructor() { this.frames = 0; this.state = 'awaiting-admission'; this.ended = false; this.controls = []; }
+  async open(value) { this.token = value.token; }
+  append(bytes) { this.frames += bytes.length / 2; return Promise.resolve(); }
+  snapshot() {
+    if (this.state === 'playing') { this.heard = Math.min(this.frames, (this.heard ?? 0) + 2400); if (this.sealed && this.heard >= this.frames) { this.ended = true; this.state = 'ended'; } }
+    return {state: this.state, sampleRate: 24000, channels: 1, receivedFrames: this.frames, playedFrames: this.heard ?? 0,
+      positionSeconds: (this.heard ?? 0) / 24000, bufferedFrames: this.frames - (this.heard ?? 0), ended: this.ended, error: null, underruns: 0};
+  }
+  control(value) { this.controls.push({...value}); if (value.allow && this.state !== 'ended') this.state = 'playing'; }
+  async end() { this.sealed = true; }
+  async stop() {}
+}
+
+async function omniControls(percent) {
+  const input = {requestId: `omni-volume-${percent}`, entity: '17ULL', generation: 2, profileKey: 'judy-alvarez', source: 'typed'};
+  const profile = {key: input.profileKey}, players = [];
+  const text = 'Hey V, I have been thinking about what happened last night and none of it adds up. We could head down to the market together.';
+  let sequence = 0;
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 20000, cleanupTimeoutMs: 5000, createPage: async () => {
+    const client = new LocalPcmClient({createPlayer: () => { const player = new OfflinePlayer(); players.push(player); return player; }});
+    return {closed: false, window: {localPcm: client}, isClosed() { return this.closed; }, async close() { this.closed = true; },
+      async evaluate(fn, payload) { return runInNewContext(`(${fn.toString()})(payload)`, {window: this.window, payload}); }};
+  }});
+  const current = async () => true; current.sync = () => true;
+  try {
+    updateVoiceVolume({voiceVolume: percent});
+    const speech = new ConvaiContinuousSpeech({input, profile, current, token: `${input.requestId}-token`, faceBuilder: ownedPocketFace,
+      writeState: async () => true, writeReply: async () => true,
+      readControl: async () => JSON.stringify({version: 1, id: `${input.requestId}-token`, requestId: input.requestId, entity: input.entity,
+        generation: input.generation, sequence: ++sequence, updated: Date.now(), allow: true, paused: false, volume: .9, pan: -.2, distance: 3}),
+      onGenerated: async () => {}});
+    const synthesize = async () => ({audio: encodePcmWav(Float32Array.from({length: 28800}, (_, at) => .3 * Math.sin(at / 9)), OMNI_RATE), timing: {}});
+    const voice = createOmniPcmVoice({synthesize});
+    const reply = await deliverPocketSpeech({input, profile, result: {text, sessionID: 's', timing: {}}, current, signal: undefined, voice,
+      host: {playLocalPcm: (...args) => host.play(...args)}, speech});
+    assert.equal(reply.timing.voiceProvider, 'omni');
+    return players[0].controls.filter(control => control.allow === true);
+  } finally { reset(); await host.close(); }
+}
+
+test('an OmniVoice reply carries the Voice volume to the renderer in every lease control, and 100% is the dialogue level alone', async () => {
+  for (const [percent, extra] of [[100, 0], [200, 6.0206], [50, -6.0206]]) {
+    const controls = await omniControls(percent);
+    assert.ok(controls.length > 0, `${percent}%: the renderer was admitted`);
+    for (const control of controls) {
+      assert.ok(Math.abs(control.makeupDb - (DIALOGUE_MAKEUP_DB + extra)) < 1e-3, `${percent}%: makeupDb ${control.makeupDb}`);
+      assert.equal(control.volume, .9, 'the game volume is kept beside it');
+      playbackControl(control);   // and the renderer accepts every value
+    }
   }
 });

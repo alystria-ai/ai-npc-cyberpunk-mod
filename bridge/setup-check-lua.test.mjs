@@ -11,13 +11,13 @@ test('every message the module can show is a catalogued English UI key', () => {
 
 test('with everything installed every line says OK, nothing is a problem and the check opens only the files it names', () => run(String.raw`
   installFiles(); serviceRunning()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', ids())
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', ids())
   assert(check.problemCount() == 0 and #check.problems() == 0)
   local files_, game_, red4ext_ = lineOf('files'), lineOf('game'), lineOf('red4ext')
   assert(files_.label == 'Mod files' and files_.value == 'OK' and files_.description == 'All files found.')
   assert(game_.label == 'Game version' and game_.description == 'Version 2.31.')
   assert(red4ext_.label == 'RED4ext' and red4ext_.description == 'Loaded.')
-  assert(lineOf('codeware').description == 'Version 1.20.5.' and lineOf('tweakxl').description == 'Version 1.11.4.' and lineOf('audioware').description == 'Version 1.9.9.')
+  assert(lineOf('codeware').description == 'Version 1.20.5.')
   assert(lineOf('cet').description == 'Version 1.37.1.' and lineOf('nsui').description == 'Version 1.96.')
   assert(check.serviceLine() == nil, 'a running service is explained by the existing Conversation service row')
   -- the files the check opens: the four catalogs, release.json, the answer (none yet) and the service status files; the folder list
@@ -30,53 +30,53 @@ test('with everything installed every line says OK, nothing is a problem and the
 
 test('each missing framework is a Problem with its own fix, and the most fundamental one is announced first', () => run(String.raw`
   installFiles(); serviceRunning()
-  -- RED4ext not loaded, and the scripts (0.2.2 and newer compile without Codeware and Audioware) say nothing was there to compile against
-  env.codeware, env.tweakxl, env.audioware, env.native, env.requirements = nil, nil, nil, false, ''
+  -- RED4ext not loaded, and the scripts (0.2.2 and newer compile without Codeware) say nothing was there to compile against
+  env.codeware, env.native, env.requirements = nil, false, ''
   applyEnv(); check.run()
   assert(lineOf('red4ext').state == 'problem' and lineOf('red4ext').value == 'Problem')
   assert(lineOf('red4ext').description:find('RED4ext is not loaded', 1, true) and lineOf('red4ext').description:find('Nexus Mods', 1, true))
   assert(lineOf('redscript').state == 'ok' and lineOf('redscript').description == 'Loaded.')
-  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'problem', id) end
-  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl', table.concat(check.problems(), ','))
-  assert(check.problemCount() == 4)
+  assert(lineOf('codeware').state == 'problem')
+  assert(table.concat(check.problems(), ',') == 'red4ext,codeware', table.concat(check.problems(), ','))
+  assert(check.problemCount() == 2)
   -- the scripts did not compile either: the frameworks cannot be judged from them (Unknown), but nothing RED4ext loads answers, not even
   -- this mod's native plugin, so RED4ext is still not loaded, and it comes first: without it Codeware's scripts never reach the compile
   env.scripts, env.requirements = false, nil
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
   assert(lineOf('red4ext').state == 'problem' and lineOf('red4ext').description:find('RED4ext is not loaded', 1, true))
-  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown' and lineOf(id).description == '', id) end
+  assert(lineOf('codeware').state == 'unknown' and lineOf('codeware').description == '')
   assert(check.problemCount() == 2)
   -- the native plugin answers: RED4ext is loaded, and the scripts are the one problem
   env.native = true; applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
   assert(lineOf('red4ext').state == 'ok')
-  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown', id) end
+  assert(lineOf('codeware').state == 'unknown')
   env.native = false
   env.scripts = true
-  -- only TweakXL missing: the others stay OK and the fix names it
-  env.codeware, env.tweakxl, env.audioware, env.scripts = '1.20.5', nil, '1.9.9', true
+  -- only Codeware missing (the scripts were compiled without it, RED4ext's native plugin answers): the others stay OK and the fix names it
+  env.codeware, env.native, env.requirements, env.scripts = nil, true, '', true
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'tweakxl')
-  assert(lineOf('tweakxl').description == 'TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.')
-  assert(lineOf('codeware').state == 'ok' and lineOf('red4ext').state == 'ok')
-  -- scripts of 0.2.1 and older (no ConvaiRequirements) imported Codeware and Audioware: loaded, they imply both, even when the probes fail
-  env.codeware, env.tweakxl, env.audioware = nil, '1.11.4', nil
+  assert(table.concat(check.problems(), ',') == 'codeware', table.concat(check.problems(), ','))
+  assert(lineOf('codeware').description == 'Codeware is missing. Install it from Nexus Mods, then restart the game.', lineOf('codeware').description)
+  assert(lineOf('red4ext').state == 'ok' and lineOf('redscript').state == 'ok')
+  -- scripts of 0.2.1 and older (no ConvaiRequirements) imported Codeware: loaded, they imply it, even when the probe fails
+  env.codeware, env.native, env.requirements = nil, false, nil
   applyEnv(); check.run()
-  assert(lineOf('codeware').state == 'ok' and lineOf('audioware').state == 'ok' and lineOf('codeware').description == 'Found.')
+  assert(lineOf('codeware').state == 'ok' and lineOf('codeware').description == 'Found.')
   assert(#check.problems() == 0)
-  -- the scripts themselves missing while the frameworks are there: redscript, with where its error is logged
-  env.codeware, env.audioware, env.scripts = '1.20.5', '1.9.9', false
+  -- the scripts themselves missing while Codeware is there: redscript, with where its error is logged
+  env.codeware, env.scripts = '1.20.5', false
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript')
   assert(lineOf('redscript').description:find('redscript_rCURRENT.log', 1, true))
-  assert(lineOf('codeware').state == 'ok' and lineOf('audioware').state == 'ok')
+  assert(lineOf('codeware').state == 'ok')
   -- the native plugin alone also proves RED4ext
-  env.codeware, env.tweakxl, env.audioware, env.scripts, env.native = nil, nil, nil, nil, true
+  env.codeware, env.scripts, env.native = nil, nil, true
   applyEnv(); check.run()
   assert(lineOf('red4ext').state == 'ok')
   -- no player (main menu): the scripts cannot be asked, so the line is Unknown and never a problem
-  env.codeware, env.tweakxl, env.audioware, env.scripts, env.native, env.player = '1.20.5', '1.11.4', '1.9.9', true, false, false
+  env.codeware, env.scripts, env.native, env.player = '1.20.5', true, false, false
   applyEnv(); check.run()
   assert(lineOf('redscript').state == 'unknown' and lineOf('redscript').value == 'Unknown' and #check.problems() == 0)
 `));
@@ -216,13 +216,13 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
 test('the service answer is shown only from this game session and every check becomes one line with its fix', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', 'no answer yet: only the game side')
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', 'no answer yet: only the game side')
   -- an answer from an earlier game session (older than the mod's load) is ignored
   local old = answer(); old.updated = ms(-3600); put('runtime/setup-check.json', old)
   check.run()
   assert(not ids():find('browser', 1, true))
   answer(); check.run()
-  assert(ids() == 'versions=ok files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok packs=ok browser=ok local-ai=ok internet=ok gpu=ok mod-manager=ok', ids())
+  assert(ids() == 'versions=ok files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok packs=ok browser=ok local-ai=ok internet=ok gpu=ok mod-manager=ok', ids())
   assert(lineOf('versions').label == 'Scripts and Runtime' and lineOf('versions').description == 'Scripts 0.2.1 and Runtime 0.2.1.')
   assert(lineOf('packs').label == 'Optional packs' and lineOf('packs').description == 'None installed. They are optional.')
   assert(lineOf('browser').description == 'Found: Microsoft Edge.')
@@ -458,52 +458,79 @@ test('the first load without a running service decides at once, and names a serv
 
 test('the first load announces one problem: the most fundamental, in the fixed order', () => run(String.raw`
   installFiles(); serviceRunning()
-  -- TweakXL and Native Settings UI both missing: TweakXL first; the console still names Native Settings UI
-  env.tweakxl, env.nsui = nil, 'none'; applyEnv()
+  -- Codeware and Native Settings UI both missing: Codeware first; the console still names Native Settings UI
+  env.codeware, env.native, env.requirements, env.nsui = nil, true, '', 'none'; applyEnv()
   check.tick(true, true); advance(12); check.tick(true, true)
   local request = json.decode(files['runtime/setup-check-request.json'])
   answer({}, request.id); advance(1)
   local notice = check.tick(true, true)
-  assert(notice == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
+  assert(notice == 'Codeware is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
   -- the console says each of them once, in English: the missing requirement and Native Settings UI
-  assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: TweakXL is missing. Install TweakXL from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.', console[1])
+  assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Codeware is missing. Install it from Nexus Mods, then restart the game.', console[1])
   assert(console[2]:find('neither was found', 1, true))
-  assert(table.concat(check.problems(), ',') == 'tweakxl,nsui', table.concat(check.problems(), ','))
+  assert(table.concat(check.problems(), ',') == 'codeware,nsui', table.concat(check.problems(), ','))
 `));
 
-test('a missing Audioware says exactly what to install; Audioware that is there but unseen by the scripts says to update it', () => run(String.raw`
+test('RED4ext and Codeware both missing is one grouped notice naming both, and the console says each once', () => run(String.raw`
   installFiles(); serviceRunning()
-  -- nothing of Audioware (no probe, and the scripts were built without it): install Audioware 1.9.9 or newer, with where it comes from
-  env.audioware, env.requirements = nil, 'codeware codeware-ui codeware-textinput'
-  applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
-  assert(lineOf('audioware').description == 'Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.', lineOf('audioware').description)
-  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem missing', 1, true))
+  env.codeware, env.native, env.requirements = nil, false, ''; applyEnv()
+  assert(table.concat(check.problems(), ',') == 'red4ext,codeware', table.concat(check.problems(), ','))
   check.tick(true, true); advance(12); check.tick(true, true)
   answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
   local notice = check.tick(true, true)
-  assert(notice == 'Audioware is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
-  assert(#console == 1 and console[1]:find('Install Audioware 1.9.9 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/12001)', 1, true), console[1])
+  assert(notice == 'Missing: RED4ext, Codeware. Install them and restart the game.', tostring(notice))
+  assert(#console == 2 and console[1]:find('RED4ext is missing', 1, true) and console[2]:find('Codeware is missing', 1, true), table.concat(console, ' | '))
+  assert(files['runtime/probe.log']:find('Setup check: problems: red4ext, codeware', 1, true))
 `));
 
-test('Audioware that Cyber Engine Tweaks sees while the scripts were built without it is its own problem: update it, not install it', () => run(String.raw`
+test('Codeware that is too old is its own sentence, in the Help line, the notice and the console', () => run(String.raw`
   installFiles(); serviceRunning()
-  -- the report of a player with a release candidate: its version answers, ConvaiRequirements has no 'audioware'
-  env.audioware, env.requirements = '1.9.9-rc.0', 'codeware codeware-ui codeware-textinput'
-  applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
-  local item = lineOf('audioware')
-  assert(item.state == 'problem' and item.description == 'Audioware 1.9.9-rc.0 is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.', item.description)
-  assert(not item.description:find('missing', 1, true), 'it is not missing')
-  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem unbuilt 1.9.9-rc.0', 1, true), table.concat(check.reportLines(), '\n'))
+  env.requirements, env.codeware = 'codeware', '1.12.0'; applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'codeware' and lineOf('codeware').description == 'Codeware is too old. Update it from Nexus Mods, then restart the game.')
   check.tick(true, true); advance(12); check.tick(true, true)
   answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
-  local notice = check.tick(true, true)
-  assert(notice == 'Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.', tostring(notice))
-  assert(#console == 1 and console[1]:find('Audioware is installed, but this mod\'s scripts were built without it. Update Audioware to 1.9.9 or newer', 1, true), console[1])
-  -- beside another missing requirement the notice names both, as "install or update"
-  env.tweakxl = nil; applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'audioware,tweakxl', table.concat(check.problems(), ','))
+  assert(check.tick(true, true) == 'Codeware is too old. Update it from Nexus Mods, then restart the game.')
+  assert(#console == 1 and console[1]:find('Codeware is too old', 1, true), console[1])
+`));
+
+// Audioware and TweakXL are no requirements: with or without them nothing is said, listed, reported or asked of them
+test('a game WITH Audioware and TweakXL installed gets no notice, no line, no console message and no report row for them, and nothing asks them anything', () => run(String.raw`
+  installFiles(); serviceRunning()
+  assert(env.tweakxl and env.audioware, 'the fixture game has both')
+  check.run()
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', ids())
+  assert(lineOf('tweakxl') == nil and lineOf('audioware') == nil)
+  assert(check.problemCount() == 0 and #check.problems() == 0)
+  check.tick(true, true); advance(12); check.tick(true, true)
+  answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
+  assert(check.tick(true, true) == nil, 'no notice')
+  assert(#console == 0, table.concat(console, ' | '))
+  local lines = table.concat(check.reportLines(), '\n'):lower()
+  assert(not lines:find('audioware', 1, true) and not lines:find('tweakxl', 1, true), lines)
+  assert(not files['runtime/probe.log']:lower():find('audioware', 1, true) and not files['runtime/probe.log']:lower():find('tweakxl', 1, true))
+  for _, row in ipairs(check.summary()) do assert(row.id ~= 'audioware' and row.id ~= 'tweakxl', row.id) end
+  assert(retiredProbes == 0, 'asked ' .. retiredProbes .. ' times')
+  -- the same with the scripts compiled with every word there is (new scripts): still nothing about them
+  env.requirements = 'codeware codeware-ui codeware-textinput'; applyEnv(); check.run()
+  assert(#check.problems() == 0 and lineOf('audioware') == nil and retiredProbes == 0)
+  -- both installed beside a real problem: only the real problem is named
+  env.codeware, env.native, env.requirements = nil, true, ''; applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'codeware' and retiredProbes == 0)
+  assert(not (lineOf('codeware').description .. check.reportLines()[1]):lower():find('audioware', 1, true))
+`));
+
+test('a game WITHOUT Audioware and TweakXL is fully OK, with the scripts of 0.2.1 and older and with the newer ones', () => run(String.raw`
+  installFiles(); serviceRunning()
+  env.tweakxl, env.audioware = nil, nil; applyEnv(); check.run()
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', ids())
+  assert(check.problemCount() == 0 and #check.problems() == 0)
+  env.requirements = 'codeware codeware-ui codeware-textinput'; applyEnv(); check.run()
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', ids())
+  assert(#check.problems() == 0 and check.requirement('codeware') == true)
+  check.tick(true, true); advance(12); check.tick(true, true)
+  answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
+  assert(check.tick(true, true) == nil and #console == 0)
+  assert(table.concat(check.reportLines(), '\n'):find('scripts compiled with: codeware codeware-textinput codeware-ui', 1, true))
 `));
 
 test('the first load names Scripts and Runtime of different versions, a pack one folder too deep and a blocked connection', () => {
@@ -590,23 +617,23 @@ test('nothing runs per frame: idle ticks open no file and make no game call, in 
   for _ = 1, 100 do assert(check.signature() == signature) end
 `));
 
-test('reports: one plain line per check for the short report, and at most ten short rows for the full report', () => run(String.raw`
+test('reports: one plain line per check for the short report, and at most eight short rows for the full report', () => run(String.raw`
   installFiles(); serviceRunning()
-  env.tweakxl = nil; applyEnv()
+  env.codeware, env.native, env.requirements = nil, true, ''; applyEnv()
   answer({internet = {id = 'internet', state = 'problem', code = 'blocked', service = 'mistral', host = 'api.mistral.ai'},
     packs = {id = 'packs', state = 'problem', code = 'nested', found = {'Local AI lite'}, nested = {{pack = 'Mature lite', folder = 'wrapped'}}, moved = {}},
     ['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}})
   check.run()
   local lines = table.concat(check.reportLines(), '\n')
   for _, expected in ipairs({'service: ok running', 'files: ok found 0.2.1', 'game: ok tested 2.31', 'cet: ok found 1.37.1', 'red4ext: ok loaded',
-    'redscript: ok loaded', 'codeware: ok found 1.20.5', 'tweakxl: problem missing', 'audioware: ok found 1.9.9', 'nsui: ok found 1.96',
+    'redscript: ok loaded', 'codeware: problem missing', 'scripts compiled with: no Codeware', 'nsui: ok found 1.96',
     'service versions: ok match scripts=0.2.1 runtime=0.2.1', 'service packs: problem nested found=Local AI lite nested=wrapped',
     'service browser: ok found name=Microsoft Edge', 'service internet: problem blocked host=api.mistral.ai service=mistral',
     'service gpu: ok found name=NVIDIA GeForce RTX 4070 memoryMiB=12282', 'service mod-manager: note vortex managers=vortex'}) do
     assert(lines:find(expected, 1, true), 'missing: ' .. expected .. '\n' .. lines)
   end
   local summary = check.summary()
-  assert(#summary == 10 and summary[1].id == 'service' and summary[10].id == 'nsui')
+  assert(#summary == 8 and summary[1].id == 'service' and summary[8].id == 'nsui')
   for _, row in ipairs(summary) do
     assert(type(row.id) == 'string' and type(row.state) == 'string' and type(row.code) == 'string')
     for key in pairs(row) do assert(key == 'id' or key == 'state' or key == 'code' or key == 'version', 'only short tokens: ' .. key) end
@@ -622,7 +649,7 @@ test('the short report written by the game holds the setup check, with the same 
   installFiles()
   put('runtime/bridge-service.json', {version = 1, state = 'stopped', updated = ms(), since = ms(-5)})
   put('runtime/convai-report-lua.txt', '')
-  env.tweakxl = nil; applyEnv()
+  env.codeware, env.native, env.requirements = nil, true, ''; applyEnv()
   convaiSetupCheck = check
   local support = (function() ${supportSource} end)()
   local s = support.new({party = function() return {} end})
@@ -630,7 +657,7 @@ test('the short report written by the game holds the setup check, with the same 
   local text = files['runtime/convai-report-lua.txt']
   assert(text, 'the short report was written')
   assert(text:find('== setup check ==', 1, true), text)
-  assert(text:find('tweakxl: problem missing', 1, true) and text:find('nsui: ok found 1.96', 1, true) and text:find('service checks: none from this game session', 1, true), text)
+  assert(text:find('codeware: problem missing', 1, true) and text:find('nsui: ok found 1.96', 1, true) and text:find('service checks: none from this game session', 1, true), text)
   -- without the module the section says so
   convaiSetupCheck = nil
   put('runtime/convai-report-lua.txt', '')

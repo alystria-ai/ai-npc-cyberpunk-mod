@@ -24,7 +24,7 @@ const bridge = process.env.PREVIOUS_BRIDGE ? pathToFileURL(resolve(process.env.P
 const {selectEmotion, LABEL_OF} = await import(new URL('emotion-selector.mjs', bridge).href);
 const {phraseOffsets} = await import(new URL('emotion-analysis.mjs', bridge).href);
 const {emotionSpans} = await import(new URL('../bridge/emotion-tags.mjs', import.meta.url).href);
-const {splitSpeechText} = await import(new URL('speech-stream.mjs', bridge).href);
+const {splitSpeechText} = await import(new URL('speech-phrases.mjs', bridge).href);
 
 const args = process.argv.slice(2);
 const which = args.find((arg, at) => !arg.startsWith('--') && args[at - 1] !== '--gold' && args[at - 1] !== '--json' && args[at - 1] !== '--conditions') || 'all';

@@ -16,7 +16,7 @@
 // endpoint), a 401 or a 429 stops it for the session. Nothing is retried in a loop.
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
-// CET, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
+// CET, RED4ext, redscript, Codeware, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
 // Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the setup check's lines; whether the Runtime's code files match the release
 // (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
 // the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
@@ -179,14 +179,14 @@ async function collectVersions({game, modRoot, project, gameInfo = {}}) {
   let runtimeVersion = project ? await release(join(project, 'release.json')) : null;
   if (!runtimeVersion && project) runtimeVersion = await release(join(project, 'package.json'));
   const versions = {runtime: runtimeVersion, scripts: (modRoot ? await release(join(modRoot, 'release.json')) : null) ?? gameInfo.scripts ?? null};
-  for (const key of ['game', 'cet', 'codeware', 'audioware', 'tweakxl', 'redscript', 'mcm']) versions[key] = gameInfo[key] ?? null;
+  for (const key of ['game', 'cet', 'codeware', 'redscript', 'mcm']) versions[key] = gameInfo[key] ?? null;
   // RED4ext writes the game version and every plugin it loaded at the top of its session log.
   const red4ext = game ? await newestFile(join(game, 'red4ext', 'logs'), /^red4ext-.+\.log$/i) : null;
   if (red4ext) {
     const text = await headOf(red4ext);
     const plugins = pluginVersions(text);
     versions.red4ext = plugins.red4ext;
-    for (const [id, name] of [['codeware', 'codeware'], ['tweakxl', 'tweakxl'], ['audioware', 'audioware'], ['archivexl', 'archivexl']]) {
+    for (const [id, name] of [['codeware', 'codeware'], ['archivexl', 'archivexl']]) {
       versions[id] ??= plugins.plugins.get(name) ?? null;
     }
     versions.game ??= clip(/Product version:\s*(\S+)/.exec(text)?.[1], 30) ?? null;

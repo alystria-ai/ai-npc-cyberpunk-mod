@@ -339,7 +339,7 @@ mod paths. Only a successful build is copied to
 Current evidence:
 
 - Native redscript compilation passed against installed Codeware, TweakXL,
-  Audioware and other installed scripts.
+  Audioware and other installed scripts (when that was checked; the mod no longer uses TweakXL or Audioware, 2026-10-22).
 - Nine graph round-trips passed, 50 connected controls each.
 - The archive's exact entry set passed verification.
 - 46 graph, combat-record and companion checks passed; no skips. The full suite
@@ -347,7 +347,7 @@ Current evidence:
   skipped. All 23 Lua modules compile.
 - Installed game startup compilation passed; this proves script loading, not
   visible animation. The same install activated the previously staged per-voice
-  reverb opt-out in `Speech.reds`.
+  reverb opt-out in `Speech.reds` (deleted on 2026-10-22 with the Audioware playback).
 - Judy's two jaw pulses and return to normal were visually accepted by the user.
   Four diagnostic lifecycle checks also pass. **Dialogue lip-sync acceptance
   remains open.**
@@ -384,8 +384,8 @@ neither supplies head or eye rotation. Silent audio intervals close the mouth.
 
 `mod/facial-playback.lua` validates the request ID, exact copy's entity ID,
 duration, timestamps, control whitelist and weights. Only a prepared owned
-companion can receive a feature. `speech.lua` samples at Audioware's actual
-playback cursor, resets on pause/cancel/end, and discards all facial references
+companion can receive a feature. `speech.lua` samples at the heard-audio cursor of the browser
+renderer (Audioware's playback cursor before 2026-10-22), resets on pause/cancel/end, and discards all facial references
 without native calls on world unload. A facial failure leaves the voice and
 subtitles available. Unsupported rigs and ambient quest/crowd actors continue
 without this facial layer.

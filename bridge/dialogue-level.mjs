@@ -2,9 +2,9 @@
 // -23.6 LUFS (measured from extracted lines) and the game's Wwise dialogue mix
 // then plays them louder than unity playback does. Generated speech arrives at
 // a similar file level (-22 to -26 LUFS), so unity playback through the browser
-// or Audioware sounds quieter than vanilla dialogue. This module holds the one
-// calibrated makeup gain both renderers use, and the offline helpers for
-// Audioware WAVs (gain plus a lookahead peak limiter, so boosting never clips).
+// sounds quieter than vanilla dialogue. This module holds the one
+// calibrated makeup gain every voice uses (the renderer applies it as sample gain behind its limiter), and the offline WAV helpers
+// (gain plus a lookahead peak limiter, so boosting never clips) kept for scripts and tests.
 
 // Calibrated against a loopback recording of vanilla dialogue (see
 // docs/DIALOGUE_LEVEL.md). Applied to every spoken reply unless the player
@@ -40,7 +40,7 @@ export const dbToGain = db => Math.pow(10, db / 20);
 // Settings > Voices > Voice volume (runtime/settings.json "voiceVolume", a percent): the player's own trim on top of the dialogue
 // level, for every spoken voice (companions, NPCs, add-ons) and V's voice for typed lines. 100 is unity and the default; below it
 // is plain attenuation; above it is gain behind the same peak limiter (Web Audio compressor in the browser, the look-ahead limiter
-// in the Audioware WAVs), so 200% (+6.02 dB) never clips. It rides in the same makeup field, so nothing else changes: no per-frame
+// in the offline WAV helper), so 200% (+6.02 dB) never clips. It rides in the same makeup field, so nothing else changes: no per-frame
 // work, no buffering, no timing change (the limiter's fixed look-ahead is already compensated), and the next phrase or poll uses it.
 export const VOICE_VOLUME = Object.freeze({min: 50, max: 200, step: 5, default: 100});
 export const voiceVolumeDbOf = percent => 20 * Math.log10(percent / 100);

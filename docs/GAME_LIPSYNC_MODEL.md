@@ -179,7 +179,7 @@ uses the aligned phones (`bridge/jali-face-text.mjs`; measurements and fallbacks
   `local-jali`); before coverage, after any PCM gap or worker fault, the
   NeuroSync ARKit retarget (v10) continues in the same fixed 25-track layout.
   Provider brow/corner expressions are kept in both cases. The rare
-  complete-WAV Convai fallback route still uses ARKit only.
+  complete-WAV Convai fallback route still used ARKit only (that route was removed on 2026-10-22).
 
 Why replace NeuroSync's mouth for Convai too: on the retained Judy Convai reply
 the v10 retarget keeps the lips in contact in only ~6 % of speech frames
@@ -188,7 +188,7 @@ the game's own Judy dialogue has contact in ~16 % of speech frames (median
 aperture 4.1 mm) and widens up to ~5.6 mm. One reply is indicative only; the
 in-game comparison below is the real test.
 
-Lua (`mod/facial-playback.lua`, `mod/speech-replay-probe.lua`) accepts the new
+Lua (`mod/facial-playback.lua`, and `mod/speech-replay-probe.lua`, deleted on 2026-10-22 together with the Audioware slot playback it drove) accepts the new
 source and five more graph controls, and its validation bounds now cover the
 game's own ranges (jaw .7, contact 1.0, lower roll .8, upper roll .3, puff
 .45, cheek puff .35, other mouth controls .5).
@@ -196,15 +196,14 @@ game's own ranges (jaw .7, contact 1.0, lower roll .8, upper roll .3, puff
 ## Activation
 
 No archive, redscript or game restart is needed. Copy `mod/facial-playback.lua`
-and `mod/speech-replay-probe.lua` into the installed CET mod and reload CET;
+into the installed CET mod (and, as written on that date, `mod/speech-replay-probe.lua`, which no longer exists) and reload CET;
 restart the bridge so it loads the new JavaScript, the local weights in
 `runtime/lipsync-model/` and rebuilds `runtime/realtime-client.js`. Deleting
 `runtime/lipsync-model/face-model.*` (or `CYBERPUNK_CONVAI_FACE_MODEL=off`)
 restores the previous paths on the next bridge start.
 
-`scripts/lipsync/stage_ab_fixture.mjs <wav> old|new --install` stages the same
-audio with the previous local mouth or the model for the replay probe
-(`speech-fixture:<profile>:<nonce>`), for a controlled side-by-side check.
+(`scripts/lipsync/stage_ab_fixture.mjs` and the replay probe it fed were removed on 2026-10-22 with the Audioware
+playback path; the A/B replay of a saved WAV no longer exists.)
 
 ## Data handling
 

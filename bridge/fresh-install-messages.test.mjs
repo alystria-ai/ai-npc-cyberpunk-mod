@@ -12,7 +12,7 @@ import {collectSetupCheck, readPackPlacement} from './setup-check.mjs';
 //   2. a Runtime older than the Scripts (0.2.1 has no setup check): the running service never answers, and nothing was said.
 //   3. the launcher's pack-move report never reached the Help page (readPackPlacement threw on its default clock, and the caller swallowed it).
 
-const ALL = 'codeware codeware-ui codeware-textinput audioware';
+const ALL = 'codeware codeware-ui codeware-textinput';
 // One whole first load, as in reds-requirements.test.mjs, keeping the notice from whichever tick returns it. The service keeps answering its
 // heartbeat (serviceRunning) the way a live bridge does; \`reply\` is what the service writes for the request (nothing for a Runtime without a setup check).
 const firstLoad = String.raw`
@@ -29,7 +29,7 @@ const firstLoad = String.raw`
   end
   -- the Lua of a game whose scripts did not compile: no framework answers except RED4ext's own plugin
   function scriptsDidNotLoad()
-    env.codeware, env.tweakxl, env.audioware, env.scripts, env.native = nil, nil, nil, false, true
+    env.codeware, env.scripts, env.native = nil, false, true
     applyEnv()
   end
 `;
@@ -57,7 +57,7 @@ test('scripts that did not load with the compiler in place, or with no answer fr
   ${firstLoad}
   installFiles(); serviceRunning()
   scriptsDidNotLoad()
-  local generic = 'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.'
+  local generic = 'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.'
   -- the compiler's file is there: another mod's error is the likely cause
   answer({})
   check.run()
@@ -69,7 +69,7 @@ test('scripts that did not load with the compiler in place, or with no answer fr
   check.run()
   assert(lineOf('redscript').description == generic)
   -- a compiler that is missing only matters while the scripts did not load
-  env.scripts, env.requirements = true, '${ALL}'; env.codeware, env.tweakxl, env.audioware = '1.20.5', '1.11.4', '1.9.9'; applyEnv()
+  env.scripts, env.requirements = true, '${ALL}'; env.codeware = '1.20.5'; applyEnv()
   answer({compiler = {id = 'compiler', state = 'problem', code = 'missing'}})
   check.run()
   assert(lineOf('redscript').state == 'ok' and lineOf('redscript').description == 'Loaded.')

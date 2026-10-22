@@ -28,7 +28,7 @@ def main() -> int:
     parser.add_argument("--filler-probe", action="store_true", help="only the isolated-filler probe, into omni<steps>/fprobe/")
     parser.add_argument("--noise", action="store_true", help="v1 and v2 again with seeds 1043 and 1044, omni16/noise/")
     parser.add_argument("--chunked", action="store_true",
-                        help="render each line as the bridge does: phrase by phrase (bridge/speech-stream.mjs), "
+                        help="render each line as the bridge does: phrase by phrase (bridge/speech-phrases.mjs), "
                              "seed 1042 per phrase, joined with no gap, into omni<steps>c/")
     args = parser.parse_args()
 

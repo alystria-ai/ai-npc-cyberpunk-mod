@@ -310,12 +310,10 @@ snapshot({state='ended',position=2,textComplete=true,complete=true,ended=true});
 assert(not speech.requestId and state().lastDelivery and not control().allow)
 `));
 
-test('native Omni WAV playback still uses native start and completion and never grants a browser lease',()=>run(`
-assert(speech.start(context,{text='Local voice',audio={slot=0,event='convai_reply_0',duration=2}}))
-assert(nativeStarts==1 and #controls==0)
-nativeCursor=.2;tick();nativeCursor=2;tick()
-assert(state().lastDelivery.source=='native-playback' and not state().lastDelivery.backend)
-assert(#controls==0 and nativeStops==1)
+test('a reply without a continuous voice is never played: its text shows, no lease is granted and nothing is delivered',()=>run(`
+assert(not speech.start(context,{text='Local voice',audio={slot=0,event='convai_reply_0',duration=2}}))
+assert(captions.line=='Local voice' and #controls==0 and not speech.requestId)
+tick();tick();assert(not state().lastDelivery and nativeStarts==0 and nativeStops==0 and #controls==0)
 `));
 
 for (const fps of [30, 60, 120]) {

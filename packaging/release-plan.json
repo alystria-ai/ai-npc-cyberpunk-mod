@@ -82,10 +82,6 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-preview.lua"
         },
         {
-          "source": "mod/speech-replay-probe.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-replay-probe.lua"
-        },
-        {
           "source": "mod/speech-cadence-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-cadence-probe.lua"
         },
@@ -700,6 +696,7 @@
             "bridge/natural-speech.mjs",
             "bridge/nearby-warm.mjs",
             "bridge/omni-pack.mjs",
+            "bridge/omni-pcm.mjs",
             "bridge/parsed-snapshot.mjs",
             "bridge/party-connections.mjs",
             "bridge/pcm-edges.mjs",
@@ -752,8 +749,8 @@
             "bridge/speech-audio.mjs",
             "bridge/speech-language.mjs",
             "bridge/speech-pace.mjs",
+            "bridge/speech-phrases.mjs",
             "bridge/speech-state-cache.mjs",
-            "bridge/speech-stream.mjs",
             "bridge/stage-marker.mjs",
             "bridge/stt-activity.mjs",
             "bridge/support-report.mjs",
@@ -853,13 +850,6 @@
           "revision": "c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
           "uncompressedBytes": 3267470260,
           "status": "redistribution-review-and-release-size-check-required"
-        },
-        {
-          "id": "audio-bank",
-          "destination": "r6/audioware/CyberpunkConvai",
-          "source": "build-generated",
-          "selection": "fresh speech.yml and eight silent placeholders, never live reply WAVs",
-          "status": "fresh-depot-generation-required"
         },
         {
           "id": "bootstrap",
@@ -1143,14 +1133,6 @@
     {
       "name": "Codeware",
       "developmentVersion": "1.20.5"
-    },
-    {
-      "name": "TweakXL",
-      "developmentVersion": "1.11.4"
-    },
-    {
-      "name": "Audioware",
-      "developmentVersion": "1.9.9"
     },
     {
       "name": "Mod Configuration Menu",

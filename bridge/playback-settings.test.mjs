@@ -7,19 +7,24 @@ const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url),
 const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
 const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
 
-test('native playback respects mute and subtitle changes without restarting audio', () => {
+test('continuous playback respects mute and subtitle changes without restarting audio', () => {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const program = `
-    local voice, visible, cursor, starts, stops = true, true, 0, 0, 0
+    local voice, visible, cursor, starts, stops, failStart = true, true, 0, 0, 0, false
     local player = {
       ConvaiManagerVoice=function() return voice end,
       ConvaiManagerSubtitles=function() return visible end,
-      GetEntityID=function() return {hash='player'} end,
-      ConvaiSpeechStart=function() starts=starts+1; return true end,
-      ConvaiSpeechStop=function() stops=stops+1 end,
-      ConvaiSpeechPosition=function() return cursor end,
-      ConvaiSpeechPause=function() end
+      GetEntityID=function() return {hash='player'} end
     }
+    -- The renderer's side: a fake adapter reporting the heard position (cursor) of one 5 s utterance.
+    local controller={version=1,available=true}
+    function controller.start() if failStart then return false,'no voice engine' end; starts=starts+1; return true end
+    function controller.stop() stops=stops+1 end
+    function controller.pause() return true end
+    function controller.status() return {} end
+    function controller.update()
+      return {position=cursor,bufferedDuration=5,text='Hello V',textComplete=true,state='playing',complete=true,ended=false}
+    end
     local board={SetVariant=function() end, GetBool=function() return false end}
     Game={GetPlayer=function() return player end,
       GetAllBlackboardDefs=function() return {UI_System={}, UIGameData={}} end,
@@ -32,13 +37,15 @@ test('native playback respects mute and subtitle changes without restarting audi
     io.open=function() return nil end
     local captions=(function() ${subtitles} end)()
     local face=(function() ${facial} end)()
-    dofile=function(path) return path=='facial-playback.lua' and face or captions end
+    dofile=function(path)
+      if path=='continuous-speech.lua' then return controller end
+      return path=='facial-playback.lua' and face or captions
+    end
     local speech=(function() ${speech} end)()
-    speech.available=true
     speech.target={GetEntityID=function() return {hash='npc'} end,
       IsAttached=function() return true end, IsDeadNoStatPool=function() return false end}
     local context={entity='npc', requestId='test', name='Judy'}
-    local reply={text='Hello V', audio={slot=0,event='convai_reply_0',duration=5}}
+    local reply={text='Hello V', continuous={version=1,id='12345678-1234-1234-1234-123456789abc'}}
     visible=false
     assert(speech.start(context,reply))
     cursor=1; speech.update(0.1); captions.update(0.1)
@@ -55,7 +62,7 @@ test('native playback respects mute and subtitle changes without restarting audi
     visible=false
     assert(not speech.start(context,reply) and not captions.line and starts==1)
     voice=true; visible=true
-    player.ConvaiSpeechStart=function() return false end
+    failStart=true
     assert(not speech.start(context,reply) and speech.state=='playback-failed')
     assert(captions.line and not speech.requestId)
   `;

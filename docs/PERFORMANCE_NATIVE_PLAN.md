@@ -240,7 +240,7 @@ Each class of hot path gets a different route:
 - **Dependencies.** No new Nexus requirement: RED4ext is already required, and Codeware, also required, is
   itself a RED4ext RTTI plugin.
 - **Installed versions** (game 2.31, file version 3.0.80.51928): RED4ext 1.30.0, CET 1.37.1, Codeware 1.20.5,
-  TweakXL 1.11.4, Audioware 1.9.9-rc.0.
+  TweakXL 1.11.4, Audioware 1.9.9-rc.0 (the last two are installed on the development machine and are no longer requirements, 2026-10-22).
 
 ### Patch safety
 

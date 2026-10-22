@@ -35,10 +35,6 @@ local function actor(id)
 end
 local a,b,player=actor('copy-a'),actor('copy-b'),actor('V')
 function player:ConvaiManagerVoice() return true end
-function player:ConvaiSpeechStart() return true end
-function player:ConvaiSpeechStop() end
-function player:ConvaiSpeechPause() end
-function player:ConvaiSpeechPosition() return cursor end
 Game={GetPlayer=function() return player end,GetAllBlackboardDefs=function() return {UI_System={}} end,
  GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return paused end} end} end,
  GetSceneSystem=function() return {GetScriptInterface=function() return {
@@ -53,8 +49,30 @@ convaiCompanions={owns=function(actor) return actor.owned end}
 local face=(function() ${faceSource} end)()
 local captions={clear=function() end,clearEntity=function() end,show=function() end,enabled=function() return false end,
  beginTimed=function() end,syncTimed=function() end}
-dofile=function(path) if path=='facial-playback.lua' then return face end;return captions end
+-- The voice is the continuous renderer: a fake controller reports the heard position (the test's cursor) and the reply's
+-- face timeline as a continuous revision, exactly the state the real adapter (mod/continuous-speech.lua) hands speech.lua.
+local live
+local controller={version=1,available=true,start=function() return true end,stop=function() end,pause=function() return true end,
+ status=function() return {} end,
+ update=function(_,_,_,isPaused)
+  if not live then return nil end
+  local duration=live.duration
+  local ended=live.complete and cursor>=duration and not isPaused
+  return {position=cursor,bufferedDuration=duration,text=live.text,textComplete=live.complete,
+   state=ended and 'ended' or 'playing',complete=live.complete,ended=ended,face=live.face,faceDuration=duration,
+   expression=live.expression}
+ end}
+dofile=function(path) if path=='facial-playback.lua' then return face end;if path=='continuous-speech.lua' then return controller end;return captions end
 local speech=(function() ${speechSource} end)();speech.available=true
+-- Start a continuous reply whose face is the given timeline (the same document a native reply used to carry): the heard position
+-- is the test's cursor, chased by speech.lua with at most 80 ms of lag. options.complete=false keeps the reply open-ended.
+local function say(ctx,timeline,options)
+ options=options or {}
+ local line=copy(timeline);line.continuous=true;line.complete=options.complete~=false
+ line.requestId,line.entity,line.generation=ctx.requestId,ctx.entity,ctx.generation
+ live={duration=line.duration,text=options.text or 'Hello.',complete=line.complete,face=line,expression=options.stateExpression}
+ return speech.start(ctx,{text=options.text or 'Hello.',continuous={version=1,id=ctx.requestId..'-voice'},expression=options.expression})
+end
 local context=${literal(owner)}
 local rows={{entity=a.id,npc=a},{entity=b.id,npc=b}}
 local function tick(dt,options)
@@ -137,7 +155,7 @@ test('speaking composes one feature with unchanged accepted Omni contact/tongue 
   const at=line.frames.find(frame=>Math.abs(frame[0]-.45)<1e-9);
   const expected=Object.fromEntries(SPEECH_TRACKS.map((track,i)=>[track,at[i+1]]));
   run(`tick(.1);speech.target=a
-  assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))
+  assert(say(context,${literal(line)}))
   -- The closure holds for a while (the A cue, .45 s of it): the smile has had its release time by cursor .45.
   local count,bcount=#a.frames,#b.frames;cursor=.05;tick(.1)
   for i=1,24 do cursor=i==24 and .45 or .05+i/60;tick(1/60) end
@@ -210,7 +228,7 @@ test('malformed optional curves and receipts cannot reject accepted speech or in
   // Lua JSON fixtures cannot represent NaN; a wrong frame width exercises the
   // same optional-curve rejection without invalidating the speech document.
   line.providerExpressions.frames=[[0,1]];
-  run(`speech.target=a;assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))
+  run(`speech.target=a;assert(say(context,${literal(line)}))
   cursor=.3;tick(.1);assert(face.active and last(a).lips_l_corner_up==0 and face.providerExpressions==nil)
   assert(face.error==nil)`);
 });
@@ -236,7 +254,7 @@ test('October 8: speech without any intent rests neutral, and a text cue shows a
   run(`tick(.1);speech.target=a
   local function speak(timeline,id)
    local ctx=context
-   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}))
+   assert(say(ctx,timeline))
    for i=1,12 do cursor=.2+.03*i;tick(.1) end
    local frame=last(a);speech.stop('cancelled');for _=1,12 do tick(.1) end;return frame
   end
@@ -258,7 +276,7 @@ test('the per-turn expression receipt publishes emotion, scale and the peak pose
   delete line.motion;
   run(`tick(.1);speech.target=a
   assert(face.status().expressions.lastSpeech==nil)
-  assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))
+  assert(say(context,${literal(line)}))
   for i=1,10 do cursor=.2+.03*i;tick(.1) end
   local turn=face.status().expressions.lastSpeech
   assert(turn,'no receipt');assert(turn.entity==a.id,'entity');assert(turn.requestId==context.requestId,'request');assert(turn.frames>5,'frames '..turn.frames)
@@ -924,7 +942,7 @@ test('speaking with Interest or no emotion shows no smile, even for a warm chara
   local function speak(timeline,target,actor)
    local ctx={requestId=timeline.requestId,entity=actor.id,generation=4}
    speech.target=actor
-   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=timeline}))
+   assert(say(ctx,timeline))
    for i=1,14 do cursor=.2+.03*i;tick(.1) end
    local frame=copy(last(actor));speech.stop('cancelled');for _=1,6 do tick(.1) end;return frame
   end
@@ -946,7 +964,7 @@ const trackLine = (id, extra = {}) => ({version: 1, requestId: id, entity: 'copy
 test('track playback: the expression follows the heard audio position, blends between phrases and never snaps', () => run(`
  speech.target=a
  local ctx={requestId='trk',entity=a.id,generation=4}
- assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=${literal(trackLine('trk'))}}),face.error)
+ assert(say(ctx,${literal(trackLine('trk'))}),face.error)
  local function at(position) cursor=position;tick(.1);return copy(last(a)) end
  local joy
  for p=.1,1.7,.1 do joy=at(p) end
@@ -982,7 +1000,7 @@ test('idle smile: present at rest, absent during and after the Evelyn reply, bac
   local function idle(seconds) local peak=0;for _=1,math.floor(seconds*10+.5) do tick(.1);peak=math.max(peak,last(a).lips_l_corner_up) end;return peak end
   local function speak(id,timeline)
    local ctx={requestId=id,entity=a.id,generation=4}
-   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=timeline}),face.error)
+   assert(say(ctx,timeline),face.error)
    local late=0
    for i=1,34 do cursor=.1*i;tick(.1);if i>8 then late=math.max(late,last(a).lips_l_corner_up) end end
    speech.stop('finished');return late
@@ -1011,7 +1029,7 @@ test('track playback: closure and rounding still zero the corners and leave ever
    speech.target=a
    local function play(timeline)
     local ctx={requestId=timeline.requestId,entity=a.id,generation=4}
-    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=2},face=timeline}),face.error)
+    assert(say(ctx,timeline),face.error)
     local out={}
     for i=1,14 do cursor=.2+i*.01;tick(.1) end
     out.open=copy(last(a))
@@ -1045,7 +1063,7 @@ test('track playback: an invalid or misaligned track is ignored and speech conti
    speech.target=a
    for _,timeline in ipairs({${literal(bad)},${literal(unordered)}}) do
     local ctx={requestId=timeline.requestId,entity=a.id,generation=4}
-    assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3.5},face=timeline}),face.error)
+    assert(say(ctx,timeline),face.error)
     assert(face.expressionTrackKeys==nil,'invalid track rejected')
     cursor=.5;tick(.1);assert(last(a).jaw_mid_open==.3,'speech still plays')
     speech.stop('cancelled');for _=1,5 do tick(.1) end
@@ -1083,7 +1101,7 @@ test('face-test probe: policy mode leaves no injected feeling or active flag beh
 // look-at controller's (on a gaze shift), so a companion holding eye contact never blinked while she spoke.
 const seeded = value => `do local seed=${value}.0;face.blinkRandom=function() seed=(seed*16807.0)%2147483647.0;return seed/2147483647.0 end end`;
 const flatLine = (id, source, duration, extra = {}) => ({version: 1, requestId: id, entity: 'copy-a', duration, source,
-  ...(source === 'local-jali' ? {articulation: 'jali-audio-v1'} : {}),
+  ...(source === 'local-jali' ? {articulation: 'jali-audio-v1'} : source === 'local-phonetic' ? {articulation: 'coarticulated-v5'} : {}),
   tracks: ['jaw_mid_open', 'lips_together_up', 'lips_together_dn', 'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse'],
   frames: [[0, .3, 0, 0, 0, 0, 0, 0], [duration, .3, 0, 0, 0, 0, 0, 0]], ...extra});
 const blinkHelpers = `
@@ -1098,7 +1116,7 @@ test('blinks continue through a reply on every voice route: every 2-6 s, short, 
   for (const source of ['local-jali', 'convai-arkit61', 'local-phonetic', 'audio-envelope']) run(`${seeded(4242)}${blinkHelpers}
    speech.target=a
    local ctx={requestId='blink-${source}',entity=a.id,generation=4}
-   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=20},face=${literal(flatLine(`blink-${source}`, source, 20))}}),face.error)
+   assert(say(ctx,${literal(flatLine(`blink-${source}`, source, 20))}),face.error)
    local frames={}
    for i=1,594 do cursor=i/30;tick(1/30);frames[#frames+1]=copy(last(a)) end
    local times=onsets(frames,1/30,1/30)
@@ -1257,7 +1275,7 @@ test('a phrase boundary now and then brings a blink, and a separate phrase never
    face.blinkRandom=function() return .1 end   -- every boundary is taken; rhythm 2.4 s
    speech.target=a
    local ctx={requestId='phrases',entity=a.id,generation=4}
-   assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=8},face=${literal(flatLine('phrases', 'local-jali', 8, {expressionTrack: track}))}}),face.error)
+   assert(say(ctx,${literal(flatLine('phrases', 'local-jali', 8, {expressionTrack: track}))}),face.error)
    local frames={}
    for i=1,470 do cursor=i/60;tick(1/60);frames[#frames+1]=copy(last(a)) end
    local times=onsets(frames,1/60,1/60)
@@ -1298,7 +1316,7 @@ function peaksWhileSpeaking(profile, plan, id = 'range') {
     const status = lauxlib.luaL_dostring(vm, to_luastring(setup + `
      rows[1].profileKey=${JSON.stringify(profile)};speech.target=a
      local ctx={requestId=${JSON.stringify(id)},entity=a.id,generation=4}
-     assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=6},face=${literal(line)}}),face.error)
+     assert(say(ctx,${literal(line)}),face.error)
      local peak={}
      for i=1,174 do cursor=i/30;tick(1/30);for k,v in pairs(last(a)) do if type(v)=='number' and v>(peak[k] or 0) then peak[k]=v end end end
      speech.stop('finished')
@@ -1387,7 +1405,7 @@ test('October 9: grief still never smiles through the writer, with or without a 
 // bland once the lip sync starts". Her idle face (here Judy's resting smile) holds through V's message, her
 // thinking, a reply being prepared, a stream buffering and an Omni phrase loading, on every route; the reply's sad
 // face begins with its first heard frame and eases in with the usual smoothing.
-test('the idle face holds until the reply is heard, on the phrase (Omni, Convai WAV) and stream (Pocket, Convai) routes', () => {
+test('the idle face holds until the reply is heard, through speech.lua and on a raw continuous face timeline', () => {
   const sadKeys = [[0, 0, 0, 1, 0, 0, 0, 0, 0], [3, 0, 0, 1, 0, 0, 0, 0, 0]];
   const track = {version: 1, format: 'emotion-mix-v1', families: ['joy', 'trust', 'sadness', 'anger', 'fear', 'disgust', 'surprise', 'anticipation'], keys: sadKeys};
   const sad = receipt('Sadness', 3, 0);
@@ -1411,14 +1429,13 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
     end
     assert(turned and turned<=60,'sad within a second of the first heard frame: '..tostring(turned))
    end`;
-  // Phrase route: the reply's first WAV is handed to native audio, which takes a while to start (an Omni first
-  // phrase, an Audioware start); the cursor stays at 0 until then.
+  // Through speech.lua: the continuous voice takes a while to start (the heard position stays at 0 until the first device report).
   run(`${prelude}
-   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3},face=${literal(phrase)}}),face.error)
+   assert(say(context,${literal(phrase)}),face.error)
    cursor=0;holds('phrase prepared, audio not started',2)
    heard(function(i) cursor=i/60;tick(1/60) end)
    speech.stop('finished')`);
-  // Stream route: the speech owner begins the expression as the stream opens; the face timeline arrives and the
+  // Raw continuous face timeline: the speech owner begins the expression as the stream opens; the face timeline arrives and the
   // player pauses the face while the device has not reported heard audio yet.
   run(`${prelude}
    face.beginExpression(context,${literal(sad)})
@@ -1429,7 +1446,7 @@ test('the idle face holds until the reply is heard, on the phrase (Omni, Convai 
    face.stop(a,'finished')`);
   // A reply cancelled before it was heard leaves the idle face as it was (no reset, no reaction).
   run(`${prelude}
-   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=3},face=${literal(phrase)}}),face.error)
+   assert(say(context,${literal(phrase)}),face.error)
    cursor=0;holds('prepared',.5);speech.stop('cancelled');holds('cancelled before audio',1)`);
 });
 
@@ -1441,7 +1458,7 @@ test('a heard reply owns the mouth (speech_owner eased to 1) and hands it back e
     mouthCues: [{start: 0, end: .5, value: 'A'}, {start: .5, end: 1, value: 'G'}], expressionSignal: signal()}, owner);
   delete line.motion;
   const start = `tick(.1);speech.target=a
-   assert(speech.start(context,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=1},face=${literal(line)}}))`;
+   assert(say(context,${literal(line)}))`;
   run(`${start}
    assert(last(a).speech_owner==nil or last(a).speech_owner==0,'idle frames do not own the mouth')
    cursor=.02;tick(1/60);local first=last(a).speech_owner
@@ -1451,7 +1468,7 @@ test('a heard reply owns the mouth (speech_owner eased to 1) and hands it back e
    assert(last(a).jaw_mid_open~=nil,'the same frame carries the jaw')
    assert(face.ownerFace==true and face.status().expressions.lastSpeech.ownedFrames>0)
    -- Blocked (combat, a scene, native dialogue): the idle face is the game's, the owner drops with every other delta.
-   cursor=.2;tick(1/60,{blocked=true});assert(last(a).speech_owner==0,'blocked frames never own the mouth: '..tostring(last(a).speech_owner))
+   cursor=.25;tick(1/60,{blocked=true});assert(last(a).speech_owner==0,'blocked frames never own the mouth: '..tostring(last(a).speech_owner))
    cursor=.3;tick(1/60);assert(last(a).speech_owner<1,'ownership restarts eased after a block')
    for i=1,12 do cursor=.3+i/60;tick(1/60) end
    assert(last(a).speech_owner==1)

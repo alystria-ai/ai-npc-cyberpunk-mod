@@ -1,5 +1,13 @@
 # Phrase playback and local lip sync
 
+> **Superseded on 2026-10-22 (delivery only).** OmniVoice phrases no longer go through Audioware slot WAVs and a `speech-stream.json`
+> manifest. Each phrase is still synthesized one at a time (the splitting, the 16/32 steps, the bounds and the one serialized worker
+> below are unchanged), but its audio is fed as PCM (Float32, 24 kHz packets) to the same continuous browser renderer as Pocket and
+> Voxtral, under the same lease, pan, distance gain, dialogue makeup and Voice volume, and its face comes from the streaming face model
+> like Pocket's. The bullets below about the manifest, the slot ring and the native consumer describe the earlier delivery and are kept
+> as the record. Audioware is no longer used by the mod. See [CONVAI_AUDIO_STREAMING.md](CONVAI_AUDIO_STREAMING.md) and
+> [DIALOGUE_LEVEL.md](DIALOGUE_LEVEL.md).
+
 ## Scope and current evidence
 
 September 29, 2026: implemented and installed for the local OmniVoice voices
@@ -32,7 +40,7 @@ the FIFO worker never delays that speaker's own next phrase.
   phrase. `speech-stream.json` carries append-only, numbered, ready audio/face
   chunks, with request ID, generation, exact entity, random stream ID, total,
   completion and partial-failure status.
-- WAV writes finish before their manifest is atomically replaced. Eight existing
+- (Earlier delivery, superseded on 2026-10-22.) WAV writes finish before their manifest is atomically replaced. Eight existing
   on-demand Audioware slots are leased; a slot cannot be reused until the matching
   consumer acknowledges its chunk. The native currently playing slot is excluded
   even when a new request supersedes an old owner.

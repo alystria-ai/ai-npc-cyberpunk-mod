@@ -58,7 +58,7 @@ end
 -- lease for the bridge's distance low-pass (docs/DIALOGUE_LEVEL.md).
 local speakerDistance = nil
 -- Headphone-friendly pan width: a speaker at V's side is mostly, not only, in
--- one ear (about 12 dB down on the far side, like Audioware's own emitters).
+-- one ear (about 12 dB down on the far side).
 local PAN_WIDTH = .7
 
 local function write(allow, paused, level, pan)
@@ -97,8 +97,8 @@ local function validActors(player, actor)
 end
 
 local function gameVolume()
-    -- Verified against installed Audioware/Listener.reds: ConfigVarInt values
-    -- in /audio/volume, 0..100. Missing API/settings fail silent, never guessed.
+    -- The game's own settings group /audio/volume: ConfigVarInt values, 0..100.
+    -- Missing API/settings fail silent, never guessed.
     local ok, level = pcall(function()
         local group = Game.GetSettingsSystem():GetGroup(CName.new('/audio/volume'))
         local master = group:GetVar(CName.new('MasterVolume')):GetValue()
@@ -142,7 +142,7 @@ local function spatial(player, actor)
     local pan = horizontal > .001 and direction > .001 and (dx*forward.y-dy*forward.x)/(horizontal*direction) or 0
     local t = math.max(0, math.min(1, (distance-2)/16))
     -- Gentle distance gain and equal-power pan in the device renderer, with the
-    -- same 2m near / 18m far range as Audioware. The bridge adds the dialogue
+    -- 2m near / 18m far range. The bridge adds the dialogue
     -- level and a distance low-pass (docs/DIALOGUE_LEVEL.md).
     speakerDistance = math.floor(distance * 100 + .5) / 100
     return (volume or 0)*(1-t*t*(3-2*t)), math.max(-1, math.min(1, pan)) * PAN_WIDTH

@@ -17,9 +17,9 @@ const catalog = JSON.parse(read('../localization/en.json')).strings;
 const body = /local function shortText\(id, names, old\)([\s\S]*?)\nend\n/.exec(source);
 assert(body, 'shortText moved');
 const notices = [...body[1].matchAll(/ui\.t\('((?:[^'\\]|\\.)*)'/g)].map(match => match[1].replace(/\\'/g, "'"));
-// {name} is RED4ext, Codeware, TweakXL or Audioware (a product name that stays English in every language); {names} is the widest
-// list the notice can name: four of them (MAX_NAMES in the module), never Native Settings UI.
-const filled = text => text.replace('{name}', 'Audioware').replace('{names}', 'RED4ext, Codeware, Audioware, TweakXL');
+// {name} is RED4ext or Codeware (a product name that stays English in every language); {names} is the widest
+// list the notice can name: both of them (REQUIREMENT_IDS in the module), never Native Settings UI.
+const filled = text => text.replace('{name}', 'Codeware').replace('{names}', 'RED4ext, Codeware');
 
 function localeTable(code) {
   const vm = lauxlib.luaL_newstate();
@@ -36,8 +36,8 @@ function localeTable(code) {
   return rows;
 }
 
-test('the notice is one of fifteen short sentences, each catalogued and each within the English budget', () => {
-  assert.equal(notices.length, 15, notices.join('\n'));
+test('the notice is one of fourteen short sentences, each catalogued and each within the English budget', () => {
+  assert.equal(notices.length, 14, notices.join('\n'));
   for (const text of notices) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
     assert.deepEqual(noticeProblems(filled(text), {english: true}), [], text);
