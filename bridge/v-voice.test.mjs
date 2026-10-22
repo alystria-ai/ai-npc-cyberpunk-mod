@@ -136,7 +136,8 @@ test('the game\'s dialogue volume rides along in the parsed turn context and nev
   const parsed = parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 4, gender: 'female', dialogueVolume: 0.42});
   assert.equal(parsed.dialogueVolume, 0.42); assert.equal(parsed.gender, 'female');
   for (const bad of [-0.1, 1.5, NaN, '0.5', null]) assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 4, dialogueVolume: bad}).dialogueVolume, undefined);
-  assert.deepEqual(parseTurnContext({version: 1, status: 'ready', dialogueVolume: 0.5}), {version: 1, status: 'unavailable'});
+  // Nothing but the volume is no snapshot of the scene, yet the volume is kept for V's voice (every Dynamic info switch off leaves just that).
+  assert.deepEqual(parseTurnContext({version: 1, status: 'ready', dialogueVolume: 0.5}), {version: 1, status: 'unavailable', dialogueVolume: 0.5});
 });
 
 // ---- the stage clock ----------------------------------------------------------------------------------------------------

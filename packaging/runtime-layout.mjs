@@ -52,6 +52,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/custom-models.mjs',
   'bridge/custom-voice-clip.mjs',
   'bridge/dialogue-level.mjs',
+  'bridge/dynamic-info.mjs',
   'bridge/emotion-analysis.mjs',
   'bridge/emotion-lexicon.mjs',
   'bridge/emotion-selector.mjs',

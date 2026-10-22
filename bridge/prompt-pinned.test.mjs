@@ -14,21 +14,21 @@ const judyArgs = (text = USER_LINES.a) => ({persona: prompt.persona, memory: MEM
 // ---- The prompt is pinned --------------------------------------------------------------------------------------------------
 
 test('the prompt Mistral and the local AI build is byte for byte what it was (hashes taken from commit 1e207eec, re-taken on 2026-10-14 for the first-person profiles)', () => {
-  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
+  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them), on 2026-10-22 for the right-now block's own where-sentence and its one guidance sentence (lines a-g, the reaction and the Mature layer; Dynamic info, docs/DYNAMIC_INFO.md) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
   const expected = {
-    a: 'fc2e4b79f61a57a59f1096ee382f6f8dd166ac4bda11bd0b2d3d98ab592145c3',
-    b: '0608c96199b48c85e22836ab5f67048b5e9aaee49047ff45b8e05b3abd400155',
-    c: 'a98797c7a6e727b6ae1533db323e78cba20059a7c6ee947f4b8f22e9246b3d0c',
-    d: '5de8d96bbe3ad28b2328b0ace2fa819413a3b38b21f49a9b60f915c9bfec70e2',
-    e: 'c0721b02e9ae82419537f559650581893a3a4f46f2a1771e7bf240cd9d236771',
-    f: 'cd6737349af79f4ae49af71d420253c2aa4473da14baa1f9d13ca4ff32ca61db',
-    g: '4c38340851c68b4daf8caff9adb229dcc368134954001f2faabcb8ed9fface34',
+    a: '332897714185ff663d62d012f245e4ad090482b9f72c3e79c620f2831be7b1fd',
+    b: 'fac0c9bb5a9f7dfbb082baa8e6e50e91b90a2998671056427ea4160db065ff7d',
+    c: 'e7dae0c284487c6faec18c26f7126d5f07728f5d376b955daea5804e8a08e3d6',
+    d: 'c1fd88f38762ee34636d75da4adb2ef3e424359dcf70985b3121377bbed0edac',
+    e: '194509d6c6a631308d08002be62bf586cc7791ccaeeef94b98fba2ab36580dad',
+    f: 'ac67c2ee35a7b9c22d86c44120c60a54764bf3d2f066b81a09930f3b810d15a2',
+    g: 'fb8c88b693a18904c209aa19a8506d1ab73ee481bc51674983833132c41c1b29',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '5828073f8aeee4566df719750403d687e79d29196c114a17182386a4ee7b3d5e');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'aca192680434203f04bc16b90541c27d417e10ef2c13d4524444e0b57453873c');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
     '71afe8b30cf3be13bf64bdd54f4a34283b875d3679159a9affe2944f5f9bbaa1');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'cd11a7d668dc918d79205888dbbecf7379c895320c39283891f2302c31dbde1a');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '320209db60fe39b285a41a84e5f3e6a9b29147c1a939acdd1c5b98badc8def02');
   assert.equal(sha(systemHead({persona: prompt.persona})), 'dc55ee3f93c420f63746cbbed90314261e4d78c936f5e034614424f98cbd39e0');
 });
 

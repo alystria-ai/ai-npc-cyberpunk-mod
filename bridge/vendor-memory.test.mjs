@@ -401,7 +401,7 @@ async function bridge(t, {memory} = {}) {
 }
 
 test('wiring: the context is built next to the archetype context and only for an admitted current turn', async t => {
-  assert.match(source, /block\('world', archetypeContext\(input\)\),\s*block\('world', admitted \? vendorMemoryContext\(prepared\) : ''\)/);
+  assert.match(source, /block\('world', archetypeContext\(input, \{place: dynamicInfo\.on\('location'\)\}\)\),\s*block\('world', admitted \? vendorMemoryContext\(prepared\) : ''\)/);
   const f = await bridge(t);
   await f.vendorMemory.remember({memoryKey: KEY, profileKey: PROFILE, playerText: 'Got any stims?', replyText: 'Sure.'});
   assert.match(f.api.vendorMemoryContext(turn()), /WHAT YOU REMEMBER OF V/);

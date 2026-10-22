@@ -50,6 +50,7 @@ import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
+import {dynamicInfo} from './dynamic-info.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
 import {loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
@@ -1303,7 +1304,7 @@ const vendorMemoryContext = prepared => {
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
-  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input)),
+  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicInfo.on('location')})),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
@@ -3407,6 +3408,8 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
+    // Settings > Dynamic info: the kinds of live game info the context may carry (bridge/dynamic-info.mjs); read by every provider's context builder.
+    if (dynamicInfo.update(settings)) console.error(`[DynamicInfo] ${dynamicInfo.describe()}`);
     // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
     // is Voxtral again as soon as a key is saved; the poll runs this every time). The same while Mature content is on: no cloud voice then
     // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket

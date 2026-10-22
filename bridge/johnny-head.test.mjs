@@ -355,11 +355,11 @@ test('parseInput: a private turn keeps the head (never a holocall as well); a gr
 test('right now: he is in V\'s head with no body, knows what V sees and feels, and never gets a place of his own', () => {
   const input = parseInput(raw());
   const text = turnContext(input);
-  assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath; V is in Watson."), text);
+  assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath. V is somewhere in Watson; exactly where is not given."), text);
   assert.match(text, /Also with V: Judy Alvarez\. /, 'he sees who is with V');
   assert.match(text, /V is hurt\. The police are after V\. .*V is short on cash\./);
   assert.match(text, /you have no body here and go wherever V goes/);
-  assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors/);
+  assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors|You are somewhere in|under their breath; V is/);
   assert.ok(text.length <= 900);
   assert.match(turnContextDiagnostic(input), new RegExp(`^Turn context: \\d+ facts, ${text.length} chars head=grudging$`));
   // Anyone else with a stray head field, a phone chat or a group round is unchanged.
@@ -397,7 +397,8 @@ test('the text providers say where he is right before V\'s words', () => {
   const messages = buildMessages({persona: {name: 'Johnny Silverhand', ambient: false, backstory: 'A rockerboy engram.', style: 'Dry.',
     samples: ['V: Hi. Johnny: What.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages[messages.length - 1].content;
-  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*V is in Watson\. You have no body; you go where V goes/);
+  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*under their breath\. You have no body; you go where V goes/);
+  assert.doesNotMatch(last, /Watson|somewhere in/, 'where V is is not repeated before the words of V');
 });
 
 test('shipping: the module ships and dev-installs; the setting has its row and help in English and all 15 languages', () => {

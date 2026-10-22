@@ -138,7 +138,8 @@ export function placeName(value) {
 }
 
 // Per-turn context for an archetype or resident: what kind of person this is and where. Empty for named characters.
-export function archetypeContext(input) {
+// `place`: Settings > Dynamic info > Location is on (bridge/dynamic-info.mjs); off, the district is left out.
+export function archetypeContext(input, {place = true} = {}) {
   if (!input || !isAmbientProfile(input.profileKey)) return '';
   const facts = input.archetype ?? {};
   const lines = [];
@@ -156,7 +157,8 @@ export function archetypeContext(input) {
     lines.push(`You work at ${VENDOR_NAMES[facts.vendorType]} here.`);
   }
   const district = placeName(facts.district), area = placeName(facts.area);
-  if (district) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Let the place flavor what you say, without inventing a specific address.`);
+  // Said as a fact and no more: "let the place flavor what you say" made every ordinary NPC work the district into its answer (a player report, 2026-10-22).
+  if (district && place) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Mention it only when it matters to what V says, and never invent a specific address.`);
   if (!lines.length) return '';
   return ['CURRENT PERSON (from the game, this conversation only)', ...lines].join('\n');
 }
