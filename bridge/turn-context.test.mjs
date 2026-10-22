@@ -32,10 +32,11 @@ const gear = {version: 1, status: 'ready',
 
 test('the block words the clock, the place, the company, the vehicle and V for a character with V', () => {
   const text = turnContext(parseInput(JSON.stringify(turn({profileKey: 'judy-alvarez', turnContext: scene()}))));
-  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person in Kabuki, Watson. It is late night, about 2 AM. '
+  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person. You are somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. '
     + 'Also with V: Panam. V is in a vehicle. V is a woman (she/her), lifepath Street Kid. '
     + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
-    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.');
+    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.'
+    + ' Do not recite it, and mention a place or the time only if it matters to what V says.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
   assert.equal(MAX_CHARS, 900);
 });
@@ -56,13 +57,13 @@ test('the part of the day and the nearest hour', () => {
 
 test('every field is optional: a missing or unreadable one is simply absent', () => {
   const only = fields => turnContext(turn({turnContext: {version: 1, status: 'ready', ...fields}}));
-  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You are with V in person in Santo Domingo. Which street or building you are at is not given. Treat this as fact/);
+  assert.match(only({district: 'SantoDomingo'}), /^Right now \(from the game, this turn only\): You are with V in person\. You are somewhere in Santo Domingo; exactly where is not given\. Treat this as fact/);
   assert.match(only({hour: 14, minute: 0}), /It is afternoon, about 2 PM\. Treat this as fact/);
   assert.match(only({vehicle: false}), /^Right now \(from the game, this turn only\): You are with V in person\. Treat this/, 'not in a vehicle adds nothing but the in-person line');
   assert.match(only({gender: 'male'}), /V is a man \(he\/him\)\./);
   assert.match(only({lifepath: 'nomad'}), /V is lifepath Nomad\./);
   // A district with a distinct area names both, a district alone just itself.
-  assert.match(only({district: 'Watson', area: 'Watson'}), /in Watson\./);
+  assert.match(only({district: 'Watson', area: 'Watson'}), /You are somewhere in Watson; exactly where is not given\./);
   // Bad fields are dropped one by one, not the whole snapshot.
   const parsed = parseTurnContext({version: 1, status: 'ready', hour: 25, minute: 0, district: 'Watson', gender: 'robot', lifepath: 'x',
     vehicle: 'yes', party: [{key: 'Bad Key', name: 'X'}, {key: 'judy-alvarez', name: ''}, {key: 'panam-palmer', name: '<b>Panam</b>\n'}, null]});
@@ -93,17 +94,17 @@ test('the addressed character is not listed among the people with V, and the blo
   const many = Array.from({length: 6}, (_, index) => ({key: `person-${index}`, name: `Person ${index} `.padEnd(60, 'x')}));
   const long = turnContext(turn({turnContext: scene({party: many})}));
   assert.ok(long.length <= MAX_CHARS, `${long.length} characters`);
-  assert.match(long, /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. It is late night, about 2 AM\./, 'where she is and the clock are the last to go');
-  assert.ok(long.endsWith('Do not recite it.'), 'the framing is never cut');
+  assert.match(long, /^Right now \(from the game, this turn only\): You are with V in person\. You are somewhere in Kabuki, Watson; exactly where is not given\. It is late night, about 2 AM\./, 'where she is and the clock are the last to go');
+  assert.ok(long.endsWith('if it matters to what V says.'), 'the framing is never cut');
   for (const [, run] of long.matchAll(/(x{20,})/g)) assert.equal(run.length >= 20, true);
 });
 
 test('a phone message says it is a text chat, the time, where V is and what V does, and that she is elsewhere with her own place not given', () => {
   const text = turnContext(turn({channel: 'phone', turnContext: scene({party: [], vehicle: false, motion: 'walking'})}));
-  assert.equal(text, 'Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson. '
-    + 'You are somewhere else; where you are and what you are doing are not given. It is late night, about 2 AM. V is walking. V is a woman (she/her), lifepath Street Kid. '
+  assert.equal(text, 'Right now (from the game, this turn only): You are messaging V by text on the phone, not talking to V in person. '
+    + 'You are somewhere else; where you are and what you are doing are not given. V is somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. V is walking. V is a woman (she/her), lifepath Street Kid. '
     + "Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "
-    + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.');
+    + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it, and mention a place or the time only if it matters to what V says.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length} characters`);
   assert.doesNotMatch(text, /phone call|with V in person in|never claim to be anywhere else/);
   // V driving, and no district: each part stands alone.
@@ -117,7 +118,7 @@ test('the block is the very first thing in the conversation context, before the 
   sceneryMemory.clear();
   const text = conversationContext(input);
   // The clock is scenery: not in the block but in a Background line of its own, after the situation facts (bridge/scenery-memory.mjs).
-  assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person in Kabuki, Watson. Also with V: Panam.'), text.slice(0, 120));
+  assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person. You are somewhere in Kabuki, Watson; exactly where is not given. Also with V: Panam.'), text.slice(0, 160));
   assert.match(text, /\n\nBackground \(mention only if it matters or V asks\): It is late night, about 2 AM\.\n\n/);
   assert.ok(text.indexOf('Right now') < text.indexOf('journal'));
   assert.ok(text.indexOf('Right now') < text.indexOf("V's current gear"));
@@ -155,7 +156,7 @@ test('a recaptured snapshot never changes which group turn is which', () => {
 
 test('the per-turn diagnostic says whether the block was in the context, or why not', () => {
   const input = turn({turnContext: scene()});
-  assert.equal(turnContextDiagnostic(input), `Turn context: 5 facts, ${turnContext(input).length} chars`);
+  assert.equal(turnContextDiagnostic(input), `Turn context: 6 facts, ${turnContext(input).length} chars`);
   assert.equal(turnContextDiagnostic({}), 'Turn context: none (the game sent none)');
   assert.equal(turnContextDiagnostic(turn({turnContext: {version: 1, status: 'unavailable'}})), 'Turn context: none (unavailable or malformed)');
   assert.equal(turnContextDiagnostic({...input, reaction: {kind: 'loot'}}), 'Turn context: none (automatic reaction)');
@@ -163,7 +164,7 @@ test('the per-turn diagnostic says whether the block was in the context, or why 
   assert.doesNotMatch(turnContextDiagnostic(input), /Judy|Watson/, 'counts only');
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /import \{turnContextDiagnostic\} from '\.\/turn-context\.mjs'/);
-  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
+  assert.match(bridge, /console\.error\(`\[TurnContext\] profile=\$\{input\.profileKey\} \$\{turnContextDiagnostic\(input, voice \? \{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\} : turnContextOptions\(input, isAmbientProfile\(input\.profileKey\)\)\)\}`\)/);
 });
 
 // ---------------------------------------------------------------- ordinary NPCs are strangers
@@ -195,9 +196,9 @@ test('an ordinary NPC gets no journal, no jobs, no history and no gear list; onl
 
 test('an ordinary NPC is told where it is once: by its own district block, else by the right-now block', () => {
   const withDistrict = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene()}))));
-  assert.doesNotMatch(withDistrict, /You are in Kabuki/, 'the archetype block already says it');
+  assert.doesNotMatch(withDistrict, /You are somewhere in Kabuki/, 'the archetype block already says it');
   const bare = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene(), archetype: undefined}))));
-  assert.match(bare, /You are in Kabuki, Watson\./);
+  assert.match(bare, /You are somewhere in Kabuki, Watson; exactly where is not given\./);
 });
 
 test('named characters keep their journal, world facts and gear list', () => {
@@ -476,16 +477,19 @@ const doing = (activity, extra = {}, input = {}) => turnContext(turn({turnContex
   party: [{key: 'judy-alvarez', name: 'Judy', activity}], ...extra}), ...input}));
 
 test('a companion is told, first and plainly, that she is with V in person and what she is doing', () => {
-  assert.match(doing('following', {motion: 'walking'}), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V through Kabuki, Watson\. Which street or building you are at is not given\. It is late night, about 2 AM\. V is walking\. Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so \(what you would like to do or will do is fine\)\. Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them\. Do not recite it\.$/);
-  const says = {standing: /standing near V in Kabuki/, combat: /in a fight alongside V in Kabuki/, 'to-seat': /walking over to sit down beside V/,
-    seated: /sitting beside V in Kabuki/, 'getting-up': /getting up from your seat/, passenger: /riding along in V's vehicle through Kabuki/,
-    driving: /driving V's vehicle through Kabuki/, boarding: /getting into V's vehicle/, 'leaving-car': /getting out of V's vehicle/,
+  assert.match(doing('following', {motion: 'walking'}), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V\. You are somewhere in Kabuki, Watson; exactly where is not given\. It is late night, about 2 AM\. V is walking\. Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so \(what you would like to do or will do is fine\)\. Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them\. Do not recite it, and mention a place or the time only if it matters to what V says\.$/);
+  const says = {standing: /standing near V\. You are somewhere in Kabuki/, combat: /in a fight alongside V\. You are somewhere in Kabuki/, 'to-seat': /walking over to sit down beside V/,
+    seated: /sitting beside V\. You are somewhere in Kabuki/, 'getting-up': /getting up from your seat/, passenger: /riding along in V's vehicle\. You are somewhere in Kabuki/,
+    driving: /driving V's vehicle\. You are somewhere in Kabuki/, boarding: /getting into V's vehicle/, 'leaving-car': /getting out of V's vehicle/,
     attacking: /going after a target V picked/};
-  for (const [activity, pattern] of Object.entries(says)) assert.match(doing(activity), pattern, activity);
+  for (const [activity, pattern] of Object.entries(says)) {
+    assert.match(doing(activity), pattern, activity);
+    assert.doesNotMatch(doing(activity), /(?:near V|beside V|alongside V|vehicle|V) (?:in|through) Kabuki/, `${activity}: the activity carries no place`);
+  }
   // No activity known: still in person, nothing else claimed.
-  assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson. Which street or building you are at is not given. It is/);
+  assert.match(doing(undefined), /^Right now \(from the game, this turn only\): You are with V in person\. You are somewhere in Kabuki, Watson; exactly where is not given\. It is/);
   // Another character's row is not hers.
-  assert.match(doing('seated', {}, {profileKey: 'panam-palmer'}), /^Right now \(from the game, this turn only\): You are with V in person in Kabuki, Watson\. /);
+  assert.match(doing('seated', {}, {profileKey: 'panam-palmer'}), /^Right now \(from the game, this turn only\): You are with V in person\. You are somewhere in Kabuki, Watson; exactly where is not given\. /);
   // Unknown words from the game are dropped, never worded.
   assert.equal(parseTurnContext(scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'cleaning-gun'}]})).party[0].activity, undefined);
 });
@@ -501,8 +505,8 @@ test('V is described as driving or moving only when the game said so; the cap st
   const full = turnContext(turn({turnContext: scene({vehicle: false, motion: 'walking', party: [{key: 'judy-alvarez', name: 'Judy', activity: 'to-seat'},
     ...Array.from({length: 4}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(60, 'x')}))]})}));
   assert.ok(full.length <= MAX_CHARS, `${full.length}`);
-  assert.match(full, /^Right now \(from the game, this turn only\): You are with V in person, walking over to sit down beside V in Kabuki, Watson\./);
-  assert.ok(full.endsWith('Do not recite it.'));
+  assert.match(full, /^Right now \(from the game, this turn only\): You are with V in person, walking over to sit down beside V\. You are somewhere in Kabuki, Watson; exactly where is not given\./);
+  assert.ok(full.endsWith('if it matters to what V says.'));
 });
 
 test('a stranger is told nothing about what it does; a phone contact is told the call says nothing of her place', () => {
@@ -521,11 +525,11 @@ test('the Mistral and Local prompt carries the context line and one rule that ou
   const system = messages[0].content;
   assert.ok(messages.at(-1).content.startsWith('[YOU, RIGHT NOW: You are with V in person, on foot, following V. '
     + 'That is all you are doing; never claim to be anywhere else.]\n\nV says: how is work?'), messages.at(-1).content.slice(0, 200));
-  assert.doesNotMatch(messages.at(-1).content, /Kabuki/, 'the place is in the system message only (the response audit: a model that reads it last answers with it)');
+  assert.doesNotMatch(messages.at(-1).content.split('\n\n')[0], /Kabuki|somewhere in/, 'the place is not repeated before the words of V');
   assert.doesNotMatch(buildMessages({persona, contextParts: {now: 'It is night.', notes: '', world: '', volatile: ''}, text: 'hi'}).at(-1).content, /YOU, RIGHT NOW/, 'no line without the sentence');
-  assert.ok(system.includes('You are with V in person, on foot, following V through Kabuki, Watson.'));
+  assert.ok(system.includes('You are with V in person, on foot, following V. You are somewhere in Kabuki, Watson; exactly where is not given.'));
   assert.match(system, /The "Right now" section at the end of this message is the plain truth about where you are and what you are doing[^]*If V asks what you are up to, answer from it\. Never claim to be somewhere else[^.]*or to have just been doing something unless it says so, even if an earlier line of yours did/);
-  assert.ok(system.trimEnd().endsWith('Do not recite it.'), 'the block is the last thing before the turns');
+  assert.ok(system.trimEnd().endsWith('if it matters to what V says.'), 'the block is the last thing before the turns');
   assert.equal(system.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
 });
 
@@ -534,12 +538,13 @@ test('the Mistral and Local prompt repeats the phone sentence before the words o
   const now = turnContext(turn({channel: 'phone', turnContext: scene({vehicle: false, party: []})}));
   const messages = buildMessages({persona, contextParts: {now, notes: '', world: '', volatile: ''}, history: [], text: 'what are you up to?'});
   const last = messages.at(-1).content;
-  assert.ok(last.startsWith('[YOU, RIGHT NOW: You are messaging V by text on the phone, not talking to V in person; V is in Kabuki, Watson. You are somewhere else; where you are and what you are doing are not given. '
+  assert.ok(last.startsWith('[YOU, RIGHT NOW: You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given. '
     + 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.]\n\nV says: what are you up to?'), last.slice(0, 400));
+  assert.doesNotMatch(last, /Kabuki|somewhere in/, 'V\'s place is not repeated before the words of V');
   assert.doesNotMatch(last, /That is all you are doing/);
   assert.match(messages[0].content, /If it says you are messaging V by text, you are somewhere else, with no view of V's surroundings[^.]*: stay with your own known life/);
   assert.ok(messages[0].content.includes('You are messaging V by text on the phone'), 'the block is in the system message');
-  assert.ok(messages[0].content.trimEnd().endsWith('Do not recite it.'));
+  assert.ok(messages[0].content.trimEnd().endsWith('if it matters to what V says.'));
   assert.equal(messages[0].content.split('\n').filter(line => /^\d+\. /.test(line)).length, 9, 'still nine rules');
 });
 
@@ -602,10 +607,10 @@ const full = {weather: 'rain', health: 'badly-hurt', heat: 4, money: 'broke'};
 
 test('a companion in person is told the weather, V\'s condition, the police heat and a rough money band', () => {
   const text = turnContext(body(full));
-  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V through Kabuki, Watson. Which street or building you are at is not given. It is late night, about 2 AM. '
+  assert.equal(text, 'Right now (from the game, this turn only): You are with V in person, on foot, following V. You are somewhere in Kabuki, Watson; exactly where is not given. It is late night, about 2 AM. '
     + 'It is raining. V is badly hurt. V has a serious police chase on them. V is a woman (she/her), lifepath Street Kid. V is nearly broke. '
     + 'Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
-    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.');
+    + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. ' + 'Do not recite it, and mention a place or the time only if it matters to what V says.');
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
 });
 
@@ -655,12 +660,12 @@ test('weather, health, heat and money are validated: unknown words and out-of-ra
 test('the whole block stays inside the cap with every fact set, and money is the first to be cut', () => {
   const crowded = scene({vehicle: true, driving: false, motion: undefined, ...full,
     party: [{key: 'judy-alvarez', name: 'Judy', activity: 'passenger'},
-      ...Array.from({length: 5}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(60, 'x')}))]});
+      ...Array.from({length: 5}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(34, 'x')}))]});
   const text = turnContext(turn({turnContext: crowded}));
   assert.ok(text.length <= MAX_CHARS, `${text.length}`);
-  assert.ok(text.endsWith('Do not recite it.'));
+  assert.ok(text.endsWith('if it matters to what V says.'));
   assert.doesNotMatch(text, /nearly broke/, 'a long block drops money before anything else');
-  assert.match(text, /V is badly hurt\./);
+  assert.match(text, /V is badly hurt\. V has a serious police chase on them\. V is a woman \(she\/her\), lifepath Street Kid\. Treat this as fact/);
   const phone = turnContext(turn({channel: 'phone', turnContext: crowded}));
   assert.ok(phone.length <= MAX_CHARS, `${phone.length}`);
   const diagnostic = turnContextDiagnostic(turn({turnContext: scene(full)}));
@@ -916,34 +921,40 @@ const street = (extra = {}, input = {}) => turn({profileKey: 'alex', name: 'Alex
 
 test('Alex in Arroyo: the block names the neighbourhood, does not claim a street or a building when the game cannot say, and says her haunts are not here', () => {
   const text = turnContext(street());
-  assert.match(text, /You are with V in person, standing near V in Arroyo, Santo Domingo\. Which street or building you are at is not given\./);
+  assert.match(text, /You are with V in person, standing near V\. You are somewhere in Arroyo, Santo Domingo; exactly where is not given\./);
   assert.match(text, /Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them\./);
   assert.doesNotMatch(text, /indoors|outdoors|\bbar\b|Moth/);
   assert.ok(text.length <= MAX_CHARS && !text.includes('\n'), `${text.length}`);
 });
 
 test('the game\'s indoor reading says "outdoors, not inside a building" or "indoors"; an interior record says indoors with the named place', () => {
-  assert.match(turnContext(street({indoors: false})), /Arroyo, Santo Domingo\. You are outdoors, out in the open air, not inside a building\. It is late night/);
+  assert.match(turnContext(street({indoors: false})), /standing near V\. You are outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\. It is late night/);
   assert.doesNotMatch(turnContext(street({indoors: false})), /not given/);
-  assert.match(turnContext(street({indoors: true})), /Arroyo, Santo Domingo\. You are indoors\. It is late night/);
+  assert.match(turnContext(street({indoors: true})), /standing near V\. You are indoors, in a building in Arroyo, Santo Domingo; which building is not given\. It is late night/);
   const bar = turnContext(street({district: 'Watson', area: 'Kabuki_LizziesBar'}));
-  assert.match(bar, /standing near V in Lizzie's Bar, Watson\. You are indoors\./);
-  assert.match(turnContext(street({district: 'Watson', area: 'LittleChina_VApartment'})), /in V's apartment in Megabuilding H10\. You are indoors\./);
-  assert.match(turnContext(street({district: 'Badlands', area: 'Badlands_RockyRidge'})), /in Rocky Ridge, Badlands\. You are outdoors, out in open country\./);
+  assert.match(bar, /standing near V\. You are inside Lizzie's Bar, Watson\./);
+  assert.match(turnContext(street({district: 'Watson', area: 'LittleChina_VApartment'})), /You are inside V's apartment in Megabuilding H10\./);
+  assert.match(turnContext(street({district: 'Badlands', area: 'Badlands_RockyRidge'})), /You are outdoors in Rocky Ridge, Badlands, out in open country\./);
 });
 
-test('a named place is never invented: no record, no name; a bad indoor value is dropped; a vehicle never gets the "not given" line', () => {
+test('a named place is never invented: no record, no name; a bad indoor value is dropped; a vehicle claims no building either way', () => {
   assert.doesNotMatch(turnContext(street({district: 'Watson', area: 'Kabuki'})), /Lizzie|Afterlife|Moth/);
   assert.equal(parseTurnContext(scene({indoors: 'maybe'})).indoors, undefined);
   assert.equal(parseTurnContext(scene({indoors: false})).indoors, false);
   assert.equal(parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 5, indoors: true}).indoors, undefined, 'nothing to be indoors in without a district');
-  assert.doesNotMatch(turnContext(street({vehicle: true, motion: undefined})), /not given/);
-  // Never for a phone chat or a holocall: those keep their own wording about where she is.
+  const inCar = turnContext(street({vehicle: true, motion: undefined}));
+  assert.match(inCar, /You are somewhere in Arroyo, Santo Domingo; exactly where is not given\./, 'no reading, no claim of indoors or outdoors');
+  assert.doesNotMatch(inCar, /indoors|outdoors|in a building/);
+  // A phone chat or a holocall says it about V and nothing of her own place: she is somewhere else, with her place not given.
   for (const input of [{channel: 'phone'}, {holocall: {mode: 'audio'}}]) {
     const text = turnContext(street({indoors: false}, input));
-    assert.doesNotMatch(text, /outdoors|indoors|usual workplace/, JSON.stringify(input));
+    assert.match(text, /You are somewhere else; where you are and what you are doing are not given\. V is outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\./, JSON.stringify(input));
+    assert.doesNotMatch(text, /You are (?:outdoors|indoors|inside|somewhere in)|usual workplace/, JSON.stringify(input));
   }
-  assert.doesNotMatch(turnContext(street({indoors: false}), {ambient: true}), /outdoors|usual workplace/);
+  // A stranger is told about its own place, in the same words, and never her haunts.
+  const stranger = turnContext(street({indoors: false}), {ambient: true});
+  assert.match(stranger, /You are outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\./);
+  assert.doesNotMatch(stranger, /usual workplace/);
 });
 
 test('with everything set the block still holds its cap, keeps the place and haunts lines', () => {
@@ -957,7 +968,7 @@ test('with everything set the block still holds its cap, keeps the place and hau
 
 test('the diagnostic and the prompt carry the new sentences like the old ones', () => {
   const input = parseInput(JSON.stringify(street({indoors: false})));
-  assert.match(conversationContext(input), /^Right now \(from the game, this turn only\): You are with V in person, standing near V in Arroyo, Santo Domingo\. You are outdoors/);
+  assert.match(conversationContext(input), /^Right now \(from the game, this turn only\): You are with V in person, standing near V\. You are outdoors in Arroyo, Santo Domingo, in the open air, not inside a building\./);
   assert.match(turnContextDiagnostic(input), /^Turn context: \d+ facts, \d+ chars$/);
 });
 
@@ -1182,7 +1193,7 @@ test('describeTurnContext: `split` moves the weather and the time to `background
   assert.match(all.text, /It is late night, about 2 AM\. It is raining\. V is badly hurt\./);
   const split = describeTurnContext(input, {split: true});
   assert.doesNotMatch(split.text, /late night|raining/);
-  assert.match(split.text, /Which street or building you are at is not given\. V is badly hurt\./);
+  assert.match(split.text, /You are somewhere in Kabuki, Watson; exactly where is not given\. V is badly hurt\./);
   assert.equal(split.background, `${BACKGROUND_LEAD} It is late night, about 2 AM. It is raining.`);
   assert.equal(split.parts, all.parts, 'the same facts, counted');
   assert.equal(describeTurnContext(input, {split: true, fresh: {weather: false, time: true}}).background, `${BACKGROUND_LEAD} It is late night, about 2 AM.`);

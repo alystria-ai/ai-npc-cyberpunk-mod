@@ -50,6 +50,7 @@ import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
+import {dynamicInfo} from './dynamic-info.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
 import {installVVoiceReference, loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
@@ -1345,7 +1346,7 @@ const vendorMemoryContext = prepared => {
 const conversationBlocks = input => {
   const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
   const block = (tier, text) => ({tier, text});
-  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input)),
+  return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicInfo.on('location')})),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
@@ -2147,7 +2148,7 @@ async function publishResult(input, profile, result, current = async () => true,
   const voice = addonHost.usesVoiceContext(input.profileKey);
   try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
-  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice, off: dynamicInfo.off} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -3503,6 +3504,9 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
+    // Settings > Dynamic info: the kinds of live game info the context may carry (bridge/dynamic-info.mjs); read by every provider's context builder.
+    const dynamicInfoChanged = dynamicInfo.update(settings);
+    if (dynamicInfoChanged) console.error(`[DynamicInfo] ${dynamicInfo.describe()}`);
     // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice). A saved Voxtral stays Voxtral without a Mistral key: a cloud voice loads no local
     // model (owner rule), so V's line is skipped with the reason and shows as text, and no Pocket worker loads for it (the poll runs this every time, so
     // it speaks as soon as a key is saved). While Mature content is on there is no cloud voice (owner decision 2026-10-20), so V speaks with Pocket
@@ -3522,7 +3526,8 @@ async function pollSettings(checkShutdown = true) {
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
-    if (speechChanged || emotionsChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
+    // A reply prepared ahead was written with the old Dynamic info (a place the player just turned off): it is not used.
+    if (speechChanged || emotionsChanged || followUpChanged || dynamicInfoChanged) { dropPrefetch(); prefetchObserved = ''; }
     if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();

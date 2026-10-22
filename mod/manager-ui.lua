@@ -185,6 +185,10 @@ local function fitOption(text)
 end
 M.OPTION_BUDGET, M.OPTION_BOX_UNITS, M.KEY_HINT_UNITS, M.optionUnits, M.fitOption = OPTION_BUDGET, OPTION_BOX_UNITS, KEY_HINT_UNITS, optionUnits, fitOption
 M.cutToUnits = cutToUnits
+-- The longest name of a row that ends in a button, in optionUnits (Native Settings UI draws a button row's name narrower than a switch's; the
+-- host mod/nsui.lua cuts to the same figure, LAYOUT.buttonLabelUnits).
+local BUTTON_LABEL_UNITS = 29
+M.BUTTON_LABEL_UNITS = BUTTON_LABEL_UNITS
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
     return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value or ''),
@@ -702,8 +706,17 @@ local function memorySettings(snapshot)
             memory.selectedName and ui.t('Clear {name}’s memories about conversations with you. Review an inline confirmation first.',{name=memory.selectedName})
                 or 'Choose a character before clearing their memories about you.',
             function() return manager.beginMemoryClear('character') end, memory.canClearCharacter)
-        rows[#rows + 1] = action('memory:forget-all', 'Forget all memories',
-            memory.talkedToCount and ui.t('Forget ({count} characters)',{count=memory.talkedToCount}) or 'Forget',
+        -- The button says what it does, the count goes in the name: "Forget all memories (6 characters)" in the button's name budget
+        -- (BUTTON_LABEL_UNITS). A count that is too wide for it (two digits, or a longer translation) is only the number, "Forget all memories (12)",
+        -- and when even that does not fit the name stands alone: the row above ("Characters you have talked to") shows the count anyway.
+        local forgetName = ui.t('Forget all memories')
+        if memory.talkedToCount then
+            local counted = ui.t('Forget all memories ({count} characters)', {count = memory.talkedToCount})
+            local short = forgetName .. ' (' .. tostring(memory.talkedToCount) .. ')'
+            if optionUnits(counted) <= BUTTON_LABEL_UNITS then forgetName = counted
+            elseif optionUnits(short) <= BUTTON_LABEL_UNITS then forgetName = short end
+        end
+        rows[#rows + 1] = action('memory:forget-all', forgetName, 'Forget',
             'Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.',
             function() return manager.beginMemoryClear('all') end, memory.canClearAll)
     end
@@ -1041,7 +1054,10 @@ local function settingsDigest(settings)
     local modes = {}
     for key, mode in pairs(settings.relationshipModes or {}) do modes[#modes + 1] = key .. '=' .. tostring(mode) end
     table.sort(modes)
-    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',')
+    local info = {}
+    for key, on in pairs(settings.dynamicInfo or {}) do info[#info + 1] = key .. '=' .. tostring(on) end
+    table.sort(info)
+    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',')
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1092,7 +1108,7 @@ local function pageSignature(snapshot)
         local read, signature = pcall(customProvider.instance.signature)
         add('custom-page:' .. (read and signature or ''))
     end
-    if view == 'relationships' then add(settingsDigest(snapshot.settings)) end
+    if view == 'relationships' or view == 'dynamic-info' then add(settingsDigest(snapshot.settings)) end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1145,6 +1161,35 @@ local function relationshipRows(snapshot)
     return rows
 end
 
+-- Dynamic info: one switch per kind of live game info a turn can carry (the kinds and their order are manager.dynamicInfoKinds). A page of its
+-- own, opened from the Conversations section of Settings (both hosts draw it from here). Each row is a literal call so the catalogue reads the text.
+local function dynamicInfoRows(snapshot)
+    local on = snapshot.settings.dynamicInfo or {}
+    local function row(kind, label, description)
+        return setting('dynamic:' .. kind, label, 'bool', on[kind] ~= false, true, description)
+    end
+    return {
+        row('location', 'Location',
+            'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.'),
+        row('time', 'Time and weather',
+            'The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.'),
+        row('company', 'Company and vehicle',
+            'Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game.'),
+        row('condition', 'Health, heat and fights',
+            'V’s health, the police heat on V, and the last fight V was in.\n\nOff: none of this is sent, and the mod stops reading it from the game.'),
+        row('money', 'V’s money',
+            'A rough idea of how many eddies V has: nearly broke, short, comfortable or rich.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
+        row('gear', 'V’s gear and clothes',
+            'What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
+        row('about', 'V’s gender and lifepath',
+            'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.'),
+        row('quest', 'Quest and journal',
+            'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.'),
+        row('dialogue', 'Recent game dialogue',
+            'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
+    }
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -1161,7 +1206,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the four destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['custom-endpoint'] = 'settings'}
+        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
@@ -1388,6 +1433,9 @@ local function schema()
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
+    elseif view == 'dynamic-info' then
+        categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
+            'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
     elseif view == 'settings' then
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
@@ -1414,6 +1462,10 @@ local function schema()
                 'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
         })
+        -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
+        table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
+            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
             table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
@@ -1617,7 +1669,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['custom-endpoint'] = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true}
 
 function M.view() return view end
 
@@ -1729,8 +1781,8 @@ end
 function M.defaults()
     local previous = view
     local changes, atDefault, turningMatureOff = {}, {}, false
-    -- Settings, and the Relationships page that opens from it.
-    for _, name in ipairs({'settings', 'relationships'}) do
+    -- Settings, and the Relationships and Dynamic info pages that open from it.
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
@@ -1769,7 +1821,7 @@ function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
     local batch, record, names, refusal = stageMature(changes, snapshot)
-    local values, applied = {relationshipModes = {}}, {}
+    local values, applied = {relationshipModes = {}, dynamicInfo = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
     if convaiAddons and convaiAddons.live then convaiAddons.discardSettings() end
@@ -1855,6 +1907,9 @@ function M.apply(changes)
                 return refused('Choose one of the listed relationship options.')
             end
             values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
+        elseif key:sub(1, 8) == 'dynamic:' then
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.dynamicInfo[key:sub(9)] = change.value
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'johnnyInHead' then

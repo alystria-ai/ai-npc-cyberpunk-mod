@@ -1,5 +1,7 @@
 # Dynamic context audit (2026-10-12)
 
+> **Update 2026-10-22:** the player can now turn each kind of live info off (Settings > Conversations > Dynamic info) and the place is worded more modestly; see `docs/DYNAMIC_INFO.md`. The tables below describe the 2026-10-12 state.
+
 Read-only audit of what game state the companion AI is told on each turn, how it gets there, what is missing and what to
 add first. No code was changed. Requested in `TODO.md`, "Requested 2026-10-12": dynamic context, "continue from game
 dialogue", and the later quest-decision check.

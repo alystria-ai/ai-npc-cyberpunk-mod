@@ -13,6 +13,7 @@ import {customManifestFolders, describeCustomFolders, parseManifestText} from '.
 import {errorReportStatus} from './error-events.mjs';
 import {REPORT_FOLDER, recentNodeReports} from './bridge-diagnostics.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
+import {offKinds} from './dynamic-info.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -667,8 +668,9 @@ export async function collectReport(options) {
   if (settings && typeof settings === 'object') {
     const {enabledByKey, ...rest} = settings;
     const flags = enabledByKey && typeof enabledByKey === 'object' ? enabledByKey : {};
+    // Settings > Dynamic info: the table is in the settings above; the kinds that are off are also listed, so they are seen at a glance.
     settingsView = redact.value({...rest, conversationEnabledCount: Object.values(flags).filter(value => value !== false).length,
-      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false)});
+      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false), dynamicInfoOff: offKinds(settings)});
   }
   const party = [...lua.party];
   if (!party.length && Array.isArray(raw['party-connections.json']?.profiles)) {

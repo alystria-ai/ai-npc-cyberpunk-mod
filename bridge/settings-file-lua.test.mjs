@@ -140,7 +140,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
-    errorReports: 'off',
+    errorReports: 'off', dynamicInfo: 'all',
   };
   const out = run(`${managerLua}
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, ...wrong}))}
@@ -152,6 +152,39 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
   assert.equal(out.ok, true, out.problem);
   assert.deepEqual(JSON.parse(out.text), freshSettings);
   assert.equal(out.language, 'auto');
+});
+
+test('Dynamic info: every kind is on unless saved as the boolean false, unknown kinds are dropped, and what is saved survives a restart', () => {
+  const out = run(`${managerLua}
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, dynamicInfo: {location: false, time: 'no', company: 0, gear: false, bogus: true, quest: null}}))}
+    local manager = newManager()
+    local snapshot = manager.snapshot(newPlayer())
+    report('info', snapshot.settings.dynamicInfo)
+    report('text', settingsText())
+    report('flags', convaiDynamicInfo)
+    report('answers', {manager.dynamicInfo('location'), manager.dynamicInfo('time'), manager.dynamicInfo('gear'), manager.dynamicInfo('nothing')})
+    -- An apply that turns one more off is saved, and a restart reads it back.
+    local ok, problem = manager.applySettings(newPlayer(), {dynamicInfo = {money = false, location = true}})
+    report('applied', {ok, problem})
+    local again = newManager()
+    report('restart', again.snapshot(newPlayer()).settings.dynamicInfo)
+    local bad = {manager.applySettings(newPlayer(), {dynamicInfo = {money = 'off'}})}
+    report('badValue', {bad[1], bad[2]})
+    local unknown = {manager.applySettings(newPlayer(), {dynamicInfo = {bogus = false}})}
+    report('badKind', {unknown[1], unknown[2]})
+    local notTable = {manager.applySettings(newPlayer(), {dynamicInfo = true})}
+    report('badTable', {notTable[1]})
+    report('after', settingsText())
+  `);
+  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true};
+  assert.deepEqual(out.info, {...all, location: false, gear: false});
+  assert.deepEqual(JSON.parse(out.text).dynamicInfo, {...all, location: false, gear: false}, 'the file is rewritten clean');
+  assert.deepEqual(out.flags, {...all, location: false, gear: false}, 'the table the per-frame collectors read');
+  assert.deepEqual(out.answers.slice(0, 3), [false, true, false]); assert.equal(out.answers[3], true, 'an unknown kind counts as on');
+  assert.equal(out.applied[0], true);
+  assert.deepEqual(out.restart, {...all, gear: false, money: false}, 'the saved choice survives a restart');
+  assert.equal(out.badValue[0], false); assert.equal(out.badKind[0], false); assert.equal(out.badTable[0], false);
+  assert.deepEqual(JSON.parse(out.after).dynamicInfo, {...all, gear: false, money: false}, 'a refused batch saves nothing');
 });
 
 test('out-of-range and over-long values are replaced: model ids over 80 characters, a voice volume of 5000, a negative delay', () => {

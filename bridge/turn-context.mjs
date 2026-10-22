@@ -20,34 +20,42 @@
 // "the NPCs always mention the weather"). With `split` they leave this block for a short "Background" line of their own (describeTurnContext
 // `background`), which carries each only when it is new to the conversation (bridge/scenery-memory.mjs; sceneryFor below): the first turn, a
 // change, after a long silence, or when V asks. Health, heat and money stay in the block: they are V's standing state, and one that matters.
+// Where she is (2026-10-22, a player report: "standing in the middle of Little China" while V was in the H10 apartment, and a place worked into
+// replies that did not need it): the place is its own modest sentence after the first one, never part of it, because the first sentence is said
+// again right before V's words (bridge/mistral-prompt.mjs HERE) and a place there got worked into every reply. Inside, outside or "somewhere in"
+// the area, never "standing in" a district; the guidance says to mention a place or the time only when it matters to what V says.
+// Settings > Dynamic info (bridge/dynamic-info.mjs): `off`, the kinds the player turned off, are taken out of the snapshot before it is worded.
 import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
+import {stripSnapshot, NO_KINDS} from './dynamic-info.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
 const MAX_NAME = 60, MAX_PARTY = 6;
 const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const LIFEPATHS = {nomad: 'Nomad', streetkid: 'Street Kid', corpo: 'Corpo'};
-// What a companion is doing: [her state after "You are with V in person", the preposition for the place].
+// What a companion is doing, after "You are with V in person".
 const ACTIVITIES = {
-  following: [', on foot, following V', 'through'], standing: [', standing near V', 'in'], combat: [', in a fight alongside V', 'in'],
-  'to-seat': [', walking over to sit down beside V', 'in'], seated: [', sitting beside V', 'in'],
-  'getting-up': [', getting up from your seat beside V', 'in'], passenger: [", riding along in V's vehicle", 'through'],
-  driving: [", driving V's vehicle", 'through'], boarding: [", getting into V's vehicle", 'in'],
-  'leaving-car': [", getting out of V's vehicle", 'in'],
-  attacking: [', going after a target V picked', 'in']};
+  following: ', on foot, following V', standing: ', standing near V', combat: ', in a fight alongside V',
+  'to-seat': ', walking over to sit down beside V', seated: ', sitting beside V',
+  'getting-up': ', getting up from your seat beside V', passenger: ", riding along in V's vehicle",
+  driving: ", driving V's vehicle", boarding: ", getting into V's vehicle",
+  'leaving-car': ", getting out of V's vehicle",
+  attacking: ', going after a target V picked'};
+// Said last in every form: the facts are scenery unless the talk needs them.
+const MENTION = ' Do not recite it, and mention a place or the time only if it matters to what V says.';
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
 const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's surroundings, and you do not know how near or far you are, so never say you are there, close or nearby. "
-  + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
+  + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine).' + MENTION;
 // A holocall (docs/HOLOCALL.md): V called her from the phone and they talk by voice, with or without the live picture. Like a phone
 // contact she is somewhere else with her own place and doing not given, and learns nothing of V's company, heat or wallet.
 const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
-  + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
+  + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine).' + MENTION;
 // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body and goes where V goes. He knows what V sees and feels, so he gets
 // what a companion in person gets (company, health, heat, money), but never a place or a doing of his own.
 const HEAD_SUFFIX = ' Treat this as fact: you have no body here and go wherever V goes; never claim to be anywhere else, to touch, carry or'
-  + ' see anything V does not, or to have been doing something on your own. Do not recite it.';
+  + ' see anything V does not, or to have been doing something on your own.' + MENTION;
 const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
 // Weather kinds the game side sends (mod/turn-context.lua weatherKind), V's health bands and the money bands.
@@ -108,12 +116,13 @@ export function parseTurnContext(value) {
     }
     if (party.length) result.party = party;
   }
-  if (Object.keys(result).length <= 2) return {version: 1, status: 'unavailable'};
   // The game's dialogue loudness (0 to 1), sent only while V's voice for typed lines is on (bridge/v-voice.mjs). It is no part of
-  // the words written for the model, so it never makes an otherwise empty snapshot count as something read.
-  if (typeof value.dialogueVolume === 'number' && Number.isFinite(value.dialogueVolume) && value.dialogueVolume >= 0 && value.dialogueVolume <= 1)
-    result.dialogueVolume = value.dialogueVolume;
-  return result;
+  // the words written for the model, so it never makes an otherwise empty snapshot count as something read (with every Dynamic info
+  // switch off it is all there is, and it still reaches V's voice).
+  const volume = typeof value.dialogueVolume === 'number' && Number.isFinite(value.dialogueVolume) && value.dialogueVolume >= 0 && value.dialogueVolume <= 1
+    ? {dialogueVolume: value.dialogueVolume} : {};
+  if (Object.keys(result).length <= 2) return {version: 1, status: 'unavailable', ...volume};
+  return {...result, ...volume};
 }
 
 const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
@@ -131,14 +140,20 @@ const listOf = names => names.length < 2 ? names.join('') : `${names.slice(0, -1
 // Where V is: {text, inside, kind} (bridge/place-names.mjs), or null. A named place only when the game's own record says V is there.
 const placeOf = snapshot => describePlace({district: snapshot.district, area: snapshot.area, indoors: snapshot.indoors});
 
-// The second sentence for a companion in person: inside or outside, or that the exact spot is not given. Without it a model with a
-// workplace in its profile fills the gap with that workplace (live 2026-10-15: Alex, in Arroyo, "Either you're here to buy a drink").
-function surroundings(place, vehicle) {
-  if (!place || (vehicle === true && place.inside === null)) return null;
-  if (place.inside === true) return 'You are indoors.';
-  if (place.inside === false) return place.kind === 'wild' ? 'You are outdoors, out in open country.' : 'You are outdoors, out in the open air, not inside a building.';
-  return place.kind === 'home' || place.kind === 'venue' ? null : 'Which street or building you are at is not given.';
+// Where V (or the companion in person) is, as one modest sentence of its own: [subject, verb] is ['You', 'are'] or ['V', 'is']. A named interior
+// (V's apartment, a bar, a clinic) says "inside"; the Badlands say "outdoors"; a plain neighbourhood says indoors or outdoors when the game's
+// own reading does, else only that it is somewhere in the area. Never "standing in" a district: a companion with a workplace in her profile
+// otherwise fills the gap with that workplace (live 2026-10-15), and one told "standing in Little China" said so while V was indoors (2026-10-22).
+function whereSentence(place, [who, be], vehicle = false) {
+  if (!place) return null;
+  if (place.kind === 'home' || place.kind === 'venue') return `${who} ${be} inside ${place.text}.`;
+  if (place.kind === 'wild') return `${who} ${be} outdoors in ${place.text}, out in open country.`;
+  if (place.inside === true) return `${who} ${be} indoors, in a building in ${place.text}; which building is not given.`;
+  // In a vehicle the game's interior flag says nothing about the air around the car: no "open air" then.
+  if (place.inside === false && !vehicle) return `${who} ${be} outdoors in ${place.text}, in the open air, not inside a building.`;
+  return `${who} ${be} somewhere in ${place.text}; exactly where is not given.`;
 }
+const YOU = ['You', 'are'], V = ['V', 'is'];
 
 // A holocall turn's call (bridge/protocol.mjs parseHolocall), or null.
 const holocallOf = input => plain(input.holocall) && (input.holocall.mode === 'audio' || input.holocall.mode === 'holo') ? input.holocall : null;
@@ -161,9 +176,9 @@ function voiceTurnContext(input, snapshot) {
 // Which of the weather and the part of the day this turn states ({weather, time}, booleans): each only when new to the conversation
 // (bridge/scenery-memory.mjs). Everything is stated for a turn with nothing to decide on (no snapshot, a reaction, no turn id).
 const EVERYTHING = Object.freeze({weather: true, time: true});
-export function sceneryFor(input, memory = sceneryMemory) {
+export function sceneryFor(input, memory = sceneryMemory, off = NO_KINDS) {
   if (!input || input.reaction || input.turnContext === undefined) return EVERYTHING;
-  const snapshot = parseTurnContext(input.turnContext);
+  const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return EVERYTHING;
   // One conversation: a character, one physical NPC (its entity) or one phone contact.
   return memory.decide({key: `${input.channel === 'phone' ? 'phone' : 'talk'}|${input.profileKey}|${input.entity ?? ''}`, id: input.requestId ?? input.id,
@@ -175,11 +190,11 @@ const BACKGROUND = 'Background (mention only if it matters or V asks):';
 // `fresh` ({weather, time}, default both) leaves out a fact the conversation was already told. `split` moves the weather and the time out
 // of the block into `background` (its own short line, "" when there is none), so the block itself does not change when they come and go and
 // the text provider's prompt cache keeps its prefix: the bridge puts it in the volatile tail (bridge/quest-context.mjs).
-export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING} = {}) {
+export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING, off = NO_KINDS} = {}) {
   if (!input) return {text: '', background: '', parts: 0, reason: 'no input'};
   if (input.reaction) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
   if (input.turnContext === undefined) return {text: '', background: '', parts: 0, reason: 'the game sent none'};
-  const snapshot = parseTurnContext(input.turnContext);
+  const snapshot = stripSnapshot(parseTurnContext(input.turnContext), off);
   if (!snapshot || snapshot.status !== 'ready') return {text: '', background: '', parts: 0, reason: 'unavailable or malformed'};
   if (voice) return {...voiceTurnContext(input, snapshot), background: ''};
   const sentences = [], scenery = [];
@@ -187,33 +202,33 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const head = !ambient && input.channel !== 'phone' ? headOf(input) : null;
   const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
-  const spot = placeOf(snapshot), place = spot?.text ?? null, phone = input.channel === 'phone' || call !== null;
+  const spot = placeOf(snapshot), phone = input.channel === 'phone' || call !== null;
+  const pushWhere = who => { const text = whereSentence(spot, who, snapshot.vehicle === true); if (text) sentences.push(text); };
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
   if (head) {
     // One sentence (bridge/mistral-prompt.mjs HERE): where he is, and where V is.
-    sentences.push(`You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath${place ? `; V is in ${place}` : ''}.`);
-    const around = surroundings(spot, snapshot.vehicle);
-    if (around) sentences.push(around.replace(/^You are/, 'V is').replace(/^Which street or building you are at/, 'Which street or building V is at'));
+    sentences.push("You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath.");
+    pushWhere(V);
   } else if (!ambient && !phone) {
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
-    const [state, via] = ACTIVITIES[mine?.activity] ?? ['', 'in'];
-    sentences.push(`You are with V in person${state}${place ? ` ${via} ${place}` : ''}.`);
-    const around = surroundings(spot, snapshot.vehicle);
-    if (around) sentences.push(around);
+    sentences.push(`You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
+    pushWhere(YOU);
   } else if (call) {
-    const where = `${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`;
+    const where = '. You are somewhere else; where you are and what you are doing are not given.';
     sentences.push(call.mode === 'holo'
       ? `You are on a holocall with V (a video call on the phone): you see and hear each other, but you are not with V in person${where}`
       : `You are on a voice call with V on the phone, not talking to V in person${where}`);
+    pushWhere(V);
   } else if (!ambient && phone) {
-    sentences.push(`You are messaging V by text on the phone, not talking to V in person${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`);
+    sentences.push('You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given.');
+    pushWhere(V);
   }
   if (snapshot.hour !== undefined) scene('time', `It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
   // The weather goes to all three kinds of turn: a stranger or a contact on the phone could know it as well.
   if (snapshot.weather) scene('weather', WEATHER[snapshot.weather]);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
-  if (ambient && place && !input.archetype?.district) sentences.push(`You are in ${place}.`);
+  if (ambient && spot && !input.archetype?.district) pushWhere(YOU);
   const others = phone ? [] : (snapshot.party ?? []).filter(row => row.key !== input.profileKey);
   if (others.length) {
     sentences.push(ambient ? `V has ${others.length === 1 ? 'one other person' : `${others.length} other people`} with them.`
@@ -238,9 +253,9 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   if (!sentences.length) return {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
-    ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
+    ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it matters to what V says.'
     : head ? HEAD_SUFFIX : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
-      + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.';
+      + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.' + MENTION;
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();

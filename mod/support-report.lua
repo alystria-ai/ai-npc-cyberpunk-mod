@@ -550,6 +550,13 @@ function M.new(options)
             for key, value in pairs(settings) do if key ~= 'enabledByKey' and key ~= 'enabled' then copy[key] = value end end
             copy.conversationEnabledCount = enabled
             copy.conversationDisabled = disabled
+            -- Settings > Dynamic info: the table is in the settings; the kinds that are off are also listed, so they are seen at a glance.
+            local infoOff = {}
+            if type(settings.dynamicInfo) == 'table' then
+                for kind, on in pairs(settings.dynamicInfo) do if on == false then infoOff[#infoOff + 1] = tostring(kind) end end
+                table.sort(infoOff)
+            end
+            copy.dynamicInfoOff = infoOff
             render(copy, 'settings', 1, out)
         else out[#out + 1] = 'settings: not available' end
         section(out, 'party')
