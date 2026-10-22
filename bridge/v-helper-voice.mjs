@@ -25,10 +25,11 @@ export class VHelperVoice {
    * create   onState => client   a PocketVoice-like worker client (start, close, loaded, failure, hasProfile, prepareProfile, synthesizeStream)
    * wait     () => Promise       settles when no other Pocket worker is still stopping
    * onReady  () => void          the worker finished loading (once per load): V's voice is prepared now, not inside the first line
+   * closeWorker client => Promise  closes a worker and confirms its exit, looking again at one that could not be confirmed (default: client.close())
    */
   constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}, onFailure = () => {},
-    clock = Date.now, retryDelays = V_HELPER_RETRY_DELAYS_MS, noRetry = () => false, busy = () => false} = {}) {
-    Object.assign(this, {create, wait, log, onReady, onFailure, clock, retryDelays, noRetry, busy});
+    clock = Date.now, retryDelays = V_HELPER_RETRY_DELAYS_MS, noRetry = () => false, busy = () => false, closeWorker = client => client.close()} = {}) {
+    Object.assign(this, {create, wait, log, onReady, onFailure, clock, retryDelays, noRetry, busy, closeWorker});
     this.retry = null;     // {failures, nextAt} while a failed helper is waiting for its next load
     this.client = null;
     this.generation = 0;
@@ -94,8 +95,11 @@ export class VHelperVoice {
     if (!client) return this.exit;
     this.client = null;
     this.generation++;
-    const closing = Promise.resolve().then(() => client.close()).catch(() => {});
+    // Any close error is swallowed except a worker whose exit stayed unconfirmed after the second look (closeConfirmed): that one keeps blocking the next Pocket worker
+    // (the work folder's one lock), as an unconfirmed exit blocks every replacement in the voice service.
+    const closing = Promise.resolve().then(() => this.closeWorker(client)).catch(error => { if (/exit could not be confirmed/i.test(String(error?.message))) throw error; });
     this.exit = Promise.all([this.exit, closing]).then(() => {});
+    this.exit.catch(() => {});   // observed here; whoever waits on it gets the rejection
     return this.exit;
   }
 

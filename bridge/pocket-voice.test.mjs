@@ -25,7 +25,7 @@ function clock() {
         if (!next) break; jobs.delete(next[0]); time=next[1].at; next[1].callback(); } time=target; }};
 }
 
-function harness({autoReady=true, settings=config(), timers}={}) {
+function harness({autoReady=true, settings=config(), timers, isAlive}={}) {
   const requests=[], states=[], launches=[];
   const child=new EventEmitter(); child.pid=987; child.kills=0; child.kill=()=>{child.kills++;return true;};
   child.stdout=new PassThrough(); child.stderr=new PassThrough();
@@ -33,7 +33,7 @@ function harness({autoReady=true, settings=config(), timers}={}) {
   const client=new PocketVoice(settings,{project:process.cwd(),configPath:resolve('pocket-fixtures/config.json'),
     pythonExecutable:resolve('pocket-fixtures/python.exe'),spawnImpl:(exe,args,options)=>{
       launches.push({exe,args,options});if(autoReady)queueMicrotask(()=>ready());return child;},
-    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{})});
+    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{}),...(isAlive?{isAlive}:{})});
   const send=frame=>child.stdout.write(JSON.stringify({owner:client.owner,...frame})+'\n');
   const profiles=()=>({profiles:[profile],preparedProfiles:[profile],unavailableProfiles:{}});
   const ready=(extra={})=>send({op:'ready',protocolVersion:1,engine:'pocket-tts',device:'cpu',dtype:'torch.float32',
@@ -171,11 +171,34 @@ test('hung cancellation and shutdown kill only the owned handle and require exit
   const timers=clock(),h=harness({timers});const controller=new AbortController();
   const synthesis=h.client.synthesizeStream(profile,'One reply.',{signal:controller.signal,onPcm:()=>{}}),rejected=assert.rejects(synthesis,{name:'AbortError'});
   await tick();h.prepared();await tick();h.pcm(h.requests[1],1,0);await tick();controller.abort();await rejected;
-  timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.ok(h.client.failure);assert.equal(h.child.stdin.writableEnded,true);
-  timers.advance(POCKET_LIMITS.cancelMs);assert.equal(h.child.kills,1);
+  // The first deadline only says so and goes on waiting; the worker is stopped when the long one has passed too.
+  timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.equal(h.client.failure,undefined,'the worker is given the longer wait');
+  timers.advance(POCKET_LIMITS.cancelHardMs);await tick();assert.ok(h.client.failure);assert.match(h.client.failure.message,/did not stop its cancelled request/);assert.equal(h.child.stdin.writableEnded,true);
+  timers.advance(POCKET_LIMITS.closeGraceMs);assert.equal(h.child.kills,1);
   const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
-  timers.advance(POCKET_LIMITS.exitMs);await failed;assert.equal(h.child.kills,1);
+  timers.advance(POCKET_LIMITS.killRetryMs);assert.equal(h.child.kills,2,'stopped again before it is called unconfirmed');
+  timers.advance(POCKET_LIMITS.exitMs-POCKET_LIMITS.killRetryMs);await failed;assert.equal(h.child.kills,2);
   h.finish();
+});
+
+// An exit that was not confirmed is not a process that is still running: the process is looked at again, and the late close ends the wait.
+test('recoverExit: an unconfirmed exit is checked again, stopped again, and resolves when the process is gone',async()=>{
+  const timers=clock();let alive=true;const h=harness({timers,isAlive:()=>alive});
+  h.client.start();await tick();await tick();
+  const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
+  timers.advance(POCKET_LIMITS.closeGraceMs+POCKET_LIMITS.exitMs);await failed;
+  const kills=h.child.kills,recovered=h.client.recoverExit({timeoutMs:60_000,pollMs:1000,killMs:10_000});
+  timers.advance(25_000);assert.ok(h.child.kills>kills,'it is stopped again while it still runs');
+  alive=false;timers.advance(1000);assert.equal(await recovered,true);assert.equal(h.client.child,null);
+});
+
+test('recoverExit gives up (false) when the process is still running after its time',async()=>{
+  const timers=clock(),h=harness({timers,isAlive:()=>true});
+  h.client.start();await tick();await tick();
+  const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
+  timers.advance(POCKET_LIMITS.closeGraceMs+POCKET_LIMITS.exitMs);await failed;
+  const recovered=h.client.recoverExit({timeoutMs:5000,pollMs:1000,killMs:2000});timers.advance(6000);
+  assert.equal(await recovered,false);
 });
 
 // A first-time preparation of a voice takes 1.4 to 4.5 s and cannot be interrupted. V's typed line is cancelled on purpose when the companion's voice
@@ -202,10 +225,10 @@ test('a cancelled preparation that never ends still stops the worker, after the 
   const timers = clock(), h = harness({timers}), controller = new AbortController();
   const preparing = h.client.prepareProfile(profile, {signal: controller.signal}), rejected = assert.rejects(preparing, {name: 'AbortError'});
   await tick(); controller.abort(); await rejected;
-  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(POCKET_LIMITS.prepareCancelMs + POCKET_LIMITS.cancelHardMs - 1); await tick(); assert.equal(h.client.failure, undefined);
   timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
   assert.equal(h.child.stdin.writableEnded, true);
-  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  timers.advance(POCKET_LIMITS.closeGraceMs); assert.equal(h.child.kills, 1);
   h.finish();
 });
 
@@ -230,7 +253,7 @@ test('a stream cancelled before its first sound waits for the worker to answer i
   const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
   await tick(); h.prepared(); await tick(); const request = h.requests[1]; assert.equal(request.op, 'stream');
   controller.abort(); await rejected; assert.equal(h.requests.at(-1).op, 'cancel');
-  timers.advance(POCKET_LIMITS.cancelMs * 3); await tick();
+  timers.advance(POCKET_LIMITS.cancelMs * 2); await tick();
   assert.equal(h.client.failure, undefined); assert.equal(h.child.stdin.writableEnded, false); assert.equal(h.child.kills, 0);
   h.send({op: 'cancelled', id: request.id, profile, ...h.profiles()}); await tick();
   timers.advance(POCKET_LIMITS.prepareCancelMs); await tick();
@@ -242,9 +265,9 @@ test('a stream cancelled before its first sound that never answers still stops t
   const timers = clock(), h = harness({timers}), controller = new AbortController();
   const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
   await tick(); h.prepared(); await tick(); controller.abort(); await rejected;
-  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(POCKET_LIMITS.prepareCancelMs + POCKET_LIMITS.cancelHardMs - 1); await tick(); assert.equal(h.client.failure, undefined);
   timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
-  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  timers.advance(POCKET_LIMITS.closeGraceMs); assert.equal(h.child.kills, 1);
   h.finish();
 });
 

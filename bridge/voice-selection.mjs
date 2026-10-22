@@ -8,6 +8,7 @@ import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs'
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
+import {closeConfirmed} from './worker-process.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -128,6 +129,7 @@ export class VoiceSelection {
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       onFailure:reason=>this.noteFailure('v-helper',reason),
       clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:blockedByWindows,busy:()=>this.busy,
+      closeWorker:client=>this.closeWorker(client),
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
@@ -825,7 +827,7 @@ export class VoiceSelection {
     this.publish();
   }
   retireCandidate(entry){
-    const closing=Promise.resolve().then(()=>entry.client.close());
+    const closing=Promise.resolve().then(()=>this.closeWorker(entry.client));
     this.candidateExit=this.candidateExit.then(()=>closing);
     this.candidateExit.catch(()=>{});
     return this.candidateExit;
@@ -857,9 +859,12 @@ export class VoiceSelection {
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
     // cleanup; waiting for readiness first could prevent shutdown forever.
-    // An unconfirmed prior exit must continue blocking any replacement.
+    // An unconfirmed prior exit must continue blocking any replacement, but it never keeps THIS worker from being closed (a worker skipped
+    // here would run on, unseen, beside the next one). An exit that could not be confirmed is looked at again before it counts as failed
+    // (closeWorker), so one missed confirmation is not the end of every local voice for the session.
     const phoneRetirement=backend==='pocket'?this.phoneAnalysis?.retire().catch(()=>{}):undefined;
-    const retirement = this.retiring.then(() => Promise.all([client.close(),phoneRetirement]));
+    const closeThis = () => Promise.all([this.closeWorker(client),phoneRetirement]);
+    const retirement = this.retiring.then(closeThis, error => closeThis().then(() => { throw error; }));
     this.retiring = retirement.then(() => {
       if (this.retiring !== completed) return;
       this.releasing = false;
@@ -874,6 +879,8 @@ export class VoiceSelection {
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
+  // Closes a worker and confirms its exit; an exit that was not confirmed is checked again (bridge/worker-process.mjs) before it is a failure.
+  closeWorker(client){return closeConfirmed(client,{log:message=>this.log(message,'Voices'),recoverMs:this.options.exitRecoverMs});}
   // ---- V's own Pocket worker (bridge/v-helper-voice.mjs) ----
   // V's voice engine is the player's choice (settings `vVoiceEngine`, default Pocket). With Pocket, V's line is spoken by the Pocket worker
   // the companions use when they use Pocket themselves (`pocketRoute`: one worker, one job at a time). With any other companion voice

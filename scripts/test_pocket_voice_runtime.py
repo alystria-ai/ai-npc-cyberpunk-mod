@@ -945,6 +945,46 @@ class Producer(unittest.TestCase):
             worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<f',1.),1))
         self.assertEqual(events,['decoder drained','decoder joined'])
 
+    def test_an_acknowledgement_that_never_comes_ends_the_request_not_the_worker(self):
+        # The worker waited 10 s for an acknowledgement and failed the whole worker ("Pocket generation stopped"), while the bridge's own
+        # consumer limit (a cold renderer) is longer: it is a cancelled request now, and the backstop is longer than the bridge's limits.
+        self.assertGreater(worker.ACK_WAIT_SECONDS,30+10)
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1);commands.expect_ack(1)
+        with self.assertRaises(worker.Cancelled):
+            commands.await_ack(.01)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1)
+        with patch.object(worker,'ACK_WAIT_SECONDS',.01):
+            with self.assertRaises(worker.Cancelled):
+                worker.stream_request(Model(),{},'Reply.',commands,lambda frame:None,1,'johnny-silverhand',lambda values:(struct.pack('<3f',*values),3))
+
+    def test_a_cancelled_reply_stops_decoding_its_backlog(self):
+        # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
+        class Latent:
+            shape=(1,4,32)
+            def new_zeros(self,*shape):
+                return ('silence',)+shape
+        class Mimi:
+            def __init__(self):
+                self.decoded=0
+            def decode_from_latent(self,latent,state):
+                self.decoded+=1;return 'audio'
+        mimi=Mimi();stop=threading.Event();wrapped=worker.skip_decoding_when_stopped(mimi,stop)
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,1)
+        stop.set()
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),('silence',1,1,1));self.assertEqual(mimi.decoded,1,'a cancelled reply decodes nothing more')
+        stop.clear();self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,2,'the next reply decodes again')
+        self.assertIs(worker.skip_decoding_when_stopped(mimi,stop),wrapped,'wrapping twice changes nothing')
+
+    def test_a_cancel_raises_the_priority_at_once_from_the_reader_thread(self):
+        pipe,commands=self.commands();raised=threading.Event();commands.on_cancel=raised.set
+        pipe.send({'owner':'a'*32,'op':'stream','id':1,'profile':'johnny-silverhand','text':'One full reply.'})
+        request=commands.queue.get(timeout=1);commands.begin(request['id'])
+        pipe.send({'owner':'a'*32,'op':'cancel','id':1});self.assertTrue(raised.wait(1))
+        self.close(pipe,commands)
+
     def test_cpu_environment_is_offline_thread_bounded_and_removes_secrets(self):
         environment=runtime.cpu_environment(2)
         self.assertEqual(environment['CUDA_VISIBLE_DEVICES'],'-1');self.assertEqual(environment['OMP_NUM_THREADS'],'2')

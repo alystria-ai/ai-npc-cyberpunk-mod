@@ -55,6 +55,31 @@ class Cancelled(RuntimeError):
     pass
 
 
+def skip_decoding_when_stopped(mimi, stop):
+    """A cancelled reply must stop quickly, and the pinned upstream decoder does not: it decodes every latent frame that is queued before it
+    says it is done, and on a busy computer that backlog is seconds of audio (the 2 s cancel deadline of the bridge killed the worker for it:
+    "Pocket worker did not stop its cancelled request"). While `stop` is set the decode of a chunk is replaced by one silent sample of the
+    right shape: nothing is heard (the chunk is thrown away by the cancelled request), the decoder thread's bookkeeping and its end sentinel
+    work as before, and it empties its queue in milliseconds. The decoder state belongs to the request, so the next reply starts fresh."""
+    original = mimi.decode_from_latent
+    if getattr(original, "stops_when_cancelled", False):
+        return original
+
+    def decode(latent, *args, **kwargs):
+        if stop.is_set():
+            return latent.new_zeros(latent.shape[0], 1, 1)
+        return original(latent, *args, **kwargs)
+
+    decode.stops_when_cancelled = True
+    mimi.decode_from_latent = decode
+    return decode
+
+
+# The longest the worker waits for the bridge to acknowledge one PCM packet. The bridge gives its consumer 30 s for the first packet (a
+# cold renderer) and 10 s for the others, so this is longer than either.
+ACK_WAIT_SECONDS = 45
+
+
 class CommandPipe:
     """Bounded UTF-8 lines from a raw owned pipe.
 
@@ -156,6 +181,9 @@ class Commands:
         self.last_id = 0
         self.error = None
         self.cancelled = set()
+        # Called from the reader thread when the active (or the queued) request is cancelled: the worker goes to normal priority at once so a
+        # cancelled warm-up that was running below normal under a busy game stops in time (main sets it).
+        self.on_cancel = None
         self.thread = threading.Thread(target=self.read, name="pocket-command-reader", daemon=True)
 
     def finish_input(self, error=None):
@@ -191,6 +219,11 @@ class Commands:
                             if request_id == self.active:
                                 self.stop.set()
                                 self.ack.set()
+                            if callable(self.on_cancel):
+                                try:
+                                    self.on_cancel()
+                                except Exception:  # noqa: BLE001 - a priority is an optimisation, never a failure.
+                                    pass
                         elif request_id > self.last_id:
                             raise ValueError("Pocket cancellation has no owner")
                     elif op == "ack":
@@ -241,9 +274,13 @@ class Commands:
             self.ack.clear()
         self.check()
 
-    def await_ack(self, seconds=10):
-        if not self.ack.wait(seconds):
-            raise TimeoutError("Pocket PCM consumer did not acknowledge output")
+    def await_ack(self, seconds=None):
+        """Waits for the bridge to take a packet. The bridge owns this deadline (POCKET_LIMITS.sinkFirstMs / sinkMs, and it cancels the
+        request when its own limit passes); this one is only a backstop for a bridge that went quiet, longer than both so it never
+        fires first, and it ends the request, not the worker: a cold hidden renderer under game load used to take the whole worker
+        down ("generation stopped") and cost a 19 to 47 s reload."""
+        if not self.ack.wait(ACK_WAIT_SECONDS if seconds is None else seconds):
+            raise Cancelled("Pocket PCM consumer did not acknowledge output")
         self.check()
         with self.lock:
             self.expected_ack = None
@@ -454,6 +491,7 @@ def main():
 
     threading.Thread(target=heartbeats, name="pocket-start-heartbeat", daemon=True).start()
     commands = Commands(command_pipe(sys.stdin), args.owner)
+    commands.on_cancel = gate.request
     commands.thread.start()
     cleaned = threading.Event()
 
@@ -511,6 +549,7 @@ def main():
             if not model.has_voice_cloning or model.sample_rate != 24000:
                 raise RuntimeError("Pocket export lacks the expected reference-conditioned audio")
             dtypes = require_cpu_float32(torch, model)
+            skip_decoding_when_stopped(model.mimi, commands.stop)
         send({"op": "state", "state": "loading", "phase": "student-loaded"})
 
         # Saved voice setups live beside the worker's other mutable files (runtime, never the immutable assets).
@@ -563,6 +602,7 @@ def main():
             if not loaded.has_voice_cloning or loaded.sample_rate != 24000:
                 raise RuntimeError("Pocket export lacks the expected reference-conditioned audio")
             require_cpu_float32(torch, loaded)
+            skip_decoding_when_stopped(loaded.mimi, commands.stop)
             return loaded
 
         def switch_language(request):

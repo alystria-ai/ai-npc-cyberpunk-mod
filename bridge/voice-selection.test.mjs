@@ -328,6 +328,31 @@ test('an unconfirmed retirement keeps replacement workers from starting', async 
   await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
 });
 
+// 0.2.6 and 0.2.7 reports ("Pocket worker exit could not be confirmed", RTX 5050 and GTX 1060): one missed confirmation left the release failed for the
+// rest of the session, and every later voice failed with it, though the process had exited a moment later.
+test('an exit that was not confirmed is looked at again, and a worker that is gone after all does not end the local voices', async () => {
+  const h = fixture(); await h.voice.start();
+  let rechecks = 0;
+  h.workers[0].close = async () => { throw Error('Pocket worker exit could not be confirmed'); };
+  h.workers[0].recoverExit = async () => { rechecks++; return true; };
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await h.voice.retiring; assert.equal(rechecks, 1);
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await h.voice.start(); assert.equal(h.workers[1].starts, 1, 'the next worker starts');
+  await h.voice.close();
+});
+
+test('an exit that is still not confirmed after the second look stays a failure that blocks a replacement, and later workers are still closed', async () => {
+  const h = fixture(); await h.voice.start();
+  h.workers[0].close = async () => { throw Error('Pocket worker exit could not be confirmed'); };
+  h.workers[0].recoverExit = async () => false;
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.start(), /exit could not be confirmed/);
+  assert.equal(h.workers[1].starts, 0);
+});
+
 test('malformed settings retain the valid selection; a withdrawn pending change is never applied', async () => {
   const h = fixture(); await h.voice.start();
   h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(true);

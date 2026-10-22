@@ -8,6 +8,7 @@ import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {createVoiceProfileRegistry, registryFromTable, voiceChangeBatches, voiceTable} from './voice-profile-registry.mjs';
 import {pocketSpokenText} from './pocket-language-models.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
@@ -17,28 +18,24 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 // stopped and started once more, and a second stall gives up (the failure is the same as a startup timeout). startupMs is the hard bound
 // for the whole start, progress or not (a restart does not extend it). Importing the runtime has been measured at 2 to 36 s on healthy
 // machines and over 45 s on a busy one, so it gets a longer window; loading the student and warming voices are given longer ones.
-// cancelMs: how long a cancelled request may keep the worker busy before the worker is stopped. A first-time preparation of a voice
-// (1.4 to 4.5 s, far longer on a computer starved of CPU) cannot be interrupted, and neither can the worker reading a reply's text before its
-// first sound, so a cancelled one of those gets prepareCancelMs: the worker finishes it, answers 'cancelled', and goes on.
+// cancelMs: how long a cancelled request may keep the worker busy before the bridge says so in its log and goes on waiting up to
+// cancelHardMs more (the worker stops decoding its backlog the moment it is cancelled, but on a computer starved of CPU even finishing the
+// step in hand takes seconds, and the next request waits for the worker either way: stopping it only costs the reload). A first-time
+// preparation of a voice (1.4 to 4.5 s, far longer on a computer starved of CPU) cannot be interrupted, and neither can the worker reading
+// a reply's text before its first sound, so a cancelled one of those gets prepareCancelMs first: the worker finishes it, answers
+// 'cancelled', and goes on.
+// sinkFirstMs / sinkMs: how long the audio consumer may take to accept a packet (the first one can wait for a cold hidden renderer, up to
+// 25 s). The worker waits longer than both for an acknowledgement (ACK_WAIT_SECONDS in the worker), so the bridge's limit is always the
+// one that applies, and neither ends the worker. closeGraceMs: how long a closing worker gets to leave by itself (its input closed) before
+// it is stopped; exitMs: how long the stop gets to be confirmed (the process tree is stopped again at killRetryMs).
 export const POCKET_LIMITS = Object.freeze({startupMs: 240_000, prepareMs: 60_000,
-  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 30_000, exitMs: 5000, maxFrames: 24000 * 120,
+  renderMs: 120_000, sinkMs: 10_000, sinkFirstMs: 30_000, cancelMs: 15_000, cancelHardMs: 15_000, prepareCancelMs: 30_000,
+  closeGraceMs: 2000, exitMs: 15_000, killRetryMs: 6000, recoverMs: 120_000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'importing-dependencies': 60_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
   progressCpuMs: 100, progressLogMs: 30_000, startAttempts: 2, voicesMs: 30_000,
   // A language model swap: verify three files (about 240 MB), release the resident model, read the new one (0.7 to 1.6 s measured on a loaded laptop).
   languageMs: 90_000});
 const HEARTBEAT_STEPS = Object.freeze(['numpy', 'torch', 'yaml', 'pocket_tts']);
-// Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
-// a plain kill reaches only the launcher: the real worker would go on holding the runtime lock. Only the real spawn is killed by
-// process tree (a test's stand-in child is never handed to taskkill).
-const killWorker = (child, real) => {
-  try {
-    if (real && process.platform === 'win32' && child.pid) {
-      spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {windowsHide: true, stdio: 'ignore'}).on('error', () => {});
-      return;
-    }
-  } catch {}
-  try { child.kill(); } catch {}
-};
 const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -84,7 +81,7 @@ export function validatePocketConfig(config) {
 export class PocketVoice {
   constructor(config, {project, configPath, pythonExecutable, spawnImpl = spawn,
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
-    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs} = {}) {
+    setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs, isAlive} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
     // The voices the worker holds. It starts with the configuration's (`baseRegistry`, which its start is checked against); a voice the
     // player changed while it runs is sent to it (setVoices) and `registry` follows what it confirms. A worker that starts again holds the
@@ -95,6 +92,8 @@ export class PocketVoice {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'Pocket Python executable');
     if (!this.project || !this.configPath || !this.pythonExecutable) throw Error('Pocket runtime paths cannot fall back to a development environment');
     Object.assign(this, {spawnImpl, onState, onLog, now, setTimer, clearTimer});
+    // Is a process still running (exit recovery)? A test's stand-in child has no process: it is alive until it says it closed.
+    this.isAlive = typeof isAlive === 'function' ? isAlive : spawnImpl === spawn ? pidAlive : () => true;
     // One number replaces the per-phase stall limits (tests, tuning).
     this.stallMs = Number.isFinite(stallMs) && stallMs > 0 ? stallMs : null;
     this.attempt = 0; this.restarting = false;
@@ -174,6 +173,8 @@ export class PocketVoice {
       modelSha256: this.config.model.sha256, inputIdentity: this.config.model.inputIdentity,
       language: this.language, updated: Date.now(), ...extra})).catch(() => {}); } catch {}
   }
+  // Stops the worker and everything it started (bridge/worker-process.mjs); the answer is checked there and falls back to killing the handle.
+  killWorker(child) { void killProcessTree(child, {real: this.spawnImpl === spawn, setTimer: this.setTimer, clearTimer: this.clearTimer}); }
   timer(task, ms) { const handle = this.setTimer(task, ms); handle?.unref?.(); return handle; }
   send(value) {
     if (!this.child || this.child.stdin.writableEnded) throw Error('Pocket worker input is closed');
@@ -218,7 +219,7 @@ export class PocketVoice {
     this.clearTimer(this.startTimer); this.startTimer = null;
     const child = this.child;
     try { if (!child.stdin.writableEnded) child.stdin.end(); } catch {}
-    killWorker(child, this.spawnImpl === spawn);
+    this.killWorker(child);
     // The close event starts the new attempt; a worker that cannot be stopped is a failure.
     this.restartTimer = this.timer(() => { if (this.restarting && this.child === child) this.fail(Error('Pocket worker did not stop for its restart')); },
       POCKET_LIMITS.exitMs);
@@ -271,9 +272,9 @@ export class PocketVoice {
     this.exited = new Promise((done, reject) => {
       this.rejectExited = reject;
       child.once('close', code => {
-        this.clearTimer(this.startTimer); this.clearTimer(this.exitTimer); this.clearTimer(this.confirmTimer);
+        this.clearTimer(this.startTimer); this.clearTimer(this.exitTimer); this.clearTimer(this.confirmTimer); this.clearTimer(this.retryKillTimer);
         this.clearTimer(this.stallTimer); this.clearTimer(this.restartTimer);
-        this.startTimer = this.exitTimer = this.confirmTimer = this.stallTimer = this.restartTimer = null;
+        this.startTimer = this.exitTimer = this.confirmTimer = this.retryKillTimer = this.stallTimer = this.restartTimer = null;
         this.child = null; this.loaded = false; this.prepared.clear(); this.dropLanguage();
         // A worker stopped by the stall watchdog: the same start goes on with a new worker (`ready` stays pending).
         if (this.restarting && !this.closing && !this.failure) {
@@ -405,7 +406,7 @@ export class PocketVoice {
       let sinkTimer;
       try {
         const deadline = new Promise((resolveSink, reject) => {
-          sinkTimer = this.timer(() => reject(Error('Pocket PCM consumer timed out')), POCKET_LIMITS.sinkMs);
+          sinkTimer = this.timer(() => reject(Error('Pocket PCM consumer timed out')), frame.index === 1 ? POCKET_LIMITS.sinkFirstMs : POCKET_LIMITS.sinkMs);
         });
         await abortable(Promise.race([Promise.resolve().then(() => request.onPcm(packet)), deadline]), request.controller.signal);
         if (!request.cancelReason && !this.failure && !this.closing) this.send({op: 'ack', id: request.id, index: frame.index});
@@ -472,8 +473,12 @@ export class PocketVoice {
     // (0.2.4 report: a V line cancelled while the worker was starved of CPU took the worker down at the 2 s deadline, and V stayed silent).
     // It gets the long wait; one that is already generating stops within a step, so it keeps the short one.
     const uninterruptible = request.kind === 'prepare' || (request.kind === 'stream' && request.chunks === 0);
-    request.cancelTimer = this.timer(() => this.fail(Error('Pocket worker did not stop its cancelled request')),
-      uninterruptible ? POCKET_LIMITS.prepareCancelMs : POCKET_LIMITS.cancelMs);
+    const first = uninterruptible ? POCKET_LIMITS.prepareCancelMs : POCKET_LIMITS.cancelMs;
+    // The worker has not answered yet: say so and keep waiting (the next request waits for it either way). Only then is it stopped.
+    request.cancelTimer = this.timer(() => {
+      this.startLog(`the worker is still stopping a cancelled ${request.kind} after ${Math.round(first / 1000)}s; waiting up to ${Math.round(POCKET_LIMITS.cancelHardMs / 1000)}s more`);
+      request.cancelTimer = this.timer(() => this.fail(Error('Pocket worker did not stop its cancelled request')), POCKET_LIMITS.cancelHardMs);
+    }, first);
   }
   finishRequest(request, error, result) {
     if (!this.pending.delete(request.id)) return;
@@ -593,18 +598,31 @@ export class PocketVoice {
     });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);
   }
+  // Closing: the worker gets closeGraceMs to leave by itself (its input is closed), then it is stopped (the whole process tree, checked, with
+  // the handle as the fallback) and stopped again at killRetryMs; an exit still not seen at exitMs is unconfirmed. recoverExit looks again.
   confirmExit() {
     if (!this.child || this.exitTimer || this.confirmTimer) return;
     const child = this.child;
     this.exitTimer = this.timer(() => {
       this.exitTimer = null; if (this.child !== child) return;
-      killWorker(child, this.spawnImpl === spawn);
+      this.killWorker(child);
+      this.retryKillTimer = this.timer(() => { this.retryKillTimer = null; if (this.child === child) this.killWorker(child); }, POCKET_LIMITS.killRetryMs);
       this.confirmTimer = this.timer(() => {
         this.confirmTimer = null; if (this.child !== child) return;
         const error = Error('Pocket worker exit could not be confirmed'); this.failure ||= error;
         this.publish('error'); this.rejectExited?.(error);
       }, POCKET_LIMITS.exitMs);
-    }, POCKET_LIMITS.cancelMs);
+    }, POCKET_LIMITS.closeGraceMs);
+  }
+  /**
+   * A close whose exit was not confirmed: asks the operating system again whether the process is gone, stopping it once more every few
+   * seconds, and resolves true when it is (the replacement may then start), false when it is still running after `timeoutMs`.
+   */
+  recoverExit({timeoutMs = POCKET_LIMITS.recoverMs, pollMs = 1000, killMs = 10_000} = {}) {
+    const child = this.child;
+    return recoverExit({child, isAlive: this.isAlive, kill: () => this.killWorker(child), timeoutMs, pollMs, killMs,
+      schedule: (task, ms) => this.timer(task, ms),
+      onGone: () => { if (this.child === child) { this.child = null; this.loaded = false; this.startLog('the worker is gone (found on a second look)'); } }});
   }
   fail(error) {
     this.failure ||= error; this.clearTimer(this.startTimer); this.startTimer = null;
