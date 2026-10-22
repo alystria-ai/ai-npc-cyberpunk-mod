@@ -82,11 +82,13 @@ const SAMPLE_RATE = 24000;
 const PACKET_FRAMES = 48000;
 
 /**
- * The settings V's engine is read from: a saved engine that cannot speak right now counts as Pocket, as the settings row shows it (the saved
- * value is left alone, so the engine is back the moment it can speak). `cloudUsable`: a Mistral key is saved and Mature content is off (Voxtral).
- * `omniUsable`: the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V); an Omni
- * worker that is only loading or failing does not count here, so V stays on OmniVoice (its line is skipped with the reason) and no Pocket
- * worker loads beside it.
+ * The settings V's engine is read from. A saved OmniVoice that cannot be used now counts as Pocket (the saved value is left alone, so the engine is back
+ * the moment it can speak). `cloudUsable`: cloud voices are allowed at all, that is Mature content is off (owner decision 2026-10-20: no cloud voice beside
+ * Mature content, so a saved Voxtral reads as Pocket then). A saved Voxtral stays Voxtral whether a Mistral key is saved or not (owner rule: a cloud voice loads
+ * no local model, and one that cannot be asked falls back to written text): without a key V's line is skipped with the reason and shows as its subtitle, and no
+ * Pocket worker is loaded for it (it used to count as Pocket and loaded one: 2026-10-22 review). `omniUsable`: the companions' chosen voice is OmniVoice and its
+ * pack is installed (a second big GPU model is never loaded for V); an Omni worker that is only loading or failing does not count here, so V stays on OmniVoice
+ * (its line is skipped with the reason) and no Pocket worker loads beside it.
  */
 export function vSettingsFor(settings, {cloudUsable = false, omniUsable = false} = {}) {
   const engine = settings?.vVoiceEngine;

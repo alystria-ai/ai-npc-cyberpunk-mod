@@ -951,7 +951,7 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
   // A saved Voxtral without a Mistral key is Pocket for V (the one row of V's voice offers Voxtral only with a key), and so is one beside Mature content
   // (owner decision 2026-10-20: no cloud voice with Mature content on).
-  assert.match(bridge, /const vSettings = vSettingsFor\(settings, \{cloudUsable: voxtralVoice\.hasKey && matureAllowsCloudVoice\(matureContent\.enabled\), omniUsable: vOmniUsable\}\);/);
+  assert.match(bridge, /const vSettings = vSettingsFor\(settings, \{cloudUsable: matureAllowsCloudVoice\(matureContent\.enabled\), omniUsable: vOmniUsable\}\);/);
   assert.match(bridge, /const vOmniUsable = localVoice\.requestedProvider === 'omni' && localVoice\.omniPack\?\.installed !== false;/);
   assert.match(bridge, /if \(vVoice\.update\(vSettings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
@@ -1423,4 +1423,20 @@ test('each V line says which reference it speaks from: the bridge\'s label (manu
   assert.equal(await run({male: {key: 'v-male', source: 'mod:JCDentonAIVoice.archive'}, female: {key: 'v-female'}}), 'mod:JCDentonAIVoice.archive');
   assert.equal(await run({male: {key: 'v-male', source: 'mod:JCDentonAIVoice.archive'}, female: {key: 'v-female'}}, gender => gender === 'male' ? 'manual' : null), 'manual', 'the player\'s own clip wins');
   assert.equal(await run({male: {key: 'v-male'}, female: {key: 'v-female'}}, () => { throw Error('label failed'); }), 'shipped', 'a failing label never affects speech');
+});
+
+// 2026-10-22 review (R6): V on Voxtral with no Mistral key counted as Pocket and loaded a local Pocket worker for V. A cloud voice loads no local model.
+test('a saved Voxtral for V stays Voxtral without a Mistral key: no Pocket worker is wanted, and the line is skipped with the reason (Mature content still makes it Pocket)', () => {
+  const saved = {vVoice: true, vVoiceEngine: 'voxtral'};
+  const voice = new VVoice({voices: {male: {key: 'v-male'}}});
+  // The bridge passes only "cloud voices allowed" (Mature content off): the key is the voice's own business (its problem() says 'no Mistral key').
+  assert.equal(voice.update(vSettingsFor(saved, {cloudUsable: true})), true);
+  assert.equal(voice.engine, 'voxtral'); assert.equal(voice.wantsPocket, false, 'no local Pocket worker for a cloud voice');
+  assert.equal(vSettingsFor(saved, {cloudUsable: true}), saved);
+  // Mature content on: no cloud voice at all (owner decision 2026-10-20), V speaks with Pocket.
+  const mature = new VVoice({voices: {male: {key: 'v-male'}}});
+  mature.update(vSettingsFor(saved, {cloudUsable: false}));
+  assert.equal(mature.engine, 'pocket'); assert.equal(mature.wantsPocket, true);
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /cloudUsable: voxtralVoice\.hasKey/, 'the saved key no longer turns V\'s Voxtral into Pocket');
 });
