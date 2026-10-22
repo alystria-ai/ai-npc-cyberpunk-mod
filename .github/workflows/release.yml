@@ -51,7 +51,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -60,8 +60,6 @@ concurrency:
 env:
   NODE_VERSION: '24.21.0'
   PYTHON_VERSION: '3.12.10'
-  PIP_VERSION: '25.2'
-  HF_HUB_VERSION: '1.33.0'
   HF_PACKS_REPO: alystria-ai/ai-npc-cyberpunk-mod-packs
   OUT: C:\cpc\release
   CACHE: C:\cpc\cache
@@ -75,10 +73,15 @@ jobs:
     # plugin's CMake generator and the vision helper's /await coroutines do not build with yet.
     runs-on: windows-2022
     timeout-minutes: 120
+    # The only job that writes to the repository: its last step creates the GitHub release and uploads Scripts and Runtime.
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Release version
         id: version
@@ -88,24 +91,38 @@ jobs:
           if ($version -notmatch '^\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?$') { throw "Invalid version: $version" }
           "version=$version" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build tools
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
-          npm ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check --require-hashes --no-deps -r packaging/ci-tools.requirements.txt
+          npm ci --ignore-scripts --no-audit --no-fund
 
       # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
+      # ffmpeg is the pinned gyan.dev essentials build (it has libvorbis and libmp3lame), downloaded from its release page and checked against
+      # the SHA-256 the publisher lists for that file; to move to a newer build, change all three FFMPEG_ values together.
       - name: ffmpeg (pre-builds the Mistral voice references)
         shell: pwsh
+        env:
+          FFMPEG_VERSION: '9.0.2'
+          FFMPEG_URL: https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip
+          FFMPEG_SHA256: 60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba
         run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress; if ($LASTEXITCODE -ne 0) { throw 'Could not install ffmpeg.' } }
+          $zip = Join-Path $env:RUNNER_TEMP 'ffmpeg.zip'
+          Invoke-WebRequest -Uri $env:FFMPEG_URL -OutFile $zip -MaximumRetryCount 4 -RetryIntervalSec 5
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:FFMPEG_SHA256) { throw "Checksum mismatch for $env:FFMPEG_URL : expected $env:FFMPEG_SHA256, got $actual" }
+          $target = Join-Path $env:RUNNER_TEMP 'ffmpeg'
+          Expand-Archive $zip -DestinationPath $target -Force
+          $bin = Join-Path (Join-Path $target "ffmpeg-$env:FFMPEG_VERSION-essentials_build") 'bin'
+          $env:Path = "$bin;$env:Path"
+          $bin >> $env:GITHUB_PATH
           $ffmpeg = Get-Command ffmpeg -ErrorAction Stop
           & $ffmpeg.Source -version | Select-Object -First 1
 
@@ -136,7 +153,7 @@ jobs:
         run: node packaging/test-release-install.mjs --packages "$env:OUT\packages" --version "${{ steps.version.outputs.version }}" --host "$env:OUT\native\test-host.exe"
 
       - name: Keep the Scripts package for Nexus Mods
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: AI-NPC-Cyberpunk-Mod-Scripts-${{ steps.version.outputs.version }}
           path: |
@@ -186,19 +203,21 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build tools
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
-          npm ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check --require-hashes --no-deps -r packaging/ci-tools.requirements.txt
+          npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Check the Hugging Face upload access
         if: github.ref_type == 'tag' || inputs.publish
@@ -210,10 +229,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "The HF_PACKS_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
 
       # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
+      # ffmpeg is the pinned gyan.dev essentials build (it has libvorbis and libmp3lame), downloaded from its release page and checked against
+      # the SHA-256 the publisher lists for that file; to move to a newer build, change all three FFMPEG_ values together.
       - name: ffmpeg (pre-builds the Mistral voice references)
         shell: pwsh
+        env:
+          FFMPEG_VERSION: '9.0.2'
+          FFMPEG_URL: https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip
+          FFMPEG_SHA256: 60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba
         run: |
-          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress; if ($LASTEXITCODE -ne 0) { throw 'Could not install ffmpeg.' } }
+          $zip = Join-Path $env:RUNNER_TEMP 'ffmpeg.zip'
+          Invoke-WebRequest -Uri $env:FFMPEG_URL -OutFile $zip -MaximumRetryCount 4 -RetryIntervalSec 5
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:FFMPEG_SHA256) { throw "Checksum mismatch for $env:FFMPEG_URL : expected $env:FFMPEG_SHA256, got $actual" }
+          $target = Join-Path $env:RUNNER_TEMP 'ffmpeg'
+          Expand-Archive $zip -DestinationPath $target -Force
+          $bin = Join-Path (Join-Path $target "ffmpeg-$env:FFMPEG_VERSION-essentials_build") 'bin'
+          $env:Path = "$bin;$env:Path"
+          $bin >> $env:GITHUB_PATH
           $ffmpeg = Get-Command ffmpeg -ErrorAction Stop
           & $ffmpeg.Source -version | Select-Object -First 1
 
@@ -251,19 +284,21 @@ jobs:
       matrix:
         tier: [lite, standard]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build tools
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
-          npm ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check --require-hashes --no-deps -r packaging/ci-tools.requirements.txt
+          npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Check the Hugging Face upload access
         if: inputs.publish
@@ -309,17 +344,19 @@ jobs:
       matrix:
         pack: [european, asian]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build tools
         shell: pwsh
-        run: python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+        run: python -m pip install --disable-pip-version-check --require-hashes --no-deps -r packaging/ci-tools.requirements.txt
 
       - name: Check the Hugging Face upload access
         if: inputs.publish
@@ -359,17 +396,19 @@ jobs:
       matrix:
         tier: [standard, lite]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Build tools
         shell: pwsh
-        run: python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+        run: python -m pip install --disable-pip-version-check --require-hashes --no-deps -r packaging/ci-tools.requirements.txt
 
       - name: Check the Hugging Face upload access
         if: github.ref_type == 'tag' || inputs.publish
