@@ -171,7 +171,7 @@ export const PREFILL = Object.freeze({
   steps: Object.freeze([600, 900, 1300, 1800, 2500, 3500]),   // the new tokens allowed, in steps: a speed that wobbles must not move the early part of the prompt every turn
   minSample: 256,             // a prompt with fewer new tokens says nothing about the speed
   maxAgeMs: 10 * 60_000,      // a measurement older than this is no longer believed
-  offloadPrior: 120,          // before anything is measured, a model with layers on the CPU is taken to read this many tokens a second
+  offloadPrior: 45,           // before anything is measured, a model with layers on the CPU is taken to read this many tokens a second (the 2026-10-19 and 2026-10-22 reports measured 36 to 54 at about 0% of the layers on the card; 120 was a guess. A conservative middle: the meter replaces it with the first real reading)
   failureFloor: 512,          // a stuck request is credited with at least one batch of this many tokens
   // The compact character text (bridge/compact-persona.mjs) is a further step for a machine that is clearly slow, with a hysteresis so it does not flip from turn to turn:
   // two readings in a row under `compactBelow` switch it on, two in a row at `compactAbove` or more switch it off, anything between keeps the state. Measured readings

@@ -273,8 +273,10 @@ test("lean character text (the bridge's PersonaBook): reviewer notes gone, rules
   const vendor = lean.persona('npc-food-vendor-male');
   assert.match(vendor.style, /Use slang sparingly, not in every sentence\./, 'it fights the "choom" overuse of the archetypes');
   const cop = lean.persona('npc-ncpd-male');
+  // Since fix/character-data-1022 the roster text itself tells an archetype to mention the place or the hour only if V asks; the lean pass has nothing to rewrite there (it used to).
   assert.doesNotMatch(cop.backstory, /where you are \(district, neighborhood\)/, 'an archetype is not told to take its place from the context');
-  assert.match(cop.backstory, /Use the per-turn context for what V can see about you/);
+  assert.match(cop.backstory, /Mention the place or the hour only if V asks or it changes what you would say/);
+  assert.equal(cop.backstory, book.persona('npc-ncpd-male').backstory.replace(/\n{3,}/g, '\n\n').trim(), 'an archetype\'s backstory has no reviewer notes or repeated blocks to cut, so the lean text is the roster text');
 });
 
 test('rule 7 leaves the weather, the time of day and the place unsaid unless V asks, and still names the right-now section as the truth', () => {

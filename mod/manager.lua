@@ -1009,6 +1009,10 @@ function M.takeVoiceFallbackNotice()
     if not pending then return nil end
     -- OmniVoice cannot run on this PC at all (it needs an NVIDIA graphics card): said once, and not as a retry or a plain "unavailable".
     -- OmniVoice did not get the graphics memory it needs next to the game (timed out on a small card or with memory spilled into shared memory): Pocket speaks, said once.
+    -- Windows ran out of memory it can promise (the paging file is too small, error 1455) for the voice: OmniVoice then Pocket, or Pocket itself. Said once, with what helps.
+    if pending.reason == 'virtual-memory' then
+        return ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.')
+    end
     if pending.reason == 'omni-memory' and pending.to == 'pocket' then
         return ui.t('OmniVoice needs more graphics memory than is free next to the game. Pocket is used.')
     end
@@ -1046,6 +1050,13 @@ end
 -- True when speaking to a companion cannot work right now: the player chose Mistral, Local AI or Custom, the bridge says that
 -- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
+-- The Conversation provider the player has chosen ('convai', 'mistral', 'local' or 'custom'), for the request the game writes: the bridge follows it for that
+-- turn, so a line sent right after picking Local AI never waits for the bridge to read the settings file. Settings are cached; no file is read here.
+function M.conversationProvider()
+    loadSettings()
+    return settings.conversationProvider
+end
+
 function M.voiceNeedsConvai()
     loadSettings()
     local chosen = settings.conversationProvider
@@ -1294,7 +1305,9 @@ local function updateLocalVoice()
         local temporary = fallback.temporary == true
         -- 'omni-no-nvidia' (OmniVoice needs an NVIDIA card) is its own notice, whatever the lower voice is.
         -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
-        local reason = fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
+        -- 'virtual-memory' (Windows ran out of memory: the paging file is too small) is its own notice for OmniVoice or Pocket, whatever the lower voice is.
+        local reason = fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
+            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true

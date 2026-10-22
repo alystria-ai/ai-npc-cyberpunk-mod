@@ -202,14 +202,23 @@ function M.transcript(requestId, generation, entity)
         finished=value.finished,failed=value.failed,delivered=value.delivered}
 end
 
+-- The written text of a reply that could not be voiced. The voice notice says replies show as text, so the text shows whatever the Subtitles setting
+-- says (captions.showAnyway); an automatic reaction (a bark) keeps the setting, and a reply the player turned the voice off for is not a failure.
+local function showUnvoiced(reaction, name, text, actor, entity)
+    if not reaction and type(captions.showAnyway) == 'function' then return captions.showAnyway(name, text, actor, entity) end
+    return captions.show(name, text, actor, entity)
+end
+
 local function fallback(reason, text)
     local name, actor, entity = M.speaker, M.actor, M.context and M.context.entity
     local heard = M.continuousHeardAll == true
+    -- An automatic reaction, and a voice the player turned off while the reply played ('muted'), keep the Subtitles setting.
+    local reaction = M.reactionReply == true or reason == 'muted'
     M.stop(reason)
     -- A reply that was already heard to its end (its last state said so) has nothing left to show: re-showing the whole written text
     -- after the voice is done would leave the subtitle on screen for its reading time.
     if heard then return end
-    captions.show(name, text, actor, entity)
+    showUnvoiced(reaction, name, text, actor, entity)
 end
 
 function M.clearEntity(entity)
@@ -332,6 +341,7 @@ function M.start(context, reply)
     local storyGuard = M.storyGuard
     if storyGuard and storyGuard(M.target, context, true) == true then return false end
     M.holocallNoted = nil
+    M.reactionReply = context.reaction ~= nil and context.reaction ~= false
     M.voiceOnly = context.voiceOnly == true
     captions.voiceOnly = M.voiceOnly
     -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
@@ -362,7 +372,10 @@ function M.start(context, reply)
     if reply.continuous ~= nil then
         local controller, player, actor = continuousAdapter(), Game.GetPlayer(), M.target
         if not controller or not voiceEnabled(player) then
-            captions.show(context.name, reply.text, actor, context.entity); return false
+            -- No voice by the player's choice keeps the Subtitles setting; no voice engine to play it is a failure: the text shows.
+            if voiceEnabled(player) then showUnvoiced(M.reactionReply, context.name, reply.text, actor, context.entity)
+            else captions.show(context.name, reply.text, actor, context.entity) end
+            return false
         end
         local paused = true
         pcall(function()
@@ -379,7 +392,7 @@ function M.start(context, reply)
         local accepted, reason = controller.start(context, reply.continuous, player, actor, paused, source)
         if not accepted then
             M.state, M.error = 'playback-failed', reason
-            captions.show(context.name, reply.text, actor, context.entity); publish(); return false
+            showUnvoiced(M.reactionReply, context.name, reply.text, actor, context.entity); publish(); return false
         end
         M.player, M.actor, M.playerID = player, actor, tostring(player:GetEntityID().hash)
         if M.holocall then
@@ -403,7 +416,9 @@ function M.start(context, reply)
     end
     local audio = reply.audio
     if not voiceEnabled(Game.GetPlayer()) or not M.available or not validAudio(audio) then
-        captions.show(context.name, reply.text, M.target, context.entity); return false
+        if voiceEnabled(Game.GetPlayer()) then showUnvoiced(M.reactionReply, context.name, reply.text, M.target, context.entity)
+        else captions.show(context.name, reply.text, M.target, context.entity) end
+        return false
     end
     local descriptor = reply.stream
     if descriptor and (type(descriptor) ~= 'table' or (descriptor.version ~= 1 and descriptor.version ~= 2)
@@ -415,7 +430,7 @@ function M.start(context, reply)
             or not descriptor.firstText:find('%S') or type(descriptor.textComplete) ~= 'boolean'
             or not finite(descriptor.bufferedDuration) or descriptor.bufferedDuration < audio.duration
             or descriptor.bufferedDuration > 120 or audio.duration < .05 or audio.duration > 4.05))) then
-        captions.show(context.name, reply.text, M.target, context.entity); return false
+        showUnvoiced(M.reactionReply, context.name, reply.text, M.target, context.entity); return false
     end
     local actor, player = M.target, Game.GetPlayer()
     if not actor or not player or tostring(actor:GetEntityID().hash) ~= context.entity then
@@ -594,7 +609,11 @@ end
 
 local function updateContinuous(delta, player, paused)
     local state, problem = continuous.update(delta, player, M.actor, paused)
-    if problem then M.error=problem;fallback('playback-failed', M.text);return end
+    if problem then
+        -- A voice that broke after the reply started: the bridge's error state carries the complete written reply, so the whole text shows.
+        local complete = type(state) == 'table' and state.textComplete == true and type(state.text) == 'string' and state.text:find('%S')
+        M.error=problem;fallback('playback-failed', complete and state.text or M.text);return
+    end
     if paused then M.continuousFaceCursor=nil;face.pause(M.actor);return end
     if state then
         -- The source/audio/subtitle position remains the exact device report.

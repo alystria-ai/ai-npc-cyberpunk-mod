@@ -17,6 +17,16 @@ import {Utterance} from './voice-utterance.mjs';
 // One reply, one voice: the head's call decides the engine (an `Utterance`, bridge/voice-utterance.mjs) and the tail is spoken by
 // that engine only. If the head was heard in the cloud voice and the tail cannot be had from it (after its second ask), the reply
 // ends after the head (`voiceTailFailed`); it is never finished by Pocket.
+// The whole written reply of a stream that may still be being written: its text once it has finished, or what there is when the model fails
+// or the wait (20 s) ends.
+async function writtenReply(stream,fallback,signal){
+  if(!stream)return fallback;
+  let timer;
+  try{
+    await Promise.race([stream.finished,new Promise(done=>{timer=setTimeout(done,20000);signal?.addEventListener?.('abort',done,{once:true});})]);
+  }catch{/* the text written so far stands */}finally{clearTimeout(timer);}
+  return typeof stream.text==='string'&&stream.text.trim()?stream.text:fallback;
+}
 export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched,stream,language,capture}) {
   // The reply's language when it is not English (a voice language pack's clip for the Mistral voice; Pocket ignores it).
   const languageOption=language&&language!=='en'?{language}:{};
@@ -90,6 +100,20 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
     return {...result,continuous:true,transport:'realtime',timing:{...result.timing,...generated.timing},
       liveDelivery:{published:speech.published,ended:speech.ended,generated:speech.generated,id:speech.token}};
   } catch(error) {
+    // The voice broke after the reply was admitted (the game stalled past the lease, the output device changed, the worker or the renderer
+    // died): the voice ends and the written reply is kept, complete, with one voice-ended notice from the game. The turn does not fail,
+    // and nothing else speaks it (a local voice failing is text only). A stream the game stopped itself, or a turn that is no longer
+    // current, still ends the turn.
+    if(speech.published&&typeof speech.failToText==='function'&&!signal?.aborted){
+      const written=await writtenReply(stream,result.text,signal);
+      if(await speech.failToText(written).catch(()=>false)){
+        throwIfCancelled(signal);
+        try{console.error(`[Voice] the voice stopped after the reply had started (${String(error?.message??error).slice(0,120)}); the written reply is kept`);}catch{}
+        return {...result,text:written,continuous:true,transport:'realtime',
+          timing:{...result.timing,voiceStoppedAfterStart:true},
+          liveDelivery:{published:true,ended:true,generated:speech.generated===true,id:speech.token}};
+      }
+    }
     await speech.fail().catch(()=>{});throwIfCancelled(signal);
     if (speech.published) throw error;
     return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};

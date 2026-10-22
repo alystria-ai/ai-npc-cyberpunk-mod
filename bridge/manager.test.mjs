@@ -1265,6 +1265,40 @@ test('OmniVoice that cannot get the graphics memory is announced once as its own
   `);
 });
 
+test('Windows running out of memory for the voice (the paging file is too small) is its own notice, once, for OmniVoice falling to Pocket or to text and for Pocket itself', () => {
+  run(`${nsuiFixture}${managerPopupFixture}
+    popupStep = 1
+    local expected = 'Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', routedProfiles = {},
+      fallback = {from = 'omni', to = 'pocket', reason = 'virtual-memory'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one notice')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == expected, popups[1])
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 1, 'the same fallback was announced again')
+    -- OmniVoice and then Pocket failed the same way: replies are written, said again as a different fallback, with the same sentence.
+    popupClock = popupClock + 700
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'text', reason = 'virtual-memory'}, 'text', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == expected, popups[#popups])
+    -- Pocket itself, chosen by the player.
+    popupClock = popupClock + 700
+    state.requestedProvider = 'pocket'
+    state.fallback, state.updated = {from = 'pocket', to = 'text', reason = 'virtual-memory'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 3 and popups[3] == expected, popups[#popups])
+    -- Another Pocket failure keeps the usual wording.
+    popupClock = popupClock + 700
+    state.fallback, state.updated = {from = 'pocket', to = 'text'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 4 and popups[4] == 'Pocket · Performance is unavailable right now. Replies show as text until it is back.', popups[#popups])
+  `);
+});
+
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
@@ -3737,8 +3771,8 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     end
     assert(owner and owner.id == 'voices' and row('vVoice').label == 'V’s voice for typed lines')
     assert(row('vVoice').type == 'select' and row('vVoice').value == 2 and row('vVoice').defaultValue == 2, 'Pocket, on, by default')
-    assert(row('vVoice').description:find('type a line', 1, true)
-        and row('vVoice').description:find('Push-to-talk', 1, true))
+    assert(row('vVoice').description:find('Your typed lines', 1, true)
+        and row('vVoice').description:find('always waited for', 1, true))
     assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
     for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
@@ -4175,7 +4209,7 @@ test('The provider row says when the player key runs without memory or cannot ho
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
     assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
+      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('about 5,000 turns a day', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
@@ -4267,7 +4301,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
     assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
-    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly cap', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
+    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -5536,8 +5570,7 @@ test('Natural speech and the provider: the Convai voice beside Mistral, Local AI
     assert(manager.takeNaturalSpeechNotice() == OFF)
     -- The help of the row tells the provider-aware rule.
     loaded = registered.loadMod('manager')
-    assert(row('naturalSpeech').description:find('Not available with Convai’s cloud voice while Convai answers', 1, true))
-    assert(row('naturalSpeech').description:find('With Mistral, Local AI or Custom it works.', 1, true))
+    assert(row('naturalSpeech').description:find('Not available with Convai’s cloud voice: choosing it turns this off', 1, true))
   `);
 });
 

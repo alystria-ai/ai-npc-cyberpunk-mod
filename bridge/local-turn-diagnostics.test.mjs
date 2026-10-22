@@ -1051,7 +1051,8 @@ test('the route gives a model with layers on the CPU a room to answer that fits 
   assert.equal(room(undefined), LOCAL_ATTEMPT_ROOM_MS, 'a server that cannot say where it runs: the base room');
   const partly = room({offload: true, cpuBound: false}), mostly = room({offload: true, cpuBound: true});
   assert.ok(partly > 40_000 && partly <= 60_000, String(partly));
-  assert.ok(mostly > LOCAL_ATTEMPT_ROOM_MS && mostly < partly, `${mostly} < ${partly}`);
+  // At the 45 tokens a second prior (the reports measured 36 to 54 at about 0% on the card) both cold prompts need more than the 60 s cap: the room is the cap for both until a reading replaces the prior.
+  assert.ok(mostly > LOCAL_ATTEMPT_ROOM_MS && mostly <= partly, `${mostly} <= ${partly}`);
   const broken = localRoute({server: {ensure: async () => ({}), status: () => ({state: 'ready'}), placement: () => { throw Error('x'); }}});
   assert.equal(broken.attemptRoomMs(), LOCAL_ATTEMPT_ROOM_MS);
 });

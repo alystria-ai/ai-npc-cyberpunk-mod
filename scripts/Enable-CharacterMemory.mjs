@@ -19,7 +19,7 @@ import {randomUUID} from 'node:crypto';
 import {PlayerMemoryApi} from '../bridge/player-memory-api.mjs';
 import {RelationshipRouting} from '../bridge/relationship-routing.mjs';
 import {multilingualTwins} from '../bridge/multilingual.mjs';
-import {readKeyFileText} from '../bridge/key-codec.mjs';
+import {parseKeyFileText} from '../bridge/convai-key.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(root, 'runtime'));
@@ -39,7 +39,7 @@ const profiles = Object.keys(routes.providerIds).filter(profile => !only || only
 if (only && profiles.length !== only.size) throw Error('Unknown profile in --only selection.');
 
 const keyPath = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
-const key = readKeyFileText(await readFile(keyPath, 'utf8'))?.key;
+const key = parseKeyFileText(await readFile(keyPath, 'utf8')) ?? undefined;
 if (!key) throw Error('The key file must contain api-key=... (nothing was printed).');
 
 console.log(`${apply ? 'Applying' : 'Planning'} memory enablement for ${profiles.length} characters (no key or character text is printed).`);

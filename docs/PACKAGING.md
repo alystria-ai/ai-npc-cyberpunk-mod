@@ -352,6 +352,17 @@ small and always full.
 **What is in it.** Every file the new Runtime has and the previous one did not, or has with other bytes (path, size and CRC-32 are compared, so it does
 not matter how either full zip was made); the new `app/release.json`; and `app/defaults/runtime-removals.json`, the removal list.
 
+**Step markers (added 2026-10-22).** An update zip is a difference, so a player who applies only the last one has a `release.json` that looks right and files that are not.
+Every Runtime therefore carries small markers in `app/defaults/runtime-steps/` (`bridge/runtime-steps.mjs`): the full Runtime writes `base.json` (`{"base": "0.2.8"}`, written by
+`build-release.mjs`), and every update zip adds its own `step-<from>-to-<to>.json` (`{"from": "0.2.7", "to": "0.2.8"}`, written by `build-runtime-update.mjs`, which never copies
+the markers of the two full Runtimes it compares). The files differ per step so applied zips never overwrite one another: the folder lists the steps applied so far. The setup
+check (`bridge/setup-check.mjs`, row `versions`) walks base, step, step and compares where the chain ends with `release.json`: a break gives `chain-gap` with the missing
+step named (the next marker's `from`, or the Runtime version), a marker newer than `release.json` gives `chain-order`. The in-game text tells the player to apply the update zips
+from the Hugging Face updates folder one by one, starting from their version (no version number in the instruction). A Runtime from before the markers (0.2.8 and older) has no
+`base.json`: its first step's `from` starts the chain, so only a gap after that is seen. **Any other tool that builds update zips** (the scratch patch builder outside the repository)
+must add `app/defaults/runtime-steps/step-<from>-to-<to>.json` with `{"from", "to"}` (the Runtime versions of the two full Runtimes) to every zip, and must not copy `base.json` from either full Runtime.
+Two cases the markers cannot see: a player on 0.2.8 or older who skips the FIRST marked zip (the chain then starts at the next one; the code-file list `runtime-code-files.json` of the error reports partly covers it), and a rollback (an older full Runtime extracted over a newer one leaves the newer step files, so the row reads `chain-order`; its text says some files come from a newer update and to apply the zips in order or extract the full Runtime again, which is right for both causes).
+
 **Removing what a version no longer ships.** Extracting adds and replaces but never deletes, so a file the new version dropped (a renamed voice clip, a retired
 model) would stay in the player's folder. The player never deletes anything: the service does, at its next start, from the list.
 
@@ -543,6 +554,17 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **Update zips and language packs as separate mods (investigated 2026-10-22, from the code; not run in MO2).** The service runs from the REAL folder of
+  the `launcher/start-service.mjs` the virtual file system serves (`appDirectory` in `start-service.mjs`), and it imports its own files from there, because the bundled
+  Node's `stat` cannot see a file that exists only in a mod folder. So: (a) a Runtime update installed as its own mod whose zip does not hold `start-service.mjs` (the
+  usual case) leaves the base Runtime's `bridge/` and `launcher/` in use and the update's changed files are never read: the Scripts and Runtime versions then disagree
+  (`release.json` is read from the base Runtime) and the setup check shows the mismatch; (b) an update that does hold `start-service.mjs` makes the service run from the
+  update mod's folder, where the unchanged siblings do not exist: `install-incomplete`; (c) the voice language packs and Pocket language models are read from the Runtime
+  mod's own `voices/` folder (`referenceDirectory`, the real folder), so a pack in a mod of its own is not found and that language silently stays English. The Local AI, Mature,
+  OmniVoice and microphone packs ARE looked up at their virtual place and used from their real one, so they can be separate mods. What is done about it: the setup
+  check's Mod manager note and the versions row tell a Mod Organizer 2 player to extract update zips (and language packs) into the Runtime's own mod folder (`mo2Hint` in
+  `mod/setup-check.lua`), and the README says the same. Not done: layering several Runtime mods (a loader that resolves every import through the virtual path) needs a live
+  MO2 test, and the MO2 test instance was not run in this pass. A live check owed: install an update zip as its own mod, start the game, read the setup check.
 - **A file that exists twice (2026-10-22, `packaging/usvfs-shadow.test.mjs`).** When a path is a real file in the game folder and MO2 holds a
   copy in front of it (a mod with the same path, or Overwrite, where the game and the service put every file they created before an install
   shipped its placeholders), open, read, write and rename reach the copy in front while Node's plain `stat` answers for the real file: its
@@ -675,11 +697,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
 - **Player-owned, never touched:** memories, sessions, phone history, settings, logs, and an own
   `convai-key.txt`.
 
-The Convai key is built into the Runtime package at `app/defaults/service.txt` from the
-`CONVAI_API_KEY` secret. A valid `data/convai-key.txt` (format `api-key = ...`) always wins, so
-anyone can use their own account (with their own `characters.json`). Do not describe the built-in
-key in player-facing text. The key is stored scrambled (`convai-key-v1 ...`, not an `api-key = ...` line;
-`bridge/key-codec.mjs`) and the bridge limits turns on that key per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
+**No Convai key is built into the Runtime** (from 0.2.9; up to 0.2.8 it was `app/defaults/service.txt`). The Runtime carries the token
+backend's address and client request secret instead, as `app/defaults/convai-auth.json`
+(`{"version": 1, "enabled": true, "url": "https://<backend>/api/convai/token", "secret": "...", "fallback": false}`), and the bridge
+signs in to the shared Convai account with short-lived tokens from that backend (docs/CONVAI_AUTH_BACKEND.md, "Build status (2026-10-22)").
+The build reads them from `CONVAI_AUTH_URL` (a repository variable in CI) and `CONVAI_AUTH_CLIENT_SECRET` (a secret), or from
+`--auth-url` and `--auth-secret-env NAME`; a non-dry-run build of the Runtime without both fails, and `--key-env` / `--key-file` are
+refused. The secret is never printed. It is not the error reports' secret: `app/defaults/error-reports.json` is a separate file that the
+owner adds by hand. The bridge limits turns on the shared account per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
+A plain `data/convai-key.txt` (format `api-key = ...`) is a developer's or a player's own key: it is used directly, with no backend and no
+daily cap, unless the data folder's `convai-auth.json` (or the environment) switches the backend on. A player's own key set in the settings
+is unaffected. A `convai-key.txt` that holds the packed key of a release up to 0.2.8 is removed at the next start, and the old
+`defaults/service.txt` is deleted through `packaging/runtime-removals.json`. Do not describe the shared account's sign-in in player-facing text.
 
 ### Carry-over from the old name (CyberpunkConvai)
 
@@ -751,14 +780,15 @@ node packaging/test-release-install.mjs --version 0.2 --packages dist/release/pa
 node --test packaging/release.test.mjs
 ```
 
-The dry run uses the developer `runtime/` models and embeds no key. The install test builds a
+The dry run uses the developer `runtime/` models and may leave out the token backend's address and secret (a real build of the Runtime may not; nothing ever embeds a key). The install test builds a
 stand-in game folder under `%TEMP%` (spaces and non-ASCII in the path), extracts with
 `Expand-Archive`, checks every file, then with a PATH of Windows folders only: speaks with the
 Pocket voice from the packaged Python, recognises that speech again with the local speech-to-text
 worker (packaged Python and `models/stt`), runs the lip-sync model on that audio (and OmniVoice on the
 GPU with `--omni`), and loads the real launcher DLL through `native/autostart/test-host.c`, which
-must start the packaged service and stop it when the "game" exits. With `--key-file` the key is
-copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
+must start the packaged service and stop it when the "game" exits. A Runtime built with the backend settings carries no key and no
+`defaults/service.txt` (checked), has `convai-auth.json` on without a fallback, and the bridge must report Ready from it; a dry-run build without
+them asks for setup instead. With `--key-file` the key is copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
 the real game folder; it always makes its own.
 
 To try a build in the real game, remove the development launcher first
@@ -789,7 +819,8 @@ The two optional voice-input packs are built by the `micpacks` job, a matrix of 
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read, and write access to the pack repository) and
-`CONVAI_API_KEY`. GitHub masks secrets in logs; the builder also masks the parsed key and never
+`CONVAI_AUTH_CLIENT_SECRET` (the token backend's client request secret); repository variable: `CONVAI_AUTH_URL` (the backend's
+address). There is no Convai key secret any more. GitHub masks secrets in logs; the builder also masks the client secret (`::add-mask::`) and never
 prints it. The workflow requests `contents: write` itself, so the repository's default workflow
 permission can stay read-only.
 

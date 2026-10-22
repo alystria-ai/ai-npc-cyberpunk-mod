@@ -59,9 +59,13 @@ export const TOO_SMALL = 'too-small';
 /** The `detail` of a 'start-failed' refusal: the part of the model that runs on the processor (and its cache) does not fit the free system memory. */
 export const LOW_RAM = 'low-ram';
 /** The `detail` of a 'start-failed' for a server the player runs, by what its first look found (bridge/local-llm-server.mjs #lookAtServer): it does not answer, refuses the key, or the address is not an OpenAI-style one. */
-export const SERVER_DETAILS = Object.freeze({unreachable: 'server-unreachable', 'key-refused': 'server-key-refused', 'bad-address': 'server-bad-address'});
+export const SERVER_DETAILS = Object.freeze({unreachable: 'server-unreachable', blocked: 'server-blocked', 'key-refused': 'server-key-refused', 'bad-address': 'server-bad-address'});
+/** The words for a server the player runs when something on the PC refuses our connection to it (connect failed with EACCES or EPERM: a firewall, an antivirus web shield, a security program). The game shows
+ *  this sentence translated (mod/manager-ui.lua matches these exact words, bridge/local-ai-blocked-detail.test.mjs checks they stay the same), so "start it" is not what the player is told. */
+export const SERVER_BLOCKED_TEXT = 'Something on this PC (a firewall or security software) is blocking the connection to the model server you added.';
 const SERVER_DETAIL_TEXT = Object.freeze({
   'server-unreachable': 'the model server you added does not answer: start it (and load its model), then the next turn tries again',
+  'server-blocked': SERVER_BLOCKED_TEXT,
   'server-key-refused': 'the model server you added did not accept the API key (check "apiKey" in manifest.custom.json)',
   'server-bad-address': 'the model server you added answers, but not like an OpenAI-style API (the address usually ends in /v1)',
 });
@@ -71,6 +75,9 @@ export const BLOCKED = 'windows-blocked';
  *  (error reports b6014b54 and 1aa616f1, and "An Application Control policy has blocked this file" in the same install's earlier report). */
 const BLOCKED_CODE = /^(UNKNOWN|EPERM|EACCES)$/;
 const BLOCKED_TEXT = /Application Control|has blocked this file|blocked by (?:a |your )?(?:group )?policy|Smart App Control|\bspawn (?:UNKNOWN|EPERM|EACCES)\b/i;
+/** Whether a start-failed `detail` is one of the words for a server the player runs (it does not answer, is blocked, refuses the key, is not an OpenAI-style address): the player's own setup. */
+export const isPlayerServerDetail = detail => Object.values(SERVER_DETAILS).includes(detail);
+const CONNECTION_BLOCKED = /^(?:EACCES|EPERM)$/;
 export const looksBlocked = error => BLOCKED_CODE.test(String(error?.code ?? '')) || BLOCKED_TEXT.test(String(error?.message ?? ''));
 
 export class LocalAiUnavailable extends Error {
@@ -600,7 +607,7 @@ export class LocalLlmServer extends EventEmitter {
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
   // selection: () => {pin, matureOn, matureModels}, read at each start and each reselect (the player's model choice, bridge/local-model-choice.mjs).
   // tier ('standard' | 'lite') is the older, stricter form of a pin: that tier or an error, no memory check.
-  // gameRoom: {voiceMiB(), residentVoiceMiB()}, set by the bridge (null = off): on a card of 12 GB or less the placement leaves the part of the game's room the game has not taken yet and the
+  // gameRoom: {voiceMiB(), residentVoiceMiB()}, set by the bridge (null = off): on a card of 24 GB or less the placement leaves the part of the game's room the game has not taken yet and the
   // voice engine still to load out of what the model may take (bridge/local-vram-fit.mjs smallCardRoom). voiceMiB() is the size of a voice engine that is wanted and not loaded yet; residentVoiceMiB() the size of one that is loaded (it is not the game's).
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
@@ -1217,7 +1224,9 @@ export class LocalLlmServer extends EventEmitter {
     const fail = (code, message) => Object.assign(Error(message), {code});
     let listing;
     try { listing = await get(model.endpoint + '/models'); } catch (error) {
-      throw fail('unreachable', 'could not be reached (' + String(error?.cause?.code ?? error?.name ?? 'error').slice(0, 40) + ')');
+      const code = String(error?.cause?.code ?? error?.name ?? 'error').slice(0, 40);
+      // EACCES or EPERM: the connection was refused by the PC itself (a firewall or security program), not by a server that is not running: the player is told that, not "start it".
+      throw fail(CONNECTION_BLOCKED.test(code) ? 'blocked' : 'unreachable', 'could not be reached (' + code + ')');
     }
     if (listing.status === 401 || listing.status === 403) throw fail('key-refused', 'the server did not accept the API key');
     if (!listing.ok) throw fail('bad-address', 'the server answered HTTP ' + listing.status + ' at /models (the address usually ends in /v1)');

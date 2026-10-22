@@ -13,11 +13,13 @@ import {extractEntry, readEntry} from './lib/zip-entry.mjs';
 import {sha256File} from './lib/files.mjs';
 import {PLUGIN, REMOVALS_FILE, applyRuntimeRemovals} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY, removalListText} from './lib/runtime-removals.mjs';
+import {BASE_FILE, STEPS_DIR, baseText, stepFileName} from '../bridge/runtime-steps.mjs';
 import {RELEASE_ENTRY, buildRuntimeUpdate, compareRuntimes, runtimeFiles} from './build-runtime-update.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const NOTE = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
 const APP = `${PLUGIN}/app`;
+const BASE_ENTRY = `${APP}/${STEPS_DIR}/${BASE_FILE}`, STEP_ENTRY = `${APP}/${STEPS_DIR}/${stepFileName("0.2.2", "0.2.3")}`;
 const quiet = () => {};
 const temporary = () => mkdtemp(join(tmpdir(), 'runtime update test '));
 const release = (version, extra = {}) => JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version, commit: `c-${version}`, ...extra}, null, 2) + '\n';
@@ -49,6 +51,7 @@ function fixture(directory) {
     [`${PLUGIN}/voices/empty.txt`]: '',
     [`${PLUGIN}/launcher.ini`]: 'ini',
     [RELEASE_ENTRY]: release('0.2.2'),
+    [BASE_ENTRY]: baseText('0.2.2'),
     'archive/pc/mod/convai_old.archive': 'archive v1',
     'r6/audioware/CyberpunkConvai/reply-0.wav': 'reply',
   };
@@ -59,6 +62,7 @@ function fixture(directory) {
     [`${APP}/launcher/apply-removals.mjs`]: 'step',
     [`${PLUGIN}/voices/renamed-to.wav`]: 'clip',
     [RELEASE_ENTRY]: release('0.2.3'),
+    [BASE_ENTRY]: baseText('0.2.3'),
     [REMOVALS_ENTRY]: removalListText('0.2.3', [`${PLUGIN}/voices/declared-gone.wav`]),
   };
   for (const gone of [`${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/renamed-from.wav`, `${PLUGIN}/voices/pack-owned.wav`, 'archive/pc/mod/convai_old.archive', NOTE]) delete next[gone];
@@ -72,7 +76,7 @@ test('compares two Runtimes by path, size and CRC-32: added, changed, unchanged,
     const before = await runtimeFiles([await makeZip(join(dir, 'old.zip'), old)]), after = await runtimeFiles([await makeZip(join(dir, 'new.zip'), next)]);
     const diff = compareRuntimes(before, after);
     assert.deepEqual(diff.added.map(item => item.name), [`${APP}/bridge/new-module.mjs`, `${APP}/defaults/runtime-removals.json`, `${APP}/launcher/apply-removals.mjs`, `${PLUGIN}/voices/renamed-to.wav`]);
-    assert.deepEqual(diff.changed.map(item => item.name), [`${APP}/bridge/convai-bridge.mjs`, RELEASE_ENTRY]);
+    assert.deepEqual(diff.changed.map(item => item.name), [`${APP}/bridge/convai-bridge.mjs`, BASE_ENTRY, RELEASE_ENTRY]);
     assert.deepEqual(diff.removed.map(item => item.name), [NOTE, 'archive/pc/mod/convai_old.archive', `${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/pack-owned.wav`, `${PLUGIN}/voices/renamed-from.wav`]);
     assert.equal(diff.unchanged, 6);
     // Windows names are not case sensitive: a path that only changes case is the same file.
@@ -94,8 +98,11 @@ test('the update holds only what changed, the new version stamp and a removal li
     assert.deepEqual((await readdir(join(dir, 'out'))).sort(), [`${name}.files.json`, `${name}.sha256`, `${name}.zip`]);
     const zip = join(dir, 'out', `${name}.zip`);
     const held = await entriesOf(zip);
-    assert.deepEqual(Object.keys(held).sort(), [`${APP}/bridge/convai-bridge.mjs`, `${APP}/bridge/new-module.mjs`, `${APP}/defaults/runtime-removals.json`, `${APP}/launcher/apply-removals.mjs`,
+    assert.deepEqual(Object.keys(held).sort(), [`${APP}/bridge/convai-bridge.mjs`, `${APP}/bridge/new-module.mjs`, `${APP}/defaults/runtime-removals.json`, STEP_ENTRY, `${APP}/launcher/apply-removals.mjs`,
       RELEASE_ENTRY, `${PLUGIN}/voices/renamed-to.wav`].sort());
+    // The zip carries its own step marker and never the base marker of either full Runtime (bridge/runtime-steps.mjs).
+    assert.deepEqual(JSON.parse(held[STEP_ENTRY]), {from: '0.2.2', to: '0.2.3'});
+    assert.equal(held[BASE_ENTRY], undefined);
     assert.equal(held[`${APP}/bridge/convai-bridge.mjs`], 'bridge v2 with more');
     assert.equal(JSON.parse(held[RELEASE_ENTRY]).version, '0.2.3');
     // Removed: the bridge module, the renamed clip, the old archive, and what the new Runtime's own list declares. Not removed: the file a pack ships and the
@@ -103,7 +110,7 @@ test('the update holds only what changed, the new version stamp and a removal li
     assert.deepEqual(JSON.parse(held[REMOVALS_ENTRY]), {version: '0.2.3', removes: ['archive/pc/mod/convai_old.archive', `${APP}/bridge/old-module.mjs`, `${PLUGIN}/voices/declared-gone.wav`, `${PLUGIN}/voices/renamed-from.wav`]});
     assert.deepEqual(summary.leftInPlace, [`${NOTE} (outside the folders a Runtime installs into)`, `${PLUGIN}/voices/pack-owned.wav (an optional pack ships it)`]);
     assert.equal(summary.added, 4);
-    assert.equal(summary.changed, 2);
+    assert.equal(summary.changed, 3);
     assert.match(log.join('\n'), /1 file\(s\) in the removal list|4 file\(s\) in the removal list/);
     assert.match(log.join('\n'), /left in place, not in the removal list: .*pack-owned\.wav \(an optional pack ships it\)/);
     // The listing: every file, with its size and SHA-256, and the zip's own hash.
@@ -172,6 +179,10 @@ test('the old Runtime with the update extracted over it and the removal list app
     // The update's removal list is its own (what went away); the new full Runtime's declares only its own extras.
     assert.notEqual(now[REMOVALS_ENTRY], want[REMOVALS_ENTRY]);
     delete now[REMOVALS_ENTRY]; delete want[REMOVALS_ENTRY];
+    // The update adds its step marker and leaves the base marker as the old full Runtime had it.
+    assert.notEqual(now[STEP_ENTRY], undefined);
+    assert.equal(JSON.parse(await readFile(join(player, BASE_ENTRY), 'utf8')).base, '0.2.2');
+    delete now[STEP_ENTRY]; delete now[BASE_ENTRY]; delete want[BASE_ENTRY];
     // Without a pack listing the pack file goes too; the install note stays (outside what the start step may delete) and the player's other mod is untouched.
     assert.equal(now['archive/pc/mod/another_mod.archive'] !== undefined, true);
     delete now['archive/pc/mod/another_mod.archive'];
@@ -190,7 +201,7 @@ test('a Runtime in several zips is compared as one, and versions can be named in
     const newParts = [await makeZip(join(dir, 'new1.zip'), split(next, true)), await makeZip(join(dir, 'new2.zip'), split(next, false))];
     const summary = await buildRuntimeUpdate({oldZips: oldParts, newZips: newParts, out: join(dir, 'out'), from: '0.2.2', to: '0.2.3', listing: null, log: quiet});
     assert.equal(summary.added, 4);
-    assert.equal(summary.changed, 2);
+    assert.equal(summary.changed, 3);
     // The same path in two parts is fine only when the bytes are the same.
     const clash = [await makeZip(join(dir, 'c1.zip'), {'a/b.txt': 'one'}), await makeZip(join(dir, 'c2.zip'), {'a/b.txt': 'two'})];
     await assert.rejects(runtimeFiles(clash), /different bytes/);
@@ -259,7 +270,7 @@ test('the command line: usage with no arguments, and the same result as the func
     const oldZip = await makeZip(join(dir, 'old.zip'), old), newZip = await makeZip(join(dir, 'new.zip'), next);
     const run = spawnSync(process.execPath, [script, '--old', oldZip, '--new', newZip, '--out', join(dir, 'out')], {encoding: 'utf8'});
     assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /AI-NPC-Cyberpunk-Mod-Runtime-Update-0\.2\.2-to-0\.2\.3\.zip: .* MiB, 6 files \(4 added, 2 changed, 6 unchanged and left out\), 5 file\(s\) in the removal list\./);
+    assert.match(run.stdout, /AI-NPC-Cyberpunk-Mod-Runtime-Update-0\.2\.2-to-0\.2\.3\.zip: .* MiB, 7 files \(4 added, 3 changed, 6 unchanged and left out\), 5 file\(s\) in the removal list\./);
     assert.match(run.stdout, /left in place, not in the removal list: HOW TO INSTALL/);
     assert.equal(run.stdout.trim().split('\n').pop().startsWith('SHA-256 '), true);
     const failed = spawnSync(process.execPath, [script, '--old', join(dir, 'missing.zip'), '--new', newZip, '--out', join(dir, 'out2')], {encoding: 'utf8'});

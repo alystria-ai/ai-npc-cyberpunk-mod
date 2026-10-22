@@ -10,13 +10,14 @@
 // When: a supervisor event (the service failed, the bridge exited unexpectedly) is sent 15 s after it happens; everything else is
 // looked at once a minute after start-up and then every five minutes (one directory listing, two file sizes). Nothing runs per frame.
 //
-// Throttles: one report per error signature per installation per UTC day; five reports per installation per UTC day; every request
+// Throttles: one report per error signature per installation per UTC day; twenty reports per installation per UTC day (the backend allows more,
+// auth-backend/api/_lib/config.js errorInstallPerDay, so the day's edges never refuse one); every request
 // has a 10 s timeout; a failed send waits 15 minutes and three failures stop it for the session; a 404 (a backend without this
 // endpoint), a 401 or a 429 stops it for the session. Nothing is retried in a loop.
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
 // CET, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
-// Mature content as on or off only; the graphics card name and memory; the setup check's lines; whether the Runtime's code files match the release
+// Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the setup check's lines; whether the Runtime's code files match the release
 // (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
 // the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
 // (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines); the install id hashed again.
@@ -30,14 +31,14 @@ import os from 'node:os';
 import {accountNames, createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
 export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
-import {cachedGraphicsCards} from './setup-check.mjs';
+import {cachedGraphicsCards, cachedMemoryFacts} from './setup-check.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
-import {GAME_EVENTS_FILE, QUEUE_FOLDER, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
+import {GAME_EVENTS_FILE, QUEUE_FOLDER, attachLogs, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
   removeQueued, sentPath} from './error-events.mjs';
 
 export const REPORT_PATH = '/api/errors/report';
-export const DAILY_LIMIT = 5;
+export const DAILY_LIMIT = 20;
 export const MAX_BODY_BYTES = 60 * 1024;
 export const MAX_LOG_LINES = 150;
 export const TIMINGS = Object.freeze({timeoutMs: 10_000, firstFlushMs: 60_000, debounceMs: 15_000, retryMs: 15 * 60_000,
@@ -66,8 +67,8 @@ export const hashInstall = installId => createHash('sha256').update(`error-repor
 // ------------------------------------------------------------------ the address
 
 // The backend's address and signing secret as a release ships them: app/defaults/error-reports.json in the Runtime package,
-// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's CONVAI_AUTH_SIGNING_SECRET>"}. Written by the release build;
-// the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
+// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's ERROR_REPORT_SECRET>"} (never the token signing secret, which ships in
+// convai-auth.json). Added to the Runtime by hand, not by the release build; the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
 export const PACKAGED_TARGET_FILE = join('defaults', 'error-reports.json');
 
 /** The packaged address, {url, secret}, or null when the file is missing, damaged, not https (or a local address) or its secret is short. */
@@ -268,6 +269,30 @@ async function collectLogs({paths, record, clean}) {
   return result;
 }
 
+/**
+ * The log excerpt of a queued record, as it is kept in its queue file (error-events.mjs attachLogs): read and scrubbed NOW, with the same
+ * sources, the same line counts and the same redactor as a sent report, so that a report that waits sends the lines of the moment the event was
+ * seen. Used by the reporter at every look; buildErrorPayload uses the kept excerpt when the record has one.
+ */
+export async function captureLogs({record, game, modRoot, runtime, stateDirectory, secrets, names}) {
+  const {clean} = reportCleaner({secrets, ...(names ? {names} : {})});
+  return collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean});
+}
+
+// A kept excerpt, checked again and put through the redactor once more (the file is the player's to edit): known sources only, the share of lines
+// each source has, text lines only.
+function keptLogs(logs, clean) {
+  const shares = new Map(LOG_SOURCES.map(source => [source.id, source.lines]));
+  const out = [];
+  for (const item of Array.isArray(logs) ? logs.slice(0, LOG_SOURCES.length) : []) {
+    if (!item || typeof item.source !== 'string' || !shares.has(item.source) || !Array.isArray(item.lines)) continue;
+    const lines = item.lines.slice(-shares.get(item.source)).filter(line => typeof line === 'string')
+      .map(line => clean(line.length > LINE_LIMIT + 6 ? `${line.slice(0, LINE_LIMIT)} [cut]` : line)).filter(line => line.trim() !== '');
+    if (lines.length) out.push({source: item.source, lines});
+  }
+  return out;
+}
+
 /** Every value to scrub: the key files of the data folder, the sign-in file's secret, the custom servers' keys, the packed key. */
 export async function reportSecrets({stateDirectory, project, environment = process.env, extra = []}) {
   const found = [...extra];
@@ -283,7 +308,7 @@ export async function reportSecrets({stateDirectory, project, environment = proc
  * it. The JSON is at most MAX_BODY_BYTES (log lines are dropped, oldest first from the largest source, until it fits).
  */
 export async function buildErrorPayload({record, game, modRoot, runtime, stateDirectory, project, installId, gameInfo = {}, secrets,
-  graphics = () => cachedGraphicsCards(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
+  graphics = () => cachedGraphicsCards(), memory = () => cachedMemoryFacts(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
   const scrub = secrets ?? await reportSecrets({stateDirectory, project, environment});
   const {clean, stats} = reportCleaner({secrets: scrub, ...(names ? {names} : {})});
   const versions = await collectVersions({game, modRoot, project, gameInfo});
@@ -291,6 +316,9 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
   const gpu = (Array.isArray(cards) ? cards : []).slice(0, 4)
     .map(card => ({name: clean(clip(card?.name, 120) ?? ''), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
     .filter(card => card.name);
+  // Total RAM and the commit limit (RAM plus the paging files): what tells a "paging file is too small" failure (error 1455) from another one. Read once per bridge process.
+  const facts = await Promise.resolve().then(() => typeof memory === 'function' ? memory() : memory).catch(() => null);
+  const wholeMiB = value => Number.isFinite(value) && value > 0 ? Math.round(value) : null;
   // Only the detail fields the recorders write (codes, versions, the log a Lua error was found in and the mod's own label before it).
   const detail = record.detail && typeof record.detail === 'object'
     ? Object.fromEntries(Object.entries(record.detail).filter(([key]) => DETAIL_KEYS.has(key))
@@ -317,9 +345,10 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       ...(record.kind === 'bridge-crash' && record.crash ? {crash: cleanStrings(record.crash, clean)} : {}),
       runtimeFiles: cleanStrings(await Promise.resolve().then(() => integrity()).catch(() => ({state: 'unavailable'})), clean),
       choices: await collectChoices({runtime, gameInfo}),
-      system: {gpu},
+      system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB)},
       setup: (await collectSetup({runtime, gameInfo, now: now()})).map(line => clean(line)),
-      logs: await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),
+      // A queued record carries the excerpt taken when the event was seen; one without (an older queue file) is read now.
+      logs: Array.isArray(record.logs) ? keptLogs(record.logs, clean) : await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),
     },
   };
   payload.report.privacy = {redactions: {...stats}};
@@ -433,7 +462,11 @@ export class ErrorReporter {
   async record(event) {
     if (this.closed || !await errorReportsEnabled(this.runtime)) return null;
     const record = await recordErrorEvent(this.stateDirectory, {source: 'service', ...event}, {now: this.now()});
-    if (record) this.#schedule(this.timings.debounceMs);
+    if (record) {
+      // The log lines of this moment are kept with the record: it may wait (daily limit, unreachable backend) and a later session's logs are not its.
+      await this.#serial(() => this.#capture()).catch(() => {});
+      this.#schedule(this.timings.debounceMs);
+    }
     return record;
   }
 
@@ -461,6 +494,7 @@ export class ErrorReporter {
       const state = await this.#state();
       await this.#importGameEvents(state, enabled);
       await this.#scanLuaLogs(state, enabled);
+      if (enabled) await this.#capture();
       await this.#save(state);
       if (flush) await this.#flush();
     }).catch(() => {});
@@ -513,6 +547,21 @@ export class ErrorReporter {
           detail: {log: source.id, ...(found.context ? {context: found.context} : {})}}, {now: this.now()})) recorded++;
       }
     }
+  }
+
+  // The queued records that have no log excerpt yet get theirs: read and scrubbed now, kept in the record's own file (attachLogs). A few directory
+  // reads and, per new record, at most six small tails; nothing when every record already has its excerpt. Never throws.
+  async #capture() {
+    try {
+      const todo = (await readQueue(this.stateDirectory, {now: this.now()})).filter(record => !Array.isArray(record.logs));
+      if (!todo.length) return;
+      const secrets = await reportSecrets({stateDirectory: this.stateDirectory, project: this.project, environment: this.env});
+      for (const record of todo) {
+        const logs = await captureLogs({record, game: this.game, modRoot: this.modRoot, runtime: this.runtime, stateDirectory: this.stateDirectory,
+          secrets, ...(this.names ? {names: this.names} : {})});
+        await attachLogs(record, logs, {now: this.now()});
+      }
+    } catch { /* the report then reads the logs when it is sent, as before */ }
   }
 
   async #target() {

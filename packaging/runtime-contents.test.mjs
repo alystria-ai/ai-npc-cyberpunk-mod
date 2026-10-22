@@ -35,7 +35,7 @@ test('the required files come from the repository: the V manifest and the OmniVo
 
 test('a Runtime ships no double-click support report tool: the report is made in the game (Settings > Help) or sent automatically', async () => {
   const config = JSON.parse(await read('packaging/release.config.json'));
-  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
+  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists", "Runtime's sign-in settings", 'llama.cpp engine', 'vgmstream decoder', 'vgmstream licences']);
   assert(!allNames.some(name => name.endsWith('.bat')));
 });
 
@@ -98,7 +98,7 @@ test('the build and the install test still put and check these files', async () 
   assert.match(builder, /\$\{plugin\}\/voices\/v-voice\/\$\{rel\}/);
   assert.doesNotMatch(builder, /supportBatch|support report/i);
   const install = await read('packaging/test-release-install.mjs');
-  assert.match(install, /requiredRuntimeFiles\(project\)/);
+  assert.match(install, /requiredRuntimeFiles\(project, \{signIn\}\)/);
   assert.match(install, /missingRuntimeFiles\(installed, required\)/);
   assert.match(install, /loadVVoiceReferences/);
   const docs = await read('docs/PACKAGING.md');

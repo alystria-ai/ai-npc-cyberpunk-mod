@@ -155,6 +155,22 @@ export async function installConvaiAudioRoute(page, getOwner) {
 export const pageGone = error => /has been closed|Target closed|Target crashed|Page crashed|Execution context was destroyed|browser has disconnected/i
   .test(String(error?.message ?? ''));
 
+// Convai closing (or failing) the realtime connection under a turn (the 'disconnect' and 'error' events of bridge/realtime-client.mjs): 4 reports in 3 days, 3 installs, 3 versions
+// (2026-10-22 report 92f464e9, "Convai realtime connection closed"). Convai's side or the player's network; a turn that had received nothing yet can be asked again on a fresh connection.
+export const connectionLost = error => /Convai realtime connection (?:closed|failed)/i.test(String(error?.message ?? ''));
+/**
+ * True when the page's diagnostics (window.convaiRealtime.diagnostics(), read right after the connection was closed) show that nothing of the reply had arrived: no text row of the character (the message events are not looked at: the player's own message may be echoed), no
+ * audio packet. Unknown (no diagnostics) is false: a turn that may have been answered is never asked again, so nothing is spoken twice. Pure.
+ */
+export function arrivedNothing(diagnostics) {
+  if (!diagnostics || typeof diagnostics !== 'object') return false;
+  const turn = diagnostics.previousTurn ?? diagnostics.turn ?? null;
+  if (!turn) return true;   // lost while connecting or before the message was sent: there was no turn to answer
+  const audio = turn.audio ?? null;
+  return !(Number(turn.textCharacters) > 0 || Number(turn.llmRows) > 0 || Number(turn.outputRows) > 0
+    || Number(audio?.byteCount) > 0 || Number(audio?.packetCount) > 0 || Number(audio?.frameCount) > 0);
+}
+
 const connectOwner = config => ({characterId: config.characterId,
   endUserId: config.endUserId ?? null, ttsEnabled: config.ttsEnabled !== false});
 
@@ -537,7 +553,7 @@ export class RealtimeHost {
     const attempt = async () => {
       // One admission per turn; the recovery retries below repeat the same turn.
       if (method !== 'warm' && this.guard) { this.guard.check(config); this.guard.consume(config); }
-      let current = config, waited = false, lost = false;
+      let current = config, waited = false, lost = false, dropped = false;
       for (let retries = 0; ; retries++) {
         const epoch = this.epoch;
         try { return await this.runOnce(current, method, options); }
@@ -553,6 +569,14 @@ export class RealtimeHost {
               try { this.log('The conversation page closed during a turn; opening it again and asking once more'); } catch { /* a log line never fails a turn */ }
               continue;
             }
+          }
+          // Convai closed the connection before anything of the reply arrived (markEarlyDisconnect): asked once more on a fresh connection, then it fails as before. Nothing had been
+          // received, so nothing is spoken or written twice; the admission above is not charged again.
+          if (error?.beforeReply === true && !dropped && !options.discard) {
+            if (epoch !== this.epoch || this.closing) throw cancelled();
+            dropped = true;
+            try { this.log('Convai closed the connection before the reply began; opening a new one and asking once more'); } catch { /* a log line never fails a turn */ }
+            continue;
           }
           if (!waited && this.exclusive?.enabled?.() && /concurrency limit/i.test(String(error?.message))) {
             waited = true;
@@ -604,8 +628,15 @@ export class RealtimeHost {
       const images = await pictures;
       throwIfCancelled(signal);
       if (images) config.visionImages = images;
-      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech, textStream,
-        current: () => epoch === this.epoch && !this.closing});
+      let result;
+      try {
+        result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech, textStream,
+          current: () => epoch === this.epoch && !this.closing});
+      } catch (error) {
+        // Only on a failure, and only for the connection Convai closed: one short look at the page (never on the way to a normal reply).
+        if (method === 'reply' && !discard) await this.markEarlyDisconnect(lease.value, error, signal);
+        throw error;
+      }
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       if (method === 'reply') this.audioRates.learn(config, result);
@@ -618,6 +649,17 @@ export class RealtimeHost {
       signal?.removeEventListener('abort', cancel);
       try { await lease.release({discard: discard || failed || signal?.aborted}); } finally { unpin(); }
     }
+  }
+  // Convai closed the connection under a text turn: if the page says nothing of the reply had arrived, the error is marked so run() asks once more on a fresh connection. The look is capped
+  // at a second and never throws. A speculative turn (discard) is not asked again: nobody is waiting for it.
+  async markEarlyDisconnect(page, error, signal) {
+    if (!error || typeof error !== 'object' || signal?.aborted || !connectionLost(error) || page.isClosed?.()) return;
+    let timer;
+    try {
+      const value = await Promise.race([page.evaluate(() => window.convaiRealtime.diagnostics()),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(Error('timeout')), 1000); })]);
+      if (arrivedNothing(value)) error.beforeReply = true;
+    } catch { /* unknown: not asked again */ } finally { clearTimeout(timer); }
   }
   reply(config, options) { return this.run(config, 'reply', options); }
   warm(config, options) { return this.run(config, 'warm', options); }

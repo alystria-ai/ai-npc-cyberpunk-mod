@@ -543,14 +543,15 @@ test('coldAttemptRoomMs: the base room for a model on the card; the time the col
   const base = 15_000;
   assert.equal(coldAttemptRoomMs({baseMs: base}), base);
   assert.equal(coldAttemptRoomMs({baseMs: base, offload: false, cpuBound: true}), base, 'a model on the card is not stretched');
-  // Expected rate (PREFILL.offloadPrior = 120 a second): 5,000 tokens take 41.7 s, and the first word 5 s after.
-  const expected = Math.round(COLD_PROMPT.tokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs);
+  // Expected rate (PREFILL.offloadPrior = 45 a second): 5,000 tokens would take 111 s, so the room is the cap (60 s); the compact text 80 s, also the cap.
+  assert.equal(PREFILL.offloadPrior, 45, 'the 36 to 54 a second the reports measured at about 0% of the layers on the card, not the old guess of 120');
+  const expected = Math.min(COLD_PROMPT.maxRoomMs, Math.round(COLD_PROMPT.tokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs));
   assert.equal(coldAttemptRoomMs({baseMs: base, offload: true}), expected);
-  assert.ok(expected > 40_000 && expected <= COLD_PROMPT.maxRoomMs);
+  assert.equal(expected, COLD_PROMPT.maxRoomMs);
   // So few layers on the card that the compact text is used from the start: a smaller prompt, a shorter wait.
   const compact = coldAttemptRoomMs({baseMs: base, offload: true, cpuBound: true});
-  assert.equal(compact, Math.round(COLD_PROMPT.compactTokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs));
-  assert.ok(compact < expected);
+  assert.equal(compact, Math.min(COLD_PROMPT.maxRoomMs, Math.round(COLD_PROMPT.compactTokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs)));
+  assert.ok(compact <= expected);
   // A reading of the last load, believed only when that load was on the CPU too.
   let clock = 0;
   const measured = new PrefillMeter({now: () => clock, offload: true});

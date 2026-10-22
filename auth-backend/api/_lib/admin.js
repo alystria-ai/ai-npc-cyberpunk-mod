@@ -4,6 +4,8 @@ import { headerValue, readRawBody, sendJson } from './http.js';
 import { createUpstashStore } from './store.js';
 import { PLANS_KEY, storedPaidPlans, validPaidPlans } from './plans.js';
 
+const text = value => String(value ?? '').trim();
+
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function authorised(request, config) {
@@ -161,6 +163,9 @@ export function createReadyHandler(options = {}) {
       mode: config.mode,
       paused: config.paused,
       env: Object.fromEntries(ENV_NAMES.map(name => [name, String(env[name] ?? '').trim() !== ''])),
+      // True only when the token signing, error report and hashing secrets are all set and all different (never reports a value).
+      secretsSeparate: new Set([config.signingSecret, text(env.ERROR_REPORT_SECRET), text(env.CONVAI_AUTH_PSEUDONYM_SECRET)]).size === 3
+        && [config.signingSecret, text(env.ERROR_REPORT_SECRET), text(env.CONVAI_AUTH_PSEUDONYM_SECRET)].every(value => value.length >= 32),
     };
     // The store is only touched on request, by the holder of the admin secret, so the public can never spend Redis commands here.
     if (!missing.length && queryOf(request).get('ping') === '1' && authorised(request, config)) {

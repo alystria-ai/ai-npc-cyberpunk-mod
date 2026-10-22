@@ -366,10 +366,11 @@ test('localUnused: the local model server has no job once neither the setting no
 
 test('the bridge unloads the local model server when the provider leaves Local AI: at the idle switch, and at once when the choice is withdrawn before it was applied', () => {
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-  const applyAt = source.indexOf('async function applyProviderChoice()');
-  const apply = source.slice(applyAt, applyAt + 2200);
+  const applyAt = source.indexOf('function lightApplyProvider()');
+  const apply = source.slice(applyAt, applyAt + 3400);
   assert.match(apply, /if \(mistral\.applied === 'local'\) void localServer\.ensure\(\{background: true\}\)\.catch\(\(\) => \{\}\);\n\s*else void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
-  const pollAt = source.indexOf('if (mistral.setPreference(settings.conversationProvider))');
+  // The preference is adopted in adoptProviderSetting (the settings poll and a newly submitted turn both call it).
+  const pollAt = source.indexOf('if (!mistral.setPreference(settings.conversationProvider)) return false;');
   const poll = source.slice(pollAt, pollAt + 900);
   assert.match(poll, /if \(mistral\.preference === 'local'\) prepareLocal\(\);\n(\s*\/\/[^\n]*\n)+\s*else if \(mistral\.localUnused\) void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
   // The tiny memory embedder is a different process (localEmbedder): the idle switch stops it only when Convai is the provider again and no

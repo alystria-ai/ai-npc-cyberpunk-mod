@@ -9,7 +9,7 @@ import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';
-import {accessViolationFailed, missingFilesFailed, pocketIntegrityFailed} from './voice-failures.mjs';
+import {accessViolationFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -42,7 +42,9 @@ export const blockedByWindows = reason => /application control|policy has blocke
 // A failure that will repeat on every try, in words for the log, or null: Windows blocked a file (above), a Pocket file is not the pinned one or is not
 // there (a version mismatch, an incomplete or changed Runtime), a file or Python module the worker needs is missing. None of these is retried: each try is a
 // rehash of hundreds of megabytes or a model load beside the game, and fails the same way. The Runtime update (or a repair) is what changes it.
+// Windows ran out of memory it can promise (error 1455, "The paging file is too small", pagingFileFailed): the same on every try until the player enlarges the page file or closes programs.
 export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windows blocked a file of the voice'
+  : pagingFileFailed(reason) ? 'Windows ran out of memory for the voice (the paging file is too small)'
   : pocketIntegrityFailed(reason) ? 'a Pocket file is not the one this version pins (the Runtime needs its update)'
   : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
@@ -161,7 +163,9 @@ export class VoiceSelection {
     // The memory of the NVIDIA card (MiB, or null until the same lazy card list is read) and omniNoMemory: Omni ran out of its time with its graphics memory spilled into shared
     // memory, or on a card of 8 GB or less (not enough graphics memory next to the game). Like omniNoCuda, it is for the life of the service: Omni is not tried again,
     // and Pocket speaks in its place (resolve), told once (fallback.reason 'omni-memory').
-    this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniNoMemory=false;
+    this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniMemoryFailed=false;this.omniCardNoted=false;
+    // Windows ran out of memory it can promise (pagingFileFailed): for OmniVoice, then Pocket takes its place; for Pocket, the reply is written. Neither is started again until the player chooses it again.
+    this.omniPagingFailed=false;this.pocketPagingFailed=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
@@ -324,7 +328,7 @@ export class VoiceSelection {
   resolve(provider){
     if(provider==='convai')return 'convai';
     // Omni that does not get the graphics memory it needs beside the game is replaced by Pocket, which is loaded for it (a local voice, never a cloud one).
-    if(provider==='omni'&&this.omniNoMemory&&!this.cloudWanted)provider='pocket';
+    if(provider==='omni'&&!this.cloudWanted&&this.omniNoMemory)provider='pocket';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
       .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend));
@@ -377,7 +381,9 @@ export class VoiceSelection {
     if(want===this.requestedProvider||this.provider!==want)return null;
     // `reason: 'omni-no-nvidia'`: OmniVoice cannot run on this PC at all (no CUDA), so the game says that instead of a generic "unavailable".
     // `reason: 'omni-memory'`: it ran out of its time without enough graphics memory beside the game; Pocket speaks (the game says so once).
-    const reason=this.requestedProvider!=='omni'||this.requestedCloud?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
+    // `reason: 'virtual-memory'`: Windows ran out of memory for the voice (the paging file is too small), for OmniVoice (Pocket speaks or the reply is written) or for Pocket itself.
+    const paging=!this.requestedCloud&&((this.requestedProvider==='omni'&&(this.omniPagingFailed||this.pocketPagingFailed))||(this.requestedProvider==='pocket'&&this.pocketPagingFailed));
+    const reason=this.requestedCloud?null:paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
     const value={from:this.requestedCloud??this.requestedProvider,to:want,...(reason?{reason}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
@@ -433,7 +439,9 @@ export class VoiceSelection {
       if(chosen!==this.requestedProvider){
         // Choosing OmniVoice again after it ran out of memory retries it once (a failure for want of memory is for the session otherwise, and V would stay mute with it): one more
         // attempt, and a second failure for memory sets the flag again. No CUDA is a fact about the PC and stays.
-        if(chosen==='omni'&&this.omniNoMemory&&!this.omniNoCuda){this.omniNoMemory=false;this.log('OmniVoice was chosen again: trying it once more after the memory failure');}
+        if(chosen==='omni'&&this.omniMemoryFailed&&!this.omniNoCuda){this.omniMemoryFailed=false;this.log('OmniVoice was chosen again: trying it once more after the memory failure');}
+        if(chosen==='omni'&&this.omniPagingFailed){this.omniPagingFailed=false;this.log('OmniVoice was chosen again: trying it once more after Windows ran out of memory');}
+        if(chosen==='pocket'&&this.pocketPagingFailed){this.pocketPagingFailed=false;this.log('Pocket was chosen again: trying it once more after Windows ran out of memory','PocketRetry');}
         if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
@@ -491,7 +499,7 @@ export class VoiceSelection {
     const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),
       ...(this.silent?committed.filter(candidate=>candidate==='pocket'&&this.vHelperWanted):committed)];
     return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
-      &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
+      &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate)&&!(candidate==='omni'&&this.omniCardPending))||null;
   }
   // Voice playback is Off: the companions' local voice has no use for a loaded worker.
   get silent(){return this.playbackEnabled===false;}
@@ -690,7 +698,8 @@ export class VoiceSelection {
     return null;
   }
   // `cause: 'blocked'` when Windows refused to load a file of the voice (blockedByWindows); the Help row then says so, in plain words.
-  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:problem;}
+  // `cause: 'virtual-memory'` when Windows ran out of memory for it (pagingFileFailed): the row says to enlarge the paging file or close programs.
+  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason,gpu){
@@ -708,7 +717,7 @@ export class VoiceSelection {
     // both models again beside Local AI and the game: not tried again, Pocket speaks in its place.
     const short=this.omniMemoryShort(reason,gpu);
     if(short&&this.requestedProvider==='omni'&&!this.cloudWanted){
-      this.omniNoMemory=true;
+      this.omniMemoryFailed=true;
       this.log(`not trying again: not enough graphics memory for OmniVoice next to the game (${short}); Pocket is used instead`);
       this.omniRetry=null;return;
     }
@@ -724,6 +733,8 @@ export class VoiceSelection {
     const permanent=permanentVoiceFailure(reason);
     if(permanent){
       this.log(`not trying again: ${permanent}${reason?` (${reason})`:''}`);
+      // Pocket (a local voice, loaded beside nothing else of the voice) takes its place as for too little graphics memory, and the game says what happened.
+      if(pagingFileFailed(reason)&&this.requestedProvider==='omni'&&!this.cloudWanted)this.omniPagingFailed=true;
       this.omniRetry=null;return;
     }
     if(this.closed||this.requestedProvider!=='omni'||this.omniPack.installed===false||delay===undefined){
@@ -754,8 +765,24 @@ export class VoiceSelection {
     const card=this.graphicsMiB;
     return isSmallCard(card)?`the card has ${card} MiB`:null;
   }
+  /**
+   * OmniVoice is not started at all on a card of 8 GB or less (2026-10-22 reports: it took 4 minutes next to the game on an 8 GB card and then ran out of its time; the voice menu already says it needs 12 GB):
+   * Omni that does not get the graphics memory it needs beside the game is replaced by Pocket (resolve), told once like a failed start (fallback.reason 'omni-memory'), without waiting for a timeout. The
+   * saved choice stays OmniVoice, so a bigger card later just works. Only a card the list shows to be an NVIDIA one under 9,000 MiB counts; an unknown card claims nothing and starts Omni as before.
+   */
+  get omniCardTooSmall(){
+    let card=null;
+    try{const found=Number(this.gpuMemorySource(true));card=found>0?found:null;}catch{card=null;}
+    const small=isSmallCard(card);
+    if(small&&!this.omniCardNoted){this.omniCardNoted=true;this.log(`not starting OmniVoice: the card has ${card} MiB, not enough graphics memory for it next to the game; Pocket is used instead`);}
+    return small;
+  }
+  // The card list is still being read (the source answers undefined, not null): Omni is not started until it is known whether the card is big enough. The read is a registry query of well under a second.
+  get omniCardPending(){try{return this.gpuMemorySource(true)===undefined;}catch{return false;}}
+  // Omni failed for want of graphics memory, or the card is known to be too small for it: Pocket speaks in its place.
+  get omniNoMemory(){return this.omniMemoryFailed||this.omniPagingFailed||this.omniCardTooSmall;}
   // The menu hint "OmniVoice needs 12 GB": the NVIDIA card is known to be under 11 GB, or Omni already failed for want of memory. Unknown claims nothing.
-  get omniSmallCard(){return this.omniNoMemory||underNeeded(this.graphicsMiB);}
+  get omniSmallCard(){return this.omniMemoryFailed||underNeeded(this.graphicsMiB);}
   // The card vendors for the Omni start and failure lines: names only.
   get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
   get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
@@ -775,6 +802,7 @@ export class VoiceSelection {
     const permanent=permanentVoiceFailure(reason);
     if(permanent){
       this.log(`not trying again: ${permanent} (${reason})`,'PocketRetry');
+      if(pagingFileFailed(reason)&&!this.cloudWanted)this.pocketPagingFailed=true;
       this.pocketRetry=null;return;
     }
     if(this.closed||!this.pocketWanted||delay===undefined){

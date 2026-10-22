@@ -12,7 +12,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CustomModelScanner, checkEndpoint, hostKind, validateEntry} from './custom-models.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
-import {LocalLlmServer, LocalAiUnavailable, NO_KEY, unavailableDetail} from './local-llm-server.mjs';
+import {LocalLlmServer, LocalAiUnavailable, NO_KEY, SERVER_BLOCKED_TEXT, isPlayerServerDetail, unavailableDetail} from './local-llm-server.mjs';
 import {chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, stillSatisfies} from './local-model-choice.mjs';
 import {TextProviderHost, localRoute, mistralRoute, isLocalUnavailable} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
@@ -472,7 +472,9 @@ test('the reply is fitted to the server\'s context: the entry\'s size is the bud
     await host.reply(long());
     return {sent: JSON.stringify(api.chats()[0].body.messages), logs};
   };
-  const small = await sentWith(6144), large = await sentWith(32768);
+  // The shipped personas became much shorter (fix/character-data-1022): the whole prompt with the 16000-character world block is about 22,000
+  // characters, which a 6144 context now holds. 4096 is the small size that still cuts it; 32768 sends it whole.
+  const small = await sentWith(4096), large = await sentWith(32768);
   assert(small.sent.length < large.sent.length, `${small.sent.length} against ${large.sent.length} characters`);
   assert(!small.sent.includes('fact 299') && large.sent.includes('fact 299'), 'the small context lost the lowest-priority knowledge, the large one kept it');
   assert(small.logs.some(line => /local AI/i.test(line)), 'the cut is logged');
@@ -714,4 +716,47 @@ test('a manifest saved with a byte-order mark, or pasted with curly quotes from 
     writeFileSync(join(localAi, 'manifest.custom.json'), entry.replace(/"/g, (_, at) => (at % 2 ? '”' : '“')));
     assert.deepEqual(scan().models.map(model => model.name), ['KoboldCpp Qwen 9B']);
   } finally { rmSync(root, {recursive: true, force: true}); }
+});
+
+// 2026-10-22 report 1a895674 (Russian install): "the server of ... did not answer: could not be reached (EACCES)". The PC itself refused the connection (a firewall or a security program), which
+// "start it" does not fix. The words are the same in the bridge and in the game (mod/manager-ui.lua translates that exact sentence, 15 languages in mod/locales).
+test('a server the PC refuses the connection to (EACCES, EPERM) is told as blocked, not as "start it"; a refused connection stays "start it"', async t => {
+  const project = emptyProject(t);
+  for (const code of ['EACCES', 'EPERM']) {
+    const fetchImpl = async () => { throw Object.assign(TypeError('fetch failed'), {cause: Object.assign(Error('connect ' + code), {code})}); };
+    const blocked = supervisor(t, {project, fetchImpl, selected: {customModels: scanManifest(project, [{endpoint: 'http://127.0.0.1:11434/v1', name: 'Blocked'}]).models}});
+    const error = await blocked.server.ensure().catch(caught => caught);
+    assert.ok(error instanceof LocalAiUnavailable && isLocalUnavailable(error), String(error));
+    assert.equal(error.reason, 'start-failed');
+    assert.equal(blocked.server.status().detail, 'server-blocked', code);
+    assert.deepEqual(blocked.failures.map(event => event.detail), ['server-blocked']);
+    assert(blocked.logs.some(line => line.includes('could not be reached (' + code + ')')), blocked.logs.join('\n'));
+    const words = unavailableDetail('start-failed', blocked.server.status().detail);
+    assert.equal(words, SERVER_BLOCKED_TEXT);
+    assert.doesNotMatch(words, /start it/i);
+    assert.match(words, /firewall or security software/);
+    assert.ok(words.length <= 160, 'the game keeps a detail of 160 characters at most');
+    assert.equal(isPlayerServerDetail(blocked.server.status().detail), true);
+  }
+  const refused = supervisor(t, {project, fetchImpl: async () => { throw Object.assign(TypeError('fetch failed'), {cause: Object.assign(Error('connect ECONNREFUSED'), {code: 'ECONNREFUSED'})}); },
+    selected: {customModels: scanManifest(project, [{endpoint: 'http://127.0.0.1:11434/v1', name: 'Down'}]).models}});
+  await assert.rejects(refused.server.ensure(), /local:unavailable/);
+  assert.equal(refused.server.status().detail, 'server-unreachable');
+  assert.match(unavailableDetail('start-failed', 'server-unreachable'), /start it/);
+  for (const detail of ['server-unreachable', 'server-blocked', 'server-key-refused', 'server-bad-address']) assert.equal(isPlayerServerDetail(detail), true, detail);
+  for (const detail of ['exited', 'timeout', 'windows-blocked', 'low-ram', undefined, null]) assert.equal(isPlayerServerDetail(detail), false, String(detail));
+});
+
+test('the blocked-connection sentence is the same in the bridge and the game, and has a translation in each of the 15 menu languages', async () => {
+  const lua = await readFile(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
+  assert.ok(lua.includes("detail == '" + SERVER_BLOCKED_TEXT + "'"), 'the game compares the exact bridge sentence');
+  assert.ok(lua.includes("ui.t('" + SERVER_BLOCKED_TEXT + "')"));
+  const languages = ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw'];
+  for (const language of languages) {
+    const dictionary = await readFile(new URL('../mod/locales/' + language + '.lua', import.meta.url), 'utf8');
+    const line = dictionary.split(/\r?\n/).find(row => row.includes('["' + SERVER_BLOCKED_TEXT + '"] = "'));
+    assert.ok(line, language);
+    const translated = line.slice(line.indexOf('] = "') + 5, line.lastIndexOf('"'));
+    assert.ok(translated.length > 20 && translated !== SERVER_BLOCKED_TEXT, language);
+  }
 });

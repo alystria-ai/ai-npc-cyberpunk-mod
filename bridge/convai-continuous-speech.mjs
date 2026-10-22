@@ -397,6 +397,21 @@ export class ConvaiContinuousSpeech {
     }
   }
 
+  // A voice that broke after the reply was published: the same error state as fail(), carrying the COMPLETE written reply, so the game
+  // (mod/speech.lua, playback-failed) shows the whole text and says once that the voice stopped. Returns true when that state was written;
+  // false when the stream was never published, the game stopped it itself (retired) or the turn is no longer the current one: then the caller
+  // ends the turn as before. Local voices only: the written reply is never voiced by another engine.
+  async failToText(text) {
+    this.dropModel();
+    if (!this.published || this.retired || !this.last || !await this.valid()) return false;
+    const full = typeof text === 'string' ? displayText(text, true) : '';
+    const shown = this.last.textComplete ? this.last.text : (full.trim() && full.length <= 12000 ? full : this.last.text);
+    await this.writeState({...this.last, version: 1, id: this.token,
+      requestId: this.input.requestId, generation: this.input.generation, entity: this.input.entity,
+      updated: this.now(), state: 'error', error: 'The voice stream stopped.', text: shown, textComplete: true, ended: false});
+    return true;
+  }
+
   async fail() {
     this.dropModel();
     if (!this.published || !await this.valid()) return;

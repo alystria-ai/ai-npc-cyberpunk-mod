@@ -607,7 +607,9 @@ test('routes: for every provider set and player state the route is never Convai,
         if (route === 'mistral') { assert.ok(mistralKey, label); assert.ok(!ownLocal, `Local AI is never exchanged for Mistral: ${label}`); }
         if (route === 'local') assert.ok(localReady || ownLocal, label);
         if (ownLocal) assert.equal(route, 'local', label);
-        if (!custom && !ownLocal) {
+        // A Local AI player's turn is never moved to another provider (Mistral in particular): Local AI or no route.
+        if (applied === 'local') assert.ok(route === null || route === 'local', `never moved to a cloud provider: ${label}`);
+        if (!custom && !ownLocal && applied !== 'local') {
           assert.equal(route === null, !usable('mistral') && !usable('local'), `it never gives up while something allowed works: ${label}`);
           if (usable(applied)) assert.equal(route, applied, `the player's own provider first: ${label}`);
         }
