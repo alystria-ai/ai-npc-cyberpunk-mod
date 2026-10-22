@@ -68,6 +68,10 @@ local statusSources = {
     ['Local AI could not start. Check Local AI in Settings > Conversation provider.'] = true,
     ['The browser for the conversation page would not start. Try again, or use another Chromium browser.'] = true,
     ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'] = true,
+    -- The service's generic phone failure, and the two Local AI texts of a server that only thinks or has too small a context (init.lua keyReplyNotice).
+    ['Message could not be delivered. Please try again.'] = true,
+    ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = true,
+    ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = true,
 }
 local feedbackSources = {
     ['INVITE QUEUED - CLOSE PHONE'] = true,

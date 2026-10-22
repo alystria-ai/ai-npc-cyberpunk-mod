@@ -3580,6 +3580,35 @@ local function keyReplyNotice(reply)
     return nil
 end
 
+-- The text of a reply that failed, in the menu language. The bridge words its generic failures in English (bridge/convai-bridge.mjs); each one is mapped here to
+-- its catalogue sentence so it is translated like every other notice. Anything else is a provider's own text and stays as it came.
+local function replyErrorText(reply)
+    local text = reply.error
+    if text == 'The conversation service could not reply. Please try again.' then
+        return ui.t('The conversation service could not reply. Please try again.')
+    elseif text == 'Voice conversation failed. Check your microphone and try again.' then
+        return ui.t('Voice conversation failed. Check your microphone and try again.')
+    elseif reply.errorCode == 'custom-provider' and type(text) == 'string' then
+        local name = text:match('^(.-) is one of your own characters%.')
+        if name and name ~= '' and #name <= 160 and not name:find('%c') then
+            return ui.t('{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.', {name = name})
+        end
+    elseif type(text) == 'string' then
+        local name = text:match('^(.-) does not have a conversation profile configured yet%.$')
+        if name and name ~= '' and #name <= 160 and not name:find('%c') then
+            return ui.t('{name} does not have a conversation profile configured yet.', {name = name})
+        end
+    end
+    return text
+end
+
+-- The reason a phone contact cannot be invited, in the menu language (mod/companions.lua phoneContactKey words them in English).
+local function phoneReasonText(reason)
+    if reason == 'This contact has no companion mapping yet.' then return ui.t('This contact has no companion mapping yet.') end
+    if reason == 'Character unavailable in this game installation.' then return ui.t('Character unavailable in this game installation.') end
+    return tostring(reason)
+end
+
 -- The one-time information the bridge puts on the first reply of a game session when Mistral or Custom is chosen.
 local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
@@ -3799,7 +3828,7 @@ local function processPhoneAction(player)
     local key, reason, name = companions.phoneContactKey(contactId)
     if not key then
         log('Phone request unavailable for ' .. contactId .. ': ' .. tostring(reason))
-        convaiNotices.send(player, 'phone-unavailable', tostring(reason))
+        convaiNotices.send(player, 'phone-unavailable', phoneReasonText(reason))
         return
     end
     if join then
@@ -4721,9 +4750,9 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-cpu' or keyId == 'local-stepdown' then
                             sendProviderNotice(player, keyId, keyText)
-                            if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
+                            if not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)
-                        elseif not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
+                        elseif not pending.reaction then convaiNotices.send(player, 'reply-error', replyErrorText(reply)) end
                     else
                         -- The first reply that runs without memory on a limited plan says so once.
                         local keyId, keyText = keyReplyNotice(reply)

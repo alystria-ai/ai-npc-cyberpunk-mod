@@ -1094,4 +1094,9 @@ return {
     ["The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "从 {from} 到 {to} 的 Runtime 更新从未应用，因此部分 Runtime 文件是旧的。请从模组 Hugging Face 页面的 updates 文件夹中，从你的版本开始，逐个应用 Runtime 更新 zip。将每个文件解压到 Cyberpunk 2077 文件夹，然后重新启动游戏。",
     ["A Runtime update zip was applied after a newer one, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "较新的 Runtime 更新 zip 之后又应用了较旧的 zip，因此部分 Runtime 文件是旧的。请从模组 Hugging Face 页面的 updates 文件夹中，按顺序、从你的版本开始，逐个应用 Runtime 更新 zip。将每个文件解压到 Cyberpunk 2077 文件夹，然后重新启动游戏。",
     ["A Runtime update step is missing. Apply its update zips one by one from the updates folder."] = "缺少一个 Runtime 更新步骤。请从 updates 文件夹中逐个应用其更新 zip。",
+    ["Character unavailable in this game installation."] = "此游戏安装中无法使用该角色。",
+    ["Message could not be delivered. Please try again."] = "消息未能送达，请重试。",
+    ["The conversation service could not reply. Please try again."] = "对话服务无法回复，请重试。",
+    ["Voice conversation failed. Check your microphone and try again."] = "语音对话失败，请检查麦克风后重试。",
+    ["{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings."] = "{name} 是你自己的角色之一。他需要 Mistral、Local AI 或自定义，请在设置中的“对话提供方”里选择一个。",
 }

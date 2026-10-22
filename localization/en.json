@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1093,
+    "strings": 1098,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -153,6 +153,7 @@
     "Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.": "Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech.",
     "Character editor": "Character editor",
     "Character picker closed. Your selection is unchanged. Closing it deleted nothing.": "Character picker closed. Your selection is unchanged. Closing it deleted nothing.",
+    "Character unavailable in this game installation.": "Character unavailable in this game installation.",
     "Characters": "Characters",
     "Characters and party": "Characters and party",
     "Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.": "Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.",
@@ -463,6 +464,7 @@
     "Memory result": "Memory result",
     "Memory service": "Memory service",
     "Memory: remembers your conversations": "Memory: remembers your conversations",
+    "Message could not be delivered. Please try again.": "Message could not be delivered. Please try again.",
     "Message sent. Waiting for reply.": "Message sent. Waiting for reply.",
     "Microphone connection timed out. Please try again.": "Microphone connection timed out. Please try again.",
     "Microphone unavailable. Check your Windows input device.": "Microphone unavailable. Check your Windows input device.",
@@ -815,6 +817,7 @@
     "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.": "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.",
     "The conversation service cannot reach the internet. See Help in Settings.": "The conversation service cannot reach the internet. See Help in Settings.",
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
+    "The conversation service could not reply. Please try again.": "The conversation service could not reply. Please try again.",
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
     "The conversation service could not start. Restart the game, or see Help in Settings.": "The conversation service could not start. Restart the game, or see Help in Settings.",
     "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.": "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.",
@@ -979,6 +982,7 @@
     "Version {version}.": "Version {version}.",
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
     "Voice": "Voice",
+    "Voice conversation failed. Check your microphone and try again.": "Voice conversation failed. Check your microphone and try again.",
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
     "Voice input only understands English for now. Typing works in any language.": "Voice input only understands English for now. Typing works in any language.",
     "Voice playback": "Voice playback",
@@ -1120,6 +1124,7 @@
     "{name} is not a person and cannot be talked to.": "{name} is not a person and cannot be talked to.",
     "{name} is not in your group.": "{name} is not in your group.",
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.",
+    "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.": "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.",
     "{name} joined your group.": "{name} joined your group.",
     "{name} joined your party.": "{name} joined your party.",
     "{name} selected for memory controls.": "{name} selected for memory controls.",
@@ -1707,6 +1712,7 @@
       "Conversations are disabled for this contact.",
       "Conversations are disabled in Companion Manager.",
       "Memory clearing is in progress. Your draft has been kept.",
+      "Message could not be delivered. Please try again.",
       "Message sent. Waiting for reply.",
       "Mistral did not accept your key. Check it in Settings > Conversation provider.",
       "Mistral’s free limit is reached for now. Try again in a moment.",
@@ -1726,6 +1732,8 @@
       "Waiting for the conversation service.",
       "Waiting for your previous message to finish.",
       "Write a message...  /  Enter to send  /  Esc to stop typing",
+      "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
+      "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
       "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC."
     ],
     "phone.feedback": [
@@ -1824,6 +1832,7 @@
       "Calls are not available right now.",
       "Changes are saved on this computer and used from the next reply.",
       "Character editor",
+      "Character unavailable in this game installation.",
       "Checking your plan…",
       "Checking…",
       "Choose Check my plan to ask Convai.",
@@ -2214,6 +2223,7 @@
       "The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.",
       "The conversation service cannot reach the internet. See Help in Settings.",
       "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
+      "The conversation service could not reply. Please try again.",
       "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
       "The conversation service could not start. Restart the game, or see Help in Settings.",
       "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.",
@@ -2290,6 +2300,7 @@
       "This character speaks with the shipped voice.",
       "This computer cannot convert that file. Save it as a WAV and try again.",
       "This contact cannot take a holocall.",
+      "This contact has no companion mapping yet.",
       "This is a short report: the conversation service was not available to build the full one.",
       "This is your current plan. To change or cancel it, choose Manage or cancel plan below.",
       "This key has no paid plan. Choose a plan below.",
@@ -2323,6 +2334,7 @@
       "Version {version}.",
       "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
       "Voice",
+      "Voice conversation failed. Check your microphone and try again.",
       "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
       "Voice input only understands English for now. Typing works in any language.",
       "Voice: {voice}",
@@ -2420,6 +2432,7 @@
       "{name} is not a person and cannot be talked to.",
       "{name} is not in your group.",
       "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.",
+      "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.",
       "{name} joined your group.",
       "{name} selected for memory controls.",
       "{name} unselected.",
@@ -2683,7 +2696,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3988"
+        "mod/init.lua:4017"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2691,7 +2704,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3946"
+        "mod/init.lua:3975"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2699,7 +2712,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3987"
+        "mod/init.lua:4016"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2707,7 +2720,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3945"
+        "mod/init.lua:3974"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2715,7 +2728,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3986"
+        "mod/init.lua:4015"
       ]
     },
     "Above the speaker": {
@@ -3159,8 +3172,8 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:189",
-        "mod/phone-chat-style.lua:263",
+        "mod/phone-chat-style.lua:193",
+        "mod/phone-chat-style.lua:267",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:490",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
@@ -3170,7 +3183,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:75",
+        "mod/phone-chat-style.lua:79",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:352"
       ]
     },
@@ -3187,7 +3200,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:76",
+        "mod/phone-chat-style.lua:80",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:352"
       ]
     },
@@ -3273,6 +3286,14 @@
         "mod/manager.lua:264"
       ]
     },
+    "Character unavailable in this game installation.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3608"
+      ]
+    },
     "Characters": {
       "contexts": [
         "page.navigation"
@@ -3321,7 +3342,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:246",
+        "mod/phone-chat-style.lua:250",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:331"
       ]
     },
@@ -4596,7 +4617,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:74",
+        "mod/phone-chat-style.lua:78",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:351"
       ]
     },
@@ -5330,7 +5351,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:73",
+        "mod/phone-chat-style.lua:77",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:351"
       ]
     },
@@ -5882,6 +5903,14 @@
         "mod/manager-ui.lua:381"
       ]
     },
+    "Message could not be delivered. Please try again.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:72"
+      ]
+    },
     "Message sent. Waiting for reply.": {
       "contexts": [
         "phone.chat"
@@ -6308,7 +6337,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4636"
+        "mod/init.lua:4665"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7095,7 +7124,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:338"
+        "mod/phone-chat-style.lua:342"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7709,10 +7738,10 @@
         "page.navigation"
       ],
       "references": [
-        "mod/phone-chat-style.lua:153",
-        "mod/phone-chat-style.lua:156",
-        "mod/phone-chat-style.lua:203",
-        "mod/phone-chat-style.lua:212"
+        "mod/phone-chat-style.lua:157",
+        "mod/phone-chat-style.lua:160",
+        "mod/phone-chat-style.lua:207",
+        "mod/phone-chat-style.lua:216"
       ]
     },
     "Selected character": {
@@ -8020,7 +8049,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3772"
+        "mod/init.lua:3801"
       ]
     },
     "Starting": {
@@ -8827,6 +8856,14 @@
       ],
       "references": [
         "mod/setup-check.lua:564"
+      ]
+    },
+    "The conversation service could not reply. Please try again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3588"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -9697,9 +9734,11 @@
     },
     "This contact has no companion mapping yet.": {
       "contexts": [
-        "phone.native"
+        "phone.native",
+        "ui.localized"
       ],
       "references": [
+        "mod/init.lua:3607",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:449"
       ]
     },
@@ -10214,6 +10253,14 @@
         "mod/character-editor.lua:108"
       ]
     },
+    "Voice conversation failed. Check your microphone and try again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3590"
+      ]
+    },
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": {
       "contexts": [
         "ui.localized"
@@ -10669,7 +10716,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:337"
+        "mod/phone-chat-style.lua:341"
       ]
     },
     "YOUR PARTY": {
@@ -10941,18 +10988,24 @@
     },
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": {
       "contexts": [
+        "phone.chat",
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3532"
+        "mod/init.lua:3532",
+        "mod/phone-chat-style.lua:73",
+        "mod/phone-chat.lua:27"
       ]
     },
     "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).": {
       "contexts": [
+        "phone.chat",
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3534"
+        "mod/init.lua:3534",
+        "mod/phone-chat-style.lua:74",
+        "mod/phone-chat.lua:28"
       ]
     },
     "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.": {
@@ -11290,7 +11343,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2441"
+        "mod/init.lua:2441",
+        "mod/init.lua:3599"
       ]
     },
     "{name} is a child and cannot be talked to.": {
@@ -11385,7 +11439,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3837"
+        "mod/init.lua:3866"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -11395,6 +11449,14 @@
       ],
       "references": [
         "mod/init.lua:2436"
+      ]
+    },
+    "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3594"
       ]
     },
     "{name} joined your group.": {
@@ -12110,7 +12172,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2441"
+        "mod/init.lua:2441",
+        "mod/init.lua:3599"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12134,7 +12197,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3837"
+        "mod/init.lua:3866"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

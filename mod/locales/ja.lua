@@ -1094,4 +1094,9 @@ return {
     ["The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "Runtime の {from} から {to} への更新が適用されていないため、一部の Runtime ファイルが古いままです。Mod の Hugging Face ページの updates フォルダーにある Runtime 更新 zip を、ご自身のバージョンから順に1つずつ適用してください。それぞれを Cyberpunk 2077 フォルダーに展開してから、ゲームを再起動してください。",
     ["A Runtime update zip was applied after a newer one, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "新しい Runtime 更新 zip の後に古い Runtime 更新 zip が適用されたため、一部の Runtime ファイルが古いままです。Mod の Hugging Face ページの updates フォルダーにある Runtime 更新 zip を、順番どおりにご自身のバージョンから1つずつ適用してください。それぞれを Cyberpunk 2077 フォルダーに展開してから、ゲームを再起動してください。",
     ["A Runtime update step is missing. Apply its update zips one by one from the updates folder."] = "Runtime の更新が1つ抜けています。更新 zip を updates フォルダーから順に適用してください。",
+    ["Character unavailable in this game installation."] = "このゲームのインストールでは、このキャラクターは利用できません。",
+    ["Message could not be delivered. Please try again."] = "メッセージを届けられませんでした。もう一度お試しください。",
+    ["The conversation service could not reply. Please try again."] = "会話サービスが応答できませんでした。もう一度お試しください。",
+    ["Voice conversation failed. Check your microphone and try again."] = "音声会話に失敗しました。マイクを確認して、もう一度お試しください。",
+    ["{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings."] = "{name} は自分のキャラクターの一人です。Mistral、Local AI、カスタムのいずれかが必要なので、設定の会話プロバイダーで選んでください。",
 }

@@ -1094,4 +1094,9 @@ return {
     ["The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "Runtime {from}에서 {to}로의 업데이트가 적용되지 않아 일부 Runtime 파일이 오래되었습니다. 모드 Hugging Face 페이지의 updates 폴더에 있는 Runtime 업데이트 zip을 내 버전부터 하나씩 적용하세요. 각각 Cyberpunk 2077 폴더에 풀고 게임을 다시 시작하세요.",
     ["A Runtime update zip was applied after a newer one, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game."] = "더 새로운 Runtime 업데이트 zip이 적용된 뒤에 그보다 오래된 zip이 적용되어 일부 Runtime 파일이 오래되었습니다. 모드 Hugging Face 페이지의 updates 폴더에 있는 Runtime 업데이트 zip을 순서대로, 내 버전부터 하나씩 적용하세요. 각각 Cyberpunk 2077 폴더에 풀고 게임을 다시 시작하세요.",
     ["A Runtime update step is missing. Apply its update zips one by one from the updates folder."] = "Runtime 업데이트 단계가 하나 빠졌습니다. 해당 업데이트 zip을 updates 폴더에서 하나씩 적용하세요.",
+    ["Character unavailable in this game installation."] = "이 게임 설치본에서는 캐릭터를 사용할 수 없습니다.",
+    ["Message could not be delivered. Please try again."] = "메시지를 전달하지 못했습니다. 다시 시도하세요.",
+    ["The conversation service could not reply. Please try again."] = "대화 서비스가 응답하지 못했습니다. 다시 시도하세요.",
+    ["Voice conversation failed. Check your microphone and try again."] = "음성 대화에 실패했습니다. 마이크를 확인하고 다시 시도하세요.",
+    ["{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings."] = "{name} 캐릭터는 내 캐릭터 중 하나입니다. Mistral, Local AI 또는 사용자 지정이 필요하니 설정의 대화 제공자에서 하나를 고르세요.",
 }
