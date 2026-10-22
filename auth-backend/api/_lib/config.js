@@ -16,7 +16,7 @@ export const DEFAULTS = Object.freeze({
   dailyTurnCap: 100,
   remintMarginSeconds: 300,
   // Error reports (api/_lib/errors.js)
-  errorInstallPerDay: 10,
+  errorInstallPerDay: 40,
   errorIpPerHour: 30,
   errorStorePerDay: 300,
   errorSamples: 10,
@@ -37,6 +37,8 @@ export const ENV_NAMES = Object.freeze([
   'CONVAI_API_KEY',
   'CONVAI_AUTH_SIGNING_SECRET',
   'CONVAI_AUTH_ADMIN_SECRET',
+  'CONVAI_AUTH_PSEUDONYM_SECRET',
+  'ERROR_REPORT_SECRET',
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
   'KV_REST_API_URL',
@@ -65,6 +67,12 @@ export function readConfig(env = process.env) {
     apiKey: text(env.CONVAI_API_KEY),
     signingSecret: text(env.CONVAI_AUTH_SIGNING_SECRET),
     adminSecret: text(env.CONVAI_AUTH_ADMIN_SECRET),
+    // Three separate secrets (docs/CONVAI_AUTH_BACKEND.md, security review 2026-10-22, item 2). The signing secret ships in the Runtime as the
+    // client request secret, so it is public by nature; the report secret ships too, but is a different value (a leaked report secret cannot
+    // ask for tokens); the pseudonym secret never leaves the server and keys the hashes of install ids and addresses. An unset report or
+    // pseudonym secret falls back to the signing secret (the single-secret layout of the first deployment).
+    reportSecret: text(env.ERROR_REPORT_SECRET) || text(env.CONVAI_AUTH_SIGNING_SECRET),
+    pseudonymSecret: text(env.CONVAI_AUTH_PSEUDONYM_SECRET) || text(env.CONVAI_AUTH_SIGNING_SECRET),
     storeUrl: text(env.UPSTASH_REDIS_REST_URL) || text(env.KV_REST_API_URL),
     storeToken: text(env.UPSTASH_REDIS_REST_TOKEN) || text(env.KV_REST_API_TOKEN),
     paused: truthy(env.CONVAI_AUTH_PAUSED),
@@ -104,7 +112,7 @@ export function missingSettings(config) {
  */
 export function missingErrorReportSettings(config) {
   const missing = [];
-  if (config.signingSecret.length < 32) missing.push('CONVAI_AUTH_SIGNING_SECRET');
+  if (config.reportSecret.length < 32) missing.push('ERROR_REPORT_SECRET');
   if (!config.storeUrl || !config.storeToken) missing.push('UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN');
   return missing;
 }

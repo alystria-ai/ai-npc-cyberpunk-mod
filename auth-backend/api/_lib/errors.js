@@ -196,7 +196,7 @@ export function createErrorReportHandler(options = {}) {
       return;
     }
     const nowMs = now();
-    const checked = checkSignature({ secret: config.signingSecret, timestamp: headerValue(request, 'x-convai-timestamp'),
+    const checked = checkSignature({ secret: config.reportSecret, timestamp: headerValue(request, 'x-convai-timestamp'),
       signature: headerValue(request, 'x-convai-signature'), body: text, nowMs });
     if (checked === 'stale') {
       sendJson(response, 401, { error: 'stale', serverTime: Math.floor(nowMs / 1000) });
@@ -212,13 +212,13 @@ export function createErrorReportHandler(options = {}) {
       return;
     }
 
-    const ipKey = pseudonym(config.signingSecret, 'error-ip', clientAddress(request));
+    const ipKey = pseudonym(config.pseudonymSecret, 'error-ip', clientAddress(request));
     if (flooded(ipKey)) {
       sendJson(response, 429, { error: 'rate', retryAfterSeconds: 60 }, { 'Retry-After': '60' });
       return;
     }
 
-    const installKey = pseudonym(config.signingSecret, 'error-install', body.install);
+    const installKey = pseudonym(config.pseudonymSecret, 'error-install', body.install);
     const ttlSeconds = config.errorTtlDays * 86_400;
     const id = `${String(nowMs).padStart(13, '0')}-${randomBytes(3).toString('hex')}`;
     // What is kept is the body with the client's install hash swapped for the server's second hash (still one value per install,

@@ -1,6 +1,6 @@
 # Convai token backend
 
-A small Vercel service that hands the AI NPC Cyberpunk Mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **It was first deployed to Vercel on 2026-10-13** (address in the project's private notes, not here; `GET /api/healthz` answers `{"status":"ok"}`), and the bridge's backend mode is switched on per machine through `runtime/convai-auth.json`. Every test in this folder still uses a fake Convai and a fake Redis; the repository never calls the live service.
+A small Vercel service that hands the AI NPC Cyberpunk Mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **It was first deployed to Vercel on 2026-10-13** (address in the project's private notes, not here; `GET /api/healthz` answers `{"status":"ok"}`), and from 0.2.9 the release ships backend mode ON (`app/defaults/convai-auth.json`, no Convai key). One Vercel project serves the token endpoint and the error reports (project `cyberpunk-convai-auth`), with three separate secrets (see Settings). Developers switch it on or off per machine through `runtime/convai-auth.json`. Every test in this folder still uses a fake Convai and a fake Redis; the repository never calls the live service.
 
 ```
 auth-backend/
@@ -91,7 +91,9 @@ Secrets (add with `--sensitive`, values from files, see the deploy steps):
 | Variable | Required | What |
 |---|---|---|
 | `CONVAI_API_KEY` | yes | The project's Convai key. Only ever used server side. |
-| `CONVAI_AUTH_SIGNING_SECRET` | yes, 32+ characters | The request-signing secret. The same value goes into the bridge (`CYBERPUNK_CONVAI_AUTH_SECRET`, or `secret` in `runtime/convai-auth.json`). Also keys the hashes of install ids and addresses. Changing it resets all counters. |
+| `CONVAI_AUTH_SIGNING_SECRET` | yes, 32+ characters | The request-signing secret for **token requests**: the client request secret. The same value goes into the bridge (`CYBERPUNK_CONVAI_AUTH_SECRET`, or `secret` in `convai-auth.json`; a release build writes it into `app/defaults/convai-auth.json`, so it is public by nature). It never signs error reports. |
+| `ERROR_REPORT_SECRET` | yes for error reports, 32+ characters, **different from the signing secret** | Signs `/api/errors/report`. Shipped in `app/defaults/error-reports.json`. Unset, the signing secret is used instead (the layout of the first deployment, kept only so an old deployment still works): a leaked report secret must not be able to ask for tokens, so set both. |
+| `CONVAI_AUTH_PSEUDONYM_SECRET` | recommended, 32+ characters | Server-only. Keys the hashes of install ids and addresses (the counters, the admin list, the blocklist, the report index). Never shipped, so a player cannot reverse the address hashes. Unset, the signing secret is used. Changing it resets all counters and forgets which blocked hashes were listed. |
 | `CONVAI_AUTH_ADMIN_SECRET` | optional, 32+ characters | Enables `/api/admin/turns`, `/api/admin/errors` and `/api/readyz?ping=1`. Unset: the admin endpoint answers 404. |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | yes | The Redis store. The Vercel Marketplace integration may instead set `KV_REST_API_URL` and `KV_REST_API_TOKEN`; either pair works. |
 
@@ -110,7 +112,7 @@ Settings (all optional; defaults shown):
 | `CONVAI_AUTH_REMINT_MARGIN_SECONDS` | 300 | Re-mint the cached token when this many seconds or fewer remain. |
 | `CONVAI_AUTH_BLOCKED_INSTALLS` | none | Comma-separated install hashes (from the admin list) to refuse. |
 | `ERROR_REPORTS_OFF` | off | `1` turns the error-report endpoint off: it answers 404 and the bridge stops sending for the session (see "Error reports"). |
-| `ERROR_REPORTS_INSTALL_PER_DAY` | 10 | Error reports per install per UTC day. The client sends at most 5; the rest is slack for day edges. |
+| `ERROR_REPORTS_INSTALL_PER_DAY` | `errorInstallPerDay` in `api/_lib/config.js` | Error reports per install per UTC day. Keep it above the client's own daily limit (`DAILY_LIMIT` in `bridge/error-reports.mjs`) so the edges of a UTC day never refuse a report. A deployment that sets this variable keeps its own value. |
 | `ERROR_REPORTS_IP_PER_HOUR` | 30 | Error reports per address per hour. |
 | `ERROR_REPORTS_STORE_PER_DAY` | 300 | Report bodies kept per UTC day, whole service. Bounds storage; past it reports are counted but not kept. |
 | `ERROR_REPORTS_SAMPLES` | 10 | Report bodies kept per signature (the newest; 1 to 100). |
@@ -205,7 +207,7 @@ The body is never echoed. The checks run in this order, and everything up to the
 | Limit | Default | Setting | Why |
 |---|---|---|---|
 | Reports per address per hour | 30 | `ERROR_REPORTS_IP_PER_HOUR` | One machine or network flooding. The address is only ever used as a keyed hash. |
-| Reports per install per UTC day | 10 | `ERROR_REPORTS_INSTALL_PER_DAY` | The client sends at most 5 a day; the rest is slack for UTC day edges. |
+| Reports per install per UTC day | `errorInstallPerDay` in `api/_lib/config.js` | `ERROR_REPORTS_INSTALL_PER_DAY` | Above the client's own daily limit; the rest is slack for UTC day edges. A deployment that sets the variable keeps its own value. |
 | Same signature, same install | once per UTC day | none | A crash loop must not become a stream of identical reports. A duplicate counts nowhere (not against the limits above, not in the index). |
 | Bodies kept per UTC day, whole service | 300 | `ERROR_REPORTS_STORE_PER_DAY` | **Bounds storage** (see "Cost"). Past it a report is only counted. `0` keeps no bodies at all. |
 | Bodies kept per signature | 10 (newest) | `ERROR_REPORTS_SAMPLES` (1 to 100) | A hundred copies of one error say no more than ten. |
@@ -213,7 +215,7 @@ The body is never echoed. The checks run in this order, and everything up to the
 | Signatures listed | 5,000 | none | The least recently seen is dropped past it. |
 | Fields in one signature's index | 48 | none | Distinct mod versions cannot grow a hash without bound (about 41 versions fit). |
 
-**What this does not stop:** the signing secret ships in the bridge, so anyone who reads it can send fake reports. The limits bound the harm (storage, commands) but a flood can use up a day's 300 body budget and so keep real bodies out for that day; the signatures and counts still show up in the index.
+**What this does not stop:** the report secret ships in the Runtime, so anyone who reads it can send fake reports. The limits bound the harm (storage, commands) but a flood can use up a day's 300 body budget and so keep real bodies out for that day; the signatures and counts still show up in the index.
 
 ### What is stored
 
@@ -260,11 +262,11 @@ It reads the backend address from `runtime/convai-auth.json` and the admin secre
 
 ### Cost: commands, storage, invocations
 
-**Commands.** A report is **one** Redis command (the script), however it ends; a request refused before the store (bad signature or body, flood guard, off switch) costs none. An admin list costs 2 + 2 per signature listed (so 202 for the largest page), one report 1, a delete 2. The reports share Upstash's 500,000 commands a month with the token endpoint: at 1,000 daily players that endpoint uses about 90,000, and reports add at most 5 a day per player (the client's own cap; the server's limit is 10), so even if every player hit the cap every day it would be 150,000 more (240,000 of 500,000). Realistically most players send none.
+**Commands.** A report is **one** Redis command (the script), however it ends; a request refused before the store (bad signature or body, flood guard, off switch) costs none. An admin list costs 2 + 2 per signature listed (so 202 for the largest page), one report 1, a delete 2. The reports share Upstash's 500,000 commands a month with the token endpoint: at 1,000 daily players that endpoint uses about 90,000, and a report is one command, at most the client's daily limit per player (`DAILY_LIMIT`); if every player hit that limit every day it would be more than the free tier allows at 1,000 daily players (the daily body budget `ERROR_REPORTS_STORE_PER_DAY` and the one-per-signature-per-day rule on the client bound it far lower in practice: a report is sent only for a new kind of error, and most players send none). Watch the command count after a release and lower the client's `DAILY_LIMIT` or the server's limit if it climbs.
 
 **Storage.** Upstash's free tier allows 256 MB of data (its pricing page also says 250 MB). A typical report body is 10 to 40 KB as sent, about 3 to 8 KB gzipped, about 4 to 11 KB as base64. The worst case is set by the daily body budget, not by the number of players: 300 bodies a day x 30 days x about 8 KB = **about 72 MB**. The indexes are small and capped: at most 5,000 signatures at roughly 2 KB each (about 10 MB), their id lists and the sorted set (about 1 MB), and the install and address counters (a couple of MB, they live 2 days). Together **under 100 MB, well inside the free tier**. To lower it: set `ERROR_REPORTS_STORE_PER_DAY` (halving it halves the bodies), `ERROR_REPORTS_TTL_DAYS`, or `ERROR_REPORTS_SAMPLES`; `ERROR_REPORTS_STORE_PER_DAY=0` keeps no bodies and still counts. Other Upstash free limits, none close: 10 MB maximum request (a report is at most 64 KB plus its packed copy), 100 MB maximum record, 10 GB bandwidth a month (at the typical size even spending all 500,000 commands on reports would be about 5.5 GB; a report's packed body travels to Redis even when the script then only counts it).
 
-**Vercel invocations.** Every request is one invocation, kept or refused: Hobby allows about 1,000,000 a month, shared with the token endpoint (about 3 a player a day). Reports add up to 5 a day per player; at 1,000 daily players that is at most 150,000 more on top of 90,000 (24%). The function is limited to 10 seconds (`vercel.json`).
+**Vercel invocations.** Every request is one invocation, kept or refused: Hobby allows about 1,000,000 a month, shared with the token endpoint (about 3 a player a day). Reports add at most the client's daily limit per player; if every player hit it every day at 1,000 daily players the total would be a large share of the Hobby allowance, which is why the client sends only new kinds of error and most players send none. The function is limited to 10 seconds (`vercel.json`).
 
 As with the token endpoint, check the Upstash usage graph after the first day: these figures assume it bills a script as one command.
 
@@ -321,7 +323,7 @@ You sign in to the Vercel CLI once with the device code (`vercel login`); everyt
    echo 100 | vercel env add CONVAI_AUTH_DAILY_TURN_CAP production
    ```
 
-   Error reports (below) need nothing added: the signing secret and the Redis pair from steps 3 and 4 are enough, and they are on as soon as the deployment includes `api/errors/report.js`. `ERROR_REPORTS_OFF=1` (same way) turns them off without a code change.
+   Error reports (below) need `ERROR_REPORT_SECRET` (a random value of its own, written into the Runtime's `error-reports.json`) and the Redis pair from steps 3 and 4, and are on as soon as the deployment includes `api/errors/report.js`. `ERROR_REPORTS_OFF=1` (same way) turns them off without a code change.
 
 6. **Deploy:**
 
