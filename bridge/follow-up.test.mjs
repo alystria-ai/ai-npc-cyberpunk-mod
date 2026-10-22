@@ -325,7 +325,7 @@ test('the bridge wires it in as context only: before the reply-language line, no
   assert.match(bridge, /block\('volatile', followUpContext\(input\)\),[\s\S]{0,400}naturalSpeechContext\(input\)\)[\s\S]{0,100}expressiveEmotionsContext\(input\)\)[\s\S]{0,300}block\('volatile', firstPersonReminder\(input\)\),\n\s*\/\/ The reply language, last/);
   assert.match(bridge, /const followUpContext = input => \{\n\s*if \(!followUp\.enabled\) return '';/);
   assert.match(bridge, /const followUpChanged = followUp\.update\(settings\);/);
-  assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| followUpChanged\) \{ dropPrefetch\(\)/);
+  assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| followUpChanged \|\| dynamicInfoChanged\) \{ dropPrefetch\(\)/);
   assert.match(bridge, /logFollowUp\(input, result\);/);
   // The only things the bridge does with the object: the setting, the context, the record and the log reads.
   const uses = [...bridge.matchAll(/\bfollowUp\.(\w+)/g)].map(match => match[1]);

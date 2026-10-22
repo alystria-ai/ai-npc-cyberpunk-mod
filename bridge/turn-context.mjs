@@ -144,12 +144,13 @@ const placeOf = snapshot => describePlace({district: snapshot.district, area: sn
 // (V's apartment, a bar, a clinic) says "inside"; the Badlands say "outdoors"; a plain neighbourhood says indoors or outdoors when the game's
 // own reading does, else only that it is somewhere in the area. Never "standing in" a district: a companion with a workplace in her profile
 // otherwise fills the gap with that workplace (live 2026-10-15), and one told "standing in Little China" said so while V was indoors (2026-10-22).
-function whereSentence(place, [who, be]) {
+function whereSentence(place, [who, be], vehicle = false) {
   if (!place) return null;
   if (place.kind === 'home' || place.kind === 'venue') return `${who} ${be} inside ${place.text}.`;
   if (place.kind === 'wild') return `${who} ${be} outdoors in ${place.text}, out in open country.`;
   if (place.inside === true) return `${who} ${be} indoors, in a building in ${place.text}; which building is not given.`;
-  if (place.inside === false) return `${who} ${be} outdoors in ${place.text}, in the open air, not inside a building.`;
+  // In a vehicle the game's interior flag says nothing about the air around the car: no "open air" then.
+  if (place.inside === false && !vehicle) return `${who} ${be} outdoors in ${place.text}, in the open air, not inside a building.`;
   return `${who} ${be} somewhere in ${place.text}; exactly where is not given.`;
 }
 const YOU = ['You', 'are'], V = ['V', 'is'];
@@ -202,7 +203,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
   const spot = placeOf(snapshot), phone = input.channel === 'phone' || call !== null;
-  const pushWhere = who => { const text = whereSentence(spot, who); if (text) sentences.push(text); };
+  const pushWhere = who => { const text = whereSentence(spot, who, snapshot.vehicle === true); if (text) sentences.push(text); };
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
   if (head) {

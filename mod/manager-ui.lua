@@ -1169,7 +1169,7 @@ local function dynamicInfoRows(snapshot)
     end
     return {
         row('location', 'Location',
-            'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.'),
+            'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.'),
         row('time', 'Time and weather',
             'The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.'),
         row('company', 'Company and vehicle',
@@ -1181,9 +1181,9 @@ local function dynamicInfoRows(snapshot)
         row('gear', 'V’s gear and clothes',
             'What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
         row('about', 'V’s gender and lifepath',
-            'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
+            'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.'),
         row('quest', 'Quest and journal',
-            'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.'),
+            'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.'),
         row('dialogue', 'Recent game dialogue',
             'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
     }
@@ -1463,7 +1463,7 @@ local function schema()
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.',
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then

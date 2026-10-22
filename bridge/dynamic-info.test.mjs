@@ -248,6 +248,22 @@ test('a plain district says what the game says and no more: indoors, outdoors, o
   }
 });
 
+test('a companion in a vehicle is never "in the open air", whatever the interior flag says; on foot it still is', () => {
+  const ride = indoors => companion({...place('Watson', 'LittleChina', indoors), vehicle: true, driving: false});
+  const text = ride(false);
+  assert.doesNotMatch(text, /open air|not inside a building/);
+  assert.match(text, /You are somewhere in Little China, Watson; exactly where is not given\./);
+  assert.match(ride(true), /You are indoors, in a building in Little China, Watson/);
+  assert.match(companion({...place('Watson', 'LittleChina', false), vehicle: false}), /in the open air, not inside a building/);
+});
+
+test('changing a Dynamic info switch drops the replies the bridge prepared ahead, like the other prompt settings', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /const dynamicInfoChanged = dynamicInfo\.update\(settings\);/);
+  assert.match(bridge, /if \(speechChanged \|\| emotionsChanged \|\| followUpChanged \|\| dynamicInfoChanged\) \{ dropPrefetch\(\); prefetchObserved = ''; \}/);
+  assert.match(bridge, /\{ambient: isAmbientProfile\(input\.profileKey\), voice, off: dynamicInfo\.off\}/, 'the add-on voice log line follows the switches');
+});
+
 test('the guidance tells every form to mention a place or the time only when it matters, in one short sentence', () => {
   const GUIDANCE = 'Do not recite it, and mention a place or the time only if it matters to what V says.';
   const form = (extra, channel) => describeTurnContext({...parsed({turnContext: place('Watson', 'LittleChina', true), ...extra}), ...(channel ? {channel} : {})}, {split: true}).text;
@@ -342,9 +358,36 @@ test('a lone dialogue volume is a snapshot only while a switch is off (so V\'s v
   assert(snap and snap.dialogueVolume == 0.5)
 `));
 
+test('Health, heat and fights off drops the fight from a manual turn only: a battle reaction still carries its own fight', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  const reactions = readFileSync(new URL('../mod/battle-reactions.lua', import.meta.url), 'utf8');
+  assert.doesNotMatch(init, /convaiGateCapture\(battles/, 'the battle module\'s own capture is not wrapped');
+  for (const reader of ['groupChat', 'phoneChat', 'microphone']) assert.ok(init.includes(`${reader}.captureBattle = battles.captureManual`), reader);
+  assert.match(init, /else context\.battle = context\.battle or \(battles\.captureManual or battles\.capture\)\(\) end/, 'sendRequest: a manual turn reads its fight through the gated reader');
+  const gate = (/function battles\.captureManual[\s\S]*?\r?\nend\r?\n/.exec(init) ?? [''])[0];
+  assert.ok(gate.includes("ask('condition')"));
+  runLua(`
+    local policy = (function() ${reactions} end)().new()
+    local manager = {}
+    local battles = policy
+    ${gate}
+    local now = 1000
+    local people = {{entity = '1ULL', profileKey = 'judy-alvarez', distance = 2, available = true}}
+    local sample = {available = true, blocked = false, combat = false, opponents = {}}
+    local function tick(dt, combat) now = now + dt; sample.combat = combat; policy.update(sample, dt, now, true, people) end
+    tick(0, false); tick(.5, true); tick(1, true); tick(1, true)
+    manager.dynamicInfo = function(kind) return kind ~= 'condition' end   -- Health, heat and fights is off
+    assert(battles.captureManual() == nil, 'a manual turn does not read the fight')
+    local event = assert(policy.offer(false, people, now), 'the reaction is offered')
+    assert(event.phase == 'start' and event.battle and event.battle.status == 'fighting', 'the reaction still carries its fight with the switch off')
+    manager.dynamicInfo = function() return true end
+    assert(battles.captureManual().status == 'fighting', 'on: a manual turn reads it')
+  `);
+});
+
 test('the init module gates each capture where the collector is made, and a manager that has no such setting counts as everything on', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  for (const gate of [`convaiGateCapture(questContext, 'capture', 'quest')`, `convaiGateCapture(battles, 'capture', 'condition')`,
+  for (const gate of [`convaiGateCapture(questContext, 'capture', 'quest')`,
     `convaiGateCapture(gameDialogue, 'capture', 'dialogue')`, `convaiGateCapture(playerGear, 'capture', 'gear')`, `enabled = function(kind) return manager.dynamicInfo == nil or manager.dynamicInfo(kind) end`,
     `manager.dynamicInfo('location')`]) assert.ok(init.includes(gate), gate);
   // The journal scan is not stepped, asked for or sent while Quest and journal is off (unless Johnny's remarks need it): nothing per frame beyond one table read.

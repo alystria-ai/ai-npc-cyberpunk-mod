@@ -145,7 +145,7 @@ const reviewed = {
   // The switches of Settings > Dynamic info (mod/manager-ui.lua dynamicInfoRows passes each text to one local helper).
   'page.dynamic-info': [
     'Location',
-    'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.',
+    'Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.',
     'Time and weather',
     'The hour of the day and the weather in Night City.\n\nOff: nobody is told the time or the weather, and the mod stops reading them from the game.',
     'Company and vehicle',
@@ -157,9 +157,9 @@ const reviewed = {
     'V’s gear and clothes',
     'What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.',
     'V’s gender and lifepath',
-    'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.',
+    'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.',
     'Quest and journal',
-    'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.',
+    'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.',
     'Recent game dialogue',
     'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.',
   ],

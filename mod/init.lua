@@ -480,8 +480,10 @@ microphone.currentKnowledgeOwner = function()
 end
 -- Settings > Dynamic info: a kind that is off is not read from the game for a turn. The capture functions of the collectors are wrapped once, here,
 -- so every caller (private text, voice, group, phone) is covered and a switch that is off costs one table lookup at send time, nothing per frame.
--- Quest and journal: the tracked quest. Health, heat and fights: the last fight. (V's gear and clothes and the recent game dialogue are wrapped
--- where those modules are made, below.) Called with or without self, so it fits a function and a method alike. A manager without the setting is on.
+-- Quest and journal: the tracked quest. (V's gear and clothes and the recent game dialogue are wrapped where those modules are made, below.) Called
+-- with or without self, so it fits a function and a method alike. A manager without the setting is on. The battle module's own capture is NOT wrapped:
+-- battle reactions (mod/battle-reactions.lua) read it for their own subject and must always carry their fight; only the readers of a manual turn are
+-- gated (battles.captureManual, below).
 function convaiGateCapture(owner, name, kind)
     local original = type(owner) == 'table' and owner[name] or nil
     if type(original) ~= 'function' then return end
@@ -492,13 +494,18 @@ function convaiGateCapture(owner, name, kind)
     end
 end
 convaiGateCapture(questContext, 'capture', 'quest')
-convaiGateCapture(battles, 'capture', 'condition')
+-- Health, heat and fights: the last fight, for a manual turn (group, phone, microphone and typed text). A reaction's own fight is never gated.
+function battles.captureManual()
+    local ask = manager.dynamicInfo
+    if ask ~= nil and not ask('condition') then return nil end
+    return battles.capture()
+end
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
-groupChat.captureBattle = battles.capture
-phoneChat.captureBattle = battles.capture
-microphone.captureBattle = battles.capture
+groupChat.captureBattle = battles.captureManual
+phoneChat.captureBattle = battles.captureManual
+microphone.captureBattle = battles.captureManual
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 -- Phone Chat keeps the draft and shows this inline when no service can reply.
@@ -2934,7 +2941,9 @@ local function sendRequest(context)
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
-    else context.battle = context.battle or battles.capture() end
+    -- A battle reaction already carries its own fight (battles.offer); a manual turn reads it through battles.captureManual (Health, heat and
+    -- fights off: nothing). The module's own capture is the reaction's and is never gated.
+    else context.battle = context.battle or (battles.captureManual or battles.capture)() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then

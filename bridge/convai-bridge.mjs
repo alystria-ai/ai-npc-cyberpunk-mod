@@ -2059,7 +2059,7 @@ async function publishResult(input, profile, result, current = async () => true,
   const voice = addonHost.usesVoiceContext(input.profileKey);
   try { if (!input.reaction) console.error(`[PlayerGear] profile=${input.profileKey} ${voice ? 'Player gear: none (voice speaker)' : gearDiagnostic(input)}`); } catch { /* a log line never affects a reply */ }
   // And whether it carried the "right now" block (clock, place, company; bridge/turn-context.mjs). Counts only.
-  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
+  try { if (!input.reaction) console.error(`[TurnContext] profile=${input.profileKey} ${turnContextDiagnostic(input, voice ? {ambient: isAmbientProfile(input.profileKey), voice, off: dynamicInfo.off} : turnContextOptions(input, isAmbientProfile(input.profileKey)))}`); } catch { /* a log line never affects a reply */ }
   if (result.continuous) {
     if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
     // The game already received admission, live text and the consumed-sample
@@ -3409,7 +3409,8 @@ async function pollSettings(checkShutdown = true) {
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
     // Settings > Dynamic info: the kinds of live game info the context may carry (bridge/dynamic-info.mjs); read by every provider's context builder.
-    if (dynamicInfo.update(settings)) console.error(`[DynamicInfo] ${dynamicInfo.describe()}`);
+    const dynamicInfoChanged = dynamicInfo.update(settings);
+    if (dynamicInfoChanged) console.error(`[DynamicInfo] ${dynamicInfo.describe()}`);
     // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
     // is Voxtral again as soon as a key is saved; the poll runs this every time). The same while Mature content is on: no cloud voice then
     // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
@@ -3426,7 +3427,8 @@ async function pollSettings(checkShutdown = true) {
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
-    if (speechChanged || emotionsChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
+    // A reply prepared ahead was written with the old Dynamic info (a place the player just turned off): it is not used.
+    if (speechChanged || emotionsChanged || followUpChanged || dynamicInfoChanged) { dropPrefetch(); prefetchObserved = ''; }
     if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();

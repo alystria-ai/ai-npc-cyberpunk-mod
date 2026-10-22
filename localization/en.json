@@ -199,7 +199,7 @@
     "Choose profile": "Choose profile",
     "Choose the mod interface language independently of character voices and conversation language.": "Choose the mod interface language independently of character voices and conversation language.",
     "Choose the personality this copy should use in conversations. Its model stays the same.": "Choose the personality this copy should use in conversations. Its model stays the same.",
-    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.": "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.",
+    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.": "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.",
     "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.": "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.",
     "Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.": "Choosing Convai or Mistral turns it off. Voxtral is not used with it: a voice on Voxtral moves to Pocket and comes back when it is turned off.",
     "Chosen file: {name} ({size}). It is checked when you save it.": "Chosen file: {name} ({size}). It is checked when you save it.",
@@ -1002,7 +1002,7 @@
     "V’s gender and lifepath": "V’s gender and lifepath",
     "V’s health, the police heat on V, and the last fight V was in.\n\nOff: none of this is sent, and the mod stops reading it from the game.": "V’s health, the police heat on V, and the last fight V was in.\n\nOff: none of this is sent, and the mod stops reading it from the game.",
     "V’s money": "V’s money",
-    "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.": "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.",
+    "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.": "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.",
     "V’s voice": "V’s voice",
     "V’s voice for typed lines": "V’s voice for typed lines",
     "V’s voice switches from OmniVoice to Pocket.": "V’s voice switches from OmniVoice to Pocket.",
@@ -1037,9 +1037,9 @@
     "What to do": "What to do",
     "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.": "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.",
     "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. Pocket and Voxtral lines that are not ready in time are skipped; an OmniVoice line is waited for. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nOmniVoice: uses the same GPU voice as your companions (only while they use OmniVoice); no extra model loads. It adds a short wait before replies to typed lines (about a second more than Pocket, before V starts), because V speaks first and the companion answers after.": "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. Pocket and Voxtral lines that are not ready in time are skipped; an OmniVoice line is waited for. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nOmniVoice: uses the same GPU voice as your companions (only while they use OmniVoice); no extra model loads. It adds a short wait before replies to typed lines (about a second more than Pocket, before V starts), because V speaks first and the companion answers after.",
-    "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.": "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.",
+    "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.": "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.",
     "Where the logs are": "Where the logs are",
-    "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.": "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.",
+    "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.": "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.",
     "Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game.": "Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game.",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
@@ -1392,7 +1392,7 @@
       "Cancel this request before anything is sent.",
       "Check",
       "Check my plan",
-      "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.",
+      "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.",
       "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.",
       "Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.",
       "Companion driver",
@@ -1483,10 +1483,10 @@
       "V’s gender and lifepath",
       "V’s health, the police heat on V, and the last fight V was in.\n\nOff: none of this is sent, and the mod stops reading it from the game.",
       "V’s money",
-      "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.",
+      "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.",
       "What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.",
-      "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.",
-      "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.",
+      "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.",
+      "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.",
       "Who else is with V, whether V is on foot or in a vehicle, and what a companion is doing beside V.\n\nOff: none of this is sent, and the mod stops reading it from the game."
     ],
     "page.keyRow": [
@@ -2711,7 +2711,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4039"
+        "mod/init.lua:4047"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2719,7 +2719,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3997"
+        "mod/init.lua:4005"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2727,7 +2727,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4038"
+        "mod/init.lua:4046"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2735,7 +2735,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3996"
+        "mod/init.lua:4004"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2743,7 +2743,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4037"
+        "mod/init.lua:4045"
       ]
     },
     "Above the speaker": {
@@ -3713,7 +3713,7 @@
         "mod/manager.lua:1533"
       ]
     },
-    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.": {
+    "Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.": {
       "contexts": [
         "page.action"
       ],
@@ -4013,8 +4013,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2849",
-        "mod/init.lua:2915"
+        "mod/init.lua:2856",
+        "mod/init.lua:2922"
       ]
     },
     "Contacting Convai…": {
@@ -4066,7 +4066,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3510"
+        "mod/init.lua:3518"
       ]
     },
     "Convai does not show a paid plan for your key yet.": {
@@ -4567,7 +4567,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3627"
+        "mod/init.lua:3635"
       ]
     },
     "Custom: free daily limit reached": {
@@ -4958,7 +4958,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2182"
+        "mod/init.lua:2189"
       ]
     },
     "Facts the character noticed while you talked. Change or delete the ones that are wrong.": {
@@ -5149,7 +5149,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3614"
+        "mod/init.lua:3622"
       ]
     },
     "From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.": {
@@ -5254,7 +5254,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3614"
+        "mod/init.lua:3622"
       ]
     },
     "Get your Convai API key": {
@@ -5302,8 +5302,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2448",
-        "mod/init.lua:2579"
+        "mod/init.lua:2455",
+        "mod/init.lua:2586"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -5312,8 +5312,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2447",
-        "mod/init.lua:2578"
+        "mod/init.lua:2454",
+        "mod/init.lua:2585"
       ]
     },
     "Head tracking strength": {
@@ -5544,7 +5544,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3614"
+        "mod/init.lua:3622"
       ]
     },
     "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": {
@@ -5720,7 +5720,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3579"
+        "mod/init.lua:3587"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -5728,8 +5728,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3567",
-        "mod/init.lua:3571",
+        "mod/init.lua:3575",
+        "mod/init.lua:3579",
         "mod/manager-ui.lua:89"
       ]
     },
@@ -5806,7 +5806,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3593"
+        "mod/init.lua:3601"
       ]
     },
     "Local AI stopped working and was restarted.": {
@@ -5814,7 +5814,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3589"
+        "mod/init.lua:3597"
       ]
     },
     "Local AI switched to {model}: the game is using most of your graphics memory.": {
@@ -5822,7 +5822,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3606"
+        "mod/init.lua:3614"
       ]
     },
     "Location": {
@@ -6026,7 +6026,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3534",
+        "mod/init.lua:3542",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -6044,7 +6044,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3621"
+        "mod/init.lua:3629"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -6052,7 +6052,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3623"
+        "mod/init.lua:3631"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6085,7 +6085,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3536",
+        "mod/init.lua:3544",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -6379,7 +6379,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4687"
+        "mod/init.lua:4695"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6472,7 +6472,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3565",
+        "mod/init.lua:3573",
         "mod/manager-ui.lua:88",
         "mod/setup-check.lua:524"
       ]
@@ -7022,7 +7022,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2058"
+        "mod/init.lua:2065"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -7087,7 +7087,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3614"
+        "mod/init.lua:3622"
       ]
     },
     "Preparing connection to {name}…": {
@@ -7175,7 +7175,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2833"
+        "mod/init.lua:2840"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -7183,7 +7183,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2834"
+        "mod/init.lua:2841"
       ]
     },
     "Previous page": {
@@ -7438,7 +7438,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3610"
+        "mod/init.lua:3618"
       ]
     },
     "Report for the developer": {
@@ -8025,7 +8025,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3614"
+        "mod/init.lua:3622"
       ]
     },
     "Speaking rules": {
@@ -8050,7 +8050,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2866"
+        "mod/init.lua:2873"
       ]
     },
     "Speaks up often": {
@@ -8099,7 +8099,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3823"
+        "mod/init.lua:3831"
       ]
     },
     "Starting": {
@@ -8315,7 +8315,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:836"
+        "mod/init.lua:843"
       ]
     },
     "Talk to story characters": {
@@ -8518,7 +8518,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3599"
+        "mod/init.lua:3607"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -8551,7 +8551,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3538",
+        "mod/init.lua:3546",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -8569,7 +8569,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3617"
+        "mod/init.lua:3625"
       ]
     },
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.": {
@@ -8674,7 +8674,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3575"
+        "mod/init.lua:3583"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -8873,7 +8873,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3506"
+        "mod/init.lua:3514"
       ]
     },
     "The conversation service cannot reach the internet. See Help in Settings.": {
@@ -9041,7 +9041,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:348",
-        "mod/init.lua:3543",
+        "mod/init.lua:3551",
         "mod/phone-chat-style.lua:56",
         "mod/phone-chat.lua:13"
       ]
@@ -9053,7 +9053,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:358",
-        "mod/init.lua:3560",
+        "mod/init.lua:3568",
         "mod/phone-chat-style.lua:62",
         "mod/phone-chat.lua:19"
       ]
@@ -9065,7 +9065,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:350",
-        "mod/init.lua:3547",
+        "mod/init.lua:3555",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:15"
       ]
@@ -9076,7 +9076,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3625"
+        "mod/init.lua:3633"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -9086,7 +9086,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:351",
-        "mod/init.lua:3549",
+        "mod/init.lua:3557",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:16"
       ]
@@ -9098,7 +9098,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:349",
-        "mod/init.lua:3545",
+        "mod/init.lua:3553",
         "mod/phone-chat-style.lua:57",
         "mod/phone-chat.lua:14"
       ]
@@ -9247,7 +9247,7 @@
       "references": [
         "mod/custom-provider.lua:233",
         "mod/custom-provider.lua:354",
-        "mod/init.lua:3554"
+        "mod/init.lua:3562"
       ]
     },
     "The free daily limit for this model was reached. Try again after it resets.": {
@@ -9257,7 +9257,7 @@
       "references": [
         "mod/custom-provider.lua:234",
         "mod/custom-provider.lua:355",
-        "mod/init.lua:3556"
+        "mod/init.lua:3564"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -9854,7 +9854,7 @@
       "references": [
         "mod/custom-provider.lua:236",
         "mod/custom-provider.lua:357",
-        "mod/init.lua:3558"
+        "mod/init.lua:3566"
       ]
     },
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.": {
@@ -9894,7 +9894,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3501"
+        "mod/init.lua:3509"
       ]
     },
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -9902,7 +9902,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3499"
+        "mod/init.lua:3507"
       ]
     },
     "Too many display names. Keep {max} or fewer.": {
@@ -10189,7 +10189,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:2831"
+        "mod/init.lua:2838"
       ]
     },
     "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": {
@@ -10449,7 +10449,7 @@
         "mod/manager-ui.lua:1179"
       ]
     },
-    "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it.": {
+    "V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.": {
       "contexts": [
         "page.dynamic-info"
       ],
@@ -10739,7 +10739,7 @@
         "mod/manager-ui.lua:1534"
       ]
     },
-    "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: nobody is told where you are, and the mod stops reading it from the game.": {
+    "Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected.": {
       "contexts": [
         "page.dynamic-info"
       ],
@@ -10755,7 +10755,7 @@
         "mod/manager-ui.lua:1412"
       ]
     },
-    "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent, and the mod stops reading it from the game.": {
+    "Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.": {
       "contexts": [
         "page.dynamic-info"
       ],
@@ -10931,7 +10931,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3508"
+        "mod/init.lua:3516"
       ]
     },
     "Your Convai plan": {
@@ -10947,7 +10947,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3512"
+        "mod/init.lua:3520"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -10955,7 +10955,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3529"
+        "mod/init.lua:3537"
       ]
     },
     "Your Convai plan is active.": {
@@ -11107,7 +11107,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2677"
+        "mod/init.lua:2684"
       ]
     },
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": {
@@ -11115,7 +11115,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3583"
+        "mod/init.lua:3591"
       ]
     },
     "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).": {
@@ -11123,7 +11123,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3585"
+        "mod/init.lua:3593"
       ]
     },
     "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.": {
@@ -11214,8 +11214,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3598",
-        "mod/init.lua:3605"
+        "mod/init.lua:3606",
+        "mod/init.lua:3613"
       ]
     },
     "could not be read": {
@@ -11397,7 +11397,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2429"
+        "mod/init.lua:2436"
       ]
     },
     "{name} answers typed messages only for now. Use {key}.": {
@@ -11405,7 +11405,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2428"
+        "mod/init.lua:2435"
       ]
     },
     "{name} can't come along right now.": {
@@ -11421,7 +11421,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:840"
+        "mod/init.lua:847"
       ]
     },
     "{name} could not join: {reason}": {
@@ -11461,7 +11461,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2491"
+        "mod/init.lua:2498"
       ]
     },
     "{name} is a child and cannot be talked to.": {
@@ -11469,7 +11469,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:838"
+        "mod/init.lua:845"
       ]
     },
     "{name} is a story character. Turn on Talk to story characters in Esc > Mods.": {
@@ -11477,7 +11477,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:833"
+        "mod/init.lua:840"
       ]
     },
     "{name} is already with you.": {
@@ -11494,9 +11494,9 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2470",
-        "mod/init.lua:2516",
-        "mod/init.lua:2534"
+        "mod/init.lua:2477",
+        "mod/init.lua:2523",
+        "mod/init.lua:2541"
       ]
     },
     "{name} is coming with you.": {
@@ -11546,7 +11546,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:839"
+        "mod/init.lua:846"
       ]
     },
     "{name} is not in your group.": {
@@ -11556,7 +11556,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3888"
+        "mod/init.lua:3896"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -11565,7 +11565,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2486"
+        "mod/init.lua:2493"
       ]
     },
     "{name} joined your group.": {
@@ -11970,8 +11970,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2447",
-        "mod/init.lua:2578"
+        "mod/init.lua:2454",
+        "mod/init.lua:2585"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12167,7 +12167,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:2831"
+        "mod/init.lua:2838"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12281,7 +12281,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2491"
+        "mod/init.lua:2498"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12305,7 +12305,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3888"
+        "mod/init.lua:3896"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
