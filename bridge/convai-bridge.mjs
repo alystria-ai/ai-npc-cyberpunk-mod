@@ -98,10 +98,9 @@ import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
-import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, validateKey, withoutIdentity} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, parseKeyFileText, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
-import {readKeyFileText} from './key-codec.mjs';
-import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
+import {AUTH_CONFIG_FILE, INSTALL_FILE, PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, RemarkAllowance, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {CUSTOM_FILE, CustomControl, CustomEndpoint, testConnection as testCustomConnection} from './custom-endpoint.mjs';
@@ -365,11 +364,12 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   // so the first typed line of the session does not pay for it (bridge/v-voice.mjs warmUp). No renderer page is opened for this.
   onVHelperReady: () => vVoice.warmUp({page: false}),
 });
-// A plain api-key=... file is a developer's or a player's own key. A packed file (bridge/key-codec.mjs) is the key the
-// release package provides: that one, and only that one, is limited per day (bridge/shared-key-guard.mjs).
-const keyFileContent = readKeyFileText(await readFile(keyFile, 'utf8'));
-if (!keyFileContent) throw Error('Local Convai key file must contain api-key=...');
-const key = keyFileContent.key;
+// The release package ships NO Convai key: the shared account is reached through the sign-in backend (authSettings, below), and the daily
+// limit applies to that. A plain api-key=... file in the state folder is a developer's (or a player's own) key and is used directly, with no
+// daily limit, as it always was. Anything else in that file (a key a release before 0.2.9 packed there, or a damaged file) is ignored: the
+// file is optional, so the bridge starts without it and Convai turns on the shared account fail with one plain notice when there is
+// neither a key nor a backend (bridge/convai-key.mjs noCredentialError).
+const key = parseKeyFileText(await readFile(keyFile, 'utf8').catch(() => ''));
 await mkdir(runtime, {recursive: true});
 await customCharacters.publish();
 // Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
@@ -380,11 +380,14 @@ for (const read of Object.values(addonHost.watchHandlers(runtime))) await read()
 await addonHost.loadJournal(stateDirectory);
 // The key conversations use: the one this installation provides, or the player's own (docs/OWN_CONVAI_KEY.md). It changes
 // only at an idle boundary (applyKeyChoice). `quota` remembers a used-up plan for the settings page and the in-game notice.
-// The sign-in backend (docs/CONVAI_AUTH_BACKEND.md, auth-backend/): OFF unless CYBERPUNK_CONVAI_AUTH_BACKEND=1 (or convai-auth.json
-// says so) and an address and secret are set. When on, the shared account is reached with a short-lived token fetched in the
-// background (never on a turn); a player's own key is untouched. If the backend cannot be reached the embedded key stands in
-// (CYBERPUNK_CONVAI_AUTH_FALLBACK=0 removes that), reported in this log only.
-const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE)});
+// The sign-in backend (docs/CONVAI_AUTH_BACKEND.md, auth-backend/). A release ships it ON (app/defaults/convai-auth.json, written by the
+// release build, no fallback); a development checkout has it off unless CYBERPUNK_CONVAI_AUTH_BACKEND=1 or convai-auth.json in the
+// state folder says so, and an address and secret are set. Per setting the order is: environment, state-folder convai-auth.json, the
+// package's file (so a developer's "enabled": false still turns a package's backend off). A plain developer key in the state folder keeps
+// the package's file out: that key is used directly, as before. When on, the shared account is reached with a short-lived token fetched in
+// the background (never on a turn); a player's own key is untouched. If the backend cannot be reached, a developer's key stands in only
+// while CYBERPUNK_CONVAI_AUTH_FALLBACK allows it and a key exists; a release has neither, so the turn fails at once with a notice.
+const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_CONFIG_FILE), packagedPath: resolve(project, PACKAGED_AUTH_FILE), usePackaged: !key});
 // The backend sets the daily limit (auth-backend/, POST /api/admin/config). A value that arrives before the guard exists waits here.
 let backendDailyLimit = null, turnGuardRef = null;
 if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
@@ -395,8 +398,10 @@ const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.ur
   fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message),
   onLimit: value => { backendDailyLimit = value; if (turnGuardRef?.setLimit(value)) console.error(`[CyberpunkConvai] Shared conversation allowance changed by the sign-in backend: ${value} turns a day`); }}) : null;
 if (tokenSource) {
-  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, embedded-key fallback ${authSettings.fallback ? 'on' : 'off'}`);
+  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, developer-key fallback ${authSettings.fallback && key ? 'on' : 'off'}`);
   tokenSource.start(); // in the background, in parallel with the rest of start-up
+} else if (!key) {
+  console.error('[CyberpunkConvai] No Convai sign-in and no Convai key: conversations on the shared Convai account fail with a notice (a player\'s own key, Mistral, Local AI and Custom work)');
 }
 const keys = await new ConvaiKeys({sharedKey: key, playerKeyPath: resolve(stateDirectory, PLAYER_KEY_FILE),
   playerUserPath: resolve(stateDirectory, PLAYER_USER_FILE), backend: tokenSource}).load();
@@ -528,14 +533,14 @@ const noteTurn = input => {
 const memoryQuiet = () => !stopped && !active && !streaming && !mic.current && !phone.active && Date.now() - lastTurnAt > 20000 && Date.now() - lastFightingAt > 30000;
 const mistralMemory = await MemoryStore.open({dir: resolve(stateDirectory, 'local-memory'), legacyPath: resolve(stateDirectory, MISTRAL_MEMORY_FILE),
   embedder: localEmbedder, gate: memoryQuiet, log: message => console.error('[Memory] ' + message)});
-// Daily cap and rate limit for the package's shared key; never applied to a player's own key. CYBERPUNK_CONVAI_DAILY_LIMIT
-// sets the cap (a number) or switches the guard off (off); without it only the packaged key is limited, so a development
-// checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
+// Daily cap and rate limit for the shared account (the sign-in backend with no key of the developer's own); never applied to a player's own
+// key. CYBERPUNK_CONVAI_DAILY_LIMIT sets the cap (a number) or switches the guard off (off); without it only the shared account is limited, so
+// a development checkout with a plain runtime/convai-key.txt is not. The count is saved twice (state folder, user profile), signed.
 const dailyLimitPinned = typeof process.env.CYBERPUNK_CONVAI_DAILY_LIMIT === 'string' && process.env.CYBERPUNK_CONVAI_DAILY_LIMIT.trim() !== '';
 // With the sign-in backend on, the cap is the backend's number: the last one it told this installation (kept in daily-limit.json), else 100,
 // until the first answer arrives. Without the backend, or with the environment variable set, it stays what it was.
 const limitStore = tokenSource && !dailyLimitPinned ? new LimitStore({machine: await machineId(), path: resolve(stateDirectory, 'daily-limit.json')}) : undefined;
-const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, keyFileContent.packed ? (await limitStore?.load() ?? DAILY_LIMIT) : 0);
+const dailyLimit = limitFromEnvironment(process.env.CYBERPUNK_CONVAI_DAILY_LIMIT, tokenSource && !key ? (await limitStore?.load() ?? DAILY_LIMIT) : 0);
 const turnGuard = await new SharedKeyGuard({limit: dailyLimit, applies: () => keys.source === 'shared', limitStore, pinned: dailyLimitPinned,
   onLimit: () => { void ownKeyControl?.publishStatus().catch(() => {}); },
   store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'daily-usage.json'),
@@ -641,12 +646,12 @@ const worldCurrent = boundary => {
 const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'vendor-memory.json'),
   onWarning: message => console.error('[CyberpunkConvai] Vendor memory: ' + message)});
 let playerMemory;
-const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
+const memoryProvider = new PlayerMemoryApi({key: key ?? undefined, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   credential: () => keys.credential(),
   historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
 // Backend mode: no key-only call (character list, character read, character update) runs from a player's machine. Ownership is the
 // shipped id list; memory is switched on beforehand by scripts/Enable-CharacterMemory.mjs.
-if (keys.usesBackend) memoryProvider.use({key, own: false, backend: true});
+if (keys.usesBackend) memoryProvider.use({key: key ?? undefined, own: false, backend: true});
 playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
   characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
   provider: memoryProvider, quiesce: quiescePlayerMemory, retired: providerKey => RETIRED_PROVIDER_KEY.test(providerKey)});

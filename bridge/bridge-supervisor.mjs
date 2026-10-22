@@ -18,7 +18,8 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {REPORT_FOLDER, collectCrashInfo, crashLogLines, exitCodeWords, prepareReportFolder, reportArguments} from './bridge-diagnostics.mjs';
 import {capLogFile} from './log-cap.mjs';
-import {isKeyFileText} from './key-codec.mjs';
+import {parseKeyFileText} from './convai-key.mjs';
+import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
@@ -285,13 +286,24 @@ export class BridgeSupervisor {
     await this.setStatus('ready', 'existing-bridge');
   }
 
-  async preflight() {
+  // Whether Convai conversations have a credential to start from: a plain `api-key=...` file (a developer's own key; the format is checked, the
+  // key itself is never logged or published), or the sign-in backend switched on (a release ships it on, with no key at all: app/defaults/
+  // convai-auth.json; bridge/convai-credential.mjs readAuthSettings, the same reading the bridge does). A key a release before 0.2.9 packed
+  // into the state folder is not a plain key and does not count.
+  async hasCredential() {
+    let plain = false;
     try {
       const info = await stat(this.keyFile);
-      if (!info.isFile() || info.size > 4096) return 'missing-key';
-      // Validate the format only; the credential is never logged or published.
-      if (!isKeyFileText(await readFile(this.keyFile, 'utf8'))) return 'missing-key';
-    } catch { return 'missing-key'; }
+      plain = info.isFile() && info.size <= 4096 && parseKeyFileText(await readFile(this.keyFile, 'utf8')) !== null;
+    } catch { /* none */ }
+    if (plain) return true;
+    try {
+      return (await readAuthSettings({path: resolve(this.stateDirectory, AUTH_CONFIG_FILE), packagedPath: resolve(this.project, PACKAGED_AUTH_FILE)})).enabled;
+    } catch { return false; }
+  }
+
+  async preflight() {
+    if (!await this.hasCredential()) return 'missing-key';
     try {
       const ids = JSON.parse(await readFile(resolve(this.stateDirectory, 'characters.json'), 'utf8'));
       if (!ids || typeof ids !== 'object' || Array.isArray(ids)) return 'missing-character-ids';

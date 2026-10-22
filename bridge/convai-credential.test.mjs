@@ -1,9 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ConvaiKeys} from './convai-key.mjs';
-import {TokenSource, loadInstallId, readAuthSettings, signRequest} from './convai-credential.mjs';
+import {PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {TurnLimitError, LIMIT_MARKER} from './shared-key-guard.mjs';
-import {classifyFailure} from './convai-quota.mjs';
+import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
+import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 // The real backend code, driven by the same signed requests the bridge sends (fake store and fake Convai, no network).
 import {createWorld, mockResponse} from '../auth-backend/testkit/harness.mjs';
@@ -84,6 +85,37 @@ test('backend mode is off unless switched on and fully configured', async () => 
   const envWins = await readAuthSettings({env: {CYBERPUNK_CONVAI_AUTH_BACKEND: '0'}, path: 'cfg', readText: async () => JSON.stringify({enabled: true, url: 'https://a.example/t', secret: 's'.repeat(32)})});
   assert.equal(envWins.enabled, false);
   assert.equal((await readAuthSettings({env: {}, path: 'cfg', readText: async () => 'garbage'})).enabled, false);
+});
+
+const PACKAGED = JSON.stringify({version: 1, enabled: true, url: 'https://package.example/api/convai/token', secret: 'p'.repeat(40), fallback: false});
+const filesOf = files => async path => { const name = String(path); if (!(name in files)) throw Object.assign(Error('missing'), {code: 'ENOENT'}); return files[name]; };
+
+test('a release ships the sign-in settings on, with no key fallback: the packaged file is the lowest-priority source, per setting', async () => {
+  const readText = filesOf({packaged: PACKAGED, state: JSON.stringify({url: 'https://state.example/api/convai/token', secret: 's'.repeat(40)}),
+    off: JSON.stringify({enabled: false}), fallbackOn: JSON.stringify({fallback: true})});
+  const packaged = await readAuthSettings({env: {}, readText, packagedPath: 'packaged'});
+  assert.deepEqual(packaged, {enabled: true, url: 'https://package.example/api/convai/token', secret: 'p'.repeat(40), fallback: false, problem: null});
+  // The state folder's file wins for the settings it has (the other settings come from the package).
+  const mixed = await readAuthSettings({env: {}, readText, path: 'state', packagedPath: 'packaged'});
+  assert.equal(mixed.enabled, true); assert.equal(mixed.url, 'https://state.example/api/convai/token'); assert.equal(mixed.secret, 's'.repeat(40)); assert.equal(mixed.fallback, false);
+  assert.equal((await readAuthSettings({env: {}, readText, path: 'fallbackOn', packagedPath: 'packaged'})).fallback, true);
+  // A developer's "enabled": false switches the package's backend mode off; so does the environment; the environment wins over everything.
+  assert.equal((await readAuthSettings({env: {}, readText, path: 'off', packagedPath: 'packaged'})).enabled, false);
+  assert.equal((await readAuthSettings({env: {CYBERPUNK_CONVAI_AUTH_BACKEND: '0'}, readText, packagedPath: 'packaged'})).enabled, false);
+  const envUrl = await readAuthSettings({env: {CYBERPUNK_CONVAI_AUTH_URL: 'https://env.example/api/convai/token', CYBERPUNK_CONVAI_AUTH_FALLBACK: '1'}, readText, path: 'state', packagedPath: 'packaged'});
+  assert.equal(envUrl.url, 'https://env.example/api/convai/token'); assert.equal(envUrl.fallback, true);
+  // Without a packaged file (a development checkout) nothing changes; a plain developer key keeps the package's file out (usePackaged: false).
+  assert.equal((await readAuthSettings({env: {}, readText, packagedPath: 'none'})).enabled, false);
+  assert.equal((await readAuthSettings({env: {}, readText, packagedPath: 'packaged', usePackaged: false})).enabled, false);
+  assert.equal((await readAuthSettings({env: {}, readText: filesOf({packaged: '{damaged'}), packagedPath: 'packaged'})).enabled, false, 'a damaged file is no file');
+  assert.equal((await readAuthSettings({env: {}, readText: filesOf({packaged: JSON.stringify({enabled: true, url: 'http://package.example/t', secret: 'p'.repeat(40)})}), packagedPath: 'packaged'})).enabled, false, 'https only');
+  assert.match(PACKAGED_AUTH_FILE, /defaults[\\/]convai-auth\.json$/);
+});
+
+test('the error reports do not read the packaged sign-in file: readBackendAddress ignores it', async () => {
+  const readText = filesOf({[PACKAGED_AUTH_FILE]: PACKAGED});
+  assert.equal(await readBackendAddress({env: {}, readText, path: PACKAGED_AUTH_FILE.replace('convai-auth.json', 'nothing.json'), packagedPath: PACKAGED_AUTH_FILE}), null);
+  assert.equal(await readBackendAddress({env: {}, readText}), null);
 });
 
 test('the request is signed the way the backend checks it, and the backend accepts it', async () => {
@@ -371,6 +403,114 @@ test('a player\'s own key is untouched: the backend is never asked for it, and i
   const plain = await new ConvaiKeys({sharedKey: SHARED, playerKeyPath: 'x', readText: async () => { throw Error('none'); }}).load();
   assert.equal(await plain.credentialFor(config), config);
   assert.deepEqual(await plain.credential(), {apiKey: SHARED});
+});
+
+// ---------------------------------------------------------------- a release: no shared key at all
+const releaseKeys = async (tokens, files = {}) => await new ConvaiKeys({playerKeyPath: 'own',
+  readText: async path => { if (!(path in files)) throw Error('missing'); return files[path]; }, backend: tokens}).load();
+
+test('a release has no key: the token is the only credential, and a player\'s own key still works', async () => {
+  const world = createWorld();
+  const {tokens, backend} = source(world, {fallback: false});
+  const keys = await releaseKeys(tokens, {own: `api-key=${PLAYER}\n`});
+  assert.equal(keys.sharedKey, null); assert.equal(keys.current(), null);
+  tokens.start(); await flush();
+  assert.deepEqual(await keys.credential(), {authToken: 'fake-token-1'});
+  const sent = await keys.credentialFor({characterId: 'alex', key: null});
+  assert.equal(sent.authToken, 'fake-token-1'); assert.equal('key' in sent, false);
+  assert.ok(keys.secrets().every(value => typeof value === 'string' && value), 'no null in the values to scrub');
+  // The player's own key: exactly as with a shared key.
+  keys.setPreference(true); assert.equal(keys.pending, true); keys.apply();
+  assert.equal(keys.source, 'player'); assert.equal(keys.usesBackend, false);
+  assert.deepEqual(await keys.credential(), {apiKey: PLAYER});
+  const own = {key: PLAYER, characterId: 'alex'};
+  assert.equal(await keys.credentialFor(own), own);
+  keys.setPreference(false); keys.apply();
+  assert.equal(keys.source, 'shared'); assert.deepEqual(await keys.credential(), {authToken: 'fake-token-1'});
+  assert.equal(backend.calls.length, 1, 'one request in all');
+  // The player's own key works with no backend and no shared key either.
+  const alone = await new ConvaiKeys({playerKeyPath: 'own', readText: async () => `api-key=${PLAYER}\n`}).load();
+  alone.setPreference(true); alone.apply();
+  assert.deepEqual(await alone.credential(), {apiKey: PLAYER});
+});
+
+test('with no token and a failed fetch a turn fails at once, never with a key, and the notice code is the plain sign-in one', async () => {
+  const timers = fakeTimers();
+  let calls = 0;
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: false, now: () => 0,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer, fetchImpl: () => { calls += 1; return calls === 1 ? Promise.reject(new TypeError('fetch failed')) : new Promise(() => {}); }});
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  const quota = new QuotaWatch({keys});
+  const timersBefore = timers.timers.length;
+  for (let turn = 0; turn < 50; turn++) {
+    await assert.rejects(keys.credentialFor({characterId: 'alex'}), error => {
+      assert.match(error.message, /\[convai-auth:unreachable\]/);
+      assert.equal(classifyFailure(error), 'signin');
+      assert.equal(quota.codeFor(error), 'convai-unavailable', 'a turn the player asked for says so');
+      assert.equal(quota.codeFor(error, {automatic: true}), undefined, 'an automatic reaction just stops');
+      return true;
+    });
+  }
+  assert.equal(timers.timers.length, timersBefore, 'no wait (no timer) on any of those turns');
+  assert.equal(calls, 1, 'and no request');
+  // The retry now running in the background is not waited for either: the turn still fails at once while it is in flight.
+  await timers.fire();
+  assert.equal(calls, 2, 'the retry is in flight');
+  assert.equal(await tokens.ready(), false, 'ready() does not wait for a retry');
+  await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  assert.equal(timers.live.filter(timer => timer.delay === 4000).length, 0, 'never the four-second wait');
+});
+
+test('the four-second wait happens only while the very first fetch is still running; then a plain error, not a key', async () => {
+  const timers = fakeTimers();
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: false, now: () => 0,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer, fetchImpl: () => new Promise(() => {})});
+  const keys = await releaseKeys(tokens);
+  tokens.start();
+  const waiting = keys.credentialFor({characterId: 'alex'});
+  const rejected = assert.rejects(waiting, /\[convai-auth:pending\]/);
+  await flush();
+  const limit = timers.live.find(timer => timer.delay === 4000);
+  assert.ok(limit, 'it waits, for at most four seconds');
+  limit.callback();
+  await rejected;
+});
+
+test('no shared key and no backend (a damaged package): a shared-account turn fails at once with the plain sign-in notice; a player\'s own key is unaffected', async () => {
+  const keys = await new ConvaiKeys({playerKeyPath: 'own', readText: async () => { throw Error('none'); }}).load();
+  const quota = new QuotaWatch({keys});
+  for (const call of [() => keys.credential(), () => keys.credentialFor({characterId: 'alex'})]) {
+    await assert.rejects(call(), error => {
+      assert.match(error.message, /\[convai-auth:none\]/);
+      assert.equal(classifyFailure(error), 'signin');
+      assert.equal(quota.codeFor(error), 'convai-unavailable');
+      return true;
+    });
+  }
+  keys.assertAllowed();
+  // Memory calls: nothing runs without a credential, and a backend needs none of the key-only calls.
+  const api = new PlayerMemoryApi({characterIds: {alex: 'char-1'}, credential: () => keys.credential(), fetchImpl: async () => assert.fail('no request')});
+  api.use({key: undefined, own: false, backend: false});
+  assert.throws(() => api.use({key: undefined, own: true}), /INVALID_CONFIGURATION|invalid/i);
+  api.use({key: undefined, own: false, backend: true});
+  assert.equal(api.backend, true);
+});
+
+test('a stale key a release packed is not read, and a developer\'s plain key stays direct with no backend', async () => {
+  const {parseKeyFileText} = await import('./convai-key.mjs');
+  assert.equal(parseKeyFileText('convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n'), null);
+  assert.equal(parseKeyFileText(`api-key=${SHARED}\n`), SHARED);
+  const direct = await new ConvaiKeys({sharedKey: SHARED, playerKeyPath: 'x', readText: async () => { throw Error('none'); }}).load();
+  assert.equal(direct.usesBackend, false);
+  assert.deepEqual(await direct.credential(), {apiKey: SHARED});
+  // A developer's key with the backend on and the fallback allowed: the key stands in only when the backend does not answer.
+  const timers = fakeTimers();
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: true, now: () => 0,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer, fetchImpl: () => Promise.reject(new TypeError('fetch failed'))});
+  const both = await keysWith(tokens);
+  tokens.start(); await flush();
+  assert.deepEqual(await both.credential(), {apiKey: SHARED});
 });
 
 test('a snapshot never contains a token or the secret', async () => {
