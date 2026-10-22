@@ -154,7 +154,7 @@ const turnArgs = (persona, extra = {}) => ({persona, memory: '', history: histor
 
 function rig({rate, contextSize = 16384, handle = {}} = {}) {
   const sent = [], logs = [];
-  const server = {ensure: async () => ({apiKey: 'k', endpoint: 'http://127.0.0.1:1/v1', model: 'm', requestModel: 'm', contextSize, loadedAt: 1, offload: false, ...handle}), status: () => ({state: 'ready'}),
+  const server = {ensure: async () => ({apiKey: 'k', endpoint: 'http://127.0.0.1:1/v1', model: 'm', requestModel: 'm', contextSize, loadedAt: 1, offload: false, ...(typeof handle === 'function' ? handle() : handle)}), status: () => ({state: 'ready'}),
     begin: () => () => {}, inflight: 0, noteSlot() {}, preempt: () => false};
   const state = {rate};
   const chat = async options => {
@@ -191,6 +191,31 @@ test('a model with so few layers on the card that the CPU does the work starts w
   const second = await part.turn(turnArgs(jackie, {mature: 'full'}));
   assert.deepEqual(second.sent, second.built);
   assert.equal(part.logs.some(line => /compact/.test(line)), false);
+});
+
+test('a model that replaces a slow one on the same computer starts from what the machine was just seen to do: the compact text and a smaller prompt, not the whole prompt of an unmeasured model', async () => {
+  // 2026-10-22 report: Qwen 3.5 mostly on the CPU (the card too small beside the game), then stepped down to Bonsai that fits on the card: no reading, a whole 8,821-token prompt, 75 s.
+  let load = {model: 'qwen', loadedAt: 1, offload: true, cpuBound: false};
+  const {turn, logs, state} = rig({rate: 120, handle: () => load});
+  const first = await turn(turnArgs(judy, {mature: 'full'}));
+  assert.deepEqual(first.sent, first.built, 'a partly offloaded model reads the whole text on its first turn');
+  load = {model: 'bonsai', loadedAt: 2, offload: false, cpuBound: false};
+  const second = await turn(turnArgs(jackie, {mature: 'full', text: 'second'}));
+  assert(system(second.sent).length < system(second.built).length - 3000, `${system(second.sent).length} of ${system(second.built).length}`);
+  assert(logs.some(line => /compact character text/.test(line)), logs.join(String.fromCharCode(10)));
+  // The same computer reading fast again is measured fast: two readings at 1,000 or more bring the whole text back.
+  state.rate = 5000;
+  load = {model: 'bonsai', loadedAt: 3, offload: false, cpuBound: false};
+  for (let at = 0; at < 3; at++) await turn(turnArgs(jackie, {mature: 'full', text: `fast ${at}`}));
+  const back = await turn(turnArgs(judy, {mature: 'full', text: 'back'}));
+  assert.deepEqual(back.sent, back.built, 'a machine measured fast is given the whole text again');
+  // A machine that was fast has nothing to carry: the model that follows it starts as before.
+  const fast = rig({rate: 5000, handle: () => load});
+  load = {model: 'a', loadedAt: 1, offload: false, cpuBound: false};
+  await fast.turn(turnArgs(judy, {mature: 'full'}));
+  load = {model: 'b', loadedAt: 2, offload: false, cpuBound: false};
+  const next = await fast.turn(turnArgs(jackie, {mature: 'full'}));
+  assert.deepEqual(next.sent, next.built);
 });
 
 test('a slow machine: once it is measured slow, the next character starts compact, within the budget, with the required parts, and the same text every turn', async () => {

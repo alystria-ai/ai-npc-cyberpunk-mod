@@ -1105,6 +1105,13 @@ Tests: `bridge/local-queue.test.mjs` (the arbitration, the warm-up skip, the hos
   first word, at most 60 s and never past the same hard cap (the report: Gemma 4 E4B, about 0% of its layers on an 8 GB card, `stuck reading the prompt (0 of 5015 tokens after 15 s)`; the next
   turn read 2,426 new tokens and spoke after 11 s). A model with under `FIT_LIMITS.hopelessShare` of its layers on the card (`handle.cpuBound`) also starts with the compact character text
   on its first turn instead of waiting for two slow readings (the head goes from about 4,100 to 2,200 tokens).
+  **2026-10-22, a model that replaces a slow one:** a model that follows another on the same computer (a step down to a smaller model when the card is too small beside the game, a
+  changed choice) no longer starts from "nothing is known". `PrefillMeter.carry()` hands the last load's reading on (a recent measurement, or the 120 a second prior of a CPU load a turn used
+  lately) and `speedOf` in `bridge/text-provider-host.mjs` starts the new meter from it, with the compact character text when the reading is below `PREFILL.compactBelow`. The reading ages from
+  when it was made (`PREFILL.maxAgeMs`, 10 minutes), a fast machine carries nothing, and two measured readings of the new model replace it. The report: Qwen 3.5 4B on 41% of its layers,
+  stepped down to Bonsai 2 4B on the card, whose first turn was the whole 8,821-token prompt (the character text 4,400 tokens with the Mature layer, the rest the optional world, jobs, history,
+  gear and journal blocks the soft target cuts) read at about 100 tokens a second behind a 27 s wait for the server: `stuck reading the prompt (8305 of 8821 tokens after 75 s)`.
+  The next turn, fitted to 5,172 tokens, answered. Tests: `bridge/compact-persona.test.mjs`, `bridge/prompt-budget.test.mjs`.
   The idle stop (10 minutes) stays: it gives the card back to the game. The composer opening (`warmTalkTargets` / `warmCustom` -> `prewarm` -> `ensure`) already reloads a stopped model
   while the player types or holds the talk key, so the first turn normally finds it loaded; a reload on merely looking at or approaching a character was NOT added (a model load is
   seconds of disk and graphics-card work with nobody talking, which the FPS rule forbids; the nearby warm-up deliberately leaves GPU work out for the same reason).

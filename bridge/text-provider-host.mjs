@@ -22,7 +22,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
-import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -234,8 +234,17 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
     // A model with so few layers on the card that the CPU does the work (the 'local-cpu' notice) starts with the compact character text: its first turn would read the whole
     // text at a rate the machine is known to have (36 to 220 tokens a second), 2,000 tokens more than it needs, and run out of the turn's time (2026-10-21 report).
-    if (!speeds.has(speedKey)) { const before = lastSpeed; speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, compact: before?.compact === true || handle.cpuBound === true})); }
-    return speeds.get(speedKey);
+    // A model that follows another one on this computer (a step down to a smaller model when the card is too small beside the game, a changed choice) starts from the reading the load before had
+    // while it is recent and slow, and from the compact text when that reading is below the compact threshold: it is the same card with the same game on it (2026-10-22 report: Bonsai after Qwen
+    // on the CPU read 8,821 tokens whole, at about 100 tokens a second, and ran out of the 75 s). A model that reads fast again is measured fast within two turns.
+    if (!speeds.has(speedKey)) {
+      const before = lastSpeed, carry = before?.carry?.() ?? null;
+      speeds.clear();
+      speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, carry, compact: before?.compact === true || handle.cpuBound === true || (carry !== null && carry.rate < PREFILL.compactBelow)}));
+    }
+    const meter = speeds.get(speedKey);
+    meter.touch?.();
+    return meter;
   };
   // What a server the player runs has refused or shown about itself (bridge/mistral-client.mjs newAdaptation: a field it refuses, that it thinks and is asked for no
   // thinking from then on), per address and model id, for the session. In memory: the player may change the model behind the same address.
