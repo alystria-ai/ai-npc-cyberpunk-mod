@@ -610,7 +610,7 @@ test('the support report scrubs a key that is in manifest.custom.json from every
   const [game, runtime, state, project] = ['game', 'runtime', 'state', 'project'].map(name => join(base, name));
   for (const folder of [game, runtime, state, join(project, 'local-ai')]) await mkdir(folder, {recursive: true});
   // A key with no shape the scrubber's patterns know, so only the manifest's own value can remove it.
-  const KEY = 'Plain-Local-Server-Key-Rm4Vb8Xc1Nq6';
+  const KEY = 'Plain-Local-Key-Rm4Vb8Xc1Nq6'; // under 32 characters: a longer run of letters and digits is scrubbed by its shape
   await writeFile(join(runtime, 'mistral-state.json'), JSON.stringify({version: 1, localAi: 'ready', localModels: [
     {id: 'custom:ep-127.0.0.1-5001', name: 'KoboldCpp Qwen 9B', sizeMiB: 0, custom: true, needMiB: 0, external: true}]}));
   // A log line that (wrongly) carries the key: the report must still not.

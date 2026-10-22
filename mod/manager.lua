@@ -86,14 +86,15 @@ local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
 local render
 
+-- The decoded table (or nil), and whether the file was there at all (a second value, for a caller that must tell a missing file from an unreadable one).
 local function readJSON(path)
     local file = io.open(path, 'rb')
-    if not file then return nil end
+    if not file then return nil, false end
     local raw = file:read('*a'); file:close()
     -- Windows PowerShell and older Notepad save UTF-8 with a byte-order mark (EF BB BF), which the codec reads as garbage.
     if raw:sub(1, 3) == '\239\187\191' then raw = raw:sub(4) end
     local ok, value = pcall(json.decode, raw)
-    return ok and type(value) == 'table' and value or nil
+    return ok and type(value) == 'table' and value or nil, true
 end
 
 local function clean(value, limit)
@@ -651,13 +652,12 @@ local function loadSettings()
         settingsDeferred, initialized = false, false
     end
     settingsLoaded = true
-    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous')
+    local current, currentThere = readJSON('runtime/settings.json')
+    local previous, previousThere
+    if not current then previous, previousThere = readJSON('runtime/settings.json.previous') end
+    settings = current or previous
     -- A settings file that is there but cannot be read, with no readable copy, is an unknown state for the error-report setting: not on.
-    local unreadable = false
-    if settings == nil then
-        local damaged = io.open('runtime/settings.json', 'rb')
-        if damaged then damaged:close(); unreadable = true end
-    end
+    local unreadable = settings == nil and (currentThere or previousThere) == true
     settingsDeferred = settings == nil and restorePending()
     settings = settings or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'

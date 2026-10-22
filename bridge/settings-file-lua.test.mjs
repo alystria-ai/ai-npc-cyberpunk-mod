@@ -67,7 +67,8 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('names', ${namesLua})
     `);
     assert.equal(out.ok, true, out.problem);
-    assert.deepEqual(JSON.parse(out.text), freshSettings);
+    // Everything else is the defaults. Error reports are off, not on: a settings file that is there but unreadable is an unknown state (2026-10-22).
+    assert.deepEqual(JSON.parse(out.text), {...freshSettings, errorReports: false});
     assert.deepEqual(out.names, ['runtime/settings.json']);
   });
 
