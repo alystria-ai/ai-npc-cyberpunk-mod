@@ -74,7 +74,7 @@ import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
 import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
-import {gpuVendors} from './gpu-vendors.mjs';
+import {gpuVendors, nvidiaCardMiB} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
@@ -325,17 +325,20 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
 // the OmniVoice start line names them and the game's voice menu says OmniVoice needs an NVIDIA card when the PC has none. The lookup starts the first time
 // OmniVoice is wanted (chosen or starting; VoiceSelection passes `wanted`), never at start-up, which runs no process of its own. null until the list is read;
 // the voice state is published again when it arrives.
+// The same list gives the NVIDIA card's memory (nvidiaCardMiB: a number, no name): OmniVoice's "needs 12 GB" hint, and a timeout on a card of 8 GB or less read as too little graphics memory.
 let graphicsVendors = null;
+let graphicsCardMiB = null;
 let graphicsLookup = false;
-const graphicsVendorsSource = wanted => {
+const lookUpGraphics = wanted => {
   if (wanted && !graphicsLookup) {
     graphicsLookup = true;
-    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); try { if (!localVoice.closed) localVoice.publish(); } catch {} }, () => {});
+    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); graphicsCardMiB = nvidiaCardMiB(cards); try { if (!localVoice.closed) localVoice.publish(); } catch {} }, () => {});
   }
-  return graphicsVendors;
 };
+const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphicsVendors; };
+const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return graphicsCardMiB; };
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  gpuVendors: graphicsVendorsSource,
+  gpuVendors: graphicsVendorsSource, gpuMemoryMiB: graphicsMemorySource,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,

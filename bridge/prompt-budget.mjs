@@ -182,6 +182,29 @@ export const PREFILL = Object.freeze({
   compactRuns: 2,
 });
 
+// How long a turn keeps to ask a model that has just been loaded (bridge/text-provider-host.mjs LOCAL_ATTEMPT_ROOM_MS is the room of a model on the card). A model with layers
+// on the CPU reads its first (cold) prompt, the whole character text and the context, far slower: 2026-10-21 report (an 8 GB card, Gemma 4 E4B with about 0% of its layers on it):
+// a 5,015-token cold prompt was stuck at 0 tokens when the 15 s ran out, the next turn read 2,426 new tokens and spoke after 11 s. So the room of such a model is the time the cold
+// prompt takes at the rate the machine reads (measured, else PREFILL.offloadPrior) plus the time to the first word, never below the base and never above `maxRoomMs`. The turn's
+// own hard cap (LOCAL_TURN_HARD_CAP_MS, the game gives up at 90 s) still ends it.
+export const COLD_PROMPT = Object.freeze({
+  tokens: 5000,          // a character's first turn with the whole text (5,015 and 5,026 tokens in the 2026-10-21 reports)
+  compactTokens: 3600,   // the same with the compact character text (the head goes from about 4,100 to 2,200 tokens)
+  answerMs: 5000,        // from the end of the prompt to the first word
+  maxRoomMs: 60_000,
+});
+/**
+ * The room (ms) a freshly loaded model is given to answer: `baseMs` for a model on the card, longer for one with layers on the CPU.
+ * `speed` (a PrefillMeter, optional): the last load's reading, believed only when that load was on the CPU too; `cpuBound`: so few layers on the card that the compact text is used from the start.
+ */
+export function coldAttemptRoomMs({baseMs, offload = false, cpuBound = false, speed = null} = {}) {
+  if (offload !== true) return baseMs;
+  const measured = speed?.offload === true ? speed.tokensPerSecond : null;
+  const rate = Number.isFinite(measured) && measured > 0 ? measured : PREFILL.offloadPrior;
+  const tokens = cpuBound === true || speed?.compact === true ? COLD_PROMPT.compactTokens : COLD_PROMPT.tokens;
+  return Math.round(Math.min(COLD_PROMPT.maxRoomMs, Math.max(baseMs, tokens / rate * 1000 + COLD_PROMPT.answerMs)));
+}
+
 /**
  * The prompt-reading speed of the model that is loaded, learned from its own timings (`trace.timings`: new tokens, cached tokens, milliseconds)
  * and from requests that got stuck reading the prompt (`trace.progress`). One per loaded model: a model that was loaded again (an idle stop and a

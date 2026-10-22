@@ -22,7 +22,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
-import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -232,7 +232,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // The meter of the model load a handle belongs to. A model loaded again starts from the compact state the load before learned.
   const speedOf = handle => {
     const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
-    if (!speeds.has(speedKey)) { const before = lastSpeed; speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, compact: before?.compact === true})); }
+    // A model with so few layers on the card that the CPU does the work (the 'local-cpu' notice) starts with the compact character text: its first turn would read the whole
+    // text at a rate the machine is known to have (36 to 220 tokens a second), 2,000 tokens more than it needs, and run out of the turn's time (2026-10-21 report).
+    if (!speeds.has(speedKey)) { const before = lastSpeed; speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, compact: before?.compact === true || handle.cpuBound === true})); }
     return speeds.get(speedKey);
   };
   // What a server the player runs has refused or shown about itself (bridge/mistral-client.mjs newAdaptation: a field it refuses, that it thinks and is asked for no
@@ -367,6 +369,10 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     modelName: () => { const status = server.status?.(); return ['stopped', 'failed', 'starting'].includes(status?.state) ? null : status?.model ?? null; },
     loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
     // The model is down or on its way up (the idle stop, a reload), so the first request of a turn waits for it; `prepare` starts that load (and waits for it) at the start of the turn.
+    // How long a turn keeps to ask the model once it is up (LOCAL_ATTEMPT_ROOM_MS for a model on the card; longer for one with layers on the CPU: the cold prompt takes the time it takes).
+    attemptRoomMs: () => {
+      try { const placement = server.placement?.(); return coldAttemptRoomMs({baseMs: LOCAL_ATTEMPT_ROOM_MS, offload: placement?.offload === true, cpuBound: placement?.cpuBound === true, speed: lastSpeed}); } catch { return LOCAL_ATTEMPT_ROOM_MS; }
+    },
     loadPending: () => { try { const state = server.status?.()?.state; return state === 'stopped' || state === 'starting' || state === 'warming'; } catch { return false; } },
     prepare: async signal => { retryFailed(); try { await server.ensure({signal}); return true; } catch { lastRetry = now(); return false; } },
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
@@ -615,7 +621,11 @@ export class TextProviderHost {
         // the turn keeps LOCAL_ATTEMPT_ROOM_MS to ask the model once it is up, never past LOCAL_TURN_HARD_CAP_MS (the game gives up on the request 90 s after it wrote it).
         if (deadlineAt !== undefined && index === 0 && loading) {
           const readyAt = await loading;
-          if (readyAt !== null) deadlineAt = Math.max(deadlineAt, Math.min(readyAt + LOCAL_ATTEMPT_ROOM_MS, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
+          if (readyAt !== null) {
+            let room = LOCAL_ATTEMPT_ROOM_MS;
+            try { room = Math.max(room, Number(route.attemptRoomMs?.()) || 0); } catch { /* the base room stands */ }
+            deadlineAt = Math.max(deadlineAt, Math.min(readyAt + room, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
+          }
         }
         const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: !!reactions});
         if (confirmed) await confirmed;

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
-import {BUDGET, PREFILL, PrefillMeter, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitLimit, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
+import {BUDGET, COLD_PROMPT, PREFILL, PrefillMeter, PromptTooLarge, coldAttemptRoomMs, TokenMeter, budgetedChat, describeFit, estimateTokens, fitLimit, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
 import {MistralError, errorCodeFor, mapFailure} from './mistral-client.mjs';
 import {conversationContextBlocks} from './quest-context.mjs';
 import {matureLayer} from './mature-content.mjs';
@@ -461,4 +461,35 @@ test('older exchanges: they go in whole blocks of BUDGET.trimBlock (never below 
   const roomy = await fitMessages({args: turn({history: numbered(8)}), budget: {contextTokens: 24000, meter: new TokenMeter()}});
   assert.deepEqual(roomy.trimmed, []);
   assert.equal(kept(roomy).length, 16);
+});
+
+// ---- the room a freshly loaded model is given to answer (2026-10-21: a 5,015-token cold prompt on a model with about 0% of its layers on the card was stuck at 0 when 15 s ran out) ----
+
+test('coldAttemptRoomMs: the base room for a model on the card; the time the cold prompt takes for one with layers on the CPU, capped', () => {
+  const base = 15_000;
+  assert.equal(coldAttemptRoomMs({baseMs: base}), base);
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: false, cpuBound: true}), base, 'a model on the card is not stretched');
+  // Expected rate (PREFILL.offloadPrior = 120 a second): 5,000 tokens take 41.7 s, and the first word 5 s after.
+  const expected = Math.round(COLD_PROMPT.tokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs);
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: true}), expected);
+  assert.ok(expected > 40_000 && expected <= COLD_PROMPT.maxRoomMs);
+  // So few layers on the card that the compact text is used from the start: a smaller prompt, a shorter wait.
+  const compact = coldAttemptRoomMs({baseMs: base, offload: true, cpuBound: true});
+  assert.equal(compact, Math.round(COLD_PROMPT.compactTokens / PREFILL.offloadPrior * 1000 + COLD_PROMPT.answerMs));
+  assert.ok(compact < expected);
+  // A reading of the last load, believed only when that load was on the CPU too.
+  let clock = 0;
+  const measured = new PrefillMeter({now: () => clock, offload: true});
+  measured.observe({timings: {promptTokens: 3000, cachedTokens: 0, promptMs: 10_000}});   // 300 a second
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: true, speed: measured}), Math.round(COLD_PROMPT.tokens / 300 * 1000 + COLD_PROMPT.answerMs));
+  const onCard = new PrefillMeter({now: () => clock});
+  onCard.observe({timings: {promptTokens: 3000, cachedTokens: 0, promptMs: 600}});          // 5,000 a second, on the card
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: true, speed: onCard}), expected, 'the reading of a model that was on the card says nothing about this one');
+  // A very slow reading is capped; and the room never drops below the base.
+  const crawl = new PrefillMeter({now: () => clock, offload: true});
+  crawl.observe({timings: {promptTokens: 600, cachedTokens: 0, promptMs: 20_000}});           // 30 a second
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: true, speed: crawl}), COLD_PROMPT.maxRoomMs);
+  const quick = new PrefillMeter({now: () => clock, offload: true});
+  quick.observe({timings: {promptTokens: 6000, cachedTokens: 0, promptMs: 1000}});            // 6,000 a second
+  assert.equal(coldAttemptRoomMs({baseMs: base, offload: true, speed: quick}), Math.round(COLD_PROMPT.tokens / 6000 * 1000 + COLD_PROMPT.answerMs) < base ? base : Math.round(COLD_PROMPT.tokens / 6000 * 1000 + COLD_PROMPT.answerMs));
 });
