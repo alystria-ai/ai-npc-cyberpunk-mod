@@ -44,6 +44,7 @@ import {readEntry} from './lib/zip-entry.mjs';
 const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}` : `${id}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
+import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
@@ -316,6 +317,8 @@ async function main() {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
         // The one file that differs by design: the update's removal list (what went away since the previous Runtime) replaces the full Runtime's own; it is checked below.
         if (update && file.path === REMOVALS_ENTRY) continue;
+        // The step markers differ by design too: an updated Runtime has the update's step file instead of the full Runtime's base.json (checked below).
+        if (update && file.path.startsWith(`${PLUGIN_FOLDER}/app/${STEPS_DIR}/`)) continue;
         const path = join(game, file.path);
         if (!existsSync(path) || (await stat(path)).size !== file.bytes || await sha256File(path) !== file.sha256) {
           mismatches++; if (mismatches < 5) console.log(`  mismatch: ${file.path}`);
@@ -362,7 +365,13 @@ async function main() {
         `${dropped.length} no longer shipped, ${dropped.length - stayed.length} gone, ${stayed.length} left in place${stayed.length ? ` (${stayed.slice(0, 5).map(name => `${name} [${why(name)}]`).join('; ')})` : ''}`);
       // Nothing else is in the Runtime's folders: no file of the previous Runtime the update missed.
       const extra = (await walk(join(game, PLUGIN_FOLDER), {skip: rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel)})).map(rel => `${PLUGIN_FOLDER}/${rel}`)
-        .filter(name => !shippedNow.has(name.toLowerCase()) && !stayed.includes(name) && !name.endsWith('.pyc'));
+        .filter(name => !shippedNow.has(name.toLowerCase()) && !stayed.includes(name) && !name.endsWith('.pyc') && !name.startsWith(`${PLUGIN_FOLDER}/app/${STEPS_DIR}/step-`));
+      // The update step markers (bridge/runtime-steps.mjs): the update adds only its own step-<from>-to-<to>.json and never base.json (a previous Runtime without markers has none, so the
+      // chain starts at this step and shows no gap); the setup check's own walk reaches the installed version.
+      const stepsDir = join(app, STEPS_DIR), stepNames = existsSync(stepsDir) ? await readdir(stepsDir) : [];
+      const chain = await checkRuntimeSteps({project: app, current: JSON.parse(await readFile(join(app, 'release.json'), 'utf8')).version});
+      check('the update left its own step marker and no base marker, and the chain has no gap', stepNames.some(name => new RegExp(`^step-.+-to-${version.replace(/./g, '\.')}\.json$`).test(name)) && !stepNames.includes('base.json') && chain.code === 'ok',
+        `${stepNames.join(', ') || '(none)'}; chain ${chain.code}`);
       check('the plugin folder holds nothing the new Runtime does not ship', extra.length === 0, extra.slice(0, 5).join(', ') || `${newList.length} shipped files`);
     }
     for (const name of omniSplit) {
