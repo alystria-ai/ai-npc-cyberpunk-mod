@@ -2,6 +2,22 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.2.9
+
+- **A safer Convai sign-in**: the Runtime no longer contains the shared Convai login. It signs in to the shared account through a small online service instead, and tells you once if it cannot.
+- **Prompting page**: the character editor has a Prompting page that edits how each conversation option (Mistral, Local AI Lite and Standard, Custom models) is worded, with a live preview and a reset for each piece of wording. Every option now ships with wording tuned and measured for its model.
+- **Dynamic info**: Settings > Conversations > Dynamic info has nine switches for the live game information a reply carries, so you decide what the characters may know about the moment.
+- **Replies sound more natural**: no weather on the first turn of a conversation, no echo of your own words at the start of a reply, no stock closing question, shorter character descriptions, and the finished Convai text is cleaned the same way as its first sentence.
+- **Characters**: every person is described as who they are before V, with no talk about the mod or the game itself, no weather or district small talk from passers-by, and new kinds for MaxTac, NUSA and joytoy people with their own voices.
+- **Voices that do not stall**: V's lines and replies are never cut for being slow, a slow Voxtral start is hedged, Pocket no longer gives up while a slow disk delays its start, and a voice that cannot work (for example a Windows paging file that is too small) says why once instead of being retried.
+- **Switching provider mid-game** applies cleanly to the next reply, and a Convai connection that closes before the reply arrives is asked once more on a fresh one.
+- **Companions**: a copy that failed to spawn or to come back after fast travel is removed, fast travel recovers the party instead of leaving the mod suspended, a vehicle exit that keeps failing no longer sticks, and reloading the CET scripts no longer leaves party cars behind.
+- **Smaller graphics cards**: Local AI keeps room for the game on cards up to 24 GB, and OmniVoice is not started on an NVIDIA card of 8 GB or less, where Pocket speaks at once with one notice.
+- **Updating**: every Runtime update leaves a small marker, and Generate report names an update zip you skipped and tells you to apply the update zips one by one.
+- **Smoother game**: fewer file reads by the scripts while nothing changes, and a caption you could not hear stays on screen for its whole reading time.
+- **Privacy**: error reports are sent only after the notice, tighter redaction of personal details, and the report server is hardened.
+- **Fixes from error reports**: a firewall that blocks your own model server is named as such, reports skip noise that is not a bug, and the interface text was reviewed in all 15 languages.
+
 ## What's new in 0.2.8
 
 - **Characters in the voice of your language**: optional voice language packs for Chinese, Japanese, Korean, French, German, Italian, Spanish, Polish, Brazilian Portuguese and Russian. When a character replies in that language, OmniVoice and the Mistral voice copy the game's own dubbed voice for them instead of the English actor's. One zip per language in the multilingual folder on Hugging Face; get only the languages you play in.

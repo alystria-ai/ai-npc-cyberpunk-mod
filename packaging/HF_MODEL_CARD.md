@@ -17,7 +17,7 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 
 **Mod page:** [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436), with the full description, requirements and support.
 
-**Current version: 0.2.8.** The files are sorted into folders, and the file names stay the same from version to version, so links to them never change. The file list shows when each file was last updated.
+**Current version: 0.2.9.** The files are sorted into folders, and the file names stay the same from version to version, so links to them never change. The file list shows when each file was last updated.
 
 | Folder | What is in it |
 |---|---|
