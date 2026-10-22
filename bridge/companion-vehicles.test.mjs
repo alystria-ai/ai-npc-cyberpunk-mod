@@ -1060,3 +1060,68 @@ test('a plain exit logs the start and each person once, never per tick',()=>run(
   for _,e in ipairs(lines('exit')) do perPerson[e.name]=(perPerson[e.name] or 0)+1 end
   for name,n in pairs(perPerson) do assert(n<=2,name..' logged '..n) end
 `));
+
+test('shutdown removes the overflow party cars this load owns and never V car',()=>run(`${fixture}
+  party(7); tick(100)
+  assert(#world.spawned==1)
+  -- an occupied car is refused by the adapter and stays for the next load's sweep
+  assert(transport.shutdown(fleet)==1 and #world.deleted==0 and #fleet.cars==1)
+  for _,seat in ipairs(world.spawned[1].info.seats) do seat.occupant=nil end
+  assert(transport.shutdown(fleet)==1 and #world.deleted==1 and world.deleted[1]=='overflow-1' and #fleet.cars==0)
+  for _,id in ipairs(world.deleted) do assert(id~='v-car') end
+  assert(transport.shutdown(fleet)==0)
+`));
+
+test('the first update sweeps party cars a reload left behind, once, never per frame, and never this load own cars',()=>run(`${fixture}
+  local calls,known={},nil
+  function api.sweepOwned(set) calls[#calls+1]=set; known=set; return 0 end
+  party(8); tick(100)
+  assert(#calls==1,'one sweep: '..#calls)
+  assert(next(calls[1])==nil,'the first sweep ran before this load had any car')
+  tick(2000); assert(#calls==1)
+`));
+
+test('the sweep asks again only while some cars were occupied or the world was not ready, a bounded number of times',()=>run(`${fixture}
+  local calls=0
+  function api.sweepOwned(set) calls=calls+1; return 2 end
+  tick(1500); assert(calls==6,'occupied cars: '..calls)
+  local fresh=transport.new(api); local waits=0
+  function api.sweepOwned() waits=waits+1; if waits<4 then return nil,'Vehicle world is not ready.' end return 0 end
+  for _=1,400 do transport.update(fresh,player,{},0.1,hooks) end
+  assert(waits==4,'not ready, then done: '..waits)
+`));
+
+test('the sweep skips the cars this load owns and stops after a save teardown',()=>run(`${fixture}
+  local seen={}
+  function api.sweepOwned(set) seen[#seen+1]=set; return 2 end
+  party(8); tick(100)
+  tick(120)
+  local last=seen[#seen]
+  assert(#seen>=2 and last['overflow-1'] and last['v-car'],'known cars are passed')
+  transport.abandon(fleet); local n=#seen; tick(1500); assert(#seen==n)
+`));
+
+test('native sweep deletes only tagged managed party cars that are empty, counting the skipped ones',()=>run(`${nativeFixture}
+  local tagged={a=true,b=true,c=true,d=true,e=false}
+  local entities={a={},b={},c={},d={}}
+  entities.b.IsPlayerMounted=function() return true end
+  entities.b.HasPassengers=function() return false end
+  entities.c.IsPlayerMounted=function() return false end
+  entities.c.HasPassengers=function() return true end
+  for _,k in ipairs({'a','d'}) do
+    entities[k].IsPlayerMounted=function() return false end
+    entities[k].HasPassengers=function() return false end
+  end
+  local deleted={}
+  system.GetTaggedIDs=function() return {{hash='a'},{hash='b'},{hash='c'},{hash='d'},{hash='e'},{hash='f'}} end
+  system.IsManaged=function(_,e) return e.hash~='f' end
+  system.IsTagged=function(_,e) return tagged[e.hash]==true end
+  system.DeleteEntity=function(_,e) deleted[#deleted+1]=e.hash; return true end
+  Game.FindEntityByID=function(e) return entities[e.hash] end
+  local left=adapter.sweepOwned({d=true})
+  table.sort(deleted)
+  assert(table.concat(deleted,',')=='a','only the empty tagged unknown car: '..table.concat(deleted,','))
+  assert(left==2,'V car and the occupied car are skipped: '..tostring(left))
+  system.IsReady=function() return false end
+  local none,why=adapter.sweepOwned(); assert(none==nil and why)
+`));

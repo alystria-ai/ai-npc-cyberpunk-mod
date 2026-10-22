@@ -1004,6 +1004,9 @@ function M.abandon(preserveTransit)
     if reloadCleanup then reloadCleanupModule.abandon(reloadCleanup) end
 end
 
+-- Mod shutdown or CET reload with a live world: removes the overflow party cars, which no update would clean up again.
+function M.destroyPartyCars() return vehicles.shutdown(fleet) end
+
 function M.vehicleSnapshot()
     local value=vehicles.snapshot(fleet)
     value.reloadCleanup=M.reloadCleanupSnapshot()

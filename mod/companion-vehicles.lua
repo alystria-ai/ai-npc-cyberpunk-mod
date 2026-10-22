@@ -36,7 +36,7 @@ local function exitNote(s,person,key,fields)
 end
 function M.new(api,chauffeurApi)
     return {api=api or dofile('companion-vehicle-native.lua'),clock=0,phase='on-foot',
-        chauffeurApi=chauffeurApi,people={},cars={},events={},generation=0,spawnAttempts=0,spawnFailures=0,spawnAt=0}
+        chauffeurApi=chauffeurApi,people={},cars={},events={},generation=0,spawnAttempts=0,spawnFailures=0,spawnAt=0,sweepAt=0}
 end
 local function chauffeur(s)
     if not s.chauffeurModule then s.chauffeurModule=dofile('companion-chauffeur.lua') end
@@ -838,8 +838,39 @@ local function yieldChauffeurToPlayer(s,player,hooks)
     s.phase='boarding'; s.error=nil; s.replan=nil
     return true
 end
+-- Party cars a CET "Reload all mods" left in the world (they are nonpersistent, but the reload does not despawn them): once at
+-- the first update, then only while some were occupied or the world was not ready, a few times and ten seconds apart. Only cars
+-- carrying the party-car tag, and never one this load owns. No per-frame work: one clock comparison until the sweep is due.
+local SWEEP_RETRY,SWEEP_TRIES=10,6
+local function sweepLeftovers(s)
+    if type(s.api.sweepOwned)~='function' then s.sweepAt=nil; return end
+    s.sweepTries=(s.sweepTries or 0)+1
+    local known={}
+    if s.primary and s.primary.id then known[s.primary.id]=true end
+    for _,car in ipairs(s.cars) do if car.id then known[car.id]=true end end
+    local left=safe(s.api.sweepOwned,known)
+    if left==nil then
+        -- The world is not ready yet: ask again soon, on a longer leash than for an occupied car.
+        s.sweepAt=s.sweepTries<30 and s.clock+2 or nil
+    elseif left>0 and s.sweepTries<SWEEP_TRIES then s.sweepAt=s.clock+SWEEP_RETRY
+    else s.sweepAt=nil end
+end
+-- Mod shutdown or reload while the world is live: the overflow party cars this load owns are removed now, because no update
+-- will run again to clean them up. A car that still holds an occupant is refused by the adapter and left to the next load's sweep.
+function M.shutdown(s)
+    local requested=0
+    for i=#s.cars,1,-1 do
+        local car=s.cars[i]
+        if car.owned~=false and not car.retired then
+            requested=requested+1
+            if safe(s.api.destroy,car) then table.remove(s.cars,i) end
+        end
+    end
+    return requested
+end
 function M.update(s,player,entries,dt,hooks)
     s.clock=s.clock+math.max(0,tonumber(dt) or 0)
+    if s.sweepAt and s.clock>=s.sweepAt then sweepLeftovers(s) end
     hooks=hooks or {}
     if type(hooks.release)~='function' or type(hooks.resumed)~='function' then
         s.error='Vehicle movement handoff callbacks are required.'; return
@@ -1025,7 +1056,7 @@ function M.abandon(s)
     s.generation=s.generation+1; s.people={}; s.cars={}; s.primary=nil
     s.phase='on-foot'; s.fastTravelPending=nil; s.replan=nil; s.error=nil; s.taxiExit=nil
     s.chauffeur=nil; s.lastChauffeur=nil; s.foreign=nil
-    s.events={}; s.clock=0
+    s.events={}; s.clock=0; s.sweepAt=nil
 end
 function M.snapshot(s,serial)
     local rows={}

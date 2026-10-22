@@ -4863,6 +4863,7 @@ registerForEvent('onShutdown', function()
     else speech.abandon(); subtitles.abandon() end
     active = nil
     if liveWorld then companions.dismissAll() else companions.abandon() end
+    if liveWorld then pcall(companions.destroyPartyCars) end -- overflow party cars: no update runs again to remove them
     local player = liveWorld and Game.GetPlayer() or nil
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()
