@@ -1100,6 +1100,11 @@ Tests: `bridge/local-queue.test.mjs` (the arbitration, the warm-up skip, the hos
   by `LOCAL_TURN_HARD_CAP_MS - LOCAL_ATTEMPT_ROOM_MS`; the deadline is then pushed to the moment the model was ready plus `LOCAL_ATTEMPT_ROOM_MS` (15 s), but never past
   `LOCAL_TURN_HARD_CAP_MS` (86 s: the game gives up on the request 90 s after it wrote it, `mod/init.lua`), so a model that came up at 78 s is asked with 8 s left instead of never.
   A load that is not done 15 s before that cap is not waited for in the turn's name: it goes on and the turn ends with its own "still loading" words, as before.
+  **2026-10-22, a model on the CPU:** the 15 s is the room of a model on the card. A model with layers on the CPU (`localRoute.attemptRoomMs`, `coldAttemptRoomMs` in `bridge/prompt-budget.mjs`)
+  gets the time its cold prompt takes: 5,000 tokens (3,600 with the compact text) at the rate the last CPU load measured, else `PREFILL.offloadPrior` (120 a second), plus 5 s to the
+  first word, at most 60 s and never past the same hard cap (the report: Gemma 4 E4B, about 0% of its layers on an 8 GB card, `stuck reading the prompt (0 of 5015 tokens after 15 s)`; the next
+  turn read 2,426 new tokens and spoke after 11 s). A model with under `FIT_LIMITS.hopelessShare` of its layers on the card (`handle.cpuBound`) also starts with the compact character text
+  on its first turn instead of waiting for two slow readings (the head goes from about 4,100 to 2,200 tokens).
   The idle stop (10 minutes) stays: it gives the card back to the game. The composer opening (`warmTalkTargets` / `warmCustom` -> `prewarm` -> `ensure`) already reloads a stopped model
   while the player types or holds the talk key, so the first turn normally finds it loaded; a reload on merely looking at or approaching a character was NOT added (a model load is
   seconds of disk and graphics-card work with nobody talking, which the FPS rule forbids; the nearby warm-up deliberately leaves GPU work out for the same reason).

@@ -14,7 +14,7 @@ import fengari from 'fengari';
 import {streamChat, MistralError, failureDetail, stallReason, newTrace, errorCodeFor, retryable, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {constants as osConstants} from 'node:os';
 import {LlamaProcess, LocalAiUnavailable, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
-import {TextProviderHost, localRoute, describeLocalTurn, loadingLine, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
+import {TextProviderHost, localRoute, describeLocalTurn, loadingLine, LOCAL_ATTEMPT_ROOM_MS, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_TURN_HARD_CAP_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
 import {PersonaBook, cleanReply} from './mistral-prompt.mjs';
@@ -1040,6 +1040,38 @@ test('the first turn after the idle stop: the model load does not use up the tur
   assert.equal(reply.text, 'Up again, V.');
   assert.equal(server.diagnostics().steppedDown, undefined);
   assert.ok(!logs.some(entry => /stalled \(/.test(entry)), logs.join('\n'));
+});
+
+// ---- 2026-10-22: the cold prompt of a model that runs on the CPU gets the time it takes (the 15 s of a model on the card ended a 5,015-token first turn at 0 tokens) ----------
+
+test('the route gives a model with layers on the CPU a room to answer that fits its cold prompt, and a model on the card the 15 s it always had', () => {
+  const room = placement => localRoute({server: {ensure: async () => ({}), status: () => ({state: 'ready'}), ...(placement ? {placement: () => placement} : {})}}).attemptRoomMs();
+  assert.equal(LOCAL_ATTEMPT_ROOM_MS, 15_000);
+  assert.equal(room({offload: false, cpuBound: false}), LOCAL_ATTEMPT_ROOM_MS);
+  assert.equal(room(undefined), LOCAL_ATTEMPT_ROOM_MS, 'a server that cannot say where it runs: the base room');
+  const partly = room({offload: true, cpuBound: false}), mostly = room({offload: true, cpuBound: true});
+  assert.ok(partly > 40_000 && partly <= 60_000, String(partly));
+  assert.ok(mostly > LOCAL_ATTEMPT_ROOM_MS && mostly < partly, `${mostly} < ${partly}`);
+  const broken = localRoute({server: {ensure: async () => ({}), status: () => ({state: 'ready'}), placement: () => { throw Error('x'); }}});
+  assert.equal(broken.attemptRoomMs(), LOCAL_ATTEMPT_ROOM_MS);
+});
+
+test('the turn that waited for the model to load keeps the 15 s to ask it on the card, and the longer room on the CPU, never past the hard cap', async t => {
+  const seen = [];
+  for (const [name, room] of [['card', undefined], ['cpu', () => 60_000]]) {
+    let clock = 0;
+    const {host, server, route} = await hostRig(t, {env: {FAKE_LLAMA_REPLY: 'Up again, V.'}, now: () => clock});
+    if (room) route.attemptRoomMs = room;
+    const real = route.chat;
+    route.chat = options => { seen.push([name, options.deadlineAt]); return real(options); };
+    await server.stop();
+    server.on('state', state => { if (state.state === 'ready') clock += 70_000; });   // the load takes 70 s of the turn's 80 s: 15 s more would run past the 86 s cap
+    const reply = await host.reply(turn('hello after a long pause ' + name));
+    assert.equal(reply.text, 'Up again, V.');
+  }
+  const deadline = name => seen.find(([which]) => which === name)?.[1];
+  assert.equal(deadline('card'), 70_000 + LOCAL_ATTEMPT_ROOM_MS, 'a model on the card: the room it always had');
+  assert.equal(deadline('cpu'), LOCAL_TURN_HARD_CAP_MS, 'a model on the CPU: the longer room, held to the turn\'s hard cap');
 });
 
 test('a turn that never reached the model (its time was spent before any request) is not a stall: three of them do not step the model down or fail Local AI', async t => {

@@ -1164,6 +1164,7 @@ test('a model with almost none of its layers on the card (the 5 GB model on an 8
   hopeless.server.on('offload-slow', event => slow.push(event));
   await hopeless.server.ensure();
   assert.deepEqual([hopeless.calls.length, slow.length, slow[0]?.share], [1, 1, 0]);
+  assert.deepEqual(hopeless.server.placement(), {offload: true, cpuBound: true}, 'where it runs, for the room the first turn is given to ask it');
   // Under 35% of the layers on the card one stall is enough to look for a smaller model; there is none (only the good model is installed), so the model stays loaded.
   stall(hopeless.server, 'prefill-stalled');
   assert.equal(await until(() => hopeless.logs.some(line => /stalled \(1 of 1\)/.test(line))), true, 'one stall was enough to look');
@@ -1174,6 +1175,7 @@ test('a model with almost none of its layers on the card (the 5 GB model on an 8
   const quiet = [];
   mostly.server.on('offload-slow', event => quiet.push(event));
   await mostly.server.ensure();
+  assert.deepEqual(mostly.server.placement(), {offload: true, cpuBound: false});
   stall(mostly.server, 'prefill-stalled');
   await sleep(150);
   assert.deepEqual([mostly.steps.length, mostly.calls.length, quiet.length], [0, 1, 0]);

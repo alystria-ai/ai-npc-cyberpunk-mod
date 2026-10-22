@@ -655,7 +655,7 @@ export class LocalLlmServer extends EventEmitter {
     // loadedAt / offload: which load this is and whether part of the model runs on the CPU, for the route's prompt-reading speed (bridge/prompt-budget.mjs PrefillMeter):
     // a model that was loaded again, perhaps with less graphics memory free, is measured anew.
     return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: this.#learnedContext(info) ?? info.contextSize,
-      loadedAt: this.#loaded?.readyAt ?? 0, offload: this.#loaded?.offload === true,
+      loadedAt: this.#loaded?.readyAt ?? 0, offload: this.#loaded?.offload === true, cpuBound: this.#hopelessOffload(),
       ...(info.external ? {external: true, requestModel: info.requestModel, trustedOrigin: info.trustedOrigin} : {})};
   }
 
@@ -1733,6 +1733,9 @@ export class LocalLlmServer extends EventEmitter {
 
   // This session already stepped a model down, and the one loaded now has part of its layers on the CPU.
   #offloadedAfterStep() { return (this.#stalled.size > 0 || this.#loaded?.forcedOffload === true) && this.#loaded?.offload === true; }
+
+  /** Where the loaded model runs: `offload` (part of it on the CPU), `cpuBound` (so few layers on the card that the CPU does the work, FIT_LIMITS.hopelessShare). For the turn's room to ask a model that was just loaded. */
+  placement() { return {offload: this.#loaded?.offload === true, cpuBound: this.#hopelessOffload()}; }
 
   #hopelessOffload() {
     const loaded = this.#loaded;

@@ -152,9 +152,9 @@ const history = count => Array.from({length: count}, (_, index) => ({v: `Tell me
 const turnArgs = (persona, extra = {}) => ({persona, memory: '', history: history(4), text: 'What are you up to right now?', reaction: false, remembered: [],
   contextParts: {now: 'You are with V in person. It is night, about 11 PM, in Kabuki.', notes: 'FORMAT: use {joy} tags for feelings.', world: 'WORLD FACTS\n- Judy lives in Kabuki.', worldBlocks: [{key: 'knowledge', text: 'WORLD FACTS\n- Judy lives in Kabuki.'}], volatile: ''}, ...extra});
 
-function rig({rate, contextSize = 16384} = {}) {
+function rig({rate, contextSize = 16384, handle = {}} = {}) {
   const sent = [], logs = [];
-  const server = {ensure: async () => ({apiKey: 'k', endpoint: 'http://127.0.0.1:1/v1', model: 'm', requestModel: 'm', contextSize, loadedAt: 1, offload: false}), status: () => ({state: 'ready'}),
+  const server = {ensure: async () => ({apiKey: 'k', endpoint: 'http://127.0.0.1:1/v1', model: 'm', requestModel: 'm', contextSize, loadedAt: 1, offload: false, ...handle}), status: () => ({state: 'ready'}),
     begin: () => () => {}, inflight: 0, noteSlot() {}, preempt: () => false};
   const state = {rate};
   const chat = async options => {
@@ -179,6 +179,18 @@ test('a fast machine: the prompts are byte for byte what buildMessages built, tu
   }
   assert.equal(logs.some(line => /compact/.test(line)), false);
   assert.equal(await route.shapePersona(judy, {mature: 'full'}), judy, 'and so is the warm-up');
+});
+
+test('a model with so few layers on the card that the CPU does the work starts with the compact text on its first turn; a partly offloaded one reads the whole text until it is measured slow', async () => {
+  const cpu = rig({rate: 120, handle: {offload: true, cpuBound: true}});
+  const {built, sent} = await cpu.turn(turnArgs(jackie, {mature: 'full'}));
+  assert(system(sent).length < system(built).length - 3000, `${system(sent).length} of ${system(built).length}`);
+  assert(cpu.logs.some(line => /compact character text/.test(line)), cpu.logs.join('\n'));
+  // Partly on the CPU (a larger share on the card): not a reason by itself; the first turn is the whole text, as before.
+  const part = rig({rate: 120, handle: {offload: true, cpuBound: false}});
+  const second = await part.turn(turnArgs(jackie, {mature: 'full'}));
+  assert.deepEqual(second.sent, second.built);
+  assert.equal(part.logs.some(line => /compact/.test(line)), false);
 });
 
 test('a slow machine: once it is measured slow, the next character starts compact, within the budget, with the required parts, and the same text every turn', async () => {
