@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {RealtimeHost, TEXT_STREAM_POLL_MS} from './realtime-host.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
+import {stripSpeechTags} from './natural-speech.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const config = {key: 'offline-test-key', characterId: 'judy', endUserId: 'offline-player', scope: 'private:offline-world', ttsEnabled: false, text: 'Hello'};
@@ -148,6 +149,25 @@ test('a finished Convai reply that really disagrees with the head is cut back to
   assert.equal(finishedText(stream, 'Oh, hello again. Something else entirely, V.'), stream.head);
   const empty = new ReplyStream({name: 'Judy'});
   assert.equal(finishedText(empty, '\u{1F60A}'), '\u{1F60A}', 'nothing left after cleaning and no head: the text as it came');
+});
+
+test('finishedText with no committed head leaves the reply as it came; a name label behind leading emotion tags is stripped from the head and the finished text alike', () => {
+  const none = new ReplyStream({name: 'Judy Alvarez'});
+  none.update('Hey. Listen up, V: never trust Arasaka.');
+  assert.equal(none.committed, false);
+  assert.equal(finishedText(none, 'Hey. Listen up, V: never trust Arasaka.'), 'Hey. Listen up, V: never trust Arasaka.');
+  const tags = ['{joy} Judy Alvarez: Hey there, V, good to see you again. How are you doing today?', '[sigh] Judy Alvarez: Hey there, V, good to see you again. How are you doing today?',
+    '{joy} **Judy Alvarez:** Hey there, V, good to see you again. How are you doing today?'];
+  const isTag = value => /^[{[][a-z]+[}\]]$/.test(value);
+  for (const text of tags) {
+    const stream = new ReplyStream({name: 'Judy Alvarez', isTag});
+    for (let at = 12; at < text.length; at += 9) stream.update(text.slice(0, at));
+    stream.update(text);
+    assert.ok(stream.committed, text);
+    assert.ok(!/Judy Alvarez/.test(stream.head), `the label is not spoken: ${stream.head}`);
+    const finished = finishedText(stream, text);
+    assert.ok(stripSpeechTags(finished).length > stream.head.length + 20 && stripSpeechTags(finished).startsWith(stream.head), `finished ${JSON.stringify(finished)} vs head ${JSON.stringify(stream.head)}`);
+  }
 });
 
 test('the bridge routes a Convai text turn with a local voice through the reply stream, finishes or fails that stream, and keeps the setting and look-ahead exclusions', () => {

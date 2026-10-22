@@ -373,7 +373,7 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   text = speakerTurn(text, name);
   // A leading "Name:" or "**Name:**" label, and a leading "V:" echo.
   const label = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
-  if (label) text = text.replace(new RegExp(`^[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '');
+  if (label) text = text.replace(new RegExp(`^((?:\\{[^{}\\n]{0,40}\\}|\\[[^\\[\\]\\n]{0,40}\\]|\\s)*)[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '$1');
   text = text.replace(/^\W*(?:V|You)\s*:\s*/i, '');
   // Markdown emphasis keeps its words; *actions* between single asterisks are stage directions and go (see starred).
   text = starred(text.replace(/\*\*([^*]+)\*\*/g, '$1')).replace(/__([^_]+)__/g, '$1');

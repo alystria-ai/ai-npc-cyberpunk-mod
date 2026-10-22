@@ -153,7 +153,9 @@ const BARE_COMMAND = {
 const bareCommands = Object.fromEntries(Object.entries(BARE_COMMAND).map(([code, phrase]) =>
   [code, new RegExp(String.raw`^(?:(?:hey|ok|okay|alright|now|come on|please)[,\s]+)*(?:[A-Za-z]{2,20},\s*)?(?:please\s+)?(?:${phrase})(?:\s+please)?[.!]?$`, 'i')]));
 // A question about the character herself, in a few shapes that cannot be a request: "do you know how to drive?", "did you ever fight in the pits?", "have you ever ...".
-const ABOUT_HER = /^(?:do|did|does|have|has) you (?:ever|know how to|know what|remember|still|really)\b[^?!.]{0,100}\?$/i;
+const ABOUT_HER = /^(?:do|did|does|have|has) you (?:ever|know how to|know what|remember)\b[^?!.]{0,100}\?$/i;
+// A question that is also a request or a suggestion ("do you still want to drive?", "do you ever wanna come with us?", "do you know how to get to the marker?"): the model's.
+const NOT_ABOUT_HER = /\b(?:me|us|we|our|my|want|wanna|gonna|going to|mind|care to|feel like|like to|get to|go to|to the)\b/i;
 const ASCII_LINE = /^[\x20-\x7e]{1,160}$/;
 
 /**
@@ -164,7 +166,7 @@ export function certainWords(text, {codes, found = []} = {}) {
   const line = String(text ?? '').replace(/\s+/g, ' ').trim();
   if (!ASCII_LINE.test(line) || found.includes('LEAVE')) return null;
   for (const code of Object.keys(bareCommands)) if (codes?.includes(code) && bareCommands[code].test(line)) return {code, argument: ''};
-  if (ABOUT_HER.test(line) && !/\b(?:take me|drive me|follow me|come with me|me there|us there)\b/i.test(line)) return {none: true};
+  if (ABOUT_HER.test(line) && !NOT_ABOUT_HER.test(line)) return {none: true};
   return null;
 }
 

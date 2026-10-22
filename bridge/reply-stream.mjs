@@ -77,6 +77,8 @@ const deferred = () => {
  * reply the same way before they reconcile it; without this a head that was cleaned would never be a prefix of a reply that was not, and the reply would be cut to the head.
  */
 export function finishedText(stream, text) {
+  // No sentence was given to the voice: nothing to agree with, and the reply is voiced and shown as it came (as before streaming), not cleaned.
+  if (!stream.committed) return String(text ?? '');
   const cleaned = cleanReply(text, {name: stream.name, isTag: stream.isTag});
   return stream.reconcile(cleaned || String(text ?? ''));
 }

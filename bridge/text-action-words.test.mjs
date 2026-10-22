@@ -69,3 +69,11 @@ test('certainWords: only a bare command or a question about the character settle
   assert.equal(certainWords('drive me', {codes, found: ['DRIVE', 'LEAVE']}), null, 'a leave among the words always goes to the model');
   assert.equal(certainWords('go home', {codes}), null);
 });
+
+test('certainWords: a question that is also a request or a suggestion is the model\'s', () => {
+  const codes = ['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE'];
+  for (const line of ['Do you still want to drive?', 'Do you still want to take the wheel?', 'Do you really wanna give me a ride?', 'Do you still wanna come with us?', 'Do you really want to attack them?',
+    'Did you still want to drive?', 'Do you know how to get to the marker?', 'Do you ever wanna follow me?', 'Do you remember me?', 'Do you mind driving?'])
+    assert.equal(certainWords(line, {codes}), null, line);
+  assert.deepEqual(certainWords('Do you know how to drive?', {codes}), {none: true});
+});

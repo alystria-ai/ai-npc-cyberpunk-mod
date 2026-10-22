@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {ChildRegistry, CHILDREN_FILE, reapChildren, stopIfMatching, pidAlive, START_TOLERANCE_MS, UNREADABLE_KEEP_MS} from './child-registry.mjs';
 import {LlamaProcess} from './local-llm-server.mjs';
 
+const reap = options => reapChildren({bootedAt: 0, ...options});
 const EXE = 'C:\\Games\\Cyberpunk 2077\\AI NPC Runtime\\llama-server.exe';
 function folder() { const dir = mkdtempSync(join(tmpdir(), 'children-test-')); return {dir, file: join(dir, CHILDREN_FILE), done: () => rmSync(dir, {recursive: true, force: true})}; }
 const children = file => JSON.parse(readFileSync(file, 'utf8')).children;
@@ -37,7 +38,7 @@ test('an orphan of a bridge that is gone is stopped by the one call that checked
     new ChildRegistry({file, bridgePid: 4242, now: () => 50_000}).add({pid: 777, exe: EXE, label: 'llama-server'});
     const running = new Set([777]);
     const asked = [], logs = [];
-    const results = await reapChildren({file, log: line => logs.push(line), alive: pid => running.has(pid),
+    const results = await reap({file, log: line => logs.push(line), alive: pid => running.has(pid),
       stop: async (entry, options) => { asked.push([entry.pid, entry.exe, entry.startedAt, options.toleranceMs]); running.delete(entry.pid); return 'stopped'; }});
     assert.deepEqual(asked, [[777, EXE, 50_000, START_TOLERANCE_MS]], 'one call carries the record: pid, exe path, start time and tolerance');
     assert.deepEqual(results.map(result => result.outcome), ['stopped']);
@@ -56,29 +57,29 @@ test('nothing else is ever stopped, and a record leaves the file only when its p
     const stopWith = outcome => async e => { stopped.push(e.pid); return outcome; };
     // The bridge that owns the child is alive (a second bridge on the same folder): its child is not an orphan, and its record stays.
     write([entry(1)]);
-    assert.deepEqual((await reapChildren({file, alive: pid => pid === 4242 || pid === 1, stop: stopWith('stopped')})).map(r => r.outcome), ['owner-running']);
+    assert.deepEqual((await reap({file, alive: pid => pid === 4242 || pid === 1, stop: stopWith('stopped')})).map(r => r.outcome), ['owner-running']);
     assert.equal(children(file).length, 1);
     // The pid is not running any more: nothing to stop, the record goes.
     write([entry(2)]);
-    assert.deepEqual((await reapChildren({file, alive: () => false, stop: stopWith('stopped')})).map(r => r.outcome), ['gone']);
+    assert.deepEqual((await reap({file, alive: () => false, stop: stopWith('stopped')})).map(r => r.outcome), ['gone']);
     assert.equal(existsSync(file), false);
     // Another program has the pid now: left alone, the record goes (it describes nothing of ours).
     write([entry(3)]);
-    assert.deepEqual((await reapChildren({file, alive: pid => pid === 3, stop: stopWith('foreign')})).map(r => r.outcome), ['foreign']);
+    assert.deepEqual((await reap({file, alive: pid => pid === 3, stop: stopWith('foreign')})).map(r => r.outcome), ['foreign']);
     assert.equal(existsSync(file), false);
     // A look that failed or timed out (a slow PowerShell under a busy game) keeps the record for the next start: this leaked server is the one it exists for.
     write([entry(4)]);
-    assert.deepEqual((await reapChildren({file, alive: pid => pid === 4, stop: stopWith('unreadable'), now: () => at + 1000})).map(r => r.outcome), ['unreadable']);
+    assert.deepEqual((await reap({file, alive: pid => pid === 4, stop: stopWith('unreadable'), now: () => at + 1000})).map(r => r.outcome), ['unreadable']);
     assert.deepEqual(children(file).map(e => e.pid), [4]);
     write([entry(5)]);
-    assert.deepEqual((await reapChildren({file, alive: pid => pid === 5, stop: async () => { throw Error('powershell failed'); }, now: () => at + 1000})).map(r => r.outcome), ['unreadable']);
+    assert.deepEqual((await reap({file, alive: pid => pid === 5, stop: async () => { throw Error('powershell failed'); }, now: () => at + 1000})).map(r => r.outcome), ['unreadable']);
     assert.deepEqual(children(file).map(e => e.pid), [5]);
     // One that did not exit stays too. One unreadable for days is let go.
     write([entry(6)]);
-    await reapChildren({file, alive: pid => pid === 6, stop: stopWith('still-running'), log: () => {}, now: () => at + 1000});
+    await reap({file, alive: pid => pid === 6, stop: stopWith('still-running'), log: () => {}, now: () => at + 1000});
     assert.deepEqual(children(file).map(e => e.pid), [6]);
     write([entry(7, {startedAt: at})]);
-    await reapChildren({file, alive: pid => pid === 7, stop: stopWith('unreadable'), now: () => at + UNREADABLE_KEEP_MS + 1});
+    await reap({file, alive: pid => pid === 7, stop: stopWith('unreadable'), now: () => at + UNREADABLE_KEEP_MS + 1});
     assert.equal(existsSync(file), false);
   } finally { done(); }
 });
@@ -90,7 +91,7 @@ test('a cleanup that runs long never erases the records a newer bridge wrote mea
     const kept = {pid: 11, exe: EXE, label: 'embedding llama-server', startedAt: 1000, bridgePid: 1};
     writeFileSync(file, JSON.stringify({version: 1, children: [old, kept]}));
     const newer = new ChildRegistry({file, bridgePid: 9999, now: () => 5000});
-    const results = await reapChildren({file, alive: pid => pid === 10 || pid === 11,
+    const results = await reap({file, alive: pid => pid === 10 || pid === 11,
       stop: async entry => {
         if (entry.pid === 10) { newer.add({pid: 12, exe: EXE, label: 'llama-server'}); newer.add({pid: 10, exe: EXE, label: 'llama-server'}); return 'stopped'; }   // the new bridge's own, one with a reused pid
         return 'unreadable';
@@ -101,7 +102,7 @@ test('a cleanup that runs long never erases the records a newer bridge wrote mea
     // The cap: nothing is started after it, and what was not reached stays.
     writeFileSync(file, JSON.stringify({version: 1, children: [old, kept]}));
     const cap = new AbortController();
-    const second = await reapChildren({file, alive: pid => pid === 10 || pid === 11, signal: cap.signal, log: () => {}, stop: async entry => { cap.abort(); return 'stopped'; }});
+    const second = await reap({file, alive: pid => pid === 10 || pid === 11, signal: cap.signal, log: () => {}, stop: async entry => { cap.abort(); return 'stopped'; }});
     assert.deepEqual(second.map(r => r.outcome), ['stopped', 'skipped']);
     assert.deepEqual(children(file).map(e => e.pid), [11]);
   } finally { done(); }
@@ -111,12 +112,12 @@ test('an orphan that did not exit stays on the list for the next look; a missing
   const {file, dir, done} = folder();
   try {
     new ChildRegistry({file, bridgePid: 1, now: () => 10}).add({pid: 31, exe: EXE, label: 'llama-server'});
-    const results = await reapChildren({file, alive: pid => pid === 31, stop: async () => 'still-running', log: () => {}});
+    const results = await reap({file, alive: pid => pid === 31, stop: async () => 'still-running', log: () => {}});
     assert.deepEqual(results.map(r => r.outcome), ['still-running']);
     assert.deepEqual(children(file).map(entry => entry.pid), [31]);
-    assert.deepEqual(await reapChildren({file: join(dir, 'missing.json')}), []);
+    assert.deepEqual(await reap({file: join(dir, 'missing.json')}), []);
     writeFileSync(file, '{not json');
-    assert.deepEqual(await reapChildren({file}), []);
+    assert.deepEqual(await reap({file}), []);
   } finally { done(); }
 });
 
@@ -188,4 +189,20 @@ test('the bridge and the supervisor use the registry: reap at start, record what
   assert.equal((bridge.match(/registry: childRegistry/g) ?? []).length, 2, 'the chat server and the embedder');
   assert.ok(supervisor.includes('reapChildren({file: resolve(this.stateDirectory, CHILDREN_FILE)'));
   assert.ok(supervisor.includes('signal: cap.signal'), 'the cap ends the cleanup, not only the wait for it');
+});
+
+test('a record from before this boot is dropped without a look, and the stop script opens the handle first and calls a start mismatch foreign even when the path cannot be read', async () => {
+  const {file, done} = folder();
+  try {
+    writeFileSync(file, JSON.stringify({version: 1, children: [{pid: 4, exe: EXE, label: 'llama-server', startedAt: 1_000_000, bridgePid: 1}]}));
+    const asked = [];
+    const results = await reapChildren({file, alive: pid => pid === 4, bootedAt: 5_000_000, stop: async entry => { asked.push(entry.pid); return 'stopped'; }});
+    assert.deepEqual(results.map(r => r.outcome), ['gone']);
+    assert.deepEqual(asked, [], 'no PowerShell call for it');
+    assert.equal(existsSync(file), false);
+  } finally { done(); }
+  let script = '';
+  await stopIfMatching({pid: 5, exe: EXE, startedAt: 1}, {platform: 'win32', runner: async (command, args) => { script = args.at(-1); return 'gone'; }});
+  assert.ok(script.indexOf('$p.Handle') > 0 && script.indexOf('$p.Handle') < script.indexOf('.StartTime') && script.indexOf('.StartTime') < script.indexOf('.Kill()'), 'handle, then start time, then the stop');
+  assert.ok(script.indexOf("'foreign'") < script.indexOf("'unreadable'"), 'a start time that does not match is decided before an unreadable path');
 });

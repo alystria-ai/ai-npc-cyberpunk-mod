@@ -16,6 +16,7 @@
 import {readFileSync, writeFileSync, renameSync, mkdirSync, rmSync} from 'node:fs';
 import {dirname, resolve as resolvePath} from 'node:path';
 import {execFile} from 'node:child_process';
+import {uptime} from 'node:os';
 
 export const CHILDREN_FILE = 'children.json';
 // The recorded start and the process's own start time may differ by this much (the record is written within milliseconds of the spawn).
@@ -66,16 +67,19 @@ const run = (file, args, timeout, env) => new Promise(resolveRun => {
   execFile(file, args, {timeout, windowsHide: true, maxBuffer: 1 << 16, env: {...process.env, ...env}}, (error, stdout) => resolveRun(error ? null : String(stdout ?? '')));
 });
 
-// One PowerShell call checks and stops: the process object it looked at is the one it ends (a handle, so a pid that is handed to another program meanwhile is never the
-// target), and only when its image is exactly the recorded exe and it started within the tolerance of the recorded time. The values come in through the environment, never
+// One PowerShell call checks and stops: the process object it looked at is the one it ends (its handle is opened first and kept, so Windows cannot give the pid to
+// another program while it is held, and every later read and the stop use that handle), and only when its image is exactly the recorded exe and it started within the tolerance of the recorded time. The values come in through the environment, never
 // through the command text; the pid is a checked integer.
 const STOP_SCRIPT = [
   "$p = Get-Process -Id ([int]$env:CHILD_PID) -ErrorAction SilentlyContinue;",
   "if (-not $p) { 'gone' } else {",
   "  $path = $null; $start = 0;",
-  "  try { $path = $p.Path; $start = [DateTimeOffset]::new($p.StartTime).ToUnixTimeMilliseconds() } catch { }",
-  "  if (-not $path) { 'unreadable' }",
-  "  elseif (($path -ne $env:CHILD_EXE) -or ([Math]::Abs($start - [int64]$env:CHILD_START) -gt [int64]$env:CHILD_TOLERANCE)) { 'foreign' }",
+  "  try { $null = $p.Handle } catch { }",
+  "  try { $start = [DateTimeOffset]::new($p.StartTime).ToUnixTimeMilliseconds() } catch { }",
+  "  try { $path = $p.Path } catch { }",
+  "  if (($start -ne 0) -and ([Math]::Abs($start - [int64]$env:CHILD_START) -gt [int64]$env:CHILD_TOLERANCE)) { 'foreign' }",
+  "  elseif (-not $path) { 'unreadable' }",
+  "  elseif ($path -ne $env:CHILD_EXE) { 'foreign' }",
   "  else { $p.Kill(); if ($p.WaitForExit([int]$env:CHILD_CONFIRM)) { 'stopped' } else { 'still-running' } }",
   "}"].join(' ');
 const OUTCOMES = new Set(['gone', 'unreadable', 'foreign', 'stopped', 'still-running']);
@@ -110,7 +114,8 @@ export const UNREADABLE_KEEP_MS = 3 * 24 * 3600_000;
  * whose owner runs or that was not reached stays for the next start (an unreadable one for three days at most). The file is re-read when the work is done and only the records
  * dealt with are removed, so a bridge that started meanwhile and wrote its own keeps them. Never throws, never touches a process that does not match its record.
  */
-export async function reapChildren({file, stop = stopIfMatching, alive = pidAlive, log = () => {}, signal, now = Date.now, confirmMs = 4000, toleranceMs = START_TOLERANCE_MS} = {}) {
+export async function reapChildren({file, stop = stopIfMatching, alive = pidAlive, log = () => {}, signal, now = Date.now, confirmMs = 4000, toleranceMs = START_TOLERANCE_MS,
+    bootedAt = Date.now() - uptime() * 1000} = {}) {
   const results = [], dealt = new Set();
   try {
     const entries = readEntries(file);
@@ -119,7 +124,8 @@ export async function reapChildren({file, stop = stopIfMatching, alive = pidAliv
       const note = outcome => results.push({pid: entry.pid, label: entry.label, outcome});
       if (signal?.aborted) { note('skipped'); continue; }
       if (Number.isSafeInteger(entry.bridgePid) && alive(entry.bridgePid)) { note('owner-running'); continue; }
-      if (!alive(entry.pid)) { dealt.add(keyOf(entry)); note('gone'); continue; }
+      // A record from before this boot describes a process that cannot be running (after a crash and a restart of the PC its pid is often a system process now).
+      if (!alive(entry.pid) || (Number.isFinite(entry.startedAt) && entry.startedAt < bootedAt - 60_000)) { dealt.add(keyOf(entry)); note('gone'); continue; }
       let outcome = 'unreadable';
       try { outcome = await stop(entry, {confirmMs, toleranceMs}); } catch { outcome = 'unreadable'; }
       if (outcome === 'unreadable' && now() - (entry.startedAt ?? 0) > UNREADABLE_KEEP_MS) dealt.add(keyOf(entry));
