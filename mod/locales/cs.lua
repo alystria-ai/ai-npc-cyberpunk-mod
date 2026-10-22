@@ -1230,4 +1230,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "Vrátit prompt postavy {name} k původnímu znění? Všechny tvé změny v něm budou odstraněny.",
     ["Back to the shipped prompting."] = "Zpět na původní prompt.",
     ["Prompting"] = "Prompt",
+    ["Street reputation"] = "Pouliční pověst",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Gangy, NCPD, korporace a místní z každé čtvrti si pamatují, co V udělal: Street Cred, rozhodnutí v zakázkách, boje, zločiny viděné policií a jak jednáš s lidmi. Podle toho zdraví, důvěřují a pomáhají.\n\nJen obyčejní lidé, nikdy pojmenované ani příběhové postavy. Mění jejich slova, nic ve hře.",
 }

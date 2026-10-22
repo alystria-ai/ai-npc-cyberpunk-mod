@@ -1230,4 +1230,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "Повернути стандартний промпт для {name}? Усі твої зміни в ньому буде видалено.",
     ["Back to the shipped prompting."] = "Повернути стандартний промпт.",
     ["Prompting"] = "Промпт",
+    ["Street reputation"] = "Вулична репутація",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Банди, NCPD, корпорації та мешканці кожного району пам’ятають, що зробив V: Street Cred, рішення в замовленнях, бійки, злочини на очах поліції та те, як ти поводишся з людьми. Від цього залежать привітання, довіра й допомога.\n\nЛише звичайні люди, не іменні й не сюжетні персонажі. Змінює їхні слова, нічого в грі.",
 }

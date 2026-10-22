@@ -1747,6 +1747,60 @@ end
 if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.options.logOnce = log, convaiLogOnce end
+-- Street reputation (docs/REPUTATION_DESIGN.md, mod/reputation.lua): the module is loaded and its hooks registered only once the setting is
+-- on (at start, at the next load, from the game's update after the menu turned it on, or at the next turn). While it is off convaiReputation
+-- stays nil: no file is loaded, no hook registered, nothing written, and requests carry no `reputation`. Globals, so no function here gains
+-- an upvalue.
+function convaiReputationWanted()
+    if type(manager.reputation) ~= 'function' or not manager.reputation() then return nil end
+    if convaiReputation then return convaiReputation end
+    local loaded, module = pcall(dofile, 'reputation.lua')
+    if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+        log('Street reputation unavailable: ' .. tostring(module)); return nil
+    end
+    local built, service = pcall(module.new, {
+        enabled = function() return manager.reputation() end,
+        observe = ObserveAfter,
+        player = function() return Game.GetPlayer() end,
+        gameTime = worldKnowledgeModule.nativeGameTime,
+        lifepath = worldKnowledgeModule.nativeAdapter.readLifepath,
+        district = currentDistrict,
+        -- Our companions, other mods' characters, named, story and quest people are never recorded: the quest facts carry theirs.
+        ordinary = function(npc)
+            local policy = convaiWorldPolicy
+            if policy.ours(npc) or policy.spawned(npc) or policy.protected(npc) or policy.story(npc) then return false end
+            return not (convaiWorldTalk ~= nil and convaiWorldTalk.runtimeQuest(npc) == true)
+        end,
+        stat = function(name)
+            local player = Game.GetPlayer()
+            return Game.GetStatsSystem():GetStatValue(player:GetEntityID(), Enum.new('gamedataStatType', name))
+        end,
+        log = log,
+    })
+    if not built then log('Street reputation unavailable: ' .. tostring(service)); return nil end
+    convaiReputation = service
+    service.install()
+    if convaiNpcReactions then
+        convaiNpcReactions.options.onReaction = function(kind, who) if convaiReputation then convaiReputation.reaction(kind, who) end end
+    end
+    return service
+end
+-- An ordinary NPC's private turn carries the reputation snapshot (V's Street Cred, level, clock and the ring of deeds). Never a story,
+-- named or companion character, a group round, a holocall, Johnny, an add-on voice or an automatic reaction.
+function convaiReputationAttach(context)
+    if convaiReputationPending then convaiReputationPending = nil; pcall(convaiReputationWanted) end
+    local service = convaiReputation
+    if not service or not service.on() or type(context) ~= 'table' or type(context.archetype) ~= 'table' then return end
+    local key = context.profileKey
+    if type(key) ~= 'string' or not (key:match('^npc%-[a-z0-9%-]+$') or key == 'resident-male' or key == 'resident-female') then return end
+    if context.group or context.reaction or context.holocall or context.head or context.voiceOnly then return end
+    if convaiStory and convaiStory.entity == context.entity then return end
+    context.reputation = service.capture()
+end
+-- A load, a quit, a death, a fast travel or shutdown: the deeds still waiting are written (behind a loading screen), the new world starts empty.
+function convaiReputationReset(reason)
+    if convaiReputation then pcall(convaiReputation.reset, reason) end
+end
 -- The lease writes one line when a reaction offer ends early or its packet is refused (mod/gameplay-actions.lua), never per frame.
 if gameplayActions and gameplayActions.options then gameplayActions.options.log = log end
 -- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
@@ -2684,6 +2738,7 @@ end
 -- An add-on speaker's context blocks go with its spoken turn, as they do with a typed one (sendRequest).
 microphone.decorate = function(context)
     if context.voiceOnly and not context.holocall and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
 end
 
 microphone.onCancelled = function(context, reason)
@@ -3005,6 +3060,8 @@ local function sendRequest(context)
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
     if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.
+    if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
@@ -4181,6 +4238,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     -- Whatever was logged so far goes to disk first: a crash in the work below must not take the lines before it along.
     if convaiLogFlush then convaiLogFlush() end
     invalidateKnowledge(reason)
+    -- Street reputation: the deeds still waiting are written now, behind the loading screen (a nil check while the setting is off).
+    if convaiReputation then convaiReputationReset(reason) end
     -- The party's own handles, watched weakly through the collect at the end (world alive only, never on fast travel).
     local watch = (worldAlive == true and preserveTransit ~= true) and convaiWatchParty() or nil
     -- Development probe (mod/face-test.lua): its stage keeps a companion handle (and a look-at event aimed at V) between frames.
@@ -4331,6 +4390,8 @@ registerForEvent('onInit', function()
         local hooked, hookError = pcall(convaiVanillaReactions.install)
         if not hooked then log('Vanilla reaction hooks failed: ' .. tostring(hookError)) end
     end
+    -- Street reputation: its hooks only when the setting is on (docs/REPUTATION_DESIGN.md); off, nothing is loaded or registered.
+    if type(manager.reputation) == 'function' and manager.reputation() then pcall(convaiReputationWanted) end
     convaiGuarded('Locomotion hooks', function()
         convaiLocomotion = dofile('companion-locomotion.lua')
         convaiLocomotion.install(function(npc, command)
@@ -5065,6 +5126,7 @@ registerForEvent('onShutdown', function()
         elseif not done then log('Interrupted driver cleanup pending: '..tostring(reason)) end
     end
     invalidateKnowledge('shutdown')
+    if convaiReputation then convaiReputationReset('shutdown') end
     cancelAutomatic('shutdown')
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0

@@ -1230,4 +1230,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "{name}の初期プロンプトに戻しますか？それへの変更はすべて削除されます。",
     ["Back to the shipped prompting."] = "初期のプロンプトに戻します。",
     ["Prompting"] = "プロンプト",
+    ["Street reputation"] = "ストリートの評判",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "ギャング、NCPD、企業、各地区の住人は V の行いを覚えている：ストリートクレド、仕事での選択、戦い、警察に見られた犯罪、人への接し方。挨拶、信頼、手助けはそれで決まる。\n\n対象は一般の人々だけで、名前のある人物やストーリーキャラクターは含まない。変わるのは言葉だけで、ゲームには影響しない。",
 }

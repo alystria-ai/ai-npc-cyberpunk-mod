@@ -1230,4 +1230,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "{name}의 기본 프롬프트로 되돌릴까요? 이에 대한 변경 사항은 모두 삭제됩니다.",
     ["Back to the shipped prompting."] = "기본 프롬프트로 되돌립니다.",
     ["Prompting"] = "프롬프트",
+    ["Street reputation"] = "거리 평판",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "갱단, NCPD, 기업, 각 지구 주민들은 V가 한 일을 기억합니다: 스트리트 크레드, 일에서의 선택, 싸움, 경찰이 본 범죄, 사람을 대하는 방식. 인사, 신뢰, 도움이 그에 따라 달라집니다.\n\n평범한 사람들만 해당되며, 이름 있는 캐릭터나 스토리 캐릭터는 제외됩니다. 말만 바뀌고 게임에는 영향이 없습니다.",
 }

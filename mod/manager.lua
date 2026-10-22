@@ -774,6 +774,8 @@ local function loadSettings()
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default: the game's own named characters can be talked to where they stand once the player turns it on (docs/WORLD_CHARACTERS.md).
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
+    -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
+    if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
     if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
@@ -936,6 +938,13 @@ end
 function M.storyConversations()
     loadSettings()
     return settings.storyConversations == true
+end
+
+-- Street reputation (docs/REPUTATION_DESIGN.md): ordinary NPCs' standing with V shapes how they talk to V. Off by default. Read when a
+-- turn is sent, when a hook fires and on the manager's slow update, never per frame.
+function M.reputation()
+    loadSettings()
+    return settings.reputation == true
 end
 
 -- Johnny in your head: the talk keys with nobody in front of V address Johnny Silverhand (mod/johnny-head.lua). Read on a talk key
@@ -1770,6 +1779,7 @@ function M.snapshot(player)
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
+            reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
             uiLanguage = settings.uiLanguage,
@@ -1849,6 +1859,9 @@ function M.applySettings(player, values)
         elseif key == 'storyConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.storyConversations = value
+        elseif key == 'reputation' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.reputation = value
         elseif key == 'johnnyInHead' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value
@@ -1973,6 +1986,8 @@ function M.applySettings(player, values)
     end
     ui.configure(settings.uiLanguage)
     publishDynamicInfo(settings)
+    -- Street reputation turned on: init.lua registers its hooks from the game's update (manager-ui.lua), never in this menu callback.
+    if settings.reputation == true and previous.reputation ~= true then convaiReputationPending = true end
     if player then
         pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
         pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)

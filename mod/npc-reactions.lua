@@ -380,6 +380,7 @@ function M.new(options)
         end
         exchanges[entity].category = context.archetype.base or context.archetype.category
         exchanges[entity].group = context.archetype.category
+        exchanges[entity].base, exchanges[entity].affiliation = context.archetype.base, context.archetype.affiliation
         local allowed, why = M.allowed(kinds, facts(npc, player, entity))
         if #allowed == 0 then
             logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')')
@@ -410,6 +411,13 @@ function M.new(options)
         return true
     end
 
+    -- A reaction that actually started, for Street reputation (mod/reputation.lua; options.onReaction is set only while that setting is on).
+    local function started(kind, p)
+        if type(options.onReaction) == 'function' then
+            pcall(options.onReaction, kind, {base = p.base, category = p.category, affiliation = p.affiliation})
+        end
+    end
+
     local function run(p)
         local player
         local okPlayer, value = pcall(options.player)
@@ -424,23 +432,26 @@ function M.new(options)
             -- A person who would have called the police and cannot: the honest fallback is the walk away that goes with the call.
             if p.kind == 'call-police' and not M.STAYS[p.category] and not off.walk
                 and not (type(why) == 'string' and (why:find('game%-in%-charge') or why:find('child') or why:find('not%-ordinary') or why:find('quest'))) then
-                walkAway(p, player, 'leave (no police call possible)')
+                if walkAway(p, player, 'leave (no police call possible)') then started('leave', p) end
             end
             return
         end
         if p.kind == 'leave' then
-            walkAway(p, player, 'leave')
+            if walkAway(p, player, 'leave') then started('leave', p) end
         elseif p.kind == 'attack' then
             release(player)
             local hostile = guard('attack', natives.makeHostile, p.npc, player)
-            local started, way = guard('attack', natives.startCombat, p.npc, player)
-            log('NPC reaction: attack ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (started and tostring(way) or 'failed'))
-            if hostile or started then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity} end
+            local combat, way = guard('attack', natives.startCombat, p.npc, player)
+            log('NPC reaction: attack ' .. (hostile and 'hostile ok' or 'hostile failed') .. ', combat start ' .. (combat and tostring(way) or 'failed'))
+            if hostile or combat then
+                checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'attack', npc = p.npc, entity = p.entity}
+                started('attack', p)
+            end
         elseif p.kind == 'call-police' then
             local before = select(2, guard('read-heat', natives.heat))
             local called = guard('call', natives.callPolice, player)
             log('NPC reaction: police call ' .. (called and 'sent' or 'failed') .. ' (stage before ' .. tostring(before) .. ')')
-            if called then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'police', before = before} end
+            if called then checks[#checks + 1] = {at = clock() + cfg.verifyAfter, kind = 'police', before = before}; started('call-police', p) end
             if not M.STAYS[p.category] then walkAway(p, player, 'run after the police call') end
         end
     end
@@ -495,7 +506,8 @@ function M.new(options)
         local now = clock()
         reacted[entity], reactedCount = now, reactedCount + 1
         if kind ~= 'leave' then lastHostile = now end
-        pending = {kind = kind, entity = entity, requestId = requestId, npc = npc, at = now, category = row and row.group}
+        pending = {kind = kind, entity = entity, requestId = requestId, npc = npc, at = now, category = row and row.group,
+            base = row and row.base, affiliation = row and row.affiliation}
         log('NPC reaction accepted: ' .. kind .. ', starts when the reply has been heard')
         return true
     end

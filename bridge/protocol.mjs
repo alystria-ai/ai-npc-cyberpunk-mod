@@ -12,6 +12,7 @@ import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
+import {parseReputationSnapshot} from './reputation.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
 
@@ -83,8 +84,10 @@ function parseRequest(raw) {
   const holocall = group || head ? null : parseHolocall(value.holocall);
   // The Conversation provider the player had chosen when the game wrote this request (mod/init.lua sendRequest); the bridge follows it for the turn.
   const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
+  // Street reputation (docs/REPUTATION_DESIGN.md): sent only while the setting is on, only for an ordinary NPC's private turn.
+  const reputation = value.reputation === undefined ? null : parseReputationSnapshot(value.reputation);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
-    ...(provider ? {provider} : {}),
+    ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
