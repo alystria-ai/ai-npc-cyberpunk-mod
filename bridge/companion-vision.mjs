@@ -16,6 +16,13 @@
 // is accepted: a picture of the right place with her in it beats a clean one of the place they left. A turn that has no staged frame
 // and none fresh waits at most TURN_CAPTURE_WAIT_MS for one capture, then goes without a picture and says so in the log.
 //
+// The yellow border (2026-10-23 Discord report: yellow bars around the screen, flashing every few seconds): Windows draws a border around a window
+// that Windows Graphics Capture is capturing, for as long as the capture lasts, and an ordinary program cannot turn it off. So the helper takes the
+// frame by Desktop Duplication, which has none, while the game is in front. On a system where it cannot (the capture reports `border`, see
+// VisionCapture.borderShown) the buffer above does not run at all: a picture is taken only when a turn is starting (composer opening, talk key,
+// a turn with no frame), so the border shows for a moment around a reply, never on a timer; and the player is told once, in a notice, what the
+// border is and how to stop it (takeBorderNotice, keyNotice 'vision-border').
+//
 // Latency: the frame is already in memory when V talks. It is published to Convai ahead of the line (stagePage when the composer
 // opens, stageVoice when the talk key is pressed), so Convai's acceptance of the frame overlaps typing or talking instead of the
 // turn. The unload rule (docs/RESOURCE_LIFECYCLE.md): the helper process exists only while it is capturing: setting on, Convai
@@ -74,8 +81,17 @@ export class CompanionVision {
     this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
     this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
     this.queue = []; this.voice = new Map(); this.answered = new Map(); this.answeredAt = new Map(); this.staged = new Map(); this.stageRound = 0;
-    this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
+    this.counters = {captures: 0, failed: 0, minimised: 0, covered: 0, borderCaptures: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
       prestaged: 0, helperStarts: 0, helperReleases: 0};
+    this.borderNoticePending = false; this.borderNoticeGiven = false; this.borderLogged = false;
+  }
+  // Windows is drawing its capture border around the game for these pictures: no buffer on a timer, only a picture when a turn needs one.
+  get borderShown() { try { return this.capture?.borderShown === true; } catch { return false; } }
+  // True once, after the first picture that showed the border: the game says what the yellow border is and how to stop it (keyNotice 'vision-border').
+  takeBorderNotice() {
+    if (!this.borderNoticePending || !this.active) return false;
+    this.borderNoticePending = false;
+    return true;
   }
   get active() {
     try { return this.enabled && this.isConvai() === true; } catch { return false; }
@@ -83,6 +99,8 @@ export class CompanionVision {
   // True while the helper may run: it is capturing frames.
   get capturing() {
     if (!this.active || this.conversing || this.now() - this.lastConversationAt < TAIL_MS) return false;
+    // Never on a timer while Windows shows its yellow border for a capture.
+    if (this.borderShown) return false;
     return this.near;
   }
   get near() { try { return this.isNear() === true; } catch { return false; } }
@@ -122,7 +140,7 @@ export class CompanionVision {
       if (running && this.busy === 0) {
         this.capture.stop(); this.counters.helperReleases++;
         this.log(`helper released (${!this.active ? 'setting off or another provider'
-          : this.conversing || this.now() - this.lastConversationAt < TAIL_MS ? 'conversation' : 'nobody near'})`);
+          : this.conversing || this.now() - this.lastConversationAt < TAIL_MS ? 'conversation' : this.borderShown ? 'pictures only when a turn needs one' : 'nobody near'})`);
       }
       return;
     }
@@ -374,11 +392,19 @@ export class CompanionVision {
     let result;
     try { result = await this.capture.capture(); } catch { result = {ok: false, reason: 'failed'}; }
     if (!result?.ok) {
-      if (result?.reason === 'minimised') this.counters.minimised++; else this.counters.failed++;
-      if (result?.reason !== 'minimised' || this.counters.minimised === 1) this.log(`no picture (${trigger}): ${result?.reason ?? 'failed'}`);
+      // A minimised game, or one that is not in front or has a window over it (the border-free capture sees the whole monitor, so it does not take that), is not a failure.
+      const quiet = result?.reason === 'minimised' || result?.reason === 'covered';
+      if (result?.reason === 'minimised') this.counters.minimised++; else if (result?.reason === 'covered') this.counters.covered++; else this.counters.failed++;
+      if (!quiet || this.counters[result.reason] === 1) this.log(`no picture (${trigger}): ${result?.reason ?? 'failed'}`);
       return null;
     }
     this.counters.captures++;
+    // Windows drew its yellow border around the game for this picture: from here on no timer capture (`capturing`), and the player is told once.
+    if (result.border === true) {
+      this.counters.borderCaptures++;
+      if (!this.borderNoticeGiven) { this.borderNoticeGiven = true; this.borderNoticePending = true; }
+      if (!this.borderLogged) { this.borderLogged = true; this.log(`Windows shows its capture border for these pictures (method ${result.method ?? 'unknown'}): pictures are taken only when a turn needs one`); }
+    }
     if (this.counters.captures === 1 || this.counters.captures % 100 === 0)
       this.log(`picture (${trigger}) ${result.width}x${result.height} ${result.bytes} bytes in ${Math.round(result.ms?.total ?? 0)} ms (${this.counters.captures} so far)`);
     if (this.debugDirectory) {
@@ -395,6 +421,7 @@ export class CompanionVision {
     const newest = this.frames.at(-1);
     return {enabled: this.enabled, active: this.active, transport: this.transport, frames: this.frames.length,
       newestFrameAgeMs: newest ? this.now() - newest.at : null, capturing: this.capturing, helperRunning: this.capture?.running === true,
+      captureMethod: this.capture?.method ?? null, borderShown: this.borderShown, helper: this.capture?.info ?? null,
       queued: this.queue.length, ...this.counters};
   }
   stop() { this.stageRound++; this.capture?.stop?.(); }

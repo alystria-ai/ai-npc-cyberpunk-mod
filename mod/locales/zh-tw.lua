@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "按下「確認」，即可將每項設定還原為預設值。",
     ["Local AI stopped working and was restarted."] = "Local AI 停止運作，已重新啟動。",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI 在這裡主要靠處理器運行，所以回覆會很慢。",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "黃色邊框是 Windows 正在擷取畫面。選擇 Mistral 或 Local AI 即可停止。",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "只會變更本模組的選單和提示。\n\n角色語音與你的對話語言是分開設定的。麥克風會把這個語言作為非英語語音的提示。",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral 將不再發聲；儲存金鑰之前，夥伴的回覆會以文字顯示。",
     ["Conversations go back to Convai free tier."] = "對話將改回使用 Convai（免費方案）。",

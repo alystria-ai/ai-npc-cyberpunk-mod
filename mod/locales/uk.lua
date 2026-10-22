@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Натисни «Підтвердити», щоб повернути кожен параметр до типового значення.",
     ["Local AI stopped working and was restarted."] = "Local AI перестав працювати і був перезапущений.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI тут працює переважно на процесорі, тому відповіді будуть повільними.",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Жовта рамка: Windows робить знімок. Вибери Mistral або Local AI, щоб зупинити.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Змінює лише меню та сповіщення цього моду.\n\nГолоси персонажів і мова, якою ти говориш, — окремі речі. Мікрофон використовує цю мову як підказку для мовлення не англійською.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral перестає говорити; відповіді компаньйонів показуються текстом, доки не буде збережено ключ.",
     ["Conversations go back to Convai free tier."] = "Розмови знову працюють через Convai (безкоштовний тариф).",

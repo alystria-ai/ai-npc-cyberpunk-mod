@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Premi Conferma per riportare ogni impostazione al suo valore predefinito.",
     ["Local AI stopped working and was restarted."] = "Local AI ha smesso di funzionare ed è stata riavviata.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI qui gira soprattutto sul tuo processore, quindi le risposte saranno lente.",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Il bordo giallo è Windows che mostra una cattura. Scegli Mistral o Local AI per fermarlo.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Cambia solo i menu e gli avvisi della mod.\n\nLe voci dei personaggi e la lingua in cui parli sono separate. Il microfono usa questa lingua come indizio per il parlato in lingue diverse dall’inglese.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral smette di parlare; le risposte dei compagni appaiono come testo finché non viene salvata una chiave.",
     ["Conversations go back to Convai free tier."] = "Le conversazioni tornano a Convai (piano gratuito).",

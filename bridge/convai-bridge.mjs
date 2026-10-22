@@ -592,7 +592,9 @@ const pocketLanguageNotice = new PocketLanguageNotice();
 let pocketNotice;
 const keyNotice = () => {
   pocketNotice = undefined;
-  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take() ?? (pocketNotice = pocketLanguageNotice.take())?.keyNotice;
+  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take() ?? (pocketNotice = pocketLanguageNotice.take())?.keyNotice
+    // Windows draws its yellow capture border for the "Companions can see" pictures (docs/COMPANION_VISION.md): said once, with the next reply.
+    ?? (companionVision.takeBorderNotice() ? 'vision-border' : undefined);
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.

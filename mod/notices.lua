@@ -76,6 +76,7 @@ M.catalog = {
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered (no other provider ever takes it over): say so on every attempt, not more than twice a minute
     ['local-thinking'] = {class = PLAYER, repeatS = 30},    -- the player's own model server answered with only thinking, also when asked not to think: turn thinking off there or pick another model
     ['local-context'] = {class = PLAYER, repeatS = 30},     -- the player's own model server has a context too small for the character: raise it there
+    ['vision-border'] = {class = PLAYER, repeatS = 86400},  -- Windows draws its yellow capture border for the Companions-can-see pictures (Convai): what it is and how to stop it; once per game session, with the next reply
     ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     ['local-cpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model is mostly on the processor (too little of it fits the graphics card beside the game): once per game session, with the next reply; a smaller model or the Custom provider is faster

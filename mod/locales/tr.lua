@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Her ayarı varsayılanına döndürmek için Onayla düğmesine bas.",
     ["Local AI stopped working and was restarted."] = "Local AI çalışmayı durdurdu ve yeniden başlatıldı.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI burada çoğunlukla işlemcide çalışıyor, bu yüzden yanıtlar yavaş olacak.",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "Sarı çerçeve: Windows görüntü alıyor. Durdurmak için Mistral veya Local AI seç.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Yalnızca bu modun menülerini ve bildirimlerini değiştirir.\n\nKarakter sesleri ile konuştuğun dil ayrı şeylerdir. Mikrofon, İngilizce olmayan konuşmalar için bu dili bir ipucu olarak kullanır.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral konuşmayı bırakır; bir anahtar kaydedilene kadar yoldaşların yanıtları metin olarak gösterilir.",
     ["Conversations go back to Convai free tier."] = "Konuşmalar yeniden Convai (ücretsiz plan) seçeneğine geçer.",

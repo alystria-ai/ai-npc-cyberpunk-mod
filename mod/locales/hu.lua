@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "Nyomd meg a Megerősítés gombot, hogy minden beállítás visszakerüljön az alapértelmezett értékére.",
     ["Local AI stopped working and was restarted."] = "A Local AI leállt, és újra lett indítva.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "A Local AI itt főleg a processzoron fut, ezért a válaszok lassúak lesznek.",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "A sárga keret a Windows felvételét jelzi. Leállításhoz válaszd a Mistralt vagy a Local AI-t.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "Csak ennek a modnak a menüit és értesítéseit módosítja.\n\nA karakterek hangja és a nyelv, amelyen beszélsz, külön van kezelve. A mikrofon ezt a nyelvet tippként használja a nem angol beszédhez.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "A Voxtral elnémul; a társak válaszai szövegként jelennek meg, amíg nincs mentett kulcs.",
     ["Conversations go back to Convai free tier."] = "A beszélgetések visszatérnek a Convai (ingyenes szint) szolgáltatáshoz.",

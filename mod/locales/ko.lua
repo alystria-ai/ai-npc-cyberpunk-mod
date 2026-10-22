@@ -1039,6 +1039,7 @@ return {
     ["Press Confirm to put every setting back to its default."] = "확인을 누르면 모든 설정이 기본값으로 돌아갑니다.",
     ["Local AI stopped working and was restarted."] = "Local AI가 작동을 멈춰서 다시 시작되었습니다.",
     ["Local AI runs mostly on your processor here, so replies will be slow."] = "Local AI가 여기서는 주로 프로세서에서 실행되어 응답이 느립니다.",
+    ["The yellow border is Windows showing a capture. Choose Mistral or Local AI to stop it."] = "노란 테두리는 Windows 화면 캡처 표시입니다. Mistral 또는 Local AI를 고르면 꺼집니다.",
     ["Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate. The microphone uses this language as a hint for non-English speech."] = "이 모드의 메뉴와 알림만 변경합니다.\n\n캐릭터 음성과 대화하는 언어는 별개입니다. 마이크는 영어가 아닌 음성을 인식할 때 이 언어를 힌트로 사용합니다.",
     ["Voxtral stops speaking; companion replies show as text until a key is saved."] = "Voxtral이 말하지 않게 되며, 키를 저장할 때까지 동료의 답변은 텍스트로 표시됩니다.",
     ["Conversations go back to Convai free tier."] = "대화는 다시 Convai (무료 플랜)을 사용합니다.",
