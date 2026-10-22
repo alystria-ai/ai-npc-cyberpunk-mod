@@ -1542,7 +1542,7 @@ local function schema()
         -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
         categories[#categories + 1] = category('privacy', 'Privacy', {
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
-                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed. At most twenty a day.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.'),
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.'),
         })
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,

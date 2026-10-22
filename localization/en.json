@@ -1026,7 +1026,7 @@
     "Walking commands did not release in time.": "Walking commands did not release in time.",
     "Warming up": "Warming up",
     "What to do": "What to do",
-    "When something in the mod goes wrong, a short report goes to the developer so it can be fixed. At most twenty a day.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.": "When something in the mod goes wrong, a short report goes to the developer so it can be fixed. At most twenty a day.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.",
+    "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.": "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.",
     "Where the logs are": "Where the logs are",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
@@ -1644,7 +1644,7 @@
       "Voice playback",
       "Voice volume (%)",
       "V’s voice for typed lines",
-      "When something in the mod goes wrong, a short report goes to the developer so it can be fixed. At most twenty a day.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.",
+      "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.",
       "Your typed lines are spoken out loud too, in the male or female V voice that matches yours, then the companion answers. Push-to-talk is not replayed.\n\nPocket: on your processor, about 0.2 s; it loads its own small model if the companions use another voice. Voxtral: cloud, with your Mistral key, nothing loads on your PC. OmniVoice: the companions’ GPU voice, a second more wait."
     ],
     "page.validation": [
@@ -10623,7 +10623,7 @@
         "mod/manager-ui.lua:1355"
       ]
     },
-    "When something in the mod goes wrong, a short report goes to the developer so it can be fixed. At most twenty a day.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.": {
+    "When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check and the log lines around it.": {
       "contexts": [
         "page.setting"
       ],

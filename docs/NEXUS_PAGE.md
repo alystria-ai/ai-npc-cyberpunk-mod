@@ -147,7 +147,7 @@ Yes. In the same editor page, open a story character's Voice tab (or one of your
 When something in the mod fails, or replies stay slow, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default. Turn it off in [b]Settings > Privacy > Send error reports automatically[/b].[list]
 [*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed. For slow replies: only how long each stage of a few recent replies took, and their token counts.
 [*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
-[*]At most one report per kind of error a day and twenty a day in all, kept for 30 days.
+[*]Reports are kept for 30 days.
 [/list]
 
 [b]What languages can I use?[/b]

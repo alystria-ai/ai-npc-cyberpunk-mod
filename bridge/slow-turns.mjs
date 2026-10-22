@@ -9,7 +9,7 @@
 //
 // Trigger (SLOW_TURNS): `slowInWindow` of the last `windowTurns` turns took more than `slowMs` from the bridge reading the request to the
 // first sound, or any one turn took more than `extremeMs`. One report per bridge run; the recorder and the sender add one per kind per UTC
-// day and twenty a day, and the Privacy setting.
+// day and the daily limit, and the Privacy setting.
 //
 // Left out of the trigger: a turn that failed (it is reported as `turn-failed`), a turn during which the game said it was paused (a menu or
 // a pause: the lease the game writes carries it) and the first turn after Local AI loaded its model (a cold start is slow by nature; it
