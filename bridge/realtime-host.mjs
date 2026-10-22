@@ -158,6 +158,15 @@ export const pageGone = error => /has been closed|Target closed|Target crashed|P
 // Convai closing (or failing) the realtime connection under a turn (the 'disconnect' and 'error' events of bridge/realtime-client.mjs): 4 reports in 3 days, 3 installs, 3 versions
 // (2026-10-22 report 92f464e9, "Convai realtime connection closed"). Convai's side or the player's network; a turn that had received nothing yet can be asked again on a fresh connection.
 export const connectionLost = error => /Convai realtime connection (?:closed|failed)/i.test(String(error?.message ?? ''));
+// A microphone start or turn that failed because Convai's media server or the network did not answer (LiveKit's ConnectionError, e.g. "publication of local track timed out, no
+// response from server" or "could not establish pc connection", 2026-10-22 signature 04af1621; a "Failed to fetch" at connect; or the connectionLost wording above). The player's
+// microphone is fine then, so the game says to press the voice key again instead of blaming the Windows input device. Errors that carry their own code (no sound, wrong language) are never this.
+export const microphoneConnectionFailure = error => {
+  if (!error || typeof error !== 'object' || error.code === 'MIC_SILENT' || error.code === 'STT_LANGUAGE') return false;
+  const message = String(error.message ?? '');
+  return error.name === 'ConnectionError' || connectionLost(error)
+    || /publication of local track timed out|could not establish pc connection|no response from server|^Failed to fetch(?![\w])/i.test(message);
+};
 /**
  * True when the page's diagnostics (window.convaiRealtime.diagnostics(), read right after the connection was closed) show that nothing of the reply had arrived: no text row of the character (the message events are not looked at: the player's own message may be echoed), no
  * audio packet. Unknown (no diagnostics) is false: a turn that may have been answered is never asked again, so nothing is spoken twice. Pure.

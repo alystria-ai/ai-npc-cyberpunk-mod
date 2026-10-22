@@ -153,6 +153,7 @@ return {
   ["No speech was heard. Wait for Listening, then speak before you finish."] = "音声が聞き取れませんでした - 「聞き取り中」になってから、終える前に話してください",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "マイク「{name}」から音が入っていません。Windowsの入力デバイスを確認してください。",
     ["Voice input only understands English for now. Typing works in any language."] = "音声入力は今のところ英語のみ対応です。文字入力はどの言語でも使えます。",
+    ["Voice input could not reach Convai. Press the voice key again, or type."] = "音声入力は Convai に接続できませんでした。音声キーをもう一度押すか、入力してください。",
     ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "この言語の音声入力には、MODのページにあるオプションのマイクパックが必要です。文字入力はどの言語でも使えます。",
   ["Off"] = "オフ",
   ["On"] = "オン",

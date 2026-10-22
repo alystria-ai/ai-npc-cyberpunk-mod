@@ -100,6 +100,7 @@ M.catalog = {
     ['mic-finish-hint'] = {class = PLAYER, repeatS = 10},
     ['mic-error'] = {class = PLAYER, repeatS = 15},
     ['mic-timeout'] = {class = PLAYER, repeatS = 15},
+    ['mic-connection'] = {class = PLAYER, repeatS = 15},
     ['mic-no-speech'] = {class = PLAYER, repeatS = 15},
     ['mic-silent'] = {class = PLAYER, repeatS = 15},
     ['mic-english-only'] = {class = PLAYER, repeatS = 86400}, -- voice input in another language that nothing on this setup recognises (Mistral transcription refused or not used, no multilingual pack): once per game session

@@ -24,7 +24,7 @@ import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {CompanionVision} from './companion-vision.mjs';
 import {VisionCapture} from './vision-capture.mjs';
-import {MicrophoneSession} from './microphone-session.mjs';
+import {MicrophoneSession, microphoneErrorState} from './microphone-session.mjs';
 import {createAddonVoice} from './addon-voice.mjs';
 import {startVoiceKeyStream} from './voice-key-stream.mjs';
 import {createHash, randomUUID} from 'node:crypto';
@@ -2265,14 +2265,9 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     };
     current.sync = () => !stopped && (!prepared || knowledgeRouter.currentSync(prepared));
     if (!await current()) return;
-    // A recording that held no speech is not a device fault: the game says so instead of blaming the microphone.
-    const noSpeech = /No speech was heard/.test(error?.message || '');
-    // A device that sends no sound at all is named, so the player knows which Windows input to look at.
-    const silent = error?.code === 'MIC_SILENT';
-    // No engine could recognise a recording in another language (Mistral failed and nothing local took over): the game says voice is English only for now.
-    const language = error?.code === 'STT_LANGUAGE';
-    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
-      ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), ...(language ? {reason: 'language'} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+    const {state, ...fields} = microphoneErrorState(error);
+    const noSpeech = state === 'no-speech', silent = state === 'silent', language = fields.reason === 'language';
+    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, ...fields, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
     if (!noSpeech && !silent && !language) noteTurnFailure(error, input, {microphone: true});
