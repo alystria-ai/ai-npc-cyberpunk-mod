@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {screenWords, mentions} from './text-action-words.mjs';
+import {screenWords, mentions, certainWords} from './text-action-words.mjs';
 
 const phrases = JSON.parse(await readFile(new URL('./fixtures/action-phrases.json', import.meta.url), 'utf8'));
 
@@ -53,4 +53,19 @@ test('the screen is a few microseconds, never a request', () => {
   for (let i = 0; i < 2000; i++) screenWords(line, {});
   assert.ok((performance.now() - start) / 2000 < 0.5, 'under half a millisecond a line');
   assert.equal(mentions('DRIVE', 'x'.repeat(100000)), false, 'a huge line is cut before it is scanned');
+});
+
+test('certainWords: only a bare command or a question about the character settles a line; everything else, other languages and leaves included, is the model\'s', () => {
+  const codes = ['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE'];
+  for (const [line, code] of [['drive me', 'DRIVE'], ['Judy, drive me.', 'DRIVE'], ['hey, take the wheel!', 'DRIVE'], ['please follow me', 'FOLLOW'], ['Come with me.', 'FOLLOW'], ['attack him', 'FIGHT'], ['Take them out', 'FIGHT']])
+    assert.deepEqual(certainWords(line, {codes}), {code, argument: ''}, line);
+  for (const line of ['do you know how to drive?', 'did you ever fight in the pits?', 'Have you ever followed anyone home?'])
+    assert.deepEqual(certainWords(line, {codes}), {none: true}, line);
+  for (const line of ["Why don't you drive?", 'How about you take the wheel?', 'Are you coming with me?', 'Why not follow me?', 'Can you drive me?', 'could you follow me', "I'm gonna need a ride to the marker.",
+    'drive me to the waypoint', 'drive me. now.', 'Follow me. Do you know the way?', 'do you know how to drive me there?', 'do you know how to drive', "Why don't you go home?", 'I work alone.', 'I think I am better off solo.',
+    'My job here is done.', 'I chod\u017a za mn\u0105', 'I chodz za mna', 'Fahr mich', '\u0432\u0435\u0434\u0438 \u043c\u0435\u043d\u044f', '', 'x'.repeat(200)])
+    assert.equal(certainWords(line, {codes}), null, line);
+  assert.equal(certainWords('drive me', {codes: ['FIGHT']}), null, 'an action the game did not offer');
+  assert.equal(certainWords('drive me', {codes, found: ['DRIVE', 'LEAVE']}), null, 'a leave among the words always goes to the model');
+  assert.equal(certainWords('go home', {codes}), null);
 });

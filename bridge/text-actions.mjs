@@ -21,7 +21,7 @@
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
 import {parseDriveUnavailable, SEATED_MODES} from './companion-actions.mjs';
-import {screenWords, explicitRequest} from './text-action-words.mjs';
+import {screenWords, explicitRequest, certainWords} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
 
@@ -141,6 +141,8 @@ export function actionMenu(offer) {
       const code = explicitRequest(text, {codes: rows.map(row => row.code)});
       return code && rows.some(row => row.code === code) ? {code, argument: ''} : null;
     },
+    /** What the words settle with no model (bridge/text-action-words.mjs certainWords): {code, argument}, {none: true} or null. */
+    settle: (text, found) => certainWords(text, {codes: rows.map(row => row.code), found}),
     notes(code) {
       const row = rows.find(item => item.code === code);
       const head = row ? `GAME ACTIONS: ${row.tell}: agree in your own words, in one or two short sentences, and promise nothing more. Never speak of codes or the game.`

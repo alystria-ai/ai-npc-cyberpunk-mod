@@ -139,6 +139,35 @@ const BARE = {FIGHT: 'attack|fight',
 const explicitPatterns = Object.fromEntries(Object.entries(EXPLICIT).map(([code, phrase]) =>
   [code, new RegExp(`${EXPLICIT_LEAD}(?:${phrase}(?:\\s+[^\\s]+){0,7}${BARE[code] ? `|${BARE[code]}` : ''})$`, 'i')]));
 
+// ---- What the words settle without a model (a route that serves one request at a time) ---------------------------------------------------
+//
+// Narrower than explicitRequest and guess on purpose: a wrong answer here is not a second reply but a missed action or a ride nobody asked for, and the model is not asked
+// afterwards. So only a line that is nothing but a command, or nothing but a question about the character, counts; English only (plain ASCII, so "I" in Polish or Czech
+// is never read as English); questions, suggestions ("why don't you drive?", "how about you take the wheel"), remarks and anything that sends a companion away always go
+// to the model.
+const BARE_COMMAND = {
+  DRIVE: String.raw`drive (?:me|us|for me|for us)|take the wheel|give (?:me|us) a (?:ride|lift)`,
+  FIGHT: String.raw`attack(?: (?:him|her|them))?|kill (?:him|her|them)|take (?:him|her|them) (?:out|down)`,
+  FOLLOW: String.raw`follow (?:me|us)|come with (?:me|us)|come along|tag along`,
+};
+const bareCommands = Object.fromEntries(Object.entries(BARE_COMMAND).map(([code, phrase]) =>
+  [code, new RegExp(String.raw`^(?:(?:hey|ok|okay|alright|now|come on|please)[,\s]+)*(?:[A-Za-z]{2,20},\s*)?(?:please\s+)?(?:${phrase})(?:\s+please)?[.!]?$`, 'i')]));
+// A question about the character herself, in a few shapes that cannot be a request: "do you know how to drive?", "did you ever fight in the pits?", "have you ever ...".
+const ABOUT_HER = /^(?:do|did|does|have|has) you (?:ever|know how to|know what|remember|still|really)\b[^?!.]{0,100}\?$/i;
+const ASCII_LINE = /^[\x20-\x7e]{1,160}$/;
+
+/**
+ * {code} when `text` is only a plain command for one offered action (DRIVE, FIGHT or FOLLOW, never a leave), {none: true} when it is only a question about the character,
+ * else null (the model decides). `codes`: the offered codes of the turn; a leave among the words the screen found (`found`) always sends the line to the model.
+ */
+export function certainWords(text, {codes, found = []} = {}) {
+  const line = String(text ?? '').replace(/\s+/g, ' ').trim();
+  if (!ASCII_LINE.test(line) || found.includes('LEAVE')) return null;
+  for (const code of Object.keys(bareCommands)) if (codes?.includes(code) && bareCommands[code].test(line)) return {code, argument: ''};
+  if (ABOUT_HER.test(line) && !/\b(?:take me|drive me|follow me|come with me|me there|us there)\b/i.test(line)) return {none: true};
+  return null;
+}
+
 /**
  * The one offered code (of `codes`) that `text` plainly asks for in a sentence of its own, or null (no match, several actions, or nothing offered).
  * Only DRIVE, FIGHT and FOLLOW: a leave is never guessed.

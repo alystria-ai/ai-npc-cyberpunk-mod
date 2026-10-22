@@ -602,8 +602,9 @@ export class TextProviderHost {
     const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
     // A route that serves one request at a time (`parallel: false`: the local AI, a model server the player runs) cannot write the reply while the decision is read: the
     // decision is a whole request in front of the reply, and it also replaces the persona in the slot (the next reply then reads the persona again). There the model is
-    // asked only when the words cannot settle it: a plain request ("drive me", "follow me") is read from the words (the game still checks the exact offer), and a
-    // question about the character ("do you know how to drive?") is plain talk. Everything else is decided by the model as before.
+    // asked only when the words certainly settle it (bridge/text-action-words.mjs certainWords): a line that is nothing but a command ("drive me", "follow me"; the game still
+    // checks the exact offer), or nothing but a question about the character herself ("do you know how to drive?"). Questions, suggestions, remarks, dismissals and every
+    // other language are decided by the model as before.
     const serial = maybe.length > 0 && this.routes[this.provider.route]?.parallel === false;
     const byWords = serial ? this.#settleByWords(menu, text, maybe) : null;
     const deciding = maybe.length && !byWords ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
@@ -800,16 +801,15 @@ export class TextProviderHost {
   }
 
   /**
-   * What V's words settle without a model request, for a route that answers one request at a time: a plain request ("drive me", "follow me", "attack him";
-   * bridge/text-action-words.mjs explicitRequest) is the decision `{code, argument}`; a question about the character or a remark that asks nothing of her
-   * (menu.guess says 'NONE') is `{none: true}`; anything else is null (the model decides). A plain request wins over the question guess, so "Follow me. Do you
-   * know the way?" still starts the walk. Never a leave. Never throws.
+   * What V's words certainly settle without a model request, for a route that answers one request at a time (bridge/text-action-words.mjs certainWords): a line that
+   * is only a command ("drive me", "follow me", "attack him") is the decision `{code, argument}`; a line that is only a question about the character herself is
+   * `{none: true}`; anything else is null (the model decides). Never a leave. Never throws.
    */
   #settleByWords(menu, text, maybe) {
     try {
-      const plain = menu.explicit?.(text) ?? null;
-      if (plain) { this.log(`action ${plain.code}: V's words ask for it plainly, no decision asked (one request at a time)`); return plain; }
-      if (menu.guess(text, maybe) === 'NONE') return {none: true};
+      const settled = menu.settle?.(text, maybe) ?? null;
+      if (settled?.code) this.log(`action ${settled.code}: V's words are only that command, no decision asked (one request at a time)`);
+      return settled;
     } catch { /* the model decides */ }
     return null;
   }
