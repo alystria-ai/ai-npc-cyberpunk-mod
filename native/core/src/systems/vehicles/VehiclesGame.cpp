@@ -21,8 +21,8 @@ using namespace convai::vreflect;
 // Lua: TweakDBID.new('Vehicle.v_standard3_thorton_mackinaw_ncu_player'), computed at compile time.
 constexpr RED4ext::TweakDBID kMackinaw(kMackinawRecord);
 
-// One slot per call site; the car classes differ (bike, car, truck) but each call site sees mostly
-// one class, and a different class re-resolves.
+// One slot per call site, each holding a few (class, function) pairs: the mounting check asks the car, the
+// NPC and the player in turn every frame, and a single remembered class would re-resolve on each change.
 Slot g_attached, g_isVehicle, g_destroyed, g_ai, g_recordId, g_record, g_package, g_seatSet, g_seats, g_seatName,
     g_hasSlot, g_entityId, g_reserved, g_velocity, g_gap, g_playerMounted, g_scene, g_mountObjects, g_mountIds;
 

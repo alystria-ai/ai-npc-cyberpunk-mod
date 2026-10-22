@@ -85,18 +85,31 @@ CBaseFunction* Find(Slot& aSlot, RED4ext::IScriptable* aInstance, const char* aN
     {
         return nullptr;
     }
-    if (aSlot.resolved && aSlot.type == type)
+    for (const Slot::Entry& entry : aSlot.entries)
     {
-        return aSlot.function;
+        if (entry.type == type)
+        {
+            return entry.function;
+        }
     }
     CBaseFunction* function = FindMember(type, aName, aParamCount);
-    if (function)
+    Slot::Entry* entry = nullptr;
+    for (Slot::Entry& candidate : aSlot.entries)
     {
-        aSlot.type = type;
-        aSlot.function = function;
-        aSlot.resolved = true;
+        if (!candidate.type)
+        {
+            entry = &candidate;
+            break;
+        }
     }
-    else if (FirstMiss(std::string(type->GetName().ToString()) + "." + aName))
+    if (!entry)
+    {
+        entry = &aSlot.entries[aSlot.next];
+        aSlot.next = (aSlot.next + 1) % Slot::kEntries;
+    }
+    entry->type = type;
+    entry->function = function;
+    if (!function && FirstMiss(std::string(type->GetName().ToString()) + "." + aName))
     {
         CONVAI_WARN("Vehicles: no member %s with %u parameters on %s (has: %s)", aName,
                     static_cast<unsigned>(aParamCount), type->GetName().ToString(), Candidates(type, aName).c_str());

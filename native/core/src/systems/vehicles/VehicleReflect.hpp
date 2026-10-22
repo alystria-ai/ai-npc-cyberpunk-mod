@@ -23,14 +23,24 @@ namespace convai::vreflect
 {
 using Object = convai::game::Object;
 
-// A resolved function for one call site, valid for one instance class. The lookup walks the class
-// hierarchy and a hit is cached, so a call site costs one lookup per class per session. A miss is
-// not cached (the scripts may not have finished loading); it is logged once per name and class.
+// The resolved functions of one call site, one entry per instance class it has met. A call site is
+// often asked about several classes in turn (the mounting check alternates car, NPC and player every
+// frame while V rides with a companion), and each new class costs a walk over its whole class chain
+// (about 1,500 functions, a name lookup and compare each). So a site keeps a few (class, function)
+// pairs, and a class it has already resolved is one pointer compare. A miss is kept too (function
+// null): the scripts are loaded by the time any native runs, so the answer for a class does not change
+// within a session, and an optional function that a class lacks is not searched for again on every
+// sample. When all entries are taken the oldest is replaced.
 struct Slot
 {
-    RED4ext::CClass* type = nullptr;
-    RED4ext::CBaseFunction* function = nullptr;
-    bool resolved = false;
+    static constexpr unsigned kEntries = 6;
+    struct Entry
+    {
+        RED4ext::CClass* type = nullptr;
+        RED4ext::CBaseFunction* function = nullptr; // null: this class has no such function
+    };
+    Entry entries[kEntries];
+    unsigned next = 0; // the entry to replace when none is free
 };
 
 // The member function aName of the instance's class chain that takes exactly aParamCount parameters.
