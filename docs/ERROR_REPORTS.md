@@ -19,7 +19,7 @@ When the mod hits an error, it sends a small, redacted error report to the proje
 
 **How often:** at most one report per kind of error per day, and at most five a day in all. Reports are sent in the background, a little after the error, never while a character is answering, and the mod never retries them in a loop.
 
-**The notice.** The first time you load the game after updating, a notice says once that error reports are sent and where to turn them off. Nothing is sent before the game has shown it (reports queue locally until the notice is marked in `settings.json`), and a settings file that cannot be read is never treated as on: nothing is recorded or sent, and the queue is kept.
+**The notice.** The first time you load the game after updating, a notice says once that error reports are sent and where to turn them off. Nothing is sent before the game has shown it (reports queue locally until the notice is marked in `settings.json`), and a settings file that cannot be read is never read as an opt-in either: while it is unreadable the service records nothing, sends nothing and deletes nothing. The game then treats it like a fresh install (the setting is not saved off for it, so the player's other choice is not invented): the notice is shown and marked again, the queue is kept, and nothing is sent until that has happened.
 
 **Where they go:** to the mod's own backend on Vercel (the same one that hands out the free tier's sign-in), stored for 30 days, readable only with the developer's admin secret.
 
