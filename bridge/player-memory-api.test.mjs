@@ -240,3 +240,10 @@ test('with the own Convai key of a player memory is not edited, cleared or inspe
   assert.ok(calls.length > 0 && calls.every(call => call.headers['CONVAI-API-KEY'] === 'credential-secret'));
   assert.throws(() => api.use({key: ''}), {code: 'INVALID_CONFIGURATION'});
 });
+
+test('every call to Convai refuses a redirect: fetch would forward the CONVAI-API-KEY or API-AUTH-TOKEN header to another host', async () => {
+  const {api, calls} = fake(standard);
+  await api.inspectMemory(pair).catch(() => {});
+  assert.ok(calls.length > 0, 'a call was made');
+  for (const call of calls) assert.equal(call.redirect, 'error', call.endpoint);
+});

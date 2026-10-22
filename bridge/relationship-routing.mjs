@@ -220,7 +220,7 @@ export class RelationshipRouting {
   }
   /** Canonical invitation interface; all later preparation uses the captured
    * ID's key, never a setting that may have changed while awaiting the provider. */
-  invitationMemory(memory, getBoundary) {
+  invitationMemory(memory, getBoundary, localOnly = () => false) {
     const captured = options => ({...options, profileKey: this.providerKeyForGuard(options.profileKey, options.guard)});
     return {
       route: (profileKey, options) => {
@@ -228,7 +228,8 @@ export class RelationshipRouting {
         if (selected.status !== 'ready') fail('RELATIONSHIP_NOT_READY');
         return memory.route(selected.providerProfileKey, options);
       },
-      prepareCharacter: options => memory.prepareCharacter(captured(options)),
+      // A non-Convai text provider (Local AI, Mistral, Custom) never touches Convai's REST API: Local never goes to the cloud.
+      prepareCharacter: options => memory.prepareCharacter({...captured(options), localOnly: localOnly() === true}),
       connectionRefreshRequired: options => memory.connectionRefreshRequired(captured(options)),
       acknowledgeConnectionRefresh: options => memory.acknowledgeConnectionRefresh(captured(options)),
       isCurrent: guard => memory.isCurrent(guard),

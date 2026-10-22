@@ -190,7 +190,7 @@ test('the payload holds the timings and the usual log tail, no text, and goes to
   const world = createErrorWorld();
   try {
     await writeFile(join(f.state, 'bridge.stderr.log'), ['[LocalTurn] ok: first word 346 ms, 50 pieces, prompt 322 new + 4579 cached tokens | model x', 'player said: "turn left at the big red sign now"'].join('\n'));
-    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({conversationProvider: 'local', voiceProvider: 'pocket', localModel: 'auto'}));
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({conversationProvider: 'local', voiceProvider: 'pocket', localModel: 'auto', errorReportsNoticed: true}));
     const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => world.clock.now, defer: fn => fn()});
     events.slowTurns(sample());
     await new Promise(done => setTimeout(done, 100));

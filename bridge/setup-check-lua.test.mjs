@@ -238,7 +238,16 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('gpu').description == 'NVIDIA GeForce RTX 3060, 12 GB of video memory.')
   -- Scripts and Runtime of different versions
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
-  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. Download both for the same version and extract them into the Cyberpunk 2077 folder.')
+  -- the Scripts are the older one: update whichever is older, the Scripts from Nexus Mods
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'Scripts 0.2 and Runtime 0.2.1 do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.')
+  -- the Runtime is the older one (nearly every report): its update zips from the Hugging Face updates folder one by one, starting from the version the player has, or the full Runtime. No version number in the instruction.
+  answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}}); check.run()
+  local older = lineOf('versions').description
+  assert(older == 'Scripts 0.2.8 and Runtime 0.2.4 do not match: the Runtime is out of date. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.', older)
+  assert(not older:sub(older:find('out of date')):find('%d%.%d'), 'no version number after the status')
+  answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.10', runtime = '0.2.9'}}); check.run()
+  assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
+  answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
   -- a version check that could not be made shows no line
   answer({versions = {id = 'versions', state = 'unknown', code = 'unknown'}}); check.run()
@@ -476,7 +485,9 @@ test('Audioware that Cyber Engine Tweaks sees while the scripts were built witho
 test('the first load names Scripts and Runtime of different versions, a pack one folder too deep and a blocked connection', () => {
   const cases = [
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}`,
-      'The Scripts and Runtime versions do not match. Install the same version of both.'],
+      'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}`,
+      'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.'],
     ['packs', `{id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'OmniVoice', folder = 'x'}}, moved = {}}`,
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,

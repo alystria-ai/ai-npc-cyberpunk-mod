@@ -714,9 +714,9 @@ local function expressionTrack(timeline)
     end
     return value.keys
 end
-local function sampleTrack(keys,t)
+local function sampleTrack(keys,t,out)
     local first,last=keys[1],keys[#keys]
-    local out={}
+    out=out or {}
     if t<=first[1] then for i=1,#mixFamilies do out[i]=first[i+1] end return out end
     if t>=last[1] then for i=1,#mixFamilies do out[i]=last[i+1] end return out end
     local at=1
@@ -1364,6 +1364,7 @@ end
 local function clear()
     M.active, M.requestId, M.timeline, M.feature, M.lastPosition = false, nil, nil, nil, nil
     M.segment, M.generation = nil, nil
+    M.speakerActor, M.speakerAt = nil, nil -- no game handle outlives the reply
     M.continuous, M.timelineChanged = nil, nil
     M.localMotion, M.localPose, M.localPosePosition = nil, nil, nil
     M.providerExpressions=nil
@@ -1620,10 +1621,24 @@ function M.pause(actor)
     M.state, M.lastPosition = 'paused', nil
 end
 
-function M.sync(actor, position, requestId)
-    if not M.active or requestId ~= M.requestId then return end
-    local ok, err = pcall(function()
-        assert(speaker(actor), 'Facial playback owner changed')
+-- The speaker proof (a plugin call, or five game calls without the plugin) is kept for SPEAKER_HOLD seconds for the same actor,
+-- reply and entity: who is speaking cannot change faster than that, and speech.lua tests the actor itself at 10 Hz.
+local SPEAKER_HOLD = .1
+local function speakerHeld(actor)
+    local clock = os.clock()
+    local at = M.speakerAt
+    if at and clock >= at and clock - at < SPEAKER_HOLD and M.speakerActor == actor
+        and M.speakerRequest == M.requestId and M.speakerEntity == M.entity then return true end
+    if not speaker(actor) then M.speakerAt = nil; return false end
+    M.speakerActor, M.speakerRequest, M.speakerEntity, M.speakerAt = actor, M.requestId, M.entity, clock
+    return true
+end
+-- Scratch tables of one frame's provider and upper-face samples: applyFeature reads them during the call and keeps no reference.
+local providerScratch, upperScratch = {}, {}
+-- One frame of a speaking face. A module-level function called through pcall, so a reply frame builds no closure.
+local function syncFrame(actor, position)
+    do
+        assert(speakerHeld(actor), 'Facial playback owner changed')
         assert(finite(position) and position >= 0, 'Invalid audio cursor')
         local continuousEnd = M.continuous and position >= M.timeline.duration
         if continuousEnd and M.timeline.complete then M.stop(actor, 'finished'); return end
@@ -1695,15 +1710,20 @@ function M.sync(actor, position, requestId)
         local provider
         if M.providerExpressions then
             local a,b=M.providerExpressions[M.index],M.providerExpressions[M.index+1]
-            provider={};for i=2,10 do provider[i-1]=a[i]+(b[i]-a[i])*alpha end
+            provider=providerScratch;for i=2,10 do provider[i-1]=a[i]+(b[i]-a[i])*alpha end
         end
         local upper
         if M.modelExpressions then
             local a,b=M.modelExpressions[M.index],M.modelExpressions[M.index+1]
-            upper={raise=a[2]+(b[2]-a[2])*alpha,lower=a[3]+(b[3]-a[3])*alpha}
+            upper=upperScratch;upper.raise,upper.lower=a[2]+(b[2]-a[2])*alpha,a[3]+(b[3]-a[3])*alpha
         end
         local mix
-        if M.expressionTrackKeys then mix=sampleTrack(M.expressionTrackKeys,position) end
+        if M.expressionTrackKeys then
+            -- The slot keeps the last sampled mix between phrases (holdMix), so each speaker's slot owns its table.
+            local slot=expressionSlot(M.entity)
+            slot.mixScratch=slot.mixScratch or {}
+            mix=sampleTrack(M.expressionTrackKeys,position,slot.mixScratch)
+        end
         -- A phrase start just heard (an occasional boundary blink); a separate phrase's last .35 s holds no new
         -- blink, since the face holds its last frame until the next phrase's audio starts.
         local boundary=false
@@ -1717,7 +1737,12 @@ function M.sync(actor, position, requestId)
         M.timelineChanged = nil
         M.state = position >= M.timeline.duration and 'holding-boundary' or 'playing'
         M.applied = M.applied + 1
-    end)
+    end
+end
+
+function M.sync(actor, position, requestId)
+    if not M.active or requestId ~= M.requestId then return end
+    local ok, err = pcall(syncFrame, actor, position)
     if not ok then M.error = tostring(err); M.stop(actor, 'error') end
 end
 
@@ -1747,6 +1772,7 @@ local FACE_REASONS = {
     {'^skipped:no%-record$', 'the character has no readable record, left to the game'},
     {'^skipped:dialogue$', 'the character is in a game dialogue'},
     {'^skipped:driven$', 'a quest or a scene commands this character'},
+    {'^skipped:staged$', 'a quest-marked character at a workspot while V is in a scene or staged gameplay, so a scene may be playing'},
 }
 function M.faceStatusReason(status)
     if type(status) ~= 'string' or status == '' then return nil end

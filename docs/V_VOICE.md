@@ -18,8 +18,9 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
    is your own voice, not a game utterance. Its words are shown as **V's subtitle** (below).
 3. When the companion's reply is ready, its audio waits (silently, buffered) only while V's line is still playing, then starts.
    The two never overlap.
-4. **If V's line is not audible yet when the reply is ready, the reply waits for V's first audio for at most 600 ms (the grace,
-   below), then V's line is dropped** and the reply goes on at once. Before 2026-10-19 V was dropped the moment the reply was ready.
+4. **If V's line is not audible yet when the reply is ready, the reply waits for V's first audio (30 s at most, below) and then follows V's
+   line.** A line is never dropped for being slow or long (2026-10-22; before that 600 ms, and a line of ten words or more was dropped the
+   moment the reply was ready). Before 2026-10-19 V was dropped the moment the reply was ready.
    The first line after a cold start used to be lost for this reason (the voice has to be prepared once); the voice is now prepared
    before the first line (below), and the composer warms the renderer page when it opens.
 
@@ -58,6 +59,14 @@ from audible was lost like one that was seconds away.
   (`VHelperVoice.onReady`, `VoiceSelection` option `onVHelperReady`, `warmUp({page: false})`): no renderer page is opened for this, and
   nothing runs per frame. With "Keep prepared voices" on, the worker also saves the prepared voice to disk, so later sessions pay almost
   nothing. The preparation runs in the below-normal-priority worker process, never on the game's thread.
+- **Superseded 2026-10-22: the wait is for a stuck line, not a slow one (`V_GRACE_MS`, 30 s).** The player typed the line and waits to hear it,
+  so the reply waits for V's first audio and follows V's end; a line is given up (`slower-than-reply`) only when it has still given no audio
+  30 s after the reply was ready, which is a wedged worker or a connection that never answered (the engines' own limits fail a line sooner: Voxtral
+  5 s and 6 s, a Pocket render with no new chunk for 60 s). The rescue budget below is gone (a line of ten words or more was dropped at once, the
+  same line audible a millisecond earlier held the reply for its whole length), and the companion's own voice request no longer stops V's
+  unfinished line on the worker the two share (`reply-voice-started`): it waits behind V there and speaks after V. Measured first audio is p50 0.2 s,
+  p90 0.7 s, so the common case is unchanged. `CYBERPUNK_CONVAI_V_GRACE_MS` sets the guard (0 restores the instant drop, at most 120000). The text
+  below is the history of the 600 ms version.
 - **A bounded grace instead of an instant drop (`V_GRACE_MS`, 600 ms).** The first time the reply asks while V is not audible, the
   reply's publish and sound are held and a timer starts; V becoming audible inside it plays as usual (the reply then follows V's end), the
   timer running out drops V (`slower-than-reply`, `waitedMs` in the line's summary), and the reply goes on. Later asks never extend it.
@@ -134,7 +143,7 @@ the sections below that still describe "the voice you already chose" are history
 | **OmniVoice** (2026-10-21) | One more job on the **companions' own OmniVoice worker** (see "V on OmniVoice" below); only offered while OmniVoice is the companions' voice | Nothing extra |
 
 Not offered: the Convai voice (it cannot clone). Pocket and Voxtral are independent of the companions' voice, so every mix works for them; OmniVoice for V needs OmniVoice
-companions (and the pack), otherwise a saved OmniVoice reads as Pocket.
+companions (and the pack), otherwise a saved OmniVoice reads as Pocket. That includes an OmniVoice that has fallen back for the session (out of graphics memory, or no CUDA): V reads as Pocket then and speaks with the Pocket worker the companions already have (or, with no CUDA, V's own Pocket worker on the CPU), instead of staying silent (review 2026-10-22, A3). Choosing OmniVoice again in the Voices row after a memory failure tries it once more; no CUDA stays.
 Pocket is English only: a turn in another language gets no V line (subtitle still shows). Voxtral speaks the language of the line for the languages its model lists (Voxtral TTS 3, 22; `bridge/voxtral-languages.mjs`), so a V line in French or Japanese is spoken; a language it does not list gets no V line, as before (one log line).
 
 **What the choice does to the pipeline.**
@@ -197,11 +206,11 @@ the stage clock, not live ones; the live check below gives the real figures.
 
 ## V voice mods and V's own clip (2026-10-22, branch `feat/v-voice-mods`)
 
-Nexus has mods that replace V's English voice-over completely. V's typed-line voice follows them with no setup, and a player can also give V a clip of their own. **Which reference V is cloned from, strongest first:** (1) the player's own clip for V (Edit characters > the two "V" rows), (2) the reference built from an installed V voice mod, (3) the shipped reference. It is per gender (a mod of the male V changes `v-male` only), and the three engines (Pocket, OmniVoice, the Mistral voice) all follow, because V's line always asks for the voice keys `v-male` and `v-female`.
+Nexus has mods that replace V's English voice-over completely. V's typed-line voice follows them with no setup, and a player can also give V a clip of their own. **Which reference V is cloned from, strongest first:** (1) the player's own clip for V (Edit characters > the two "V" rows), (2) the reference built from an installed V voice mod, (3) the shipped reference. **In a language that has a voice language pack** the order is: the player's own clip, then the V voice mod's reference, then the pack's V clip (the game's own dub of V in that language), then the shipped reference: a V voice mod's reference is kept in every language (`keepsReference` in `bridge/convai-bridge.mjs`, read by `VoiceSelection.hasPlayerClip` and `VoxtralVoice.languageEntry`), so V's voice does not change with the reply's language. It is per gender (a mod of the male V changes `v-male` only), and the three engines (Pocket, OmniVoice, the Mistral voice) all follow, because V's line always asks for the voice keys `v-male` and `v-female`.
 
 **Detection (bridge/v-voice-mods.mjs, bridge/rdar.mjs).** A voice mod is one `.archive` whose index holds the hashes (FNV-1a 64 of the lower-case depot path) of V's own English lines, `base\localization\en-us\vo\v_<scene>_<f|m>_<id>.wem` and the same under `ep1`. `assets/v-voice/v-mod-lines.json` (shipped as `voices/v-voice/v-mod-lines.json`) lists the lines of the shipped reference, spare lines, and 300 sampled V line hashes per gender. An archive is a V voice mod for a gender when it holds at least 25 % of that sample and at least three of the listed lines. Archives are looked for in `archive/pc/mod` (subfolders too) and REDmod's `mods/<name>/archives`, in the order the game loads them (`archive/pc/mod` alphabetically, then the REDmod mods alphabetically). With two V voice mods for one gender the last one wins, and the log says so (`2 mods replace V's female voice (a.archive, b.archive); the last in load order wins: b.archive`; the order is the game's as far as it is known, to be confirmed in game). One archive costs about 20 ms (its index, never the audio), a folder of 21 archives 50 ms, and every later start about 10 ms: the result is cached by archive path, size and time in `<state>/v-voice-mods-cache.json`.
 
-**When it runs.** Once, at service start (`loadVVoiceReferencesWithMods`, before the voice configurations are merged), in the bridge process: never in the game, never during a reply or per frame. Nothing is asked of the player and there is no setting (`CYBERPUNK_CONVAI_V_VOICE_MODS=off` is a developer's switch). The mods replace the English voice-over only: the game's voice-over language is read from its own `UserSettings.json` (`%LOCALAPPDATA%\CD Projekt Red\Cyberpunk 2077`, group `/language`, `VoiceOver`); if it is not English the mods are ignored with one log line (`V voice mods are ignored: the game's voice-over language is fr-fr, ...`). A file that cannot be read counts as English.
+**When it runs.** At service start only the references an earlier scan built are read (`loadVVoiceReferencesWithMods` with `scan: false`: two small files per gender, no archive listing, no process, so the ready signal waits for nothing). The scan itself runs once per session, in the background about 20 s after the first settings poll that finds V's voice on (never with V's voice Off), in the bridge process: never in the game, never during a reply or per frame. What it changes (a mod installed, swapped or removed) is copied to where the workers read it and applied to the running voices with no restart (`LiveVoices`, the player's own clip still wins). **A build that fails is remembered** in the manifest by archive name, size, modification time and line-list digest, so it is not retried at every start (a missing decoder is not remembered); a line that cannot be decoded is skipped and a spare line used, and a decoder that fails three lines in a row ends the build; and when a new mod's build fails the older mod's reference is removed, so V speaks with the shipped clip and the log says so. Nothing is asked of the player and there is no setting (`CYBERPUNK_CONVAI_V_VOICE_MODS=off` is a developer's switch). The mods replace the English voice-over only: the game's voice-over language is read from its own `UserSettings.json` (`%LOCALAPPDATA%\CD Projekt Red\Cyberpunk 2077`, group `/language`, `VoiceOver`); if it is not English the mods are ignored with one log line (`V voice mods are ignored: the game's voice-over language is fr-fr, ...`). A file that cannot be read counts as English.
 
 **Building (bridge/v-voice-mod-reference.mjs).** The first time a mod is seen (and again when its archive changes) V's reference is built from the lines the mod holds, the same recipe as the shipped English clip: the three picks (spare lines when a pick is missing), left channel only when decorrelated, polyphase resample to 24 kHz (identical to scipy's), trim below -45 dBFS with 80 ms margin, 0.4 s gaps, no EQ, denoise or gain, loudness of the clips within 2 dB, 8 to 20 s in all. It is kept in `<state>/v-voice-mod/` (`v-voice.json` in the shape of `assets/v-voice` plus `source`, and `v-male.wav` / `v-female.wav`); the manifest's `source` (archive, size, time) tells later starts the reference is current, a gone mod removes it. A line stored compressed (Oodle) is skipped with one log line: the audio of the game and of the mods we know is stored as is, and reading compressed lines is not built. **The decoder** is vgmstream-cli, shipped in the Runtime under `app/vgmstream/` (11 files, 8.1 MB, see docs/PACKAGING.md and THIRD_PARTY_NOTICES.md): Wwise Vorbis is not readable by ffmpeg, soundfile or PyAV. It runs once per decoded line (about three), each process exits when its line is done, and nothing stays resident. Without the decoder nothing is built, one log line says so, and V keeps the shipped voice.
 
@@ -250,10 +259,11 @@ Latency is as important as FPS here, so V never stands in front of anything:
 - The companion's audio is held with the existing `hold` of the continuous speech (the one a look-ahead uses): the renderer
   keeps buffering and gets the quiet control, nothing is published to the game, so the subtitle and the face start exactly when
   the companion's voice does. A reply published as a whole (OmniVoice) waits in `publishResult` for the same signal.
-- "Audible" means the V renderer holds audio. If the reply is ready first, the reply waits for V's first audio for the grace (600 ms)
-  and V is then dropped (2026-10-19; before, on the spot).
-- Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the
-  turn's stage clock) and V's line is still waiting for its first audio, V is stopped so it is not in front of the reply's voice.
+- "Audible" means the V renderer holds audio. If the reply is ready first, the reply waits for V's first audio (up to the 30 s guard, 2026-10-22; it
+  was 600 ms and then a drop).
+- Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the turn's stage
+  clock) and V's line is still waiting for its first audio, the request waits its turn behind V's line on the shared worker (2026-10-22: V is no
+  longer stopped for it), and the companion speaks after V.
   A line that is already audible keeps going (the companion cannot be heard before it ends anyway). The cloud voices share no
   worker, so they are not stopped this way, and neither is a line spoken by the OmniVoice companions' helper Pocket worker (a
   different process on the CPU). (OmniVoice cannot cancel a render that has started, which is why V's engine Pocket is spoken by a

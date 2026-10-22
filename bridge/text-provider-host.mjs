@@ -22,7 +22,7 @@ import {survivingLoss} from './local-server-recovery.mjs';
 import {SLOW_TURNS} from './slow-turns.mjs';
 import {noThinkingFields} from './reasoning.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
-import {budgetedChat, PrefillMeter, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateTokens, describeFit, coldAttemptRoomMs} from './prompt-budget.mjs';
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
@@ -237,8 +237,17 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
     // A model with so few layers on the card that the CPU does the work (the 'local-cpu' notice) starts with the compact character text: its first turn would read the whole
     // text at a rate the machine is known to have (36 to 220 tokens a second), 2,000 tokens more than it needs, and run out of the turn's time (2026-10-21 report).
-    if (!speeds.has(speedKey)) { const before = lastSpeed; speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, compact: before?.compact === true || handle.cpuBound === true})); }
-    return speeds.get(speedKey);
+    // A model that follows another one on this computer (a step down to a smaller model when the card is too small beside the game, a changed choice) starts from the reading the load before had
+    // while it is recent and slow, and from the compact text when that reading is below the compact threshold: it is the same card with the same game on it (2026-10-22 report: Bonsai after Qwen
+    // on the CPU read 8,821 tokens whole, at about 100 tokens a second, and ran out of the 75 s). A model that reads fast again is measured fast within two turns.
+    if (!speeds.has(speedKey)) {
+      const before = lastSpeed, carry = before?.carry?.() ?? null;
+      speeds.clear();
+      speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true, carry, compact: before?.compact === true || handle.cpuBound === true || (carry !== null && carry.rate < PREFILL.compactBelow)}));
+    }
+    const meter = speeds.get(speedKey);
+    meter.touch?.();
+    return meter;
   };
   // What a server the player runs has refused or shown about itself (bridge/mistral-client.mjs newAdaptation: a field it refuses, that it thinks and is asked for no
   // thinking from then on), per address and model id, for the session. In memory: the player may change the model behind the same address.
@@ -435,6 +444,10 @@ export function samplingBody(sampling, lease) {
   return body;
 }
 
+// An ordinary NPC that serves V (vendors, ripperdocs, bartenders, dealers): "Anything else?" is its own question and is not cut as a stock closing question (stripStockTail).
+const SERVICE_PROFILE = /^(?:npc-(?:ripperdoc|weapons-dealer|bartender|junk-dealer|market-stall|[a-z-]*vendor)-|viktor-vektor$|claire-russell$|robert-wilson$|misty-olszewski$|wakako-okada$)/;
+const QUOTED_START = /^(?:\s*\{[^{}\n]{1,24}\})*\s*["“”'‘]/;
+
 export class TextProviderHost {
   /**
    * provider    the provider state (bridge/mistral-key.mjs): `route` names the route in use, `active` whether one is
@@ -554,6 +567,8 @@ export class TextProviderHost {
    * `confirmed` (optional promise): the reply was started on words that are not final yet (a stable live-words decode, bridge/local-stt-capture.mjs).
    * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
    * (the final words differ) the reply ends there with that error and leaves no trace.
+   * `deferRecord` (optional function): called with a one-shot `commit` instead of remembering the exchange at once; the caller commits it when the
+   * reply is published and drops it otherwise, so the character never remembers lines the player did not hear.
    */
   async reply(config, options = {}) {
     try {
@@ -578,7 +593,24 @@ export class TextProviderHost {
     } catch { return null; }
   }
 
-  async #reply(config, {signal, stream, confirmed} = {}) {
+  /**
+   * The exchange the character remembers (what the player read, tags stripped), summarised afterwards. A reply the player never heard must not be
+   * remembered: nothing is recorded once the turn is cancelled. With `deferRecord` (a function, from the bridge) the exchange is handed to it as a
+   * one-shot `commit` and recorded only when the bridge publishes the reply; without it the exchange is recorded now, as before.
+   */
+  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey}) {
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
+      this.#summarize(route, profileKey);
+    };
+    if (typeof deferRecord === 'function') deferRecord(commit);
+    else if (!signal?.aborted) commit();
+  }
+
+  async #reply(config, {signal, stream, confirmed, deferRecord} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -610,7 +642,14 @@ export class TextProviderHost {
     }
     // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
     const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
-    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
+    // A route that serves one request at a time (`parallel: false`: the local AI, a model server the player runs) cannot write the reply while the decision is read: the
+    // decision is a whole request in front of the reply, and it also replaces the persona in the slot (the next reply then reads the persona again). There the model is
+    // asked only when the words certainly settle it (bridge/text-action-words.mjs certainWords): a line that is nothing but a command ("drive me", "follow me"; the game still
+    // checks the exact offer), or nothing but a question about the character herself ("do you know how to drive?"). Questions, suggestions, remarks, dismissals and every
+    // other language are decided by the model as before.
+    const serial = maybe.length > 0 && this.routes[this.provider.route]?.parallel === false;
+    const byWords = serial ? this.#settleByWords(menu, text, maybe) : null;
+    const deciding = maybe.length && !byWords ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
     // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
     // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
     const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
@@ -621,7 +660,7 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
-    const decision = deciding && !guess ? await deciding : null;
+    const decision = byWords ? (byWords.code ? byWords : null) : deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
     const chosen = decided => decided && menu.message(decided) ? decided.code : null;
     // An ordinary NPC's reaction (docs/NPC_REACTIONS.md): the reply itself decides, so its note is only one more sentence of the prompt.
@@ -656,14 +695,13 @@ export class TextProviderHost {
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
         // hard-limit guard replaced is not remembered, and neither are the words that led to it.
         if (!reaction && !outcome.guarded) {
-          this.memory.record({...memoryKey, v: text, r: stripSpeechTags(reply)});
-          this.#summarize(route, local.profileKey);
+          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey});
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
         currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
           promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
-        if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
+        if (deciding || byWords?.code) { const settled = byWords?.code ? byWords : await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
@@ -692,7 +730,7 @@ export class TextProviderHost {
           continue;
         }
         if (confirmed) await confirmed;
-        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
+        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey, signal, deferRecord});
         if (standing) return standing;
         feed.fail(error);
         throw error;
@@ -744,14 +782,14 @@ export class TextProviderHost {
     return result;
   }
 
-  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
+  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey, signal, deferRecord}) {
     if (!(error instanceof MistralError) || route.name === 'local') return null;
     const head = feed.committed ? feed.head : '';
     // A route with `holdingLines: false` (custom) never answers with a holding line: its slow answers are errors the player is told about.
     if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
-    if (head && !reaction) { this.memory.record({...memoryKey, v: text, r: stripSpeechTags(head)}); this.#summarize(route, profileKey); }
+    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey});
     this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
       : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
     markStage('replyReturned');
@@ -801,6 +839,20 @@ export class TextProviderHost {
       this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
       return this.#plainRequest(menu, text, 'decision failed');
     }
+  }
+
+  /**
+   * What V's words certainly settle without a model request, for a route that answers one request at a time (bridge/text-action-words.mjs certainWords): a line that
+   * is only a command ("drive me", "follow me", "attack him") is the decision `{code, argument}`; a line that is only a question about the character herself is
+   * `{none: true}`; anything else is null (the model decides). Never a leave. Never throws.
+   */
+  #settleByWords(menu, text, maybe) {
+    try {
+      const settled = menu.settle?.(text, maybe) ?? null;
+      if (settled?.code) this.log(`action ${settled.code}: V's words are only that command, no decision asked (one request at a time)`);
+      return settled;
+    } catch { /* the model decides */ }
+    return null;
   }
 
   /**
@@ -916,8 +968,18 @@ export class TextProviderHost {
     let recentSpoken = [];
     if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
-      // A reply that opens with a short fragment of V's own line ("Dex?") loses it, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one.
-      const shown = reaction ? splitActions(soFar, {streaming: true}).text : stripEchoOpener(splitActions(soFar, {streaming: true}).text, text, {streaming: true});
+      // A reply that opens with V's own words asked back ("Dex?") loses them, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one. Judged on the
+      // cleaned text, as the finished reply is (a speaker label or a *stage direction* before the echo must not hide it from the stream, or the voice would start on it and the finished reply,
+      // which no longer starts with that head, would be cut back to it).
+      const plain = splitActions(soFar, {streaming: true}).text;
+      let shown = plain;
+      if (!reaction) {
+        const cleanedSoFar = cleanReply(plain, {name: persona.name, isTag});
+        const cut = stripEchoOpener(cleanedSoFar, text, {streaming: true});
+        // What remains starting with a quotation mark is held back: the stream cleans it once more and would take a quote pair off a reply that is not wholly quoted, so the voice's head and the finished reply would differ.
+        if (cut !== cleanedSoFar) shown = QUOTED_START.test(cut) ? '' : cut;
+        else if (cutEcho) shown = cleanedSoFar;   // the add-on cuts below work on the cleaned text too, as in the finished reply
+      }
       if (!cutEcho) return shown;
       const own = stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true});
       return recentSpoken.length && startsLikeLine(own, recentSpoken) ? '' : own;
@@ -951,9 +1013,10 @@ export class TextProviderHost {
         return run(nudge);
       }
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      // Rule 4 (no opening with V's words asked back) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
+      if (!reaction) cleaned = stripEchoOpener(cleaned, text);
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
-      // Rule 4 (no opening with V's words) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
-      if (!reaction) cleaned = stripStockTail(stripEchoOpener(cleaned, text));
+      if (!reaction) cleaned = stripStockTail(cleaned, {service: this.echoCut || SERVICE_PROFILE.test(profileKey)});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       if (wordLimit) reply = capWords(reply, wordLimit);

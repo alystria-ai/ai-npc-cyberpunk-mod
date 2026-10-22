@@ -1,0 +1,233 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {PCM_MODULES, RealtimeHost, SANDBOX_STATE_FILE, resetSandboxMemory} from './realtime-host.mjs';
+import {launchSystemBrowser, systemBrowserAvailable} from './system-browser.mjs';
+
+// The hidden Chromium runs with its renderer sandbox on (security review 2026-10-22, finding 8: Playwright adds --no-sandbox unless chromiumSandbox
+// is true). It is trusted only after one blank page has opened and run a line; a browser that will not start, hangs, or whose pages die is started
+// once more without the sandbox, and the result is remembered by every host of the process and on disk.
+const EXE = 'C:\\Fake\\Browser\\msedge.exe';
+
+/** A browser whose pages behave as `page` says: 'works', 'crashes' (every call rejects), 'hangs' (goto never answers). */
+function fakeBrowser(page = 'works') {
+  const browser = {closed: 0, pages: 0, isConnected: () => true, close: async () => { browser.closed += 1; },
+    newPage: async () => {
+      browser.pages += 1;
+      return {goto: async () => { if (page === 'crashes') throw Error('page.goto: Page crashed'); if (page === 'hangs') await new Promise(() => {}); },
+        evaluate: async () => { if (page === 'crashes') throw Error('page.evaluate: Page crashed'); return 2; }, close: async () => {}};
+    }};
+  return browser;
+}
+
+// The page files the host serves, as empty files: nothing here opens a page.
+async function assetsFolder() {
+  const folder = await mkdtemp(join(tmpdir(), 'host-sandbox-'));
+  for (const name of ['realtime-client.js', ...PCM_MODULES]) await writeFile(join(folder, name), '');
+  return folder;
+}
+
+const hosts = [];
+async function hostWith(launch, extra = {}) {
+  const logs = [], folder = await assetsFolder();
+  const host = new RealtimeHost({browserExecutable: EXE, clientAssetsDirectory: folder, launchBrowser: launch, log: line => logs.push(line), sandboxStatePath: null, ...extra});
+  const done = async () => { await host.close?.().catch(() => {}); await rm(folder, {recursive: true, force: true}); };
+  hosts.push(done);
+  return {host, logs, done};
+}
+const cleanUp = async () => { while (hosts.length) await hosts.pop()(); resetSandboxMemory(); };
+
+test('the hidden browser is launched with its sandbox on, and stays that way when it starts', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const seen = [];
+  const {host, logs} = await hostWith(async options => { seen.push(options); return fakeBrowser(); });
+  await host.start();
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].chromiumSandbox, true);
+  assert.equal(seen[0].executablePath, EXE);
+  assert.equal(seen[0].headless, true);
+  assert.ok(!seen[0].args.includes('--no-sandbox'), 'the sandbox is never switched off by an argument');
+  assert.equal(seen[0].timeout, undefined, 'a launcher a test hands in is not probed and gets no launch timeout');
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /runs with its sandbox/);
+});
+
+test('a browser that will not start with its sandbox is started once without it and the reason is logged', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const seen = [];
+  const {host, logs} = await hostWith(async options => {
+    seen.push(options.chromiumSandbox);
+    if (options.chromiumSandbox) throw Error('browserType.launch: Browser closed unexpectedly: sandbox initialization failed\nCall log:\n  - something with a path');
+    return fakeBrowser();
+  });
+  await host.start();
+  assert.deepEqual(seen, [true, false]);
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /would not work with its sandbox \(browserType\.launch: Browser closed unexpectedly: sandbox initialization failed\); it runs without it/);
+  assert.ok(!logs[0].includes('Call log') && !logs[0].includes('\n'), 'only the first line of the reason');
+  // The browser dies and is started again: the sandbox is not tried a second time.
+  await host.browser.close();
+  host.browser = null;
+  await host.start();
+  assert.deepEqual(seen, [true, false, false]);
+  assert.equal(logs.length, 1, 'said once per process');
+});
+
+test('a browser that starts but whose first page crashes (Wine, Proton, exFAT, security software) is closed and started again without the sandbox', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const launched = [];
+  const {host, logs} = await hostWith(async options => { const browser = fakeBrowser(options.chromiumSandbox ? 'crashes' : 'works'); launched.push({options, browser}); return browser; }, {probeSandbox: true});
+  await host.start();
+  assert.deepEqual(launched.map(({options}) => options.chromiumSandbox), [true, false]);
+  assert.equal(launched[0].options.timeout, 20_000, 'the sandboxed try has a launch time limit, not Playwright\'s 180 s');
+  assert.equal(launched[0].browser.pages, 1, 'one blank page was opened to find out');
+  assert.equal(launched[0].browser.closed, 1, 'the browser with the dead pages was closed');
+  assert.equal(launched[1].options.timeout, undefined);
+  assert.equal(host.browser, launched[1].browser);
+  assert.match(logs.at(-1), /would not work with its sandbox \(page\.goto: Page crashed\)/);
+});
+
+test('a first page that never answers does not hang the start: it times out, and the browser runs without the sandbox', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const launched = [];
+  const {host} = await hostWith(async options => { const browser = fakeBrowser(options.chromiumSandbox ? 'hangs' : 'works'); launched.push({options, browser}); return browser; },
+    {probeSandbox: true, sandboxTimeouts: {probeMs: 50, closeMs: 50}});
+  const began = Date.now();
+  await host.start();
+  assert.ok(Date.now() - began < 5000, 'seconds, not minutes');
+  assert.deepEqual(launched.map(({options}) => options.chromiumSandbox), [true, false]);
+  assert.equal(launched[0].browser.closed, 1);
+});
+
+test('a browser that works with the sandbox is probed once, per start, and not again', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const launched = [];
+  const {host} = await hostWith(async options => { const browser = fakeBrowser(); launched.push({options, browser}); return browser; }, {probeSandbox: true});
+  await host.start();
+  assert.deepEqual(launched.map(({options}) => options.chromiumSandbox), [true]);
+  assert.equal(launched[0].browser.pages, 1, 'the probe page only; the host opens its pages later, on the first turn');
+  assert.equal(launched[0].browser.closed, 0);
+});
+
+test('what one host learns is shared by the others and kept on disk, per browser, for 30 days', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const folder = await mkdtemp(join(tmpdir(), 'host-sandbox-state-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const statePath = join(folder, SANDBOX_STATE_FILE);
+  const tried = [];
+  const launch = async options => { tried.push(`${options.executablePath ?? options.channel}:${options.chromiumSandbox}`); return fakeBrowser(options.chromiumSandbox ? 'crashes' : 'works'); };
+  const first = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath});
+  await first.host.start();
+  assert.deepEqual(tried, [`${EXE}:true`, `${EXE}:false`]);
+  const saved = JSON.parse(await readFile(statePath, 'utf8'));
+  assert.equal(saved.version, 1);
+  assert.ok(Number.isFinite(saved.refused[EXE]));
+  assert.match(saved.reason, /Page crashed/);
+  // The second and third host of the same process (the bridge has three) go straight to a browser without the sandbox.
+  const second = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath});
+  await second.host.start();
+  assert.deepEqual(tried.slice(2), [`${EXE}:false`]);
+  // A new process: nothing in memory, the file says it.
+  resetSandboxMemory();
+  const later = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath});
+  await later.host.start();
+  assert.deepEqual(tried.slice(3), [`${EXE}:false`], 'the sandbox is not tried at every start');
+  assert.match(later.logs[0], /earlier start found it does not work on this PC/);
+  // Another browser is tried on its own.
+  resetSandboxMemory();
+  const other = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath, browserExecutable: 'C:\\Fake\\Other\\chrome.exe'});
+  await other.host.start();
+  assert.deepEqual(tried.slice(4), ['C:\\Fake\\Other\\chrome.exe:true', 'C:\\Fake\\Other\\chrome.exe:false']);
+  // An entry older than 30 days is forgotten: the sandbox is tried again.
+  resetSandboxMemory();
+  await writeFile(statePath, JSON.stringify({version: 1, refused: {[EXE]: Date.now() - 31 * 86_400_000}}));
+  const tried2 = tried.length;
+  const old = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath});
+  await old.host.start();
+  assert.deepEqual(tried.slice(tried2), [`${EXE}:true`, `${EXE}:false`]);
+  // A damaged file is just a file that says nothing.
+  resetSandboxMemory();
+  await writeFile(statePath, '{not json');
+  const damaged = await hostWith(launch, {probeSandbox: true, sandboxStatePath: statePath});
+  await damaged.host.start();
+  assert.equal(tried.at(-2), `${EXE}:true`);
+});
+
+test('a browser that is not there is not retried without the sandbox, and a failure without it is the error that is reported', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const seen = [];
+  const missing = await hostWith(async options => { seen.push(options.chromiumSandbox); throw Error('browserType.launch: Executable doesn\'t exist at C:\\Fake'); });
+  await assert.rejects(missing.host.start(), /program is not there/);
+  assert.deepEqual(seen, [true]);
+
+  const broken = [];
+  const both = await hostWith(async options => { broken.push(options.chromiumSandbox); throw Error(options.chromiumSandbox ? 'sandbox failure' : 'still broken'); });
+  await assert.rejects(both.host.start(), /still broken/);
+  assert.deepEqual(broken, [true, false]);
+  // Nothing was learned from a start that failed both ways: the next start tries the sandbox again.
+  const again = [];
+  const next = await hostWith(async options => { again.push(options.chromiumSandbox); return fakeBrowser(); });
+  await next.host.start();
+  assert.deepEqual(again, [true], 'a failed start remembers nothing');
+});
+
+test('CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts the browser without the sandbox, without a probe', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const before = process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX;
+  process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX = '1';
+  t.after(() => { if (before === undefined) delete process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX; else process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX = before; });
+  const seen = [];
+  const {host} = await hostWith(async options => { seen.push(options.chromiumSandbox); return fakeBrowser(); }, {probeSandbox: true});
+  await host.start();
+  assert.deepEqual(seen, [false]);
+});
+
+test('a real Edge or Chrome passes the probe with the sandbox on (skipped where no browser is installed)', {skip: !systemBrowserAvailable() && 'no system browser'}, async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const logs = [];
+  const host = new RealtimeHost({log: line => logs.push(line), sandboxStatePath: null});
+  assert.equal(host.probeSandbox, true, 'the real launcher is probed');
+  const browser = await launchSystemBrowser(choice => host.launchWithSandbox({...choice, headless: true, args: ['--mute-audio']}), {log: () => {}});
+  try {
+    const page = await browser.newPage();
+    assert.equal(await page.evaluate(() => 40 + 2), 42);
+  } finally { await browser.close(); }
+  assert.ok(logs.some(line => /runs with its sandbox/.test(line)), `the sandbox stayed on: ${logs.join(' | ')}`);
+});
+
+test('a renderer that never opens its first page does not hang the start, and a timeout is not written to disk as a 30-day verdict', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const folder = await mkdtemp(join(tmpdir(), 'host-sandbox-state-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const statePath = join(folder, SANDBOX_STATE_FILE);
+  const launched = [];
+  const {host, logs} = await hostWith(async options => {
+    const browser = fakeBrowser();
+    if (options.chromiumSandbox) browser.newPage = async () => new Promise(() => {}); // the renderer never comes up
+    launched.push(options.chromiumSandbox);
+    return browser;
+  }, {probeSandbox: true, sandboxStatePath: statePath, sandboxTimeouts: {probeMs: 50, closeMs: 50}});
+  const began = Date.now();
+  await host.start();
+  assert.ok(Date.now() - began < 5000, 'seconds, not minutes');
+  assert.deepEqual(launched, [true, false]);
+  assert.match(logs.at(-1), /took longer than/);
+  await assert.rejects(readFile(statePath, 'utf8'), /ENOENT/, 'a slow start is remembered for this process only');
+  // This process still goes straight to the browser without the sandbox.
+  host.browser = null;
+  await host.start();
+  assert.deepEqual(launched, [true, false, false]);
+});
+
+test('a sandbox that passed the probe is not probed again by a later launch of the same browser in this process', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const browsers = [];
+  const launch = async () => { const browser = fakeBrowser(); browsers.push(browser); return browser; };
+  const {host} = await hostWith(launch, {probeSandbox: true});
+  await host.start();
+  host.browser = null;
+  await host.start();
+  assert.deepEqual(browsers.map(browser => browser.pages), [1, 0], 'the second launch costs no probe page');
+});

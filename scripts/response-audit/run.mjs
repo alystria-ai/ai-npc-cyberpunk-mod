@@ -89,7 +89,7 @@ async function runTextTurn(setup, scn, sample) {
   return {id: scn.id, sample, group: scn.group, char: scn.char, name: turn.persona.name, playerText: scn.text, want: scn.want, history: turn.memory.turns,
     memory: scn.summary ? {summary: scn.summary, remembered: scn.remembered} : undefined, offer: scn.offer, action: delivered[0] ? Object.keys(delivered[0]).filter(k => !['version', 'token', 'source', 'expiresAt'].includes(k)) : undefined,
     prompt: main?.messages ?? null, requests: requests.map(r => ({maxTokens: r.maxTokens, ms: r.ms, usage: r.usage, finishReason: r.finishReason, error: r.error, chars: r.messages?.reduce((a, m) => a + m.content.length, 0), reply: r === main ? undefined : r.text})),
-    raw, spoken, ms, headMs: headMs ?? (error ? null : ms), model: reply?.timing?.model ?? main?.answeredBy, attempts: reply?.timing?.attempts, usage: main?.usage ?? null,
+    modelText: main?.text ?? null, raw, spoken, ms, headMs: headMs ?? (error ? null : ms), model: reply?.timing?.model ?? main?.answeredBy, attempts: reply?.timing?.attempts, usage: main?.usage ?? null,
     promptTokens: main?.usage?.prompt_tokens ?? main?.timings?.promptTokens ?? null, completionTokens: main?.usage?.completion_tokens ?? null, firstTokenMs: main?.firstTokenMs ?? null,
     profile: logs.map(line => /^[PromptProfile] turn uses (S+)/.exec(line)?.[1]).find(Boolean) ?? (promptProfiles ? null : 'base'), requestCount: requests.length, ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
 }

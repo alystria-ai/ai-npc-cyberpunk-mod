@@ -273,7 +273,7 @@ test('service stopped: a short report is written at once, says why, and no reque
   put('runtime/probe.log', '2026-10-05T10:00:00Z Game adapter initialized\\n')
   put('runtime/mcm.log', '2026-10-05T10:00:01Z Companion Manager registered\\n')
   put('AiNpcCyberpunkMod.log', "[2026-10-05 10:00:00] Type 'MovePolicies' not found.\\n")
-  put('runtime/settings.json', {version = 2, voiceProvider = 'omni', enabledByKey = {['bob-sagan'] = true, ['judy-alvarez'] = false}})
+  put('runtime/settings.json', {version = 2, voiceProvider = 'omni', enabledByKey = {['bob-sagan'] = true, ['judy-alvarez'] = false}, dynamicInfo = {location = false, gear = false, quest = true}})
   put('runtime/local-voice-state.json', {state = 'error', provider = 'omni', updated = ms(-60)})
   local s = newSupport({party = function() return {{profileKey = 'bob-sagan', name = 'Bob Sagan', state = 'following'}} end})
   assert(s.serviceState() == 'stopped')
@@ -289,7 +289,7 @@ test('service stopped: a short report is written at once, says why, and no reque
   assert(status.path:find('runtime\\\\' .. name, 1, true) and status.path:find('the game folder', 1, true))
   assert(#removed == 0 and #written == 1 and written[1] == 'runtime/convai-report-lua.txt', 'one in-place write, nothing removed or renamed')
   for _, expected in ipairs({'short report', 'the conversation service was not running', '== versions ==', '== service status ==',
-    '== settings ==', '== party ==', 'bob-sagan  state=following  name=Bob Sagan', 'conversationDisabled', 'judy-alvarez',
+    '== settings ==', '== party ==', 'bob-sagan  state=following  name=Bob Sagan', 'conversationDisabled', 'judy-alvarez', 'dynamicInfo:', 'location: false', 'quest: true', 'dynamicInfoOff:', '[1]: gear', '[2]: location',
     '== log: runtime/probe.log ==', 'Game adapter initialized', '== log: runtime/mcm.log ==', 'Companion Manager registered',
     '== log: AiNpcCyberpunkMod.log ==', "MovePolicies' not found", 'Not included: CET, redscript, RED4ext'}) do
     assert(text:find(expected, 1, true), 'missing: ' .. expected)

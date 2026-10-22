@@ -12,6 +12,7 @@ import {turnContext, describeTurnContext, sceneryFor} from './turn-context.mjs';
 import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
+import {dynamicInfo} from './dynamic-info.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 
@@ -149,8 +150,8 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
   return result;
 }
 
-// The options the right-now block of a turn is built (and logged) with.
-export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input)});
+// The options the right-now block of a turn is built (and logged) with. `off`: the kinds Settings > Dynamic info turned off (bridge/dynamic-info.mjs).
+export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicInfo.off), off: dynamicInfo.off});
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
@@ -160,26 +161,33 @@ export const turnContextOptions = (input, ambient = false) => ({ambient, split: 
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
+  // Settings > Dynamic info: a kind the player turned off is left out here, whichever provider the context is for. A fight reaction's own subject
+  // (input.reaction) is not "info" and always stays.
+  const on = kind => dynamicInfo.on(kind);
+  const fight = on('condition') || input?.reaction ? battleContext(input) : '';
+  const dialogue = on('dialogue') ? gameDialogueContext(input) : '';
   // The weather and the part of the day are scenery, stated only when new to the conversation (bridge/scenery-memory.mjs), as a short
   // "Background" line of their own in the volatile tail, so a turn that has or lacks them does not change the block the prompt cache keeps.
   const {text: now, background} = describeTurnContext(input, turnContextOptions(input, ambient));
   // A pedestrian, vendor or other ordinary NPC is a stranger to V: it gets no journal, jobs, history, world facts or
   // authority text (all of it is V's own save), and sees only what a bystander could see of V.
   if (ambient) {
-    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: gameDialogueContext(input)},
-      {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: visibleGearContext(input)},
+    return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
+      {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? visibleGearContext(input) : ''},
       {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: followUpContext(input)}];
   }
   const attached = input[TRUSTED_KNOWLEDGE];
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
-  const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
+  // Quest and journal off: no journal history, and not even the line that says it is unavailable.
+  const quest = on('quest');
+  const history = !quest ? '' : trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
   return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: background},
     {tier: 'world', key: 'knowledge', text: knowledge},
-    {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: trusted?.jobsContext},
-    {tier: 'world', key: 'journal', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
-    {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: gearContext(input)},
+    {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: quest ? trusted?.jobsContext : ''},
+    {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''}, {tier: 'volatile', text: dialogue},
+    {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearContext(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: followUpContext(input)}];
 }
@@ -190,8 +198,8 @@ export function conversationContextBlocks(input) {
  * quest journal, V's gear, the world snapshot or the first-person notes written for a person V is looking at: a cab's AI does not know them.
  */
 export function voiceConversationBlocks(input) {
-  return [{tier: 'now', text: turnContext(input, {voice: true})}, {tier: 'world', text: groupContext(input)},
-    {tier: 'volatile', text: gameDialogueContext(input)}, {tier: 'volatile', text: followUpContext(input)}];
+  return [{tier: 'now', text: turnContext(input, {voice: true, off: dynamicInfo.off})}, {tier: 'world', text: groupContext(input)},
+    {tier: 'volatile', text: dynamicInfo.on('dialogue') ? gameDialogueContext(input) : ''}, {tier: 'volatile', text: followUpContext(input)}];
 }
 
 export function conversationContext(input) {

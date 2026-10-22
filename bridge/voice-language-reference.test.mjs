@@ -37,9 +37,9 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
 // Pocket's own list is the three legacy voices (version 1); OmniVoice's list is wider.
 const pocketVoices = () => Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
 const reference = key => ({reference: `runtime/voice-references/picked/autobest/omni-long/${key}.wav`, sha256: 'a'.repeat(64), transcript: `English words of ${key}.`});
-const OMNI_KEYS = ['panam-palmer', 'judy-alvarez', 'resident-female', 'npc-maelstrom-male-v2', 'alex'];
+const OMNI_KEYS = ['panam-palmer', 'judy-alvarez', 'resident-female', 'npc-maelstrom-male-v2', 'alex', 'v-male'];
 
-function omniSelection(packs) {
+function omniSelection(packs, selectionOptions = {}) {
   const calls = [];
   const voices = Object.fromEntries(OMNI_KEYS.map(key => [key, reference(key)]));
   // The player gave Alex a clip of their own: it stands in his place whatever the language.
@@ -53,7 +53,7 @@ function omniSelection(packs) {
       async synthesizeStream(profile, text, options) { calls.push({backend, profile, text, options}); return {audio: 'pcm'}; },
       async close() { loaded = false; onState({state: 'stopped'}); }};
   };
-  const voice = new VoiceSelection(pocketSettings(pocketVoices()), {languagePacks: packs, factory: worker('pocket'), omniFactory: worker('omni'),
+  const voice = new VoiceSelection(pocketSettings(pocketVoices()), {languagePacks: packs, factory: worker('pocket'), omniFactory: worker('omni'), ...selectionOptions,
     omniConfigs: {short: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices}, long: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices}}});
   return {voice, calls};
 }
@@ -88,6 +88,31 @@ test('OmniVoice: an English reply, a language without a pack, a voice the pack l
       assert.equal(h.calls.at(-1).profile, key, name);
     }
     await h.voice.close();
+  });
+});
+
+test('OmniVoice: V with a V voice mod\'s reference keeps it in a language that has a pack; without the mod the pack\'s V clip speaks (docs/V_VOICE.md precedence)', async () => {
+  await folder(async root => {
+    const {packs, clips} = await installed(root);
+    const plain = omniSelection(packs);
+    plain.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await plain.voice.start();
+    await plain.voice.synthesize('v-male', 'Hello there.', {language: 'zh'});
+    assert.equal(plain.calls.at(-1).options.languageReference?.sha256, sha256(clips['v-male']), 'no mod: the game\'s own V in that language');
+    await plain.voice.close();
+    const asked = [];
+    const modded = omniSelection(packs, {keepsReference: key => { asked.push(key); return key === 'v-male'; }});
+    modded.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await modded.voice.start();
+    await modded.voice.synthesize('v-male', 'Hello there.', {language: 'zh'});
+    assert.equal(modded.calls.at(-1).options.languageReference, undefined, 'a V voice mod\'s reference beats the pack\'s V clip');
+    assert.equal(modded.calls.at(-1).profile, 'v-male');
+    // Another character is not V: the pack still speaks for her, and a hook that throws keeps nothing.
+    await modded.voice.synthesize('panam-palmer', 'Hello there.', {language: 'zh'});
+    assert.ok(modded.calls.at(-1).options.languageReference);
+    assert.equal(modded.voice.hasPlayerClip('alex'), true, 'the player\'s own clip still wins everywhere');
+    assert.equal(modded.voice.hasPlayerClip('v-male'), true);
+    const broken = omniSelection(packs, {keepsReference: () => { throw Error('x'); }});
+    assert.equal(broken.voice.hasPlayerClip('v-male'), false);
+    await modded.voice.close();
   });
 });
 
@@ -214,6 +239,25 @@ test('the Mistral voice: a voice the pack lacks, a language without a pack and a
   });
 });
 
+test('the Mistral voice: V with a V voice mod\'s reference keeps it in a language that has a pack, the player\'s own clip still wins, other voices follow the pack', async () => {
+  await folder(async root => {
+    const {packs, clips} = await installed(root);
+    const server = await serve();
+    try {
+      const withMod = new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), registry: registryOf(['panam-palmer', 'v-male']), endpoint: server.endpoint, languagePacks: packs,
+        keepsReference: key => key === 'v-male', read: async path => (String(path).includes('multilingual') ? readFile(path) : ENGLISH), scheduler: new MistralScheduler({spacingMs: 0})});
+      assert.equal(withMod.languageEntry('v-male', 'zh'), null, 'the mod\'s reference is kept');
+      assert.equal(withMod.languageSet('v-male', 'zh'), null);
+      assert.ok(withMod.languageEntry('panam-palmer', 'zh'), 'another voice follows the pack');
+      await withMod.synthesizeStream('v-male', 'Hello there.', {onPcm() {}, language: 'zh'});
+      assert.deepEqual(refOf(server.requests.at(-1)), ENGLISH, 'cloned from V\'s own (mod) reference, not the game\'s French/Mandarin V');
+      const without = cloudVoice(server, packs);
+      assert.ok(without.languageEntry('v-male', 'zh'), 'no mod: the pack V clip speaks');
+      assert.ok(clips['v-male']);
+    } finally { await server.close(); }
+  });
+});
+
 test('the Mistral voice: the English and the Mandarin reference of one character never replace each other in the cache', async () => {
   await folder(async root => {
     const {packs, clips} = await installed(root);
@@ -326,6 +370,9 @@ test('the bridge finds the packs once at start, hands them to both voices, re-sc
   assert.match(bridge, /await languagePacks\.scan\(\)/);
   assert.match(bridge, /referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices\.folder, languagePacks,/);
   assert.match(bridge, /voxtral:voxtralVoice,languagePacks,/);
+  assert.match(bridge, /languagePacks, keepsReference: vModKeepsReference,/);
+  assert.match(bridge, /pocketLanguages,keepsReference:vModKeepsReference,/);
+  assert.match(bridge, /const vModKeepsReference = key => \{ const gender = vGenderOfKey\(key\); return gender !== null && String\(vVoiceReferences\.voices\[gender\]\?\.source \?\? ''\)\.startsWith\('mod:'\); \};/);
   assert.match(bridge, /void languagePacks\.refresh\(\)/);
   assert.match(bridge, /languageSet: languagePackFor\(reply\?\.engine, reply\?\.language, voiceKey\)\?\.set/);
   assert.match(bridge, /supportReport = await SupportReportControl\.open\([\s\S]*?voiceLanguagePacks: languagePacks\.report\(\)/);

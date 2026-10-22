@@ -81,6 +81,20 @@ local relationshipProfiles = {
 }
 local relationshipKeys = {}
 for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] = true end
+-- Dynamic info (Settings > Dynamic info): the kinds of live game information a turn's context can carry. Each is one saved on/off value in
+-- settings.dynamicInfo (on by default; a missing or malformed value is on). The bridge reads the same table from runtime/settings.json and drops an
+-- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
+-- Order is the order of the page.
+local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+local dynamicInfoKnown = {}
+for _, kind in ipairs(dynamicInfoKinds) do dynamicInfoKnown[kind] = true end
+-- The switches as a plain table in a global (convaiDynamicInfo, replaced only when the settings load or change): the one place something that
+-- runs every frame (the journal collector in init.lua) can ask without a call.
+local function publishDynamicInfo(from)
+    local flags = {}
+    for _, kind in ipairs(dynamicInfoKinds) do flags[kind] = from.dynamicInfo[kind] ~= false end
+    convaiDynamicInfo = flags
+end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
@@ -663,7 +677,11 @@ local function loadSettings()
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
-    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
+    if type(settings.errorReports) ~= 'boolean' then
+        -- A value that is there but is not true or false (a hand edit): not read as an opt-in; the notice is shown again before anything is sent.
+        if settings.errorReports ~= nil then settings.errorReportsNoticed = nil end
+        settings.errorReports = true
+    end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
@@ -689,6 +707,15 @@ local function loadSettings()
             settings.relationshipModes[key], settingsNeedSave = 'auto', true
         end
     end
+    -- Dynamic info: every kind is a boolean, on unless saved off; a key that is not a kind is dropped.
+    if type(settings.dynamicInfo) ~= 'table' then settings.dynamicInfo, settingsNeedSave = {}, true end
+    for key in pairs(settings.dynamicInfo) do
+        if not dynamicInfoKnown[key] then settings.dynamicInfo[key], settingsNeedSave = nil, true end
+    end
+    for _, kind in ipairs(dynamicInfoKinds) do
+        if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = true, true end
+    end
+    publishDynamicInfo(settings)
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
@@ -1099,6 +1126,17 @@ function M.relationshipChoices()
         result[#result + 1] = {key = profile.key, name = profile.name, mode = settings.relationshipModes[profile.key]}
     end
     return result
+end
+
+-- The kinds of live game info of Settings > Dynamic info, in page order.
+function M.dynamicInfoKinds() return dynamicInfoKinds end
+
+-- Whether one kind is on (true unless the player turned it off). A table lookup once the settings are loaded: the turn builders ask it at
+-- send time, never per frame.
+function M.dynamicInfo(kind)
+    loadSettings()
+    local value = settings.dynamicInfo and settings.dynamicInfo[kind]
+    return value ~= false
 end
 
 function M.subtitleStyle()
@@ -1686,6 +1724,8 @@ function M.snapshot(player)
     for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
     local relationshipModes = {}
     for key in pairs(relationshipKeys) do relationshipModes[key] = settings.relationshipModes[key] end
+    local dynamicInfo = {}
+    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = settings.dynamicInfo[kind] ~= false end
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
@@ -1693,6 +1733,7 @@ function M.snapshot(player)
             useOwnConvaiKey = settings.useOwnConvaiKey,
             conversationProvider = settings.conversationProvider,
             relationshipModes = relationshipModes,
+            dynamicInfo = dynamicInfo,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
@@ -1755,6 +1796,8 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
     nextSettings.relationshipModes = {}
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
+    nextSettings.dynamicInfo = {}
+    for key, value in pairs(settings.dynamicInfo) do nextSettings.dynamicInfo[key] = value end
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -1780,6 +1823,12 @@ function M.applySettings(player, values)
                     return false, 'Choose one of the listed relationship options.'
                 end
                 nextSettings.relationshipModes[profileKey] = mode
+            end
+        elseif key == 'dynamicInfo' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            for kind, on in pairs(value) do
+                if not dynamicInfoKnown[kind] or type(on) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                nextSettings.dynamicInfo[kind] = on
             end
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
@@ -1910,6 +1959,7 @@ function M.applySettings(player, values)
         return false, 'The settings could not be saved. Nothing was changed.'
     end
     ui.configure(settings.uiLanguage)
+    publishDynamicInfo(settings)
     if player then
         pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
         pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)

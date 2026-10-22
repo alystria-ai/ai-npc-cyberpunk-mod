@@ -70,16 +70,23 @@ export const withPromptSource = (messages, args) => { Object.defineProperty(mess
 //   - the KNOWLEDGE AND CURRENT SAVE block (601 characters in every named profile) and the intro of the PUBLIC INTRINSIC TOPIC MATERIAL (about 430) say what the output rules and the world block say;
 //   - an archetype is told to take where it is from the per-turn context (district, neighborhood), which baited the place into every reply;
 //   - the closing "Speak naturally to V ..." paragraph of the speaking style is rules 1 to 3 again.
-const SAVE_LINE = 'Verified current-save context overrides memory. Summoning you establishes no quest outcome, romance or prior meeting. Admit what you do not know and keep your own secrets private.';
+const SAVE_LINE = 'Verified current-save context overrides memory. Summoning you establishes no quest outcome, survival, romance or prior meeting. Admit what you do not know. Keep private motives and confidences private unless verified context says they were disclosed to this audience; a group invitation or a direct question alone does not.';
 const TOPIC_LINE = 'Background and personal views, not proof that V met you or saw the source; use one detail, in your own words, in a sentence or two; verified game facts override.';
 const ARCHETYPE_PLACE = /Use the per-turn context for where you are \(district, neighborhood\), what V can see about you and anything that has just happened\. If the location is not given, do not invent a specific address\./;
+// A "Scope:" line that is a rule (do not, never, avoid, invent, give no) or a "No ..." limit stays: it keeps the character from inventing or overclaiming. The rest are provenance notes for the reviewer.
+const SCOPE_RULE = /\b(?:do not|don't|never|avoid|invent(?:ed)?|give no)\b|^Scope:\s*No\b/i;
 export const leanBackstory = text => String(text ?? '')
-  .replace(/^Scope:[^\n]*(?:\n|$)/gm, '')
+  .replace(/^Scope:[^\n]*(?:\n|$)/gm, line => SCOPE_RULE.test(line) ? line : '')
   .replace(/^(KNOWLEDGE AND CURRENT SAVE)\n[^\n]+/m, `$1\n${SAVE_LINE}`)
   .replace(/^(PUBLIC INTRINSIC TOPIC MATERIAL)\nThese are background and personal perspectives[^\n]+/m, `$1\n${TOPIC_LINE}`)
   .replace(ARCHETYPE_PLACE, 'Use the per-turn context for what V can see about you and anything that has just happened. Invent no address.')
   .replace(/\n{3,}/g, '\n\n').trim();
-export const leanStyle = text => String(text ?? '').replace(/\n*Speak naturally to V\b[^\n]*$/m, '').trim();
+// The closing paragraph of the speaking style is rules 1 to 3 again, except for three sentences that say more: the group-talk pair and "Use slang sparingly" (the archetypes overuse "choom").
+const STYLE_KEEP = [/Use slang sparingly[^.]*\./, /In a group, speak for yourself[^.]*\./, /Never reveal private conversation history to a group\./];
+export const leanStyle = text => String(text ?? '').replace(/\n*Speak naturally to V\b[^\n]*$/m, paragraph => {
+  const kept = STYLE_KEEP.map(pattern => pattern.exec(paragraph)?.[0]).filter(Boolean);
+  return kept.length ? `\n\n${kept.join(' ')}` : '';
+}).trim();
 
 /** The roster rows (named characters, then archetypes) by profile key. */
 export class PersonaBook {
@@ -217,14 +224,35 @@ export function systemPrompt({persona, memory = '', limits = LIMITS, layers = nu
   // turns. Never cut by the prompt budget (bridge/prompt-budget.mjs): they are not part of the persona levels.
   const rules = worldRulesBlock(persona.worldRules);
   if (!layers) return [systemHead({persona, memory, limits, mature, guard, profile}), rules].filter(Boolean).join('\n\n');
-  const fitted = capContext(`${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`, limits.world);
-  const world = mature ? matureWorld(fitted) : fitted;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
+  const prefixed = `${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`;
+  const fitted = capContext(prefixed, limits.world);
+  const lean = text => mature ? matureWorld(text) : text;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
+  // The per-turn knowledge block (ranked by V's words, so it differs on nearly every turn) goes after everything that is stable between turns, the older-talk summary
+  // included: a prompt cache (llama.cpp's) reuses the text up to the first difference, and with the block in the middle of the world context every turn read the summary
+  // again. Only when the blocks are the very ones the world context is made of; otherwise the old order stands. The cap of the world context then cuts the stable blocks
+  // (the middle of them, as before) at a place that does not depend on the facts (a cut that moved with the length of the facts would move the cached text with it), and
+  // the facts have a cap of their own, half the world's.
+  const apart = knowledgeApart(layers.worldBlocks, layers.world);
+  const world = lean(apart ? capContext(`${CONTEXT_PREFIX}${apart.stable || 'This is a private conversation with V.'}`, limits.world) : fitted);
   return [systemHead({persona, limits, mature, guard, profile}), rules,
     section(profile.labels.formatNotes, capContext(layers.notes, limits.notes)),
     section(profile.labels.world, world),
     memory ? section(profile.labels.remember, clip(memory, limits.summary)) : '',
+    apart ? section(profile.labels.knowledge, lean(capContext(apart.knowledge, Math.floor(limits.world / 2)))) : '',
     section(profile.labels.rightNow, clip(layers.now, limits.now))]
     .filter(Boolean).join('\n\n');
+}
+
+/**
+ * The world blocks of a turn split into the stable ones and the per-turn `knowledge` block ({stable, knowledge} strings), or null when there is nothing to split:
+ * no knowledge block, no list of blocks, or a list that is not what `world` was joined from.
+ */
+export function knowledgeApart(blocks, world) {
+  if (!Array.isArray(blocks) || !blocks.length) return null;
+  const knowledge = joinBlocks(blocks.filter(block => block?.key === 'knowledge').map(block => block.text));
+  if (!knowledge) return null;
+  if (joinBlocks(blocks.map(block => block?.text)) !== String(world ?? '')) return null;
+  return {stable: joinBlocks(blocks.filter(block => block?.key !== 'knowledge').map(block => block?.text)), knowledge};
 }
 
 /** A context longer than the cap keeps its head and its tail (the voice, follow-up and first-person notes are last). */
@@ -256,7 +284,7 @@ const withoutPlace = here => String(here).replace(/;\s+V is in [^.]*(?=\.$)/, ''
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null, guard = false, profile = BASE_PROFILE}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
   const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard, profile,
-    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now} : null})}];
+    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks} : null})}];
   for (const turn of history.slice(-limitsWith(profile, limits).turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);
     if (!v || !r) continue;
@@ -358,7 +386,7 @@ export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
   text = speakerTurn(text, name);
   // A leading "Name:" or "**Name:**" label, and a leading "V:" echo.
   const label = name ? name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
-  if (label) text = text.replace(new RegExp(`^[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '');
+  if (label) text = text.replace(new RegExp(`^((?:\\{[^{}\\n]{0,40}\\}|\\[[^\\[\\]\\n]{0,40}\\]|\\s)*)[\\W_]*${label}[*_]{0,2}\\s*[:\\-–—]\\s*[*_]{0,2}\\s*`, 'i'), '$1');
   text = text.replace(/^\W*(?:V|You)\s*:\s*/i, '');
   // Markdown emphasis keeps its words; *actions* between single asterisks are stage directions and go (see starred).
   text = starred(text.replace(/\*\*([^*]+)\*\*/g, '$1')).replace(/__([^_]+)__/g, '$1');
@@ -417,16 +445,19 @@ export function stripPlayerEcho(reply, said, {streaming = false} = {}) {
 const OPENER_FILLER = new Set(['what', 'who', 'whom', 'where', 'when', 'why', 'how', 'which', 'the', 'a', 'an', 'you', 'i', 'me', 'my', 'your', 'mean', 'do', 'does', 'is', 'are', 'am', 'it', 'that',
   'this', 'there', 'here', 'so', 'then', 'really', 'always', 'like', 'to', 'of', 'and', 'or', 'now', 'well', 'yeah', 'huh', 'oh', 'ah', 'uh', 'um', 'hm', 'hmm', 'about', 'again',
   // a greeting, thanks or a plain yes or no answered in kind is not the fault ("Hey." answered with "Hey.")
-  'hey', 'hi', 'hello', 'yo', 'thanks', 'thank', 'sorry', 'yes', 'no', 'okay', 'ok', 'sure', 'bye']);
+  'hey', 'hi', 'hello', 'yo', 'thanks', 'thank', 'sorry', 'yes', 'no', 'okay', 'ok', 'sure', 'bye',
+  // question words and small words of the other menu languages (es fr de it pt)
+  'qué', 'quién', 'dónde', 'cómo', 'por', 'quoi', 'qui', 'où', 'comment', 'que', 'was', 'wer', 'wo', 'wie', 'von', 'der', 'die', 'das', 'cosa', 'chi', 'dove', 'quem', 'onde']);
 const LEADING_TAGS = /^(?:\s*(?:\{[^{}\n]{1,24}\}|\[[a-z]+(?:-[a-z]+)*\]))*\s*/i;
 const OPENER_MAX_WORDS = 5;
 
 /**
- * A reply that opens with a short fragment of V's own line handed back ("Dex?", "Upper floors?", "Never mind what?", "This place."), which the output rules forbid (rule 4) and a
- * small model does in about one reply in eight: the fragment is cut and the answer stays. Only the first sentence of up to five words counts, and only when every word of it is
- * V's own or a question or filler word (OPENER_FILLER) with at least one word of V's that is not a filler. A reply with nothing after the fragment, or less than three
- * words, stays whole; leading emotion and voice tags stay where they are. While the reply is still being written (`streaming`) a first sentence that so far could still be
- * such an opener is held back (''), which costs at most the first five words; as soon as it differs it is shown as it is.
+ * A reply that opens by asking V's own words back ("Dex?", "Upper floors?", "Never mind what?"), which the output rules forbid (rule 4) and a small model does in about one reply in eight: the
+ * question is cut and the answer stays. Only a first sentence that ENDS IN A QUESTION MARK counts, of up to five words, made only of V's own words, question words and filler words
+ * (OPENER_FILLER), with at least one word of V's that is not a filler. A declarative sentence that repeats V's words is the answer and stays ("Rogue.", "I don't hate you.", "Jackie... he was my
+ * brother"). A reply with nothing after the question, or less than three words, stays whole; leading emotion and voice tags stay where they are and what remains starts with a capital. The caller
+ * passes the cleaned text (no speaker label, no *stage direction*), in the stream and in the finished reply alike. While the reply is still being written (`streaming`) a first sentence that so
+ * far could still be such a question is held back (''), which costs at most the first five words; as soon as it differs, or ends with anything but a question mark, it is shown as it is.
  */
 export function stripEchoOpener(reply, said, {streaming = false} = {}) {
   const text = String(reply ?? '');
@@ -446,20 +477,26 @@ export function stripEchoOpener(reply, said, {streaming = false} = {}) {
     return words.length > 0 && words.length <= OPENER_MAX_WORDS && whole.every(known) && (half === null || prefix(half)) ? '' : text;
   }
   const first = ending[1], rest = body.slice(ending[0].length);
-  if (!fits(echoWordsOf(first))) return text;
+  // Only V's words asked back ("Dex?") are an echo. A short declarative sentence made of V's words is the answer ("Rogue.", "I don't hate you.", "Jackie... he was my brother").
+  if (!/\?[!?"”')\]]*$/.test(first) || !fits(echoWordsOf(first))) return text;
   if (!rest.trim()) return streaming ? '' : text;
   if (echoWordsOf(rest).length < 3) return streaming ? '' : text;
-  return `${lead}${rest.replace(/^\s+/, '')}`;
+  const kept = rest.replace(/^\s+/, '');
+  return `${lead}${kept.charAt(0).toLocaleUpperCase()}${kept.slice(1)}`;
 }
 
-/** The generic closing questions the output rules name as stock lines (rule 5) and a small local model still ends about one reply in eight with. */
-const STOCK_TAIL = /^(?:so[,.]?\s+|and\s+)?(?:what(?:['’]s| is) (?:on your mind|going on in that head of yours)|what about you|how about you|what brings you (?:here|out here|around here|(?:out )?to [^.?!]{1,30}|in)|anything else|is there anything else)\s*\?["”')\]]*$/i;
+// Generic closing questions that fit any conversation (rule 5 names "What is on your mind?"; the follow-up pull text bans "what about you?"). Questions that belong to a role stay: "what brings you to the clinic",
+// a receptionist's "what brings you here", a vendor's or a cab's "Anything else?" after serving.
+const STOCK_TAIL = /^(?:so[,.]?\s+|and\s+)?(?:what(?:['’]s| is) (?:on your mind|going on in that head of yours)|what about you|how about you)(?:,\s*V)?\s*\?["”')\]]*$/i;
+const ANYTHING_ELSE = /^(?:so[,.]?\s+|and\s+)?(?:is there )?anything else(?:,\s*V)?\s*\?["”')\]]*$/i;
 
 /** A reply whose last sentence is one of those stock questions loses it when at least four words of the reply's own stay (a reply that is only the stock line stays whole). */
-export function stripStockTail(reply) {
+export function stripStockTail(reply, {service = false} = {}) {
   const text = String(reply ?? '');
   const match = /^(.*[.!?…]["”')\]]*)\s+([^.!?…]+\?["”')\]]*)\s*$/s.exec(text);
-  if (!match || !STOCK_TAIL.test(match[2].trim())) return text;
+  const last = match?.[2].trim();
+  // `service`: the speaker serves V (a vendor, a ripperdoc, a bartender, an add-on voice such as a cab): "Anything else?" is then its own question and stays.
+  if (!match || !(STOCK_TAIL.test(last) || (!service && ANYTHING_ELSE.test(last)))) return text;
   return echoWordsOf(match[1]).length >= 4 ? match[1].trim() : text;
 }
 

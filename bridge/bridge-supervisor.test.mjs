@@ -336,7 +336,7 @@ test('a bridge whose files are of two versions (Node: "does not provide an expor
   const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
   const line = log.split('\n').find(text => text.includes('does not match'));
   assert(line, log);
-  assert.match(line, /The Runtime does not match the mod's Scripts: bridge\/runtime-files\.mjs comes from a different version\. Download the full Runtime again, or apply the Runtime update zips in order/);
+  assert.match(line, /The Runtime does not match the mod's Scripts: bridge\/runtime-files\.mjs comes from a different version\. Download the full Runtime again, or apply the Runtime update zips from the updates folder on the Hugging Face page of the mod one by one, starting from your version/);
   assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
   assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
   run.endGame(); await run.done;

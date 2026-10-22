@@ -13,6 +13,7 @@ import {customManifestFolders, describeCustomFolders, parseManifestText} from '.
 import {errorReportStatus} from './error-events.mjs';
 import {REPORT_FOLDER, recentNodeReports} from './bridge-diagnostics.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
+import {offKinds} from './dynamic-info.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -49,12 +50,24 @@ const RULES = [
   [/\b(authorization|proxy-authorization)(["']?\s*[:=]\s*["']?)[^\r\n"',;}]*/gi, '$1$2[redacted]'],
   [new RegExp(String.raw`(${KEYWORD}["']?\s*[:=]\s*["']?)${VALUE}`, 'gi'), '$1[redacted]'],
   [/\b(Bearer)\s+[A-Za-z0-9._~+\/=-]{8,}/gi, '$1 [redacted]'],
-  [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig)=)[^&\s"']+/gi, '$1[redacted]'],
+  // user:password@host in an address (the part before the @ of an authority; the host and path stay).
+  [/\b([a-z][a-z0-9+.-]{1,20}:\/\/)[^\s\/?#@"'<>\\]+@/gi, '$1[redacted]@'],
+  [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig|pass|passwd|password|pwd|code|secret|client_secret|refresh_token)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
 ];
+// An email address: name@domain with a dot and an alphabetic top-level part. A file name such as kokoro@v1.0.onnx (a model and its version, or a
+// versioned file) ends in a file extension, not a domain, so it is left alone (emailLike).
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g;
+const FILE_EXTENSIONS = new Set(["onnx", "json", "wav", "mp3", "ogg", "flac", "wem", "opus", "mjs", "js", "cjs", "ts", "lua", "txt", "log", "md", "csv", "gguf", "bin", "pt", "pth", "safetensors", "yaml", "yml", "toml", "ini", "cfg", "zip", "dll", "exe", "pdb", "so", "archive", "reds", "xml", "html", "css", "py", "bat", "ps1", "png", "jpg", "jpeg", "webp", "bmp", "tga", "dds", "mp4", "webm", "gz", "tar", "7z", "bak", "tmp"]);
+const emailLike = match => !FILE_EXTENSIONS.has(match.slice(match.lastIndexOf('.') + 1).toLowerCase());
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
+// A run of 40 or more letters, digits, - _ + = with a digit and a letter is a token. A Mistral key is exactly 32 letters and digits (no - or _), so
+// that length is matched on its own (KEY32, with a digit and a letter, or both cases): a 32-character name with hyphens, such as the Local AI model
+// Gemma4-E4B-MiniFantasy-V1-Q4_K_M, or a record name with underscores, stays readable. The Lua redactor (mod/support-report.lua) uses the same rules.
 const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
+const KEY32 = /(?<![A-Za-z0-9+_-])[A-Za-z0-9]{32}(?![A-Za-z0-9+_=-])/g; // after an = is fine (key=<32 characters>); before one is base64 padding
+const looksRandom = text => (/\d/.test(text) && /[A-Za-z]/.test(text)) || (/[a-z]/.test(text) && /[A-Z]/.test(text));
 // The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
 // JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
 // or the end; past 64 characters with none, only its first word is (the old rule). A Windows account name never holds , ; = + [ ] or those.
@@ -63,6 +76,16 @@ const NOT_IN_NAME = String.raw`\r\n"'<>|:*?,;=+\[\]`;
 const USER_PATH = new RegExp(String.raw`((?:^|[\\/:]|%5c|%2f|%3a)Users${PATH_SEPARATOR}+)`
   + String.raw`(?:[^\\/${NOT_IN_NAME}]{1,64}?(?=${PATH_SEPARATOR}|[${NOT_IN_NAME}]|$)|[^\\/\s"'<>|:*?]+)`, 'gi');
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The Windows account names this process can see (USERNAME, the profile folder's name, os.userInfo): the names a path may carry for the player. */
+export function accountNames(env = process.env) {
+  const names = new Set();
+  const add = value => { if (typeof value === 'string' && value.trim().length >= 2) names.add(value.trim()); };
+  add(env.USERNAME); add(env.USER);
+  for (const name of ['USERPROFILE', 'HOME']) if (typeof env[name] === 'string') add(env[name].split(/[\\/]/).filter(Boolean).at(-1));
+  try { add(os.userInfo().username); } catch {}
+  return [...names].sort((a, b) => b.length - a.length);
+}
 
 export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 
@@ -90,10 +113,19 @@ export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
     for (const [pattern, replacement] of RULES) {
       value = value.replace(pattern, (...match) => { stats.patterns++; return replacement.replace(/\$(\d)/g, (_, n) => match[Number(n)] ?? ''); });
     }
+    // An e-mail address first, so a key before an @ is part of the address, as in the Lua redactor.
+    value = value.replace(EMAIL, match => {
+      if (!emailLike(match)) return match;
+      stats.patterns++; return '[email-redacted]';
+    });
     value = value.replace(UUID, id => { stats.ids++; return `[id:${shortHash(id.toLowerCase())}]`; });
     value = value.replace(LONG_HEX, () => { stats.patterns++; return '[hex-redacted]'; });
     value = value.replace(LONG_RUN, run => {
       if (!/\d/.test(run) || !/[A-Za-z]/.test(run) || run.startsWith('[')) return run;
+      stats.patterns++; return '[token-redacted]';
+    });
+    value = value.replace(KEY32, run => {
+      if (!looksRandom(run)) return run;
       stats.patterns++; return '[token-redacted]';
     });
     value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
@@ -596,7 +628,7 @@ export async function collectReport(options) {
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
-  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const redact = createRedactor({secrets, ids: options.knownIds ?? [], accounts: accountNames(environment)});
   const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
@@ -636,8 +668,9 @@ export async function collectReport(options) {
   if (settings && typeof settings === 'object') {
     const {enabledByKey, ...rest} = settings;
     const flags = enabledByKey && typeof enabledByKey === 'object' ? enabledByKey : {};
+    // Settings > Dynamic info: the table is in the settings above; the kinds that are off are also listed, so they are seen at a glance.
     settingsView = redact.value({...rest, conversationEnabledCount: Object.values(flags).filter(value => value !== false).length,
-      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false)});
+      conversationDisabled: Object.keys(flags).filter(key => flags[key] === false), dynamicInfoOff: offKinds(settings)});
   }
   const party = [...lua.party];
   if (!party.length && Array.isArray(raw['party-connections.json']?.profiles)) {

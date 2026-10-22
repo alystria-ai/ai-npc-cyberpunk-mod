@@ -212,9 +212,27 @@ export function coldAttemptRoomMs({baseMs, offload = false, cpuBound = false, sp
  * or nothing is known.
  */
 export class PrefillMeter {
-  #rate = null; #at = 0; #cached = 0; #compact = false; #streak = 0;
+  #rate = null; #at = 0; #cached = 0; #compact = false; #streak = 0; #seen = 0;
   // compact: the state this machine was in under the load before (a model loaded again after an idle stop starts from what was learned, not from the full text).
-  constructor({now = Date.now, offload = false, compact = false} = {}) { this.now = now; this.offload = offload === true; this.#compact = compact === true; }
+  // carry ({rate, at}, from the meter of the load before: `carry()`): a model that replaces another (a step down to a smaller one, a changed choice) is on the same computer, with the same game
+  // on the same card, so it starts from the reading the load before had instead of from "nothing is known" (2026-10-22 report: a model stepped down from Qwen 3.5 on the CPU to Bonsai read
+  // an 8,821-token prompt whole and ran out of 75 s at 8,305 tokens). The reading ages from when it was made, so it is believed for PREFILL.maxAgeMs at most.
+  constructor({now = Date.now, offload = false, compact = false, carry = null} = {}) {
+    this.now = now; this.offload = offload === true; this.#compact = compact === true; this.#seen = now();
+    if (carry && carry.rate > 0 && Number.isFinite(carry.rate) && Number.isFinite(carry.at) && now() - carry.at <= PREFILL.maxAgeMs) { this.#rate = carry.rate; this.#at = carry.at; }
+  }
+  /** A turn used this meter just now: its reading (even the prior of a model with layers on the CPU) is as fresh as the last turn. */
+  touch() { this.#seen = this.now(); }
+  /**
+   * What a model loaded next on this computer starts from: {rate, at} while this load is believed to read slowly (a recent measurement, or the prior of a model with layers on the CPU that a turn
+   * used lately), else null. A fast machine, or a reading that has gone stale, carries nothing.
+   */
+  carry() {
+    const rate = this.tokensPerSecond;
+    if (rate === null || rate >= PREFILL.fastTokensPerSecond) return null;
+    const at = this.#rate !== null && this.now() - this.#at <= PREFILL.maxAgeMs ? this.#at : this.#seen;
+    return this.now() - at <= PREFILL.maxAgeMs ? {rate, at} : null;
+  }
   // One reading, `weight` of them (a request that stalled counts for the whole run at once): a streak of readings on the other side of the threshold flips the state.
   #judge(sample, weight = 1) {
     if (!(sample > 0) || !Number.isFinite(sample)) return;

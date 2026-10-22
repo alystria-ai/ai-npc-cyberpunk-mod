@@ -1263,6 +1263,36 @@
    "voice": "AZURE-MULTILINGUAL-3e4638872a",
    "voiceName": "Lucien",
    "reason": "Smooth, light male voice with a quiet menace for a genial BARGHEST drug dealer (the same voice as Placide and the street-goon archetype)."
+  },
+  "npc-maxtac-male": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Voice of the ncpd male twin, reused for the MaxTac officer kind (same voice as the NCPD officer: no separate voice for the elite unit yet)."
+  },
+  "npc-maxtac-female": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Voice of the ncpd female twin, reused for the MaxTac officer kind (same voice as the NCPD officer: no separate voice for the elite unit yet)."
+  },
+  "npc-nusa-male": {
+   "voice": "AZURE-MULTILINGUAL-99b13147b2",
+   "voiceName": "Brandon",
+   "reason": "Voice of the militech male twin, reused for the NUSA agent kind (same voice as the Militech soldier: the closest American military voice)."
+  },
+  "npc-nusa-female": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Voice of the militech female twin, reused for the NUSA agent kind (same voice as the Militech soldier: the closest American military voice)."
+  },
+  "npc-joytoy-male": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo",
+   "reason": "Voice of the nightlife resident male twin, reused for the joytoy kind (same voice as the club-goer: the closest nightlife voice)."
+  },
+  "npc-joytoy-female": {
+   "voice": "AZURE-MULTILINGUAL-552d02efd8",
+   "voiceName": "Isidora",
+   "reason": "Voice of the nightlife resident female twin, reused for the joytoy kind (same voice as the club-goer: the closest nightlife voice)."
   }
  }
 }

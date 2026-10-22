@@ -128,6 +128,7 @@ const world = `${companionEngine}
     local original=true -- the engine's own work, always first
     for _,callback in ipairs(observers['UpdateCommand'] or {}) do entered.engine=entered.engine+1; callback(handler,context,command) end
     if command.m_convaiOwned then
+      command.m_convaiOwned=false -- Locomotion.reds: disarmed before the report; Lua may arm it again
       for _,callback in ipairs(observers['ConvaiOwnedMoveUpdate'] or {}) do entered.update=entered.update+1; callback(handler,context,command) end
     end
     return context
@@ -158,6 +159,13 @@ test('ordinary walking NPCs never enter Lua; a companion walk is marked, reporte
   updateCommand(npc,travel,context)
   assert(entered.update==1 and entered.engine==0)
   assert(context._facingTarget==nil and motion.cleared==1, 'the stale facing target was not cleared')
+  -- Reported once: the command is disarmed, its other AI ticks never enter Lua and read no AI context.
+  assert(travel.m_convaiOwned==false, 'the command stayed armed after its report')
+  owners=0
+  for _=1,50 do updateCommand(npc,travel,context) end
+  assert(entered.update==1 and owners==0, 'a command that was already reported entered Lua again')
+  -- The next command the controller sends is marked again and reported once more.
+  travel.m_convaiOwned=true
   -- Teardown rule is unchanged: after abandon a marked command makes no native call.
   companions.abandon()
   owners=0
@@ -211,3 +219,34 @@ test('Locomotion.reds ships: it is in the release plan and in the development in
     assert.equal(entries[0][2], 'r6/scripts/CyberpunkConvai/Locomotion.reds');
   }
 });
+
+test('a report that cannot finish arms the command again; one that finished does not; the engine fallback never arms anything', () => run(`${world}
+  local npc=spawn(); tick(3)
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(1.5,6); tick(2)
+  local travel=last(npc,'AIMoveToCommand')
+  local context={_facingTarget=player}
+  -- Not this copy's current travel command yet (ownership not established): armed again, retried on the next tick.
+  local real=motion.ownsCommand
+  motion.ownsCommand=function() return false end
+  updateCommand(npc,travel,context)
+  assert(entered.update==1 and travel.m_convaiOwned==true and motion.rearmed==1, 'an unfinished report did not arm the command again')
+  motion.ownsCommand=real
+  updateCommand(npc,travel,context)
+  assert(entered.update==2 and travel.m_convaiOwned==false and context._facingTarget==nil, 'the retry did not finish the cleanup')
+  -- A failure inside the cleanup is retried too.
+  travel.m_convaiOwned=true; context._facingTarget=player
+  local setter=ScriptExecutionContext.SetArgumentObject
+  ScriptExecutionContext.SetArgumentObject=function() error('boom') end
+  updateCommand(npc,travel,context)
+  assert(travel.m_convaiOwned==true and motion.error and motion.error:find('boom'), 'a failed cleanup did not arm the command again')
+  ScriptExecutionContext.SetArgumentObject=setter
+  -- Engine fallback: the hook sees every command, so nothing is ever marked from Lua.
+  motion.mode='engine'
+  local other={}
+  motion.ownsCommand=function() return false end
+  local touched=false
+  other.ConvaiMarkOwned=function() touched=true end
+  for _,callback in ipairs(observers['ConvaiOwnedMoveUpdate'] or {}) do callback(handler,{owner=npc},other) end
+  assert(not touched, 'the engine fallback armed a command')
+`));

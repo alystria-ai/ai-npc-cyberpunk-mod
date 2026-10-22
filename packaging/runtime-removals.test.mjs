@@ -3,10 +3,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {realpathSync} from 'node:fs';
 import {cp, mkdir, mkdtemp, readFile, readdir, rm, rmdir, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {shortPathOf} from '../bridge/ascii-temp.mjs';
 import {ALLOWED_ROOTS, PLUGIN, PROTECTED, REMOVALS_FILE, applyRuntimeRemovals, installRootOf, readRemovalList, refusalFor} from './runtime/apply-removals.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 
@@ -146,6 +148,49 @@ test('paths that escape, point outside the Runtime, or are protected are refused
   } finally {
     await rmdir(join(root, PLUGIN, 'voices/linked')).catch(() => {}); // a junction: removes the link, never what it points at
     await rm(root, {recursive: true, force: true}); await rm(outside, {recursive: true, force: true});
+  }
+});
+
+test('a short 8.3 spelling or an alias of a protected path is refused: the real name of the file decides, not the text of the list', async () => {
+  // The text of a path: a part that looks like a short name is refused before anything is looked at.
+  for (const short of [`${PLUGIN}/voices/MULTIL~1/de/x.bin`, `${PLUGIN}/app/RELEAS~1.JSO`, `${PLUGIN}/voices/multilingual-pocket/ABCDEF~2.bin`, `${PLUGIN}/app/OMNI~1/m.bin`, `${PLUGIN}/LAUNCH~1.INI`]) {
+    assert.match(refusalFor(short), /8\.3 short name/, short);
+  }
+  assert.equal(refusalFor(`${PLUGIN}/voices/old/clip~backup.wav`), null, 'a tilde that is not followed by a digit is an ordinary name');
+
+  const root = await mkdtemp(join(tmpdir(), 'runtime removals real '));
+  try {
+    const app = await runtime(root, []);
+    await put(join(root, PLUGIN, 'voices/multilingual/de/voice.bin'), 'language pack');
+    await put(join(root, PLUGIN, 'voices/multilingual-pocket/fr/model.bin'), 'pocket model');
+    // 1. The resolver reports another name for what a list names (an 8.3 short name: voices/ALIAS/... is voices/multilingual/...): the real name is protected.
+    const names = new Map([[join(root, PLUGIN, 'voices/ALIAS/de'), join(root, PLUGIN, 'voices/multilingual/de')],
+      [join(root, PLUGIN, 'voices/ALIAS/de/voice.bin'), join(root, PLUGIN, 'voices/multilingual/de/voice.bin')],
+      [join(root, PLUGIN, 'app/SHORT.JSO'), join(root, PLUGIN, 'app/release.json')]]);
+    const realpath = path => names.get(path) ?? realpathSync.native(path);
+    await mkdir(join(root, PLUGIN, 'voices/ALIAS/de'), {recursive: true});
+    await put(join(root, PLUGIN, 'voices/ALIAS/de/voice.bin'), 'a different file that only has that spelling here');
+    await put(join(root, PLUGIN, 'app/SHORT.JSO'), 'x');
+    const faked = applyRuntimeRemovals({appDirectory: await runtime(root, [`${PLUGIN}/voices/ALIAS/de/voice.bin`, `${PLUGIN}/app/SHORT.JSO`]), log: () => {}, realpath});
+    assert.deepEqual([faked.removed, faked.refused], [0, 2]);
+    assert.equal(await readFile(join(root, PLUGIN, 'voices/multilingual/de/voice.bin'), 'utf8'), 'language pack');
+    assert.equal(await readFile(join(root, PLUGIN, 'app/release.json'), 'utf8'), 'app/release.json');
+    // 2. A real alias: a junction inside the Runtime's folder that leads to a protected folder. Its text passes every check, its real path does not.
+    await symlink(join(root, PLUGIN, 'voices/multilingual'), join(root, PLUGIN, 'voices/jct'), 'junction');
+    const through = applyRuntimeRemovals({appDirectory: await runtime(root, [`${PLUGIN}/voices/jct/de/voice.bin`, `${PLUGIN}/voices/old/b.wav`]), log: () => {}});
+    assert.deepEqual([through.removed, through.refused], [1, 1], 'the ordinary file went, the protected one behind the alias stayed');
+    assert.equal(await readFile(join(root, PLUGIN, 'voices/multilingual/de/voice.bin'), 'utf8'), 'language pack');
+    // 3. The real 8.3 name of a protected folder, where this volume makes one (some have them switched off): the file stays.
+    const short = shortPathOf(join(root, PLUGIN, 'voices/multilingual-pocket'));
+    if (short && /~\d/.test(short)) {
+      const part = short.split(/[\\/]/).at(-1);
+      const viaShort = applyRuntimeRemovals({appDirectory: await runtime(root, [`${PLUGIN}/voices/${part}/fr/model.bin`]), log: () => {}});
+      assert.deepEqual([viaShort.removed, viaShort.refused], [0, 1]);
+      assert.equal(await readFile(join(root, PLUGIN, 'voices/multilingual-pocket/fr/model.bin'), 'utf8'), 'pocket model');
+    }
+  } finally {
+    await rmdir(join(root, PLUGIN, 'voices/jct')).catch(() => {}); // a junction: removes the link, never what it points at
+    await rm(root, {recursive: true, force: true});
   }
 });
 

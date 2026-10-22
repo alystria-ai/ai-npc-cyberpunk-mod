@@ -149,6 +149,8 @@ local worldKnowledge = worldKnowledgeModule.new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 local journalHistory = dofile('journal-history.lua').new({
+    -- True only inside updateKnowledge, after this frame's session check: the scan then re-checks the journal only.
+    sessionProven = function() return convaiHeartbeat ~= nil and convaiHeartbeat.sessionProven == true end,
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 convaiWorldKnowledge = worldKnowledge
@@ -269,11 +271,20 @@ end
 -- is coming or the journal changed. A global, so callers deep in onUpdate add no upvalue.
 convaiDemandKnowledge = function(lanes)
     pcall(worldKnowledge.demand, worldKnowledge, 0)
+    if not convaiHistoryWanted() then return end
     -- A history scan already under way (the first one after a load takes minutes when paced) finishes at full speed now.
     if not lanes and type(journalHistory.scanning) == 'function' and journalHistory:scanning('history') then
         lanes = {'active', 'history'}
     end
     pcall(journalHistory.demand, journalHistory, lanes or {'active'}, 0)
+end
+-- Whether the journal history is scanned and sent: Settings > Dynamic info > Quest and journal, or Johnny's remarks about a finished job (they
+-- need the scan to see one). Off, the scan is not stepped and not asked for, and a request carries it as unavailable. The switches are the table
+-- manager.lua publishes (convaiDynamicInfo; nil before the settings load: on). A global, like the callers below.
+function convaiHistoryWanted()
+    local flags = convaiDynamicInfo
+    if flags == nil or flags.quest ~= false then return true end
+    return manager.johnnyRemarks() ~= 'off' and manager.johnnyInHead()
 end
 local function updateKnowledge(delta)
     -- A journal change (JournalNotificationQueue.OnJournalUpdate, onInit) rescans everything once the burst settles;
@@ -281,7 +292,8 @@ local function updateKnowledge(delta)
     local dirty = worldKnowledge.journalChangedAt
     if dirty and os.clock() - dirty >= 1 then
         worldKnowledge.journalChangedAt = nil
-        pcall(worldKnowledge.demand, worldKnowledge, 0); pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0)
+        pcall(worldKnowledge.demand, worldKnowledge, 0)
+        if convaiHistoryWanted() then pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0) end
     end
     local phone = convaiPhoneChat and convaiPhoneChat.contact or nil
     if phone ~= worldKnowledge.phoneContact then
@@ -299,7 +311,17 @@ local function updateKnowledge(delta)
     local context = {generation = before.generation, worldToken = before.worldToken}
     -- Each collector enforces its own per-frame work and age limits. A second
     -- inspection rejects any native transition that occurred during its reads.
-    worldKnowledge:update(context); journalHistory:update(context)
+    worldKnowledge:update(context)
+    -- Quest and journal off: the journal scan is not stepped. Turned on again, it is asked for once at the first frame (a turn would otherwise
+    -- find nothing until the scan's own next rest was over). With the switch on (the default) this is one table read and one comparison.
+    local flags = convaiDynamicInfo
+    if flags == nil or flags.quest ~= false or convaiHistoryWanted() then
+        if convaiHistoryWas ~= nil then
+            convaiHistoryWas = nil
+            pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0)
+        end
+        journalHistory:update(context)
+    else convaiHistoryWas = false end
     refreshKnowledgeFrame()
 end
 
@@ -321,10 +343,13 @@ local function captureKnowledge(context, channel, byRevision)
         -- byRevision: the bridge rebuilds the snapshots from runtime/knowledge-*.json (bridge/knowledge-parts.mjs), so the
         -- request carries headers and row ids, not ~800 KB of copies. Any failure falls back to the full snapshots.
         local published = false
+        local historyOn = convaiHistoryWanted()
         if byRevision and knowledgeParts then
             local parts = {}
             local worldOk, worldHeader, worldPart = pcall(worldKnowledge.capturePart, worldKnowledge, binding)
-            local historyOk, historyHeader, historyParts = pcall(journalHistory.capturePart, journalHistory, binding)
+            local historyOk, historyHeader, historyParts
+            if historyOn then historyOk, historyHeader, historyParts = pcall(journalHistory.capturePart, journalHistory, binding)
+            else historyOk, historyHeader, historyParts = true, knowledgeUnavailable('switched-off'), {} end
             if worldOk and historyOk and type(worldHeader) == 'table' and type(historyHeader) == 'table' then
                 if worldPart then parts[#parts + 1] = worldPart end
                 for _, part in ipairs(historyParts or {}) do parts[#parts + 1] = part end
@@ -332,7 +357,10 @@ local function captureKnowledge(context, channel, byRevision)
                 if ok and done then world, history, published = worldHeader, historyHeader, true end
             end
         end
-        if not published then world, history = worldKnowledge:capture(binding), journalHistory:capture(binding) end
+        if not published then
+            world = worldKnowledge:capture(binding)
+            history = historyOn and journalHistory:capture(binding) or knowledgeUnavailable('switched-off')
+        end
     end
     local after = refreshKnowledgeFrame()
     if not knowledgeAllowed or not sameKnowledgeOwner(owner, knowledgeOwner(after)) then return nil end
@@ -452,12 +480,34 @@ microphone.currentKnowledgeOwner = function()
     if not knowledgeAllowed then return nil end
     return knowledgeOwner(refreshKnowledgeFrame())
 end
+-- Settings > Dynamic info: a kind that is off is not read from the game for a turn. The capture functions of the collectors are wrapped once, here,
+-- so every caller (private text, voice, group, phone) is covered and a switch that is off costs one table lookup at send time, nothing per frame.
+-- Quest and journal: the tracked quest. (V's gear and clothes and the recent game dialogue are wrapped where those modules are made, below.) Called
+-- with or without self, so it fits a function and a method alike. A manager without the setting is on. The battle module's own capture is NOT wrapped:
+-- battle reactions (mod/battle-reactions.lua) read it for their own subject and must always carry their fight; only the readers of a manual turn are
+-- gated (battles.captureManual, below).
+function convaiGateCapture(owner, name, kind)
+    local original = type(owner) == 'table' and owner[name] or nil
+    if type(original) ~= 'function' then return end
+    owner[name] = function(...)
+        local ask = manager.dynamicInfo
+        if ask ~= nil and not ask(kind) then return nil end
+        return original(...)
+    end
+end
+convaiGateCapture(questContext, 'capture', 'quest')
+-- Health, heat and fights: the last fight, for a manual turn (group, phone, microphone and typed text). A reaction's own fight is never gated.
+function battles.captureManual()
+    local ask = manager.dynamicInfo
+    if ask ~= nil and not ask('condition') then return nil end
+    return battles.capture()
+end
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
-groupChat.captureBattle = battles.capture
-phoneChat.captureBattle = battles.capture
-microphone.captureBattle = battles.capture
+groupChat.captureBattle = battles.captureManual
+phoneChat.captureBattle = battles.captureManual
+microphone.captureBattle = battles.captureManual
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 -- Phone Chat keeps the draft and shows this inline when no service can reply.
@@ -857,11 +907,14 @@ do
                 protected = function(npc) return convaiWorldPolicy.protected(npc) end,
                 story = function(npc) return convaiWorldPolicy.story(npc) end,
             },
-            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity).
+            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity), or the game's
+            -- runtime quest flag (IsQuest, read fresh: a quest can mark a person on a generic record, a side job's witness or rescue
+            -- target). Asked only when the offer is made or the reaction runs.
             storyFlag = function(npc, entity)
                 local facts = archetypeFacts(npc, entity, tostring(npc:GetBodyType() or ''))
                 local quest = facts.quest
-                return quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest'
+                if quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest' then return true end
+                return convaiWorldTalk ~= nil and convaiWorldTalk.runtimeQuest(npc) == true
             end,
             refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
             awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
@@ -880,6 +933,7 @@ function convaiJohnnyHeadService()
         local loaded, module = pcall(dofile, 'johnny-head.lua')
         convaiJohnnyHead = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
             sample = function(player) return battleObserver.sample(player) end,
+            workspot = function(player) return Game.GetWorkspotSystem():IsActorInWorkspot(player) == true end,
             lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end}) or false
         if not convaiJohnnyHead then print('[CyberpunkConvai] johnny-head.lua unavailable: ' .. tostring(module)) end
     end
@@ -1021,6 +1075,8 @@ do
         convaiJohnnyRelicEnsure()
         module = convaiJohnnyRemarksModule
         if not convaiJohnnyFight then convaiJohnnyFight = module.fightTracker() end
+        -- Settings > Dynamic info > Location off: V's district is not read for him either (no arrival remarks).
+        if manager.dynamicInfo ~= nil and not manager.dynamicInfo('location') then lastId, chain, tracker = nil, nil, nil; return end
         local ok, key, id = pcall(function()
             local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
             local district = system and system:GetCurrentDistrict()
@@ -1350,6 +1406,9 @@ do
         worldKnowledge.onEdges = function(edges) convaiWitnessReceipts:record(edges) end
     end
 end
+-- Recent game dialogue (Settings > Dynamic info): off, nothing is captured for a turn. The recorder itself stays on: Johnny's remarks and the
+-- add-ons hear the game's lines through it, and it works only when the game shows a line, never per frame.
+convaiGateCapture(gameDialogue, 'capture', 'dialogue')
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
@@ -1362,6 +1421,8 @@ local playerGearLoaded, playerGearModule = pcall(dofile, 'player-gear.lua')
 local playerGear = playerGearLoaded and type(playerGearModule) == 'table'
     and type(playerGearModule.new) == 'function' and playerGearModule.new({}) or nil
 convaiPlayerGear = playerGear
+-- V's gear and clothes (Settings > Dynamic info): off, the equipment is not read.
+convaiGateCapture(playerGear, 'capture', 'gear')
 local function capturePlayerGear() return playerGear and playerGear:capture() or nil end
 groupChat.capturePlayerGear = capturePlayerGear
 microphone.capturePlayerGear = capturePlayerGear
@@ -1373,6 +1434,8 @@ do
     local loaded, module = pcall(dofile, 'turn-context.lua')
     convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
         place = function() return currentDistrict() end,
+        -- Settings > Dynamic info: a kind that is off is not read from the game (mod/turn-context.lua).
+        enabled = function(kind) return manager.dynamicInfo == nil or manager.dynamicInfo(kind) end,
         party = function(player, radius)
             local rows = companions.conversationCandidates(player, radius)
             -- The spawned characters of the group round this turn belongs to are with V too (they were chosen within 8 m).
@@ -2003,9 +2066,35 @@ do
     convaiGestureOptions = options
 end
 
-local function targetAtCrosshair()
-    local player = Game.GetPlayer()
-    if not player then return nil, 'Player unavailable' end
+-- The entity id of an NPC as a string (a global function: no closure per candidate).
+convaiEntityKey = function(npc) return tostring(npc:GetEntityID().hash) end
+-- The Head slot point of an NPC, or nil (a global function: no closure per candidate).
+convaiHeadPoint = function(npc)
+    local slot = npc:GetSlotComponent()
+    if not slot then return nil end
+    local found, transform = slot:GetSlotTransform(CName.new('Head'))
+    if not found or not transform then return nil end
+    local point = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
+    if not point or type(point.x) ~= 'number' or type(point.y) ~= 'number'
+        or type(point.z) ~= 'number' then return nil end
+    return point
+end
+-- True when the Head slot of an NPC standing at `pos` cannot pass the 32 degree cone either, so its two slot reads are skipped.
+-- The chest aim point (pos + 1.3 m up) and the head are at most 1.5 m apart, which moves the angle by at most asin(1.5 / distance):
+-- an NPC farther out than the cone plus that is outside whichever point is measured. Unknown geometry says false (read the head).
+convaiHeadOutOfCone = function(pos, playerPos, forward, forwardLength)
+    if forwardLength < 0.1 then return false end
+    local dx, dy, dz = pos.x - playerPos.x, pos.y - playerPos.y, pos.z + 1.3 - playerPos.z
+    local distance = math.sqrt(dx^2 + dy^2 + dz^2)
+    if distance < 0.1 then return false end
+    if distance > 9.5 then return true end
+    local cosine = math.max(-1.0, math.min(1.0, (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)))
+    return math.deg(math.acos(cosine)) > 32.0 + math.deg(math.asin(math.min(1.0, 1.5 / distance)))
+end
+
+-- Phase 1 of the target search: the native query and the candidate lists (nothing here depends on where the crosshair is now).
+-- The 5 Hz gaze runs it one tick before the measuring phase so no single frame carries the whole scan (updateGaze).
+local function gatherTargets(player)
     local query = TargetSearchQuery.new()
     query.searchFilter = Game['TSF_NPC;']()
     query.maxDistance = 8.0
@@ -2015,9 +2104,14 @@ local function targetAtCrosshair()
     query.ignoreInstigator = true
     local candidates, seated, onFoot, nativeIds = {}, {}, {}, {}
     local function nativeCandidate(npc)
+        -- One entity, one candidate: its other parts (and the nearest and looked-at objects) were each measured, and dropped as a
+        -- repeat, after their NPC, attached and dead reads. The first copy stays the one measured.
+        local ok, id = pcall(convaiEntityKey, npc)
+        if ok then
+            if nativeIds[id] then return end
+            nativeIds[id] = true
+        end
         candidates[#candidates + 1] = npc
-        local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
-        if ok then nativeIds[id] = true end
     end
     local _, parts = targeting:GetTargetParts(player, query)
     for _, part in ipairs(parts or {}) do
@@ -2047,6 +2141,16 @@ local function targetAtCrosshair()
     end
     -- The native candidates of this key press, for a group round to count spawned characters among (selectConversation).
     convaiTalkNative = candidates
+    return {candidates = candidates, seated = seated, onFoot = onFoot, lookedOk = lookedOk, looked = looked}
+end
+
+-- Phase 2: measure the candidates against the crosshair now and choose. `gathered` is a gatherTargets result from the tick before.
+local function targetAtCrosshair(gathered)
+    local player = Game.GetPlayer()
+    if not player then return nil, 'Player unavailable' end
+    local targeting = Game.GetTargetingSystem()
+    local gather = gathered or gatherTargets(player)
+    local candidates, seated, onFoot, lookedOk, looked = gather.candidates, gather.seated, gather.onFoot, gather.lookedOk, gather.looked
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
     -- Measure every candidate once: its best aim point (torso, or the actual
@@ -2063,6 +2167,7 @@ local function targetAtCrosshair()
             measured[id] = true
             local pos = npc:GetWorldPosition()
             local points = {{x = pos.x, y = pos.y, z = pos.z + 1.3}}
+            local isLooked = not onFoot[id] and lookedOk and looked and npc == looked or false
             if seated[id] then
                 -- Installed NPCPuppet.HasHeadUnderwater uses the Head slot and
                 -- this world conversion. CET returns its out transform; the
@@ -2076,19 +2181,13 @@ local function targetAtCrosshair()
             else
                 -- Keep torso aim usable. The actual Head slot is a second aim
                 -- point for close face-to-face conversations, when available.
-                local headOk, head = pcall(function()
-                    local slot = npc:GetSlotComponent()
-                    if not slot then return nil end
-                    local found, transform = slot:GetSlotTransform(CName.new('Head'))
-                    if not found or not transform then return nil end
-                    local point = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
-                    if not point or type(point.x) ~= 'number' or type(point.y) ~= 'number'
-                        or type(point.z) ~= 'number' then return nil end
-                    return point
-                end)
+                -- Skipped for an NPC well outside the cone, whose head could not pass it either.
+                local headOk, head = false, nil
+                if isLooked or not convaiHeadOutOfCone(pos, playerPos, forward, forwardLength) then
+                    headOk, head = pcall(convaiHeadPoint, npc)
+                end
                 if headOk and head then points[#points + 1] = head end
             end
-            local isLooked = not onFoot[id] and lookedOk and looked and npc == looked or false
             local measures = {}
             for _, point in ipairs(points) do
                 local dx, dy, dz = point.x - playerPos.x, point.y - playerPos.y, point.z - playerPos.z
@@ -2195,11 +2294,16 @@ end
 -- A global, so onUpdate's closure gains no upvalue.
 convaiInMenu = function()
     local cache = convaiHeartbeat
+    -- One read per frame (the frame's flags from ConvaiFrameFlags seed it): the world-ready check, the reply's pause test and the
+    -- other readers of a frame share it.
+    if cache.menuFrame == cache.frame then return cache.menuValue end
     if not cache.menuDefinition then
         local definition = Game.GetAllBlackboardDefs().UI_System
         cache.menuFlag, cache.menuDefinition = definition.IsInMenu, definition
     end
-    return Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
+    local value = Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
+    cache.menuFrame, cache.menuValue = cache.frame, value
+    return value
 end
 
 local function gameplayCanAcquire(player)
@@ -2223,14 +2327,25 @@ local function updateGaze(player, elapsed)
     end
     if focusMode == 'chat' then return end
     gazePoll = gazePoll + elapsed
-    if gazePoll < 0.2 then return end
+    if gazePoll < 0.2 then
+        -- Half way to a scan: its native candidate query runs now, on a tick of its own, so the measuring tick below carries only
+        -- the per-candidate reads (no single frame holds the whole scan). Nothing is gathered when the scan could not run anyway.
+        if gazePoll >= 0.1 and convaiGazeGather == nil and gameplayCanAcquire(player) then
+            local gathered, result = pcall(gatherTargets, player)
+            if gathered and type(result) == 'table' then result.at = os.clock(); convaiGazeGather = result end
+        end
+        return
+    end
     local step = gazePoll
     gazePoll = 0
+    local gather = convaiGazeGather
+    convaiGazeGather = nil
+    if gather and os.clock() - gather.at > 0.35 then gather = nil end
     local canFocus = gameplayCanAcquire(player)
     local npc, identity
     local lookKey, lookEntity, lookName, lookSpawned
     if canFocus then
-        local found, result = pcall(targetAtCrosshair)
+        local found, result = pcall(targetAtCrosshair, gather)
         if found and result then
             local key, canonical = profileIdentity(result)
             if key and supportedProfiles[key] and manager.profileEnabled(key) and not companions.owns(result) then
@@ -2474,7 +2589,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- not a scene: `idle` (the fifth argument) lets a commanded AI through while the person is in a workspot. Read fresh on this key
     -- press, cached per entity (protected), and the same test then guards the recording and the reply (convaiStory).
     if not primary.story and not primary.spawned and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
-        and not companions.owns(npc) and convaiWorldPolicy.protected(npc) == true then
+        and not companions.owns(npc) and (convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true) then
         local why = convaiWorldTalk:refusal(npc, player, nil, key, true)
         if why then
             log('World conversation refused: profile=' .. key .. ' reason=' .. why .. ' (quest-bound)'
@@ -2501,7 +2616,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     if archetype or key == 'resident-male' or key == 'resident-female' then
         primary.generic = true
         primary.archetype = archetype or {category = 'resident'}
-        local place = currentDistrict()
+        -- Settings > Dynamic info > Location: off, an ordinary NPC is not told where it stands either.
+        local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
         if place then primary.archetype.district, primary.archetype.area = place.district, place.area end
         -- A nameless ordinary NPC gets its Night City name (the same one the scanner shows); the caption, the composer and the
         -- bridge's "Your name is ..." line use it. Nil with the setting off or for anyone the gate refuses.
@@ -2515,7 +2631,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     for _, person in ipairs(participants or {}) do
         if person ~= primary and person.spawned and person.generic then
             person.archetype = person.archetype or {category = 'resident'}
-            local place = currentDistrict()
+            local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
             if place then person.archetype.district, person.archetype.area = place.district, place.area end
             local generated = convaiNpcNames and convaiNpcNames.nameFor(person.npc, 'talk') or nil
             if generated then person.name, person.archetype.npcName = generated, generated end
@@ -2702,7 +2818,7 @@ local function beginTextNow(groupMode, waited)
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
             convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
-            if focusEntity ~= identity and not primary.holocall and not primary.story then
+            if focusEntity ~= identity and not primary.holocall and not (primary.story or primary.guarded) then
                 local focused, reason = beginFocus(player, npc)
                 if not focused then
                     log('NPC focus unavailable: ' .. tostring(reason))
@@ -2719,6 +2835,8 @@ local function beginTextNow(groupMode, waited)
             holocall = primary.holocall, head = primary.head}
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
+        -- V types for seconds: the history rows of a scan under way are encoded now, a few per frame, not on the send frame.
+        if type(journalHistory.preEncode) == 'function' then pcall(journalHistory.preEncode, journalHistory, 30) end
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
         convaiComposerWatch.opened(generation)
@@ -2859,7 +2977,7 @@ local function toggleVoice(groupMode, source)
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
-            if not primary.voiceOnly and not primary.holocall and not primary.story then beginFocus(player, npc) end
+            if not primary.voiceOnly and not primary.holocall and not (primary.story or primary.guarded) then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -2883,7 +3001,9 @@ local function sendRequest(context)
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
     if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
-    else context.battle = context.battle or battles.capture() end
+    -- A battle reaction already carries its own fight (battles.offer); a manual turn reads it through battles.captureManual (Health, heat and
+    -- fights off: nothing). The module's own capture is the reaction's and is never gated.
+    else context.battle = context.battle or (battles.captureManual or battles.capture)() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
@@ -3563,7 +3683,7 @@ local function keyReplyNotice(reply)
         local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
         local language = names[reply.keyNoticeLanguage]
         if language then
-            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.', {language = language})
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} voice language pack is missing.', {language = language})
         end
     end
     if reply.keyNotice == 'mistral-no-key' then
@@ -4047,7 +4167,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     -- The last crosshair search's NPC handles (targetAtCrosshair, refreshed by the gaze every 0.2 s): the whole on-foot party
     -- and every NPC near V. Kept until the next search, so without this every one of them outlived the unload (18 Oct 09:10
     -- detach: Jackie's and Johnny's handles were still held after the collect).
-    convaiTalkNative = nil
+    convaiTalkNative, convaiGazeGather = nil, nil
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
@@ -4273,16 +4393,50 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- The 120 s timeout of a fast travel whose loading screen never reported its end (called from onUpdate, once, when it expires): with V in
+-- the world it finishes the travel the way the loading screen's end does, so the party recovers and the mod resumes; with V still gone it
+-- drops the receipts and the attach hooks resume the mod. A global, so the onUpdate closure gains no upvalue and builds no closure.
+convaiFastTravelExpired = function()
+    local attached = false
+    pcall(function() local player = Game.GetPlayer(); attached = player ~= nil and player:IsAttached() == true end)
+    if attached then
+        log('Fast travel completion did not arrive within 120 s: recovering the party and resuming')
+        fastTravelActive.finished = true
+        pcall(companions.fastTravel)
+        worldSuspended = false
+    else
+        fastTravelActive=nil; abandonSession('fast travel timed out')
+    end
+end
 -- onUpdate's native checks as plain functions that take what they read: a pcall(function() ... end) inside onUpdate built a
 -- new closure (and boxed the locals it captured) on every frame. Globals, so the onUpdate closure gains no upvalue.
 -- V attached, alive and past the main menu: true and the requests handler (the pause check reuses it), or false.
+-- The frame's world facts come from ONE redscript call, ConvaiFrameFlags (Composer.reds), a bit mask: attached 1, dead 2, pre-game 4,
+-- game paused 8, in a menu 16, composer open 32, phone open 64. That replaces about eleven native calls a frame (the session and
+-- world checks and the phone read). Scripts without the method (an old install, a failed compile) keep the separate calls, tried
+-- again after 1200 frames.
 convaiSessionReady = function(player, suspended)
-    if suspended or not player or not player:IsAttached() or player:IsDeadNoStatPool() then return false end
+    if suspended or not player then return false end
+    local state = convaiHeartbeat
+    local flagsOk, flags
+    if state.frame >= (state.flagsRetryAt or 0) then
+        flagsOk, flags = pcall(convaiInvoke, player, 'ConvaiFrameFlags')
+        if flagsOk and type(flags) == 'number' then
+            state.flags, state.flagsFrame, state.menuFrame, state.menuValue = flags, state.frame, state.frame, flags % 32 >= 16
+            -- Second result: the state table itself, which convaiWorldReady and the phone read recognise.
+            return flags % 2 >= 1 and flags % 4 < 2 and flags % 8 < 4, state
+        end
+    end
+    if not player:IsAttached() or player:IsDeadNoStatPool() then return false end
     local requests = Game.GetSystemRequestsHandler()
+    -- The separate calls worked where the flags call did not: the method is missing.
+    if flagsOk ~= nil then state.flagsRetryAt = state.frame + 1200 end
     return not requests:IsPreGame(), requests
 end
 -- The game runs, no menu is open and the composer is closed.
 convaiWorldReady = function(requests, player)
+    local state = convaiHeartbeat
+    if requests == state then return state.flagsFrame == state.frame and state.flags % 64 < 8 end
     return not requests:IsGamePaused() and not convaiInMenu() and not player:ConvaiComposerOpen()
 end
 -- object:method() for a method without arguments, called inside the caller's pcall (no closure per call).
@@ -4333,11 +4487,11 @@ registerForEvent('onUpdate', function(delta)
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
     if convaiLog.n > 0 then convaiLogTick() end
-    -- A missing completion must not keep a stale travel intent armed for a
-    -- later unrelated load. Expiration only drops receipts; it never restores.
-    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
-        fastTravelActive=nil; abandonSession('fast travel timed out')
-    end
+    -- A completion that never arrived must neither keep a stale travel intent armed for a later unrelated load nor leave the mod
+    -- suspended with the party's copies alive and uncontrolled. With V in the world the timeout finishes the travel the way the
+    -- loading screen's end does (the party recovers on the next tick and the mod resumes); with V still gone the receipts are dropped
+    -- and the attach hooks resume the mod.
+    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then convaiFastTravelExpired() end
     -- A detach that no save restore followed (a new game started from the menu): two minutes after the new V attached, the mod resumes.
     local restoreAttached = convaiHeartbeat.restoreAttached
     if restoreAttached and os.clock() - restoreAttached > 120 then
@@ -4369,7 +4523,9 @@ registerForEvent('onUpdate', function(delta)
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
     mark('init:knowledge')
+    convaiHeartbeat.sessionProven = true
     local knowledgeOk = pcall(updateKnowledge, delta)
+    convaiHeartbeat.sessionProven = false
     if not knowledgeOk then invalidateKnowledge('knowledge-update-failed') end
     mark('init:worldReady')
     -- Autosave freezes the native cursor briefly. Keep the exact owner and
@@ -4400,7 +4556,15 @@ registerForEvent('onUpdate', function(delta)
     end
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
-    if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end
+    -- Only a recording that is still opening or running ends here; a spoken turn whose reply is pending (microphone state 'reply', or a group
+    -- voice round past its recording) completes like a typed one and the reply plays when V is back.
+    if not worldReady then
+        gameplayActions.revoke('menu')
+        local round = groupChat.round
+        if (microphone.context ~= nil and microphone.state ~= 'reply') or (round and round.mode == 'voice' and round.stage == 'recording') then
+            cancelVoice('menu')
+        end
+    end
     -- A companion riding a lift car with V moves with V every frame, only
     -- while the car moves (companions.lua M.carry); otherwise one field check.
     if worldReady and companions.riders then pcall(companions.carry, menuPlayer) end
@@ -4421,7 +4585,9 @@ registerForEvent('onUpdate', function(delta)
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
-    local phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen')
+    local phoneRead, phoneOpen
+    if convaiHeartbeat.flagsFrame == convaiHeartbeat.frame then phoneRead, phoneOpen = true, convaiHeartbeat.flags % 128 >= 64
+    else phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen') end
     phoneOpen = phoneRead and phoneOpen == true
     local phoneActionOk, phoneActionError = true, nil
     if phoneDrainDue(phoneOpen) then
@@ -4656,10 +4822,25 @@ registerForEvent('onUpdate', function(delta)
         focusUntil = os.time() + 1
     end
     if pending then
-        local replyFile = io.open('runtime/reply.json', 'rb')
-        if replyFile then
-            local raw = replyFile:read('*a')
-            replyFile:close()
+        -- With the native plugin an unchanged reply.json (its revision, one number) is not opened again: the text of the last read is
+        -- checked against this turn, so a reply that could not be delivered yet (reactionCanDeliver) is still picked up on a later tick.
+        -- The file is read again at least once a second; without the plugin (no revision) every tick reads as before. The fields live
+        -- on the global heartbeat table, so onUpdate gains no upvalue.
+        local raw = nil
+        local revision = convaiNative and convaiNative.revision and convaiNative.revision('reply.json') or nil
+        local clock = os.clock()
+        if revision and revision > 0 and revision == convaiHeartbeat.replyReadRevision and replyRaw
+            and clock >= convaiHeartbeat.replyReadAt and clock - convaiHeartbeat.replyReadAt < 1 then
+            raw = replyRaw
+        else
+            local replyFile = io.open('runtime/reply.json', 'rb')
+            if replyFile then
+                raw = replyFile:read('*a')
+                replyFile:close()
+                convaiHeartbeat.replyReadRevision, convaiHeartbeat.replyReadAt = revision, clock
+            end
+        end
+        if raw then
             -- The same text (a waiting turn reads the previous reply on every tick) is decoded once.
             if raw ~= replyRaw then replyRaw = raw; replyDecodeOk, replyDecoded = pcall(json.decode, raw) end
             local valid, reply = replyDecodeOk, replyDecoded
@@ -4851,6 +5032,7 @@ registerForEvent('onShutdown', function()
     else speech.abandon(); subtitles.abandon() end
     active = nil
     if liveWorld then companions.dismissAll() else companions.abandon() end
+    if liveWorld then pcall(companions.destroyPartyCars) end -- overflow party cars: no update runs again to remove them
     local player = liveWorld and Game.GetPlayer() or nil
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()

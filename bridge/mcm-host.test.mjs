@@ -488,7 +488,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
     end
     for _, button in ipairs(layout.footer) do assert(button.label ~= '', page .. ': a footer button without text') end
     -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it.
-    if page ~= 'settings' and page ~= 'relationships' then assert(not kinds.setting, page .. ' has a switch or list in it') end
+    if page ~= 'settings' and page ~= 'relationships' and page ~= 'dynamic-info' then assert(not kinds.setting, page .. ' has a switch or list in it') end
     -- The page number is never a line of the list: it is in the heading, and the page buttons are in the footer.
     for _, row in ipairs(layout.rows) do assert(not tostring(row.label):find('^Page %d+ / %d+$'), page .. ': a page line ' .. row.label) end
     -- Pages of a list: both page buttons are in the footer, always together.
@@ -505,6 +505,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   check('models'); go('Starts with: All'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
   go('Settings'); check('settings')
   go('Relationships'); check('relationships'); go('Back to settings')
+  go('Dynamic info'); check('dynamic-info'); go('Back to settings')
   go('Memory'); check('memory'); go('Back to settings')
   go('Help and support'); check('help'); go('Back to settings')
   go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to Companion Manager')
@@ -611,6 +612,31 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
   press('Back to settings')
   -- No row carries a default.
   for _, row in ipairs(mcm.rows()) do assert(row.default == nil, row.id) end
+`));
+
+test('Dynamic info is a page of its own: a button in Conversations opens it, its rows are switches, Restore defaults is on it, Back returns to Settings', () => withScreen(`
+  ${footer}
+  press('Settings')
+  assert(mcm.row('Dynamic info').type == 'action' and mcm.row('Dynamic info').value == 'Open')
+  assert(mcm.row('Location') == nil, 'the switches are not on Settings')
+  press('Dynamic info')
+  local config = mcm.config()
+  assert(config.navigation.pageId == 'dynamic-info|1|1' and config.navigation.backActionId == 'dynamic-info:back' and config.navigation.escapeBack == true)
+  assert(headings() == 'Dynamic info', headings())
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  assert(mcm.row('Location').type == 'bool' and mcm.row('Location').value == true and mcm.row('Quest and journal').type == 'bool')
+  assert(mcm.set('Location', false) and mcm.set('Recent game dialogue', false) and mcm.apply())
+  local info = manager.snapshot(player).settings.dynamicInfo
+  assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfo('dialogue') == false)
+  assert(mcm.row('Location').value == false and mcm.config().navigation.pageId == 'dynamic-info|1|1', 'still on the page after Apply')
+  -- Restore defaults on this page puts every switch back on (and Settings with them).
+  press('Defaults'); press('Defaults')
+  info = manager.snapshot(player).settings.dynamicInfo
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == true, kind) end
+  assert(mcm.row('Location').value == true)
+  press('Back to settings')
+  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Dynamic info'))
+  press('Back to Companion Manager')
 `));
 
 test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Settings', () => withScreen(`
@@ -1531,6 +1557,7 @@ for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl'
     press('tab:settings')
     check('Settings')
     press('relationships'); check('Relationships'); press('relationships:back')
+    press('dynamic-info'); check('Dynamic info'); press('dynamic-info:back')
     press('custom-endpoint'); check('Custom endpoint')
     assert(checked > 25, 'the pages have settings: ' .. checked)
   `));

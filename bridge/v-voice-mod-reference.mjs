@@ -10,7 +10,7 @@
 // needs none and a player's PC only needs the 8 MB command-line tool.
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {depotHash, openArchive} from './rdar.mjs';
@@ -140,18 +140,49 @@ export function chooseClips(candidates, {minSeconds, targetSeconds, maxSeconds, 
 
 // ---- decoding -----------------------------------------------------------------------------------------------------------------------------
 
-/** The decoder of a vgmstream-cli.exe: `decode(wemBytes)` -> the WAV bytes. Files go through a private temporary folder, never next to the archive. */
-export function vgmstreamDecoder(executable, {timeoutMs = 30_000, run = execFile} = {}) {
+// A voice line is a few seconds long and decodes in well under a second. A data-only voice mod is someone else's bytes, though: a crafted header (a huge
+// sample count, a loop) would make vgmstream write gigabytes into the temporary folder, and the result would then be read whole and resampled. So each
+// decode has a time cap and an output cap (16 MB of WAV: over a minute of 48 kHz stereo), the output file is watched while it is written, and vgmstream
+// is stopped the moment it passes the cap. (Security review 2026-10-22, finding 12.)
+export const VGMSTREAM_LIMITS = Object.freeze({timeoutMs: 10_000, maxOutputBytes: 16 * 1024 * 1024, pollMs: 100});
+
+/**
+ * The decoder of a vgmstream-cli.exe: `decode(wemBytes)` -> the WAV bytes. Files go through a private temporary folder, never next to the archive.
+ * It runs with `-i` (no looping: a loop point never makes the output longer), stops after `timeoutMs`, and aborts (rejecting with code 'too-large')
+ * when the output file passes `maxOutputBytes`. `run` is execFile (a fake in the tests).
+ */
+export function vgmstreamDecoder(executable, {timeoutMs = VGMSTREAM_LIMITS.timeoutMs, maxOutputBytes = VGMSTREAM_LIMITS.maxOutputBytes,
+  pollMs = VGMSTREAM_LIMITS.pollMs, run = execFile} = {}) {
   return async wem => {
     const folder = await mkdtemp(join(tmpdir(), 'ainpc-vmod-'));
     try {
       const input = join(folder, 'line.wem'), output = join(folder, 'line.wav');
       await writeFile(input, wem);
-      await new Promise((resolve, reject) => run(executable, ['-o', output, input], {timeout: timeoutMs, windowsHide: true, shell: false}, error => error ? reject(error) : resolve()));
+      let oversize = false, watcher = null, child = null;
+      try {
+        await new Promise((resolve, reject) => {
+          child = run(executable, ['-i', '-o', output, input], {timeout: timeoutMs, windowsHide: true, shell: false}, error => error ? reject(error) : resolve());
+          // The output grows while vgmstream writes: look at its size now and then, and stop the process when it passes the cap.
+          watcher = setInterval(() => {
+            stat(output).then(info => {
+              if (info.size > maxOutputBytes && !oversize) { oversize = true; try { child?.kill?.(); } catch { /* already gone */ } }
+            }, () => {});
+          }, pollMs);
+        });
+      } catch (error) {
+        if (oversize) throw Object.assign(Error(`the decoded line passed ${Math.round(maxOutputBytes / 1048576)} MB`), {code: 'too-large'});
+        if (error?.killed || error?.signal === 'SIGTERM') throw Object.assign(Error(`the decoder took longer than ${Math.round(timeoutMs / 1000)} s`), {code: 'timeout'});
+        throw error;
+      } finally { if (watcher) clearInterval(watcher); }
+      const size = (await stat(output)).size;
+      if (size > maxOutputBytes) throw Object.assign(Error(`the decoded line passed ${Math.round(maxOutputBytes / 1048576)} MB`), {code: 'too-large'});
       return await readFile(output);
     } finally { await rm(folder, {recursive: true, force: true}).catch(() => {}); }
   };
 }
+
+/** Lines in a row that may fail to decode, with none usable yet, before the build gives up. */
+export const MAX_BROKEN_RUN = 3;
 
 /**
  * Builds V's reference from one archive. `lines`: the gender's rows of v-mod-lines.json ({path, stringId, transcript}). Lines the archive does not
@@ -165,14 +196,22 @@ export async function buildModReference({archive, lines, decode, recipe = REFERE
     const present = hashed.filter(({hex}) => held.has(hex)).slice(0, recipe.maxLines);
     if (!present.length) throw Object.assign(Error('the archive holds none of the lines'), {code: 'no-lines'});
     const candidates = [], usable = [];
-    let picked = [], compressed = 0;
+    let picked = [], compressed = 0, badLines = 0, brokenRun = 0, decoderFailure = null;
     // Lines are decoded in the recipe's order and only until the set reaches its target length (normally the three English picks: about 11 s).
     for (const {line, hex} of present) {
       let wem;
       try { wem = await opened.read(hex); } catch (error) { candidates.push({line, skipped: error.code ?? 'unreadable'}); if (error.code === 'compressed') compressed++; continue; }
-      let wav;
-      try { wav = await decode(wem); } catch (error) { throw Object.assign(Error(`the decoder failed: ${String(error?.message ?? error).slice(0, 120)}`), {code: 'decoder'}); }
-      const candidate = {line, ...prepareClip(wav)};
+      // A line that cannot be decoded (or whose audio cannot be read) is skipped: a spare line takes its place. A decoder that fails line after line with nothing usable yet (a broken
+      // or hanging tool: up to 30 s a line) ends the build after MAX_BROKEN_RUN lines instead of trying all of them.
+      let candidate;
+      try { candidate = {line, ...prepareClip(await decode(wem))}; brokenRun = 0; }
+      catch (error) {
+        badLines++; brokenRun++;
+        decoderFailure = decoderFailure ?? `the decoder failed: ${String(error?.message ?? error).slice(0, 120)}`;
+        candidates.push({line, skipped: 'decoder'});
+        if (!usable.length && brokenRun >= MAX_BROKEN_RUN) break;
+        continue;
+      }
       candidates.push(candidate);
       if (candidate.gatedRmsDb === null) continue;
       usable.push(candidate);
@@ -182,7 +221,11 @@ export async function buildModReference({archive, lines, decode, recipe = REFERE
     }
     // One line in the log for lines the mod stores compressed (Oodle): reading them is not supported, they are skipped.
     if (compressed) log(`${compressed} line(s) of the mod are stored compressed, which is not supported; they were skipped`);
-    if (!picked.length) throw Object.assign(Error('no set of the lines in the mod fits the reference recipe'), {code: 'no-set'});
+    if (badLines) log(`${badLines} line(s) of the mod could not be decoded and were skipped`);
+    if (!picked.length) {
+      if (!usable.length && decoderFailure) throw Object.assign(Error(decoderFailure), {code: 'decoder'});
+      throw Object.assign(Error('no set of the lines in the mod fits the reference recipe'), {code: 'no-set'});
+    }
     const clips = picked.map(index => usable[index]);
     const samples = joinClips(clips.map(clip => clip.samples), {rate: recipe.rate, gap: recipe.gapSeconds});
     const wav = encodeWav16(samples, recipe.rate);

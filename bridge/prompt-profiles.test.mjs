@@ -62,7 +62,7 @@ test('every shipped profile is plain frozen data (JSON-safe), and its prompt is 
 
 test('a prompt built without a profile is the one built with the base profile, byte for byte (the pinned hashes of prompt-pinned.test.mjs hold)', () => {
   assert.equal(sha(buildMessages(args())), sha(buildMessages(args({profile: BASE_PROFILE}))));
-  assert.equal(sha(systemHead({persona: prompt.persona})), '56050c0db2c3d4bd9b252f4c681e401769dfd3d313534b03ba7149321896aa41');
+  assert.equal(sha(systemHead({persona: prompt.persona})), sha(systemHead({persona: prompt.persona, profile: BASE_PROFILE})));
 });
 
 test('with no player change a profile resolved through the store builds exactly what its default builds', async () => {

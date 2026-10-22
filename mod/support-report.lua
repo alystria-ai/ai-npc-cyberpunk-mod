@@ -30,6 +30,9 @@ local KEYWORDS = {'authorization', 'convai-key', 'convai_key', 'api-key', 'api_k
     'access-token', 'access_token', 'auth-token', 'auth_token', 'refresh-token', 'refresh_token', 'id-token',
     'id_token', 'token', 'secret', 'passwd', 'password', 'private-key', 'private_key', 'cookie', 'session-key',
     'session_key'}
+local FILE_EXTENSIONS = {onnx = true, json = true, wav = true, mp3 = true, ogg = true, flac = true, wem = true, opus = true, mjs = true, js = true, cjs = true, ts = true, lua = true, txt = true, log = true, md = true, csv = true, gguf = true, bin = true, pt = true, pth = true, safetensors = true, yaml = true, yml = true, toml = true, ini = true, cfg = true, zip = true, dll = true, exe = true, pdb = true, so = true, archive = true, reds = true, xml = true, html = true, css = true, py = true, bat = true, ps1 = true, png = true, jpg = true, jpeg = true, webp = true, bmp = true, tga = true, dds = true, mp4 = true, webm = true, gz = true, tar = true, ['7z'] = true, bak = true, tmp = true}
+local QUERY_NAMES = {'key', 'token', 'api_key', 'apikey', 'access_token', 'auth', 'signature', 'sig', 'pass', 'passwd', 'password', 'pwd', 'code',
+    'secret', 'client_secret', 'refresh_token'}
 local KEY_PREFIXES = {'hf', 'ghp', 'gho', 'ghs', 'ghu', 'sk', 'pk', 'xoxa', 'xoxb', 'xoxp', 'xoxr', 'AKIA', 'AIza', 'ya29'}
 local SENSITIVE_NAME = {'key', 'token', 'secret', 'passw', 'credential', 'authorization', 'bearer', 'cookie', 'signature'}
 local ID_NAME = {'enduserid', 'userid', 'sessionid', 'characterid', 'connectionid', 'roomid', 'participantid', 'ownerid',
@@ -111,10 +114,32 @@ function M.redactLine(line, secrets)
         out[#out + 1] = line:sub(position)
         line = table.concat(out)
     end
+    -- Address parameters that carry a secret (the service's rule): ?code=..., &pass=..., ...
+    for _, name in ipairs(QUERY_NAMES) do
+        line = line:gsub('([?&]' .. name .. '=)[^&%s"\']+', '%1[redacted]')
+    end
+    -- user:password@host in an address, and email addresses (the service's rules, bridge/support-report.mjs).
+    line = line:gsub('(%a[%w%+%.%-]*://)[^%s/%?#@"\'<>\\]+@', '%1[redacted]@')
+    -- A file name such as kokoro@v1.0.onnx ends in a file extension, not a domain: left alone.
+    line = line:gsub('[%w%._%%%+%-]+@[%w%-]+[%w%.%-]*%.%a%a+', function(match)
+        if FILE_EXTENSIONS[match:match('%.(%a+)$'):lower()] then return nil end
+        return '[email-redacted]'
+    end)
     line = line:gsub('[%w%+_=%-]+', function(run)
         if isUuid(run) then return '[id:' .. hash8(run:lower()) .. ']' end
         if #run >= 32 and run:match('^%x+$') then return '[hex-redacted]' end
+        -- 40 and more with a digit and a letter, like the service; and a Mistral key: exactly 32 letters and digits (no - or _, so a 32-character
+        -- name with hyphens such as a model name stays readable), with a digit and a letter or both cases.
         if #run >= 40 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+        local function random(text) return (text:find('%d') and text:find('%a')) or (text:find('%l') and text:find('%u')) end
+        if #run == 32 and run:match('^%w+$') and random(run) then return '[token-redacted]' end
+        -- A key right after a short name= (key=<32 characters>): the tail after the last = is the key.
+        local head, tail = run:match('^(.-=)(%w+)$')
+        if tail and #tail == 32 and random(tail) then return head .. '[token-redacted]' end
+    end)
+    -- A name with spaces ("John Smith") is taken whole up to the next separator (at most 64 characters); with no separator after it, only its first word.
+    line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)([^\\/"\'<>|:*?,;=%+%[%]]+)([\\/])', function(prefix, name, separator)
+        if #name <= 64 then return prefix .. '<user>' .. separator end
     end)
     line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)[^\\/%s"\'<>|:*?]+', '%1<user>')
     return line
@@ -525,6 +550,13 @@ function M.new(options)
             for key, value in pairs(settings) do if key ~= 'enabledByKey' and key ~= 'enabled' then copy[key] = value end end
             copy.conversationEnabledCount = enabled
             copy.conversationDisabled = disabled
+            -- Settings > Dynamic info: the table is in the settings; the kinds that are off are also listed, so they are seen at a glance.
+            local infoOff = {}
+            if type(settings.dynamicInfo) == 'table' then
+                for kind, on in pairs(settings.dynamicInfo) do if on == false then infoOff[#infoOff + 1] = tostring(kind) end end
+                table.sort(infoOff)
+            end
+            copy.dynamicInfoOff = infoOff
             render(copy, 'settings', 1, out)
         else out[#out + 1] = 'settings: not available' end
         section(out, 'party')

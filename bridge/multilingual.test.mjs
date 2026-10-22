@@ -490,7 +490,7 @@ const archetypeTwinDocument = () => ({version: 1, characters: Object.fromEntries
   .map(profile => [profile, twinRow(archetypeIds[profile], profile + '-twin-id')]))});
 
 test('every archetype key and its twin key stay inside the profile-key limit used across the bridge', () => {
-  assert.equal(archetypeKeys.length, 74);
+  assert.equal(archetypeKeys.length, 80);
   for (const profile of archetypeKeys) assert.match(profile + '-multilingual', /^[a-z0-9][a-z0-9-]{0,79}$/, profile);
 });
 

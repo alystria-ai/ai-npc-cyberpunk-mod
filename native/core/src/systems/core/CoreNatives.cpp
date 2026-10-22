@@ -48,6 +48,8 @@ std::string StatusJson()
     out += "\",\"api\":" + std::to_string(kApiVersion);
     out += ",\"game\":\"" + std::to_string(kGameMajor) + "." + std::to_string(kGameMinor) + "\"";
     out += ",\"runtime\":\"" + JsonEscape(paths::WideToUtf8(GlobalFileIo().RuntimeDirectory())) + "\"";
+    // Mod Organizer 2's virtual file system is loaded: file replaces use MoveFileExW, which it sees.
+    out += std::string(",\"vfs\":") + (fileio::VirtualFileSystemLoaded() ? "true" : "false");
     out += ",\"systems\":" + names;
     out += ",\"switches\":" + GlobalSwitches().DescribeJson();
     // How an NPC's combat flag is read (unresolved until a companion first asks, then the route or "none").
@@ -77,11 +79,12 @@ void CheckVersion(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOu
     const bool ok = rtti::Guard(
         "core",
         [&] {
-            const bool compatible = luaApi == kApiVersion && GlobalFileIo().Running();
+            // The API alone: whether file IO works is the "io" system's business (Lua's handshake), and
+            // faces, vehicles and the rest need no files, so a dead file worker must not take them down.
+            const bool compatible = luaApi == kApiVersion;
             if (!compatible)
             {
-                CONVAI_WARN("Lua asked for API %d, plugin has %d (io running: %s)", luaApi, kApiVersion,
-                            GlobalFileIo().Running() ? "yes" : "no");
+                CONVAI_WARN("Lua asked for API %d, plugin has %d", luaApi, kApiVersion);
             }
             return compatible;
         },

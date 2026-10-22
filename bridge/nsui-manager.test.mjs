@@ -368,6 +368,37 @@ test('Restore defaults goes through the same validated path, only on the Setting
   assert(ns.find('Judy Alvarez').selectedElementIndex == 1)
 `));
 
+test('Dynamic info is a page of its own on the Native Settings UI tab: nine switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
+  press('Settings')
+  local open = assert(ns.find('Dynamic info'), 'no Dynamic info button on Settings')
+  assert(open.type == 'button' and open.buttonText == 'Open')
+  assert(not ns.find('Location'), 'the switches are on their own page')
+  press('Dynamic info')
+  assert(managerUi.inspect().view == 'dynamic-info')
+  for _, name in ipairs({'Location', 'Time and weather', 'Company and vehicle', 'Health, heat and fights', 'V’s money', 'V’s gear and clothes',
+      'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue'}) do
+    local switch = assert(ns.find(name), 'no switch ' .. name)
+    assert(switch.type == 'switch' and switch.state == true, name .. ' is on by default')
+  end
+  assert(ns.find('Back to settings'))
+  -- A change is applied for real, as one saved transaction.
+  ns.interact.toggle(ns.find('Location')); frames(8); ns.verify()
+  ns.interact.toggle(ns.find('V’s gear and clothes')); frames(8); ns.verify()
+  local info = manager.snapshot(player).settings.dynamicInfo
+  assert(info.location == false and info.gear == false and info.time == true and info.quest == true)
+  assert(saved.dynamicInfo.location == false and saved.dynamicInfo.gear == false and saved.dynamicInfo.money == true, 'saved in settings.json')
+  assert(manager.dynamicInfo('location') == false and manager.dynamicInfo('time') == true and convaiDynamicInfo.location == false and convaiDynamicInfo.gear == false)
+  assert(ns.find('Location').state == false and ns.find('Time and weather').state == true)
+  -- Restore defaults works on this page, and the page does not need Settings to be open.
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  info = manager.snapshot(player).settings.dynamicInfo
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == true, kind) end
+  assert(ns.find('Location').state == true and managerUi.inspect().shown == 'Defaults restored.')
+  assert(convaiDynamicInfo.location == true and saved.dynamicInfo.location == true)
+  press('Back to settings')
+  assert(managerUi.inspect().view == 'settings')
+`));
+
 test('without Native Settings UI the shortcut says so; a copy that loads later is found and registered', () => run(`${harness({nsui: false, screen: false})}
   local popups = {}
   function player:ConvaiPhoneFeedback(message) popups[#popups + 1] = message end

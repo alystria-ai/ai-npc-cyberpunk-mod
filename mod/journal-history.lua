@@ -111,6 +111,9 @@ local function ready()
     return player and player:IsAttached() and not player:IsDeadNoStatPool()
         and not Game.GetSystemRequestsHandler():IsPreGame() and not Game.GetJournalManager():HasAnyDelayedStateChanges() or false
 end
+-- The journal-specific part of ready(): the session half (player attached and alive, not pre-game) is what the caller's
+-- frame already proved (options.sessionProven), so a scan frame pays 2 native calls per check instead of 7.
+local function journalReady() return not Game.GetJournalManager():HasAnyDelayedStateChanges() end
 local function roots(lane,cursor,limit)
     local journal=Game.GetJournalManager()
     local context=JournalRequestContext.new({stateFilter=filter(lane)})
@@ -166,8 +169,9 @@ local function option(v,default,lo,hi) return integer(v,lo,hi) and v or default 
 function M.new(options)
     options=options or {}; local adapter=options.adapter or {}
     local self=setmetatable({adapter={isReady=adapter.isReady or ready,roots=adapter.roots or roots,
-        children=adapter.children or children,tracked=adapter.tracked or tracked},
-        currentGeneration=options.currentGeneration,currentWorldToken=options.currentWorldToken,
+        children=adapter.children or children,tracked=adapter.tracked or tracked,
+        isJournalReady=adapter.isJournalReady or (adapter.isReady==nil and journalReady or nil)},
+        sessionProven=options.sessionProven,currentGeneration=options.currentGeneration,currentWorldToken=options.currentWorldToken,
         now=options.now or os.time,pageSize=option(options.pageSize,8,1,32),
         maxQuests=option(options.maxQuests,1024,1,2048),maxNodes=option(options.maxNodes,8192,1,16384),
         maxObjectives=option(options.maxObjectives,4096,1,8192),maxPerQuest=option(options.maxPerQuest,128,1,256),
@@ -199,7 +203,11 @@ function Collector:check(context)
         or (context.worldToken~=nil and not token(context.worldToken)) then return nil end
     if self.currentGeneration then local ok,value=pcall(self.currentGeneration); if not ok or value~=context.generation then return nil end end
     if self.currentWorldToken then local ok,value=pcall(self.currentWorldToken); if not ok or not token(value) or value~=context.worldToken then return nil end end
-    local ok,value=pcall(self.adapter.isReady); if not ok or value~=true then return nil end
+    local isReady=self.adapter.isReady
+    if self.sessionProven and self.adapter.isJournalReady then
+        local proven,yes=pcall(self.sessionProven); if proven and yes==true then isReady=self.adapter.isJournalReady end
+    end
+    local ok,value=pcall(isReady); if not ok or value~=true then return nil end
     ok,value=pcall(self.now)
     if not ok or type(value)~='number' or value~=value or value<0 or value>1e12 or (self.lastNow and value<self.lastNow) then return nil end
     self.lastNow=value; return value
@@ -414,6 +422,34 @@ local function partialPart(self,job)
     job.partial=held
     return held
 end
+-- The composer is open and V is about to send: the history rows of a scan under way are encoded now, a few per frame within a
+-- small time budget, instead of all at once on the send frame (partialPart). Asked for by init.lua with preEncode(seconds); the
+-- window ends by itself. Rows a later page changes are encoded again, as everywhere else.
+local PRE_ENCODE_ROWS,PRE_ENCODE_SECONDS=12,.0015
+function Collector:preEncode(seconds)
+    local ok,clock=pcall(self.cpuNow)
+    if ok and type(clock)=='number' then self.preEncodeUntil=clock+(type(seconds)=='number' and seconds or 30) end
+end
+function Collector:pumpEncode()
+    local job=self.lanes.history.job
+    if not job or type(self.encodeRow)~='function' or job.partialFailed then return end
+    local ok,started=pcall(self.cpuNow)
+    if not ok or type(started)~='number' then return end
+    if started>self.preEncodeUntil then self.preEncodeUntil=nil; return end
+    local cache=self.lanes.history.cache
+    if cache and self.lastNow and self.lastNow-cache.started<=self.historyAge then return end -- the cache travels instead
+    rowTables(job)
+    local done=0
+    for id,quest in pairs(job.quests) do
+        if not rowFresh(job,id,quest) then
+            if not encodeRow(self,job,id,quest) then return end
+            done=done+1
+            if done>=PRE_ENCODE_ROWS then return end
+            local okNow,now=pcall(self.cpuNow)
+            if not okNow or type(now)~='number' or now-started>PRE_ENCODE_SECONDS then return end
+        end
+    end
+end
 -- Encodes the finished history rows a few per frame (see step).
 function Collector:pump()
     local job=self.encoding; if not job then self:pumpPartial(); return end
@@ -428,6 +464,7 @@ function Collector:paced(lane)
     return ok and type(clock)=='number' and clock<self.restUntil
 end
 function Collector:update(context)
+    if self.preEncodeUntil then self:pumpEncode() end
     -- Resting, or paced between background pages: no native call at all (capture() re-checks the world itself).
     if plain(context) and self.generation~=nil and self.generation==context.generation and self.worldToken==context.worldToken then
         local ok,now=pcall(self.now)
@@ -579,5 +616,5 @@ function Collector:capturePart(context)
     if not self:check(context) then self:reset(); return {version=1,status='unavailable'} end
     return output,parts
 end
-M.nativeAdapter={isReady=ready,roots=roots,children=children,tracked=tracked}
+M.nativeAdapter={isReady=ready,isJournalReady=journalReady,roots=roots,children=children,tracked=tracked}
 return M

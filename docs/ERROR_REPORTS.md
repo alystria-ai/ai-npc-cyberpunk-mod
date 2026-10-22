@@ -19,7 +19,7 @@ When the mod hits an error, it sends a small, redacted error report to the proje
 
 **How often:** at most one report per kind of error per day, and at most five a day in all. Reports are sent in the background, a little after the error, never while a character is answering, and the mod never retries them in a loop.
 
-**The notice.** The first time you load the game after updating, a notice says once that error reports are sent and where to turn them off.
+**The notice.** The first time you load the game after updating, a notice says once that error reports are sent and where to turn them off. Nothing is sent before the game has shown it (reports queue locally until the notice is marked in `settings.json`), and a settings file that cannot be read is never read as an opt-in either: while it is unreadable the service records nothing, sends nothing and deletes nothing. The game then treats it like a fresh install (the setting is not saved off for it, so the player's other choice is not invented): the notice is shown and marked again, the queue is kept, and nothing is sent until that has happened.
 
 **Where they go:** to the mod's own backend on Vercel (the same one that hands out the free tier's sign-in), stored for 30 days, readable only with the developer's admin secret.
 
@@ -89,6 +89,8 @@ The support report (**Settings > Help > Generate report**) says whether the sett
 }
 ```
 
+`detail` holds only the keys of `DETAIL_KEYS` in `bridge/error-reports.mjs` (the provider and its error code, the Local AI reason, the voice `engine` and the voice worker's graphics memory `gpuDedicatedMiB` and `gpuSharedMiB`, and for a custom server's empty answer the `empty*` counts: how it ended the answer, the tokens it counted, the events, pieces and milliseconds, `emptyAnswerDetail` in `bridge/error-events.mjs`). Before 2026-10-22 the voice keys were recorded but dropped by this list, so every voice report had an empty `detail`.
+
 Log sources and their share of the 150 lines: `bridge-stderr` 70 (the lines around the error's own message when it is found, else the end), `service` 20, `launcher` 10, `probe` 25 (around the error), `cet-mod` 15, `redscript` 10 (error lines only). Each line is cut to 300 characters.
 
 Redaction, in order: the support report's `createRedactor` with every key file's value as a literal (`credentialSecrets`, `customServerSecrets`, `dataFolderSecrets` in `bridge/report-secrets.mjs`: the data folder's key files, the sign-in file's secret, the custom servers' keys, the packed key), then `withoutConversation` (quoted text of 12 characters or more with a space in it, and the values of `text=`, `reply:`, `prompt=`, `"text":`... fields), then the Windows account names this process can see (`USERNAME`, the profile folder, `os.userInfo()`). The `detail` object keeps only the fields the recorders write. `bridge/error-reports.test.mjs` runs the support report's planted secrets, IDs, account name and conversation text through the whole path and requires none of them to get out.
@@ -107,7 +109,7 @@ Redaction, in order: the support report's `createRedactor` with every key file's
 node scripts/Fetch-ErrorReports.mjs
 ```
 
-It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen, a line of totals by kind, and, for `slow-turn` reports, a table of first sound for the first turns against the slow ones. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
+It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen (only fixed-shape fields; the message and frame go in fenced, escaped blocks under an untrusted-data header, and each saved report starts with an `_untrusted` notice), a line of totals by kind, and, for `slow-turn` reports, a table of first sound for the first turns against the slow ones. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
 
 ## Files
 

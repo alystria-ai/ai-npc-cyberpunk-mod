@@ -1,11 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm, readFile, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {parseVoiceOverLanguage, readVoiceOverLanguage, loadVVoiceReferencesWithMods, modLabel, vGenderOfKey, V_MOD_LINES_FILE, V_MOD_SWITCH} from './v-voice-mod-service.mjs';
+import {parseVoiceOverLanguage, readVoiceOverLanguage, loadVVoiceReferencesWithMods, installVVoiceReference, modLabel, vGenderOfKey, V_MOD_LINES_FILE, V_MOD_SWITCH} from './v-voice-mod-service.mjs';
 import {vVoiceModsSection} from './support-report.mjs';
 import {describeVLine, formatVoiceRoute} from './voice-routing-log.mjs';
 import {encodeWav16} from './voxtral-reference.mjs';
@@ -43,7 +43,7 @@ function fakeEnsure(winners, {calls = []} = {}) {
     }
     await writeFile(join(options.outFolder, 'v-voice.json'), JSON.stringify(manifest));
     const archives = Object.entries(winners).map(([gender, relative]) => ({relative, path: join('C:/secret/place', relative), size: 5, [gender]: {probeHits: 290, probeTotal: 300, lineHits: [0, 1, 2]}}));
-    return {directory: Object.keys(winners).length ? options.outFolder : null, voices, detection: {archives, winners: Object.fromEntries(Object.entries(winners).map(([g, r]) => [g, archives.find(a => a.relative === r)])),
+    return {directory: Object.keys(winners).length ? options.outFolder : null, voices, sources: {...winners}, detection: {archives, winners: Object.fromEntries(Object.entries(winners).map(([g, r]) => [g, archives.find(a => a.relative === r)])),
       stats: {total: archives.length, inspected: archives.length, cached: 0, failed: 0, ms: 12}}};
   };
 }
@@ -157,6 +157,68 @@ test('a mod with no decoder says so once and V keeps the shipped voice', async (
     const result = await loadVVoiceReferencesWithMods({...options(root, shipped), ensure, list: async () => [], log: line => logs.push(line)});
     assert.equal(result.voices.male.source, 'shipped');
     assert.equal(logs.filter(line => /decoder/.test(line)).length, 1);
+  });
+});
+
+// ---- review A2: nothing is scanned at start, only the references an earlier scan built are read -----------------------------------------------------------------
+
+test('at start (scan: false) nothing is listed, decoded or scanned: the shipped references and the ones an earlier scan built are read as files', async () => {
+  await withRoot(async root => {
+    const shipped = await shippedFolder(root);
+    // An earlier session's scan left a reference for the male voice.
+    await fakeEnsure({male: 'redmod/Some Mod/JC Denton.archive'})({outFolder: resolve(root, 'state', 'v-voice-mod')});
+    const forbidden = name => () => { throw Error(`${name} must not run at start`); };
+    const logs = [];
+    const result = await loadVVoiceReferencesWithMods({...options(root, shipped), scan: false, ensure: forbidden('ensure'), list: forbidden('list'), decoder: forbidden('decoder'), log: line => logs.push(line)});
+    assert.equal(result.voices.male.source, 'mod:JC Denton.archive');
+    assert.equal(result.voices.male.reference, resolve(root, 'state', 'v-voice-mod', 'v-male.wav'));
+    assert.equal(result.voices.female.source, 'shipped');
+    assert.deepEqual(result.report.references, {male: 'mod:JC Denton.archive', female: 'shipped'});
+    assert.equal(result.report.scan, null, 'no scan has run');
+    assert.equal(result.changed, undefined);
+  });
+  // No earlier scan: the shipped clips, nothing else.
+  await withRoot(async root => {
+    const shipped = await shippedFolder(root);
+    const forbidden = name => () => { throw Error(`${name} must not run at start`); };
+    const fresh = await loadVVoiceReferencesWithMods({...options(root, shipped), scan: false, ensure: forbidden('ensure'), list: forbidden('list')});
+    assert.deepEqual([fresh.voices.male.source, fresh.voices.female.source], ['shipped', 'shipped']);
+  });
+});
+
+test('the scan after start lists what changed against the voices in use, and a reference built from another mod than the winner is never labelled with the winner\'s name', async () => {
+  await withRoot(async root => {
+    const shipped = await shippedFolder(root);
+    const current = (await loadVVoiceReferencesWithMods({...options(root, shipped), scan: false})).voices;
+    const found = await loadVVoiceReferencesWithMods({...options(root, shipped), current, ensure: fakeEnsure({male: 'x.archive'}), list: async () => []});
+    assert.deepEqual(found.changed, ['male'], 'the male voice is the mod\'s now, the female one is as it was');
+    assert.equal(found.voices.male.source, 'mod:x.archive');
+    const again = await loadVVoiceReferencesWithMods({...options(root, shipped), current: found.voices, ensure: fakeEnsure({male: 'x.archive'}), list: async () => []});
+    assert.deepEqual(again.changed, [], 'nothing changed: nothing to apply');
+    // A manifest row left by mod A while the winner is B: the row is not B's voice.
+    const stale = async options2 => { const made = await fakeEnsure({male: 'a.archive'})(options2); made.detection.winners.male = {relative: 'b.archive', size: 1}; made.sources = {male: 'a.archive'}; return made; };
+    const mixed = await loadVVoiceReferencesWithMods({...options(root, shipped), ensure: stale, list: async () => []});
+    assert.equal(mixed.voices.male.source, 'shipped');
+  });
+});
+
+test('installVVoiceReference puts the clip where the workers read it, once per root, and leaves an identical copy alone', async () => {
+  await withRoot(async root => {
+    const bytes = encodeWav16(sine(9, 200), 24000), source = join(root, 'v-male.wav');
+    await writeFile(source, bytes);
+    const voice = {key: 'v-male', reference: source, sha256: sha(bytes)};
+    const logs = [];
+    assert.equal(await installVVoiceReference(voice, [join(root, 'refs'), join(root, 'refs'), null, join(root, 'pocket')], {log: line => logs.push(line)}), 2);
+    assert.equal(sha(await readFile(join(root, 'refs', 'addons', 'v-male.wav'))), voice.sha256);
+    assert.equal(sha(await readFile(join(root, 'pocket', 'addons', 'v-male.wav'))), voice.sha256);
+    assert.equal(await installVVoiceReference(voice, [join(root, 'refs')]), 0, 'the same bytes are not copied again');
+    assert.deepEqual((await readdir(join(root, 'refs', 'addons'))).sort(), ['v-male.wav'], 'no temporary file is left beside the clip');
+    const other = encodeWav16(sine(9, 300), 24000);
+    await writeFile(source, other);
+    assert.equal(await installVVoiceReference({...voice, sha256: sha(other)}, [join(root, 'refs')]), 1, 'a new clip replaces the copy');
+    assert.equal(sha(await readFile(join(root, 'refs', 'addons', 'v-male.wav'))), sha(other));
+    assert.equal(await installVVoiceReference({...voice, reference: join(root, 'missing.wav')}, [join(root, 'refs2')], {log: line => logs.push(line)}), 0, 'a missing clip is a log line, not an error');
+    assert.equal(logs.length, 1);
   });
 });
 

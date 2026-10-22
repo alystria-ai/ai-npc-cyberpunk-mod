@@ -791,8 +791,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       if (adapt) applyAdaptation(body, adapt);
       markStage('llmSent');
       response = await fetchImpl(url, {method: 'POST', signal: controller.signal, ...(dispatcher ? {dispatcher} : {}),
-        // The key's origin is the endpoint's; a redirect to another host is an error, not something to follow with the key.
-        ...(provider === 'custom' ? {redirect: 'error'} : {}),
+        // The key's origin is the endpoint's; a redirect to another host is an error, not something to follow with the key (Mistral's included).
+        redirect: 'error',
         headers: {...(apiKey ? {Authorization: `Bearer ${apiKey}`} : {}), 'Content-Type': 'application/json',
           Accept: body.stream === false ? 'application/json' : 'text/event-stream', ...extraHeaders},
         body: JSON.stringify(body)});
@@ -842,8 +842,10 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       const shown = thoughts.push(contentText(choice?.message?.content ?? choice?.text)) + thoughts.end();
       const cut = afterStrayClose(shown), whole = cut.text;
       if (!whole.trim()) {
+        // The record says how the server ended the answer (`finishReason`, the tokens it counted for it): an empty answer of a server a player runs is otherwise a mystery (2026-10-22 report).
         throw emptyAnswer(provider, apiKey, {finishReason: choice?.finish_reason,
-          thought: reasoningIn(choice?.message) || thoughts.sawBlock || cut.stray || reasoningTokens(value.usage) > 0});
+          thought: reasoningIn(choice?.message) || thoughts.sawBlock || cut.stray || reasoningTokens(value.usage) > 0,
+          extra: {trace: {...trace, finishReason: choice?.finish_reason ?? null, completionTokens: Number.isFinite(value.usage?.completion_tokens) ? value.usage.completion_tokens : null, elapsedMs: since()}}});
       }
       markStage('firstToken');
       onDelta?.(whole, whole);
@@ -909,7 +911,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       if (cut.stray) text = cut.text;
       thought = thought || thoughts.sawBlock || cut.stray || reasoningTokens(usage) > 0;
     }
-    if (!text.trim()) throw emptyAnswer(provider, apiKey, {thought, finishReason, extra: {reason: trace.reasoning > 0 ? 'thinking-only' : undefined, trace}});
+    if (!text.trim()) throw emptyAnswer(provider, apiKey, {thought, finishReason, extra: {reason: trace.reasoning > 0 ? 'thinking-only' : undefined, trace: {...trace, completionTokens: Number.isFinite(usage?.completion_tokens) ? usage.completion_tokens : null}}});
     return {text, model: actualModel, finishReason: stoppedEarly ? 'stop' : finishReason, usage, trace};
   } finally {
     clearTimer(first); clearTimer(total);

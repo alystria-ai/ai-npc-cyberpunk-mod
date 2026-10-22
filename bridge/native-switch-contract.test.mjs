@@ -376,8 +376,8 @@ test('the API version the Lua asks for is the one the plugin answers to, and the
   const cpp = /constexpr int kApiVersion = (\d+);/.exec(read('native/core/src/core/Version.hpp'));
   assert.ok(lua && cpp);
   assert.equal(lua[1], cpp[1], 'mod/native-core.lua and Version.hpp disagree on the API version: every system would stay on Lua');
-  // CheckVersion is compatible only when the API matches AND the file worker is running (the plugin has no other proof it can serve the Lua).
+  // CheckVersion is compatible when the API matches. File IO is proved separately by Lua's handshake and gates only the io system.
   const core = read('native/core/src/systems/core/CoreNatives.cpp');
-  assert.match(core, /luaApi == kApiVersion && GlobalFileIo\(\)\.Running\(\)/);
+  assert.match(core, /luaApi == kApiVersion;/);
   assert.match(core, /Guard\(\s*"core"/);
 });

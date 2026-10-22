@@ -20,6 +20,8 @@ export function createConvaiClient({ fetchImpl = fetch, connectUrl, revokeUrl, t
       try {
         response = await fetchImpl(connectUrl, {
           method: 'POST',
+          // fetch forwards the CONVAI-API-KEY header (only Authorization is stripped) on a redirect to another host: a redirect is an error.
+          redirect: 'error',
           headers: { 'CONVAI-API-KEY': apiKey, 'Content-Type': 'application/json' },
           body: '{}',
           signal: AbortSignal.timeout(timeoutMs),
@@ -47,6 +49,7 @@ export function createConvaiClient({ fetchImpl = fetch, connectUrl, revokeUrl, t
       try {
         const response = await fetchImpl(revokeUrl, {
           method: 'POST',
+          redirect: 'error',
           headers: { 'CONVAI-API-KEY': apiKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiAuthToken: token }),
           signal: AbortSignal.timeout(timeoutMs),

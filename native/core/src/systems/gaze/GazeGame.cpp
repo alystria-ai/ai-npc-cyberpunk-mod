@@ -327,26 +327,12 @@ Layout& Get()
     return g_layout;
 }
 
-// A method call by pointer values (their types come from the function's parameters). A function
-// with a return value gets scratch space for it.
-bool Invoke(void* aInstance, CBaseFunction* aFunction, std::initializer_list<void*> aValues)
+// A method call by pointer values, made only when the function takes exactly those (plugin/CheckedCall.hpp:
+// parameter count, sizes and types). The setters return nothing; a function that does return a value has it
+// constructed and released by its own type.
+bool Invoke(void* aInstance, CBaseFunction* aFunction, std::initializer_list<convai::game::TypedArg> aArgs)
 {
-    RED4ext::StackArgs_t args;
-    for (void* value : aValues)
-    {
-        args.emplace_back(nullptr, value);
-    }
-    alignas(16) unsigned char scratch[64] = {};
-    void* out = nullptr;
-    if (aFunction->returnType)
-    {
-        if (!aFunction->returnType->type || aFunction->returnType->type->GetSize() > sizeof(scratch))
-        {
-            return false;
-        }
-        out = scratch;
-    }
-    return RED4ext::ExecuteFunction(aInstance, aFunction, out, args);
+    return convai::game::Invoke(static_cast<RED4ext::IScriptable*>(aInstance), aFunction, nullptr, aArgs);
 }
 
 // A temporary game array, built and torn down by the array type itself like a script local.
@@ -392,6 +378,11 @@ FillResult Fill(const convai::game::Object& aEvent, const convai::game::Object& 
     if (!eventType || !eventType->IsA(L.eventClass))
     {
         return decline("the first argument is not a LookAtAddEvent");
+    }
+    // SetEntityTarget takes an entity: the player has to be one before it is handed over.
+    if (!convai::game::IsA(aPlayer, "entEntity"))
+    {
+        return decline("the player is not an entEntity");
     }
     void* event = aEvent.instance;
     convai::game::Object player = aPlayer; // an lvalue with the handle layout the call expects
@@ -442,7 +433,7 @@ FillResult Fill(const convai::game::Object& aEvent, const convai::game::Object& 
                 break;
             }
         }
-        if (!found || !Invoke(event, L.setStyle, {value}))
+        if (!found || !Invoke(event, L.setStyle, {convai::game::TypedArg(static_cast<void*>(value), nullptr, L.styleEnum->GetSize())}))
         {
             return decline("SetStyle failed");
         }
@@ -489,7 +480,7 @@ FillResult Fill(const convai::game::Object& aEvent, const convai::game::Object& 
                 return decline("a part field could not be written");
             }
         }
-        if (!Invoke(event, L.setParts, {parts.storage}))
+        if (!Invoke(event, L.setParts, {convai::game::TypedArg(static_cast<void*>(parts.storage), nullptr, 16)}))
         {
             return decline("SetAdditionalPartsArray failed");
         }

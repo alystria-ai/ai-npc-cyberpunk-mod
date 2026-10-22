@@ -10,7 +10,7 @@
 --   story   is Johnny in V's head now?   q101_done set (Playing for Time is over) and no ending fact set
 --   stage   where do he and V stand?      a few shared milestones with verified writers in the 2.31 quest files
 --   busy    does the game have the floor? a scene, a call, a quest conversation, a fight, V replaced, or a game line of his
-local M = {KEY = 'johnny-silverhand', NAME = 'Johnny Silverhand', HOLD_SECONDS = 0.4, FACT_SECONDS = 5, LINE_SECONDS = 10}
+local M = {KEY = 'johnny-silverhand', NAME = 'Johnny Silverhand', HOLD_SECONDS = 0.4, FACT_SECONDS = 5, LINE_SECONDS = 10, ANY_LINE_SECONDS = 6}
 
 -- Playing for Time is done: V woke with Johnny in her head (the name is the live game's, mod/knowledge-probe.lua).
 M.START = 'q101_done'
@@ -81,6 +81,14 @@ function M.recentLine(rows, now, key, window)
     return false
 end
 
+-- Did the game give ANY character a voice line (rows as for recentLine, any speaker) in the last `window` seconds? With a scene tier of 3 or
+-- 4 this is the sign of a real scene rather than a lift ride or an idle interaction. Pure.
+function M.recentAny(rows, now, window)
+    if type(rows) ~= 'table' or type(now) ~= 'number' then return false end
+    local row = rows[#rows]
+    return type(row) == 'table' and type(row.at) == 'number' and now - row.at <= window
+end
+
 -- Seconds since the game last gave Johnny a line (rows as for recentLine), or nil when none is in the buffer. Pure. For the refusal's
 -- log line only: it says whether "johnny-speaking" came from a line a moment ago or a long way back.
 function M.lineAge(rows, now, key)
@@ -97,7 +105,7 @@ end
 function M.describe(sample, lineAge)
     if type(sample) ~= 'table' then return 'sample=none' end
     local parts = {}
-    for _, name in ipairs({'tier', 'dialogue', 'choices', 'call', 'replacer', 'combat', 'sitting', 'vehicle', 'scene'}) do
+    for _, name in ipairs({'tier', 'dialogue', 'choices', 'call', 'replacer', 'combat', 'sitting', 'vehicle', 'scene', 'workspot'}) do
         local value = sample[name]
         parts[#parts + 1] = name .. '=' .. (value == nil and '?' or tostring(value))
     end
@@ -110,13 +118,16 @@ end
 --   replacer         V is replaced by another character (a flashback where the player is Johnny)
 --   call             a phone call is incoming or running
 --   dialogue         V is in a quest conversation
---   scene            scene tier 3 or above (limited gameplay or a cinematic), or a dialogue choice while the tier is unknown: the rule of
---                    mod/world-talk.lua for story characters. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and does not
---                    refuse by itself; where the game stages its own Johnny there, his game line keeps Johnny quiet (johnny-speaking).
---                    A choice at tier 1 or 2 is the game's "Talk" prompt on a vendor or a fixer, not a conversation
+--   scene            tier 5 (a full cinematic), or tier 3 or 4 (limited gameplay, an FPP interaction: a lift, a seat, a ride) TOGETHER WITH
+--                    another sign of a scene: a game voice line of any character in the last ANY_LINE_SECONDS (anyLine: true), or a dialogue
+--                    choice. Tier 3 or 4 alone is ordinary life, not a scene: a lift ride refused Johnny for nothing (report 931d4563, 2026-10-22).
+--                    A dialogue choice while the tier is unknown also refuses (fails closed). The dialogue and call flags have their own
+--                    reasons. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and does not refuse by itself; where the game stages its
+--                    own Johnny there, his game line keeps Johnny quiet (johnny-speaking). A choice at tier 1 or 2 is the game's "Talk" prompt
+--                    on a vendor or a fixer, not a conversation
 --   combat           V is in a fight
 --   johnny-speaking  the game gave Johnny a line in the last LINE_SECONDS (spoken: true)
-function M.busy(sample, spoken)
+function M.busy(sample, spoken, anyLine)
     if type(sample) ~= 'table' or sample.available ~= true then return 'unreadable' end
     if sample.replacer == true then return 'replacer' end
     if sample.call == true then return 'call' end
@@ -125,7 +136,12 @@ function M.busy(sample, spoken)
     local seated = sample.sitting == true
     if sample.dialogue == true and not seated then return 'dialogue' end
     local tier = tonumber(sample.tier)
-    if not seated and ((tier ~= nil and tier >= 3) or (tier == nil and sample.choices == true)) then return 'scene' end
+    if not seated then
+        if tier == nil then
+            if sample.choices == true then return 'scene' end
+        elseif tier >= 5 then return 'scene'
+        elseif tier >= 3 and (sample.choices == true or anyLine == true) then return 'scene' end
+    end
     if sample.combat == true then return 'combat' end
     if spoken == true then return 'johnny-speaking' end
     return nil
@@ -188,9 +204,20 @@ function M.new(options)
                 local ok, value = pcall(options.lines)
                 rows = ok and value or nil
             end
-            reason = M.busy(sample, M.recentLine(rows, now(), M.KEY, M.LINE_SECONDS))
+            local wall = now()
+            reason = M.busy(sample, M.recentLine(rows, wall, M.KEY, M.LINE_SECONDS), M.recentAny(rows, wall, M.ANY_LINE_SECONDS))
             -- What the refusal rests on, kept as plain values (the sample is a table of booleans and numbers) until the log line asks.
-            if reason ~= nil then self.basis = {sample = sample, lineAge = M.lineAge(rows, now(), M.KEY)} else self.basis = nil end
+            -- A scene refusal also reads whether V is in a workspot (a lift ride, a seat), once: the refusal is held, never per frame.
+            if reason ~= nil then
+                local basisSample = sample
+                if reason == 'scene' and type(sample) == 'table' and type(options.workspot) == 'function' then
+                    basisSample = {}
+                    for key, value in pairs(sample) do basisSample[key] = value end
+                    local ok, inside = pcall(options.workspot, player)
+                    if ok and type(inside) == 'boolean' then basisSample.workspot = inside end
+                end
+                self.basis = {sample = basisSample, lineAge = M.lineAge(rows, wall, M.KEY)}
+            else self.basis = nil end
         else
             self.basis = nil
         end

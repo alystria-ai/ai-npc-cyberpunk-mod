@@ -9,9 +9,10 @@ import {join} from 'node:path';
 import {gzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
-import {ErrorEvents, errorReportStatus, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
+import {MistralError, newTrace} from './mistral-client.mjs';
+import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
+import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -29,6 +30,8 @@ async function folders() {
   const runtime = join(modRoot, 'runtime'), state = join(base, 'state'), project = join(base, 'app');
   for (const folder of [runtime, state, project]) await mkdir(folder, {recursive: true});
   await writeFile(join(state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  // The in-game notice was shown (the game sets this flag in settings.json): nothing is sent before it. The tests of that gate change the file.
+  await writeFile(join(runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
   return {base, game, modRoot, runtime, state, project, cleanup: () => rm(base, {recursive: true, force: true})};
 }
 
@@ -179,6 +182,17 @@ async function untilQueued(f, count, limitMs = 10000) {
   while (Date.now() < end) { if ((await readQueue(f.state, {now: START})).length >= count) return; await new Promise(done => setTimeout(done, 20)); }
 }
 
+test('an empty answer of a custom server carries how it ended (numbers and one short word), and nothing else is added to another failure', () => {
+  const trace = {...newTrace(), headersMs: 20, events: 3, pieces: 0, reasoning: 0, finishReason: 'stop', completionTokens: 0, elapsedMs: 127.4};
+  const empty = new MistralError('empty', 'answered with no text', {provider: 'custom', trace});
+  assert.deepEqual(emptyAnswerDetail(empty), {emptyFinish: 'stop', emptyEvents: 3, emptyPieces: 0, emptyThinking: 0, emptyTokens: 0, emptyMs: 127});
+  // A word that is not a short end-of-answer reason is dropped, and so is anything that is not a count.
+  assert.deepEqual(emptyAnswerDetail(new MistralError('empty', 'answered with no text', {provider: 'custom', trace: {...trace, finishReason: 'Some text of the reply!', completionTokens: null, events: 'x'}})), {emptyPieces: 0, emptyThinking: 0, emptyMs: 127});
+  assert.deepEqual(emptyAnswerDetail(new MistralError('empty', 'answered with no text', {provider: 'mistral', trace})), {});
+  assert.deepEqual(emptyAnswerDetail(new MistralError('network', 'went away', {provider: 'custom', trace})), {});
+  assert.deepEqual(emptyAnswerDetail(new Error('x')), {});
+});
+
 test('the bridge recorder writes after the fact, once per signature, and nothing while the setting is off', async () => {
   const f = await folders();
   try {
@@ -263,6 +277,10 @@ test('no planted secret, conversation text or account name gets out, and the pay
       gameInfo: {game: '2.31', cet: 'v1.35.0', codeware: '1.20.5', setup: ['codeware: ok found']}});
     for (const [name, value] of Object.entries(PLANTED)) assert.ok(!body.includes(value), `planted ${name} got out`);
     assert.ok(!body.includes(INSTALL), 'the raw install id never leaves');
+    // The detail of a voice failure (engine, the worker's graphics memory) and of an empty custom answer is kept; a field the recorders do not write is not.
+    const voice = await buildErrorPayload({record: {...record, kind: 'voice-failed', detail: {engine: 'omni', gpuDedicatedMiB: 2036, gpuSharedMiB: 518, emptyFinish: 'stop', emptyTokens: 0, note: PLANTED.chat}},
+      game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], now: () => START, graphics: () => []});
+    assert.deepEqual(voice.payload.report.detail, {engine: 'omni', gpuDedicatedMiB: 2036, gpuSharedMiB: 518, emptyFinish: 'stop', emptyTokens: 0});
     assert.equal(payload.install, hashInstall(INSTALL));
     assert.match(payload.install, /^[0-9a-f]{32}$/);
     assert.ok(Buffer.byteLength(body) <= MAX_BODY_BYTES);
@@ -281,6 +299,17 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.ok(payload.report.logs.some(item => item.source === 'redscript' && item.lines.some(line => line.includes('Cannot resolve type'))));
     assert.ok(!payload.report.logs.some(item => item.lines.some(line => line.includes('routine line 1000'))), 'only lines around the error');
   } finally { await f.cleanup(); }
+});
+
+test('the error-report cleaner hides account names in any path (two-letter ones too), emails and user:pass@host', () => {
+  const {clean} = reportCleaner({names: ['Jo', 'Zedmaster'], secrets: [], ids: []});
+  const b = '\\';
+  assert.equal(clean(`opened E:${b}Jo${b}Games${b}y.lua and D:${b}Zedmaster${b}x`), `opened E:${b}<user>${b}Games${b}y.lua and D:${b}<user>${b}x`);
+  assert.equal(clean('then Jo went to Josephine'), 'then Jo went to Josephine', 'a two-letter name is only hidden as a path part');
+  assert.equal(clean('Zedmaster logged in'), '<user> logged in', 'a longer name is hidden anywhere');
+  const out = clean('proxy https://u:p4ssw0rd@host.example:8080/a mail a.b@c.example.com');
+  assert.equal(out, 'proxy https://[redacted]@host.example:8080/a mail [email-redacted]');
+  assert.equal(clean('key Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc here'), 'key [token-redacted] here', 'a 32-character key');
 });
 
 test('the conversation filter removes quoted sentences and text fields, and keeps the words an error needs', () => {
@@ -401,6 +430,72 @@ test('a clock that is off is corrected once from the backend\'s time', async () 
     assert.equal(reporter.stopped, null);
     assert.equal((await readQueue(f.state, {now: clock.now})).length, 0);
   } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('nothing is sent before the in-game notice was shown: the queue waits, and goes out once the game has marked the notice', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    for (const text of [null, JSON.stringify({errorReports: true}), JSON.stringify({errorReportsNoticed: false})]) {
+      if (text === null) await rm(join(f.runtime, 'settings.json'), {force: true});
+      else await writeFile(join(f.runtime, 'settings.json'), text);
+      await recordErrorEvent(f.state, event('fault', 'service-failed'), {now: clock.now});
+      const reporter = reporterFor(f, backend, clock);
+      await reporter.flush();
+      await reporter.look({flush: true});
+      reporter.close();
+      assert.equal(backend.calls.length, 0, `nothing sent with settings ${text}`);
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and nothing is dropped: it waits');
+      assert.equal(await errorReportsMaySend(f.runtime), false);
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).noticed, false);
+    }
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), true);
+    const after = reporterFor(f, backend, clock);
+    await after.flush();
+    after.close();
+    assert.equal(backend.calls.length, 1, 'sent once the notice was shown');
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 0);
+    // The setting off wins over a shown notice.
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), false);
+  } finally { await f.cleanup(); }
+});
+
+test('an unreadable settings file is an unknown state, never on: nothing is recorded or sent, and the queue is not deleted', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    await recordErrorEvent(f.state, event('queued before the damage', 'service-failed'), {now: clock.now});
+    for (const damaged of ['{"errorReports": fal', '{"errorReports": "false"}', '', '[]', 'null', String.fromCharCode(0, 0)]) {
+      await writeFile(join(f.runtime, 'settings.json'), damaged);
+      await rm(join(f.runtime, 'settings.json.previous'), {force: true});
+      assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'unknown', noticed: false}, JSON.stringify(damaged));
+      assert.equal(await errorReportsEnabled(f.runtime), false);
+      assert.equal(errorReportsEnabledSync(f.runtime), false);
+      const reporter = reporterFor(f, backend, clock);
+      assert.equal(await reporter.record(event('new fault', 'service-failed')), null, 'not recorded');
+      await reporter.flush();
+      reporter.close();
+      assert.equal(backend.calls.length, 0, 'not sent');
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and the queue is neither sent nor deleted');
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).setting, 'unknown');
+    }
+    // A bridge crash is not recorded either.
+    const script = `import {installCrashCapture} from ${JSON.stringify(new URL('./error-events.mjs', import.meta.url).href)};
+installCrashCapture({stateDirectory: ${JSON.stringify(f.state)}, runtime: ${JSON.stringify(f.runtime)}});
+throw new Error('not recorded');`;
+    await writeFile(join(f.runtime, 'settings.json'), '{broken');
+    spawnSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8', timeout: 20000});
+    assert.equal((await readQueue(f.state)).length, 1);
+    // The previous copy stands in for a file being replaced: it still decides (here: an opt-out stays an opt-out).
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'off', noticed: true});
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'on', noticed: true});
+  } finally { await f.cleanup(); }
 });
 
 test('with the setting off nothing is sent and the queue is deleted; with no backend address nothing is sent and it waits', async () => {
@@ -542,6 +637,8 @@ test('end to end with the real backend handler: stored once, listed and fetched 
   const world = createErrorWorld();
   const f = await plantedInstall();
   await writeFile(join(f.state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  const planted = JSON.parse(await readFile(join(f.runtime, 'settings.json'), 'utf8'));
+  await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({...planted, errorReportsNoticed: true}));
   const clock = world.clock;
   // The bridge's request goes straight into the backend's handler, as Vercel would hand it over.
   const fetchImpl = async (url, init) => {

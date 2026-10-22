@@ -331,7 +331,15 @@ end
 local Instance = {}
 Instance.__index = Instance
 
--- options: activity() -> {rows = {[profileKey] = inputs for M.classify}, motion = 'still'|'walking'|'running'}, now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
+-- Dynamic info (Settings > Dynamic info): options.enabled(kind) says whether a kind of live info is on (mod/manager.lua dynamicInfo). A kind that is
+-- off is not read from the game at all, so turning one off removes work. The kinds, and what each one covers here:
+--   location   the district and the named place, and whether V is indoors     time      the clock and the weather
+--   company    who is with V, the vehicle and V's motion                      condition V's health and the police heat
+--   money      V's money band                                                  about     V's gender and lifepath
+-- (V's voice for typed lines still reads V's voice gender and the dialogue volume: they are no part of the words the bridge writes.)
+local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+
+-- options: enabled(kind) -> boolean (default: everything on), activity() -> {rows = {[profileKey] = inputs for M.classify}, motion = 'still'|'walking'|'running'}, now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
 -- place() -> {district =, area =} (init.lua's currentDistrict), party(player, radius) -> {{profileKey =, name =}}.
 function M.new(options)
     options = options or {}
@@ -347,6 +355,21 @@ local function call(fn, ...)
     local ok, a, b, c = pcall(fn, ...)
     if ok then return a, b, c end
     return nil
+end
+
+-- Whether a kind of live info is on. No callback: everything is on; a callback that fails or answers nothing leaves the kind on.
+function Instance:wants(kind)
+    local enabled = self.options.enabled
+    if type(enabled) ~= 'function' then return true end
+    local ok, value = pcall(enabled, kind)
+    return not ok or value ~= false
+end
+
+-- The state of the switches as one short text: a snapshot read under other switches is not reused.
+function Instance:switches()
+    local parts = {}
+    for index, kind in ipairs(KINDS) do parts[index] = self:wants(kind) and '1' or '0' end
+    return table.concat(parts)
 end
 
 function Instance:now()
@@ -394,12 +417,15 @@ function Instance:read()
     if not player or not call(N.ready, player) then return nil, 'V is not ready (loading, dead or in a flashback)' end
     local snapshot, count = {version = 1, status = 'ready'}, 0
     local clockSource
-    local hour, minute, source = call(N.clock)
+    local wantTime, wantPlace, wantAbout = self:wants('time'), self:wants('location'), self:wants('about')
+    local wantCompany, wantCondition, wantMoney = self:wants('company'), self:wants('condition'), self:wants('money')
+    local hour, minute, source
+    if wantTime then hour, minute, source = call(N.clock) end
     if integer(hour, 0, 23) and integer(minute, 0, 59) then
         snapshot.hour, snapshot.minute, clockSource = hour, minute, source
         count = count + 1
     end
-    local place = call(self.options.place)
+    local place = wantPlace and call(self.options.place) or nil
     if type(place) == 'table' then
         local district, area = placeName(place.district), placeName(place.area)
         if district then
@@ -407,7 +433,7 @@ function Instance:read()
             count = count + 1
         end
     end
-    local sex = gender(call(N.gender, player))
+    local sex = wantAbout and gender(call(N.gender, player)) or nil
     if sex then snapshot.gender = sex; count = count + 1 end
     -- Not counted as something read: only V's voice for typed lines uses it, never the words the bridge writes.
     local tone = gender(call(N.voice, player))
@@ -422,12 +448,13 @@ function Instance:read()
         end
     end
     -- The lifepath is fixed for a save: read once, and again only while it is unknown.
-    if not self.lifepath then self.lifepath = call(N.lifepath, player) end
-    if type(self.lifepath) == 'string' and self.lifepath:match('^[a-z]+$') then
+    if wantAbout and not self.lifepath then self.lifepath = call(N.lifepath, player) end
+    if wantAbout and type(self.lifepath) == 'string' and self.lifepath:match('^[a-z]+$') then
         snapshot.lifepath = self.lifepath
         count = count + 1
     end
-    local mounted = call(N.vehicle, player)
+    local mounted
+    if wantCompany then mounted = call(N.vehicle, player) end
     if type(mounted) == 'boolean' then snapshot.vehicle = mounted; count = count + 1 end
     if mounted == true then
         local driving = call(N.driving, player)
@@ -436,7 +463,8 @@ function Instance:read()
     -- Weather, V's health band, the heat stage and a money band (unconfirmed calls: guarded, logged once per failure kind).
     -- `extras` is what the one diagnostic line adds so a live pass can check each against the game.
     local extras = {}
-    local stateText, rainValue, weatherSource = self:optional('weather')
+    local stateText, rainValue, weatherSource
+    if wantTime then stateText, rainValue, weatherSource = self:optional('weather') end
     if stateText ~= nil or rainValue ~= nil then
         local kind = M.weatherKind(stateText, rainValue)
         if kind then
@@ -446,7 +474,8 @@ function Instance:read()
             self:once('weather:unmapped', string.format('Turn context: weather not recognised (state=%s rain=%s)', tostring(stateText), tostring(rainValue)))
         end
     end
-    local percent, healthSource = self:optional('health', player)
+    local percent, healthSource
+    if wantCondition then percent, healthSource = self:optional('health', player) end
     local band = M.healthBand(percent)
     if band then
         snapshot.health = band; count = count + 1
@@ -454,7 +483,8 @@ function Instance:read()
     elseif percent ~= nil then
         self:once('health:unmapped', 'Turn context: health value not usable (' .. tostring(percent) .. ')')
     end
-    local rawHeat, heatSource = self:optional('heat')
+    local rawHeat, heatSource
+    if wantCondition then rawHeat, heatSource = self:optional('heat') end
     local stage = M.heatStage(rawHeat)
     if stage then
         snapshot.heat = stage; count = count + 1
@@ -472,7 +502,8 @@ function Instance:read()
             extras[#extras + 1] = 'indoors=unknown'   -- no claim either way: with vision on the picture decides (bridge/convai-vision.mjs VISION_NOTE)
         end
     end
-    local eddies = self:optional('money', player)
+    local eddies
+    if wantMoney then eddies = self:optional('money', player) end
     local money = M.moneyBand(eddies)
     if money then
         snapshot.money = money; count = count + 1
@@ -480,7 +511,7 @@ function Instance:read()
     elseif eddies ~= nil then
         self:once('money:unmapped', 'Turn context: money value not usable (' .. tostring(eddies) .. ')')
     end
-    local rows = call(self.options.party, player, M.PARTY_RADIUS)
+    local rows = wantCompany and call(self.options.party, player, M.PARTY_RADIUS) or nil
     if type(rows) == 'table' then
         local party, seen = {}, {}
         for _, row in ipairs(rows) do
@@ -503,7 +534,10 @@ function Instance:read()
             snapshot.party = party; count = count + 1
         end
     end
-    if count == 0 then return nil, 'nothing could be read' end
+    -- With a Dynamic info switch off there may be nothing to say and still something for V's voice for typed lines (its gender, the dialogue
+    -- volume): that much is kept. With every switch on, a snapshot of those alone is no snapshot.
+    local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney)
+    if count == 0 and not (anyOff and (snapshot.voice ~= nil or snapshot.dialogueVolume ~= nil)) then return nil, 'nothing could be read' end
     return snapshot, count, clockSource, extras
 end
 
@@ -513,8 +547,11 @@ function Instance:capture()
     local now = self:now()
     -- A snapshot read while the volume was not wanted is not reused once it is (V's voice just became active), so the first line
     -- after switching to a cloning voice already has the level.
-    if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE
+    -- A snapshot read under other Dynamic info switches is not reused either (a kind just turned off must not ride along for up to MAX_AGE).
+    local switches = self:switches()
+    if self.snapshot and self.at and now >= self.at and now - self.at < M.MAX_AGE and self.switches_ == switches
         and (self.volumeWanted or call(self.options.wantVolume) ~= true) then return self.snapshot end
+    self.switches_ = switches
     local ok, snapshot, detail, clockSource, extras = pcall(self.read, self)
     -- One diagnostic line per real read (at most once per window): what the adapter built, so a live pass can compare the
     -- clock with the HUD and the place with the map.

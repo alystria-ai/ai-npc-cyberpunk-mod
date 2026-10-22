@@ -147,3 +147,14 @@ TEST(vehicles_order_of_decisions)
     CHECK(destroyed.status == InspectStatus::Ready);
     CHECK(destroyed.invalid);
 }
+
+TEST(vehicles_tweak_ids_compare_without_the_offset_bits)
+{
+    const std::uint64_t name = 0x00000012A1B2C3D4ull; // length 0x12, hash 0xA1B2C3D4
+    CHECK(SameTweakName(name, name));
+    CHECK(SameTweakName(name | 0xABCDEF0000000000ull, name)); // the 24 offset bits above the name are ignored
+    CHECK(SameTweakName(name, name | 0x0000010000000000ull));
+    CHECK(!SameTweakName(name, name ^ 1ull));                   // another hash
+    CHECK(!SameTweakName(name, name ^ 0x0000001000000000ull)); // another length
+    CHECK(!SameTweakName(0, name));
+}

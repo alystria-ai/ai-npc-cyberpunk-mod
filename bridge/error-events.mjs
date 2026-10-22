@@ -88,30 +88,62 @@ export function eventFromError(error, kind, source = 'bridge') {
 
 // ------------------------------------------------------------------- the setting
 
-const settingsOn = text => {
+/**
+ * What one settings file says: {on, noticed}, or null when it is not readable JSON (so the next copy is tried).
+ * A missing "errorReports" means on (the default); "errorReportsNoticed" is written by the game once the in-game notice was shown.
+ */
+const settingsState = text => {
   try {
     const value = JSON.parse(String(text).replace(/^﻿/, ''));
-    return value?.errorReports !== false;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    // Only a missing key or a real boolean says anything: another value (a string, a number) is not read as "on".
+    if (value.errorReports !== undefined && typeof value.errorReports !== 'boolean') return null;
+    return {on: value.errorReports !== false, noticed: value.errorReportsNoticed === true};
   } catch { return null; }
 };
 
-/** True unless settings.json says "errorReports": false (the previous copy stands in for a file being replaced). */
-export async function errorReportsEnabled(runtime) {
+/**
+ * The state of the setting from the first readable of settings.json and settings.json.previous (the previous copy stands in for a
+ * file being replaced): {state: 'on' | 'off' | 'unknown', noticed}. Neither file existing is a fresh install: on, not noticed yet.
+ * A file that exists but cannot be read or parsed, with no readable copy, is 'unknown': an unknown state is never treated as on,
+ * so a damaged settings file cannot turn a player's opt-out back on. `readText(name)` returns the text or throws.
+ */
+function readSettingsState(readText) {
+  let present = false;
   for (const name of ['settings.json', 'settings.json.previous']) {
-    const on = settingsOn(await readFile(join(runtime, name), 'utf8').catch(() => ''));
-    if (on !== null) return on;
+    let text;
+    try { text = readText(name); } catch (error) {
+      if (error?.code !== 'ENOENT') present = true;
+      continue;
+    }
+    const state = settingsState(text);
+    if (state) return {state: state.on ? 'on' : 'off', noticed: state.noticed};
+    present = true;
   }
-  return true;
+  return present ? {state: 'unknown', noticed: false} : {state: 'on', noticed: false};
+}
+
+/** {state, noticed} of the error-report setting (see readSettingsState). */
+export async function errorReportsSetting(runtime) {
+  const names = ['settings.json', 'settings.json.previous'], texts = {};
+  // Both files at once: a record or a flush waits for one read, not two.
+  (await Promise.all(names.map(name => readFile(join(runtime, name), 'utf8').catch(error => error)))).forEach((text, index) => { texts[names[index]] = text; });
+  return readSettingsState(name => { if (texts[name] instanceof Error) throw texts[name]; return texts[name]; });
+}
+
+/** True only when the setting is known to be on: an unreadable settings file is not on. */
+export async function errorReportsEnabled(runtime) {
+  return (await errorReportsSetting(runtime)).state === 'on';
+}
+
+/** True when reports may leave the machine: the setting is on and the in-game notice that says so was shown. */
+export async function errorReportsMaySend(runtime) {
+  const {state, noticed} = await errorReportsSetting(runtime);
+  return state === 'on' && noticed;
 }
 
 export function errorReportsEnabledSync(runtime) {
-  for (const name of ['settings.json', 'settings.json.previous']) {
-    let text = '';
-    try { text = readFileSync(join(runtime, name), 'utf8'); } catch {}
-    const on = settingsOn(text);
-    if (on !== null) return on;
-  }
-  return true;
+  return readSettingsState(name => readFileSync(join(runtime, name), 'utf8')).state === 'on';
 }
 
 // ------------------------------------------------------------------- the queue
@@ -298,13 +330,14 @@ export async function clearQueue(stateDirectory) {
  * how many wait in the queue. Counts and times only.
  */
 export async function errorReportStatus({runtime, stateDirectory, now = Date.now()} = {}) {
-  const enabled = runtime ? await errorReportsEnabled(runtime) : true;
+  const setting = runtime ? await errorReportsSetting(runtime) : {state: 'on', noticed: true};
   let sent = null;
   try { sent = JSON.parse(await readFile(sentPath(stateDirectory), 'utf8')); } catch {}
   let queued = 0;
   try { queued = (await readdir(queueDirectory(stateDirectory))).filter(name => /^[0-9a-f]{16}\.json$/.test(name)).length; } catch {}
   const today = new Date(now).toISOString().slice(0, 10);
-  return {setting: enabled ? 'on' : 'off', sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
+  // 'unknown': settings.json cannot be read (nothing is sent). noticed: the in-game notice was shown (nothing is sent before it was).
+  return {setting: setting.state, noticed: setting.noticed, sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
     lastSentAt: Number.isFinite(sent?.lastSentAt) ? new Date(sent.lastSentAt).toISOString() : null, queued,
     stoppedLastSession: typeof sent?.stopped === 'string' ? clip(sent.stopped, 30) : null};
 }
@@ -388,6 +421,20 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
  * The bridge's recorder: fire and forget, at most once per signature per bridge run and QUEUE_MAX in all, never awaited by a turn.
  * Each record first reads settings.json (the setting may have changed) and then writes one file.
  */
+/**
+ * How a server the player runs ended an answer that had no text, as numbers and one short word (never any text of the answer): the end-of-answer reason it gave (`stop`, `length`, ...),
+ * the tokens it counted for it, the events and pieces of the stream, the seconds the answer took. An empty answer of such a server comes back in 100 ms or in seconds and the report said
+ * nothing else (2026-10-22 report: a custom server that answered the summary requests empty every time).
+ */
+export function emptyAnswerDetail(error) {
+  const trace = error?.kind === 'empty' && error?.provider === 'custom' ? error.trace : null;
+  if (!trace || typeof trace !== 'object') return {};
+  const whole = value => (Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined);
+  const finish = typeof trace.finishReason === 'string' && /^[a-z_]{1,20}$/.test(trace.finishReason) ? trace.finishReason : undefined;
+  const fields = {emptyFinish: finish, emptyEvents: whole(trace.events), emptyPieces: whole(trace.pieces), emptyThinking: whole(trace.reasoning), emptyTokens: whole(trace.completionTokens), emptyMs: whole(trace.elapsedMs)};
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+}
+
 export class ErrorEvents {
   constructor({stateDirectory, runtime, now = Date.now, defer = setImmediate} = {}) {
     Object.assign(this, {stateDirectory, runtime, now, defer});
@@ -407,7 +454,7 @@ export class ErrorEvents {
     const base = eventFromError(error, 'turn-failed');
     this.record({...base, message: `${clip(provider, 20)}${errorCode ? ` ${errorCode}` : ''}: ${base.message}`.slice(0, 400),
       detail: {provider: clip(provider, 20), ...(errorCode ? {errorCode} : {}), ...(microphone ? {microphone: true} : {}),
-        ...(localReason ? {localReason: clip(String(localReason), 40)} : {})}});
+        ...(localReason ? {localReason: clip(String(localReason), 40)} : {}), ...emptyAnswerDetail(error)}});
   }
   /**
    * A voice that could not start (the Pocket voice, V's own Pocket worker, OmniVoice), with the few words the worker gave. A player with no voice has

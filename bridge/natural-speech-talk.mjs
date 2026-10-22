@@ -16,7 +16,7 @@ const OWN = Object.freeze({
   'johnny-silverhand': 'fluent and sure of yourself, never an "uh" or "um" and never giggly; the sounds '
     + 'you make are rare and blunt: a dry scoff of a laugh at something stupid, a displeased grunt, very occasionally a tired '
     + 'sigh when something really gets to you.',
-  'npc-street-resident-female': 'a tired local, short and plain: a sigh about rent or the rain, a short '
+  'npc-street-resident-female': 'a tired local, short and plain: a sigh about rent, a short '
     + 'laugh at your own bad luck, a "well..." when a stranger asks something you would rather not answer.',
 });
 

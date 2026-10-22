@@ -27,7 +27,7 @@ export const PROFILE_LIMITS = Object.freeze({
   temperature: Object.freeze([0, 2]), topP: Object.freeze([0, 1]), repeatPenalty: Object.freeze([1, 2]), maxTokens: Object.freeze([16, 2000]),
   persona: Object.freeze([2000, 16000]), turns: Object.freeze([0, 11]),
 });
-export const LABEL_KEYS = Object.freeze(['rules', 'examples', 'formatNotes', 'world', 'remember', 'rightNow', 'youNow', 'thisTurn', 'things']);
+export const LABEL_KEYS = Object.freeze(['rules', 'examples', 'formatNotes', 'world', 'remember', 'knowledge', 'rightNow', 'youNow', 'thisTurn', 'things']);
 export const VOLATILE_PLACES = Object.freeze(['before', 'after']);
 export const PROFILE_FIELDS = Object.freeze(['rules', 'examples', 'intro', 'closing', 'labels', 'layout', 'sampling', 'limits', 'stop']);
 
@@ -73,6 +73,7 @@ const BASE = {
     formatNotes: 'FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)',
     world: 'WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)',
     remember: 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)',
+    knowledge: 'WORLD KNOWLEDGE FOR THIS TURN (never to be read aloud)',
     rightNow: 'RIGHT NOW (from the game; background only, this changes as the talk goes on)',
     youNow: 'YOU, RIGHT NOW',
     thisTurn: 'THIS TURN: notes for you, never to be read aloud',

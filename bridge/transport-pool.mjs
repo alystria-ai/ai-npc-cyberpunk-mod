@@ -133,6 +133,22 @@ export class TransportPool {
       this.change();
     });
   }
+  /**
+   * Closes the pages nothing has used for `idleMs` (a page that is neither leased nor protected by the party plan), under the acquisition lock, so a turn cannot
+   * lease one between the check and the close. Resolves the number closed. A page that is used again simply opens anew (the caller's on-demand path).
+   */
+  evictIdle({idleMs, now = performance.now()} = {}) {
+    return this.lock(async () => {
+      let closed = 0;
+      for (const entry of [...this.entries.values()]) {
+        if (entry.busy || entry.removed || this.protectedKeys.has(entry.key) || !(now - entry.used >= idleMs)) continue;
+        await this.remove(entry); this.stats.evicted++; closed++;
+      }
+      return closed;
+    });
+  }
+  /** A page that is kept alive on purpose (a keep-alive reading) counts as used now. */
+  touch(key) { const entry = this.entries.get(key); if (entry && !entry.removed) entry.used = performance.now(); }
   discardIdle(key) {
     // The busy check and disposal share the acquisition lock. A reply cannot
     // acquire this entry between our check and close; a busy lease is untouched.
