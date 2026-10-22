@@ -44,7 +44,8 @@ export function readClipboardText({exec = execFile, timeoutMs = 6000} = {}) {
  * which is not a conversation turn and uses no interaction. */
 export async function validateKey(key, {fetchImpl = globalThis.fetch, timeoutMs = 10000} = {}) {
   try {
-    const response = await fetchImpl('https://api.convai.com/character/list', {method: 'POST',
+    // redirect 'error' on every key call: fetch forwards the CONVAI-API-KEY header (only Authorization is stripped) on a redirect to another host.
+    const response = await fetchImpl('https://api.convai.com/character/list', {method: 'POST', redirect: 'error',
       headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': key}, body: '{}',
       signal: AbortSignal.timeout(timeoutMs)});
     try { await response.body?.cancel(); } catch { /* already closed */ }
@@ -60,7 +61,7 @@ export async function listEndUsers(key, {fetchImpl = globalThis.fetch, timeoutMs
     const users = [];
     let cursor = null;
     for (let page = 0; page < 5; page++) {
-      const response = await fetchImpl('https://api.convai.com/user/end-users/list', {method: 'POST',
+      const response = await fetchImpl('https://api.convai.com/user/end-users/list', {method: 'POST', redirect: 'error',
         headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': key},
         body: JSON.stringify(cursor ? {cursor} : {}), signal: AbortSignal.timeout(timeoutMs)});
       if (!response.ok) { try { await response.body?.cancel(); } catch { /* already closed */ } return null; }

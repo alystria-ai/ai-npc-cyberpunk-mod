@@ -1,17 +1,79 @@
 import {createServer} from 'node:http';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {launchSystemBrowser} from './system-browser.mjs';
+import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 
-const PCM_MODULES = Object.freeze([
+// ----------------------------------------------------------------------------------------------- the hidden browser's sandbox
+// The hidden Chromium runs with its renderer sandbox on (Playwright adds --no-sandbox unless chromiumSandbox is true). A sandbox that cannot work
+// on a PC (Wine or Proton, a browser on exFAT, FAT32 or a network drive, security software that injects into renderers) usually does not stop the
+// browser from starting: it makes every renderer crash at its first page. So a sandboxed browser is trusted only after it has opened one blank page
+// and run one line in it (a few seconds at most, once per start, never per turn). If the launch fails, hangs, or that page does not work, the browser
+// is started again without the sandbox and the result is remembered: in this process (the three hosts share it) and in the state folder
+// (browser-sandbox.json, per browser, 30 days), so a PC where it fails does not pay for the attempt at every start. Delete the file to try again.
+// Known limit: a sandboxed audio service silenced by audio-enhancement software (Nahimic, Sonic Studio and similar) gives no error at all, so it
+// cannot be detected here; CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts the browser without the sandbox (docs/CONVAI_AUDIO_STREAMING.md, "The hidden browser's sandbox").
+export const SANDBOX_STATE_FILE = 'browser-sandbox.json';
+export const SANDBOX_TIMEOUTS = Object.freeze({launchMs: 20_000, probeMs: 8_000, closeMs: 3_000, rememberMs: 30 * 86_400_000});
+const sandboxRefusals = new Map();      // browser key -> when it was found not to work (ms), for this process
+const sandboxFilesRead = new Set();     // state files already read in this process
+const sandboxPassed = new Set();        // browsers whose sandbox passed the probe in this process (a later launch of the same one is not probed again)
+let sandboxLogged = false;
+const sandboxKey = options => String(options?.executablePath ?? options?.channel ?? 'default');
+/** Forgets what this process learned about the sandbox (the tests). */
+export function resetSandboxMemory() { sandboxRefusals.clear(); sandboxFilesRead.clear(); sandboxPassed.clear(); sandboxLogged = false; }
+function sandboxRefused(key, statePath, now) {
+  if (statePath && !sandboxFilesRead.has(statePath)) {
+    sandboxFilesRead.add(statePath);
+    try {
+      const saved = JSON.parse(readFileSync(statePath, 'utf8'));
+      if (saved?.version === 1 && saved.refused && typeof saved.refused === 'object') {
+        for (const [name, at] of Object.entries(saved.refused)) if (Number.isFinite(at) && !sandboxRefusals.has(name)) sandboxRefusals.set(name, at);
+      }
+    } catch { /* no file, or one that is not ours: the sandbox is simply tried */ }
+  }
+  const at = sandboxRefusals.get(key);
+  if (at === undefined) return false;
+  if (now - at > SANDBOX_TIMEOUTS.rememberMs) { sandboxRefusals.delete(key); return false; }
+  return true;
+}
+// `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
+function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {
+  sandboxRefusals.set(key, now);
+  if (!statePath || !persist) return;
+  try { writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), reason: String(reason).slice(0, 160)})); } catch { /* read-only: remembered for this process only */ }
+}
+const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
+  : resolve(process.env.CYBERPUNK_CONVAI_STATE || fileURLToPath(new URL('../runtime/', import.meta.url)), SANDBOX_STATE_FILE));
+const withTimeout = (promise, ms, what) => new Promise((resolveIt, rejectIt) => {
+  const timer = setTimeout(() => rejectIt(Error(`${what} took longer than ${Math.round(ms / 1000)} s`)), ms);
+  promise.then(value => { clearTimeout(timer); resolveIt(value); }, error => { clearTimeout(timer); rejectIt(error); });
+});
+/** One blank page that must open and run a line: the sandbox's renderer works. Closes its page. */
+export async function probeBrowser(browser, ms = SANDBOX_TIMEOUTS.probeMs) {
+  let page = null;
+  try {
+    // Opening the page is inside the limit too: a renderer that never comes up must not hang the start.
+    await withTimeout((async () => {
+      page = await browser.newPage();
+      await page.goto('about:blank');
+      if (await page.evaluate(() => 1 + 1) !== 2) throw Error('the page ran nothing');
+    })(), ms, 'the first page');
+  } finally {
+    if (page) await Promise.race([page.close({runBeforeUnload: false}).catch(() => {}), new Promise(done => setTimeout(done, 1000).unref?.())]);
+  }
+}
+
+export const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
   'local-pcm-client.mjs',
 ]);
@@ -131,12 +193,16 @@ export class RealtimeHost {
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
     // `node --test` child) or with CYBERPUNK_CONVAI_MUTE_BROWSER=1 it stays muted, so tests never reach the player's speakers.
     muteBrowser = process.env.CYBERPUNK_CONVAI_MUTE_BROWSER === '1' || !!process.env.NODE_TEST_CONTEXT,
-    launchBrowser = options => chromium.launch(options),
+    launchBrowser, probeSandbox, sandboxStatePath = sandboxStatePathDefault(), sandboxTimeouts = {},
     // One line a retry of a lost page writes (no character, player or text in it).
     log = line => console.error(`[CyberpunkConvai] ${line}`)} = {}) {
     this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
     this.clientAssetsDirectory = absoluteRuntimeOverride(clientAssetsDirectory, 'CYBERPUNK_CONVAI_CLIENT_ASSETS');
-    this.launchBrowser = launchBrowser; this.muteBrowser = !!muteBrowser; this.log = log;
+    // The real launcher is probed (see "the hidden browser's sandbox"); a launcher a test hands in is not, unless it asks for it (probeSandbox: true).
+    this.probeSandbox = probeSandbox ?? launchBrowser === undefined;
+    this.launchBrowser = launchBrowser ?? (options => chromium.launch(options));
+    this.sandboxStatePath = sandboxStatePath; this.sandboxTimeouts = {...SANDBOX_TIMEOUTS, ...sandboxTimeouts};
+    this.muteBrowser = !!muteBrowser; this.log = log;
     // The page keys a running turn or microphone turn owns (key -> how many). The party plan's retain() never closes these: a page that is not in
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
@@ -288,7 +354,7 @@ export class RealtimeHost {
     let browser;
     try {
       // Edge, else an installed Chrome; CYBERPUNK_CONVAI_BROWSER (a developer's override) names an executable instead.
-      browser = await launchSystemBrowser(browserChoice => this.launchBrowser({...browserChoice, headless: true,
+      browser = await launchSystemBrowser(browserChoice => this.launchWithSandbox({...browserChoice, headless: true,
         ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
         // The hidden pages play the reply (and run the Convai connection) while the game window has the focus: Chromium must not treat them as
         // background pages (timers throttled, the renderer's priority class lowered, a window it calls occluded paused), or a reply waits.
@@ -335,6 +401,37 @@ export class RealtimeHost {
       }, dispose: page => this.disposePage(page)});
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
+  }
+  /**
+   * Starts the hidden Chromium with its renderer sandbox on, and trusts it only once one blank page has opened and run a line (probeBrowser). A browser
+   * that will not start that way, hangs, or whose pages die is closed and started once more without the sandbox; the reason is logged and the result is
+   * remembered (module level, shared by the hosts, and on disk), so no later start tries the sandbox on that PC again. A browser that is simply not
+   * there is not retried.
+   */
+  async launchWithSandbox(options) {
+    const key = sandboxKey(options), now = Date.now();
+    const log = line => { try { this.log(line); } catch { /* a log that fails changes nothing */ } };
+    if (process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX === '1') return this.launchBrowser({...options, chromiumSandbox: false});
+    if (sandboxRefused(key, this.sandboxStatePath, now)) {
+      if (!sandboxLogged) { sandboxLogged = true; log(`The hidden browser runs without its sandbox: an earlier start found it does not work on this PC (delete ${SANDBOX_STATE_FILE} to try it again)`); }
+      return this.launchBrowser({...options, chromiumSandbox: false});
+    }
+    let browser = null;
+    try {
+      browser = await this.launchBrowser({...options, chromiumSandbox: true, ...(this.probeSandbox ? {timeout: this.sandboxTimeouts.launchMs} : {})});
+      if (this.probeSandbox && !sandboxPassed.has(key)) { await probeBrowser(browser, this.sandboxTimeouts.probeMs); sandboxPassed.add(key); }
+      if (!sandboxLogged) { sandboxLogged = true; log('The hidden browser runs with its sandbox (if replies are silent, audio-enhancement software may be silencing it: CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts it without)'); }
+      return browser;
+    } catch (error) {
+      if (browser) await Promise.race([browser.close().catch(() => {}), new Promise(done => setTimeout(done, this.sandboxTimeouts.closeMs).unref?.())]);
+      if (browserMissing(error)) throw error;
+      const reason = String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
+      const plain = await this.launchBrowser({...options, chromiumSandbox: false});
+      rememberSandboxRefusal(key, this.sandboxStatePath, now, reason, !/took longer than|\btimeout\b|timed out/i.test(String(error?.message ?? error)));
+      sandboxLogged = true;
+      log(`The hidden browser would not work with its sandbox (${reason}); it runs without it`);
+      return plain;
+    }
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, textStream, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);

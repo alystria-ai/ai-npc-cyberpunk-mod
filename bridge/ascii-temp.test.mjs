@@ -4,7 +4,7 @@ import {EventEmitter} from 'node:events';
 import {mkdirSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {asciiTempEnvironment, isAsciiText, shortPathOf} from './ascii-temp.mjs';
+import {NO_ASCII_TEMP_MESSAGE, asciiTempEnvironment, isAsciiText, shortPathOf} from './ascii-temp.mjs';
 import {AudioOutputWatch} from './audio-delay.mjs';
 
 const options = extra => ({remember: false, ...extra});
@@ -25,16 +25,40 @@ test('a Cyrillic, Chinese or accented temporary folder gives its 8.3 short name 
   }
 });
 
-test('without a usable short name (8.3 names off) a folder under the Public profile is used; with neither, nothing changes', () => {
-  const tmpDir = 'C:\\Users\\张伟\\AppData\\Local\\Temp', made = [];
-  const common = {tmpDir, platform: 'win32', environment: {PUBLIC: 'C:\\Users\\Public'}, makeFolder: folder => made.push(folder), exists: folder => made.includes(folder)};
-  const viaPublic = asciiTempEnvironment(options({...common, short: () => null}));
-  assert.deepEqual(viaPublic, {TEMP: 'C:\\Users\\Public\\AiNpcCyberpunkMod-temp', TMP: 'C:\\Users\\Public\\AiNpcCyberpunkMod-temp'});
+test('without a usable short name (8.3 names off) a folder under the player\'s own ASCII profile is used, never one every account can write', () => {
+  const tmpDir = 'D:\\Темп\\Temp', made = [], said = [];
+  const common = {tmpDir, platform: 'win32', environment: {LOCALAPPDATA: 'C:\\Users\\Ivan\\AppData\\Local', USERPROFILE: 'C:\\Users\\Ivan', PUBLIC: 'C:\\Users\\Public'},
+    makeFolder: folder => made.push(folder), exists: folder => made.includes(folder), log: message => said.push(message)};
+  const own = asciiTempEnvironment(options({...common, short: () => null}));
+  assert.deepEqual(own, {TEMP: 'C:\\Users\\Ivan\\AppData\\Local\\AiNpcCyberpunkMod-temp', TMP: 'C:\\Users\\Ivan\\AppData\\Local\\AiNpcCyberpunkMod-temp'});
+  assert.deepEqual(made, ['C:\\Users\\Ivan\\AppData\\Local\\AiNpcCyberpunkMod-temp']);
+  assert.deepEqual(said, []);
   // a short name that is itself not ASCII (the volume has no 8.3 names: cmd echoes the long name) is not taken
-  assert.deepEqual(asciiTempEnvironment(options({...common, short: () => tmpDir})), viaPublic);
-  assert.deepEqual(asciiTempEnvironment(options({...common, short: () => null, makeFolder: () => { throw Error('EACCES'); }, exists: () => false})), {});
-  assert.deepEqual(asciiTempEnvironment(options({...common, environment: {PUBLIC: 'D:\\Публичные'}, short: () => null, exists: () => true})), {},
-    'a Public profile that is not ASCII either gives no help');
+  assert.deepEqual(asciiTempEnvironment(options({...common, short: () => tmpDir})), own);
+  // LOCALAPPDATA not usable: the profile itself
+  const second = asciiTempEnvironment(options({...common, short: () => null, environment: {LOCALAPPDATA: 'C:\\Users\\Иван\\AppData\\Local', USERPROFILE: 'C:\\Users\\Ivan'}}));
+  assert.deepEqual(second, {TEMP: 'C:\\Users\\Ivan\\AiNpcCyberpunkMod-temp', TMP: 'C:\\Users\\Ivan\\AiNpcCyberpunkMod-temp'});
+});
+
+test('with no per-user ASCII folder the Public profile is NOT used: nothing changes, and one clear line says why', () => {
+  const tmpDir = 'C:\\Users\\张伟\\AppData\\Local\\Temp', made = [], said = [];
+  const common = {tmpDir, platform: 'win32', makeFolder: folder => made.push(folder), exists: folder => made.includes(folder), log: message => said.push(message), short: () => null};
+  // A profile that is not ASCII, and a Public profile that every account can write: the old code made its folder under C:\Users\Public.
+  const result = asciiTempEnvironment(options({...common, environment: {LOCALAPPDATA: 'C:\\Users\\张伟\\AppData\\Local', USERPROFILE: 'C:\\Users\\张伟', PUBLIC: 'C:\\Users\\Public'}}));
+  assert.deepEqual(result, {});
+  assert.deepEqual(made, [], 'no folder was made anywhere, least of all under Public');
+  assert.equal(said.length, 1);
+  assert.equal(said[0], NO_ASCII_TEMP_MESSAGE);
+  // The same when the profile folders exist but cannot be written, or there is no environment at all.
+  assert.deepEqual(asciiTempEnvironment(options({...common, environment: {LOCALAPPDATA: 'C:\\Users\\Ivan\\AppData\\Local'}, makeFolder: () => { throw Error('EACCES'); }})), {});
+  assert.deepEqual(asciiTempEnvironment(options({...common, environment: {}})), {});
+  assert.ok(!made.some(folder => /public/i.test(folder)));
+  assert.equal(said.length, 3, 'each failure is said (once per temporary folder when remembered)');
+  // Remembered: the line is said once per process for one temporary folder.
+  const again = [];
+  const remembered = {tmpDir: 'C:\\Users\\Ярослав-remember\\Temp', platform: 'win32', environment: {}, short: () => null, log: message => again.push(message)};
+  asciiTempEnvironment(remembered); asciiTempEnvironment(remembered);
+  assert.equal(again.length, 1);
 });
 
 test('the answer for one temporary folder is worked out once', () => {

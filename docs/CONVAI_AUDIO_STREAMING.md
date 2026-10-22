@@ -261,3 +261,14 @@ with warm connections and first provider audio at 2.24 and 2.07 seconds.
 First-chunk native preparation took 93 and 103 ms. The user confirmed that it
 felt better. This is an installed before/after observation, not a controlled
 provider benchmark or a guarantee for future network conditions.
+
+## The hidden browser's sandbox
+
+The hidden Chromium (Edge, Chrome or another Chromium browser) runs with its renderer sandbox on, so a bug in the code that decodes remote WebRTC audio and data stays inside the sandbox (security review 2026-10-22, finding 8; Playwright adds `--no-sandbox` unless `chromiumSandbox: true`). `RealtimeHost.launchWithSandbox` in `bridge/realtime-host.mjs` starts it that way and trusts it only after one blank page has opened and run a line (`probeBrowser`, 8 s at most, once per start, nothing per turn):
+
+- A browser that will not start (20 s limit, not Playwright's 180 s), hangs, or whose first page crashes (Wine or Proton, a browser on exFAT, FAT32 or a network drive, security software that injects into renderers) is closed and started again without the sandbox. The reason is logged (`runtime/bridge.stderr.log`).
+- The result is remembered by every host in the process (the bridge has three) and in `browser-sandbox.json` in the state folder, per browser program, for 30 days, so such a PC does not pay for the attempt at every start. Delete the file to try the sandbox again.
+- A browser that is not installed is not retried.
+- `CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1` starts it without the sandbox and without a probe (for support).
+
+**Known limit.** A sandboxed audio service can be silenced by audio-enhancement software that hooks audio processes (Nahimic, Sonic Studio and similar). The browser then starts, the page works, and the replies play no sound; nothing raises an error, so this cannot be detected cheaply and is not. The log says once per process that the browser runs with its sandbox. The variable above is a developer's switch for reproducing it (players are not asked to set environment variables); a fix for such a PC would need a setting. The first-sound time on the stage clock should be compared with and without the sandbox on a live test.

@@ -113,7 +113,7 @@ Settings (all optional; defaults shown):
 | `ERROR_REPORTS_INSTALL_PER_DAY` | 10 | Error reports per install per UTC day. The client sends at most 5; the rest is slack for day edges. |
 | `ERROR_REPORTS_IP_PER_HOUR` | 30 | Error reports per address per hour. |
 | `ERROR_REPORTS_STORE_PER_DAY` | 300 | Report bodies kept per UTC day, whole service. Bounds storage; past it reports are counted but not kept. |
-| `ERROR_REPORTS_SAMPLES` | 10 | Report bodies kept per signature (the newest; 1 to 100). |
+| `ERROR_REPORTS_SAMPLES` | 10 | Report bodies kept per signature (the earliest few, up to 3, stay pinned and the rest are the newest; 1 to 100). |
 | `ERROR_REPORTS_TTL_DAYS` | 30 | How long reports and their index live (1 to 90). |
 | `CONVAI_CONNECT_URL`, `CONVAI_REVOKE_URL` | Convai's | Only for testing against a stand-in. |
 
@@ -204,11 +204,11 @@ The body is never echoed. The checks run in this order, and everything up to the
 
 | Limit | Default | Setting | Why |
 |---|---|---|---|
-| Reports per address per hour | 30 | `ERROR_REPORTS_IP_PER_HOUR` | One machine or network flooding. The address is only ever used as a keyed hash. |
+| Reports per address per hour | 30 | `ERROR_REPORTS_IP_PER_HOUR` | One machine or network flooding (an IPv6 caller counts as its /48). The address is only ever used as a keyed hash. The kind, message and frame shown for a signature are what most of its reports say, not the first one's. |
 | Reports per install per UTC day | 10 | `ERROR_REPORTS_INSTALL_PER_DAY` | The client sends at most 5 a day; the rest is slack for UTC day edges. |
 | Same signature, same install | once per UTC day | none | A crash loop must not become a stream of identical reports. A duplicate counts nowhere (not against the limits above, not in the index). |
 | Bodies kept per UTC day, whole service | 300 | `ERROR_REPORTS_STORE_PER_DAY` | **Bounds storage** (see "Cost"). Past it a report is only counted. `0` keeps no bodies at all. |
-| Bodies kept per signature | 10 (newest) | `ERROR_REPORTS_SAMPLES` (1 to 100) | A hundred copies of one error say no more than ten. |
+| Bodies kept per signature | 10 (the first 3 stay, then the newest) | `ERROR_REPORTS_SAMPLES` (1 to 100) | A hundred copies of one error say no more than ten. |
 | Lifetime of everything | 30 days | `ERROR_REPORTS_TTL_DAYS` (1 to 90) | Every key has a TTL; bodies and signatures older than this are also dropped as new reports arrive. |
 | Signatures listed | 5,000 | none | The least recently seen is dropped past it. |
 | Fields in one signature's index | 48 | none | Distinct mod versions cannot grow a hash without bound (about 41 versions fit). |

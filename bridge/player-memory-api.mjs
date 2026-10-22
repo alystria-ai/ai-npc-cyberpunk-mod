@@ -143,7 +143,8 @@ export class PlayerMemoryApi {
     try {
       const credential = this.#credential ? await abortable(Promise.resolve(this.#credential()), combined) : {apiKey: this.#key};
       dispatched = true;
-      const fetching = Promise.resolve(this.#fetch(API + endpoint, {method: 'POST',
+      // redirect 'error': fetch would forward the CONVAI-API-KEY / API-AUTH-TOKEN header (only Authorization is stripped) to another host.
+      const fetching = Promise.resolve(this.#fetch(API + endpoint, {method: 'POST', redirect: 'error',
         headers: {'Content-Type': 'application/json', ...(credential?.authToken
           ? {'API-AUTH-TOKEN': credential.authToken} : {'CONVAI-API-KEY': credential?.apiKey ?? this.#key})},
         body: JSON.stringify(body), signal: combined}));

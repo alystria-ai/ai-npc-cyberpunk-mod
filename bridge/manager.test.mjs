@@ -4975,6 +4975,29 @@ test('error reports are on by default, apply as on or off only, and the one-time
   assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
 `));
 
+test('a settings file that cannot be read acts as a fresh install for error reports: the setting is never saved off for it, and the notice is due again before anything is sent', () => run(`${managerFixture}
+  files['runtime/settings.json'], saved = 'not json at all', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == true, 'the default, not an opt-out the player never made')
+  assert(manager.errorReportsNoticeDue() == true, 'the flag is gone, so the notice is shown and marked again; the service sends nothing before that')
+  assert(manager.snapshot(player).settings.errorReports == true)
+  assert(manager.snapshot(player).settings.errorReportsNoticed == nil)
+`));
+
+test('a hand-edited error-report value that is not true or false is not read as an opt-in: the notice is due again before anything is sent', () => run(`${managerFixture}
+  for _, odd in ipairs({'false', 0, 'no'}) do
+    seed = {version = 2, errorReports = odd, errorReportsNoticed = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles)
+    assert(manager.errorReports() == true)
+    assert(manager.errorReportsNoticeDue() == true, 'the notice flag went with the value, so the notice shows (and is marked) again')
+  end
+  seed = {version = 2, errorReports = false, errorReportsNoticed = true, enabledByKey = {}}
+  files['runtime/settings.json'], saved = 'seed', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == false and manager.errorReportsNoticeDue() == false, 'a real opt-out is untouched')
+`));
+
 // ---- The owner's settings decisions of 2026-10-20 (the notes: scratchpad/decisions.md, the code: mod/manager.lua, mod/manager-ui.lua).
 
 // What the bridge publishes (runtime/mistral-state.json) as the page reads it, and the way Mature content tests set the Local AI models up.

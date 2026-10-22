@@ -663,7 +663,11 @@ local function loadSettings()
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
-    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
+    if type(settings.errorReports) ~= 'boolean' then
+        -- A value that is there but is not true or false (a hand edit): not read as an opt-in; the notice is shown again before anything is sent.
+        if settings.errorReports ~= nil then settings.errorReportsNoticed = nil end
+        settings.errorReports = true
+    end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
