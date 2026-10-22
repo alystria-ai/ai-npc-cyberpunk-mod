@@ -553,6 +553,17 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **Update zips and language packs as separate mods (investigated 2026-10-22, from the code; not run in MO2).** The service runs from the REAL folder of
+  the `launcher/start-service.mjs` the virtual file system serves (`appDirectory` in `start-service.mjs`), and it imports its own files from there, because the bundled
+  Node's `stat` cannot see a file that exists only in a mod folder. So: (a) a Runtime update installed as its own mod whose zip does not hold `start-service.mjs` (the
+  usual case) leaves the base Runtime's `bridge/` and `launcher/` in use and the update's changed files are never read: the Scripts and Runtime versions then disagree
+  (`release.json` is read from the base Runtime) and the setup check shows the mismatch; (b) an update that does hold `start-service.mjs` makes the service run from the
+  update mod's folder, where the unchanged siblings do not exist: `install-incomplete`; (c) the voice language packs and Pocket language models are read from the Runtime
+  mod's own `voices/` folder (`referenceDirectory`, the real folder), so a pack in a mod of its own is not found and that language silently stays English. The Local AI, Mature,
+  OmniVoice and microphone packs ARE looked up at their virtual place and used from their real one, so they can be separate mods. What is done about it: the setup
+  check's Mod manager note and the versions row tell a Mod Organizer 2 player to extract update zips (and language packs) into the Runtime's own mod folder (`mo2Hint` in
+  `mod/setup-check.lua`), and the README says the same. Not done: layering several Runtime mods (a loader that resolves every import through the virtual path) needs a live
+  MO2 test, and the MO2 test instance was not run in this pass. A live check owed: install an update zip as its own mod, start the game, read the setup check.
 - **A file that exists twice (2026-10-22, `packaging/usvfs-shadow.test.mjs`).** When a path is a real file in the game folder and MO2 holds a
   copy in front of it (a mod with the same path, or Overwrite, where the game and the service put every file they created before an install
   shipped its placeholders), open, read, write and rename reach the copy in front while Node's plain `stat` answers for the real file: its

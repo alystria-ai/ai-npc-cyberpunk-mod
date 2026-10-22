@@ -478,6 +478,14 @@ local function runtimeIsOlder(versions)
     return nil
 end
 
+-- Mod Organizer 2 runs the service from the real folder of the Runtime's own mod, so a Runtime update zip (or a voice language pack) installed as a
+-- separate mod is never read: the lines about versions and update steps then say where the files go (docs/PACKAGING.md, "Mod Organizer 2").
+local function mo2Hint()
+    local manager = bridgeCheck('mod-manager')
+    if manager and manager.code == 'mo2' then return '\n' .. ui.t('Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.') end
+    return ''
+end
+
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
     if versions and (versions.code == 'match' or versions.code == 'mismatch') then
@@ -497,6 +505,10 @@ local function bridgeLines(out)
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.'))
     end
+    -- Under Mod Organizer 2 a problem with the versions or the update steps says where update zips go.
+    local hint = mo2Hint()
+    local last = out[#out]
+    if hint ~= '' and last and last.id == 'versions' and last.state == 'problem' then last.description = last.description .. hint end
     local packs = bridgeCheck('packs')
     if packs then
         local label = ui.t('Optional packs')
@@ -572,7 +584,7 @@ local function bridgeLines(out)
     local manager = bridgeCheck('mod-manager')
     if manager and type(manager.code) == 'string' then
         local label = ui.t('Mod manager')
-        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Mention Mod Organizer 2 when you send a report.'))
+        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.'))
         elseif manager.code == 'vortex' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.'))
         else out[#out + 1] = line('mod-manager', label, 'ok', ui.t('None found: installed by hand.')) end
     end

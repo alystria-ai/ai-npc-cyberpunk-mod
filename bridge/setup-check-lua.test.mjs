@@ -328,7 +328,19 @@ test('mod managers are a note with the one thing that matters for each', () => r
   installFiles(); serviceRunning()
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
   assert(lineOf('mod-manager').state == 'note' and lineOf('mod-manager').value == 'Note')
-  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Mention Mod Organizer 2 when you send a report.')
+  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
+  -- Mod Organizer 2 runs the service from the Runtime's own mod: a version or update-step problem there says where update zips go; elsewhere it does not
+  local mo2 = {['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}
+  local hint = 'Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.'
+  for _, versions in ipairs({{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'},
+      {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}) do
+    answer({versions = versions, ['mod-manager'] = mo2['mod-manager']}); check.run()
+    assert(lineOf('versions').description:sub(-#hint - 1) == "\n" .. hint, 'MO2 hint on ' .. versions.code)
+    answer({versions = versions}); check.run()
+    assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'no hint without MO2')
+  end
+  answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.2.9', runtime = '0.2.9'}, ['mod-manager'] = mo2['mod-manager']}); check.run()
+  assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'an agreeing version has nothing to say about it')
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}}); check.run()
   assert(lineOf('mod-manager').description == 'Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.')
   assert(check.problemCount() == 0 and #check.problems() == 0, 'a mod manager is never a problem')
