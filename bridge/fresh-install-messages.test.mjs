@@ -193,9 +193,9 @@ test('the compiler check looks only for redscript\'s file, and is part of the li
 test('the launcher\'s pack-move report is read with the default clock (it threw "now is not a function" and the packs line never showed it)', async () => temp(async root => {
   const state = join(root, 'state');
   const report = (extra = {}) => put(join(state, 'pack-placement.json'), JSON.stringify({version: 1, updated: Date.now(), fixed: [], conflicts: [], errors: [], ...extra}));
-  await report({fixed: [{pack: 'Mature lite', from: 'AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1'}]});
+  await report({fixed: [{pack: 'Mature lite', from: 'Mature-Lite'}]});
   // Neither the clock nor the start time is given, as the bridge's own call does for the clock.
-  assert.deepEqual(await readPackPlacement({stateDirectory: state}), {fixed: [{pack: 'Mature lite', from: 'AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1'}], conflicts: [], errors: []});
+  assert.deepEqual(await readPackPlacement({stateDirectory: state}), {fixed: [{pack: 'Mature lite', from: 'Mature-Lite'}], conflicts: [], errors: []});
   assert.notEqual(await readPackPlacement({stateDirectory: state, startedAt: Date.now() - 60_000}), null);
   await report({updated: Date.now() - 11 * 60 * 1000});
   assert.equal(await readPackPlacement({stateDirectory: state}), null, 'the window still applies');
@@ -205,10 +205,10 @@ test('what the launcher moved, and what it could not, reach the packs line with 
   const paths = await install(root);
   const write = value => put(join(paths.stateDirectory, 'pack-placement.json'), JSON.stringify({version: 1, updated: Date.now(), fixed: [], conflicts: [], errors: [], ...value}));
   const packs = async () => byId(await collectSetupCheck({...options(paths), placement: undefined})).packs;
-  await write({fixed: [{pack: 'Mature lite', from: 'AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1'}]});
+  await write({fixed: [{pack: 'Mature lite', from: 'Mature-Lite'}]});
   let row = await packs();
   assert.equal(row.code, 'ok');
-  assert.deepEqual(row.moved, [{pack: 'Mature lite', from: 'AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1'}]);
+  assert.deepEqual(row.moved, [{pack: 'Mature lite', from: 'Mature-Lite'}]);
   await write({fixed: [{pack: 'Local AI standard', from: 'X'}], conflicts: ['local-ai/models/a.gguf']});
   row = await packs();
   assert.deepEqual([row.state, row.code], ['problem', 'conflict']);

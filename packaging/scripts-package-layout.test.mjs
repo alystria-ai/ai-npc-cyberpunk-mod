@@ -48,18 +48,17 @@ before(async () => {
 });
 after(async () => { if (root) await rm(root, {recursive: true, force: true}); });
 
-test('a Scripts-only dry run builds with no download, model or key, and writes the zip, its file list, the sums and the manifest', async () => {
+test('a Scripts-only dry run builds with no download, model or key, and writes the zip, its file list and the manifest (no checksum file)', async () => {
   assert.equal(built.status, 0, built.stderr + built.stdout);
-  assert.deepEqual((await readdir(packages)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'SHA256SUMS.txt', 'release-manifest.json'].sort());
+  assert.deepEqual((await readdir(packages)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
   // Nothing but the Scripts package was staged: no Runtime or pack zip, and no stage/native working folders left behind.
   assert.deepEqual((await readdir(out)).filter(name => name !== 'packages'), []);
   assert.match(built.stdout, /Staging the Scripts package/);
   assert.doesNotMatch(built.stdout + built.stderr, /Downloading|download/i);
 });
 
-test('the sums, the manifest and the file list agree with the zip, byte for byte', async () => {
+test('the manifest and the file list agree with the zip, byte for byte', async () => {
   const zipSha = await sha256File(zipPath);
-  assert.equal((await readFile(join(packages, 'SHA256SUMS.txt'), 'utf8')), `${zipSha}  ${ZIP_NAME}\n`);
   const manifest = JSON.parse(await readFile(join(packages, 'release-manifest.json'), 'utf8'));
   assert.equal(manifest.version, VERSION);
   assert.equal(manifest.dryRun, true);
@@ -236,10 +235,9 @@ test('a rebuild into the same output folder replaces the packages: a stale zip o
     assert.equal(build(args).status, 0);
     const packagesDir = join(again, 'out/packages');
     await writeFile(join(packagesDir, 'AI-NPC-Cyberpunk-Mod-Scripts-0.0.0.zip'), 'stale');
-    await writeFile(join(packagesDir, 'SHA256SUMS.txt'), 'stale');
+    await writeFile(join(packagesDir, 'SHA256SUMS.txt'), 'stale'); // an old build's checksum file is cleared too
     assert.equal(build(args).status, 0);
-    assert.deepEqual((await readdir(packagesDir)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'SHA256SUMS.txt', 'release-manifest.json'].sort());
-    assert.match(await readFile(join(packagesDir, 'SHA256SUMS.txt'), 'utf8'), /^[a-f0-9]{64}  AI-NPC-Cyberpunk-Mod-Scripts-0\.0\.1\.zip\n$/);
+    assert.deepEqual((await readdir(packagesDir)).sort(), [`${config.product}-Scripts-${VERSION}.files.json`, ZIP_NAME, 'release-manifest.json'].sort());
   } finally { await rm(again, {recursive: true, force: true}); }
 });
 

@@ -464,7 +464,7 @@ test('the build writes the manifest fragments the detector reads, and ships both
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert.match(workflow, /tier: \[standard, lite\]/);
   assert.match(workflow, /--packages "localai-\$\{\{ matrix\.tier \}\}"/);
-  assert.match(workflow, /--pack "localai-\$\{\{ matrix\.tier \}\}"/, 'each Local AI pack is uploaded under its own name, with its own SHA256SUMS-<pack>.txt');
+  assert.match(workflow, /--pack "localai-\$\{\{ matrix\.tier \}\}"/, 'each Local AI pack is uploaded under its own name, into its own folder');
 });
 
 // ---------------------------------------------------------------- the optional packs: one zip each, hosted on Hugging Face
@@ -541,7 +541,7 @@ test('ZIP64: an entry over the threshold, an archive with many entries and a big
   } finally { await rm(directory, {recursive: true, force: true}); }
 });
 
-test('the optional packs are uploaded to Hugging Face, one zip each with a SHA256SUMS-<pack>.txt, and never with gh release upload', async () => {
+test('the optional packs are uploaded to Hugging Face, one zip each in the folder of its kind with no checksum file, and never with gh release upload', async () => {
   const workflow = await workflowText();
   const jobs = {omni: jobOf(workflow, 'omni'), mature: jobOf(workflow, 'mature'), localai: jobOf(workflow, 'localai')};
   for (const [name, job] of Object.entries(jobs)) {
@@ -560,12 +560,15 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
   assert.match(runtime, /\$files = @\(Get-ChildItem /, 'the single-zip splat bug stays fixed: the file list is always an array');
   assert.doesNotMatch(runtime, /upload-packs/);
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
-  // The uploader: one zip, the version folder, the sums file next to it, a clear message when the token cannot write.
+  // The uploader: one zip, in the folder of its kind under its unversioned name, no checksum file, a clear message when the token cannot write.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
   assert.match(uploader, /REPOSITORY = "alystria-ai\/ai-npc-cyberpunk-mod-packs"/);
-  assert.match(uploader, /f"\{version\}\/\{zips\[0\]\.name\}"/);
-  assert.match(uploader, /f"\{version\}\/\{sums_name\(pack\)\}"/);
-  assert.match(uploader, /f"SHA256SUMS-\{pack\}\.txt"/);
+  assert.match(uploader, /"omni": \("voice", "OmniPack"\)/);
+  assert.match(uploader, /"localai-lite": \("local-ai", "LocalAI-Lite"\)/);
+  assert.match(uploader, /"mature-standard": \("mature", "Mature-Standard"\)/);
+  assert.match(uploader, /"micpack-asian": \("mic", "MicPack-Asian"\)/);
+  assert.match(uploader, /f"\{folder\}\/\{title\}\.zip"/);
+  assert.doesNotMatch(uploader, /sha256sums|sums_name/i, 'no checksum file is uploaded');
   assert.match(uploader, /The HF_PACKS_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
   assert.match(uploader, /write access to \{repository\}/);
   assert.match(uploader, /Expected exactly one zip/, 'a multi-zip pack is refused');
@@ -764,7 +767,7 @@ test('the markers the Mature builder writes make a Mature-only install detected,
 test('the main page texts say the Mature packs work alone and give their new sizes; the player release notes still do not mention them', async () => {
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const nexus = (await readFile(resolve(project, 'docs/NEXUS_PAGE.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const row = name => readme.split('\n').find(line => line.includes(`**${name}**`) && line.includes('AI-NPC-Cyberpunk-Mod-'));
+  const row = name => readme.split('\n').find(line => line.includes(`**${name}**`) && line.includes('/blob/main/'));
   assert.match(row('Mature lite'), /about 2\.9 GB/); assert.match(row('Mature standard'), /about 5\.5 GB/);
   for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
   assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
@@ -806,7 +809,8 @@ test('the README and the release notes send players to Hugging Face for every op
   const hf = 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}.zip`);
+  // The files sit in folders by kind and carry no product prefix (docs/PACKAGING.md, "Hugging Face upload").
+  const files = ['voice/OmniPack', 'local-ai/LocalAI-Standard', 'local-ai/LocalAI-Lite', 'mature/Mature-Lite', 'mature/Mature-Standard'].map(name => `${name}.zip`);
   for (const file of files) assert(readme.includes(hf + '/blob/main/' + file), 'the README links ' + file);
   for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
@@ -896,7 +900,8 @@ test('the release notes open with where the download files are, and a rebuild re
   assert.match(workflow, /very bottom of this page, under Assets/);
   assert.match(workflow, /releases\/download\/\$tag/);
   assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Scripts-\$version\.zip/);
-  assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Runtime-\$version\.zip/);
+  assert.match(workflow, /\[Runtime-\$version\.zip\]\(\$base\/Runtime-\$version\.zip\)/);
+  assert.doesNotMatch(workflow, /sha256sums|## Checksums/i, 'no checksum file is attached to the release or mentioned on its page');
   assert.match(workflow, /\$download \+ \(Get-Content packaging\/PLAYER_README\.md -Raw\)/);
   assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --title "AI NPC Cyberpunk Mod \$version" --notes-file \$notes/);
   // The pointer lives only on the release page: README.txt in the zips is PLAYER_README.md as it is.
@@ -913,8 +918,8 @@ test('the voice-input packs are two opt-in packages: ids, titles, one zip each, 
   assert.match(builder, /'micpack-european': \(\) => micPackage\(source, config, 'european'\)/);
   assert.match(builder, /'micpack-asian': \(\) => micPackage\(source, config, 'asian'\)/);
   const header = builder.slice(0, builder.indexOf('// Options:'));
-  assert.match(header, /AI-NPC-Cyberpunk-Mod-MicPack-European-<v>\.zip[^\n]*--packages micpack-european/);
-  assert.match(header, /AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>\.zip[^\n]*--packages micpack-asian/);
+  assert.match(header, /\n\/\/   MicPack-European-<v>\.zip[^\n]*--packages micpack-european/);
+  assert.match(header, /\n\/\/   MicPack-Asian-<v>\.zip[^\n]*--packages micpack-asian/);
   assert.match(builder, /--packages LIST    comma list of [^\n]*mature-standard,micpack-european,micpack-asian \(default: the first five\)/);
   assert.match(builder, /--mic-pack-source DIR/); assert.match(builder, /CYBERPUNK_CONVAI_MIC_PACKS_DEV/);
   // The Runtime builder never reads the packs' pins or files, and the Runtime keeps its own Moonshine folder to itself.

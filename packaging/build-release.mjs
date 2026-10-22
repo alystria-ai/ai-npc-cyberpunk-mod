@@ -4,22 +4,23 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf --key-env CONVAI_API_KEY   (CI)
 //
 // Packages (dist/release/packages/):
-//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
-//   AI-NPC-Cyberpunk-Mod-Runtime-<v>[...].zip   launcher, bundled Node/Python, bridge, models, voices,
-//                                          game archives and the Audioware bank (GitHub)
-//   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, one folder per version; packaging/upload-packs.py),
-//   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
-//   AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip       optional OmniVoice GPU pack
-//   AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
-//   AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip   optional Local AI pack, Bonsai 2 4B
-//   AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
-//                                          never in the default set, never Nexus; it carries its own marker, so it works alone
-//   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
-//   AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip   optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european
-//   AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip      optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian
-//                                          (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
+//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods; the name the owner uploads there)
+//   Runtime-<v>[...].zip                        launcher, bundled Node/Python, bridge, models, voices,
+//                                               game archives and the Audioware bank (GitHub)
+//   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, each in its own folder; packaging/upload-packs.py),
+//   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB). Every package except the Scripts drops
+//   the product prefix, and the version stays in the build folder only (the uploader publishes them under the unversioned name):
+//   OmniPack-<v>.zip                            optional OmniVoice GPU pack (voice/)
+//   LocalAI-Standard-<v>.zip                    optional Local AI pack, Gemma 4 E4B (local-ai/)
+//   LocalAI-Lite-<v>.zip                        optional Local AI pack, Bonsai 2 4B (local-ai/)
+//   Mature-Lite-<v>.zip                         optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
+//                                               never in the default set, never Nexus; it carries its own marker, so it works alone (mature/)
+//   Mature-Standard-<v>.zip                     optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard (mature/)
+//   MicPack-European-<v>.zip                    optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european (mic/)
+//   MicPack-Asian-<v>.zip                       optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian (mic/)
+//                                               (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
-// plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
+// plus release-manifest.json (no loose checksum files: nothing reads them). The Runtime package also carries the native plugin
 // (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
 // Options:
@@ -1074,14 +1075,14 @@ async function main() {
     pkg.text(INSTALL_NOTE_NAME, INSTALL_NOTE);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
-    const result = await writeArchives(pkg, `${config.product}-${titles[id]}-${version}`, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
+    // The Scripts keep the long name (the file the owner uploads to Nexus Mods); the others have no product prefix.
+    const archiveBase = id === 'scripts' ? `${config.product}-Scripts-${version}` : `${titles[id]}-${version}`;
+    const result = await writeArchives(pkg, archiveBase, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
     report.packages[id] = {archives: result.archives, fileCount: result.files.length,
       uncompressedBytes: result.files.reduce((sum, file) => sum + file.bytes, 0)};
-    await writeFile(resolve(out, 'packages', `${config.product}-${titles[id]}-${version}.files.json`), JSON.stringify(result.files, null, 1) + '\n');
+    await writeFile(resolve(out, 'packages', `${archiveBase}.files.json`), JSON.stringify(result.files, null, 1) + '\n');
     for (const archive of result.archives) log(`  ${archive.file}: ${(archive.bytes / 1024 ** 2).toFixed(1)} MiB, ${archive.entries} entries`);
   }
-  const sums = Object.values(report.packages).flatMap(item => item.archives).map(item => `${item.sha256}  ${item.file}`);
-  await writeFile(resolve(out, 'packages', 'SHA256SUMS.txt'), sums.join('\n') + '\n');
   await writeFile(resolve(out, 'packages', 'release-manifest.json'), JSON.stringify(report, null, 2) + '\n');
   // Final guard: no archive may carry an obvious credential file or development state.
   for (const item of Object.values(report.packages).flatMap(entry => entry.archives)) {

@@ -1,21 +1,25 @@
-"""Upload the optional packs of a release to the Hugging Face model repository that hosts them.
+"""Upload the packs of a release to the Hugging Face model repository that hosts them.
 
-Run by .github/workflows/release.yml (the omni, localai, mature and micpacks jobs). Each optional pack is ONE zip, with no parts, and
-lives in a folder per version of the repository, next to a SHA256SUMS-<pack>.txt. The packs are omni, localai-standard, localai-lite,
-mature-lite, mature-standard and the two voice-input packs, micpack-european and micpack-asian:
+Run by .github/workflows/release.yml (the omni, localai, mature and micpacks jobs), and by hand for the Scripts and Runtime. Each pack is ONE
+zip, with no parts. The repository is organised in folders by kind, the files carry no product prefix and no version (the version goes in the
+commit message), and there are NO checksum files:
 
-    <version>/AI-NPC-Cyberpunk-Mod-OmniPack-<version>.zip
-    <version>/SHA256SUMS-omni.txt
-    <version>/AI-NPC-Cyberpunk-Mod-MicPack-European-<version>.zip
-    <version>/SHA256SUMS-micpack-european.txt
+    Scripts.zip   Runtime.zip                                           (root)
+    local-ai/LocalAI-Standard.zip   local-ai/LocalAI-Lite.zip
+    mature/Mature-Standard.zip      mature/Mature-Lite.zip
+    mic/MicPack-European.zip        mic/MicPack-Asian.zip
+    voice/OmniPack.zip              (OmniVoice is the only downloadable voice model)
+    updates/Runtime-Update-<from>-to-<to>.zip   and   multilingual/Voices-<Language>.zip, PocketTTS-Model-<Language>.zip   (published by their own tools)
+
+The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs; the Scripts are AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip).
 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
-    python packaging/upload-packs.py --version 0.2 --pack omni --packages DIR   (upload every zip in DIR/ and the sums file)
-    python packaging/upload-packs.py --version 0.2 --pack omni --packages DIR --dry-run   (list what would be uploaded)
+    python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR   (upload the pack's zip from DIR to its folder)
+    python packaging/upload-packs.py --version 0.2.9 --pack omni --packages DIR --dry-run   (list what would be uploaded)
 
 The token comes from the HF_PACKS_TOKEN environment variable (the GitHub Actions secret of the account that owns the pack
 repository; HF_TOKEN is the fallback for local runs) and is never printed. A missing repository is created, private. Nothing is uploaded
-to GitHub releases by this script; the Scripts and Runtime packages are not touched.
+to GitHub releases by this script.
 """
 from __future__ import annotations
 
@@ -27,7 +31,21 @@ import time
 from pathlib import Path
 
 REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
-PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard", "micpack-european", "micpack-asian")
+# pack id -> (folder in the repository, title). The zip a build writes is <title>-<version>.zip and is published as <folder>/<title>.zip.
+# The Scripts zip of a build is AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip (the name for Nexus Mods) and sits at the root as Scripts.zip.
+LAYOUT = {
+    "scripts": ("", "Scripts"),
+    "runtime": ("", "Runtime"),
+    "omni": ("voice", "OmniPack"),
+    "localai-standard": ("local-ai", "LocalAI-Standard"),
+    "localai-lite": ("local-ai", "LocalAI-Lite"),
+    "mature-lite": ("mature", "Mature-Lite"),
+    "mature-standard": ("mature", "Mature-Standard"),
+    "micpack-european": ("mic", "MicPack-European"),
+    "micpack-asian": ("mic", "MicPack-Asian"),
+}
+PACKS = tuple(LAYOUT)
+PRODUCT = "AI-NPC-Cyberpunk-Mod"
 
 
 def no_write_message(repository: str, detail: str = "") -> str:
@@ -84,25 +102,32 @@ def connect(repository: str):
     return api
 
 
-def sums_name(pack: str) -> str:
-    return f"SHA256SUMS-{pack}.txt"
+def built_name(pack: str, version: str) -> str:
+    """The name of the zip a build writes for the pack (packaging/build-release.mjs)."""
+    title = LAYOUT[pack][1]
+    return f"{PRODUCT}-{title}-{version}.zip" if pack == "scripts" else f"{title}-{version}.zip"
+
+
+def remote_path(pack: str) -> str:
+    """Where the pack lives in the repository: <folder>/<title>.zip, no product prefix, no version."""
+    folder, title = LAYOUT[pack]
+    return f"{folder}/{title}.zip" if folder else f"{title}.zip"
 
 
 def plan(version: str, pack: str, packages: Path) -> list[tuple[Path, str]]:
-    """The (local file, path in the repository) pairs of one pack: every zip built, and the sums file under its own name."""
-    if pack not in PACKS:
+    """The (local file, path in the repository) pair of one pack: its one zip, in the pack's folder. No checksum file goes with it."""
+    if pack not in LAYOUT:
         raise SystemExit(f"Unknown pack {pack}; expected one of {', '.join(PACKS)}.")
     if not re.fullmatch(r"\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?", version):
         raise SystemExit(f"Invalid version: {version}")
-    zips = sorted(packages.glob("*.zip"))
-    if len(zips) != 1:
-        raise SystemExit(f"Expected exactly one zip for the {pack} pack in {packages}, found {len(zips)}. An optional pack is a single zip, never parts.")
-    if re.search(r"-part\d+of\d+\.zip$", zips[0].name):
-        raise SystemExit(f"{zips[0].name} is a multi-part zip; optional packs are uploaded as one zip.")
-    sums = packages / "SHA256SUMS.txt"
-    if not sums.is_file():
-        raise SystemExit(f"{sums} is missing.")
-    return [(zips[0], f"{version}/{zips[0].name}"), (sums, f"{version}/{sums_name(pack)}")]
+    name = built_name(pack, version)
+    parts = sorted(packages.glob(f"{name[:-4]}-part*of*.zip"))
+    if parts:
+        raise SystemExit(f"{parts[0].name} is a multi-part zip; a pack is uploaded as one zip.")
+    zip_path = packages / name
+    if not zip_path.is_file():
+        raise SystemExit(f"Expected exactly one zip for the {pack} pack in {packages}: {name} is missing. A pack is a single zip, never parts.")
+    return [(zip_path, remote_path(pack))]
 
 
 def upload(api, repository: str, version: str, pack: str, items: list[tuple[Path, str]]) -> None:
@@ -113,7 +138,7 @@ def upload(api, repository: str, version: str, pack: str, items: list[tuple[Path
             try:
                 print(f"Uploading {local.name} ({local.stat().st_size / 1024 ** 3:.2f} GiB) to {repository}/{remote} (attempt {attempt}).", flush=True)
                 api.upload_file(path_or_fileobj=str(local), path_in_repo=remote, repo_id=repository, repo_type="model",
-                                commit_message=f"AI NPC Cyberpunk Mod {version}: {pack} pack, {local.name}")
+                                commit_message=f"AI NPC Cyberpunk Mod {version}: {pack} pack, {remote}")
                 break
             except HfHubHTTPError as error:
                 status = getattr(getattr(error, "response", None), "status_code", None)
@@ -133,7 +158,7 @@ def upload(api, repository: str, version: str, pack: str, items: list[tuple[Path
         found = listed.get(remote)
         if not found or getattr(found, "size", None) != local.stat().st_size:
             raise SystemExit(f"{remote} is not on {repository} with the size it has here.")
-    print(f"Uploaded and checked {len(items)} files in {repository}/{version}/.", flush=True)
+    print(f"Uploaded and checked {len(items)} file in {repository}: {', '.join(paths)}.", flush=True)
 
 
 def main() -> int:
@@ -142,7 +167,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="only check that the token can write to the repository")
     parser.add_argument("--version")
     parser.add_argument("--pack", choices=PACKS)
-    parser.add_argument("--packages", type=Path, help="folder with the built zip and SHA256SUMS.txt")
+    parser.add_argument("--packages", type=Path, help="folder with the built zip")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.check:

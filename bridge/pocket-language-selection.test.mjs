@@ -120,11 +120,11 @@ test('the routing line names the Pocket language model and the pack clip it clon
   const voice = {requestedProvider: 'pocket', provider: 'pocket', resolvedProvider: 'pocket', registries: {pocket: registry}, configuredByBackend: {pocket: true}, cloudActive: false};
   const record = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer', name: 'Panam'}, plan: {engine: 'pocket', language: 'fr'},
     reply: {engine: 'pocket', language: 'fr'}, voiceKey: 'panam-palmer', languageSet: 'multilingual/fr/picked/panam-palmer', pocketModel: {language: 'fr'}, now: () => 0});
-  assert.equal(record.used, 'Pocket (language model)');
+  assert.equal(record.used, 'Pocket (PocketTTS model)');
   assert.deepEqual(record.reference, {set: 'multilingual/fr/picked/panam-palmer'});
   assert.equal(record.model, 'multilingual-pocket/fr');
   const line = formatVoiceRoute(record);
-  assert.match(line, /used="Pocket \(language model\)" ref="multilingual\/fr\/picked\/panam-palmer" model=multilingual-pocket\/fr/);
+  assert.match(line, /used="Pocket \(PocketTTS model\)" ref="multilingual\/fr\/picked\/panam-palmer" model=multilingual-pocket\/fr/);
   assert.match(line, /lang=fr/);
   const english = formatVoiceRoute(describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer', name: 'Panam'}, plan: {engine: 'pocket', language: 'en'},
     reply: {engine: 'pocket', language: 'en'}, voiceKey: 'panam-palmer', now: () => 0}));
@@ -132,7 +132,7 @@ test('the routing line names the Pocket language model and the pack clip it clon
   assert.match(english, /used="Pocket"/);
   const none = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer'}, plan: {engine: 'pocket', language: 'de', reason: 'pocket-language-pack-missing'},
     reply: {engine: 'none', language: 'de', reason: 'pocket-language-pack-missing'}, now: () => 0});
-  assert.match(none.fallback, /Pocket model for this language is installed but its voice language pack is not/);
+  assert.match(none.fallback, /PocketTTS model for this language is installed but its voice language pack is not/);
 });
 
 // ---- the bridge's wiring and the support report ------------------------------------------------------------------------------------------

@@ -176,7 +176,7 @@ test('nested packs: wrapper folders in the game folder, the mod folder and the p
     await put(join(game, 'archive', 'pc', 'mod', 'x.archive'), 'a');
     await put(join(game, 'tools', ...inner('omni', 'omni-pack.json')));
     // 1. A wrapper named after the zip, one level in; the same one level deeper (X/X); a wrapper with no pack in it; a folder that is not a wrapper.
-    await put(join(game, 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2', ...inner('local-ai', 'manifest.standard.json')));
+    await put(join(game, 'LocalAI-Standard', ...inner('local-ai', 'manifest.standard.json')));
     await put(join(game, 'Downloads', 'AI-NPC-OmniVoice-0.2', ...inner('omni', 'omni-pack.json')));
     await put(join(game, 'Empty-0.2', ...inner('readme.txt')), 'text');
     await put(join(game, 'Notes', 'readme.txt'), 'text');
@@ -194,7 +194,7 @@ test('nested packs: wrapper folders in the game folder, the mod folder and the p
     assert.deepEqual(found.map(row => `${row.pack} @ ${row.folder}`).sort(), [
       `Local AI @ ${folder(...PLUGIN, 'Mature-0.2')}`,
       `Local AI lite @ ${folder(...MOD)}`,
-      `Local AI standard @ AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2`,
+      `Local AI standard @ LocalAI-Standard`,
       `Mature @ ${folder(...PLUGIN, 'Mature-0.2')}`,
       `Mature standard @ ${folder(...MOD)}`,
       `OmniVoice @ ${folder('Downloads', 'AI-NPC-OmniVoice-0.2')}`,

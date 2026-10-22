@@ -3,7 +3,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash, randomBytes} from 'node:crypto';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {
@@ -164,11 +164,11 @@ test('the zip layout is the sibling multilingual-pocket folder, sorted, with the
     const rest = names.slice(1);
     assert.deepEqual(rest.map(name => name.slice(`${ROOT}/${lang}/`.length)), ['NOTICE.txt', 'inference.yaml', 'model.safetensors', 'pocket-model.json', 'tokenizer.json']);
     for (const name of rest) assert.ok(name.startsWith(`red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/${lang}/`), name);
-    assert.equal(packBase(lang), `AI-NPC-Cyberpunk-Mod-Pocket-${LANGUAGES[lang].title}`);
+    assert.equal(packBase(lang), `PocketTTS-Model-${LANGUAGES[lang].title}`);
   }
 });
 
-test('a build from stand-in files writes the zip, the listing and the checksum, byte-identical on a rebuild', async () => {
+test('a build from stand-in files writes the zip and the listing (no checksum file), byte-identical on a rebuild', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'pocket-models-'));
   try {
     const model = randomBytes(4096), tokenizer = Buffer.from('{"tokenizer":"fake"}\n');
@@ -180,8 +180,8 @@ test('a build from stand-in files writes the zip, the listing and the checksum, 
     const second = await buildLanguage('pt-br', {...common, out: join(dir, 'two')});
     assert.equal(first.sha256, second.sha256);
     assert.equal(first.entries, 6);
-    assert.equal(first.zip, join(dir, 'one', 'pt-br', 'AI-NPC-Cyberpunk-Mod-Pocket-Portuguese.zip'));
-    assert.equal((await readFile(join(dir, 'one', 'pt-br', 'SHA256SUMS.txt'), 'utf8')), `${first.sha256}  AI-NPC-Cyberpunk-Mod-Pocket-Portuguese.zip\n`);
+    assert.equal(first.zip, join(dir, 'one', 'pt-br', 'PocketTTS-Model-Portuguese.zip'));
+    assert.deepEqual((await readdir(join(dir, 'one', 'pt-br'))).sort(), ['PocketTTS-Model-Portuguese.files.json', 'PocketTTS-Model-Portuguese.zip'], 'no loose checksum file');
     assert.equal(sha256(await readFile(first.zip)), first.sha256);
 
     const entries = await listZip(first.zip);
@@ -200,7 +200,7 @@ test('a build from stand-in files writes the zip, the listing and the checksum, 
       assert.deepEqual(manifest.files[name], {bytes: data.length, sha256: sha256(data)}, name);
     }
     // The listing holds path, bytes and sha256 per file, the install note first.
-    const listing = JSON.parse(await readFile(join(dir, 'one', 'pt-br', 'AI-NPC-Cyberpunk-Mod-Pocket-Portuguese.files.json'), 'utf8'));
+    const listing = JSON.parse(await readFile(join(dir, 'one', 'pt-br', 'PocketTTS-Model-Portuguese.files.json'), 'utf8'));
     assert.deepEqual(listing.map(item => item.path), zipEntryNames('pt-br'));
     assert.deepEqual(listing.find(item => item.path.endsWith('model.safetensors')), {path: `${folder}/model.safetensors`, bytes: model.length, sha256: sha256(model)});
     // The entry timestamp comes from the manifest date: the first local header holds 00:00:00 on 22 October 2026 in DOS format.

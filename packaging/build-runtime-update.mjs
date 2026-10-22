@@ -7,11 +7,11 @@
 //        [--listing <pack listing json> | --no-listing]
 //
 // It writes, into the folder:
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
+//   Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
-//   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.sha256      the zip's SHA-256
+//   Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
+//   Runtime-Update-<from>-to-<to>.sha256      the zip's SHA-256
 //
 // The removal list in the zip names the files the old Runtime had and the new one does not (and those the new Runtime's own list declares and
 // any --remove): extracting adds and replaces but never deletes, so the service deletes them itself at its next start
@@ -34,7 +34,6 @@ import {validateListing} from './lib/pack-overlap.mjs';
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
 export const RELEASE_ENTRY = `${PLUGIN}/app/release.json`;
-export const PRODUCT = 'AI-NPC-Cyberpunk-Mod';
 
 const sameBytes = (a, b) => a.uncompressed === b.uncompressed && (a.crc >>> 0) === (b.crc >>> 0);
 const byPath = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -103,7 +102,7 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
   const work = await mkdtemp(join(tmpdir(), 'runtime update '));
   try {
     await mkdir(out, {recursive: true});
-    const base = `${PRODUCT}-Runtime-Update-${from}-to-${to}`;
+    const base = `Runtime-Update-${from}-to-${to}`;
     const zipPath = resolve(out, `${base}.zip`), temporary = `${zipPath}.tmp`;
     const writer = await ZipWriter.create(temporary);
     const files = [];

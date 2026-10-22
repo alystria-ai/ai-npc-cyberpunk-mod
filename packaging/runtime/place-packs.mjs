@@ -3,7 +3,7 @@
 // The optional packs (Local AI lite/standard, Mature lite/standard, OmniVoice, MicPack-European, MicPack-Asian) are zips whose entries start at the game root
 // (red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/..., .../app/omni/..., .../app/models/stt/<id>/...). Windows "Extract All" and 7-Zip's "Extract to <name>\"
 // wrap everything in a folder named after the zip, so a player who extracts inside the game folder ends up with
-//   <game>/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2/red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/...
+//   <game>/LocalAI-Standard/red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/...
 // and the mod never finds the pack. Shipped as app/launcher/place-packs.mjs and run by start-service.mjs before the pack checks.
 // It imports nothing from the bridge.
 //
