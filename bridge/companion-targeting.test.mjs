@@ -6,7 +6,7 @@ import {companionEngine} from './companion-fixture.mjs';
 
 const {lua,lauxlib,lualib,to_luastring,to_jsstring}=fengari;
 const init=readFileSync(new URL('../mod/init.lua',import.meta.url),'utf8');
-const targeting=init.slice(init.indexOf('local function targetAtCrosshair()'),init.indexOf('local function resetGaze()'));
+const targeting=init.slice(init.indexOf('convaiEntityKey = function'),init.indexOf('local function resetGaze()'));
 const fixture=`${companionEngine}
   assert(companions.registerDefinition('johnny-silverhand',
     {id='Character.JohnnyCompanion',name='Johnny Silverhand',profileKey='johnny-silverhand'}))

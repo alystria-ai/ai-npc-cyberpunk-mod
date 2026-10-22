@@ -266,7 +266,10 @@ local function onIntent(inventory, event)
     count('intents')
 end
 
+-- The three inventory callbacks below fire for every item event (a crafting or vendor burst is hundreds), so with Loot reactions
+-- off they return before the player read, the identity hash or any quantity read. The next update already forces a baseline.
 local function onAdded(player, event)
+    if settingOff() then return end
     if not localPlayer(player) or not event then return end
     local id, data = event.itemID, event.itemData
     local key = identity(id)
@@ -299,6 +302,7 @@ local function onAdded(player, event)
 end
 
 local function onChanged(player, event)
+    if settingOff() then return end
     if not localPlayer(player) or not event then return end
     local key, total, difference = identity(event.itemID), event.currentQuantity, event.difference
     if not key or not quantity(total) or not finite(difference) then ownershipComplete = false; return end
@@ -308,6 +312,7 @@ local function onChanged(player, event)
     count(difference < 0 and 'removed' or 'changed')
 end
 local function onRemoving(player, event)
+    if settingOff() then return end
     if not localPlayer(player) or not event then return end
     local key = identity(event.itemID)
     if not key then ownershipComplete = false; return end
