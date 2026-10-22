@@ -139,10 +139,18 @@ void Switches::ParseFile(std::string_view aRawContent)
     }
     m_allOff = allOff;
     m_off = std::move(off);
-    // Mirror into the lock-free flags: every known slot is recomputed, named systems get a slot.
+    // Mirror into the lock-free flags: every known slot is recomputed, named systems get a slot. A file full of
+    // made-up names must not use up the slots a real trip needs, so the last eight are kept for trips.
     for (const std::string& name : m_off)
     {
-        SlotLocked(name, true);
+        if (m_slotCount.load(std::memory_order_relaxed) < kSlots - 8)
+        {
+            SlotLocked(name, true);
+        }
+        else
+        {
+            SlotLocked(name, false);
+        }
     }
     const size_t count = m_slotCount.load(std::memory_order_relaxed);
     for (size_t i = 0; i < count; ++i)

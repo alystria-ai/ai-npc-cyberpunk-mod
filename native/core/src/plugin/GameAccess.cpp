@@ -700,17 +700,17 @@ void ResolveCombat(CombatState& aState)
     {
         return;
     }
-    ++aState.attempts;
-    // The lists of every function are large (tens of thousands of entries, two name lookups each): they are read
-    // once, on the first attempt, and the answer then stands for the session (see EnsureCombat).
-    const bool deep = aState.attempts == 1;
     RED4ext::CClass* npc = Class("NPCPuppet");
     RED4ext::CClass* scripted = Class("ScriptedPuppet");
     if (!npc || !scripted)
     {
         aState.tried = "the class NPCPuppet or ScriptedPuppet is not known yet";
-        return;
+        return; // not an attempt: the one full scan is kept for when the classes exist
     }
+    ++aState.attempts;
+    // The lists of every function are large (tens of thousands of entries, two name lookups each): they are read
+    // once, on the first attempt, and the answer then stands for the session (see EnsureCombat).
+    const bool deep = aState.attempts == 1;
     std::string tried;
     auto add = [&](const std::string& aText) { tried += (tried.empty() ? "" : "; ") + aText; };
 

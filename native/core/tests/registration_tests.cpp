@@ -178,3 +178,18 @@ TEST(control_files_parse_with_a_byte_order_mark_and_as_utf16)
     CHECK_EQ(DecodeControlText("io\n"), std::string("io\n"));
     CHECK(DecodeControlText("").empty());
 }
+
+TEST(a_file_of_made_up_names_does_not_use_up_the_slots_a_trip_needs)
+{
+    Switches switches;
+    std::string text;
+    for (int i = 0; i < 60; ++i)
+    {
+        text += "made_up_" + std::to_string(i) + "\n";
+    }
+    switches.ParseFile(text);
+    CHECK(!switches.Enabled("made_up_59")); // the mutex-guarded list still holds every name
+    switches.Trip("faces", "structured exception");
+    CHECK(switches.Off("faces"));
+    CHECK(switches.Off("made_up_0"));
+}

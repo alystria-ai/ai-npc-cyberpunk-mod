@@ -418,7 +418,17 @@ bool Invoke(RED4ext::IScriptable* aInstance, CBaseFunction* aFunction, Value* aV
         }
         out = value->Data();
     }
-    return RED4ext::ExecuteFunction(static_cast<void*>(aInstance), aFunction, out, args);
+    // An exception out of the game call (a structured exception caught by rtti::Guard) leaves the return value
+    // half written: leak it rather than destroy it.
+    try
+    {
+        return RED4ext::ExecuteFunction(static_cast<void*>(aInstance), aFunction, out, args);
+    }
+    catch (...)
+    {
+        value->Leak();
+        throw;
+    }
 }
 
 bool ExecuteForObject(void* aInstance, CBaseFunction* aFunction, RED4ext::StackArgs_t& aArgs, Object& aOut)
@@ -432,6 +442,14 @@ bool ExecuteForObject(void* aInstance, CBaseFunction* aFunction, RED4ext::StackA
     {
         return false;
     }
-    return RED4ext::ExecuteFunction(aInstance, aFunction, value.Data(), aArgs) && value.Handle(aOut);
+    try
+    {
+        return RED4ext::ExecuteFunction(aInstance, aFunction, value.Data(), aArgs) && value.Handle(aOut);
+    }
+    catch (...)
+    {
+        value.Leak();
+        throw;
+    }
 }
 } // namespace convai::game

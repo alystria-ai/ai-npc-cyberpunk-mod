@@ -39,7 +39,7 @@ int SehFilter(EXCEPTION_POINTERS* aPointers, SehInfo* aInfo) noexcept
 } // namespace
 
 // No C++ object lives in this frame (MSVC refuses __try next to objects that need unwinding).
-bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo) noexcept
+bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo)
 {
     __try
     {

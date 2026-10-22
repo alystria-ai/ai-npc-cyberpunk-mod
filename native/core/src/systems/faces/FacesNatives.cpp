@@ -262,7 +262,7 @@ void ZeroPose(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, i
 {
     int32_t nid = 0;
     rtti::ReadArgs(aFrame, &nid);
-    rtti::Return(aOut, rtti::Guard(
+    rtti::Return(aOut, rtti::GuardAlways(
                            kSystem,
                            [&] {
                                g_engine.ZeroPose(nid);
@@ -275,7 +275,7 @@ void NoteReset(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, 
 {
     int32_t nid = 0;
     rtti::ReadArgs(aFrame, &nid);
-    rtti::Return(aOut, rtti::Guard(
+    rtti::Return(aOut, rtti::GuardAlways(
                            kSystem,
                            [&] {
                                g_engine.NoteReset(nid);
@@ -288,7 +288,7 @@ void Release(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, in
 {
     int32_t nid = 0;
     rtti::ReadArgs(aFrame, &nid);
-    rtti::Return(aOut, rtti::Guard(
+    rtti::Return(aOut, rtti::GuardAlways(
                            kSystem,
                            [&] {
                                g_engine.Release(nid);
@@ -300,7 +300,7 @@ void Release(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, in
 void Clear(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int64_t)
 {
     rtti::ReadNoArgs(aFrame);
-    rtti::Return(aOut, rtti::Guard(
+    rtti::Return(aOut, rtti::GuardAlways(
                            kSystem,
                            [&] {
                                g_engine.Clear();

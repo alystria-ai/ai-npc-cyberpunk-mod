@@ -156,6 +156,12 @@ public:
 
     // False when the function returns nothing or the value is bigger than the buffer.
     bool Prepare(const RED4ext::CBaseFunction* aFunction);
+    // The call that was filling this value faulted: it may have half written it, and destroying a half-written
+    // handle or string while the fault unwinds could fault again, so the value is leaked instead.
+    void Leak() noexcept
+    {
+        m_live = false;
+    }
     void* Data()
     {
         return m_storage;

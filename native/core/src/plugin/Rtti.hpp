@@ -199,7 +199,7 @@ struct SehInfo
 // C++ object lives in that frame). Returns true when it ran to the end. Returns false when it ended on a
 // structured exception, with the details in aInfo. C++ exceptions, breakpoints and debugger messages
 // are not handled here: they pass through to the surrounding catch.
-bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo) noexcept;
+bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo);
 
 // A structured exception in a native. Unlike a C++ exception it may have left the game's own state
 // half updated (a lock held, a count off by one), so the system is switched off at the first one: the
@@ -213,15 +213,12 @@ void InvokeThunk(void* aBody)
     (*static_cast<F*>(aBody))();
 }
 
-// Runs aBody and returns its value. Returns aFallback at once when the system is switched off (the
-// kill-switch file, "all", or a trip) and on any failure of aBody: a C++ exception is logged and counted
-// against aSystem (three trip it), a structured exception is logged with its code and the native's name
-// and trips the system at the first one. aNative is the calling native's own function name.
-template<typename F, typename R>
-R Guard(const char* aSystem, F&& aBody, R aFallback,
-        std::source_location aNative = std::source_location::current()) noexcept
+namespace detail
 {
-    if (GlobalSwitches().Off(aSystem))
+template<bool kHonourOff, typename F, typename R>
+R GuardImpl(const char* aSystem, F&& aBody, R aFallback, const std::source_location& aNative) noexcept
+{
+    if (kHonourOff && GlobalSwitches().Off(aSystem))
     {
         return aFallback;
     }
@@ -246,5 +243,28 @@ R Guard(const char* aSystem, F&& aBody, R aFallback,
         NoteFault(aSystem, "unknown C++ exception");
     }
     return aFallback;
+}
+} // namespace detail
+
+// Runs aBody and returns its value. Returns aFallback at once when the system is switched off (the
+// kill-switch file, "all", or a trip) and on any failure of aBody: a C++ exception is logged and counted
+// against aSystem (three trip it), a structured exception is logged with its code and the native's name
+// and trips the system at the first one. aNative is the calling native's own function name.
+template<typename F, typename R>
+R Guard(const char* aSystem, F&& aBody, R aFallback,
+        std::source_location aNative = std::source_location::current()) noexcept
+{
+    return detail::GuardImpl<true>(aSystem, std::forward<F>(aBody), std::move(aFallback), aNative);
+}
+
+// Guard for the natives that must still work after their system is switched off: the ones that drain or
+// release state the system already holds (Io.Flush before Lua writes the files itself, the faces pose
+// release and reset), the file handshake that proves where file IO writes. They touch only the plugin's own
+// state, never a game object, and faults in them are still caught, logged and counted.
+template<typename F, typename R>
+R GuardAlways(const char* aSystem, F&& aBody, R aFallback,
+              std::source_location aNative = std::source_location::current()) noexcept
+{
+    return detail::GuardImpl<false>(aSystem, std::forward<F>(aBody), std::move(aFallback), aNative);
 }
 } // namespace convai::rtti
