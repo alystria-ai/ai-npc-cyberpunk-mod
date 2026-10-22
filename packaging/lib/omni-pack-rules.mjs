@@ -13,10 +13,15 @@ export const OMNI_AUDIO_TOKENIZER_FILE = `${OMNI_MODEL}audio_tokenizer/model.saf
 // lightning_utilities) are never imported by the worker; `testing` is NOT in the list: torch.testing and numpy.testing are real packages that
 // other modules import.
 const TEST_FOLDERS = new Set(['tests', 'test']);
+// A file inside a tests folder that production code imports: numpy.testing (which scipy's array_api_compat pulls in at import time, so the OmniVoice worker needs it)
+// does `from numpy._core.tests._natype import pd_NA`. Found by the install test: without it the worker died with "Could not import module 'AutoFeatureExtractor'".
+export const TEST_FILES_KEPT = Object.freeze(['numpy/_core/tests/_natype.py']);
 export const isPythonTestFile = path => {
   const parts = path.split('/');
   const at = parts.indexOf('site-packages');
-  return at >= 0 && parts.slice(at + 1, -1).some(part => TEST_FOLDERS.has(part));
+  if (at < 0) return false;
+  if (TEST_FILES_KEPT.includes(parts.slice(at + 1).join('/'))) return false;
+  return parts.slice(at + 1, -1).some(part => TEST_FOLDERS.has(part));
 };
 
 // torch/bin/ holds copies of two DLLs that torch/lib/ also holds with the same bytes (fbgemm.dll, asmjit.dll). torch loads its DLLs from

@@ -11,7 +11,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
-import {OMNI_MODEL_FILE, OMNI_PRECISION, PLUGIN, isDraftClip, isPythonTestFile, isTorchBinCopy, omniLeaveOutReason, omniMarker, omniNoticeLines, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
+import {OMNI_MODEL_FILE, OMNI_PRECISION, PLUGIN, TEST_FILES_KEPT, isDraftClip, isPythonTestFile, isTorchBinCopy, omniLeaveOutReason, omniMarker, omniNoticeLines, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {planRebuild} from './rebuild-omni-pack.mjs';
 import {INSTALL_NOTE, INSTALL_NOTE_NAME} from './build-pocket-models.mjs';
 import {compareWithPacks, validateListing} from './lib/pack-overlap.mjs';
@@ -34,6 +34,15 @@ test('a Python package\'s tests folders are left out, and the packages named tes
     assert.equal(isPythonTestFile(path), false, path);
     assert.equal(omniLeaveOutReason(path), null, path);
   }
+});
+
+test('the one file of a tests folder that numpy.testing imports stays, so the worker\'s import chain (scipy, transformers) still works', () => {
+  // `from numpy._core.tests._natype import pd_NA` in numpy/testing/_private/utils.py (the install test found it: the worker died importing transformers' AutoFeatureExtractor).
+  assert.deepEqual(TEST_FILES_KEPT, ['numpy/_core/tests/_natype.py']);
+  assert.equal(isPythonTestFile(`${SITE}/numpy/_core/tests/_natype.py`), false);
+  assert.equal(omniLeaveOutReason(`${SITE}/numpy/_core/tests/_natype.py`), null);
+  for (const name of ['test_array_coercion.py', '_locales.py', 'data/x.npy']) assert.equal(isPythonTestFile(`${SITE}/numpy/_core/tests/${name}`), true, name);
+  assert.equal(isPythonTestFile(`${SITE}/other/numpy/_core/tests/_natype.py`), true, 'only numpy\'s own');
 });
 
 test('the DLL copies in torch/bin go, the ones torch loads from torch/lib stay, and so do the executables\' neighbours', () => {
