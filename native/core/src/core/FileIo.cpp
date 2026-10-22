@@ -208,6 +208,15 @@ bool WriteInPlace(const std::wstring& aPath, std::string_view aData)
 }
 } // namespace
 
+bool VirtualFileSystemLoaded() noexcept
+{
+    // Mod Organizer 2 injects its virtual file system (USVFS) into the game process. It hooks the path
+    // based calls (CreateFileW, MoveFileExW, DeleteFileW, GetFileAttributesExW) but not a rename done
+    // through a file handle, which the kernel resolves against the real folder.
+    static const bool loaded = GetModuleHandleW(L"usvfs_x64.dll") != nullptr || GetModuleHandleW(L"usvfs_x86.dll") != nullptr;
+    return loaded;
+}
+
 bool WriteAtomic(const std::wstring& aPath, std::string_view aData, bool& aUsedFallback)
 {
     aUsedFallback = false;
@@ -220,7 +229,10 @@ bool WriteAtomic(const std::wstring& aPath, std::string_view aData, bool& aUsedF
         // POSIX-semantics replace (Windows 10 1809+): succeeds even while a reader holds the old
         // file open with FILE_SHARE_DELETE (Node and this worker both do), and that reader keeps
         // the old bytes. A plain MoveFileEx fails with access denied in that case.
-        if (wrote && PosixReplace(file, aPath))
+        // Under a virtual file system (MO2) the handle-based rename would put the file in the real
+        // game folder while every other call sees the virtual one, so only the path-based MoveFileExW
+        // below is used there.
+        if (wrote && !VirtualFileSystemLoaded() && PosixReplace(file, aPath))
         {
             CloseHandle(file);
             return true;

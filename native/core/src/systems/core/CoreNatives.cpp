@@ -48,6 +48,8 @@ std::string StatusJson()
     out += "\",\"api\":" + std::to_string(kApiVersion);
     out += ",\"game\":\"" + std::to_string(kGameMajor) + "." + std::to_string(kGameMinor) + "\"";
     out += ",\"runtime\":\"" + JsonEscape(paths::WideToUtf8(GlobalFileIo().RuntimeDirectory())) + "\"";
+    // Mod Organizer 2's virtual file system is loaded: file replaces use MoveFileExW, which it sees.
+    out += std::string(",\"vfs\":") + (fileio::VirtualFileSystemLoaded() ? "true" : "false");
     out += ",\"systems\":" + names;
     out += ",\"switches\":" + GlobalSwitches().DescribeJson();
     // How an NPC's combat flag is read (unresolved until a companion first asks, then the route or "none").

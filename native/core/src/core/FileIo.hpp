@@ -20,7 +20,8 @@
 // Model:
 //   - Write/Remove/Rename/Append are queued and return at once. The worker runs them in order.
 //     A Write replaces the file atomically (temp file + a POSIX-semantics rename, which works
-//     while a reader holds the old file open; then MoveFileExW; in-place only as a last resort),
+//     while a reader holds the old file open; then MoveFileExW; in-place only as a last resort. Under
+//     Mod Organizer 2's virtual file system the POSIX rename is skipped: it bypasses that system),
 //     so a reader never sees a torn file. Two queued writes to one channel collapse into the last;
 //     a Remove followed by a Write collapses into the Write (an atomic replace needs no remove).
 //   - Read returns the worker's latest copy of a watched file. The worker polls each watched
@@ -212,6 +213,9 @@ namespace fileio
 {
 bool ReadWhole(const std::wstring& aPath, std::string& aOut, bool& aExists);
 bool WriteAtomic(const std::wstring& aPath, std::string_view aData, bool& aUsedFallback);
+// True when a virtual file system (Mod Organizer 2's USVFS) is loaded in this process: WriteAtomic then
+// replaces files with MoveFileExW, which that system sees, instead of the handle-based rename.
+bool VirtualFileSystemLoaded() noexcept;
 bool AppendBytes(const std::wstring& aPath, std::string_view aData);
 bool RemoveFile(const std::wstring& aPath);
 bool RenameFile(const std::wstring& aFrom, const std::wstring& aTo);
