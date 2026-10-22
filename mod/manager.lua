@@ -1019,6 +1019,13 @@ end
 -- True when speaking to a companion cannot work right now: the player chose Mistral, Local AI or Custom, the bridge says that
 -- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
+-- The Conversation provider the player has chosen ('convai', 'mistral', 'local' or 'custom'), for the request the game writes: the bridge follows it for that
+-- turn, so a line sent right after picking Local AI never waits for the bridge to read the settings file. Settings are cached; no file is read here.
+function M.conversationProvider()
+    loadSettings()
+    return settings.conversationProvider
+end
+
 function M.voiceNeedsConvai()
     loadSettings()
     local chosen = settings.conversationProvider

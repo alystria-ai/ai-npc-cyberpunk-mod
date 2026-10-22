@@ -339,7 +339,7 @@ test('the bridge releases what settings stop using: facial model, renderer pages
 });
 
 test('a provider switch closes the Convai pages and stops the local model server (audit: already in place, kept under test)', () => {
-  const body = bridge.slice(bridge.indexOf('async function applyProviderChoice('), bridge.indexOf('async function applyProviderChoice(') + 2600);
+  const body = bridge.slice(bridge.indexOf('function lightApplyProvider()'), bridge.indexOf('function lightApplyProvider()') + 3400);
   assert.match(body, /await Promise\.allSettled\(\[realtime\.close\(\), phoneRealtime\.close\(\)\]\);/);
   assert.match(body, /if \(mistral\.applied === 'local'\) void localServer\.ensure\(\{background: true\}\)\.catch\(\(\) => \{\}\);\s*else void localServer\.stop\(\)\.catch/);
   assert.match(bridge, /else if \(mistral\.localUnused\) void localServer\.stop\(\)/, 'a model loaded ahead and then withdrawn is stopped too');

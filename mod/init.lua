@@ -2902,6 +2902,8 @@ local function sendRequest(context)
     -- In place over the shipped placeholder (Mod Organizer 2 never sees a new or deleted file). The bridge retries a
     -- half-written read on the file's next change; an empty file means "no request".
     -- Encoded first: an encoder that raises after the file was opened for writing left it emptied, its handle open, and the error escaping the caller.
+    local providerOk, provider = pcall(function() return manager.conversationProvider() end)
+    context.provider = providerOk and type(provider) == 'string' and provider or nil
     local encodedOk, encoded = pcall(json.encode, context)
     if not encodedOk then
         gameplayActions.revoke('request-write-failed', context.requestId)

@@ -103,7 +103,7 @@ import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, RemarkAllowance, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
-import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
+import {MISTRAL_KEY_FILE, MistralControl, MistralProvider, PROVIDERS} from './mistral-key.mjs';
 import {CUSTOM_FILE, CustomControl, CustomEndpoint, testConnection as testCustomConnection} from './custom-endpoint.mjs';
 import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
@@ -1462,8 +1462,10 @@ let voiceRouteReservation = false;
 const voiceRouteWaiters = new Set();
 let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = false;
 const relationshipRoutePending = new Map();
-function voiceBoundaryBusy() {
-  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
+// `ownTurn`: asked by the request poll for the turn it is about to start. That turn's own flags (`active`, `polling`) are not other work; everything
+// else (the microphone, Phone Chat, memory saving, look-ahead, a stream still being written) still is.
+function voiceBoundaryBusy({ownTurn = false} = {}) {
+  return !!((!ownTurn && (active || polling)) || streaming || micPolling || mic.current || prefetchPolling || memoryQuiescing
     || phone.active || relationshipRouteReservation || lookahead.busy);
 }
 // Read-only observability for the Relationships setting: which profile variant
@@ -2575,6 +2577,9 @@ async function tick() {
       void measure(held.input, {claimedAt: Date.now(), lookahead: lookahead.stats(held.lookahead)});
       return;
     }
+    // The provider the player chose is in the request (mod/init.lua sendRequest): a line sent right after picking Local AI is answered by Local AI
+    // even if the settings poll has not read the change yet. Look-ahead turns (startAhead) never come through here.
+    await providerForTurn(input);
     const controller = new AbortController();
     const request = active = {input, raw, owner, controller, receivedAt: Date.now(), writtenAt: stamp.mtimeMs};
     // Native decision/history context is projected at actual submission. A
@@ -2597,8 +2602,6 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
-  // The provider the player has just chosen answers this turn, even if the settings poll has not read the change yet (see syncProviderForNewTurn).
-  await syncProviderForNewTurn();
   return withTurnClock(request, clock => runInput(request, prepared, clock));
 }
 async function withTurnClock(request, run) {
@@ -3198,33 +3201,63 @@ async function applyKeyChoice() {
 // The conversation provider in use changes here, and only when nothing is running (same boundary as the Convai key): Convai
 // sessions belong to the provider that opened them, so they are retired together. The transcript is kept.
 let providerSwitching = false;
-// `newTurn`: a turn the game has just submitted is about to start (tick), so that turn is the idle boundary: nothing of the previous provider is still
-// answering (its turn was aborted) and the switch is made before the new turn picks its provider, not at the next 500 ms poll.
-async function applyProviderChoice({newTurn = false} = {}) {
-  if (providerSwitching || stopped || !mistral.pending || (!newTurn && voiceBoundaryBusy()) || voiceRouteReservation) return;
+// The switch has two parts. The LIGHT part makes the new provider the one that answers turns (`mistral.apply()`), starts what it needs and drops predictions
+// made for the old one: it closes nothing, so it can be made at once for a turn that must not go to the old provider. The HEAVY part retires what belonged to
+// the old provider (Convai pages and sessions, the memory embedder) and runs only at an idle boundary, with the same test as the Convai key's switch.
+let providerTeardownDue = false;
+function lightApplyProvider() {
+  mistral.apply();
+  providerTeardownDue = true;
+  // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
+  if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom')) void warmTurnConnections({provider: mistral.route});
+  dropPrefetch(); prefetchObserved = '';
+  console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
+  // Local AI is chosen and down: its turns stay here (never Mistral or Convai) and say why.
+  if (mistral.localDown) logLocalDown();
+  // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
+  if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
+  // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
+  if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
+  else void localServer.stop().catch(() => {});
+  void mistralControl.publishStatus().catch(() => {});
+}
+async function finishProviderSwitch() {
+  providerTeardownDue = false;
+  await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
+  await phone.forgetSessions().catch(() => {});
+  rewarmLocalVoice();
+  // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.
+  // Add-on speakers answer through the text routes whatever the provider is, so with an add-on installed it stays on its idle timer.
+  if (!mistral.active && !addonHost.active) void localEmbedder.close().catch(() => {});
+  await mistralControl.publishStatus().catch(() => {});
+}
+// `ownTurn`: called for the turn the request poll is about to start (see providerForTurn).
+async function applyProviderChoice({ownTurn = false} = {}) {
+  if (providerSwitching || stopped || !(mistral.pending || providerTeardownDue) || voiceBoundaryBusy({ownTurn}) || voiceRouteReservation) return;
   providerSwitching = true;
   try {
-    mistral.apply();
-    // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
-    if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom')) void warmTurnConnections({provider: mistral.route});
-    dropPrefetch(); prefetchObserved = '';
-    await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-    sessions.clear(); realtimeSessions.clear(); sceneryMemory.clear();
-    await phone.forgetSessions().catch(() => {});
-    console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
-    rewarmLocalVoice();
-    // Local AI is chosen and down: its turns stay here (never Mistral or Convai) and say why.
-    if (mistral.localDown) logLocalDown();
-    // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
-    if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
-    // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
-    if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
-    else void localServer.stop().catch(() => {});
-    // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.
-    // Add-on speakers answer through the text routes whatever the provider is, so with an add-on installed it stays on its idle timer.
-    if (!mistral.active && !addonHost.active) void localEmbedder.close().catch(() => {});
-    await mistralControl.publishStatus().catch(() => {});
+    if (mistral.pending) lightApplyProvider();
+    await finishProviderSwitch();
   } finally { providerSwitching = false; }
+}
+// The Conversation provider in the request the game has just written (mod/init.lua sendRequest) is the player's choice at that moment. The settings poll
+// (every 500 ms) may not have read it yet, so a line sent right after picking Local AI would be answered by the provider in use before. So for a turn
+// the request poll starts (never a look-ahead turn): the preference follows the request; the whole switch is made if nothing else is running; and when
+// something else is (the microphone, Phone Chat, memory saving, a look-ahead, a voice change being applied) a switch TO Local AI is still made lightly,
+// so that this turn never goes to the cloud, and its teardown waits for the settings poll's idle boundary. No file is read. Never throws.
+async function providerForTurn(input) {
+  try {
+    const wanted = input?.provider;
+    if (stopped || !PROVIDERS.includes(wanted)) return;
+    if (wanted !== mistral.preference) await adoptProviderSetting({conversationProvider: wanted});
+    if (!mistral.pending) return;
+    // A switch the settings poll has already started finishes first.
+    for (let waited = 0; providerSwitching && waited < 3000; waited += 20) await new Promise(done => setTimeout(done, 20));
+    if (!mistral.pending) return;
+    await applyProviderChoice({ownTurn: true});
+    if (mistral.pending && mistral.requested === 'local' && !providerSwitching) lightApplyProvider();
+  } catch (error) { pollLog('[CyberpunkConvai] Provider for the turn:', error); }
 }
 // Resources the current settings do not use are released (docs/RESOURCE_LIFECYCLE.md). Due-checked from the 500 ms settings poll: a few property
 // reads, nothing per frame, never while a turn, microphone or preparation is running (the page releases wait for the next poll).
@@ -3333,8 +3366,8 @@ async function publishLocalModelList() {
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
   }
 }
-// The Conversation provider setting as read from settings.json: what the settings poll does with it, and what a newly submitted turn does with it
-// (syncProviderForNewTurn). Returns whether the preference changed.
+// The Conversation provider setting, as the settings poll reads it from settings.json and as a request carries it (providerForTurn): the preference follows
+// it. Returns whether the preference changed.
 async function adoptProviderSetting(settings) {
   if (!settings) return false;
   // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
@@ -3346,20 +3379,6 @@ async function adoptProviderSetting(settings) {
   else if (mistral.localUnused) void localServer.stop().catch(() => {});
   await mistralControl.publishStatus().catch(() => {});
   return true;
-}
-// A line the player sends right after changing the Conversation provider must go to the NEW provider: the settings poll (every 500 ms) may not have read
-// the change yet, and the switch waits for an idle boundary. Called once per submitted turn, before it picks its provider: one small file read, and the
-// switch itself only when the provider really changed. A Local AI choice therefore never sends that line to Convai (owner rule). Never throws.
-async function syncProviderForNewTurn() {
-  try {
-    const raw = (await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '')).replace(/^\uFEFF/, '');
-    let settings; try { settings = JSON.parse(raw); } catch { return; }
-    if (!settings || typeof settings !== 'object') return;
-    await adoptProviderSetting(settings);
-    // A switch the settings poll has already started finishes first (it closes the old sessions).
-    for (let waited = 0; providerSwitching && waited < 3000; waited += 20) await new Promise(done => setTimeout(done, 20));
-    if (mistral.pending) await applyProviderChoice({newTurn: true});
-  } catch (error) { pollLog('[CyberpunkConvai] Provider sync:', error); }
 }
 let speechCheckedAt = 0;
 async function pollSettings(checkShutdown = true) {
