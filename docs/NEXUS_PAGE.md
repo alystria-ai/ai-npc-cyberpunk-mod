@@ -78,7 +78,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]OmniVoice + Convai or Mistral: about 2 GB (up to 4 GB)
 [*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
 [*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
-[/list]Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time. Lowering texture quality in the game frees the most room.
+[/list]Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then part of the model on your processor, never to the cloud), and you can change either choice in Settings at any time. Lowering texture quality in the game frees the most room.
 
 [size=4][b]Install[/b][/size]
 [b]Requirements[/b][list]
@@ -157,7 +157,7 @@ Menus come in sixteen languages. Characters answer in the language you write in,
 Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
-Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge. Browser installed somewhere unusual? Make a file named [b]browser.txt[/b] next to launcher.ini (red4extpluginsAiNpcCyberpunkMod) with the path to its exe on one line.
+Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge. Browser installed somewhere unusual? Make a file named [b]browser.txt[/b] next to launcher.ini (red4ext\plugins\AiNpcCyberpunkMod) with the path to its exe on one line.
 
 [b]Settings says "No model installed" for Local AI.[/b]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself (the mod also moves misplaced packs into place at the next start). With only a Mature pack, turn on Mature content in Settings > Conversation provider.
