@@ -590,6 +590,9 @@ function queueContinuous(current) {
       if (standby) live.player = standby;
       else await live.player.open({sampleRate, channels, token: live.token});
       live.standby = null;
+      // The rate the player runs at for this whole turn. The statistics can show later that the packets' label was wrong; the snapshot then says both (the corrected
+      // rate for the remembered-rate store, this one for the bridge's live checks: the audio is played, and its clock counted, at this rate).
+      live.openedRate = sampleRate;
       live.opened = true;
       if (owned() && live.pendingControl) live.player.control(live.pendingControl);
     }
@@ -623,6 +626,9 @@ function continuousView(current, pcmFrom) {
     underruns: playback.underruns ?? 0, faces: source.faces,
     facesFormat: source.facesFormat, facesTimebase: source.facesTimebase,
     sourceComplete: source.sourceComplete, ...(pcm ? {pcm} : {}),
+    // The rate the player was opened at, when it is not the rate of the snapshot (the statistics corrected the label after the audio had started): the bridge's live speech
+    // keeps checking against it (bridge/realtime-host.mjs), so a correction found at the end of a turn no longer reads as a changed format.
+    ...(current.live.openedRate && current.live.openedRate !== source.sampleRate ? {openedSampleRate: current.live.openedRate} : {}),
     // What the statistics showed about the packets' sample rate label (bridge/convai-data-audio.mjs): the host remembers it per character even when this turn
     // fails because of it (the label changes under a player that is already running at the old rate), so the character's next turn starts right.
     ...(current.dataAudio.rateCorrected ? {sampleRateCorrected: {...current.dataAudio.rateCorrected}} : {}),

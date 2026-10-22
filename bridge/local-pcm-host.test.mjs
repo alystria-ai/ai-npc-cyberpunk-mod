@@ -50,9 +50,9 @@ class OfflinePlayer {
   async stop() { this.stopped = true; this.pending?.reject(Error('Offline renderer retired')); }
 }
 
-function fixture(t, {manualAck = false} = {}) {
+function fixture(t, {manualAck = false, timeoutMs = 120_000} = {}) {
   const pages = [], players = [], tasks = [];
-  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 120_000, cleanupTimeoutMs: 30_000,
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs, cleanupTimeoutMs: 30_000,
     createPage: async () => {
       const client = new LocalPcmClient({createPlayer: () => {
         const player = new OfflinePlayer({manualAck}); players.push(player); return player;
@@ -588,4 +588,23 @@ test('LocalPcmHost.standby opens the page and a spare device; the next turn uses
   // A page that cannot be evaluated is reported as no spare, never thrown.
   pages[0].evaluate = async () => { throw Error('renderer gone'); };
   assert.equal(await host.standby(), false);
+});
+
+// 2026-10-22 review (W12): the page's 150 s limit was wall time for the whole reply, so a long reply on a slow computer was cut in the middle of a line while audio
+// was still being produced. The limit is for standing still now: a packet accepted or the heard position advancing starts it over.
+test('the page time limit is for standing still: a reply whose packets keep coming runs past it, and one that stops producing is cut', {timeout: 30_000}, async t => {
+  const {host, players, track} = fixture(t, {timeoutMs: 400});
+  const started = performance.now();
+  const pending = track(host.play({token: 'slow-but-moving', text: 'A long reply on a slow computer'}, async emit => {
+    for (let index = 0; index < 8; index++) { await sleep(150); await emit(packet({index: index + 1, offsetFrames: index * 9600})); }
+  }, {onFrame: () => control}));
+  await until(() => players[0]?.sealed);
+  assert.ok(performance.now() - started > 800, 'it ran for twice the limit');
+  players[0].finish(); const result = await pending; assert.equal(result.frames, 8 * 9600);
+  const stuckAt = performance.now();
+  const stuck = track(host.play({token: 'stuck', text: 'A producer that stops'}, async emit => {
+    await emit(packet()); await new Promise(() => {});
+  }, {onFrame: () => control}));
+  await assert.rejects(stuck, {name: 'AbortError'});
+  assert.ok(performance.now() - stuckAt >= 380, 'cut only after standing still for the whole limit');
 });

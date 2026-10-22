@@ -987,6 +987,86 @@ class Producer(unittest.TestCase):
             worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<f',1.),1))
         self.assertEqual(events,['decoder drained','decoder joined'])
 
+    def test_an_acknowledgement_that_never_comes_ends_the_request_not_the_worker(self):
+        # The worker waited 10 s for an acknowledgement and failed the whole worker ("Pocket generation stopped"), while the bridge's own
+        # consumer limit (a cold renderer) is longer: it is a cancelled request now, and the backstop is longer than the bridge's limits.
+        self.assertGreater(worker.ACK_WAIT_SECONDS,30+10)
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1);commands.expect_ack(1)
+        with self.assertRaises(worker.Cancelled):
+            commands.await_ack(.01)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1)
+        with patch.object(worker,'ACK_WAIT_SECONDS',.01):
+            with self.assertRaises(worker.Cancelled):
+                worker.stream_request(Model(),{},'Reply.',commands,lambda frame:None,1,'johnny-silverhand',lambda values:(struct.pack('<3f',*values),3))
+
+    def test_the_start_up_heartbeat_carries_wall_clock_progress_besides_cpu_time(self):
+        frame=worker.heartbeat_frame('torch',cpu_ms=1500,io_bytes=lambda:123456,modules=lambda:812)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':1500,'ioBytes':123456,'modules':812,'step':'torch'})
+        frame=worker.heartbeat_frame(cpu_ms=5,io_bytes=lambda:None,modules=lambda:3)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':5,'modules':3},'a system that cannot say leaves the I/O out')
+        real=worker.heartbeat_frame()
+        self.assertGreaterEqual(real['cpuMs'],0);self.assertGreater(real['modules'],10)
+        if 'ioBytes' in real:
+            self.assertGreater(real['ioBytes'],0)
+
+    def test_both_workers_turn_on_faulthandler_so_a_native_fault_leaves_a_stack(self):
+        # Exit 3221225477 (an access violation) used to leave nothing to read in an error report.
+        for name in ('pocket-voice-worker.py','resident-voice-worker.py'):
+            source=(ROOT/'bridge'/name).read_text(encoding='utf-8')
+            self.assertIn('faulthandler.enable(file=sys.stderr, all_threads=True)',source,name)
+            self.assertLess(source.index('faulthandler.enable('),source.index('args = parser.parse_args()'),name)
+
+    def test_the_request_time_limit_is_for_standing_still_not_for_length(self):
+        # MAX_AUDIO_SECONDS was one wall-clock timer for the whole request: a long reply on a slow computer was cut in the middle of a line.
+        now=[0.0];stalled=threading.Event()
+        timer=worker.ProgressTimer(120,stalled.set,clock=lambda:now[0],poll=.005)
+        timer.start()
+        try:
+            for step in range(6):                      # 300 s of wall time, a touch every 50 s
+                now[0]+=50;timer.touch();self.assertFalse(stalled.wait(.05),'moving requests are never cut')
+            now[0]+=119;self.assertFalse(stalled.wait(.05))
+            now[0]+=2;self.assertTrue(stalled.wait(2),'a request that stood still for the limit is stopped')
+        finally:
+            timer.cancel()
+        # The hook on Commands is what the stream loop touches: a chunk produced and a packet acknowledged.
+        commands=worker.Commands(io.StringIO(''),'a'*32);touches=[];commands.on_progress=lambda:touches.append(1);commands.begin(1)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+                yield [.2]*2
+        def send(frame):
+            commands.ack.set()
+        worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<%df'%len(values),*values),len(values)))
+        self.assertGreaterEqual(len(touches),4,'two chunks and two acknowledged packets')
+
+    def test_a_cancelled_reply_stops_decoding_its_backlog(self):
+        # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
+        class Latent:
+            shape=(1,4,32)
+            def new_zeros(self,*shape):
+                return ('silence',)+shape
+        class Mimi:
+            def __init__(self):
+                self.decoded=0
+            def decode_from_latent(self,latent,state):
+                self.decoded+=1;return 'audio'
+        mimi=Mimi();stop=threading.Event();wrapped=worker.skip_decoding_when_stopped(mimi,stop)
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,1)
+        stop.set()
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),('silence',1,1,1));self.assertEqual(mimi.decoded,1,'a cancelled reply decodes nothing more')
+        stop.clear();self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,2,'the next reply decodes again')
+        self.assertIs(worker.skip_decoding_when_stopped(mimi,stop),wrapped,'wrapping twice changes nothing')
+
+    def test_a_cancel_raises_the_priority_at_once_from_the_reader_thread(self):
+        pipe,commands=self.commands();raised=threading.Event();commands.on_cancel=raised.set
+        pipe.send({'owner':'a'*32,'op':'stream','id':1,'profile':'johnny-silverhand','text':'One full reply.'})
+        request=commands.queue.get(timeout=1);commands.begin(request['id'])
+        pipe.send({'owner':'a'*32,'op':'cancel','id':1});self.assertTrue(raised.wait(1))
+        self.close(pipe,commands)
+
     def test_cpu_environment_is_offline_thread_bounded_and_removes_secrets(self):
         environment=runtime.cpu_environment(2)
         self.assertEqual(environment['CUDA_VISIBLE_DEVICES'],'-1');self.assertEqual(environment['OMP_NUM_THREADS'],'2')

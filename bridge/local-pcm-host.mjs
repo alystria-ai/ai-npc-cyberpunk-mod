@@ -116,7 +116,15 @@ export class LocalPcmHost {
     const cancel = () => controller.abort(cancelled());
     signal?.addEventListener('abort', cancel, {once: true});
     if (signal?.aborted) cancel();
-    const deadline = setTimeout(() => controller.abort(Error('Local PCM playback timed out')), this.timeoutMs);
+    // The page's time limit is for standing still, not for length: a reply that a slow computer is still producing, or that is still playing, runs on. Every
+    // accepted packet and every advance of the heard position is progress (a timestamp: no timer is re-armed per packet or per poll); the one timer looks
+    // at it when it fires and waits out what is left of the window.
+    let progressAt = this.now(), deadline, heardSeconds = 0;
+    const arm = ms => { deadline = setTimeout(() => {
+      const idle = this.now() - progressAt;
+      if (idle >= this.timeoutMs) controller.abort(Error('Local PCM playback timed out')); else arm(this.timeoutMs - idle);
+    }, ms); };
+    arm(this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
     let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
     // Ends the clock poll's sleep the moment the renderer accepts the first audio: that snapshot is the one that publishes the reply,
@@ -147,7 +155,7 @@ export class LocalPcmHost {
         if (!ack || ack.version !== 1 || ack.token !== turn.token || ack.index !== expected.index
             || ack.offsetFrames !== frames || ack.frames !== expected.frames || ack.receivedFrames !== frames + expected.frames)
           throw Error('Local PCM renderer did not acknowledge the owned copy');
-        frames += expected.frames; index = expected.index; identity = owned.identity;
+        frames += expected.frames; index = expected.index; identity = owned.identity; progressAt = this.now();
         if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); firstAudio?.(); }
         return ack;
       } finally { emitting = false; }
@@ -187,6 +195,7 @@ export class LocalPcmHost {
             this.commandTimeoutMs, 'Local PCM renderer clock timed out', controller.signal);
           await check();
           if (snapshot.error) throw Error('Local PCM renderer failed');
+          if (snapshot.positionSeconds > heardSeconds) { heardSeconds = snapshot.positionSeconds; progressAt = this.now(); }
           if (liveText) { const live = liveText(); snapshot.text = live.text; snapshot.textComplete = live.complete === true; }
           if (getFace) {
             const face = await abortable(Promise.resolve().then(() => getFace(snapshot)), controller.signal);

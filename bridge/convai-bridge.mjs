@@ -1305,12 +1305,13 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       // already reads a saved Voxtral engine as Pocket while it is on (vSettings); this is the net for a line that is asked before that poll.
       if (!matureAllowsCloudVoice(matureContent.enabled)) return 'Mature content is on';
       if (!voxtralVoice.hasKey) return 'no Mistral key';
-      if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
+      if (!voxtralVoice.readyForV) return 'a Mistral limit is cooling down';
       if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;
       const load = mistralScheduler.stats();
       return load.spacingMs > 0 || load.pausedForMs > 0 ? 'Mistral is pacing requests' : null;
     },
-    stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, options),
+    // V's lane: a limit that V's request earns pauses V only, never the companion's reply on the same key (VoxtralVoice lane 'v').
+    stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, {...options, lane: 'v'}),
     speaks: language => voxtralVoice.speaks(language),
     languageSet: (key, language) => voxtralVoice.languageSet(key, language),
     warm: key => { void voxtralVoice.reference(key); }},
@@ -1900,12 +1901,15 @@ async function status(state, detail = '', turn = null) {
   return job;
 }
 
-// What the cloud voice's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound.
-const cloudPace = new SpeechPace();
+// What a voice engine's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound, sized from how
+// slowly the broken line was produced. One per engine (the Mistral cloud voice, the Pocket voice, the Convai voice): the speed is the engine's.
+const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace();
+const paceOf = (local, cloud) => local ? (cloud ? cloudPace : pocketPace) : convaiPace;
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
   {player = input.text, late} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
+  const pace = paceOf(local, localVoice.cloudActive);
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
     onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
@@ -1919,12 +1923,13 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
     holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
-    pace: local && localVoice.cloudActive ? cloudPace : null,
+    pace,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
     onEnded: info => {
       void measure(input, {playback: info}).catch(() => {});
       if (info.underruns > 0) console.error(`[Speech] profile=${input.profileKey} the voice broke ${info.underruns} time(s): ${info.seconds.toFixed(1)} s of audio`
-        + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '') + `; the next lines buffer ${cloudPace.leadSeconds} s first`);
+        + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '')
+        + `; the next lines buffer ${pace.lead.toFixed(1)} s first (this one refilled ${Number.isFinite(info.refillSeconds) ? info.refillSeconds.toFixed(1) : '?'} s after a break)`);
     },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
@@ -3438,15 +3443,16 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice): a saved Voxtral without a Mistral key counts as Pocket, as the row shows it (it
-    // is Voxtral again as soon as a key is saved; the poll runs this every time). The same while Mature content is on: no cloud voice then
-    // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
+    // V's voice row is one list (Off / Pocket / Voxtral / OmniVoice). A saved Voxtral stays Voxtral without a Mistral key: a cloud voice loads no local
+    // model (owner rule), so V's line is skipped with the reason and shows as text, and no Pocket worker loads for it (the poll runs this every time, so
+    // it speaks as soon as a key is saved). While Mature content is on there is no cloud voice (owner decision 2026-10-20), so V speaks with Pocket
+    // then and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
     // unless the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V): the same
     // two conditions as the row's greyed-out entry (mod/manager.lua vOmniBlock). An Omni voice that is merely failing or loading is not that:
     // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it. One that has FALLEN BACK is the other case (out of
     // graphics memory, or no CUDA: both last for the session): the companions are on Pocket or text, so V reads as Pocket too and speaks with the Pocket worker that is loaded.
     const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && !localVoice.omniNoMemory && !localVoice.omniNoCuda;
-    const vSettings = vSettingsFor(settings, {cloudUsable: voxtralVoice.hasKey && matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
+    const vSettings = vSettingsFor(settings, {cloudUsable: matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (vVoice.enabled) startVVoiceModScan();
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);

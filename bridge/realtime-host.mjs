@@ -346,12 +346,19 @@ export class RealtimeHost {
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
     // The sample rate the statistics showed for this turn's audio (the page puts it in the snapshot). A turn played live that finds out its audio is mislabelled is already playing at
-    // the label's rate, so it fails; the character must still learn the rate, or every later turn of it fails the same way (2026-10-21 reports of 55741d05, 0.2.6).
+    // the label's rate: it plays on to its end at that rate (the first turn of a character not yet remembered is heard at the wrong speed) and no longer fails (it used to, with
+    // "Continuous speech format changed"); the character learns the rate, so every later turn of it starts right (2026-10-21 reports of 55741d05, 0.2.6).
     const seenRate = {};
     const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.()).then(value => {
       if (value?.token === token) {
         if (value.sampleRateCorrected) seenRate.corrected = value.sampleRateCorrected;
         if (value.sampleRateHintMissed === true) { seenRate.missed = true; seenRate.sampleRate = value.sampleRate; }
+        // The corrected rate above is for the character's memory; the live speech is checked against the rate the player runs at (a correction found at the end of the
+        // turn is not a format change of the audio that has been playing: it used to fail the turn with "Continuous speech format changed").
+        if (Number.isInteger(value.openedSampleRate) && value.openedSampleRate !== value.sampleRate) {
+          const {openedSampleRate, ...rest} = value;
+          return {...rest, sampleRate: openedSampleRate};
+        }
       }
       return value;
     });

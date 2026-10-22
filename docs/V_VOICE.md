@@ -18,8 +18,9 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
    is your own voice, not a game utterance. Its words are shown as **V's subtitle** (below).
 3. When the companion's reply is ready, its audio waits (silently, buffered) only while V's line is still playing, then starts.
    The two never overlap.
-4. **If V's line is not audible yet when the reply is ready, the reply waits for V's first audio for at most 600 ms (the grace,
-   below), then V's line is dropped** and the reply goes on at once. Before 2026-10-19 V was dropped the moment the reply was ready.
+4. **If V's line is not audible yet when the reply is ready, the reply waits for V's first audio (30 s at most, below) and then follows V's
+   line.** A line is never dropped for being slow or long (2026-10-22; before that 600 ms, and a line of ten words or more was dropped the
+   moment the reply was ready). Before 2026-10-19 V was dropped the moment the reply was ready.
    The first line after a cold start used to be lost for this reason (the voice has to be prepared once); the voice is now prepared
    before the first line (below), and the composer warms the renderer page when it opens.
 
@@ -58,6 +59,14 @@ from audible was lost like one that was seconds away.
   (`VHelperVoice.onReady`, `VoiceSelection` option `onVHelperReady`, `warmUp({page: false})`): no renderer page is opened for this, and
   nothing runs per frame. With "Keep prepared voices" on, the worker also saves the prepared voice to disk, so later sessions pay almost
   nothing. The preparation runs in the below-normal-priority worker process, never on the game's thread.
+- **Superseded 2026-10-22: the wait is for a stuck line, not a slow one (`V_GRACE_MS`, 30 s).** The player typed the line and waits to hear it,
+  so the reply waits for V's first audio and follows V's end; a line is given up (`slower-than-reply`) only when it has still given no audio
+  30 s after the reply was ready, which is a wedged worker or a connection that never answered (the engines' own limits fail a line sooner: Voxtral
+  5 s and 6 s, a Pocket render with no new chunk for 60 s). The rescue budget below is gone (a line of ten words or more was dropped at once, the
+  same line audible a millisecond earlier held the reply for its whole length), and the companion's own voice request no longer stops V's
+  unfinished line on the worker the two share (`reply-voice-started`): it waits behind V there and speaks after V. Measured first audio is p50 0.2 s,
+  p90 0.7 s, so the common case is unchanged. `CYBERPUNK_CONVAI_V_GRACE_MS` sets the guard (0 restores the instant drop, at most 120000). The text
+  below is the history of the 600 ms version.
 - **A bounded grace instead of an instant drop (`V_GRACE_MS`, 600 ms).** The first time the reply asks while V is not audible, the
   reply's publish and sound are held and a timer starts; V becoming audible inside it plays as usual (the reply then follows V's end), the
   timer running out drops V (`slower-than-reply`, `waitedMs` in the line's summary), and the reply goes on. Later asks never extend it.
@@ -250,10 +259,11 @@ Latency is as important as FPS here, so V never stands in front of anything:
 - The companion's audio is held with the existing `hold` of the continuous speech (the one a look-ahead uses): the renderer
   keeps buffering and gets the quiet control, nothing is published to the game, so the subtitle and the face start exactly when
   the companion's voice does. A reply published as a whole (OmniVoice) waits in `publishResult` for the same signal.
-- "Audible" means the V renderer holds audio. If the reply is ready first, the reply waits for V's first audio for the grace (600 ms)
-  and V is then dropped (2026-10-19; before, on the spot).
-- Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the
-  turn's stage clock) and V's line is still waiting for its first audio, V is stopped so it is not in front of the reply's voice.
+- "Audible" means the V renderer holds audio. If the reply is ready first, the reply waits for V's first audio (up to the 30 s guard, 2026-10-22; it
+  was 600 ms and then a drop).
+- Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the turn's stage
+  clock) and V's line is still waiting for its first audio, the request waits its turn behind V's line on the shared worker (2026-10-22: V is no
+  longer stopped for it), and the companion speaks after V.
   A line that is already audible keeps going (the companion cannot be heard before it ends anyway). The cloud voices share no
   worker, so they are not stopped this way, and neither is a line spoken by the OmniVoice companions' helper Pocket worker (a
   different process on the CPU). (OmniVoice cannot cancel a render that has started, which is why V's engine Pocket is spoken by a

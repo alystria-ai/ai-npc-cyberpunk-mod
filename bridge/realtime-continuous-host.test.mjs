@@ -319,3 +319,28 @@ test('closing a voice channel aborts its pending playback callback and retires t
   assert.equal(pages[0].controls.length, 0);
   assert.equal(host.pool.entries.size, 0);
 });
+
+// 2026-10-22 review (R3): a turn whose packets are mislabelled (24 kHz on 44.1 kHz audio) is already playing at the label when the final statistics correct the rate; the corrected
+// rate in the snapshot then read as a changed format and the live speech threw "Continuous speech format changed". The player's own rate keeps being reported to it.
+test('a rate corrected at the end of a live turn is remembered for the character but the frame keeps the rate the player runs at', {timeout: 120000}, async t => {
+  const {host, pages, track} = fixture(t), token = 'mislabelled', frames = [];
+  const pending = track(host.reply(config, {liveSpeech: {token, onFrame: async snapshot => { frames.push(snapshot); return playbackControl; }}}));
+  await until(() => pages[0]?.controls.length, 'continuous reply never delivered playback control');
+  const page = pages[0];
+  page.window.convaiRealtime.continuousSnapshot = requested => requested === page.activeToken ? {token: requested, state: 'playing', positionSeconds: .25, sampleRate: 44100, openedSampleRate: 24000,
+    sampleRateCorrected: {declared: 24000, actual: 44100}} : null;
+  const before = frames.length;
+  await until(() => frames.length > before + 1, 'frames of the corrected turn');
+  assert.equal(frames.at(-1).sampleRate, 24000, 'the live speech sees the rate the player runs at');
+  assert.equal(Object.hasOwn(frames.at(-1), 'openedSampleRate'), false); assert.deepEqual(frames.at(-1).sampleRateCorrected, {declared: 24000, actual: 44100});
+  page.finish(); await pending;
+  assert.deepEqual(host.audioRates.hintFor(config.characterId), {declared: 24000, actual: 44100}, 'the character learned the rate for its next turn');
+});
+
+test('a snapshot that reports one rate is passed through untouched (no copy per poll)', {timeout: 120000}, async t => {
+  const {host, pages, track} = fixture(t), frames = [];
+  const pending = track(host.reply(config, {liveSpeech: {token: 'plain', onFrame: async snapshot => { frames.push(snapshot); return playbackControl; }}}));
+  await until(() => frames.length > 2, 'frames');
+  assert.ok(frames.every(frame => frame.sampleRate === 24000));
+  pages[0].finish(); await pending;
+});

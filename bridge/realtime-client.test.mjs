@@ -1469,6 +1469,8 @@ test('a live turn with mislabelled packets shows the corrected rate in its snaps
   c.data(data.stats); c.data(data.terminal); finalText(c); await new Promise(done => setTimeout(done, 80));
   const late = api.continuousSnapshot('mislabelled-turn');
   assert.equal(late.sampleRateCorrected.declared, 24000); assert.equal(late.sampleRateCorrected.actual, 44100); assert.equal(late.sampleRate, 44100);
+  assert.equal(late.openedSampleRate, 24000, 'and the rate the player runs at, which the live checks of the bridge keep using');
+  assert.equal(Object.hasOwn(early, 'openedSampleRate'), false, 'nothing to say while the label stands');
   assert.equal(Object.hasOwn(late, 'sampleRateHintMissed'), false);
   instances[0].drain(); await pending; await api.close();
 });
