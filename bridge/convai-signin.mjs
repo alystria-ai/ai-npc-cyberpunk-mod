@@ -15,10 +15,15 @@
 //   - Nothing runs until the player chooses Sign in with Convai. The listener accepts one sign-in, answers only on loopback, checks the
 //     Host header, answers only a browser's own navigation (browserNavigation: no image, frame or fetch another page made), and closes as
 //     soon as the sign-in ends, fails, is cancelled or times out (five minutes). No timer survives it.
+//   - A web page cannot make the mod save someone else's key: the callback is taken at once only when the browser says it came from
+//     Convai's own login page (the Referer header, which a page cannot set). A request that names another site is refused. A request
+//     that names no site (a browser that sends no Referer, or a page that hides it) is held and shown to the player on a confirmation
+//     page, with a one-time state value only that page carries: nothing is saved until the player confirms there.
 //   - The key and the encrypted values are never logged, never written anywhere except through the caller's saveKey, and never put in
 //     a URL by this bridge. (Convai's page puts the encrypted values in the loopback address; the answer to it is an immediate redirect
 //     to a clean /done address, so they do not stay in the address bar.)
 //   - The encrypted values go to login.convai.com only, over https.
+import {randomBytes} from 'node:crypto';
 import {createServer} from 'node:http';
 import {parseKeyText} from './convai-key.mjs';
 import {openInBrowser} from './character-editor-control.mjs';
@@ -115,6 +120,8 @@ const PAGE_STYLE = 'body{font-family:system-ui,sans-serif;background:#0a0a0a;col
   + 'h1{font-size:22px;font-weight:500}p{color:#a0a0a0;line-height:1.6}';
 const page = (title, line) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
   + `<title>${title}</title><style>${PAGE_STYLE}</style></head><body><main><h1>${title}</h1><p>${line}</p></main></body></html>`;
+const confirmPage = state => page('Confirm sign-in', 'Convai’s sign-in page did not say where this came from. Only continue if you chose Sign in with Convai in the game a moment ago '
+  + `and just signed in on Convai’s page. <a href="/confirm?state=${state}" style="color:#f2f2f2">Yes, save my sign-in</a><br>If you did not, close this tab: nothing was saved.`);
 const SIGNED_IN = page('Signed in', 'Your Convai API key is saved in the mod. You can close this tab and go back to the game.');
 const NOT_SIGNED_IN = page('Sign-in did not finish', 'Go back to the game and choose Sign in with Convai again, or copy your key from convai.com and choose Paste.');
 const PAGE_HEADERS = {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
@@ -129,6 +136,16 @@ const PAGE_HEADERS = {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control
 export function browserNavigation(headers = {}) {
   const mode = headers['sec-fetch-mode'], dest = headers['sec-fetch-dest'];
   return (mode === undefined || mode === 'navigate') && (dest === undefined || dest === 'document');
+}
+
+/**
+ * Where the browser says a callback came from, by its Referer header (set by the browser, never by a page): 'convai' for Convai's own login
+ * pages, 'foreign' for any other site, 'unknown' when there is none (a browser that sends no Referer, or a page that hides it).
+ */
+export function callbackSource(headers = {}) {
+  const referer = headers.referer;
+  if (referer === undefined || referer === '') return 'unknown';
+  return underConvai(String(referer)) ? 'convai' : 'foreign';
 }
 
 /**
@@ -163,6 +180,7 @@ export async function listenLoopback(handler, {create = createServer, attempts =
 export function startConvaiSignIn({openBrowser = openInBrowser, fetchImpl = globalThis.fetch, config = CONVAI_SIGNIN, listen = listenLoopback,
   setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   let resolveKey, rejectKey, servers = [], port = null, timer = null, finished = false, claimed = null, closeTimer = null;
+  const held = new Map(); // state -> {apiKey, userInfo}: callbacks that did not say where they came from, waiting for the player to confirm
   const key = new Promise((resolve, reject) => { resolveKey = resolve; rejectKey = reject; });
   key.catch(() => {}); // a sign-in nobody waits for any more is not an unhandled rejection
   const closeAll = () => {
@@ -178,6 +196,11 @@ export function startConvaiSignIn({openBrowser = openInBrowser, fetchImpl = glob
     if (error) rejectKey(error); else resolveKey(value);
   };
   const allowedHosts = () => new Set([`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`]);
+  const claim = ({apiKey, userInfo}, response) => {
+    claimed = exchangeSignIn({apiKey, userInfo, fetchImpl, config});
+    claimed.then(value => finish(null, value, {linger: true}), error => finish(error instanceof SignInError ? error : new SignInError('bad-answer'), null, {linger: true}));
+    response.writeHead(303, {Location: '/done', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'}).end();
+  };
   const handler = (request, response) => {
     const target = request.url ?? '', path = target.split('?')[0];
     response.setHeader('Connection', 'close'); // no idle connection keeps the listener alive after the sign-in
@@ -186,12 +209,31 @@ export function startConvaiSignIn({openBrowser = openInBrowser, fetchImpl = glob
     }
     if (path === '/control' && !claimed && !finished) {
       const {api_key: apiKey, user_info: userInfo} = rawQuery(target, ['api_key', 'user_info']);
+      const source = callbackSource(request.headers);
+      // Another site sent the browser here: not Convai's login page, so never a sign-in of the player's.
+      if (source === 'foreign') { response.writeHead(403, {'Cache-Control': 'no-store'}).end(); return; }
       if (!(apiKey && BLOB.test(apiKey)) && !(userInfo && BLOB.test(userInfo))) {
         response.writeHead(400, PAGE_HEADERS).end(NOT_SIGNED_IN); return;
       }
-      claimed = exchangeSignIn({apiKey, userInfo, fetchImpl, config});
-      claimed.then(value => finish(null, value, {linger: true}), error => finish(error instanceof SignInError ? error : new SignInError('bad-answer'), null, {linger: true}));
-      response.writeHead(303, {Location: '/done', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer'}).end();
+      if (source === 'unknown') {
+        // Held, not saved: the player confirms on a page that carries a state value no other page can read.
+        const state = randomBytes(16).toString('hex');
+        if (held.size >= 5) held.delete(held.keys().next().value);
+        held.set(state, {apiKey, userInfo});
+        response.writeHead(200, PAGE_HEADERS).end(confirmPage(state));
+        return;
+      }
+      claim({apiKey, userInfo}, response);
+      return;
+    }
+    if (path === '/confirm' && !claimed && !finished) {
+      // Only a click on the confirmation page (same origin), with the state that page was given.
+      const site = request.headers['sec-fetch-site'];
+      const state = rawQuery(target, ['state']).state;
+      const values = typeof state === 'string' && /^[0-9a-f]{32}$/.test(state) ? held.get(state) : undefined;
+      if ((site !== undefined && site !== 'same-origin') || !values) { response.writeHead(403, {'Cache-Control': 'no-store'}).end(); return; }
+      held.clear();
+      claim(values, response);
       return;
     }
     if (path === '/done' && claimed) {

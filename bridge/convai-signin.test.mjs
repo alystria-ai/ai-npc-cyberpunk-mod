@@ -3,7 +3,7 @@
 import {test} from 'node:test';
 import {request as httpRequest} from 'node:http';
 import assert from 'node:assert/strict';
-import {CONVAI_SIGNIN, SignInError, exchangeSignIn, listenLoopback, rawQuery, startConvaiSignIn} from './convai-signin.mjs';
+import {CONVAI_SIGNIN, SignInError, callbackSource, exchangeSignIn, listenLoopback, rawQuery, startConvaiSignIn} from './convai-signin.mjs';
 
 const KEY = '0123456789abcdef0123456789abcdef';
 // Convai's values are CryptoJS base64 ("U2FsdGVkX1..."), with '+', '/' and '=' in them.
@@ -55,8 +55,9 @@ function get(port, path, host = `localhost:${port}`, headers = {}) {
   });
 }
 
-// What Convai's page does after a sign-in: send the browser to the loopback address.
-const convaiRedirects = (port, query, {host = 'localhost'} = {}) => get(port, `/control?${query}`, `${host}:${port}`);
+// What Convai's page does after a sign-in: send the browser to the loopback address. The browser names the page it came from (Referer).
+const CONVAI_PAGE = 'https://login.convai.com/';
+const convaiRedirects = (port, query, {host = 'localhost', headers = {Referer: CONVAI_PAGE}} = {}) => get(port, `/control?${query}`, `${host}:${port}`, headers);
 
 const refused = async port => { try { await get(port, '/done'); return false; } catch { return true; } };
 
@@ -147,12 +148,68 @@ test('only a browser navigation is answered: an image, a frame or a fetch anothe
     }
     assert.equal(calls.length, 0, 'nothing was sent to Convai');
     // Convai's page sending the browser here: a top-level navigation.
-    const first = await get(value, path, host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site'});
+    const first = await get(value, path, host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site', Referer: CONVAI_PAGE});
     assert.equal(first.status, 303);
     assert.equal(await session.key, KEY);
     const done = await get(value, '/done', host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'same-origin'});
     assert.match(done.text, /Signed in/);
   } finally { session.cancel(); }
+});
+
+test('callbackSource: Convai’s own pages, any other site, or no Referer at all', () => {
+  assert.equal(callbackSource({referer: 'https://login.convai.com/'}), 'convai');
+  assert.equal(callbackSource({referer: 'https://login.convai.com/?ue=true&port=5000'}), 'convai');
+  assert.equal(callbackSource({referer: 'https://convai.com/'}), 'convai');
+  for (const other of ['https://evil.example/', 'http://login.convai.com/', 'https://login.convai.com.evil.example/', 'https://evilconvai.com/', 'null', 'not a url'])
+    assert.equal(callbackSource({referer: other}), 'foreign', other);
+  assert.equal(callbackSource({}), 'unknown');
+  assert.equal(callbackSource({referer: ''}), 'unknown');
+});
+
+test('a web page cannot make the mod save its key: a callback from another site is refused, and one with no Referer is held until the player confirms', async () => {
+  const {session, calls, port} = begin();
+  try {
+    const value = await port();
+    const host = `localhost:${value}`, attack = 'U2FsdGVkX1+attacker/blob==';
+    const nav = {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site'};
+    // A page that sends the browser here names itself: refused, nothing sent to Convai, nothing held.
+    const foreign = await get(value, `/control?api_key=${attack}`, host, {...nav, Referer: 'https://evil.example/'});
+    assert.equal(foreign.status, 403);
+    // A page that hides its Referer: the player is asked; nothing is saved or sent to Convai.
+    const hidden = await get(value, `/control?api_key=${attack}`, host, nav);
+    assert.equal(hidden.status, 200);
+    assert.match(hidden.text, /Confirm sign-in/);
+    assert.ok(!hidden.text.includes(attack), 'the encrypted value is not echoed');
+    assert.equal(calls.length, 0, 'nothing was sent to Convai');
+    const state = /\/confirm\?state=([0-9a-f]{32})/.exec(hidden.text)?.[1];
+    assert.ok(state, 'the confirmation page carries a one-time state');
+    // The attacker's page cannot read that page, so it cannot confirm: a guessed or missing state, or a confirm that is not a same-origin click, fails.
+    assert.equal((await get(value, `/confirm?state=${'0'.repeat(32)}`, host, {'Sec-Fetch-Site': 'same-origin'})).status, 403);
+    assert.equal((await get(value, '/confirm', host, {'Sec-Fetch-Site': 'same-origin'})).status, 403);
+    assert.equal((await get(value, `/confirm?state=${state}`, host, {'Sec-Fetch-Site': 'cross-site'})).status, 403, 'not a click on our own page');
+    assert.equal(calls.length, 0);
+    // The real sign-in from Convai's page still works, while the held one waits, and wins: the held one can no longer be confirmed.
+    assert.equal((await convaiRedirects(value, `api_key=${KEY_BLOB}`)).status, 303);
+    assert.equal(await session.key, KEY);
+    assert.deepEqual(calls, [{data: KEY_BLOB}]);
+    assert.equal((await get(value, `/confirm?state=${state}`, host, {'Sec-Fetch-Site': 'same-origin'})).status, 404, 'one sign-in only');
+  } finally { session.cancel(); }
+});
+
+test('a browser that sends no Referer still signs in, after the player confirms on the page the listener shows', async () => {
+  const {session, calls, port} = begin();
+  const value = await port(), host = `localhost:${value}`;
+  const nav = {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site'};
+  const hidden = await get(value, `/control?api_key=${KEY_BLOB}`, host, nav);
+  assert.equal(hidden.status, 200);
+  assert.equal(calls.length, 0, 'held: nothing sent yet');
+  const state = /\/confirm\?state=([0-9a-f]{32})/.exec(hidden.text)[1];
+  const confirmed = await get(value, `/confirm?state=${state}`, host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'same-origin'});
+  assert.equal(confirmed.status, 303);
+  assert.equal(confirmed.headers.location, '/done');
+  assert.equal(await session.key, KEY);
+  assert.deepEqual(calls, [{data: KEY_BLOB}]);
+  assert.match((await get(value, '/done', host)).text, /Signed in/);
 });
 
 test('a browser that cannot be opened fails at once and closes the listener', async () => {
