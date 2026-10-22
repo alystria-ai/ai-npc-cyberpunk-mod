@@ -53,13 +53,20 @@ const RULES = [
   [/\b([a-z][a-z0-9+.-]{1,20}:\/\/)[^\s\/?#@"'<>\\]+@/gi, '$1[redacted]@'],
   [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig|pass|passwd|password|pwd|code|secret|client_secret|refresh_token)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
-  // An email address (after the address rule above, so user:pass@host.tld is already gone).
-  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g, '[email-redacted]'],
 ];
+// An email address: name@domain with a dot and an alphabetic top-level part. A file name such as kokoro@v1.0.onnx (a model and its version, or a
+// versioned file) ends in a file extension, not a domain, so it is left alone (emailLike).
+const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g;
+const FILE_EXTENSIONS = new Set(["onnx", "json", "wav", "mp3", "ogg", "flac", "wem", "opus", "mjs", "js", "cjs", "ts", "lua", "txt", "log", "md", "csv", "gguf", "bin", "pt", "pth", "safetensors", "yaml", "yml", "toml", "ini", "cfg", "zip", "dll", "exe", "pdb", "so", "archive", "reds", "xml", "html", "css", "py", "bat", "ps1", "png", "jpg", "jpeg", "webp", "bmp", "tga", "dds", "mp4", "webm", "gz", "tar", "7z", "bak", "tmp"]);
+const emailLike = match => !FILE_EXTENSIONS.has(match.slice(match.lastIndexOf('.') + 1).toLowerCase());
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
-// 32 and more: a Mistral key is 32 letters and digits (the Lua redactor, mod/support-report.lua, uses the same length).
-const LONG_RUN = /[A-Za-z0-9+_=-]{32,}/g;
+// A run of 40 or more letters, digits, - _ + = with a digit and a letter is a token. A Mistral key is exactly 32 letters and digits (no - or _), so
+// that length is matched on its own (KEY32, with a digit and a letter, or both cases): a 32-character name with hyphens, such as the Local AI model
+// Gemma4-E4B-MiniFantasy-V1-Q4_K_M, or a record name with underscores, stays readable. The Lua redactor (mod/support-report.lua) uses the same rules.
+const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
+const KEY32 = /(?<![A-Za-z0-9+_=-])[A-Za-z0-9]{32}(?![A-Za-z0-9+_=-])/g;
+const looksRandom = text => (/\d/.test(text) && /[A-Za-z]/.test(text)) || (/[a-z]/.test(text) && /[A-Z]/.test(text));
 // The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
 // JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
 // or the end; past 64 characters with none, only its first word is (the old rule). A Windows account name never holds , ; = + [ ] or those.
@@ -110,6 +117,14 @@ export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
     value = value.replace(LONG_RUN, run => {
       if (!/\d/.test(run) || !/[A-Za-z]/.test(run) || run.startsWith('[')) return run;
       stats.patterns++; return '[token-redacted]';
+    });
+    value = value.replace(KEY32, run => {
+      if (!looksRandom(run)) return run;
+      stats.patterns++; return '[token-redacted]';
+    });
+    value = value.replace(EMAIL, match => {
+      if (!emailLike(match)) return match;
+      stats.patterns++; return '[email-redacted]';
     });
     value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
     if (account) value = value.replace(account, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });

@@ -30,6 +30,7 @@ local KEYWORDS = {'authorization', 'convai-key', 'convai_key', 'api-key', 'api_k
     'access-token', 'access_token', 'auth-token', 'auth_token', 'refresh-token', 'refresh_token', 'id-token',
     'id_token', 'token', 'secret', 'passwd', 'password', 'private-key', 'private_key', 'cookie', 'session-key',
     'session_key'}
+local FILE_EXTENSIONS = {onnx = true, json = true, wav = true, mp3 = true, ogg = true, flac = true, wem = true, opus = true, mjs = true, js = true, cjs = true, ts = true, lua = true, txt = true, log = true, md = true, csv = true, gguf = true, bin = true, pt = true, pth = true, safetensors = true, yaml = true, yml = true, toml = true, ini = true, cfg = true, zip = true, dll = true, exe = true, pdb = true, so = true, archive = true, reds = true, xml = true, html = true, css = true, py = true, bat = true, ps1 = true, png = true, jpg = true, jpeg = true, webp = true, bmp = true, tga = true, dds = true, mp4 = true, webm = true, gz = true, tar = true, ['7z'] = true, bak = true, tmp = true}
 local QUERY_NAMES = {'key', 'token', 'api_key', 'apikey', 'access_token', 'auth', 'signature', 'sig', 'pass', 'passwd', 'password', 'pwd', 'code',
     'secret', 'client_secret', 'refresh_token'}
 local KEY_PREFIXES = {'hf', 'ghp', 'gho', 'ghs', 'ghu', 'sk', 'pk', 'xoxa', 'xoxb', 'xoxp', 'xoxr', 'AKIA', 'AIza', 'ya29'}
@@ -119,12 +120,18 @@ function M.redactLine(line, secrets)
     end
     -- user:password@host in an address, and email addresses (the service's rules, bridge/support-report.mjs).
     line = line:gsub('(%a[%w%+%.%-]*://)[^%s/%?#@"\'<>\\]+@', '%1[redacted]@')
-    line = line:gsub('[%w%._%%%+%-]+@[%w%-]+[%w%.%-]*%.%a%a+', '[email-redacted]')
+    -- A file name such as kokoro@v1.0.onnx ends in a file extension, not a domain: left alone.
+    line = line:gsub('[%w%._%%%+%-]+@[%w%-]+[%w%.%-]*%.%a%a+', function(match)
+        if FILE_EXTENSIONS[match:match('%.(%a+)$'):lower()] then return nil end
+        return '[email-redacted]'
+    end)
     line = line:gsub('[%w%+_=%-]+', function(run)
         if isUuid(run) then return '[id:' .. hash8(run:lower()) .. ']' end
         if #run >= 32 and run:match('^%x+$') then return '[hex-redacted]' end
-        -- 32 and more, like the service: a Mistral key is 32 letters and digits.
-        if #run >= 32 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+        -- 40 and more with a digit and a letter, like the service; and a Mistral key: exactly 32 letters and digits (no - or _, so a 32-character
+        -- name with hyphens such as a model name stays readable), with a digit and a letter or both cases.
+        if #run >= 40 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+        if #run == 32 and run:match('^%w+$') and ((run:find('%d') and run:find('%a')) or (run:find('%l') and run:find('%u'))) then return '[token-redacted]' end
     end)
     -- A name with spaces ("John Smith") is taken whole up to the next separator (at most 64 characters); with no separator after it, only its first word.
     line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)([^\\/"\'<>|:*?,;=%+%[%]]+)([\\/])', function(prefix, name, separator)
