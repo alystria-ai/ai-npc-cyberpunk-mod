@@ -129,7 +129,7 @@ const clampSeconds = (value, fallback, min, max) => Number.isFinite(value) ? Mat
 
 export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
-  #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = '';
+  #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
 
   constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
     clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true, onLimit = () => {}} = {}) {
@@ -161,12 +161,23 @@ export class TokenSource {
   current() {
     return this.#token && this.#token.expiresAt - this.now() > NEAR_EXPIRY_MS ? {token: this.#token.value, expiresAt: this.#token.expiresAt} : null;
   }
-  /** Resolves true when a token is available. It waits only while the FIRST fetch of this run is still in flight, at most
-   * `timeoutMs`; with a token already held, no fetch running, or any earlier answer (a failure included: a retry runs in the
-   * background and is never waited for), it answers at once. */
+  /** A turn found no token although the last answer was good (or there was none yet): the token expired while no renewal ran, for example
+   * after the computer slept. Starts one fetch in the background, at most every 30 s, and only then: after a failure the retry schedule
+   * (5 s, 15 s, 60 s, 5 min) already decides, so a turn never adds requests to a backend that is down. Returns at once. */
+  kick() {
+    if (this.#stopped || !this.#started || this.#inflight || this.current()) return;
+    if (this.lastKind !== undefined && this.lastKind !== 'ok') return;
+    const now = this.now();
+    if (now - this.#lastKick < 30_000) return;
+    this.#lastKick = now;
+    void this.#attempt();
+  }
+  /** Resolves true when a token is available. It waits (at most `timeoutMs`) only while a fetch is in flight and no answer so far was a
+   * failure: the first fetch of a run, or the fetch a turn started because the token had run out after a good answer. With a token
+   * held, no fetch running, or an earlier failure (a retry runs in the background and is never waited for), it answers at once. */
   ready({timeoutMs = 4000} = {}) {
     if (this.current()) return Promise.resolve(true);
-    if (!this.#inflight || this.lastKind !== undefined) return Promise.resolve(false);
+    if (!this.#inflight || (this.lastKind !== undefined && this.lastKind !== 'ok')) return Promise.resolve(false);
     return new Promise(resolve => {
       const timer = this.setTimer(() => resolve(false), timeoutMs);
       timer?.unref?.();

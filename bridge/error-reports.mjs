@@ -65,8 +65,8 @@ export const hashInstall = installId => createHash('sha256').update(`error-repor
 // ------------------------------------------------------------------ the address
 
 // The backend's address and signing secret as a release ships them: app/defaults/error-reports.json in the Runtime package,
-// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's CONVAI_AUTH_SIGNING_SECRET>"}. Written by the release build;
-// the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
+// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's ERROR_REPORT_SECRET>"} (never the token signing secret, which ships in
+// convai-auth.json). Added to the Runtime by hand, not by the release build; the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
 export const PACKAGED_TARGET_FILE = join('defaults', 'error-reports.json');
 
 /** The packaged address, {url, secret}, or null when the file is missing, damaged, not https (or a local address) or its secret is short. */

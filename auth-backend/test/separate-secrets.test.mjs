@@ -6,7 +6,7 @@ import test from 'node:test';
 import { signBody, pseudonym } from '../api/_lib/crypto.js';
 import { missingErrorReportSettings, readConfig } from '../api/_lib/config.js';
 import { createErrorWorld, installHash } from '../testkit/errors-world.mjs';
-import { createWorld, SIGNING_SECRET } from '../testkit/harness.mjs';
+import { createWorld, makeEnv, mockResponse, SIGNING_SECRET } from '../testkit/harness.mjs';
 
 const REPORT_SECRET = 'report-secret-for-tests-'.padEnd(48, 'r');
 const PSEUDONYM_SECRET = 'pseudonym-secret-for-tests-'.padEnd(48, 'p');
@@ -50,4 +50,18 @@ test('with only the signing secret set, reports and pseudonyms use it (the first
   assert.equal(config.reportSecret, SIGNING_SECRET);
   assert.equal(config.pseudonymSecret, SIGNING_SECRET);
   assert.deepEqual(missingErrorReportSettings(readConfig({ ERROR_REPORT_SECRET: 'short', CONVAI_AUTH_SIGNING_SECRET: SIGNING_SECRET, KV_REST_API_URL: 'https://x.invalid', KV_REST_API_TOKEN: 't' })), ['ERROR_REPORT_SECRET']);
+});
+
+test('readyz says whether the three secrets are set and different, and shows no value', async () => {
+  const { createReadyHandler } = await import('../api/_lib/admin.js');
+  const ask = async extra => {
+    const response = mockResponse();
+    await createReadyHandler({ env: makeEnv(extra) })({ method: 'GET', url: '/api/readyz', headers: {} }, response);
+    return response;
+  };
+  assert.equal((await ask(separate)).json.secretsSeparate, true);
+  assert.equal((await ask({})).json.secretsSeparate, false, 'only the signing secret set: the fallback layout');
+  assert.equal((await ask({ ...separate, ERROR_REPORT_SECRET: SIGNING_SECRET })).json.secretsSeparate, false, 'two equal secrets');
+  const text = (await ask(separate)).text;
+  for (const value of [REPORT_SECRET, PSEUDONYM_SECRET, SIGNING_SECRET]) assert.ok(!text.includes(value));
 });

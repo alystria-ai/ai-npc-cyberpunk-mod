@@ -45,7 +45,7 @@ The goal is **not** to make abuse impossible. Nothing a client program does can:
 |---|---|---|
 | **Key only on the server** (Vercel env var) | Anyone recovering the permanent key from the mod files. That key could edit and delete all 308 characters. | A token itself is still a bearer credential for about an hour. |
 | **Signed requests** (HMAC-SHA256 over `timestamp.body`, within 120 s) | Casual `curl`, a copied request replayed later, a request body edited in flight, a random scanner finding the URL. | Anyone who reads the bridge source: the signing secret ships in the program. **It is obfuscation, not authentication.** Rotating the secret needs a mod update. |
-| **Per-install hourly limit** (default 4) | One install asking over and over. | A new install id (they cost nothing to make). |
+| **Per-install hourly limit** (default 12: every bridge start asks once, and a player may relaunch or a crashed bridge restart several times an hour) | One install asking over and over. | A new install id (they cost nothing to make). |
 | **Per-address hourly limit** (default 20; an IPv6 caller counts as its /64, an IPv4 one as its address) | One machine or network flooding with many install ids, including one stepping through the addresses of its IPv6 /64. | An attacker with many addresses (VPN, botnet), or players behind one shared address if it is set too low. |
 | **New install ids per address per day** (default 5) | Minting fresh ids to dodge the per-install limit from one address. | Many addresses. LAN events with more than 5 new players behind one address in a day are told to wait. |
 | **Global mints per day** (default 500) | Bounds the worst case: after 500 Convai mints in a UTC day the answer is "busy, try later" and nothing more is minted. In `shared` mode it bounds the effect of a forced-mint flood; in `per-install` mode it bounds how many installs can get tokens. | It is a ceiling, not a filter: an attacker who reaches it also locks out honest players until the next UTC day (`shared` mode still hands out the token already minted). |
@@ -104,7 +104,7 @@ Settings (all optional; defaults shown):
 | `CONVAI_AUTH_MODE` | `shared` | `shared` or `per-install`. |
 | `CONVAI_AUTH_PAUSED` | off | `1` stops all minting: "service paused". |
 | `CONVAI_AUTH_MIN_VERSION` | none | Mod versions below this get "outdated" (compared as numbers: `0.10` is above `0.9`; a `-rc` suffix is ignored). |
-| `CONVAI_AUTH_INSTALL_PER_HOUR` | 4 | Token requests per install per hour. |
+| `CONVAI_AUTH_INSTALL_PER_HOUR` | 12 | Token requests per install per hour. |
 | `CONVAI_AUTH_IP_PER_HOUR` | 20 | Token requests per address per hour. |
 | `CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY` | 5 | New install ids per address per UTC day. |
 | `CONVAI_AUTH_MINTS_PER_DAY` | 500 | Convai mints per UTC day, whole service. Then "busy". |

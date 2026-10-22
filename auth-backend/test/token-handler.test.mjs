@@ -355,7 +355,7 @@ test('the default limits are the documented ones', async () => {
   const config = readConfig({});
   assert.deepEqual(
     [config.installPerHour, config.ipPerHour, config.newInstallsPerIpPerDay, config.mintsPerDay, config.dailyTurnCap, config.remintMarginSeconds, config.mode],
-    [4, 20, 5, 500, 100, 300, 'shared'],
+    [12, 20, 5, 500, 100, 300, 'shared'],
   );
   assert.equal(DEFAULTS.dailyTurnCap, 100);
   assert.equal(readConfig({ CONVAI_AUTH_MODE: 'PER-INSTALL' }).mode, 'per-install');

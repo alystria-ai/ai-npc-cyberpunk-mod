@@ -237,7 +237,7 @@ export class ConvaiKeys {
     }
     const source = this.backend;
     let held = source.current();
-    if (!held) { await source.ready(); held = source.current(); }
+    if (!held) { source.kick(); await source.ready(); held = source.current(); }
     if (held) return {authToken: held.token};
     if (this.sharedKey && source.fallbackAllowed()) { source.noteFallbackUse(); return {apiKey: this.applied.key}; }
     throw source.unavailableError();

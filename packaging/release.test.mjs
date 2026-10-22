@@ -1085,3 +1085,12 @@ test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution)
   assert(packaging.includes('### Voice-input packs (`micpack-european`, `micpack-asian`)'));
   assert(packaging.includes('--mic-pack-source DIR') && packaging.includes('CYBERPUNK_CONVAI_MIC_PACKS_DEV'));
 });
+
+test('--auth-secret-env must name a variable meant for the Convai client secret', () => {
+  const url = 'https://backend.example.invalid/api/convai/token';
+  const secret = 'f'.repeat(40);
+  assert.throws(() => readAuthInputs({url, secret, required: true, secretName: 'HF_TOKEN'}), /meant for the Convai/);
+  assert.throws(() => readAuthInputs({url, secret, required: true, secretName: 'GITHUB_TOKEN'}), /meant for the Convai/);
+  assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'CONVAI_AUTH_CLIENT_SECRET'}), {url, secret});
+  assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'MY_CONVAI_SECRET'}), {url, secret});
+});

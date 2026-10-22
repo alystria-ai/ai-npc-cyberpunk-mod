@@ -9,7 +9,7 @@ const truthy = raw => ['1', 'true', 'yes', 'on'].includes(String(raw ?? '').trim
 const text = raw => String(raw ?? '').trim();
 
 export const DEFAULTS = Object.freeze({
-  installPerHour: 4,
+  installPerHour: 12,
   ipPerHour: 20,
   newInstallsPerIpPerDay: 5,
   mintsPerDay: 500,

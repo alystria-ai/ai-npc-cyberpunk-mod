@@ -597,3 +597,29 @@ test('an older deployment that sends only allowance.limit still sets the limit',
   tokens.start(); await flush();
   assert.deepEqual(heard, [100]);
 });
+
+test('a turn that finds the token expired after a good answer starts one fetch in the background, at most every 30 s, and waits for it; after a failure it starts none', async () => {
+  const world = createWorld();
+  const {tokens, backend} = source(world, {fallback: false});
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  assert.equal(backend.calls.length, 1);
+  assert.ok((await keys.credentialFor({characterId: 'alex'})).authToken);
+  // The computer slept: the token has run out and no renewal ran.
+  world.clock.now += 61 * MINUTE;
+  assert.equal(tokens.current(), null);
+  const renewed = await keys.credentialFor({characterId: 'alex'});
+  assert.ok(renewed.authToken, 'the turn got the fresh token');
+  assert.equal(backend.calls.length, 2, 'one fetch');
+  tokens.kick(); tokens.kick();
+  assert.equal(backend.calls.length, 2, 'a token is held: nothing more');
+  // A backend that stopped answering: failed fetches are not multiplied by turns.
+  const down = source(world, {fallback: false, fetchImpl: () => Promise.reject(new TypeError('fetch failed'))});
+  const downKeys = await releaseKeys(down.tokens);
+  down.tokens.start(); await flush();
+  let started = 0;
+  const original = down.tokens.fetchImpl;
+  down.tokens.fetchImpl = (...args) => { started += 1; return original(...args); };
+  for (let turn = 0; turn < 5; turn++) await assert.rejects(downKeys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  assert.equal(started, 0, 'no request from a turn once the last answer was a failure');
+});

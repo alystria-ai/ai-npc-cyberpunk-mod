@@ -34,6 +34,8 @@ export function validateAuthSecret(raw) {
  * `required` (a non-dry-run build of the Runtime): both must be given. Giving only one is always an error.
  */
 export function readAuthInputs({url, secret, required, urlName = AUTH_URL_ENV, secretName = AUTH_SECRET_ENV} = {}) {
+  // Only a variable that is meant to hold the client secret may be shipped: a mistyped --auth-secret-env must not publish some other token.
+  if (!/^[A-Z0-9_]*CONVAI[A-Z0-9_]*$/.test(String(secretName))) throw Error('--auth-secret-env must name a variable meant for the Convai sign-in client secret (its name contains CONVAI).');
   const hasUrl = !!String(url ?? '').trim(), hasSecret = !!String(secret ?? '').trim();
   if (!hasUrl && !hasSecret) {
     if (required) throw Error(`The Runtime ships no Convai key and needs the sign-in backend: set ${urlName} (--auth-url) and ${secretName} (--auth-secret-env), or build with --dry-run.`);
