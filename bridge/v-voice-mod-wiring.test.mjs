@@ -4,7 +4,7 @@ import {readFileSync, existsSync} from 'node:fs';
 import {mkdtemp, writeFile, readFile, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {vgmstreamDecoder} from './v-voice-mod-reference.mjs';
+import {VGMSTREAM_LIMITS, vgmstreamDecoder} from './v-voice-mod-reference.mjs';
 import {LiveVoices} from './live-voices.mjs';
 import {V_VOICE_KEYS} from './v-voice.mjs';
 
@@ -47,16 +47,43 @@ test('the decoder runs one process per line, in a private temporary folder that 
   const seen = [];
   const run = (executable, args, options, done) => {
     seen.push({executable, args, options});
-    writeFile(args[1], Buffer.from('RIFFwav')).then(() => done(null), done);
+    writeFile(args[args.indexOf('-o') + 1], Buffer.from('RIFFwav')).then(() => done(null), done);
   };
   const before = (await readdir(tmpdir())).filter(name => name.startsWith('ainpc-vmod-'));
   const decode = vgmstreamDecoder('C:/app/vgmstream/vgmstream-cli.exe', {run, timeoutMs: 1234});
   assert.equal((await decode(Buffer.from('wem'))).toString(), 'RIFFwav');
   assert.equal(seen.length, 1);
-  assert.deepEqual(seen[0].args.slice(0, 1), ['-o']);
+  assert.deepEqual(seen[0].args.slice(0, 2), ['-i', '-o'], 'no looping: a loop point never makes the output longer');
   assert.equal(seen[0].options.timeout, 1234); assert.equal(seen[0].options.shell, false); assert.equal(seen[0].options.windowsHide, true);
-  assert.ok(!existsSync(seen[0].args[1]), 'the temporary file is gone');
+  assert.ok(!existsSync(seen[0].args[2]), 'the temporary file is gone');
   assert.deepEqual((await readdir(tmpdir())).filter(name => name.startsWith('ainpc-vmod-')), before, 'and so is its folder');
   await assert.rejects(vgmstreamDecoder('x', {run: (e, a, o, done) => done(Error('exit 1'))})(Buffer.from('w')), /exit 1/);
   assert.deepEqual((await readdir(tmpdir())).filter(name => name.startsWith('ainpc-vmod-')), before, 'a failed decode leaves nothing either');
+});
+
+test('the decoder stops vgmstream the moment its output passes the size cap, and the folder is removed', async () => {
+  const before = (await readdir(tmpdir())).filter(name => name.startsWith('ainpc-vmod-'));
+  let killed = 0, finish = null;
+  // A crafted file: the decoder keeps writing past the cap and never ends by itself.
+  const run = (executable, args, options, done) => {
+    finish = done;
+    writeFile(args[args.indexOf('-o') + 1], Buffer.alloc(2048)).catch(() => {});
+    return {kill() { killed += 1; done(Object.assign(Error('killed'), {killed: true, signal: 'SIGTERM'})); }};
+  };
+  const decode = vgmstreamDecoder('C:/app/vgmstream/vgmstream-cli.exe', {run, maxOutputBytes: 1024, pollMs: 5, timeoutMs: 60_000});
+  await assert.rejects(decode(Buffer.from('wem')), error => error.code === 'too-large' && /passed/.test(error.message));
+  assert.equal(killed, 1, 'vgmstream was stopped, once');
+  assert.deepEqual((await readdir(tmpdir())).filter(name => name.startsWith('ainpc-vmod-')), before, 'nothing is left behind');
+  assert.equal(typeof finish, 'function');
+});
+
+test('a decoder that finishes with an output over the cap is refused too, and the time cap says so', async () => {
+  const big = (executable, args, options, done) => { writeFile(args[args.indexOf('-o') + 1], Buffer.alloc(4096)).then(() => done(null), done); };
+  await assert.rejects(vgmstreamDecoder('x', {run: big, maxOutputBytes: 1024, pollMs: 100_000})(Buffer.from('w')), error => error.code === 'too-large');
+  const slow = (executable, args, options, done) => { done(Object.assign(Error('Command failed'), {killed: true, signal: 'SIGTERM'})); };
+  await assert.rejects(vgmstreamDecoder('x', {run: slow, timeoutMs: 3000})(Buffer.from('w')), error => error.code === 'timeout' && /3 s/.test(error.message));
+  // The defaults: a short line is far below them, and the time cap is no longer 30 s.
+  assert.deepEqual({...VGMSTREAM_LIMITS}, {timeoutMs: 10_000, maxOutputBytes: 16 * 1024 * 1024, pollMs: 100});
+  const small = (executable, args, options, done) => { assert.equal(options.timeout, 10_000); writeFile(args[args.indexOf('-o') + 1], Buffer.alloc(100_000)).then(() => done(null), done); };
+  assert.equal((await vgmstreamDecoder('x', {run: small})(Buffer.from('w'))).length, 100_000);
 });

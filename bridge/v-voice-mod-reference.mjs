@@ -10,7 +10,7 @@
 // needs none and a player's PC only needs the 8 MB command-line tool.
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {depotHash, openArchive} from './rdar.mjs';
@@ -140,14 +140,42 @@ export function chooseClips(candidates, {minSeconds, targetSeconds, maxSeconds, 
 
 // ---- decoding -----------------------------------------------------------------------------------------------------------------------------
 
-/** The decoder of a vgmstream-cli.exe: `decode(wemBytes)` -> the WAV bytes. Files go through a private temporary folder, never next to the archive. */
-export function vgmstreamDecoder(executable, {timeoutMs = 30_000, run = execFile} = {}) {
+// A voice line is a few seconds long and decodes in well under a second. A data-only voice mod is someone else's bytes, though: a crafted header (a huge
+// sample count, a loop) would make vgmstream write gigabytes into the temporary folder, and the result would then be read whole and resampled. So each
+// decode has a time cap and an output cap (16 MB of WAV: over a minute of 48 kHz stereo), the output file is watched while it is written, and vgmstream
+// is stopped the moment it passes the cap. (Security review 2026-10-22, finding 12.)
+export const VGMSTREAM_LIMITS = Object.freeze({timeoutMs: 10_000, maxOutputBytes: 16 * 1024 * 1024, pollMs: 100});
+
+/**
+ * The decoder of a vgmstream-cli.exe: `decode(wemBytes)` -> the WAV bytes. Files go through a private temporary folder, never next to the archive.
+ * It runs with `-i` (no looping: a loop point never makes the output longer), stops after `timeoutMs`, and aborts (rejecting with code 'too-large')
+ * when the output file passes `maxOutputBytes`. `run` is execFile (a fake in the tests).
+ */
+export function vgmstreamDecoder(executable, {timeoutMs = VGMSTREAM_LIMITS.timeoutMs, maxOutputBytes = VGMSTREAM_LIMITS.maxOutputBytes,
+  pollMs = VGMSTREAM_LIMITS.pollMs, run = execFile} = {}) {
   return async wem => {
     const folder = await mkdtemp(join(tmpdir(), 'ainpc-vmod-'));
     try {
       const input = join(folder, 'line.wem'), output = join(folder, 'line.wav');
       await writeFile(input, wem);
-      await new Promise((resolve, reject) => run(executable, ['-o', output, input], {timeout: timeoutMs, windowsHide: true, shell: false}, error => error ? reject(error) : resolve()));
+      let oversize = false, watcher = null, child = null;
+      try {
+        await new Promise((resolve, reject) => {
+          child = run(executable, ['-i', '-o', output, input], {timeout: timeoutMs, windowsHide: true, shell: false}, error => error ? reject(error) : resolve());
+          // The output grows while vgmstream writes: look at its size now and then, and stop the process when it passes the cap.
+          watcher = setInterval(() => {
+            stat(output).then(info => {
+              if (info.size > maxOutputBytes && !oversize) { oversize = true; try { child?.kill?.(); } catch { /* already gone */ } }
+            }, () => {});
+          }, pollMs);
+        });
+      } catch (error) {
+        if (oversize) throw Object.assign(Error(`the decoded line passed ${Math.round(maxOutputBytes / 1048576)} MB`), {code: 'too-large'});
+        if (error?.killed || error?.signal === 'SIGTERM') throw Object.assign(Error(`the decoder took longer than ${Math.round(timeoutMs / 1000)} s`), {code: 'timeout'});
+        throw error;
+      } finally { if (watcher) clearInterval(watcher); }
+      const size = (await stat(output)).size;
+      if (size > maxOutputBytes) throw Object.assign(Error(`the decoded line passed ${Math.round(maxOutputBytes / 1048576)} MB`), {code: 'too-large'});
       return await readFile(output);
     } finally { await rm(folder, {recursive: true, force: true}).catch(() => {}); }
   };
