@@ -528,19 +528,19 @@ bool FileIo::Write(std::string_view aChannel, std::string aData)
         // Write-through, watched or not: a Read right after this Write sees these bytes.
         Channel& channel = ChannelLocked(aChannel);
         Publish(channel, true, aData);
+        // Merge only into the last queued operation. Merging into an older one would move this write ahead of
+        // the operations on other files queued in between (A, B, A' reaching the disk as A', B), and a reader
+        // that takes B as "A is ready" would then see A' before B or A before it existed.
         bool merged = false;
-        for (auto it = m_queue.rbegin(); it != m_queue.rend(); ++it)
+        if (!m_queue.empty())
         {
-            if (it->channel == aChannel || (it->kind == OpKind::Rename && it->target == aChannel))
+            Op& tail = m_queue.back();
+            if (tail.channel == aChannel && (tail.kind == OpKind::Write || tail.kind == OpKind::Remove))
             {
-                if (it->channel == aChannel && (it->kind == OpKind::Write || it->kind == OpKind::Remove))
-                {
-                    it->kind = OpKind::Write;
-                    it->data = std::move(aData);
-                    merged = true;
-                    ++m_stats.writesCoalesced;
-                }
-                break;
+                tail.kind = OpKind::Write;
+                tail.data = std::move(aData);
+                merged = true;
+                ++m_stats.writesCoalesced;
             }
         }
         if (!merged)
@@ -568,18 +568,15 @@ bool FileIo::Remove(std::string_view aChannel)
         }
         Channel& channel = ChannelLocked(aChannel);
         Publish(channel, false, {});
-        bool merged = false;
-        for (auto it = m_queue.rbegin(); it != m_queue.rend(); ++it)
+        bool merged = false; // only into the last queued operation, as in Write
+        if (!m_queue.empty())
         {
-            if (it->channel == aChannel || (it->kind == OpKind::Rename && it->target == aChannel))
+            Op& tail = m_queue.back();
+            if (tail.channel == aChannel && (tail.kind == OpKind::Write || tail.kind == OpKind::Remove))
             {
-                if (it->channel == aChannel && (it->kind == OpKind::Write || it->kind == OpKind::Remove))
-                {
-                    it->kind = OpKind::Remove;
-                    it->data.clear();
-                    merged = true;
-                }
-                break;
+                tail.kind = OpKind::Remove;
+                tail.data.clear();
+                merged = true;
             }
         }
         if (!merged)

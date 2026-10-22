@@ -22,8 +22,10 @@
 //     A Write replaces the file atomically (temp file + a POSIX-semantics rename, which works
 //     while a reader holds the old file open; then MoveFileExW; in-place only as a last resort. Under
 //     Mod Organizer 2's virtual file system the POSIX rename is skipped: it bypasses that system),
-//     so a reader never sees a torn file. Two queued writes to one channel collapse into the last;
-//     a Remove followed by a Write collapses into the Write (an atomic replace needs no remove).
+//     so a reader never sees a torn file. Two writes to one channel that are next to each other in the queue
+//     collapse into the last; a Remove followed by a Write collapses into the Write (an atomic replace needs
+//     no remove). Operations on different files are never reordered: a write is merged only into the last
+//     queued operation, so a marker file written after its payload always lands after it.
 //   - Read returns the worker's latest copy of a watched file. The worker polls each watched
 //     file at its own period (stat first; it reads only when size or time changed, while the
 //     last write is under 50 ms old, and on a forced re-read every 1 s), and bumps the channel's
