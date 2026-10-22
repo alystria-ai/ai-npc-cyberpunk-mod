@@ -80,7 +80,8 @@ export class VHelperVoice {
     this.readyAt = null;
     const failures = (this.retry?.failures ?? 0) + 1, delay = this.retryDelays[failures - 1];
     let next = '';
-    if (this.noRetry(this.failure)) { this.retry = null; next = 'Windows blocked a file of the voice, so it is not tried again until the voice or the setting changes'; }
+    const permanent = this.noRetry(this.failure);
+    if (permanent) { this.retry = null; next = `${typeof permanent === 'string' ? permanent : 'Windows blocked a file of the voice'}, so it is not tried again until the voice or the setting changes`; }
     else if (delay === undefined) { this.retry = null; next = `giving up after ${failures} failed attempts; typed lines stay silent until the voice or the setting changes`; }
     else { this.retry = {failures, nextAt: this.clock() + delay}; next = `trying again in ${Math.round(delay / 1000)} s`; }
     this.log(`V's helper voice failed (${this.failure}); ${next}`);

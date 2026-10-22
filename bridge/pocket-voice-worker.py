@@ -9,6 +9,7 @@ import argparse
 import base64
 from collections import OrderedDict
 from contextlib import redirect_stdout
+import faulthandler
 import gc
 import json
 import os
@@ -489,6 +490,12 @@ class PriorityGate:
 
 
 def main():
+    # A native fault (an access violation in a library, exit 3221225477) used to leave no trace: with this the Python stack of every thread goes to
+    # stderr, which the bridge keeps the tail of and names in the failure.
+    try:
+        faulthandler.enable(file=sys.stderr, all_threads=True)
+    except Exception:  # noqa: BLE001 - a diagnostic never stops the worker.
+        pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--owner", required=True)

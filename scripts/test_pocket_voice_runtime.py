@@ -970,6 +970,13 @@ class Producer(unittest.TestCase):
         if 'ioBytes' in real:
             self.assertGreater(real['ioBytes'],0)
 
+    def test_both_workers_turn_on_faulthandler_so_a_native_fault_leaves_a_stack(self):
+        # Exit 3221225477 (an access violation) used to leave nothing to read in an error report.
+        for name in ('pocket-voice-worker.py','resident-voice-worker.py'):
+            source=(ROOT/'bridge'/name).read_text(encoding='utf-8')
+            self.assertIn('faulthandler.enable(file=sys.stderr, all_threads=True)',source,name)
+            self.assertLess(source.index('faulthandler.enable('),source.index('args = parser.parse_args()'),name)
+
     def test_a_cancelled_reply_stops_decoding_its_backlog(self):
         # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
         class Latent:

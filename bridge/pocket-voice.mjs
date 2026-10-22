@@ -9,6 +9,7 @@ import {createVoiceProfileRegistry, registryFromTable, voiceChangeBatches, voice
 import {pocketSpokenText} from './pocket-language-models.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
+import {describeExitCode, stderrReason} from './voice-failures.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
@@ -290,7 +291,9 @@ export class PocketVoice {
         }).catch(error => this.fail(error));
       }
     });
-    child.stderr.on('data', part => { try { this.onLog(part.toString('utf8').slice(0, 4000)); } catch {} });
+    // The last of the worker's stderr is the reason it gives when it dies (a Python exception, a Windows fatal exception from faulthandler).
+    this.stderrTail = '';
+    child.stderr.on('data', part => { const text = part.toString('utf8'); this.stderrTail = (this.stderrTail + text).slice(-2000); try { this.onLog(text.slice(0, 4000)); } catch {} });
     child.stdin.on('error', error => { if (!this.restarting) this.fail(error); }); child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
       this.rejectExited = reject;
@@ -305,7 +308,7 @@ export class PocketVoice {
           this.spawnWorker();
           return;
         }
-        const error = this.failure || (this.closing ? cancelled('Pocket speech stopped') : Error(`Pocket worker exited (${code})`));
+        const error = this.failure || (this.closing ? cancelled('Pocket speech stopped') : Error(this.exitedMessage(code)));
         this.rejectReady?.(error);
         for (const request of this.pending.values()) this.finishRequest(request, error);
         if (!this.closing) this.failure ||= error;
@@ -317,6 +320,11 @@ export class PocketVoice {
     this.startTimer = this.timer(() => this.fail(Error('Pocket student startup timed out')),
       Math.max(this.attempt > 1 ? POCKET_LIMITS.restartMinMs : 1000, POCKET_LIMITS.startupMs - Math.max(0, this.now() - (this.startedAt ?? this.now()))));
     this.armStall(undefined);
+  }
+  // "Pocket worker exited (1)", the exit code in words when it is a Windows fault, and the last error line of the worker's stderr.
+  exitedMessage(code) {
+    const words = describeExitCode(code), reason = stderrReason(this.stderrTail);
+    return `Pocket worker exited (${words === String(code) ? code : words})${reason ? `: ${reason}` : ''}`;
   }
   // `view`: the language model's view (this.languageView, or the one a language command is about to install) when the frame answers a request made in it; null is the English student.
   validateProfiles(frame, view = null) {

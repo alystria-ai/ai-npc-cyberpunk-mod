@@ -9,6 +9,7 @@ import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
 import {closeConfirmed} from './worker-process.mjs';
+import {accessViolationFailed, missingFilesFailed, pocketIntegrityFailed} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -38,6 +39,12 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
 // Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
 export const blockedByWindows = reason => /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(String(reason ?? ''));
+// A failure that will repeat on every try, in words for the log, or null: Windows blocked a file (above), a Pocket file is not the pinned one or is not
+// there (a version mismatch, an incomplete or changed Runtime), a file or Python module the worker needs is missing. None of these is retried: each try is a
+// rehash of hundreds of megabytes or a model load beside the game, and fails the same way. The Runtime update (or a repair) is what changes it.
+export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windows blocked a file of the voice'
+  : pocketIntegrityFailed(reason) ? 'a Pocket file is not the one this version pins (the Runtime needs its update)'
+  : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';
@@ -50,6 +57,8 @@ export const CLOUD_WAIT_OUT_MS = 1500;
 // is loaded again in the background after each of these waits (a first failure after 45 s, then 3 min, then 10 min);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
 // due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
+// The first retry after a memory fault of the worker comes this soon, with the CUDA graph off (scheduleOmniRetry).
+export const OMNI_FAULT_RETRY_MS = 5000;
 export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
 // A chosen Pocket worker that fails (a start that stalls twice while the game loads, or a crash) is not given up on either: the same waits and
 // the same end after the fourth failure, then the normal start loads it again (it has no background candidate, since the voice it falls to,
@@ -136,13 +145,13 @@ export class VoiceSelection {
     this.vHelperWanted=false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       onFailure:reason=>this.noteFailure('v-helper',reason),
-      clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:blockedByWindows,busy:()=>this.busy,
+      clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:permanentVoiceFailure,busy:()=>this.busy,
       closeWorker:client=>this.closeWorker(client),
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
-    this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();
+    this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();this.omniGraphOff=false;
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
     // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
@@ -628,7 +637,7 @@ export class VoiceSelection {
     const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable}:{}),onState: value => {
+      pythonExecutable:this.options.omniPythonExecutable,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{})}:{}),onState: value => {
       if (this.client !== client || this.closed) return;
       if (value.state === 'error') queueMicrotask(()=>this.backendFailed(backend,client));
       if (value.state === 'ready') this.stageAvailability(client,backend);
@@ -707,9 +716,21 @@ export class VoiceSelection {
       this.log(`not trying again: the worker did not confirm its asset and data paths, and they do not change until the game is restarted${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
     }
+    const permanent=permanentVoiceFailure(reason);
+    if(permanent){
+      this.log(`not trying again: ${permanent}${reason?` (${reason})`:''}`);
+      this.omniRetry=null;return;
+    }
     if(this.closed||this.requestedProvider!=='omni'||this.omniPack.installed===false||delay===undefined){
       if(this.omniRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
+    }
+    // A worker that died on a memory fault (exit 3221225477) is tried once more at once with the CUDA graph off, before the normal waits: the graph is the first suspect,
+    // and a second fault without it falls into the usual backoff with the graph left off.
+    if(accessViolationFailed(reason)&&!this.omniGraphOff){
+      this.omniGraphOff=true;
+      this.log('the worker died on a memory fault; trying again in 5 s with the CUDA graph turned off');
+      this.omniRetry={failures,nextAt:this.clock()+OMNI_FAULT_RETRY_MS};return;
     }
     this.omniRetry={failures,nextAt:this.clock()+delay};
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
@@ -746,8 +767,9 @@ export class VoiceSelection {
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
     const failures=(this.pocketRetry?.failures??0)+1,delay=this.pocketRetryDelays[failures-1];
-    if(blockedByWindows(reason)){
-      this.log(`not trying again: Windows blocked a file of the voice (${reason})`,'PocketRetry');
+    const permanent=permanentVoiceFailure(reason);
+    if(permanent){
+      this.log(`not trying again: ${permanent} (${reason})`,'PocketRetry');
       this.pocketRetry=null;return;
     }
     if(this.closed||!this.pocketWanted||delay===undefined){
@@ -788,7 +810,7 @@ export class VoiceSelection {
     if(!variant.configured){this.omniRetry=null;return;}
     const entry={reference,client:null,loaded:false,lastState:null};
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,onState:value=>{
+      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{}),onState:value=>{
         if(this.closed)return;
         if(this.candidate===entry){
           entry.lastState=value;

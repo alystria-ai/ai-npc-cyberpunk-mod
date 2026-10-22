@@ -502,3 +502,12 @@ test('a preparation a reply waits on is urgent for the worker (normal priority),
   controller.abort(); await rejected;
   h.send({op: 'cancelled', id: stream.id, profile, ...h.profiles()}); await tick(); await h.close();
 });
+
+test('a Pocket worker that dies says why: its exit code in words and the last error line of its stderr', async () => {
+  const h = harness({autoReady: false});
+  const starting = h.client.start(), failed = assert.rejects(starting, /^Error: Pocket worker exited \(3221225477 = access violation \(0xC0000005\)\): Windows fatal exception: access violation$/); await tick();
+  h.child.stderr.write('Windows fatal exception: access violation\n\nThread 0x0000 (most recent call first):\n  File "a.py", line 3 in run\n'); await tick();
+  h.finish(3221225477); await failed;
+  const plain = harness({autoReady: false}), plainFailed = assert.rejects(plain.client.start(), error => error.message === 'Pocket worker exited (1)'); await tick();
+  plain.finish(1); await plainFailed;
+});
