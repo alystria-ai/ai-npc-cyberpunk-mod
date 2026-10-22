@@ -662,6 +662,19 @@ class LanguageModels(Assets):
         self.assertEqual(config['replace_characters'], {'\u2019': "'"}, 'the language configuration is the one that was downloaded')
         self.assertEqual(json.loads((self.language / 'inference.yaml').read_text())['weights_path'], 'model.safetensors', 'the downloaded file is not changed')
 
+    def test_a_model_read_before_is_not_hashed_again_until_the_file_changes(self):
+        runtime.VERIFIED_ASSETS.clear()
+        with patch.object(runtime, 'digest_file', wraps=runtime.digest_file) as digest:
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3)
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3, 'the second swap to the same unchanged files reads nothing')
+            model = self.language / 'model.safetensors'
+            model.write_bytes(b'a different French fixture!')   # another size: read again, and refused
+            with self.assertRaises(ValueError):
+                runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 4)
+
     def test_a_changed_file_a_wrong_hash_an_unknown_language_or_a_deeper_model_is_refused(self):
         for field in ('sha256', 'tokenizerSha256', 'configSha256'):
             with self.assertRaises(ValueError):

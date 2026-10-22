@@ -30,17 +30,19 @@ async function setup(run, {modelLanguages = ['fr'], packLanguages = ['fr'], play
     await packs.scan();
     const models = new PocketLanguageModels({roots: [root], packs});
     await models.scan();
-    const calls = [], warmed = [];
+    const calls = [], warmed = [], englishWarmed = [];
     const voices = Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.'}]));
     voices['panam-palmer'] = player
       ? {reference: 'runtime/player-voices/panam-palmer.wav', sha256: 'e'.repeat(64), transcript: 'The player words.'}
       : {reference: 'runtime/voice-references/panam-palmer.wav', sha256: 'f'.repeat(64), transcript: 'English words.'};
-    let refuse = null;
+    let refuse = null, resident = null;
+    const unprepared = new Set();
     const factory = (config, {onState}) => {
       let loaded = false;
-      return {get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key), profileReady: key => loaded && Object.hasOwn(config.voices, key),
-        async prepareProfile(key) { return {provider: 'pocket', ready: true, profile: key}; },
-        async prepareLanguage(profile, pocketLanguage) { warmed.push({profile, pocketLanguage}); return {provider: 'pocket', ready: true, profile}; },
+      return {get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key), profileReady: key => loaded && Object.hasOwn(config.voices, key) && !unprepared.has(key),
+        get residentLanguage() { return resident; },
+        async prepareProfile(key, options) { englishWarmed.push({key, options}); return {provider: 'pocket', ready: true, profile: key}; },
+        async prepareLanguage(profile, pocketLanguage, options) { warmed.push({profile, pocketLanguage, options}); return {provider: 'pocket', ready: true, profile}; },
         async start() { loaded = true; onState({state: 'ready', resident: true}); },
         async synthesizeStream(profile, text, options) {
           calls.push({profile, text, options});
@@ -55,7 +57,7 @@ async function setup(run, {modelLanguages = ['fr'], packLanguages = ['fr'], play
     const voice = new VoiceSelection(settings, {languagePacks: packs, pocketLanguages: models, factory});
     voice.update({voiceProvider: 'pocket'}, null, false);
     await voice.start();
-    await run({voice, calls, warmed, models, packs, root, refuse: value => { refuse = value; }});
+    await run({voice, calls, warmed, englishWarmed, models, packs, root, refuse: value => { refuse = value; }, resident: value => { resident = value; }, unprepared});
     await voice.close();
   } finally { await rm(root, {recursive: true, force: true}); }
 }
@@ -109,10 +111,24 @@ test('warming: the language model is swapped in ahead of the reply, only with a 
   assert.ok(await voice.warmPocketLanguage('panam-palmer', 'fr'));
   assert.equal(warmed.length, 1);
   assert.equal(warmed[0].pocketLanguage.folder, 'fr');
+  assert.equal(warmed[0].options.urgent, true, 'a reply waits for the turn-start swap');
   assert.equal(await voice.warmPocketLanguage('judy-alvarez', 'fr'), null, 'no clip in the pack');
   assert.equal(await voice.warmPocketLanguage('panam-palmer', 'de'), null, 'no model');
   assert.equal(await voice.warmPocketLanguage('panam-palmer', 'en'), null);
   assert.equal(warmed.length, 1);
+}));
+
+test('a warm-up while a language is resident prepares the voice in that language, and a character with no clip in its pack falls back to the English warm-up', async () => setup(async ({voice, warmed, englishWarmed, resident, unprepared}) => {
+  unprepared.add('panam-palmer'); unprepared.add('judy-alvarez');
+  await voice.prepareProfile('panam-palmer');
+  assert.equal(warmed.length, 0); assert.equal(englishWarmed.length, 1, 'no language resident: the English voice is warmed as before');
+  resident('fr');
+  const receipt = await voice.prepareProfile('panam-palmer', {required: true});
+  assert.equal(warmed.length, 1); assert.equal(englishWarmed.length, 1, 'no English warm-up, so no model swapped out for it');
+  assert.equal(warmed[0].pocketLanguage.tag, 'fr'); assert.equal(warmed[0].options.urgent, undefined, 'a warm-up ahead of time stays below normal');
+  assert.equal(receipt.ready, true); assert.equal(receipt.profile, 'panam-palmer'); assert.equal(receipt.provider, 'pocket');
+  await voice.prepareProfile('judy-alvarez', {required: true});
+  assert.equal(warmed.length, 1); assert.equal(englishWarmed.length, 2); assert.equal(englishWarmed[1].options.required, true);
 }));
 
 test('the routing line names the Pocket language model and the pack clip it cloned from', () => {

@@ -1559,7 +1559,7 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
   for (;;) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
-    const receipt = await localVoice.prepareProfile(profile, {signal});
+    const receipt = await localVoice.prepareProfile(profile, {signal, required: true});
     const unvoiced = receipt?.provider === 'convai' || receipt?.provider === 'text';
     if (receipt?.ready !== true || !['convai','text','pocket','omni'].includes(receipt.provider)
         || (!unvoiced && receipt.profile !== profile)) {

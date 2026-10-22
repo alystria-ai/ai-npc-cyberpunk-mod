@@ -999,7 +999,7 @@ export class VoiceSelection {
       if (this.provider !== 'pocket' || this.cloudActive || this.silent || this.clientBackend !== 'pocket' || !this.client?.loaded || !this.usesProfile(profile)) return null;
       const voice = this.voiceOf(profile), pocketLanguage = await this.pocketLanguageFor(voice, language);
       if (!pocketLanguage || this.provider !== 'pocket' || this.cloudActive) return null;
-      return await this.client.prepareLanguage(voice, pocketLanguage);
+      return await this.client.prepareLanguage(voice, pocketLanguage, {urgent: true});   // the turn's reply waits for this swap: normal priority
     } catch { return null; }
   }
   // A reply spoken by the cloud voice. No local voice takes part, so there is no fallback voice here: a request that gave no audio in
@@ -1148,7 +1148,14 @@ export class VoiceSelection {
       const phonePreparing=this.provider==='pocket'&&this.playbackEnabled!==false&&this.phoneAnalysis
         ?this.phoneAnalysis.prepare(options).catch(error=>{throwIfCancelled(options.signal);return{ready:false};}):null;
       phonePreparing?.catch(()=>{});
-      try { receipt = await client.prepareProfile(voice, options); }
+      try {
+        // A Pocket language is resident (the last language stays loaded): the voice is prepared in that language's view, so no model is swapped out for a warm-up.
+        // A character with no clip in that language's pack falls back to the English student (the client defers that one unless the caller requires it).
+        const resident = this.provider === 'pocket' && !client.profileReady?.(voice) ? client.residentLanguage : null;
+        const pocketLanguage = resident && typeof client.prepareLanguage === 'function' ? await this.pocketLanguageFor(voice, resident).catch(() => null) : null;
+        throwIfCancelled(options.signal);
+        receipt = pocketLanguage ? await client.prepareLanguage(voice, pocketLanguage, {signal: options.signal}) : await client.prepareProfile(voice, options);
+      }
       catch (error) {
         throwIfCancelled(options.signal);
         if (!this.closed && (this.provider === 'convai' || this.provider === TEXT_ROUTE)) return remote(this.remoteReason(profile));
