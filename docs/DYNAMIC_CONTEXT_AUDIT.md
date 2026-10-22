@@ -363,3 +363,13 @@ Built and unit-tested on branch `dynamic-context-2`; not yet live (CET reload pl
 - The turn-context log line now ends `background=<chars>` or `background=none`, so a log shows whether the weather went along.
 
 **Not changed, for a decision.** Three ordinary-NPC archetypes carry a standing rain flavour in their text (`characters/archetype-profiles/street-resident.json` speaking style "wry humor about money and rain", the same in `characters/natural-speech/npc-street-resident-female.json` "a sigh about rent or the rain", and sample lines in food-vendor and bartender). These are generated files (`scripts/Build-ArchetypeProfiles.mjs --check`), and the fact line is gone on most turns now; if players still hear rain from street residents, soften those two phrases and rebuild.
+
+## Update 2026-10-22: first-turn weather and the archetype place sentence, for every provider
+
+The response audit (`deliverables/response-audit-2026-10-22.md`) measured what the first-turn scenery does: told "It is raining." on a first turn, a food vendor and a bartender mentioned the rain in 11 of 12 replies each, against 1 of 12 and 0 of 12 in dry weather (ministral-8b). Two changes in the shared context builders follow, and **by decision one context serves every provider**: Convai receives them in its per-turn context exactly as Mistral, the Local AI and Custom do (`bridge/convai-bridge.mjs` joins the same blocks; `conversationBlocks`).
+
+- **No weather on the first turn of a conversation** (`bridge/scenery-memory.mjs`). It is told when V asks (a keyword in English and in the languages of the game's menus: cs de es fr hu it ja ko pl pt ru tr uk zh, plus common words for cold, hot, rain, snow, storm, fog and sky; in doubt the weather is included) and when it changes later in the talk. The part of the day is still told on the first turn. A conversation that was silent for 20 minutes starts again.
+- **The archetype place sentence** (`archetypeContext` in `bridge/protocol.mjs`) no longer says "Let the place flavor what you say"; it says the person lives with it and never announces the place name or tells V where they are unless V asks.
+- Text providers only (Convai's provisioned profile is untouched): rule 7 of the output rules, the lean character text and the copy of the where-sentence before V's words (`bridge/mistral-prompt.mjs`).
+
+Tests: `bridge/turn-context.test.mjs` (first-turn ask in every language, one context for every provider), `bridge/phone-chat.test.mjs`.

@@ -949,7 +949,7 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // The player's rules for the whole world (docs/CHARACTER_EDITOR.md, "World rules"): <state>/world-rules.json, read once here; the prompt builder reads the text
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
-const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters, worldRules});
+const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, worldRules});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).

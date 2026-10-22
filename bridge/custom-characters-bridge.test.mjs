@@ -178,7 +178,7 @@ test('the bridge opens the store before the voices, gives it to the prompt, the 
   assert.match(bridge, /return options\.player \? voxtralPreparers\.player : voxtralPreparers\.shipped;/);
   assert.match(bridge, /onRemoved: key => releasePreparedSlots\(\{folder: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\), key\}\)/);
   assert.match(bridge, /aliases: key => customCharacters\.voiceAlias\(key\),/, 'a character with no clip speaks with the resident voice of its gender');
-  assert.match(bridge, /new PersonaBook\(roster, \{overrides: characterOverrides, custom: customCharacters, worldRules\}\)/);
+  assert.match(bridge, /new PersonaBook\(roster, \{lean: true, overrides: characterOverrides, custom: customCharacters, worldRules\}\)/);
   assert.match(bridge, /new CharacterEditor\(\{personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: \(\) => mistral\.route, custom: customCharacters,\n  voices: playerVoices,/);
   assert.match(bridge, /onChanged: \(\) => \{ dropPrefetch\(\); prefetchObserved = ''; \}\}\);/, 'a save drops a group reply prepared before it');
   assert.match(bridge, /await mkdir\(runtime, \{recursive: true\}\);\nawait customCharacters\.publish\(\);/, 'the list the game reads is written at start');

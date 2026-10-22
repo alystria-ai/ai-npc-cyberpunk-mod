@@ -725,12 +725,79 @@ test('an add-on host cuts V\'s own line off the front of a reply, in the voice\'
   } finally { await close(); }
 });
 
-test('without the option a host leaves a reply as the model wrote it (the main companions are unchanged)', async () => {
-  const {host, close} = await harness(() => 'Thanks, Del. A short drive is still a drive, and I will make it smooth.');
+test("without the option a host still cuts V's words asked back off the front (rule 4) and a stock closing question (rule 5), and leaves every other opening as the model wrote it", async () => {
+  // The add-on option above cuts V's whole line and V's script labels; the echo opener (a first question of up to five words that is V's own words) is cut for every speaker.
+  const echo = await harness(() => 'Dex? Nah, choom. A short drive is still a drive, and I will make it smooth.');
   try {
-    const result = await host.reply(turn('thanks del'));
-    assert.match(result.text, /^Thanks, Del\. A short drive/);
-  } finally { await close(); }
+    const result = await echo.host.reply(turn('what about dex?'));
+    assert.equal(result.text, 'Nah, choom. A short drive is still a drive, and I will make it smooth.');
+  } finally { await echo.close(); }
+  for (const [said, reply] of [['thanks del', 'Thanks, Del. A short drive is still a drive, and I will make it smooth.'], ['hey', 'Hey yourself. A short drive is still a drive, and I will make it smooth.'],
+    ['Should I go with Rogue or Dex?', 'Rogue. She is the queen of fixers, trust me. Dex only sells you out.']]) {
+    const plain = await harness(() => reply);
+    try {
+      const result = await plain.host.reply(turn(said));
+      assert.equal(result.text, reply, 'a statement that repeats V\'s words is the answer, not an echo');
+    } finally { await plain.close(); }
+  }
+  const stock = await harness(() => 'I am fine, the work is the work. What is on your mind?');
+  try {
+    const result = await stock.host.reply(turn('how are you?'));
+    assert.equal(result.text, 'I am fine, the work is the work.', 'a generic closing question is dropped when the reply has words of its own');
+  } finally { await stock.close(); }
+});
+
+test('the echo cut is judged on the cleaned text in the voice stream too: a speaker label or a stage direction before the echo does not make the head and the finished reply disagree', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  for (const raw of ['Judy Alvarez: Dex? Nah, choom, he is trouble. Stay away from him, okay?', '*shrugs* Dex? Nah, choom, he is trouble. Stay away from him, okay?']) {
+    const {host, close} = await harness(() => raw);
+    try {
+      const stream = new ReplyStream({name: 'Judy Alvarez'});
+      const heads = [];
+      stream.onChange(() => { if (stream.head !== null) heads.push(stream.head); });
+      const result = await host.reply(turn('what about dex?'), {stream});
+      assert.match(result.text, /^Nah, choom, he is trouble\. Stay away from him, okay\?$/, raw);
+      assert.ok(!heads.some(head => /Dex\?/.test(head)), 'the voice never starts on the echo: ' + heads.join('|'));
+      assert.match(stream.text, /Stay away from him/, 'the rest of the answer is not lost: ' + stream.text);
+    } finally { await close(); }
+  }
+});
+
+test('the echo cut with a quoted remainder and with the add-on option: the voice and the finished reply agree, nothing is lost', async () => {
+  const {ReplyStream} = await import('./reply-stream.mjs');
+  // The remainder starts with a quotation mark: the stream cleans it again and would take the pair off, so it is held back and spoken with the finished reply.
+  const quoted = await harness(() => 'Dex? "He was a fixer, the best one in all of Watson. Ask Rogue." Then he got greedy.');
+  try {
+    const stream = new ReplyStream({name: 'Judy Alvarez'});
+    const result = await quoted.host.reply(turn('who is dex?'), {stream});
+    assert.equal(result.text, '"He was a fixer, the best one in all of Watson. Ask Rogue." Then he got greedy.');
+    assert.match(stream.text, /Then he got greedy/, 'the tail is not lost: ' + stream.text);
+  } finally { await quoted.close(); }
+  // The add-on host cuts V's whole line behind a speaker label or an action, in the stream and in the finished text.
+  for (const raw of ['Judy Alvarez: Thanks, Del. A short drive is still a drive, and I will make it smooth. Sit back.', '*nods* Thanks, Del. A short drive is still a drive, and I will make it smooth. Sit back.']) {
+    const addon = await harness(() => raw, {host: {stripPlayerEcho: true}});
+    try {
+      const stream = new ReplyStream({name: 'Judy Alvarez'});
+      const heads = [];
+      stream.onChange(() => { if (stream.head !== null) heads.push(stream.head); });
+      const result = await addon.host.reply(turn('thanks del'), {stream});
+      assert.equal(result.text, 'A short drive is still a drive, and I will make it smooth. Sit back.', raw);
+      assert.ok(!heads.some(head => /thanks/i.test(head)), 'the voice never speaks V\'s words: ' + heads.join('|'));
+      assert.match(stream.text, /Sit back/, 'nothing is lost: ' + stream.text);
+    } finally { await addon.close(); }
+  }
+});
+
+test('a service speaker keeps its own "Anything else?" (a vendor, an add-on voice), anyone else loses it', async () => {
+  const reply = 'That is eleven eddies for the skewers, hot off the grill. Anything else?';
+  const vendor = await harness(() => reply);
+  try {
+    assert.equal((await vendor.host.reply(turn('how much?', {local: {profileKey: 'npc-food-vendor-male', name: '', channel: 'private', ambientKey: 'npc-food-vendor-male:test'}}))).text, reply);
+  } finally { await vendor.close(); }
+  const other = await harness(() => reply);
+  try {
+    assert.equal((await other.host.reply(turn('how much?'))).text, 'That is eleven eddies for the skewers, hot off the grill.');
+  } finally { await other.close(); }
 });
 
 test('an add-on host keeps only its own lines when the model writes V\'s side of the talk as a script', async () => {
