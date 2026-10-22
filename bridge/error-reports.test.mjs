@@ -9,7 +9,8 @@ import {join} from 'node:path';
 import {gzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
-import {ErrorEvents, errorReportStatus, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
+import {MistralError, newTrace} from './mistral-client.mjs';
+import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
 import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
   withoutConversation} from './error-reports.mjs';
@@ -178,6 +179,17 @@ async function untilQueued(f, count, limitMs = 10000) {
   const end = Date.now() + limitMs;
   while (Date.now() < end) { if ((await readQueue(f.state, {now: START})).length >= count) return; await new Promise(done => setTimeout(done, 20)); }
 }
+
+test('an empty answer of a custom server carries how it ended (numbers and one short word), and nothing else is added to another failure', () => {
+  const trace = {...newTrace(), headersMs: 20, events: 3, pieces: 0, reasoning: 0, finishReason: 'stop', completionTokens: 0, elapsedMs: 127.4};
+  const empty = new MistralError('empty', 'answered with no text', {provider: 'custom', trace});
+  assert.deepEqual(emptyAnswerDetail(empty), {emptyFinish: 'stop', emptyEvents: 3, emptyPieces: 0, emptyThinking: 0, emptyTokens: 0, emptyMs: 127});
+  // A word that is not a short end-of-answer reason is dropped, and so is anything that is not a count.
+  assert.deepEqual(emptyAnswerDetail(new MistralError('empty', 'answered with no text', {provider: 'custom', trace: {...trace, finishReason: 'Some text of the reply!', completionTokens: null, events: 'x'}})), {emptyPieces: 0, emptyThinking: 0, emptyMs: 127});
+  assert.deepEqual(emptyAnswerDetail(new MistralError('empty', 'answered with no text', {provider: 'mistral', trace})), {});
+  assert.deepEqual(emptyAnswerDetail(new MistralError('network', 'went away', {provider: 'custom', trace})), {});
+  assert.deepEqual(emptyAnswerDetail(new Error('x')), {});
+});
 
 test('the bridge recorder writes after the fact, once per signature, and nothing while the setting is off', async () => {
   const f = await folders();
