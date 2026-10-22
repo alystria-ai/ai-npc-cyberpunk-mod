@@ -2564,6 +2564,8 @@ async function tick() {
     lastAcceptedIdentity = identity;
     void companionActions.revoke();
     active?.controller.abort();
+    // The provider the player has just chosen answers this turn (see syncProviderForNewTurn).
+    await syncProviderForNewTurn();
     const owner = new RequestFileOwner(inputPath, raw, stamp);
     // The exact turn may already be generated and held back (group look-ahead):
     // adopt it instead of starting another provider request.
@@ -3196,8 +3198,10 @@ async function applyKeyChoice() {
 // The conversation provider in use changes here, and only when nothing is running (same boundary as the Convai key): Convai
 // sessions belong to the provider that opened them, so they are retired together. The transcript is kept.
 let providerSwitching = false;
-async function applyProviderChoice() {
-  if (providerSwitching || stopped || !mistral.pending || voiceBoundaryBusy() || voiceRouteReservation) return;
+// `newTurn`: a turn the game has just submitted is about to start (tick), so that turn is the idle boundary: nothing of the previous provider is still
+// answering (its turn was aborted) and the switch is made before the new turn picks its provider, not at the next 500 ms poll.
+async function applyProviderChoice({newTurn = false} = {}) {
+  if (providerSwitching || stopped || !mistral.pending || (!newTurn && voiceBoundaryBusy()) || voiceRouteReservation) return;
   providerSwitching = true;
   try {
     mistral.apply();
@@ -3329,6 +3333,34 @@ async function publishLocalModelList() {
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
   }
 }
+// The Conversation provider setting as read from settings.json: what the settings poll does with it, and what a newly submitted turn does with it
+// (syncProviderForNewTurn). Returns whether the preference changed.
+async function adoptProviderSetting(settings) {
+  if (!settings) return false;
+  // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
+  if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
+  if (!mistral.setPreference(settings.conversationProvider)) return false;
+  if (mistral.preference === 'local') prepareLocal();
+  // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
+  // never applied, or the player changed their mind); when it is answering, applyProviderChoice unloads it at the next idle boundary.
+  else if (mistral.localUnused) void localServer.stop().catch(() => {});
+  await mistralControl.publishStatus().catch(() => {});
+  return true;
+}
+// A line the player sends right after changing the Conversation provider must go to the NEW provider: the settings poll (every 500 ms) may not have read
+// the change yet, and the switch waits for an idle boundary. Called once per submitted turn, before it picks its provider: one small file read, and the
+// switch itself only when the provider really changed. A Local AI choice therefore never sends that line to Convai (owner rule). Never throws.
+async function syncProviderForNewTurn() {
+  try {
+    const raw = (await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '')).replace(/^\uFEFF/, '');
+    let settings; try { settings = JSON.parse(raw); } catch { return; }
+    if (!settings || typeof settings !== 'object') return;
+    await adoptProviderSetting(settings);
+    // A switch the settings poll has already started finishes first (it closes the old sessions).
+    for (let waited = 0; providerSwitching && waited < 3000; waited += 20) await new Promise(done => setTimeout(done, 20));
+    if (mistral.pending) await applyProviderChoice({newTurn: true});
+  } catch (error) { pollLog('[CyberpunkConvai] Provider sync:', error); }
+}
 let speechCheckedAt = 0;
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
@@ -3359,15 +3391,7 @@ async function pollSettings(checkShutdown = true) {
       await ownKeyControl.poll().catch(() => {});
       await applyKeyChoice();
       // Conversation provider (docs/MISTRAL.md): the setting and the settings page's commands, then the switch itself.
-      // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
-      if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
-      if (mistral.setPreference(settings.conversationProvider)) {
-        if (mistral.preference === 'local') prepareLocal();
-        // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
-        // never applied, or the player changed their mind); when it is answering, applyProviderChoice unloads it at the next idle boundary.
-        else if (mistral.localUnused) void localServer.stop().catch(() => {});
-        await mistralControl.publishStatus().catch(() => {});
-      }
+      await adoptProviderSetting(settings);
       await mistralControl.poll().catch(() => {});
       await customControl.poll().catch(() => {});
       if (Date.now() - speechCheckedAt > 10000) {
