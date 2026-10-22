@@ -197,5 +197,11 @@
   "doctor-paradox": "f385ca10-cb4c-11f1-a662-42010a7be02f",
   "leon-rinder": "f5ed4166-cb4c-11f1-9fcc-42010a7be02f",
   "albert-murphy": "f98b24b4-cb4c-11f1-aec5-42010a7be02f",
-  "carl-robinson": "fb310fcc-cb4c-11f1-aa9c-42010a7be02f"
+  "carl-robinson": "fb310fcc-cb4c-11f1-aa9c-42010a7be02f",
+  "npc-maxtac-male": "b01eece2-ce04-11f1-b9e3-42010a7be02f",
+  "npc-maxtac-female": "b2058548-ce04-11f1-8e7f-42010a7be02f",
+  "npc-nusa-male": "b52d5a3e-ce04-11f1-a46c-42010a7be02f",
+  "npc-nusa-female": "b802b0d8-ce04-11f1-8d94-42010a7be02f",
+  "npc-joytoy-male": "b9a54982-ce04-11f1-8c52-42010a7be02f",
+  "npc-joytoy-female": "cede2a08-ce04-11f1-b9e3-42010a7be02f"
 }
