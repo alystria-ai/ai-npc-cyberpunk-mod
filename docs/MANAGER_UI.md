@@ -30,7 +30,8 @@ that sub-pages stuck. The page logic moved to `mod/manager-ui.lua`, the NSUI hos
 Mods screen (Esc > Mods)
  +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
       +-- section "Companion Manager"      first section of every page, kept when the page changes
-      |     Home:         Characters to invite, Current party, Model browser, Settings   (button "Open")
+      |     Home:         Characters to invite, Current party, Model browser, Settings,   (button "Open")
+      |                   Character editor
       |     other pages:  the Back row at the TOP                                         (button "Back")
       |     then, only when there is something to say: one feedback line
       +-- the sections of the page that is open (table below)
@@ -38,7 +39,7 @@ Mods screen (Esc > Mods)
 
 | Page | Back goes to | Sections |
 | --- | --- | --- |
-| Home | none | none: the four destinations are the page |
+| Home | none | none: the five destinations are the page (the fifth, Character editor, opens the browser at once and has no page) |
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
@@ -70,7 +71,15 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 
 ## Player flow
 
-- **Home:** four destinations: Characters to invite, Current party, Model browser, Settings.
+- **Home:** five destinations: Characters to invite, Current party, Model browser, Settings, Character editor. The first four move to a page
+  of the manager. **Character editor** (id `character-editor:home`, button "Open") has no page in the game: it is an `action` row, shown only
+  when `mod/character-editor.lua` loaded, and pressing it opens the character editor in the player's browser through the very request of
+  Settings > Conversation provider > **Edit characters** (`editor.request()`: one small `runtime/editor-command.json`, nothing polled and
+  nothing per frame). The player stays on Home; the result is the line under the way back (NSUI) or the status line (MCM): "Opening the
+  editor in your browser. Switch to your browser if it does not come to the front.", or, when the service is stopped, "The conversation
+  service is not running, so the editor cannot open. Restart the game.", or "The editor could not be opened. Try again." when the file
+  cannot be written. Its help says what it edits (bios, rules, memories and the prompting for each AI option), that it works with Mistral,
+  Local AI and Custom, not Convai, and that changes apply from the next reply. The Settings row stays (same request, same refusals).
 - **Characters to invite** (named "Characters" until 2026-10-14): the researched profiles, including Johnny Silverhand and Adam
   Smasher, one row each with **Invite**, **Add copy (n)** once a copy is in the party, or **Profile only** when the character has no
   model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in

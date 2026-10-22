@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Удалить персонажа",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Удалить {name}? Персонаж, его голосовой клип и всё, что он помнит о вас, будут удалены.",
     ["Display names"] = "Отображаемые имена",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редактируйте в браузере биографию, манеру речи, правила речи и воспоминания персонажа или создайте собственного.\n\nРаботает с Mistral, Local AI и Своим, но не с Convai. Изменения применяются со следующего ответа.",
     ["Female"] = "Женский",
     ["Filled in from the character you were facing: {name}."] = "Заполнено по персонажу, которого вы видели перед собой: {name}.",
     ["For example: Character.Rebecca"] = "Например: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice требует 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · нужна карта на 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "У видеокарты этого ПК меньше 12 GB, которые нужны OmniVoice рядом с игрой. Если он не может запуститься, используется Pocket. Чтобы не ждать, выберите Pocket.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редактируйте в браузере биографии, правила и воспоминания персонажей, а также промпт для каждого варианта ИИ.\n\nРаботает с Mistral, Local AI и Своим, но не с Convai. Изменения применяются со следующего ответа.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редактируйте в браузере биографию, манеру речи, правила речи и воспоминания персонажа, а также промпт для каждого варианта ИИ, или создайте собственного.\n\nРаботает с Mistral, Local AI и Своим, но не с Convai. Изменения применяются со следующего ответа.",
 }

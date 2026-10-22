@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "删除角色",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "删除 {name}？该角色、其语音片段以及它对你的记忆都将被移除。",
     ["Display names"] = "显示名称",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "在浏览器中编辑角色的简介、说话风格、说话规则和记忆，或创建属于你自己的角色。\n\n适用于 Mistral、Local AI 和自定义，不适用于 Convai。修改会从下一条回复开始生效。",
     ["Female"] = "女性",
     ["Filled in from the character you were facing: {name}."] = "已根据你正面对的角色填入：{name}。",
     ["For example: Character.Rebecca"] = "例如：Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice 需要 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · 需要 12 GB 显卡",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "这台电脑的显卡在游戏旁可用的显存不足 OmniVoice 所需的 12 GB。如果无法启动，将改用 Pocket。想跳过等待，请选择 Pocket。",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "在浏览器中编辑角色的简介、规则和记忆，以及每个 AI 选项的提示词。\n\n适用于 Mistral、Local AI 和自定义，不适用于 Convai。修改会从下一条回复开始生效。",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "在浏览器中编辑角色的简介、说话风格、说话规则和记忆，以及每个 AI 选项的提示词，或创建属于你自己的角色。\n\n适用于 Mistral、Local AI 和自定义，不适用于 Convai。修改会从下一条回复开始生效。",
 }

@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Karakter törlése",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Törlöd {name} karaktert? A karakter, a hangklipje és minden, amit rólad megjegyzett, törlődik.",
     ["Display names"] = "Megjelenítendő nevek",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Szerkeszd a karakter életrajzát, beszédstílusát, beszédszabályait és emlékeit, vagy készíts saját karaktert a böngésződben.\n\nMistral, Local AI és Egyéni mellett működik, Convai mellett nem. A módosítások a következő választól érvényesek.",
     ["Female"] = "Nő",
     ["Filled in from the character you were facing: {name}."] = "Kitöltve a karakter alapján, akivel szemben álltál: {name}.",
     ["For example: Character.Rebecca"] = "Például: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice 12 GB-ot igényel",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB-os kártya kell",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Ezen a gépen a videokártya a játék mellett kevesebb, mint az OmniVoice-hoz szükséges 12 GB. Ha nem tud elindulni, Pocket lesz használva. A várakozás elkerüléséhez válaszd a Pocketet.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Szerkeszd a böngésződben a karakterek életrajzát, szabályait és emlékeit, valamint az egyes AI-lehetőségek promptját.\n\nMistral, Local AI és Egyéni mellett működik, Convai mellett nem. A módosítások a következő választól érvényesek.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Szerkeszd a karakter életrajzát, beszédstílusát, beszédszabályait és emlékeit, valamint az egyes AI-lehetőségek promptját, vagy készíts saját karaktert a böngésződben.\n\nMistral, Local AI és Egyéni mellett működik, Convai mellett nem. A módosítások a következő választól érvényesek.",
 }

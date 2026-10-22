@@ -47,10 +47,10 @@ test('every page builds on the tab and the tab always starts with the way back, 
       for _, option in ipairs(section.options) do assert(option.label ~= '', name .. ': a row without a label') end
     end
   end
-  -- Home: the four destinations and nothing else.
+  -- Home: the five destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
-  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 4)
-  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Settings'}) do
+  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 5)
+  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Settings', 'Character editor'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
   for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Current party', 'Current party'}, {'Model browser', 'Installed character models'},
@@ -991,3 +991,44 @@ test('React to battles and to collected loot are off by default, and Restore def
   assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));
+
+// ---------------------------------------------------------------------------------------------------- Home > Character editor (2026-10-22)
+// A Home row that is an action and not a navigation: pressing it goes through the host's press queue to the same M.invoke as every
+// other button, writes the one editor command, and its notice shows under the way back while Home stays on screen.
+test('Native Settings UI: the Character editor row of Home writes one editor command and shows the notice, and the page stays on Home', () => run(`${harness()}
+  ns.verify()
+  local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
+  local open = assert(ns.find('Character editor'), 'the row is on Home')
+  assert(open.buttonText == 'Open' and ns.sections()[1].options[5] == open, 'the fifth row of Home, a button')
+  local before = commandWrites()
+  press('Character editor')
+  assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
+  assert(fileWrites[#fileWrites].path == 'runtime/editor-command.json')
+  assert(managerUi.inspect().view == 'home' and #ns.sections() == 1, 'no sub-page: Home stays')
+  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[6].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
+  -- A second click is a new command (the host counts one click once, not twice).
+  clock = clock + 2
+  press('Character editor')
+  assert(commandWrites() == before + 2)
+  frames(20)
+  assert(commandWrites() == before + 2, 'nothing is sent by the frames that follow')
+  -- Settings still has its own row for the same request.
+  press('Settings')
+  assert(ns.find('Edit characters') and not ns.find('Character editor'), 'Edit characters on Settings, the Home row only on Home')
+`));
+
+test('Native Settings UI: with the conversation service stopped the Character editor row says so and writes nothing; without the module it is not on Home', () => {
+  run(`${harness()}
+    jsonSequence = jsonSequence + 1
+    jsonFixtures['svc-stopped'] = {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000}
+    files['runtime/bridge-service.json'] = 'svc-stopped'
+    press('Character editor')
+    assert(not files['runtime/editor-command.json'], 'nothing written')
+    assert(managerUi.inspect().view == 'home')
+    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[6].label:find('The conversation service is not running', 1, true), shownOutline())
+  `);
+  const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
+  run(`${harness({modules: bare, absent: ['character-editor.lua']})}
+    assert(#ns.sections()[1].options == 4 and not ns.find('Character editor'), shownOutline())
+  `);
+});

@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Видалити персонажа",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Видалити {name}? Персонаж, його голосовий кліп і все, що він пам’ятає про тебе, буде видалено.",
     ["Display names"] = "Відображувані імена",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редагуй у браузері біографію, манеру мовлення, правила мовлення та спогади персонажа або створи свого персонажа.\n\nПрацює з Mistral, Local AI і Власним, не з Convai. Зміни застосовуються з наступної відповіді.",
     ["Female"] = "Жіноча",
     ["Filled in from the character you were facing: {name}."] = "Заповнено за персонажем, якого ти бачив перед собою: {name}.",
     ["For example: Character.Rebecca"] = "Наприклад: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice потребує 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · потрібна карта на 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Відеокарта в цьому ПК має менше 12 GB, які потрібні OmniVoice поруч із грою. Якщо він не може запуститися, використовується Pocket. Щоб не чекати, виберіть Pocket.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редагуй у браузері біографії, правила та спогади персонажів, а також промпт для кожного варіанта ШІ.\n\nПрацює з Mistral, Local AI і Власним, не з Convai. Зміни застосовуються з наступної відповіді.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Редагуй у браузері біографію, манеру мовлення, правила мовлення та спогади персонажа, а також промпт для кожного варіанта ШІ, або створи свого персонажа.\n\nПрацює з Mistral, Local AI і Власним, не з Convai. Зміни застосовуються з наступної відповіді.",
 }

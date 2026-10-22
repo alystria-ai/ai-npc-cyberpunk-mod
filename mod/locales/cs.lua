@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Smazat postavu",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Smazat {name}? Postava, její hlasový klip a to, co si o tobě pamatuje, budou odstraněny.",
     ["Display names"] = "Zobrazovaná jména",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Uprav v prohlížeči životopis, styl mluvení, pravidla mluvení a vzpomínky postavy, nebo vytvoř vlastní postavu.\n\nFunguje s Mistral, Local AI a Vlastní, ne s Convai. Změny se projeví od příští odpovědi.",
     ["Female"] = "Žena",
     ["Filled in from the character you were facing: {name}."] = "Doplněno podle postavy, před kterou jsi stál: {name}.",
     ["For example: Character.Rebecca"] = "Například: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice potřebuje 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · potřebuje kartu s 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Grafická karta v tomto PC má vedle hry méně než 12 GB, které OmniVoice potřebuje. Pokud se nespustí, použije se Pocket. Chceš-li čekání přeskočit, zvol Pocket.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Uprav v prohlížeči životopisy, pravidla a vzpomínky postav a prompty pro jednotlivé možnosti AI.\n\nFunguje s Mistral, Local AI a Vlastní, ne s Convai. Změny se projeví od příští odpovědi.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Uprav v prohlížeči životopis, styl mluvení, pravidla mluvení a vzpomínky postavy a prompty pro jednotlivé možnosti AI, nebo vytvoř vlastní postavu.\n\nFunguje s Mistral, Local AI a Vlastní, ne s Convai. Změny se projeví od příští odpovědi.",
 }

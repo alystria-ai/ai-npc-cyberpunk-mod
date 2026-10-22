@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "캐릭터 삭제",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "{name} 캐릭터를 삭제할까요? 이 캐릭터, 음성 클립, 그리고 이 캐릭터가 당신에 대해 기억하는 내용이 모두 삭제됩니다.",
     ["Display names"] = "표시 이름",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "브라우저에서 캐릭터의 소개, 말투, 말하기 규칙, 기억을 편집하거나 나만의 캐릭터를 만들 수 있습니다.\n\nMistral, Local AI 및 사용자 지정에서 작동하며 Convai에서는 작동하지 않습니다. 변경 사항은 다음 응답부터 적용됩니다.",
     ["Female"] = "여성",
     ["Filled in from the character you were facing: {name}."] = "바라보고 있던 캐릭터에서 채워짐: {name}.",
     ["For example: Character.Rebecca"] = "예: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice에 12 GB 필요",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB 카드 필요",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "이 PC의 그래픽 카드는 게임과 함께 쓸 때 OmniVoice에 필요한 12 GB보다 적습니다. 시작할 수 없으면 Pocket을 사용합니다. 기다리지 않으려면 Pocket을 선택하세요.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "브라우저에서 캐릭터의 소개, 규칙, 기억과 AI 옵션별 프롬프트를 편집할 수 있습니다.\n\nMistral, Local AI 및 사용자 지정에서 작동하며 Convai에서는 작동하지 않습니다. 변경 사항은 다음 응답부터 적용됩니다.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "브라우저에서 캐릭터의 소개, 말투, 말하기 규칙, 기억과 AI 옵션별 프롬프트를 편집하거나 나만의 캐릭터를 만들 수 있습니다.\n\nMistral, Local AI 및 사용자 지정에서 작동하며 Convai에서는 작동하지 않습니다. 변경 사항은 다음 응답부터 적용됩니다.",
 }

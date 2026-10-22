@@ -5737,3 +5737,96 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     assert(core.view() == 'home', core.view())
   `);
 });
+
+// ---------------------------------------------------------------------------------------------------- Home > Character editor (2026-10-22)
+// The fifth destination of Home opens the browser page at once, through the same request as Settings > Edit characters
+// (mod/character-editor.lua request()): an action row that answers with the request's result, not a navigation.
+const homeEditorModules = {'service-status.lua': moduleSource('service-status.lua'), 'character-editor.lua': moduleSource('character-editor.lua'),
+  'support-report.lua': moduleSource('support-report.lua')};
+const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorModules, ...options})}
+  local clockNow = 1800000000
+  os.time = function() return clockNow end
+  local function jsonFile(path, value)
+    jsonSequence = jsonSequence + 1
+    local token = 'editor-home-' .. jsonSequence
+    jsonFixtures[token] = value; files[path] = token
+  end
+  local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
+`;
+
+test('Home offers the Character editor as a fifth row after Settings, an action with its own id, and the Settings row stays', () => {
+  run(`${homeEditorFixture()}
+    assert(managerUi.inspect().view == 'home')
+    local nav = loaded.categories[1].settings
+    assert(#nav == 5 and nav[5].id == 'character-editor:home', 'five rows, the editor last: ' .. #nav)
+    local open = row('character-editor:home')
+    assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
+    assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
+    assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
+    -- Ids are unique on the page and the four navigations keep theirs.
+    local seen = {}
+    for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
+    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do assert(row('tab:' .. name)) end
+    -- It is on Home only: an inner page has neither it nor a second Back.
+    assert(invoke('tab:settings').ok and not row('character-editor:home'))
+    local settingsRow = row('character-editor:open')
+    assert(settingsRow and settingsRow.label == 'Edit characters' and settingsRow.description:find('and the prompting for each AI option', 1, true))
+    assert(invoke('settings:back').ok and row('character-editor:home'))
+  `);
+});
+
+test('Home > Character editor writes exactly one runtime/editor-command.json, the very command Settings > Edit characters writes, and stays on Home', () => {
+  run(`${homeEditorFixture()}
+    jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+    local writesBefore = #fileWrites
+    local result = invoke('character-editor:home')
+    assert(result.ok, tostring(result.error))
+    assert(#fileWrites == writesBefore + 1 and fileWrites[#fileWrites].path == 'runtime/editor-command.json', 'exactly one small file, got ' .. (#fileWrites - writesBefore))
+    assert(managerUi.inspect().view == 'home' and core.view() == 'home', 'no sub-page in the game')
+    assert(core.feedback() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', tostring(core.feedback()))
+    local home = jsonFixtures[files['runtime/editor-command.json']]
+    assert(home.version == 1 and home.action == 'open' and home.language == 'en' and type(home.id) == 'string')
+    -- The Settings row sends the same command (a new id, the same everything else).
+    clockNow = clockNow + 1
+    assert(invoke('tab:settings').ok and invoke('character-editor:open').ok)
+    assert(commandWrites() == 2)
+    local settings = jsonFixtures[files['runtime/editor-command.json']]
+    assert(settings.id ~= home.id and settings.version == home.version and settings.action == home.action and settings.language == home.language)
+    local count, same = 0, true
+    for source, text in pairs(home.strings) do count = count + 1; if settings.strings[source] ~= text then same = false end end
+    for _ in pairs(settings.strings) do count = count - 1 end
+    assert(same and count == 0, 'the same sentences for the page')
+    -- Every press is a new command, and a pumped menu sends nothing more.
+    assert(invoke('settings:back').ok)
+    clockNow = clockNow + 1
+    assert(invoke('character-editor:home').ok and commandWrites() == 3)
+    local settled = commandWrites()
+    for _ = 1, 20 do core.tick(player) end
+    assert(commandWrites() == settled, 'nothing is polled')
+  `);
+});
+
+test('Home > Character editor says so when the service is stopped or the write fails, and the page stays on Home', () => {
+  run(`${homeEditorFixture()}
+    jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
+    local result = invoke('character-editor:home')
+    assert(not result.ok and result.error == 'The conversation service is not running, so the editor cannot open. Restart the game.', tostring(result.error))
+    assert(commandWrites() == 0 and not files['runtime/editor-command.json'])
+    assert(core.feedback() == result.error and core.view() == 'home')
+    jsonFile('runtime/bridge-service.json', {state = 'ready', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 30000})
+    jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+    failSave = true
+    local failed = invoke('character-editor:home')
+    assert(not failed.ok and failed.error == 'The editor could not be opened. Try again.', tostring(failed.error))
+    failSave = false
+    assert(invoke('character-editor:home').ok and commandWrites() == 1)
+  `);
+});
+
+test('Home has no Character editor row without the editor module, and the four destinations are as before', () => {
+  run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
+    assert(#loaded.categories[1].settings == 4 and not row('character-editor:home'), 'no row without the module')
+    assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
+    assert(invoke('tab:settings').ok and not row('character-editor:open'))
+  `);
+});

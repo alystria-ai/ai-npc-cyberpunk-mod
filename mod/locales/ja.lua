@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "キャラクターを削除",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "{name} を削除しますか？キャラクター、その音声クリップ、そしてあなたについて覚えていることが削除されます。",
     ["Display names"] = "表示名",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "ブラウザーで、キャラクターの経歴、話し方、話し方のルール、記憶を編集したり、自分のキャラクターを作ったりできます。\n\nMistral、Local AI、カスタムで動作します。Convai では動作しません。変更は次の返答から反映されます。",
     ["Female"] = "女性",
     ["Filled in from the character you were facing: {name}."] = "向き合っていたキャラクターから入力しました：{name}。",
     ["For example: Character.Rebecca"] = "例：Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice には 12 GB が必要",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB のカードが必要",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "このPCのグラフィックカードは、ゲームと並んで OmniVoice が必要とする 12 GB の空きがありません。起動できない場合は Pocket を使用します。待ち時間を省くには Pocket を選んでください。",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "ブラウザーで、キャラクターの経歴、ルール、記憶と、AI の選択肢ごとのプロンプトを編集できます。\n\nMistral、Local AI、カスタムで動作します。Convai では動作しません。変更は次の返答から反映されます。",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "ブラウザーで、キャラクターの経歴、話し方、話し方のルール、記憶と、AI の選択肢ごとのプロンプトを編集したり、自分のキャラクターを作ったりできます。\n\nMistral、Local AI、カスタムで動作します。Convai では動作しません。変更は次の返答から反映されます。",
 }

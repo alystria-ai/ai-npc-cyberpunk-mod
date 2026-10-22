@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Usuń postać",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Usunąć {name}? Postać, jej klip głosowy i to, co pamięta o tobie, zostaną usunięte.",
     ["Display names"] = "Nazwy wyświetlane",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edytuj w przeglądarce biogram, sposób mówienia, zasady mówienia i wspomnienia postaci albo stwórz własną postać.\n\nDziała z Mistral, Local AI i Własnym, nie z Convai. Zmiany obowiązują od następnej odpowiedzi.",
     ["Female"] = "Kobieta",
     ["Filled in from the character you were facing: {name}."] = "Uzupełnione na podstawie postaci, przed którą stałeś: {name}.",
     ["For example: Character.Rebecca"] = "Na przykład: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice wymaga 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · wymaga karty 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Karta graficzna w tym PC ma obok gry mniej niż 12 GB, których potrzebuje OmniVoice. Jeśli nie uda się jej uruchomić, użyty zostanie Pocket. Aby pominąć czekanie, wybierz Pocket.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edytuj w przeglądarce biogramy, zasady i wspomnienia postaci oraz prompt dla każdej opcji AI.\n\nDziała z Mistral, Local AI i Własnym, nie z Convai. Zmiany obowiązują od następnej odpowiedzi.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edytuj w przeglądarce biogram, sposób mówienia, zasady mówienia i wspomnienia postaci oraz prompt dla każdej opcji AI albo stwórz własną postać.\n\nDziała z Mistral, Local AI i Własnym, nie z Convai. Zmiany obowiązują od następnej odpowiedzi.",
 }

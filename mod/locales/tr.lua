@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Karakteri sil",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "{name} silinsin mi? Karakter, ses klibi ve senin hakkında hatırladığı her şey kaldırılır.",
     ["Display names"] = "Görünen adlar",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Karakterin biyografisini, konuşma tarzını, konuşma kurallarını ve anılarını tarayıcında düzenle ya da kendi karakterini oluştur.\n\nMistral, Local AI ve Özel ile çalışır, Convai ile çalışmaz. Değişiklikler bir sonraki yanıttan itibaren uygulanır.",
     ["Female"] = "Kadın",
     ["Filled in from the character you were facing: {name}."] = "Karşısında durduğun karakterden dolduruldu: {name}.",
     ["For example: Character.Rebecca"] = "Örnek: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice 12 GB gerektirir",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB kartı gerekir",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Bu bilgisayardaki ekran kartının belleği, oyunun yanında OmniVoice’un ihtiyaç duyduğu 12 GB’tan az. Başlayamazsa Pocket kullanılır. Beklemeden geçmek için Pocket’i seç.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Tarayıcında karakterlerin biyografilerini, kurallarını ve anılarını, ayrıca her yapay zekâ seçeneğinin istemini düzenle.\n\nMistral, Local AI ve Özel ile çalışır, Convai ile çalışmaz. Değişiklikler bir sonraki yanıttan itibaren uygulanır.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Karakterin biyografisini, konuşma tarzını, konuşma kurallarını ve anılarını, ayrıca her yapay zekâ seçeneğinin istemini tarayıcında düzenle ya da kendi karakterini oluştur.\n\nMistral, Local AI ve Özel ile çalışır, Convai ile çalışmaz. Değişiklikler bir sonraki yanıttan itibaren uygulanır.",
 }

@@ -822,7 +822,6 @@ return {
     ["Delete character"] = "Excluir personagem",
     ["Delete {name}? The character, its voice clip and what it remembers of you are removed."] = "Excluir {name}? O personagem, o clipe de voz e tudo o que ele lembra de você serão removidos.",
     ["Display names"] = "Nomes de exibição",
-    ["Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edite no seu navegador a biografia, o estilo de fala, as regras de fala e as memórias de um personagem, ou crie um personagem seu.\n\nFunciona com Mistral, Local AI e Personalizado, não com Convai. As mudanças valem a partir da próxima resposta.",
     ["Female"] = "Feminino",
     ["Filled in from the character you were facing: {name}."] = "Preenchido com o personagem para o qual você estava olhando: {name}.",
     ["For example: Character.Rebecca"] = "Por exemplo: Character.Rebecca",
@@ -1089,4 +1088,6 @@ return {
     ["OmniVoice needs 12 GB"] = "OmniVoice precisa de 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · requer placa de 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "A placa de vídeo deste PC tem menos que os 12 GB que o OmniVoice precisa junto com o jogo. Se não conseguir iniciar, o Pocket é usado. Escolha Pocket para pular a espera.",
+    ["Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edite no seu navegador as biografias, as regras e as memórias dos personagens, e o prompt de cada opção de IA.\n\nFunciona com Mistral, Local AI e Personalizado, não com Convai. As mudanças valem a partir da próxima resposta.",
+    ["Edit a character’s bio, speaking style, speaking rules and memories, and the prompting for each AI option, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply."] = "Edite no seu navegador a biografia, o estilo de fala, as regras de fala e as memórias de um personagem, e o prompt de cada opção de IA, ou crie um personagem seu.\n\nFunciona com Mistral, Local AI e Personalizado, não com Convai. As mudanças valem a partir da próxima resposta.",
 }
