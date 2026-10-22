@@ -1,16 +1,16 @@
-# Pocket language models
+# PocketTTS models
 
 Optional downloads that let the Pocket voice (CPU, `bridge/pocket-voice-worker.py`) speak **French, Italian, German, Spanish (Spain) and Portuguese (Brazil)**, cloned from the game's own dub of the character in that language. Evaluation and numbers: `docs/POCKET_V4_MULTILINGUAL_EVAL_2026-10-22.md`. Implemented on `feat/pocket-languages` (2026-10-22).
 
-For the player: get the voice language pack for your language (`docs/VOICE_LANGUAGE_PACKS.md`); if you use the Pocket voice, also get the Pocket model for that language. Both are on Hugging Face only (`multilingual/` folder of `alystria-ai/ai-npc-cyberpunk-mod-packs`), never on Nexus Mods. The model needs the pack of the same language: it clones from the pack's clips.
+For the player: get the voice language pack for your language (`docs/VOICE_LANGUAGE_PACKS.md`); if you use the Pocket voice, also get the PocketTTS model for that language. Both are on Hugging Face only (`multilingual/` folder of `alystria-ai/ai-npc-cyberpunk-mod-packs`), never on Nexus Mods. The model needs the pack of the same language: it clones from the pack's clips.
 
 ## What is shipped
 
-One zip per language, `AI-NPC-Cyberpunk-Mod-Pocket-<Language>.zip`, the language in full (`Pocket-French`, `Pocket-Italian`, `Pocket-German`, `Pocket-Spanish`, `Pocket-Portuguese`; the folder inside keeps the voice pack's code: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
+One zip per language, `PocketTTS-Model-<Language>.zip`, the language in full (`PocketTTS-Model-French`, `PocketTTS-Model-Italian`, `PocketTTS-Model-German`, `PocketTTS-Model-Spanish`, `PocketTTS-Model-Portuguese`; the folder inside keeps the voice pack's code: `fr`, `it`, `de`, `es-es`, `pt-br`), 219 MB each, built by `packaging/build-pocket-models.mjs` from Kyutai's gated cloning weights (`kyutai/pocket-tts`, `languages/<name>/model.safetensors`, byte-identical, no splicing: its Mimi encoder tensors are the shipped student's) with Kyutai's tokenizer and v4.0.0 configuration. It extracts into the game folder like every pack:
 
 ```
 red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/         the voice pack (docs/VOICE_LANGUAGE_PACKS.md)
-red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/  the Pocket model for that language (a sibling folder)
+red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/  the PocketTTS model for that language (a sibling folder)
   pocket-model.json     the manifest below
   model.safetensors     Kyutai's file, unchanged
   tokenizer.json        Kyutai's file, unchanged

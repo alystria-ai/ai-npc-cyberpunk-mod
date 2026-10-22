@@ -7,7 +7,7 @@ Builds the packs of `docs/VOICE_LANGUAGE_PACKS.md` (the contract) from the game'
 | once | `trace_english.py` | traces the line ids of every shipped English OmniVoice long reference to game files, proves the join recipe against the shipped WAVs, writes `line-lists.json` (ids and file stems only) and `work/en/mapping-proof.json` |
 | once | `ecapa_baseline.py` | ECAPA cosines between the clips of each English reference (`work/en/ecapa-baseline.json`), the base of the per-voice speaker bar |
 | per language | `build_pack.py --lang zh-cn [--only key,key]` | extracts only the needed files from `E:/SteamLibrary/AiNpc-vo-stash/<lang>/{content,ep1}` (WolvenKit), decodes (vgmstream), joins, checks, writes `E:/SteamLibrary/AiNpc-voice-packs/<lang>/stage/...` and `work/<lang>/build-report.json` |
-| per language | `finish_pack.py --lang zh-cn` | Voxtral slots (`prepare_slots.mjs`, the bridge's `VoxtralVoice.buildFromPack`), the bridge's own `loadPack` check (`validate_pack.mjs`), the zip + `.files.json` + `SHA256SUMS.txt` (`package_pack.mjs`), the listening sheet in `deliverables/voice-packs/<lang>/`, `work/<lang>/summary.json` and `per-voice.csv` |
+| per language | `finish_pack.py --lang zh-cn` | Voxtral slots (`prepare_slots.mjs`, the bridge's `VoxtralVoice.buildFromPack`), the bridge's own `loadPack` check (`validate_pack.mjs`), the zip + `.files.json` (`package_pack.mjs`), the listening sheet in `deliverables/voice-packs/<lang>/`, `work/<lang>/summary.json` and `per-voice.csv` |
 
 Nothing game-derived is written inside the repository: audio, wem files and packs stay on E:.
 

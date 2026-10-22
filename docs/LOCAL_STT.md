@@ -276,7 +276,7 @@ metadata); it is written against sherpa-onnx 1.13.6's signatures, tested with a 
 (next section). In the bridge log the first real run reads `speech language ... local pack ...`, then `recorded ... heard "..."`.
 
 Packaging: `micPacks` in `packaging/release.config.json` pins both archives and every file; `node packaging/build-release.mjs --version <v> --packages
-micpack-european,micpack-asian` builds `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip` and `...-MicPack-Asian-<v>.zip` (opt-in, never in the default set, hosted
+micpack-european,micpack-asian` builds `MicPack-European-<v>.zip` and `...-MicPack-Asian-<v>.zip` (opt-in, never in the default set, hosted
 on Hugging Face only, one zip each, extract-into-game-folder layout `red4ext/plugins/AiNpcCyberpunkMod/app/models/stt/<id>/`, no path shared with the
 Runtime), each with a `NOTICE.txt` (CC-BY-4.0 attribution for Parakeet; FunASR licence name, source and link for SenseVoice) and a `mic-pack.json` marker.
 `THIRD_PARTY_NOTICES.md` has both lines. The FunASR licence text itself is linked, not bundled: it was not among the approved downloads.
@@ -314,7 +314,7 @@ Cyrillic transcript raised `UnicodeEncodeError` (the stand-in tests never produc
 
 ### Live checks in the game (for the owner)
 
-Prepare: a dev install of this branch (bridge restart, CET reload), `AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip` and `...-MicPack-Asian-0.2.3.zip`
+Prepare: a dev install of this branch (bridge restart, CET reload), `MicPack-European-0.2.3.zip` and `...-MicPack-Asian-0.2.3.zip`
 extracted into the game folder (or the two folders copied to `.../app/models/stt/`), the bridge log open.
 1. Settings > Conversation provider: **Local AI** (with a Local AI pack installed). Interface language English, English text typed so far.
 2. Speak English with the voice key: the old path, live words, no pack in the log. Task Manager: no extra python.exe holding 800 MB.

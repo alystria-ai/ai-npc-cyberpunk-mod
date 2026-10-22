@@ -7,17 +7,18 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
-| `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
-| `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip`, `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
-| `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip`, `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) and the Local AI engine (the `llama` folder, the embedding model and the licence texts, the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone. |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
+| `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
+| `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
+| `LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
+| `LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
+| `MicPack-European-<v>.zip`, `MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
+| `Mature-Lite-<v>.zip`, `Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) and the Local AI engine (the `llama` folder, the embedding model and the licence texts, the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone. |
 
-The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, in a folder per
-version (`0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
+The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, sorted into folders: the Scripts and Runtime zips at the root,
+`local-ai/` (the two Local AI packs), `mature/` (the two Mature packs), `mic/` (the two microphone packs), `voice/` (the OmniVoice pack), `updates/` and `multilingual/`.
+On Hugging Face the file names carry no `AI-NPC-Cyberpunk-Mod-` prefix and no version (`Scripts.zip`, `Runtime.zip`, `voice/OmniPack.zip`, `updates/Runtime-Update-<from>-to-<to>.zip`, `multilingual/Voices-<Language>.zip`, `multilingual/PocketTTS-Model-<Language>.zip`): the version goes only in the commit message of the upload. The build keeps the version in the file name of its output folder (`OmniPack-<v>.zip`, `Runtime-<v>.zip`, with a `.files.json` of the same name), and `packaging/upload-packs.py` publishes each pack under its unversioned name in its folder. Each pack is ONE zip: no `-partNofM` zips
 and no `.partN` files inside. GitHub's 2 GiB per-file limit was the only reason for parts, and Hugging Face has no such limit. A model
 over 4 GiB (the standard Local AI model, the good Mature model) sits whole in a ZIP64 zip (`packaging/lib/zip.mjs` writes ZIP64 only
 where an entry or the archive needs it; Windows Explorer, PowerShell's Expand-Archive, 7-Zip and tar read it). The repository is private
@@ -42,7 +43,7 @@ Releases are numbered `0.N`: 0.1, 0.2, 0.3, ..., and a hotfix of one release is 
 The first build (2026-10-07, a private-repository test of the pipeline) was made as `2077.1` and
 renamed to `v0.1` on 2026-10-16 (title, tag and file names; the files inside were not rebuilt); the version check still accepts the old `2077.N` form. The tag is `v` + the
 number (`v0.2`) and the workflow accepts both forms (`v0.2`, `v0.2.1`); a manual run takes the number
-without the `v`. The same string goes into the package file names (`AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip`), the release title, both
+without the `v`. The same string goes into the package file names (`AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip`, `Runtime-0.2.zip` and so on), the release title, both
 `release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
 `start-service.mjs` comparing the Scripts and Runtime strings for equality, so any form works; the
 builder accepts two to four numbers with an optional `-pre`/`+build` suffix
@@ -206,8 +207,8 @@ of the official vgmstream Windows release **r2055** (`vgmstream-cli.exe -h` prin
 ### Voice-input packs (`micpack-european`, `micpack-asian`)
 
 Two optional downloads for voice input in other languages (`docs/LOCAL_STT.md`, "The optional packs"), hosted on Hugging Face with the other optional
-packs, each ONE zip: `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip` (NVIDIA Parakeet TDT 0.6B v3, int8, pack id `parakeet-tdt-0.6b-v3-int8`, about 0.67 GB; CC-BY-4.0)
-and `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` (SenseVoice Small, int8, pack id `sense-voice-int8`, about 0.24 GB; FunASR Model Open Source License 1.1;
+packs, each ONE zip: `MicPack-European-<v>.zip` (NVIDIA Parakeet TDT 0.6B v3, int8, pack id `parakeet-tdt-0.6b-v3-int8`, about 0.67 GB; CC-BY-4.0)
+and `MicPack-Asian-<v>.zip` (SenseVoice Small, int8, pack id `sense-voice-int8`, about 0.24 GB; FunASR Model Open Source License 1.1;
 Mandarin Chinese, Japanese and Korean; the archive is the original 2024-07-17 one, not the 2025-09-09 Cantonese fine-tune, which cannot read Japanese or Korean). Never on Nexus Mods, never
 on the GitHub release, never in the default set, nothing of them in the Runtime package.
 
@@ -226,8 +227,8 @@ on the GitHub release, never in the default set, nothing of them in the Runtime 
   environment variable `CYBERPUNK_CONVAI_MIC_PACKS_DEV`) takes the files from a developer folder laid out as `DIR/<pack id>/<file>` instead, each checked against
   the same pins. `--release-config PATH` reads the pins from another file (the packaging test uses it with small stand-in files).
 - **Workflow.** The `micpacks` input of the Release workflow (default off, never on a tag push) runs the `micpacks` job, a matrix of `european` and `asian`
-  (one runner each), which builds with `--packages micpack-<x>` and uploads with `packaging/upload-packs.py --pack micpack-<x>` (`<v>/<zip>` and
-  `<v>/SHA256SUMS-micpack-<x>.txt` in `alystria-ai/ai-npc-cyberpunk-mod-packs`).
+  (one runner each), which builds with `--packages micpack-<x>` and uploads with `packaging/upload-packs.py --pack micpack-<x>` (`mic/<zip>` in
+  `alystria-ai/ai-npc-cyberpunk-mod-packs`, without a version in the name).
 - **Extracted one folder too deep.** `place-packs.mjs` also recognises `app/models/stt/<id>/mic-pack.json` of these two ids and moves only that folder (never
   the Runtime's Moonshine folder), with the same safety rules as for the other packs (marker last, empty wrapper folders removed with `rmdir`, a same-size file in
   place keeps it, a different size leaves both). The log names them `MicPack-European` and `MicPack-Asian`.
@@ -239,7 +240,7 @@ on the GitHub release, never in the default set, nothing of them in the Runtime 
 
 The optional packs are zips whose entries start at the game root. Windows "Extract All" and 7-Zip's "Extract to <zip name>\" wrap
 them in a folder named after the zip, so the files land in
-`<game>\AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\...` and the mod reports "No model
+`<game>\LocalAI-Standard-0.2\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\...` and the mod reports "No model
 installed" or "not installed". `packaging/runtime/place-packs.mjs` (shipped as `app/launcher/place-packs.mjs`) moves them into place.
 `start-service.mjs` runs it once per game start, before `prepareState` and its pack checks; a failure is logged and never stops the service.
 
@@ -331,7 +332,7 @@ folder. It reads ZIP64 directories (the OmniVoice pack is one) and also fails a 
 patched zip can; `ZipWriter` refuses it); a pack with a path twice cannot be listed. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
 build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
 rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is
-3.5 MB; a URL is a pack's resolve/main/<version>/<file> link on the Hugging Face page, public, no token):
+3.5 MB; a URL is a pack's resolve/main/<folder>/<file> link on the Hugging Face page, public, no token):
 
 ```
 node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
@@ -344,7 +345,7 @@ node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<ver
 ### Runtime update zip
 
 The Runtime is about 1 GB and most of it (Python, torch, Node, the voice and lip-sync models) does not change between releases. From 0.2.3 on, every
-release ships a **Runtime update zip** on Hugging Face, in the `updates/` folder of the repository (from 0.2.8; every step is kept and `updates/README.md` and `updates/SHA256SUMS.txt` list them), named `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` (the first:
+release ships a **Runtime update zip** on Hugging Face, in the `updates/` folder of the repository (from 0.2.8; every step is kept and `updates/README.md` lists them), named `Runtime-Update-<from>-to-<to>.zip` (the first:
 `...-Update-0.2.2-to-0.2.3.zip`). A player applies the update zips of the folder one by one, starting from their version, each extracted over their Runtime (Replace is safe: a zip holds only paths whose bytes
 differ, and the packs rule above still holds); a new install, or a player who is not sure of the version, uses the full Runtime, which stays. The Scripts are
 small and always full.
@@ -738,8 +739,8 @@ time), fixed deflate level, weights stored. The Scripts and Runtime archives eac
 2 GiB per asset), a Runtime archive that would pass it rolls over to a `-partNofM` zip, and a single file over that limit stops the build
 (nothing is split inside a file any more). The optional packs are always one zip each, written as ZIP64 where needed (`--packages omni`,
 `localai-standard`, `localai-lite`, `mature-lite`, `mature-standard`, `micpack-european`, `micpack-asian`). Output:
-`dist/release/packages/` with the zips, `*.files.json` (every file's size and SHA-256),
-`SHA256SUMS.txt` and `release-manifest.json`.
+`dist/release/packages/` with the zips, `*.files.json` (every file's size and SHA-256)
+and `release-manifest.json`.
 
 ### Local dry run and install test
 
@@ -781,7 +782,7 @@ package is released, because they are built by later jobs. If `v0.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
 A new release is created with `--latest`, so the newest build is always marked Latest whatever GitHub's own ranking says.
 
-**Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to `V/<file>.zip` and the build's checksums to `V/SHA256SUMS-NAME.txt` in the same folder. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader refuses a build with more than one zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
+**Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to its folder of the repository (`voice/`, `local-ai/`, `mature/` or `mic/`) under its unversioned file name, for example `voice/OmniPack.zip`, and the version `V` is in the commit message only. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader refuses a build with more than one zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
 
 The optional Mature packs are built by the `mature` job, a matrix of `lite` and `standard` (one runner each; the standard pack carries the model whose tier key is `good`), that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus or to the GitHub release). Each builds with `--packages mature-lite` or `mature-standard` `--models hf` from the bucket mirror and uploads its zip to Hugging Face. They can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature-lite` then `python packaging/upload-packs.py --version 0.N --pack mature-lite --packages dist/release/packages`.
 

@@ -10,7 +10,7 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 Choose **Local AI** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your computer. It is free and needs no internet. Replies are spoken by the local voices (Pocket or OmniVoice; Voxtral also works if you saved a Mistral key, but it needs the internet) and the characters keep a memory of your talks, stored on your computer. The voice key works too: your speech is recognised on this computer, in English. Convai free tier gives better quality responses; Local AI is for playing offline, with no account and no daily limit.
 
-The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, a folder per version). There are two, and you can install neither, one or both. Each pack includes the engine and the memory model it needs, so one alone is enough:
+The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in its `local-ai` folder). There are two, and you can install neither, one or both. Each pack includes the engine and the memory model it needs, so one alone is enough:
 
 | Pack | Model | Download | Video memory | Best for |
 |---|---|---|---|---|
@@ -396,7 +396,7 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 `bridge/local-ai-pack.mjs` and is the same kind of check as `bridge/omni-pack.mjs`: it only stats files.
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
-runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
+runs both as a matrix job (`localai`) that uploads each zip to the `local-ai/` folder of the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs`, without a version in the file name (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
 `localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782, which ships in the Runtime (`app/llama-cpp/`, see "The engine is in the Runtime" below; a pack built now still carries a copy while `localAi.server.inPacks` is true) (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
@@ -1313,7 +1313,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing Convai turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the packs (one uncensored GGUF each) are distributed ONLY as optional files on this project's Hugging Face repository
-  (`alystria-ai/ai-npc-cyberpunk-mod-packs`, `0.N/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.N.zip` and `...-Mature-Standard-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
+  (`alystria-ai/ai-npc-cyberpunk-mod-packs`, `mature/Mature-Lite.zip` and `mature/Mature-Standard.zip`, each one zip, no parts), never on Nexus Mods and not on the
   GitHub release. `.github/workflows/release.yml` builds and uploads them only in its opt-in `mature` job (a matrix of `lite` and `standard`; the `mature` input is off by default and a tag push never runs it), and `packaging/build-release.mjs` builds each only with `--packages mature-lite` or `mature-standard`, never in the default set. Nothing of it is in the
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale
