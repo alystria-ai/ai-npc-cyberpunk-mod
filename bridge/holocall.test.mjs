@@ -37,8 +37,8 @@ test('a holocall field is carried for a private turn and dropped when malformed 
 
 test('a voice call says she is on a call and elsewhere, with nothing of V\'s company, heat, money or injury', () => {
   const text = turnContext(turn({holocall: {contact: 'judy', mode: 'audio'}, turnContext: scene()}));
-  assert.ok(text.startsWith('Right now (from the game, this turn only): You are on a voice call with V on the phone, not talking to V in person; '
-    + 'V is in Kabuki, Watson. You are somewhere else; where you are and what you are doing are not given. It is late night'), text);
+  assert.ok(text.startsWith('Right now (from the game, this turn only): You are on a voice call with V on the phone, not talking to V in person. '
+    + 'You are somewhere else; where you are and what you are doing are not given. V is somewhere in Kabuki, Watson; exactly where is not given. It is late night'), text);
   assert.match(text, /V is walking\./);
   assert.match(text, /Treat this as fact: you are on a call, not with V, and you do not know how near or far you are/);
   assert.doesNotMatch(text, /Also with V|Panam|police|MaxTac|rich|eddies|hurt|with V in person in|never claim to be anywhere else/);
@@ -48,14 +48,14 @@ test('a voice call says she is on a call and elsewhere, with nothing of V\'s com
 test('a live-picture holocall says they see and hear each other, and the diagnostic names the call', () => {
   const input = turn({holocall: {contact: 'judy', mode: 'holo'}, turnContext: scene()});
   const text = turnContext(input);
-  assert.match(text, /^Right now \(from the game, this turn only\): You are on a holocall with V \(a video call on the phone\): you see and hear each other, but you are not with V in person; V is in Kabuki, Watson\. You are somewhere else;/);
+  assert.match(text, /^Right now \(from the game, this turn only\): You are on a holocall with V \(a video call on the phone\): you see and hear each other, but you are not with V in person\. You are somewhere else; where you are and what you are doing are not given\. V is somewhere in Kabuki, Watson; exactly where is not given\./);
   assert.doesNotMatch(text, /Also with V|Panam/);
   assert.match(turnContextDiagnostic(input), /^Turn context: \d+ facts, \d+ chars holocall=holo$/);
   assert.doesNotMatch(turnContextDiagnostic(turn({turnContext: scene()})), /holocall/);
   // A group turn or a phone text chat is never worded as a call.
   assert.match(turnContext(turn({holocall: {contact: 'judy', mode: 'audio'}, channel: 'phone', turnContext: scene()})), /messaging V by text/);
   // An in-person turn is unchanged.
-  assert.match(turnContext(turn({turnContext: scene()})), /You are with V in person in Kabuki, Watson\./);
+  assert.match(turnContext(turn({turnContext: scene()})), /You are with V in person\. You are somewhere in Kabuki, Watson; exactly where is not given\./);
 });
 
 test('Mistral repeats the call sentence right before V\'s words, with the remote reminder', () => {

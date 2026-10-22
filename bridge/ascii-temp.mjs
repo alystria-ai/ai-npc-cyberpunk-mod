@@ -8,8 +8,10 @@
 //
 // asciiTempEnvironment() is {} (nothing changes, nothing is run) on every other system and whenever the real temporary folder is ASCII
 // already; otherwise it is {TEMP, TMP} naming an ASCII folder that exists: the 8.3 short name of the real one (cmd's `%~s` modifier; the short
-// name is only a second spelling of the same folder, so the child writes where it always did), else a folder made under the Public profile
-// (C:\Users\Public), which every account can write. {} when neither works: the caller then behaves as it did before.
+// name is only a second spelling of the same folder, so the child writes where it always did), else a folder made under the player's own
+// profile (LOCALAPPDATA, then USERPROFILE) when that path is ASCII. Never a folder every account can write (the old fallback under
+// C:\Users\Public let another account pre-create it or swap the DLL that Add-Type builds there and loads: security review 2026-10-22, finding 13).
+// {} when none of these works: one clear line says so (a log line, once), and the caller behaves as it did before (the probe fails and gives up).
 import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -30,17 +32,27 @@ export function shortPathOf(folder, {run = execFileSync, platform = process.plat
 
 let remembered = null;
 
+export const NO_ASCII_TEMP_MESSAGE = 'The temporary folder has characters that Windows PowerShell cannot compile under, and it has no 8.3 short name or per-user ASCII folder to use instead,'
+  + ' so the audio output probe may fail to start (Lip sync delay Auto then assumes 0 ms).';
+
 export function asciiTempEnvironment({tmpDir = tmpdir(), platform = process.platform, environment = process.env, short = shortPathOf, exists = existsSync,
-    makeFolder = folder => mkdirSync(folder, {recursive: true}), remember = true} = {}) {
+    makeFolder = folder => mkdirSync(folder, {recursive: true, mode: 0o700}), remember = true,
+    log = message => console.error(`[CyberpunkConvai] ${message}`)} = {}) {
   if (platform !== 'win32' || isAsciiText(tmpDir)) return {};
   if (remember && remembered?.from === tmpDir) return remembered.value;
   let folder = null;
   const named = short(tmpDir);
   if (named && isAsciiText(named) && exists(named)) folder = named;
   else {
-    const candidate = join(environment.PUBLIC || 'C:\\Users\\Public', 'AiNpcCyberpunkMod-temp');
-    try { if (isAsciiText(candidate)) { makeFolder(candidate); if (exists(candidate)) folder = candidate; } } catch { /* not writable: no help */ }
+    // A folder of the player's own, under their profile: only when that path is ASCII (a profile named in Cyrillic or Chinese is not), and never
+    // under a place every account can write.
+    for (const base of [environment.LOCALAPPDATA, environment.USERPROFILE]) {
+      if (typeof base !== 'string' || !base) continue;
+      const candidate = join(base, 'AiNpcCyberpunkMod-temp');
+      try { if (isAsciiText(candidate)) { makeFolder(candidate); if (exists(candidate)) { folder = candidate; break; } } } catch { /* not writable: try the next */ }
+    }
   }
+  if (!folder) { try { log(NO_ASCII_TEMP_MESSAGE); } catch { /* a log that fails changes nothing */ } }
   const value = folder ? {TEMP: folder, TMP: folder} : {};
   if (remember) remembered = {from: tmpDir, value};
   return value;

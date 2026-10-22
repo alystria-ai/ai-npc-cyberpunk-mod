@@ -410,7 +410,7 @@ if (prepareOnly) {
     legacy: legacy?.found ? {moved: legacy.report.moved.length, errors: legacy.report.errors, removed: cleaned?.removed ?? [], pending: cleaned?.pending ?? []} : null,
     removals: removals ? {state: removals.state, version: removals.version, removed: removals.removed, absent: removals.absent, refused: removals.refused,
       failed: removals.failed, left: removals.left} : null,
-    key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state, app: layout.app,
+    key: 'player', state: layout.state, app: layout.app,
     packs: {localAi: layout.localAi, omni: layout.omni, ...(layout.sttPacks ? {stt: layout.sttPacks} : {})}, childNodeOptions: env.NODE_OPTIONS ?? null,
     browser: env.CYBERPUNK_CONVAI_BROWSER ?? null}) + '\n');
   process.exit(0);

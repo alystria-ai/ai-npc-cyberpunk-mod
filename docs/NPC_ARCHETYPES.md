@@ -1,7 +1,7 @@
 # Talking to ordinary NPCs (archetype profiles)
 
 First slice and second batch, 2026-10-08. Unnamed NPCs that the game gives no story role (gang members, NCPD officers, corporate guards, faction soldiers, vendors, pedestrians) can now be talked to with the usual talk keys. Each is routed to
-a generic **archetype** Convai character, one per kind of person and gender: 37 kinds, 74 characters (22 kinds and 44 characters in the first slice, 15 kinds and 30 characters in the second).
+a generic **archetype** Convai character, one per kind of person and gender: 40 kinds, 80 characters (22 kinds and 44 characters in the first slice, 15 kinds and 30 characters in the second, 3 kinds and 6 characters in the third, 2026-10-22).
 A named roster character the game placed in the world (the real Judy) is never routed to Convai at all; only the copy the mod spawns talks (docs/WORLD_COMPANIONS.md, 2026-10-11).
 
 
@@ -17,7 +17,7 @@ in-game check list at the end must pass before this is trusted.
 | `characters/archetypes.json` | Source of truth: keys, variants, detection rules per kind (`bases`), Convai voice, local voiceset families. |
 | `characters/archetype-profiles/<base>.json` | Profile text per kind: identity, lore background, knowledge limits, speaking style, slang, original sample lines, sources. |
 | `scripts/Build-ArchetypeProfiles.mjs` | Builds `characters/archetype-roster.json` (the three Convai fields, same format and marker as the named roster), review text in `characters/archetype-profile-text/`, and the generated detection block in `mod/character-catalog.lua`. `--check` fails when either is stale. |
-| `scripts/Provision-Characters.mjs --roster archetypes` | Creates/updates the 74 Convai characters with the normal payload, marker recovery and readback. IDs go into `runtime/characters.json` under the `npc-*` keys. |
+| `scripts/Provision-Characters.mjs --roster archetypes` | Creates/updates the 80 Convai characters with the normal payload, marker recovery and readback. IDs go into `runtime/characters.json` under the `npc-*` keys. |
 | `mod/character-catalog.lua` | Classifier (`classify`, `classifyBase`, `describe`) and the generated `ARCHETYPES` data; `resolve` now tries archetypes before the resident fallback. |
 | `mod/init.lua` | Reads the TweakDB facts of a targeted NPC (cached per entity), the current district, and sends both with the request. |
 | `bridge/protocol.mjs` | `parseArchetype`, `archetypeContext` (per-turn "who you are, where you are" text), `isAmbientProfile` (residents + `npc-*`). |
@@ -49,7 +49,7 @@ The adapter gathers plain facts about the NPC under the crosshair (each read gua
 
 Precedence: managed copy, named roster profile (record or name), then **vendor** (a vendor type wins over the
 record's gang affiliation; some vendors inherit gang records), story-bound check, **police** (MaxTac records
-excluded), **corporate security** (Arasaka, Militech, Kang Tao, or `security_*` records), **gang** by
+take their own MaxTac kind), **corporate security** (Arasaka, Zetatech, Corpbud, or the `security_*` and `civilianguard_*` records of any employer), **gang** by
 affiliation, **resident kind** (crowd members with a known crowd record), and finally the existing
 `resident-male` / `resident-female` fallback for any other crowd member. With the setting off nothing is read
 and the old behaviour is unchanged.
@@ -86,7 +86,23 @@ type and the NPC records called cyberware are the netrunner shops), *drop points
 `DropPoint` and `VendingMachine` vendor types are never talked to), plain *skill trainers* (no NPC record has one without
 the melee or netrunner trainer), *Petrochem / other corporate staff* (no such affiliation exists; `Zetatech`, `Corpbud` and
 `OA` appear on vehicles and props, and corporate pedestrians already have the corporate worker), *Badlands raiders* (the
-Wraiths are the raiders; nothing else is distinct), *MaxTac* (kept unprofiled on purpose), sex workers (not made).
+Wraiths are the raiders; nothing else is distinct), *MaxTac* and sex workers (both made in the third batch, 2026-10-22, below).
+
+### Third batch (2026-10-22): MaxTac, NUSA, joytoy
+
+From the character data review (`deliverables/review-characters-lore-2026-10-22.md`, item 15). Each is a kind with both genders; none has a Convai character yet (see TODO.md, the captain's log of 2026-10-22: the owner provisions them).
+
+| Kind | Rule | Why |
+| --- | --- | --- |
+| MaxTac officer (police) | record name contains `maxtac` (`maxtac_*`, `prevention_maxtac_*`, `prevention_av_maxtac_*`, `q001_maxtac_*`) | The NCPD kind excludes `maxtac*` records, so a MaxTac officer fell to a plain resident. The kind sorts before `ncpd`, so it wins for the `prevention_maxtac_*` records that carry the NCPD affiliation. |
+| NUSA agent or soldier (faction) | affiliation `NUSA` or `NUSA_Myers` | The expansion's federal personnel (all quest-bound records, so they reach the kind through the fallback for an unnamed quest-bound person). |
+| joytoy (faction) | record name contains `prostitute` or `sexworker` | The crowd records `ProstituteMale/Female` and `SexworkerMale/Female/Doll` and the vendor records `hey_gle_prostitute_*`, `wbr_jpn_prostitute_*` matched no kind. The text is professional and guarded and carries no explicit content; Mature content follows the player's existing setting. |
+
+Not new: non-Arasaka corporate guards. The `security_*` and `civilianguard_*` records of any employer already matched the corporate security kind; the match now also takes the `Zetatech` and `Corpbud` affiliations (not `UnaffiliatedCorpo`, which the corporate pedestrians carry).
+
+Voices: no voice set was built for the new kinds. In `characters/archetypes.json` each takes the Convai voice and the local voice families of the closest existing kind (MaxTac the NCPD officer, NUSA the Militech soldier, joytoy the club-goer), and in `characters/multilingual-voice-map.json` the Azure voice of that kind's twin. `scripts/archetype-voices/build_archetype_voices.py` picks different actors from the same families when it is next run.
+
+Also in this batch: `choom`, `preem` and `gonk` left the word lists of the corporate, police, medical and military kinds; the corporate worker and city worker kinds gained "at your post" lines for receptionists and waitresses; weather and district small talk left the example lines; the shared archetype rules no longer name the plot or the game, and the generic residents (`resident-male`, `resident-female`) are written in the same IDENTITY / BACKGROUND / WHO YOU ARE NOT format.
 
 District flavour (Watson, Westbrook, Heywood, Santo Domingo, Pacifica, City Center, Badlands, Dogtown) is
 per-turn context, not separate profiles: the same street-local profile speaks from Kabuki or Arroyo.
@@ -188,7 +204,7 @@ from TweakDB alone (a spawned copy has no live body to read): `record:Affiliatio
   `characters/archetype-record-genders.json` (134 vendor records, plus the 131 one-shop vendor records used for vendor memory), which the builder embeds in the Lua block.
   No gender, no profile.
 - Story actors stay silent followers: a `MainQuest`/`SideQuest`/`MinorQuest` tag or a `q###_`, `sq###_`, `mq###_`
-  record name. Children, androids and MaxTac too.
+  record name. Children and androids too.
 - A crowd record without a resident kind uses the generic resident (`resident-male`/`resident-female`).
 
 The row says "Conversation: Maelstrom ganger (archetype)" (named records keep "Conversation: <name>",
@@ -253,7 +269,7 @@ machine like the named ones (packaging agent).
    gunsmith 02) routes to the weapons dealer, not Maelstrom.
 3. A bartender (Lizzie's, El Coyote Cojo, Afterlife is named Claire and must stay Claire) routes to the bartender.
 4. `record:Quest():EnumName()` exists and main/side quest gang actors (for example in The Pickup) are not routed.
-5. NCPD patrol officers route to NCPD; MaxTac are not routed; Arasaka / Militech / Kang Tao guards route to
+5. NCPD patrol officers route to NCPD; MaxTac officers to the MaxTac kind; Arasaka / Militech / Kang Tao guards route to
    corporate security and the per-turn context names the employer.
 6. `TDBID.ToStringDEBUG` returns `Character.*` names for crowd NPCs; corporate pedestrians in City Center,
    homeless people, street locals and Badlands nomads route to their kinds; other pedestrians keep the
@@ -269,7 +285,7 @@ machine like the named ones (packaging agent).
 13. Performance: gaze/scan calls stay cheap (facts cached per entity).
 14. Hostile NPCs in combat: talking is possible; decide whether to block it.
 15. Model browser: Maelstrom, Tyger Claws, NCPD and Arasaka records show "Conversation: ... (archetype)"; quest
-    records (`q###_`), MaxTac, androids and children show "No conversation profile"; the talk count looks sane. In CET,
+    records (`q###_`), androids and children show "No conversation profile"; the talk count looks sane. In CET,
     `record:Affiliation():EnumName()`, `Quest()` and `VendorID()` return what `manager.lua` expects.
 16. Invite a Maelstrom grunt and a female Tyger Claw from the Model browser: each joins, answers as that archetype
     with its voice, follows, can be sent away (Leave V's Party), and two copies of one record talk separately.

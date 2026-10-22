@@ -296,6 +296,26 @@ test('invitation preparation uses the captured provider ID, which a style change
   assert.throws(() => facade.prepareCharacter({profileKey: 'panam-palmer', guard: captured.guard}), /CHARACTER_MISMATCH/);
 });
 
+test('the invitation memory facade asks for the local-only preparation exactly while a non-Convai text provider is active', async () => {
+  const routes = new RelationshipRouting({ordinaryIds, now: () => NOW}), seen = [];
+  routes.update({relationshipModes: {'judy-alvarez': 'on'}}, snapshot({}), {boundary});
+  const USER = 'bf5a7019-3e8c-47a2-9367-a9b6d179d89d';
+  const memory = {
+    route: (providerKey) => ({endUserId: USER, guard: {endUserId: USER, characterId: routes.providerIds[providerKey], resetEpoch: 0, characterEpoch: 0}}),
+    prepareCharacter: async options => { seen.push(options.localOnly); return {memoryEnabled: true}; },
+  };
+  let local = false;
+  const facade = routes.invitationMemory(memory, () => boundary, () => local);
+  const captured = facade.route('judy-alvarez', {channel: 'private'});
+  await facade.prepareCharacter({profileKey: 'judy-alvarez', guard: captured.guard});
+  local = true;
+  await facade.prepareCharacter({profileKey: 'judy-alvarez', guard: captured.guard});
+  assert.deepEqual(seen, [false, true]);
+  // Without the third argument the facade keeps the Convai preparation.
+  await routes.invitationMemory(memory, () => boundary).prepareCharacter({profileKey: 'judy-alvarez', guard: captured.guard});
+  assert.deepEqual(seen, [false, true, false]);
+});
+
 test('long microphone/group turns retain their chosen style while fresh same-world heartbeats arrive', () => {
   let now = NOW;
   const routes = new RelationshipRouting({ordinaryIds, now: () => now});

@@ -31,9 +31,9 @@ export const PACK_OWN_TREES = Object.freeze([`${PLUGIN}/app/omni/python/`, `${PL
 // Runtime update must never touch a pack's clips), and nothing deletes in it (packaging/runtime/apply-removals.mjs protects it).
 export const LANGUAGE_PACK_TREE = `${PLUGIN}/voices/multilingual/`;
 export const LANGUAGE_PACK_NAME = 'Voice language packs';
-// The Pocket language models (docs/POCKET_LANGUAGE_MODELS.md) extract into voices/multilingual-pocket/<lang>/, one optional zip per language: their tree is theirs alone in the same way.
+// The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md) extract into voices/multilingual-pocket/<lang>/, one optional zip per language: their tree is theirs alone in the same way.
 export const POCKET_MODEL_TREE = `${PLUGIN}/voices/multilingual-pocket/`;
-export const POCKET_MODEL_NAME = 'Pocket language models';
+export const POCKET_MODEL_NAME = 'PocketTTS models';
 /** The pack-owned tree a path is in ({tree, name}), or null. */
 export const packTreeOf = path => [[LANGUAGE_PACK_TREE, LANGUAGE_PACK_NAME], [POCKET_MODEL_TREE, POCKET_MODEL_NAME]]
   .map(([tree, name]) => ({tree, name})).find(({tree}) => String(path).toLowerCase().startsWith(tree.toLowerCase())) ?? null;

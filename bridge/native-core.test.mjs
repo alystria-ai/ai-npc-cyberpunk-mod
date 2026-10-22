@@ -266,8 +266,10 @@ local write = fakeIo.Write
 fakeIo.Write = function(name, text) return true end -- lands somewhere else
 local before = io
 local M, api = boot(true)
-assert(io == before and not api.present and not api.use('io'))
+assert(io == before and api.present and not api.ioReady and not api.use('io'))
 assert(lastPrint():find('different runtime folder'), lastPrint())
+assert(api.ioReason:find('plugin folder') and api.ioReason:find('CET folder') and api.ioReason:find('file is missing'), api.ioReason)
+assert(api.use('actuator') == true, 'a folder mismatch gates only io: the systems that touch no file keep running natively')
 fakeIo.Write = write
 `));
 
@@ -330,6 +332,34 @@ OUT = table.concat(lines, '\\n')`;
   assert.ok(cases.some(item => item.output.channel === 'reply.json.tmp'));
   assert.ok(!cases.some(item => item.input.path.includes('..') && item.output.channel));
 });
+
+test('control files saved with a UTF-8 byte order mark or as UTF-16 parse like plain text (native-off.txt and native-verify.txt)', () => run(`
+local M, api = boot(true)
+local function utf16(text, big, mark)
+  local out = {}
+  if mark then out[1] = big and '\\254\\255' or '\\255\\254' end
+  for index = 1, #text do out[#out + 1] = big and ('\\0' .. text:sub(index, index)) or (text:sub(index, index) .. '\\0') end
+  return table.concat(out)
+end
+local text = '# comment\\r\\nActuator\\r\\nclearance\\r\\n'
+assert(M.controlText(text) == text)
+assert(M.controlText('\\239\\187\\191all') == 'all')
+for _, form in ipairs({'\\239\\187\\191' .. text, utf16(text, false, true), utf16(text, true, true), utf16(text, false, false), utf16(text, true, false)}) do
+  assert(M.controlText(form) == text, 'decoded the same text')
+end
+assert(M.controlText(nil) == '' and M.controlText('') == '')
+-- verify mode reads a file with a mark
+api.verifying('actuator')
+external('native-verify.txt', '\\239\\187\\191' .. text); advance(1.1)
+assert(api.verifying('actuator') == true and api.verifying('clearance') == true and api.verifying('gaze') == false)
+external('native-verify.txt', utf16(text, false, true)); advance(1.1)
+assert(api.verifying('actuator') == true and api.verifying('clearance') == true)
+-- off/on edits a file with a mark and writes it back as plain text
+disk['runtime/native-off.txt'] = '\\239\\187\\191gaze\\r\\n'
+assert(api.off('io')); assert(disk['runtime/native-off.txt'] == 'gaze\\nio\\n', disk['runtime/native-off.txt'])
+disk['runtime/native-off.txt'] = utf16('gaze\\r\\nio\\r\\n', false, true)
+assert(api.on('io')); assert(disk['runtime/native-off.txt'] == 'gaze\\n', disk['runtime/native-off.txt'])
+`));
 
 test('runtime/native-verify.txt turns developer verify mode on per system, read once a second without a CET io.open', () => run(`
 local M, api = boot(true)
@@ -405,4 +435,16 @@ test('phone-chat.lua checks phone-chat-output.json through revision() every 30 m
   const block = update.slice(update.lastIndexOf('if M.pending', probe), tick);
   assert.match(block, /M\.replyProbe >= 0\.03/);
   assert.match(block, /M\.tick = 0\.10/);
+});
+
+test('init.lua opens runtime/reply.json again only when its native revision changed (or once a second, or without the plugin)', () => {
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"));
+  const open = update.indexOf("io.open('runtime/reply.json', 'rb')");
+  assert.ok(open > 0);
+  const gate = update.slice(update.lastIndexOf('if pending then', open), open);
+  assert.match(gate, /convaiNative\.revision\('reply\.json'\)/);
+  assert.match(gate, /revision > 0 and revision == convaiHeartbeat\.replyReadRevision and replyRaw/);
+  assert.match(gate, /clock - convaiHeartbeat\.replyReadAt < 1/);
+  assert.match(gate, /raw = replyRaw/);
+  assert.match(update.slice(open, open + 400), /if replyFile then/);
 });

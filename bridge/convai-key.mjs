@@ -1,4 +1,5 @@
-// The Convai API key a conversation uses: the one the installation provides, or the player's own.
+// The Convai credential a conversation uses: the shared account's short-lived token from the sign-in backend (a release ships no key),
+// a developer's own plain key, or the player's own key.
 //
 // Player's own key (docs/OWN_CONVAI_KEY.md): the player switches "Use my own Convai API key" on in the settings
 // (Development) and pastes a free Convai key from the clipboard. The key is stored only in this bridge's state folder
@@ -17,6 +18,14 @@ export const PLAYER_USER_FILE = 'player-convai-user.json';
 // Convai keys are long opaque tokens; anything shorter, or containing a space, is not one.
 const KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{15,199}$/;
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
+
+/** The key in a developer's plain `api-key=...` convai-key.txt, or null. A release before 0.2.9 packed its shared key into that file as
+ * `convai-key-v1 ...`; that line is not read (and the Runtime's start removes such a file): the shared account is reached through the
+ * sign-in backend now. Any length: the file is the developer's own. */
+export function parseKeyFileText(text) {
+  if (typeof text !== 'string' || text.length > 4096) return null;
+  return /^api-key\s*=\s*(\S+)$/i.exec(text.replace(/^\uFEFF/, '').trim())?.[1] ?? null;
+}
 
 /** The key in `api-key=...` file text, or in a bare pasted value. Null when it is not a plausible key. */
 export function parseKeyText(text) {
@@ -44,7 +53,8 @@ export function readClipboardText({exec = execFile, timeoutMs = 6000} = {}) {
  * which is not a conversation turn and uses no interaction. */
 export async function validateKey(key, {fetchImpl = globalThis.fetch, timeoutMs = 10000} = {}) {
   try {
-    const response = await fetchImpl('https://api.convai.com/character/list', {method: 'POST',
+    // redirect 'error' on every key call: fetch forwards the CONVAI-API-KEY header (only Authorization is stripped) on a redirect to another host.
+    const response = await fetchImpl('https://api.convai.com/character/list', {method: 'POST', redirect: 'error',
       headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': key}, body: '{}',
       signal: AbortSignal.timeout(timeoutMs)});
     try { await response.body?.cancel(); } catch { /* already closed */ }
@@ -60,7 +70,7 @@ export async function listEndUsers(key, {fetchImpl = globalThis.fetch, timeoutMs
     const users = [];
     let cursor = null;
     for (let page = 0; page < 5; page++) {
-      const response = await fetchImpl('https://api.convai.com/user/end-users/list', {method: 'POST',
+      const response = await fetchImpl('https://api.convai.com/user/end-users/list', {method: 'POST', redirect: 'error',
         headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': key},
         body: JSON.stringify(cursor ? {cursor} : {}), signal: AbortSignal.timeout(timeoutMs)});
       if (!response.ok) { try { await response.body?.cancel(); } catch { /* already closed */ } return null; }
@@ -116,13 +126,16 @@ export function memoryRecovery({keys, classify, onBlocked = () => {}, onAdopted 
   };
 }
 
-/** Which key conversations use. `requested` follows the setting and the saved key; `applied` is what connections use. */
+/** Which credential conversations use. `requested` follows the setting and the saved key; `applied` is what connections use.
+ * `sharedKey` is optional: a release has none, and the shared account is then reached only through `backend` (a TokenSource). With
+ * neither, a conversation on the shared source fails with a plain notice (noCredentialError); a player's own key works either way. */
 export class ConvaiKeys {
   constructor({sharedKey, playerKeyPath, playerUserPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate,
     removeFile = path => rm(path, {force: true}), listUsers = listEndUsers, backend = null} = {}) {
-    if (typeof sharedKey !== 'string' || !sharedKey) throw Error('A conversation key is required');
+    if (sharedKey != null && (typeof sharedKey !== 'string' || !sharedKey)) throw Error('The conversation key is not valid');
+    sharedKey = sharedKey || null;
     // backend: a TokenSource (bridge/convai-credential.mjs) when the shared account is reached through the sign-in backend, else
-    // null (the shared key is used directly, as before). A player's own key never goes through it.
+    // null (the shared key, when there is one, is used directly). A player's own key never goes through it.
     Object.assign(this, {sharedKey, playerKeyPath, playerUserPath, readText, writeText, removeFile, listUsers, backend});
     this.player = null; this.preference = false;
     // The one end-user id every conversation on the player's key carries, once the account refused a new one and an
@@ -212,21 +225,30 @@ export class ConvaiKeys {
   current() { return this.applied.key; }
   /** True while conversations on the shared account sign in through the backend (the key-only calls leave the runtime). */
   get usesBackend() { return !!this.backend && this.applied.source === 'shared'; }
+  /** The failure for a conversation on the shared source with no key and no backend (a damaged package): one plain notice, never a hang.
+   * The marker makes bridge/convai-quota.mjs classify it like a failed sign-in. */
+  noCredentialError() { return Error('Convai sign-in is not set up on this installation [convai-auth:none]'); }
   /** What a call to Convai must authenticate with right now: {authToken} or {apiKey}. Synchronous when a token is held, which is
-   * the normal case; otherwise it waits only for the first fetch of this run (at most four seconds). Throws when the backend
-   * refuses (or is unreachable and the fallback is switched off). */
+   * the normal case; otherwise it waits only for the first fetch of this run (at most four seconds), never for a retry. Throws when
+   * the backend refuses, or is unreachable and no fallback key may stand in, or there is neither a key nor a backend. */
   async credential() {
-    if (!this.usesBackend) return {apiKey: this.applied.key};
+    if (!this.usesBackend) {
+      if (!this.applied.key) throw this.noCredentialError();
+      return {apiKey: this.applied.key};
+    }
     const source = this.backend;
     let held = source.current();
-    if (!held) { await source.ready(); held = source.current(); }
+    if (!held) { source.kick(); await source.ready(); held = source.current(); }
     if (held) return {authToken: held.token};
-    if (source.fallbackAllowed()) { source.noteFallbackUse(); return {apiKey: this.applied.key}; }
+    if (this.sharedKey && source.fallbackAllowed()) { source.noteFallbackUse(); return {apiKey: this.applied.key}; }
     throw source.unavailableError();
   }
   /** `config` as it must be sent to Convai: with `authToken` (and no `key`) in backend mode, unchanged otherwise. */
   async credentialFor(config) {
-    if (!this.usesBackend) return config;
+    if (!this.usesBackend) {
+      if (!this.applied.key) throw this.noCredentialError();
+      return config;
+    }
     const credential = await this.credential();
     if (!credential.authToken) return config;
     const {key, ...rest} = config;

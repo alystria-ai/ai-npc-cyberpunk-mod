@@ -49,10 +49,19 @@ test('archetype classification follows vendor, police, corporate security, gang,
     assert(key({vendor=true,vendorType='Food',recordName='Character.wat_kab_foodshop_01',bodyType='ManAverage'})=='npc-food-vendor-male')
     assert(key({vendor=true,vendorType='Clothing',bodyType='WomanAverage'})=='npc-clothing-vendor-female')
     assert(key({vendor=true,vendorType='VendingMachine',bodyType='ManAverage'})==nil, 'not a talking vendor type')
-    -- Police by affiliation or flag; MaxTac stays unprofiled.
+    -- Police by affiliation or flag; MaxTac has its own kind (2026-10-22), the plain NCPD kind excludes it.
     assert(key({affiliation='NCPD',bodyType='ManAverage'})=='npc-ncpd-male')
     assert(key({police=true,affiliation='Unknown',bodyType='WomanAverage'})=='npc-ncpd-female')
-    assert(key({affiliation='NCPD',recordName='Character.maxtac_rifle_ma',bodyType='ManAverage'})==nil)
+    assert(key({affiliation='NCPD',recordName='Character.maxtac_rifle_ma',bodyType='ManAverage'})=='npc-maxtac-male')
+    assert(key({affiliation='NCPD',recordName='Character.prevention_maxtac_rifle_wa',police=true,bodyType='WomanAverage'})=='npc-maxtac-female')
+    assert(key({affiliation='NCPD',recordName='Character.ncpd_police_ranged1_omaha_ma',police=true,bodyType='ManAverage'})=='npc-ncpd-male')
+    -- Sex workers (crowd and vendor records), NUSA personnel and Zetatech guards (2026-10-22).
+    assert(key({crowd=true,recordName='Character.ProstituteFemale',bodyType='WomanAverage'})=='npc-joytoy-female')
+    assert(key({recordName='Character.hey_gle_prostitute_male',bodyType='ManAverage'})=='npc-joytoy-male')
+    assert(key({crowd=true,recordName='Character.SexworkerMaleDoll',bodyType='ManAverage'})=='npc-joytoy-male')
+    assert(key({affiliation='NUSA',bodyType='ManAverage'})=='npc-nusa-male')
+    assert(key({affiliation='NUSA_Myers',bodyType='WomanAverage'})=='npc-nusa-female')
+    assert(key({affiliation='Zetatech',recordName='Character.security_guard1_ranged1_nue_wa',bodyType='WomanAverage'})=='npc-corpo-security-female')
     assert(key({affiliation='Arasaka',bodyType='ManAverage'})=='npc-corpo-security-male')
     assert(key({affiliation='UnaffiliatedCorpo',recordName='Character.security_guard1_ranged1_ma',bodyType='ManAverage'})=='npc-corpo-security-male')
     -- Story-bound actors keep the game's own role; street stories and gigs are generic.
@@ -139,7 +148,7 @@ test('Model browser records classify from TweakDB facts alone; record-name gende
     assert(key({recordName='Character.tyger_claws_biker3_shotgun3_zhuo_ma_elite',affiliation='TygerClaws'})=='npc-tyger-claws-male')
     assert(key({recordName='Character.arasaka_ninja_fmelee3_katana_wa',affiliation='Arasaka'})=='npc-corpo-security-female')
     assert(key({recordName='Character.ncpd_police_ranged1_omaha_wa',affiliation='NCPD'})=='npc-ncpd-female')
-    assert(key({recordName='Character.maxtac_rifle_ma',affiliation='NCPD'})==nil)
+    assert(key({recordName='Character.maxtac_rifle_ma',affiliation='NCPD'})=='npc-maxtac-male')
     assert(key({recordName='Character.kurtz_base',affiliation='Barghest'})==nil, 'no gender in the name')
     -- Vendor records take their gender from the generated table (shipped tweak sources).
     assert(key({recordName='Character.wat_kab_ripperdoc_01',affiliation='Civilian',vendor=true,vendorType='RipperDoc'})=='npc-ripperdoc-male')
@@ -301,7 +310,7 @@ test('a named character the game placed gets no profile; our spawned copy and or
     eq(who({world=true,name='Quest Goon',record='Character.q101_goon',crowd=true,
         facts={recordName='Character.q101_goon',affiliation='Maelstrom',bodyType='ManAverage'}}),'npc-maelstrom-male')
     eq(who({world=true,name='Maxtac',record='Character.maxtac_x',crowd=true,
-        facts={recordName='Character.maxtac_avg',affiliation='NCPD',police=true,bodyType='ManAverage'}}),'resident-male')
+        facts={recordName='Character.maxtac_avg',affiliation='NCPD',police=true,bodyType='ManAverage'}}),'npc-maxtac-male')
     -- A child or a machine (not a crowd child) and a person of unknown gender still have no profile.
     assert(who({world=true,name='Kid',record='Character.k',facts={children=true,bodyType='ManAverage'}})==nil)
     assert(who({world=true,name='Drone',record='Character.d',facts={human=false,bodyType='ManAverage'}})==nil)

@@ -20,7 +20,8 @@ import {basename, join} from 'node:path';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
-export const QUEUE_MAX = 20;
+// More than the daily limit of reports (bridge/error-reports.mjs DAILY_LIMIT), so errors over the limit can wait for the next day.
+export const QUEUE_MAX = 40;
 export const EVENT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const TEMPORARY_MAX_AGE_MS = 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
@@ -88,30 +89,62 @@ export function eventFromError(error, kind, source = 'bridge') {
 
 // ------------------------------------------------------------------- the setting
 
-const settingsOn = text => {
+/**
+ * What one settings file says: {on, noticed}, or null when it is not readable JSON (so the next copy is tried).
+ * A missing "errorReports" means on (the default); "errorReportsNoticed" is written by the game once the in-game notice was shown.
+ */
+const settingsState = text => {
   try {
     const value = JSON.parse(String(text).replace(/^﻿/, ''));
-    return value?.errorReports !== false;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    // Only a missing key or a real boolean says anything: another value (a string, a number) is not read as "on".
+    if (value.errorReports !== undefined && typeof value.errorReports !== 'boolean') return null;
+    return {on: value.errorReports !== false, noticed: value.errorReportsNoticed === true};
   } catch { return null; }
 };
 
-/** True unless settings.json says "errorReports": false (the previous copy stands in for a file being replaced). */
-export async function errorReportsEnabled(runtime) {
+/**
+ * The state of the setting from the first readable of settings.json and settings.json.previous (the previous copy stands in for a
+ * file being replaced): {state: 'on' | 'off' | 'unknown', noticed}. Neither file existing is a fresh install: on, not noticed yet.
+ * A file that exists but cannot be read or parsed, with no readable copy, is 'unknown': an unknown state is never treated as on,
+ * so a damaged settings file cannot turn a player's opt-out back on. `readText(name)` returns the text or throws.
+ */
+function readSettingsState(readText) {
+  let present = false;
   for (const name of ['settings.json', 'settings.json.previous']) {
-    const on = settingsOn(await readFile(join(runtime, name), 'utf8').catch(() => ''));
-    if (on !== null) return on;
+    let text;
+    try { text = readText(name); } catch (error) {
+      if (error?.code !== 'ENOENT') present = true;
+      continue;
+    }
+    const state = settingsState(text);
+    if (state) return {state: state.on ? 'on' : 'off', noticed: state.noticed};
+    present = true;
   }
-  return true;
+  return present ? {state: 'unknown', noticed: false} : {state: 'on', noticed: false};
+}
+
+/** {state, noticed} of the error-report setting (see readSettingsState). */
+export async function errorReportsSetting(runtime) {
+  const names = ['settings.json', 'settings.json.previous'], texts = {};
+  // Both files at once: a record or a flush waits for one read, not two.
+  (await Promise.all(names.map(name => readFile(join(runtime, name), 'utf8').catch(error => error)))).forEach((text, index) => { texts[names[index]] = text; });
+  return readSettingsState(name => { if (texts[name] instanceof Error) throw texts[name]; return texts[name]; });
+}
+
+/** True only when the setting is known to be on: an unreadable settings file is not on. */
+export async function errorReportsEnabled(runtime) {
+  return (await errorReportsSetting(runtime)).state === 'on';
+}
+
+/** True when reports may leave the machine: the setting is on and the in-game notice that says so was shown. */
+export async function errorReportsMaySend(runtime) {
+  const {state, noticed} = await errorReportsSetting(runtime);
+  return state === 'on' && noticed;
 }
 
 export function errorReportsEnabledSync(runtime) {
-  for (const name of ['settings.json', 'settings.json.previous']) {
-    let text = '';
-    try { text = readFileSync(join(runtime, name), 'utf8'); } catch {}
-    const on = settingsOn(text);
-    if (on !== null) return on;
-  }
-  return true;
+  return readSettingsState(name => readFileSync(join(runtime, name), 'utf8')).state === 'on';
 }
 
 // ------------------------------------------------------------------- the queue
@@ -217,8 +250,10 @@ export function queueRecord(event, now = Date.now()) {
     source: clip(String(event.source ?? 'bridge'), 20), count: 1, firstAt: at, lastAt: at};
 }
 
+// A record that already holds its log excerpt (attachLogs) keeps it: the excerpt belongs to the first time the error happened.
 const merge = (old, record) => old && old.signature === record.signature
-  ? {...record, count: Math.min(100000, (Number(old.count) || 1) + 1), firstAt: Number.isFinite(old.firstAt) ? old.firstAt : record.firstAt}
+  ? {...record, count: Math.min(100000, (Number(old.count) || 1) + 1), firstAt: Number.isFinite(old.firstAt) ? old.firstAt : record.firstAt,
+    ...(Array.isArray(old.logs) ? {logs: old.logs, logsAt: old.logsAt} : {})}
   : record;
 
 /** Writes (or bumps the count of) the queue file for this event. Never throws; resolves with the record or null. */
@@ -282,6 +317,25 @@ export async function readQueue(stateDirectory, {now = Date.now()} = {}) {
   return records.sort((a, b) => a.lastAt - b.lastAt);
 }
 
+/**
+ * Keeps the log excerpt of a queued error in its queue file: `logs` is [{source, lines}] already put through the report's redactor
+ * (bridge/error-reports.mjs captureLogs), taken when the event was seen, so a report that has to wait (the daily limit, an unreachable backend)
+ * still sends the lines of the moment and not those of a later session. Never replaces an excerpt that is already there. Never throws; true when
+ * the file holds an excerpt afterwards.
+ */
+export async function attachLogs(record, logs, {now = Date.now()} = {}) {
+  if (!record?.path || !Array.isArray(logs)) return false;
+  try {
+    const old = JSON.parse(await readFile(record.path, 'utf8'));
+    if (!old || old.signature !== record.signature) return false;
+    if (Array.isArray(old.logs)) return true;
+    const temporary = `${record.path}.${process.pid}.${now}.tmp`;
+    await writeFile(temporary, JSON.stringify({...old, logs, logsAt: now}));
+    await rename(temporary, record.path).catch(async error => { await rm(temporary, {force: true}).catch(() => {}); throw error; });
+    return true;
+  } catch { return false; }
+}
+
 export const removeQueued = record => rm(record.path, {force: true}).catch(() => {});
 
 export async function clearQueue(stateDirectory) {
@@ -298,13 +352,14 @@ export async function clearQueue(stateDirectory) {
  * how many wait in the queue. Counts and times only.
  */
 export async function errorReportStatus({runtime, stateDirectory, now = Date.now()} = {}) {
-  const enabled = runtime ? await errorReportsEnabled(runtime) : true;
+  const setting = runtime ? await errorReportsSetting(runtime) : {state: 'on', noticed: true};
   let sent = null;
   try { sent = JSON.parse(await readFile(sentPath(stateDirectory), 'utf8')); } catch {}
   let queued = 0;
   try { queued = (await readdir(queueDirectory(stateDirectory))).filter(name => /^[0-9a-f]{16}\.json$/.test(name)).length; } catch {}
   const today = new Date(now).toISOString().slice(0, 10);
-  return {setting: enabled ? 'on' : 'off', sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
+  // 'unknown': settings.json cannot be read (nothing is sent). noticed: the in-game notice was shown (nothing is sent before it was).
+  return {setting: setting.state, noticed: setting.noticed, sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
     lastSentAt: Number.isFinite(sent?.lastSentAt) ? new Date(sent.lastSentAt).toISOString() : null, queued,
     stoppedLastSession: typeof sent?.stopped === 'string' ? clip(sent.stopped, 30) : null};
 }
@@ -369,6 +424,10 @@ const LOCAL_DOWN = new Set(['local-fallback', 'local-unavailable']);
 // The game ending a talk is what it is for: V pressed the talk key again, walked away, opened a menu or loaded a save (the continuous speech
 // lease, mod/continuous-speech.lua: an explicit stop, or no refresh while the game is paused or loading). Not the mod failing.
 const NOT_A_FAULT = /\b(?:abort(?:ed)?|cancell?ed|superseded|interrupted|voice service is closed|no speech was heard|continuous speech was stopped by the game|continuous speech game lease expired|continuous speech owner changed)\b/i;
+// The player's own setup, already told to the player in the game (2026-10-22 reports c8281dee and 1a895674): the custom provider does not know the model the player typed ("[custom:model]", a 404
+// from the endpoint: OpenRouter's free models come and go), and Local AI pointed at a server of the player's own that does not answer, refuses the key or is not an OpenAI-style address ("(server-unreachable)",
+// "(server-blocked)", ...). Nothing in the mod to fix, so no report is filed.
+const PLAYER_SETUP = /\[custom:model\]|\(server-(?:unreachable|blocked|key-refused|bad-address)\)/i;
 
 /** Whether a failed turn is worth a report (see OWN_DOING). Pure; the bridge passes what it knows. */
 export function reportableTurnFailure(error, {errorCode, localReason, microphone = false} = {}) {
@@ -376,7 +435,7 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
   if (error?.name === 'AbortError' || error?.name === 'TurnLimitError' || error?.code === 'ABORT_ERR') return false;
   if (typeof error?.code === 'string' && error.code.startsWith('MIC_')) return false;
   const text = typeof error?.message === 'string' ? error.message : String(error);
-  if (NOT_A_FAULT.test(text)) return false;
+  if (NOT_A_FAULT.test(text) || PLAYER_SETUP.test(text)) return false;
   if (errorCode && OWN_DOING.has(errorCode)) return false;
   if (LOCAL_DOWN.has(errorCode) && OWN_LOCAL_REASONS.has(localReason)) return false;
   // A microphone turn fails for the device as often as for the service: only one that names a provider failure counts.
@@ -448,6 +507,8 @@ export class ErrorEvents {
   setupChecked(document) {
     for (const row of Array.isArray(document?.checks) ? document.checks.slice(0, 16) : []) {
       if (row?.state !== 'problem' || typeof row.id !== 'string' || typeof row.code !== 'string') continue;
+      // Local AI that could not start because the server the player runs is down, blocked or wrongly set up: their setup, already told in the game (2026-10-22 report ee4689b6).
+      if (row.playerServer === true) continue;
       this.record({kind: 'setup-problem', message: `${clip(row.id, 40)} ${clip(row.code, 40)}`, frame: 'setup-check',
         detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {})}});
     }

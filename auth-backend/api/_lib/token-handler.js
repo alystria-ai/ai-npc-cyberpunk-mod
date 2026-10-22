@@ -120,7 +120,7 @@ export function createTokenHandler(options = {}) {
       return;
     }
 
-    const installKey = pseudonym(config.signingSecret, 'install', request_.installId.toLowerCase());
+    const installKey = pseudonym(config.pseudonymSecret, 'install', request_.installId.toLowerCase());
     if (config.blockedInstalls.has(installKey)) {
       sendJson(response, 403, { error: 'refused' });
       return;
@@ -130,7 +130,7 @@ export function createTokenHandler(options = {}) {
       return;
     }
 
-    const ipKey = pseudonym(config.signingSecret, 'ip', clientAddress(request));
+    const ipKey = pseudonym(config.pseudonymSecret, 'ip', clientAddress(request));
     if (flooded(ipKey)) {
       sendJson(response, 429, { error: 'rate', retryAfterSeconds: 60 }, { 'Retry-After': '60' });
       return;

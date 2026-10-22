@@ -15,21 +15,25 @@ const judyArgs = (text = USER_LINES.a) => ({persona: prompt.persona, memory: MEM
 
 test('the prompt Mistral and the local AI build is byte for byte what it was (hashes taken from commit 1e207eec, re-taken on 2026-10-14 for the first-person profiles)', () => {
   // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
+  // Re-taken on 2026-10-22 (response audit): rule 7 no longer asks for "a few words of attitude about the place or the hour" and says nothing of weather, time or place unless V asks; the copy of the
+  // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
+  // Re-taken again on 2026-10-22 on the merge with feat/dynamic-info: the right-now block's own where-sentence (the place is a second sentence, never in the first) and its one
+  // guidance sentence ("mention a place or the time only if it matters to what V says"; docs/DYNAMIC_INFO.md), on top of the response audit's changes above.
   const expected = {
-    a: 'fc2e4b79f61a57a59f1096ee382f6f8dd166ac4bda11bd0b2d3d98ab592145c3',
-    b: '0608c96199b48c85e22836ab5f67048b5e9aaee49047ff45b8e05b3abd400155',
-    c: 'a98797c7a6e727b6ae1533db323e78cba20059a7c6ee947f4b8f22e9246b3d0c',
-    d: '5de8d96bbe3ad28b2328b0ace2fa819413a3b38b21f49a9b60f915c9bfec70e2',
-    e: 'c0721b02e9ae82419537f559650581893a3a4f46f2a1771e7bf240cd9d236771',
-    f: 'cd6737349af79f4ae49af71d420253c2aa4473da14baa1f9d13ca4ff32ca61db',
-    g: '4c38340851c68b4daf8caff9adb229dcc368134954001f2faabcb8ed9fface34',
+    a: 'd4da002df4a1027e7536ed9d4434ede436d3420ef531f88bace8cedcb742b23d',
+    b: '7a08a1af0fd683350c06fcdeec87942763818aeaa1345d513a778e84d3de88e5',
+    c: '2624bca2ef2cdc5fcbec9e942204354f1c2b02b215ef3967355af380da592d40',
+    d: '72c79bce52ddc5d86e50f010912502f6764bde5cd77cb9ad9626135bcd331007',
+    e: '201d4de5f457730cd542301f45c969d91e8808e9b36debed49050e5967597bd6',
+    f: '4331ccd5d459d8fd9808876b54aecce05e8406a28da24735a5f6467fe7cc1a09',
+    g: '3cec58760e0c8456f8b96944b612c70c38a290115dd774afe3ec5f137a24a925',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '5828073f8aeee4566df719750403d687e79d29196c114a17182386a4ee7b3d5e');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'c0f452e89a4725d5220b665eaae39aa991c67f83098e7403b69733191c2f8af8');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '71afe8b30cf3be13bf64bdd54f4a34283b875d3679159a9affe2944f5f9bbaa1');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'cd11a7d668dc918d79205888dbbecf7379c895320c39283891f2302c31dbde1a');
-  assert.equal(sha(systemHead({persona: prompt.persona})), 'dc55ee3f93c420f63746cbbed90314261e4d78c936f5e034614424f98cbd39e0');
+    'b73c697299ad24497e5a7b9fa8d1a6d8287f13173efdcc9ff0bbf9a2e21c7d5f');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '7805224503bc6abad368f22871274f0430a2afd8aa6bcf64b961079e5797f8c0');
+  assert.equal(sha(systemHead({persona: prompt.persona})), 'e280e404f9a7f4db6cf79db635db722f61f92b3189b561a30b75fe257938c856');
 });
 
 // ---- The budget's new options ----------------------------------------------------------------------------------------------

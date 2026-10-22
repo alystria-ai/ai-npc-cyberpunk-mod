@@ -4,8 +4,10 @@ import {lookup as dnsLookup} from 'node:dns/promises';
 import {connect as netConnect} from 'node:net';
 import {join, relative, resolve} from 'node:path';
 import {promisify} from 'node:util';
+import {totalmem} from 'node:os';
 import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
+import {checkRuntimeSteps} from './runtime-steps.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
 // translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; both are shipped
@@ -23,6 +25,9 @@ export const SETUP_CHECK_FILE = 'setup-check.json';
 export const SETUP_REQUEST_FILE = 'setup-check-request.json';
 
 const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS = 5000;
+// The language packs one folder too deep are found by their manifests (the same as LANGUAGE_PACKS in the launcher's place-packs.mjs).
+const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Voice language pack'], ['multilingual-pocket', 'pocket-model.json', 'PocketTTS model']];
+const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
 
@@ -133,6 +138,32 @@ export async function detectGraphicsCards({run = defaultRun, platform = process.
   } catch { return []; }
 }
 
+// ------------------------------------------------------------ memory facts
+
+const MIB = 1024 * 1024;
+// RAM plus the paging files is what Windows can promise (the "commit limit"): TotalVirtualMemorySize of Win32_OperatingSystem, in KiB.
+const COMMIT_QUERY = '(Get-CimInstance -ClassName Win32_OperatingSystem).TotalVirtualMemorySize';
+const COMMIT_TIMEOUT_MS = 8000;
+
+/**
+ * The memory facts an error report carries so a "paging file is too small" failure (Windows error 1455) can be told from a plain one: {totalRamMiB, commitLimitMiB}.
+ * The RAM is Node's own reading (no process); the commit limit is one PowerShell read (a few hundred ms, 8 s at most), made once per bridge process by
+ * cachedMemoryFacts and only when a report is built, never in a turn or a frame. Never throws: a field that cannot be read is null (the commit limit off Windows).
+ */
+export async function detectMemoryFacts({run = defaultRun, platform = process.platform, env = process.env, ramBytes = totalmem} = {}) {
+  let totalRamMiB = null, commitLimitMiB = null;
+  try { const bytes = Number(typeof ramBytes === 'function' ? ramBytes() : ramBytes); if (bytes > 0) totalRamMiB = Math.round(bytes / MIB); } catch { /* unknown */ }
+  if (platform === 'win32') {
+    try {
+      const shell = join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+      const result = await run(shell, ['-NoProfile', '-NonInteractive', '-Command', COMMIT_QUERY], {timeout: COMMIT_TIMEOUT_MS, windowsHide: true, encoding: 'utf8', maxBuffer: 1 << 16});
+      const kib = Number(String(result?.stdout ?? '').trim());
+      if (Number.isFinite(kib) && kib > 0) commitLimitMiB = Math.round(kib / 1024);
+    } catch { /* the commit limit stays unknown */ }
+  }
+  return {totalRamMiB, commitLimitMiB};
+}
+
 // ------------------------------------------------------------ mod managers
 
 /**
@@ -176,7 +207,8 @@ const PACK_NAMES = Object.freeze({
  *   - the game folder's child folders, and one level further;  - the mod folder (red4ext/... or app/... extracted into it);
  *   - the plugin folder (red4ext/... inside it, or inside one wrapper folder of it).
  * A candidate is <base>/red4ext/plugins/AiNpcCyberpunkMod/app holding local-ai/manifest.*.json, a non-empty local-ai/mature/ or
- * omni/omni-pack.json. The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
+ * omni/omni-pack.json, or <base>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holding a language pack (multilingual/<code>/manifest.json, a voice
+ * language pack, or multilingual-pocket/<code>/pocket-model.json, a PocketTTS model). The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
  * game folder. Only directory listings and a few dozen stats; never throws.
  */
 export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}) {
@@ -193,9 +225,10 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
   const skip = name => GAME_FOLDERS.has(String(name).toLowerCase());
   const found = [];
   const addStandard = async base => {
-    const tree = treeOf(base);
-    if (resolve(tree).toLowerCase() === realApp || await kindOf(tree) !== 'dir') return false;
-    found.push({base, tree});
+    const tree = treeOf(base), voices = join(base, 'red4ext', 'plugins', MOD_NAME, 'voices');
+    if (resolve(tree).toLowerCase() === realApp || resolve(voices).toLowerCase() === resolve(realApp, '..', 'voices').toLowerCase()) return false;
+    if (await kindOf(tree) !== 'dir' && await kindOf(voices) !== 'dir') return false;
+    found.push({base, tree, voices});
     return true;
   };
   const top = (await entriesOf(game)).filter(entry => entry.isDirectory() && !skip(entry.name));
@@ -210,6 +243,16 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
   await addStandard(pluginRoot);
   for (const entry of (await entriesOf(pluginRoot)).filter(item => item.isDirectory() && !skip(item.name))) await addStandard(join(pluginRoot, entry.name));
 
+  const languagePacksIn = async voices => {
+    const names = [];
+    if (!voices) return names;
+    for (const [folder, marker, label] of LANGUAGE_PACK_FOLDERS) {
+      for (const entry of await entriesOf(join(voices, folder))) {
+        if (entry.isDirectory() && LANGUAGE_CODE.test(entry.name) && await kindOf(join(voices, folder, entry.name, marker)) === 'file') names.push(`${label} (${entry.name})`);
+      }
+    }
+    return names;
+  };
   const packsIn = async tree => {
     const names = [];
     const local = await entriesOf(join(tree, 'local-ai'));
@@ -228,7 +271,7 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
     if (seen.has(key)) continue;
     seen.add(key);
     const folder = relative(game, candidate.base) || '.';
-    for (const pack of await packsIn(candidate.tree)) result.push({pack, folder});
+    for (const pack of [...await packsIn(candidate.tree), ...await languagePacksIn(candidate.voices)]) result.push({pack, folder});
   }
   return result;
 }
@@ -288,12 +331,13 @@ export function detectBrowserName({env = process.env, candidates = systemBrowser
 }
 
 // Looked up once per bridge process: the registry reads start processes, and none of these changes while the game runs.
-const caches = {graphics: null, browser: undefined, managers: null};
+const caches = {graphics: null, browser: undefined, managers: null, memory: null};
 export function cachedGraphicsCards(options) { return caches.graphics ??= detectGraphicsCards(options); }
 export function cachedBrowserName(options) { return caches.browser === undefined ? (caches.browser = detectBrowserName(options)) : caches.browser; }
 export function cachedModManagers(options) { return caches.managers ??= detectModManagers(options); }
+export function cachedMemoryFacts(options) { return caches.memory ??= detectMemoryFacts(options); }
 /** For tests: forget what the caches hold. */
-export function resetSetupCheckCaches() { caches.graphics = null; caches.browser = undefined; caches.managers = null; }
+export function resetSetupCheckCaches() { caches.graphics = null; caches.browser = undefined; caches.managers = null; caches.memory = null; }
 
 // ----------------------------------------------------- the pack-move report
 
@@ -370,7 +414,7 @@ export function localAiCheck(settings, info = {}) {
   else if (info.status === 'no-memory') code = 'no-memory';
   else if (info.status === 'not-installed') code = 'not-installed';
   else code = LOCAL_REASONS[info.reason] ?? 'failed';
-  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed};
+  return {state: code === 'ready' || code === 'warming' ? 'ok' : 'problem', code, selected: true, installed, ...(code === 'start-failed' && info.playerServer === true ? {playerServer: true} : {})};
 }
 
 const text = (value, size) => clip(value, size) ?? '';
@@ -406,7 +450,12 @@ export async function collectSetupCheck(options = {}) {
       runtime = typeof pack?.version === 'string' && pack.version.trim() ? clip(pack.version, 40) : null;
     }
     if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime};
-    return scripts === runtime ? {state: 'ok', code: 'match', scripts, runtime} : {state: 'problem', code: 'mismatch', scripts, runtime};
+    if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime};
+    // The versions agree; the update steps on disk (bridge/runtime-steps.mjs) say whether a step in between was skipped.
+    const chain = project ? await checkRuntimeSteps({project, current: runtime}) : {code: 'none'};
+    if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, from: clip(chain.from, 40), to: clip(chain.to, 40)};
+    if (chain.code === 'order') return {state: 'problem', code: 'chain-order', scripts, runtime};
+    return {state: 'ok', code: 'match', scripts, runtime};
   });
 
   const packs = () => guarded('packs', async () => {
@@ -494,12 +543,12 @@ export async function collectSetupCheck(options = {}) {
 
   // The Pocket voice (V's voice, and the companions' when Pocket is the voice they use): a problem only while a worker has failed and has not loaded
   // again. Only the bridge knows (voice() -> null | {engine, reason, cause?}); a run without it has no such row. The row gives the engine, never the reason's
-  // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) is the one
-  // cause a row names.
+  // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) and
+  // `cause: 'virtual-memory'` (Windows ran out of memory, the paging file is too small) are the causes a row names.
   const voice = () => guarded('voice', async () => {
     const problem = await call('voice');
     if (!problem) return {state: 'ok', code: 'ok'};
-    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' ? {cause: 'blocked'} : {})};
+    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' || problem.cause === 'virtual-memory' ? {cause: problem.cause} : {})};
   });
 
   const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),

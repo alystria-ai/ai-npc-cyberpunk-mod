@@ -40,6 +40,29 @@ namespace
 RED4ext::v1::PluginHandle g_handle = nullptr;
 const RED4ext::v1::Sdk* g_sdk = nullptr;
 bool g_started = false;
+bool g_ioStarted = false;      // the file IO threads run (they must be stopped on any failed Load)
+bool g_callbacksAdded = false; // RED4ext holds function pointers into this DLL
+
+// The load failed after the DLL handed out pointers into itself: a library RED4ext frees would
+// leave dangling callbacks, so keep it mapped for the rest of the process.
+void FailLoad() noexcept
+{
+    try
+    {
+        if (g_ioStarted)
+        {
+            convai::GlobalFileIo().Stop(2000);
+            g_ioStarted = false;
+        }
+    }
+    catch (...)
+    {
+    }
+    if (g_callbacksAdded)
+    {
+        convai::PinThisModule();
+    }
+}
 
 void LogSink(convai::log::Level aLevel, const char* aMessage)
 {
@@ -123,6 +146,16 @@ bool Load()
         return false;
     }
 
+    // Everything that can still fail comes before file IO starts: its two threads run code of this
+    // DLL, so a "return false" after them (RED4ext then unloads the library) would leave them
+    // running in unmapped memory.
+    auto* rtti = RED4ext::CRTTISystem::Get();
+    if (!rtti)
+    {
+        CONVAI_ERROR("The RTTI system is not available; the mod keeps its Lua path");
+        return false;
+    }
+
     const std::wstring runtimeDirectory = convai::paths::ResolveRuntimeDirectory();
     auto& io = convai::GlobalFileIo();
     if (!io.Start(runtimeDirectory))
@@ -130,16 +163,13 @@ bool Load()
         CONVAI_ERROR("File IO did not start; the mod keeps its Lua path");
         return false;
     }
+    g_ioStarted = true;
     io.SetControlFile("native-off.txt", &ControlFileChanged);
 
-    auto* rtti = RED4ext::CRTTISystem::Get();
-    if (!rtti)
-    {
-        CONVAI_ERROR("The RTTI system is not available; the mod keeps its Lua path");
-        return false;
-    }
+    // From here the DLL must stay mapped: RED4ext calls these callbacks later.
     rtti->AddRegisterCallback(&RegisterTypes);
     rtti->AddPostRegisterCallback(&PostRegisterTypes);
+    g_callbacksAdded = true;
 
     for (const auto& system : convai::systems::All())
     {
@@ -183,6 +213,7 @@ void Unload()
         }
     }
     convai::GlobalFileIo().Stop(2000);
+    g_ioStarted = false;
     g_started = false;
     CONVAI_INFO("CyberpunkConvaiNative unloaded");
     convai::log::SetSink(nullptr);
@@ -199,7 +230,12 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle aHandle, RED4e
         case RED4ext::v1::EMainReason::Load:
             g_handle = aHandle;
             g_sdk = aSdk;
-            return Load();
+            if (!Load())
+            {
+                FailLoad();
+                return false;
+            }
+            return true;
         case RED4ext::v1::EMainReason::Unload:
             Unload();
             return true;
@@ -208,6 +244,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle aHandle, RED4e
     catch (...)
     {
         CONVAI_ERROR("Unexpected exception in Main");
+        FailLoad();
         return false;
     }
     return true;

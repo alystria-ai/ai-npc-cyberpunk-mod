@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
@@ -26,6 +26,7 @@ import {budgetedChat, PrefillMeter, PREFILL, TokenMeter, seedRatio, templateToke
 import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
+import {profileSignature} from './prompt-profiles.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -162,6 +163,8 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
         headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning, noThinking: custom.noThinking};
     },
     cacheBody: () => ({}),
+    // The endpoint and model asked now: the prompt profile of a Custom endpoint is chosen by them (bridge/prompt-profiles.mjs customProfileId).
+    describe: () => ({origin: custom.origin, model: custom.model}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
     summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits' || provider.limit.kind === 'daily')),
     fallsBack: () => false,
@@ -274,7 +277,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // The compact character text of a machine measured to read slowly (bridge/compact-persona.mjs); a fast machine is given the very arguments it was built from.
     shape: (args, options, base) => {
       let persona = args.persona;
-      try { persona = compacts.personaFor(args.persona, {speed: base?.speed, meter: base?.meter, mature: args.mature ?? null, guard: args.guard ?? false, limits: args.limits}); } catch { /* a cut that fails leaves the whole text */ }
+      try { persona = compacts.personaFor(args.persona, {speed: base?.speed, meter: base?.meter, mature: args.mature ?? null, guard: args.guard ?? false, limits: args.limits, profile: args.profile}); } catch { /* a cut that fails leaves the whole text */ }
       return persona === args.persona ? args : {...args, persona};
     },
     onFit: fit => {
@@ -369,9 +372,12 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     prewarm: (messages, options) => server.prewarm(messages, options),
     // The persona a warm-up (and so the prompt cache of the character's first turn) is built from: the one the turn will use (compact on a machine measured to read slowly).
     // Without a request to the server: the last load's meter is the one a turn will use (a model loaded again starts from its state), and with none there is nothing measured.
-    shapePersona(persona, {mature = null, guard = false, limits} = {}) {
-      try { return compacts.personaFor(persona, {speed: lastSpeed, meter: lastMeter, mature, guard, limits}); } catch { return persona; }   // the warm-up never fails for a cut
+    shapePersona(persona, {mature = null, guard = false, limits, profile} = {}) {
+      try { return compacts.personaFor(persona, {speed: lastSpeed, meter: lastMeter, mature, guard, limits, profile}); } catch { return persona; }   // the warm-up never fails for a cut
     },
+    // The loaded model's tier ('lite' or 'standard'), which picks the prompt profile (bridge/prompt-profiles.mjs profileIdFor); only while a model is up, like `modelName`. `loadedTier` starts the server if it is not up.
+    tierName: () => { const status = server.status?.(); return status?.state === 'ready' || status?.state === 'warming' ? status?.tier ?? null : null; },
+    loadedTier: async signal => (await server.ensure({signal}))?.tier ?? null,
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
     // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
     // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
@@ -426,6 +432,22 @@ export function describeLocalTurn({ok, trace, error, detail, first = false, brie
 
 // ---- Host --------------------------------------------------------------------------------------------------------------------
 
+/**
+ * The request fields of a prompt profile's sampling (bridge/prompt-profiles.mjs): nothing for a field the profile leaves null, so a profile that sets none sends the request it always did. `stop` joins the end-of-turn
+ * strings our own llama-server is always given. A server the player runs that refuses one of these by name loses it and is asked again (bridge/mistral-client.mjs).
+ */
+export function samplingBody(sampling, lease) {
+  const body = {};
+  if (Number.isFinite(sampling.topP)) body.top_p = sampling.topP;
+  if (Number.isFinite(sampling.repeatPenalty)) body.repeat_penalty = sampling.repeatPenalty;
+  if (sampling.stop?.length) body.stop = lease?.external === false ? [...LOCAL_STOP_STRINGS, ...sampling.stop] : [...sampling.stop];
+  return body;
+}
+
+// An ordinary NPC that serves V (vendors, ripperdocs, bartenders, dealers): "Anything else?" is its own question and is not cut as a stock closing question (stripStockTail).
+const SERVICE_PROFILE = /^(?:npc-(?:ripperdoc|weapons-dealer|bartender|junk-dealer|market-stall|[a-z-]*vendor)-|viktor-vektor$|claire-russell$|robert-wilson$|misty-olszewski$|wakako-okada$)/;
+const QUOTED_START = /^(?:\s*\{[^{}\n]{1,24}\})*\s*["“”'‘]/;
+
 export class TextProviderHost {
   /**
    * provider    the provider state (bridge/mistral-key.mjs): `route` names the route in use, `active` whether one is
@@ -449,12 +471,13 @@ export class TextProviderHost {
    *                script) loses those words, in the text the voice is given as it streams and in the finished reply (stripPlayerEcho in mistral-prompt.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, traceReaction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, traceReaction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null, promptProfiles = null} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, traceReaction, matureContent, matureGuard, guardOnly, echoCut, spokenLines});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, traceReaction, matureContent, matureGuard, guardOnly, echoCut, spokenLines, promptProfiles});
     this.summaries = new Set();
     this.stoppable = new Set();   // the controllers of background requests that give way to a turn (a local summary)
     this.matureLogged = new Set();
+    this.profilesLogged = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
     this.closed = false;
@@ -487,7 +510,7 @@ export class TextProviderHost {
   async #send(route, messages, signal, extra = {}) {
     // slotKey: whose persona a local server has just been warmed with, for a request that has no `profileKey` of its own (the action decision, which must
     // not carry the persona's cache key to the cloud): it only tells the local route which warm-up not to stop.
-    const {profileKey, slotKey, background, extraBody, models, ...rest} = extra;
+    const {profileKey, slotKey, background, extraBody, models, sampling, ...rest} = extra;
     const began = this.now();
     const lease = await route.connect(signal, {background, profileKey: profileKey ?? slotKey, persona: profileKey ?? null, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
     // How long this request waited before it was sent (starting or waiting for the model, giving way to others) and what was in flight beside it: left on the
@@ -509,10 +532,10 @@ export class TextProviderHost {
           // what the server has refused so far, and the field that asks a reasoning model to think less. None of them exists for the Mistral route.
           const answer = await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal: sent, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
-            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), ...(lease.noThinking ? {noThinking: lease.noThinking} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), ...(lease.noThinking ? {noThinking: lease.noThinking} : {}), maxTokens: item.maxTokens ?? sampling?.maxTokens ?? this.limits.maxTokens, temperature: sampling?.temperature ?? this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
-            extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(item.body ?? {}), ...extraBody}});
+            extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(sampling ? samplingBody(sampling, lease) : {}), ...(item.body ?? {}), ...extraBody}});
           noted(answer?.trace);
           return answer;
         } catch (error) {
@@ -544,6 +567,8 @@ export class TextProviderHost {
    * `confirmed` (optional promise): the reply was started on words that are not final yet (a stable live-words decode, bridge/local-stt-capture.mjs).
    * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
    * (the final words differ) the reply ends there with that error and leaves no trace.
+   * `deferRecord` (optional function): called with a one-shot `commit` instead of remembering the exchange at once; the caller commits it when the
+   * reply is published and drops it otherwise, so the character never remembers lines the player did not hear.
    */
   async reply(config, options = {}) {
     try {
@@ -568,7 +593,24 @@ export class TextProviderHost {
     } catch { return null; }
   }
 
-  async #reply(config, {signal, stream, confirmed} = {}) {
+  /**
+   * The exchange the character remembers (what the player read, tags stripped), summarised afterwards. A reply the player never heard must not be
+   * remembered: nothing is recorded once the turn is cancelled. With `deferRecord` (a function, from the bridge) the exchange is handed to it as a
+   * one-shot `commit` and recorded only when the bridge publishes the reply; without it the exchange is recorded now, as before.
+   */
+  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey}) {
+    let done = false;
+    const commit = () => {
+      if (done) return;
+      done = true;
+      this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
+      this.#summarize(route, profileKey);
+    };
+    if (typeof deferRecord === 'function') deferRecord(commit);
+    else if (!signal?.aborted) commit();
+  }
+
+  async #reply(config, {signal, stream, confirmed, deferRecord} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -600,7 +642,14 @@ export class TextProviderHost {
     }
     // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
     const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
-    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
+    // A route that serves one request at a time (`parallel: false`: the local AI, a model server the player runs) cannot write the reply while the decision is read: the
+    // decision is a whole request in front of the reply, and it also replaces the persona in the slot (the next reply then reads the persona again). There the model is
+    // asked only when the words certainly settle it (bridge/text-action-words.mjs certainWords): a line that is nothing but a command ("drive me", "follow me"; the game still
+    // checks the exact offer), or nothing but a question about the character herself ("do you know how to drive?"). Questions, suggestions, remarks, dismissals and every
+    // other language are decided by the model as before.
+    const serial = maybe.length > 0 && this.routes[this.provider.route]?.parallel === false;
+    const byWords = serial ? this.#settleByWords(menu, text, maybe) : null;
+    const deciding = maybe.length && !byWords ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
     // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
     // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
     const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
@@ -611,7 +660,7 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
-    const decision = deciding && !guess ? await deciding : null;
+    const decision = byWords ? (byWords.code ? byWords : null) : deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
     const chosen = decided => decided && menu.message(decided) ? decided.code : null;
     // An ordinary NPC's reaction (docs/NPC_REACTIONS.md): the reply itself decides, so its note is only one more sentence of the prompt.
@@ -646,14 +695,13 @@ export class TextProviderHost {
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
         // hard-limit guard replaced is not remembered, and neither are the words that led to it.
         if (!reaction && !outcome.guarded) {
-          this.memory.record({...memoryKey, v: text, r: stripSpeechTags(reply)});
-          this.#summarize(route, local.profileKey);
+          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey});
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
         currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
           promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
-        if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
+        if (deciding || byWords?.code) { const settled = byWords?.code ? byWords : await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
@@ -682,7 +730,7 @@ export class TextProviderHost {
           continue;
         }
         if (confirmed) await confirmed;
-        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey});
+        const standing = this.#standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey: local.profileKey, signal, deferRecord});
         if (standing) return standing;
         feed.fail(error);
         throw error;
@@ -734,14 +782,14 @@ export class TextProviderHost {
     return result;
   }
 
-  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
+  #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey, signal, deferRecord}) {
     if (!(error instanceof MistralError) || route.name === 'local') return null;
     const head = feed.committed ? feed.head : '';
     // A route with `holdingLines: false` (custom) never answers with a holding line: its slow answers are errors the player is told about.
     if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
-    if (head && !reaction) { this.memory.record({...memoryKey, v: text, r: stripSpeechTags(head)}); this.#summarize(route, profileKey); }
+    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey});
     this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
       : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
     markStage('replyReturned');
@@ -791,6 +839,20 @@ export class TextProviderHost {
       this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
       return this.#plainRequest(menu, text, 'decision failed');
     }
+  }
+
+  /**
+   * What V's words certainly settle without a model request, for a route that answers one request at a time (bridge/text-action-words.mjs certainWords): a line that
+   * is only a command ("drive me", "follow me", "attack him") is the decision `{code, argument}`; a line that is only a question about the character herself is
+   * `{none: true}`; anything else is null (the model decides). Never a leave. Never throws.
+   */
+  #settleByWords(menu, text, maybe) {
+    try {
+      const settled = menu.settle?.(text, maybe) ?? null;
+      if (settled?.code) this.log(`action ${settled.code}: V's words are only that command, no decision asked (one request at a time)`);
+      return settled;
+    } catch { /* the model decides */ }
+    return null;
   }
 
   /**
@@ -847,10 +909,38 @@ export class TextProviderHost {
     this.log(`[MatureContent] ${fact}`);
   }
 
+  /**
+   * The prompt profile of a turn (bridge/prompt-profiles.mjs): chosen by the route, the loaded model's tier (Local AI) or the endpoint and model (Custom), and the Mature setting; null when the host has
+   * no profiles (an add-on's host) or the route has none (Convai), which builds the shipped base prompt. A map lookup; the local tier is read from the server's status (the server is started for it
+   * only when it is not up yet, as the request would).
+   */
+  async #profileFor(route, mature, signal) {
+    if (!this.promptProfiles) return null;
+    try {
+      let tier = null;
+      if (route.name === 'local') tier = route.tierName?.() ?? (route.loadedTier ? await route.loadedTier(signal) : null);
+      const turn = {route: route.name, tier, mature: Boolean(mature), custom: route.describe?.() ?? null};
+      const profile = this.promptProfiles.resolve(turn);
+      if (profile) this.#noteProfile(this.promptProfiles.idFor(turn), profile);
+      return profile;
+    } catch (error) {
+      if (error?.name === 'AbortError' || signal?.aborted) throw error;
+      return null;   // a profile that cannot be chosen builds the shipped prompt
+    }
+  }
+  #noteProfile(id, profile) {
+    const fact = `${id} ${profileSignature(profile)}`;
+    if (this.profilesLogged.has(fact)) return;
+    this.profilesLogged.add(fact);
+    this.log(`[PromptProfile] turn uses ${id} (${profileSignature(profile)})`);
+  }
+
   async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = false}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
+    const profile = await this.#profileFor(route, mature, signal);
+    const sampling = profile ? {...profile.sampling, stop: profile.stop} : null;
     // This turn's action notes go last in the prompt, after everything that can be cached.
     let notes = actionNotes;
     // The reaction an ordinary NPC chose with a tag alone (see run below), whose words came from a second request.
@@ -862,7 +952,7 @@ export class TextProviderHost {
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
       remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits,
-      ...(mature ? {mature} : guard ? {guard: true} : {})});
+      ...(profile ? {profile} : {}), ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
     // decision says otherwise it is cancelled and the reply is written again with the right notes.
     const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
@@ -878,7 +968,18 @@ export class TextProviderHost {
     let recentSpoken = [];
     if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
-      const shown = splitActions(soFar, {streaming: true}).text;
+      // A reply that opens with V's own words asked back ("Dex?") loses them, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one. Judged on the
+      // cleaned text, as the finished reply is (a speaker label or a *stage direction* before the echo must not hide it from the stream, or the voice would start on it and the finished reply,
+      // which no longer starts with that head, would be cut back to it).
+      const plain = splitActions(soFar, {streaming: true}).text;
+      let shown = plain;
+      if (!reaction) {
+        const cleanedSoFar = cleanReply(plain, {name: persona.name, isTag});
+        const cut = stripEchoOpener(cleanedSoFar, text, {streaming: true});
+        // What remains starting with a quotation mark is held back: the stream cleans it once more and would take a quote pair off a reply that is not wholly quoted, so the voice's head and the finished reply would differ.
+        if (cut !== cleanedSoFar) shown = QUOTED_START.test(cut) ? '' : cut;
+        else if (cutEcho) shown = cleanedSoFar;   // the add-on cuts below work on the cleaned text too, as in the finished reply
+      }
       if (!cutEcho) return shown;
       const own = stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true});
       return recentSpoken.length && startsLikeLine(own, recentSpoken) ? '' : own;
@@ -894,7 +995,7 @@ export class TextProviderHost {
       const messages = build(nudge);
       markStage('promptBuilt');
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
-      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(sampling ? {sampling} : {}), ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);
         if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
         try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
@@ -912,7 +1013,10 @@ export class TextProviderHost {
         return run(nudge);
       }
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      // Rule 4 (no opening with V's words asked back) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
+      if (!reaction) cleaned = stripEchoOpener(cleaned, text);
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
+      if (!reaction) cleaned = stripStockTail(cleaned, {service: this.echoCut || SERVICE_PROFILE.test(profileKey)});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       if (wordLimit) reply = capWords(reply, wordLimit);
@@ -1072,8 +1176,9 @@ export class TextProviderHost {
       const mature = this.guardOnly ? null : await this.#matureLevel(route);
       const guard = mature ? true : await this.#guardOn(route);
       // The player's world rules follow the head in every prompt (bridge/mistral-prompt.mjs systemPrompt), so they are warmed with it.
-      const shown = route.shapePersona ? await route.shapePersona(persona, {mature, guard, limits: this.limits}) : persona;
-      const head = systemHead({persona: shown, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
+      const profile = await this.#profileFor(route, mature);
+      const shown = route.shapePersona ? await route.shapePersona(persona, {mature, guard, limits: this.limits, ...(profile ? {profile} : {})}) : persona;
+      const head = systemHead({persona: shown, limits: this.limits, ...(profile ? {profile} : {}), ...(mature ? {mature} : guard ? {guard: true} : {})});
       await route.prewarm([{role: 'system', content: [head, worldRulesBlock(persona.worldRules)].filter(Boolean).join('\n\n')}, {role: 'user', content: '.'}], {key});
     } catch (error) {
       route.failure?.(error);

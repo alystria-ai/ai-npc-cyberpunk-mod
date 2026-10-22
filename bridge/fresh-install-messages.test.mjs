@@ -83,7 +83,9 @@ test('a running service that never answers the setup check is a Runtime older th
   assert(lineOf('versions') == nil, 'nothing to say before the service has had a chance to answer')
   local shown, request = firstLoad(nil)
   assert(request ~= nil, 'a running service is asked')
-  assert(shown == 'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.', tostring(shown))
+  -- no update zips exist for a Runtime that old: the notice is the generic one and does not name the zips; the Help line below says to get the full Runtime
+  assert(shown == 'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.', tostring(shown))
+  assert(not shown:find('update zips', 1, true))
   local line = lineOf('versions')
   assert(line.state == 'problem' and line.value == 'Problem', tostring(line and line.state))
   assert(line.description == 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.', line.description)

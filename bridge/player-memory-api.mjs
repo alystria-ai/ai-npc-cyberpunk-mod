@@ -104,15 +104,19 @@ export class PlayerMemoryApi {
   // the permanent key leave the runtime. Ownership is the shipped character id list (the pair check in #pair), and memory is
   // switched on for every mod character by the provisioning step (scripts/Enable-CharacterMemory.mjs), not here. What remains
   // (/memory/list, /memory/delete-all) authenticates with the `credential()` the bridge supplies: an API-AUTH-TOKEN header.
+  // The key is optional unless it is the player's own: a release has no shared key, so on the shared account it is the backend token only
+  // (`credential()`), and with neither a key nor a backend nothing here works (DISABLED).
   use({key, own = false, backend = false} = {}) {
-    if (typeof key !== 'string' || !key.trim()) fail('INVALID_CONFIGURATION');
-    this.#key = key.trim(); this.#own = own === true; this.#backend = backend === true && own !== true;
+    const valid = typeof key === 'string' && key.trim() !== '';
+    // Absent (null or undefined) is allowed; a value that is given must be a usable key.
+    if ((key != null && !valid) || (own === true && !valid)) fail('INVALID_CONFIGURATION');
+    this.#key = valid ? key.trim() : undefined; this.#own = own === true; this.#backend = backend === true && own !== true;
   }
   get backend() { return this.#backend; }
   get ownKey() { return this.#own; }
   #marker(profileKey) { return `[CyberpunkConvai profile v2:${this.#markers.get(profileKey) ?? profileKey}]`; }
   #pair({profileKey, characterId, endUserId} = {}, {historical = false} = {}) {
-    if (!this.#key) fail('DISABLED');
+    if (!this.#key && !this.#backend) fail('DISABLED');
     if (!token(profileKey) || !token(characterId) || !uuid(endUserId)) fail('INVALID_IDENTITY');
     const owners = [...this.#ids].filter(([, id]) => id === characterId).map(([key]) => key);
     // A durable historical pair may clear/inspect a retired ID after the current
@@ -143,7 +147,8 @@ export class PlayerMemoryApi {
     try {
       const credential = this.#credential ? await abortable(Promise.resolve(this.#credential()), combined) : {apiKey: this.#key};
       dispatched = true;
-      const fetching = Promise.resolve(this.#fetch(API + endpoint, {method: 'POST',
+      // redirect 'error': fetch would forward the CONVAI-API-KEY / API-AUTH-TOKEN header (only Authorization is stripped) to another host.
+      const fetching = Promise.resolve(this.#fetch(API + endpoint, {method: 'POST', redirect: 'error',
         headers: {'Content-Type': 'application/json', ...(credential?.authToken
           ? {'API-AUTH-TOKEN': credential.authToken} : {'CONVAI-API-KEY': credential?.apiKey ?? this.#key})},
         body: JSON.stringify(body), signal: combined}));

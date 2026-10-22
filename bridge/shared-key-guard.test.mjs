@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {PACKED_PREFIX, isKeyFileText, isPackedKeyText, packKey, readKeyFileText} from './key-codec.mjs';
 import {DAILY_LIMIT, LimitStore, sanitizeLimit, MIN_SPACING_MS, RATE_BURST, RATE_PER_MINUTE, SharedKeyGuard, TurnLimitError, UsageStore, dayOf,
   limitFromEnvironment, machineId} from './shared-key-guard.mjs';
-import {ConvaiKeys, OwnKeyControl} from './convai-key.mjs';
+import {ConvaiKeys, OwnKeyControl, parseKeyFileText} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {readFileSync} from 'node:fs';
@@ -17,32 +16,13 @@ const clockAt = start => { const clock = {at: start, now: () => clock.at, advanc
 const noon = new Date(2026, 9, 11, 12, 0, 0).getTime();
 const DAY = 24 * 3600 * 1000;
 
-// ---------------------------------------------------------------- key obfuscation
-test('the packaged key round-trips, is not a plain api-key line and is refused when damaged', () => {
-  const packed = packKey(FIXTURE);
-  assert(packed.startsWith(PACKED_PREFIX + ' ') && packed.endsWith('\n'));
-  assert(!packed.includes(FIXTURE) && !/api-key/i.test(packed), 'the file holds no greppable key line');
-  assert(!packed.includes(Buffer.from(FIXTURE).toString('base64')), 'and no plain base64 of the key');
-  assert.deepEqual(readKeyFileText(packed), {key: FIXTURE, packed: true});
-  assert.notEqual(packKey(FIXTURE), packed, 'a fresh salt changes the bytes');
-  assert.equal(readKeyFileText(packKey(FIXTURE)).key, FIXTURE);
-  assert.equal(isPackedKeyText(packed) && isKeyFileText(packed), true);
-  // Bytes flipped anywhere in the body fail the check instead of yielding a wrong key.
-  const body = packed.split(' ')[1].trim();
-  for (const index of [0, 3, 14, body.length - 2]) {
-    const swapped = body.slice(0, index) + (body[index] === 'A' ? 'B' : 'A') + body.slice(index + 1);
-    assert.equal(readKeyFileText(`${PACKED_PREFIX} ${swapped}`), null, `index ${index}`);
-  }
-  for (const bad of ['', PACKED_PREFIX, `${PACKED_PREFIX} short`, 'convai-key-v2 ' + body, null, undefined, 7]) assert.equal(readKeyFileText(bad), null);
-  assert.throws(() => packKey('short'), /unexpected format/);
-});
-
-test('a plain api-key file is still read and is never treated as the packaged key', () => {
-  assert.deepEqual(readKeyFileText(`api-key = ${FIXTURE}\r\n`), {key: FIXTURE, packed: false});
-  assert.deepEqual(readKeyFileText(`﻿API-KEY=${FIXTURE}`), {key: FIXTURE, packed: false});
-  assert.equal(readKeyFileText('api-key = two words'), null);
-  assert.equal(readKeyFileText('x'.repeat(5000)), null);
-  assert.equal(isPackedKeyText(`api-key=${FIXTURE}`), false);
+// ---------------------------------------------------------------- the key file
+test('a plain api-key file is read; a key a release before 0.2.9 packed there, or anything else, is not a key', () => {
+  assert.equal(parseKeyFileText(`api-key = ${FIXTURE}\r\n`), FIXTURE);
+  assert.equal(parseKeyFileText(`\uFEFFAPI-KEY=${FIXTURE}`), FIXTURE);
+  assert.equal(parseKeyFileText('api-key = two words'), null);
+  assert.equal(parseKeyFileText('x'.repeat(5000)), null);
+  for (const packed of ['convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n', FIXTURE, '', null, undefined, 7]) assert.equal(parseKeyFileText(packed), null);
 });
 
 // ---------------------------------------------------------------- the daily cap

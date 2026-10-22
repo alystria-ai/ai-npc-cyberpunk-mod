@@ -109,7 +109,13 @@ test('busy: the game has the floor in a scene, a call, a quest conversation, a f
   assert(J.busy(sample({tier = 2})) == nil, 'staged gameplay (the clinic, the shop) is open, as for story characters')
   assert(J.busy(sample({tier = 2, choices = true})) == nil, 'a Talk prompt in staged gameplay')
   assert(J.busy(sample({tier = 2}), true) == 'johnny-speaking', 'the staged game Johnny keeps him quiet through his line')
-  assert(J.busy(sample({tier = 3})) == 'scene' and J.busy(sample({tier = 5})) == 'scene')
+  assert(J.busy(sample({tier = 3})) == nil and J.busy(sample({tier = 4})) == nil, 'a lift ride or an FPP interaction (tier 3 or 4) alone is not a scene')
+  assert(J.busy(sample({tier = 3}), false, true) == 'scene' and J.busy(sample({tier = 4}), false, true) == 'scene', 'with a game voice line just now it is')
+  assert(J.busy(sample({tier = 4, choices = true})) == 'scene', 'with a dialogue choice on screen it is')
+  assert(J.busy(sample({tier = 3, dialogue = true})) == 'dialogue')
+  assert(J.busy(sample({tier = 4, call = true})) == 'call')
+  assert(J.busy(sample({tier = 5})) == 'scene', 'a full cinematic alone')
+  assert(J.busy(sample({tier = 2}), false, true) == nil, 'a line at tier 2 is not a scene by itself')
   assert(J.busy(sample({tier = false, choices = true})) == 'scene', 'a choice with the tier unknown fails closed')
   assert(J.busy(sample({tier = false})) == nil)
   assert(J.busy(sample({dialogue = true})) == 'dialogue')
@@ -119,7 +125,15 @@ test('busy: the game has the floor in a scene, a call, a quest conversation, a f
   assert(J.busy(sample(), true) == 'johnny-speaking')
   assert(J.busy(sample({replacer = true, call = true, dialogue = true, tier = 3, combat = true}), true) == 'replacer', 'the first reason wins')
   assert(J.busy(sample({call = true, tier = 3})) == 'call')
+  assert(J.busy(sample({tier = 1}), false, true) == nil, 'a line at tier 1 is nothing')
   assert(J.busy(nil) == 'unreadable' and J.busy({available = false}) == 'unreadable')
+`));
+
+test('recentAny: the newest game line of any speaker inside the window', () => withModule(`
+  assert(J.recentAny({}, 1000, 6) == false and J.recentAny(nil, 1000, 6) == false and J.recentAny({{at = 995}}, nil, 6) == false)
+  assert(J.recentAny({{profileKey = 'judy-alvarez', at = 995}}, 1000, 6) == true, 'another speaker counts')
+  assert(J.recentAny({{profileKey = 'judy-alvarez', at = 990}}, 1000, 6) == false, 'older than the window')
+  assert(J.recentAny({{at = 1005}}, 1000, 6) == true, 'a clock step back still counts as just now')
 `));
 
 test('recentLine: a game line of his in the last seconds, newest first, never older ones or other speakers', () => withModule(`
@@ -149,6 +163,7 @@ const service = `
   local rows = {}
   local S = J.new({readFact = readFact, clock = function() return t end, now = function() return wall end,
     sample = function(player) state.samples = state.samples + 1; assert(player == 'V'); return state.sample end,
+    workspot = function(player) assert(player == 'V'); return true end,
     lines = function() return rows end})
   local player = {GetEntityID = function() return {hash = '4242ULL'} end}
   local function tick(seconds) t = t + seconds; wall = wall + seconds end
@@ -190,14 +205,29 @@ test('refusal facts: the log line names V\'s scene facts and the age of his last
   assert(J.lineAge({{profileKey = 'johnny-silverhand', at = 990}, {profileKey = 'judy-alvarez', at = 998}}, 1000, 'johnny-silverhand') == 10, 'his own newest line, not another speaker\\'s')
   assert(J.lineAge({{profileKey = 'johnny-silverhand', at = 1005}}, 1000, 'johnny-silverhand') == 0, 'a clock step back is never negative')
   assert(J.describe(nil, nil) == 'sample=none')
-  assert(J.describe({tier = 3, dialogue = true, choices = false, call = false, replacer = false, combat = false, vehicle = true, scene = true}, 3.9)
-    == 'tier=3 dialogue=true choices=false call=false replacer=false combat=false sitting=? vehicle=true scene=true lastLine=3s')
+  assert(J.describe({tier = 3, dialogue = true, choices = false, call = false, replacer = false, combat = false, vehicle = true, scene = true, workspot = true}, 3.9)
+    == 'tier=3 dialogue=true choices=false call=false replacer=false combat=false sitting=? vehicle=true scene=true workspot=true lastLine=3s')
   assert(J.describe({}, nil):find('tier=? ', 1, true) and J.describe({}, nil):find('lastLine=none$'))
   -- A service that refuses keeps the basis and gives it back as one line; one that does not has nothing to say but the story state.
   values.q101_done = 1
   state.sample.tier = 3; state.sample.vehicle = true
+  assert(S:refusal('V') == nil, 'tier 3 alone (a lift, a ride) no longer refuses')
+  tick(0.5)
+  state.sample.choices = true
   assert(S:refusal('V') == 'scene')
-  assert(S:detail() == 'tier=3 dialogue=false choices=false call=false replacer=false combat=false sitting=? vehicle=true scene=? lastLine=none', S:detail())
+  assert(S:detail() == 'tier=3 dialogue=false choices=true call=false replacer=false combat=false sitting=? vehicle=true scene=? workspot=true lastLine=none', S:detail())
+  state.sample.choices = nil
+  tick(0.5)
+  rows[1] = {profileKey = 'judy-alvarez', at = wall - 2}
+  assert(S:refusal('V') == 'scene', 'tier 3 with any game voice line two seconds ago is a scene')
+  tick(0.5)
+  rows[1].at = wall - 9
+  assert(S:refusal('V') == nil, 'the line is older than six seconds: the lift ride is open again')
+  state.sample.choices = true
+  tick(0.5)
+  assert(S:refusal('V') == 'scene')
+  state.sample.choices = nil
+  rows[1] = nil
   tick(0.1)
   assert(S:refusal('V') == 'scene' and S:detail():find('tier=3', 1, true), 'held: the same basis')
   tick(0.5)
@@ -355,11 +385,11 @@ test('parseInput: a private turn keeps the head (never a holocall as well); a gr
 test('right now: he is in V\'s head with no body, knows what V sees and feels, and never gets a place of his own', () => {
   const input = parseInput(raw());
   const text = turnContext(input);
-  assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath; V is in Watson."), text);
+  assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath. V is somewhere in Watson; exactly where is not given."), text);
   assert.match(text, /Also with V: Judy Alvarez\. /, 'he sees who is with V');
   assert.match(text, /V is hurt\. The police are after V\. .*V is short on cash\./);
   assert.match(text, /you have no body here and go wherever V goes/);
-  assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors/);
+  assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors|You are somewhere in|under their breath; V is/);
   assert.ok(text.length <= 900);
   assert.match(turnContextDiagnostic(input), new RegExp(`^Turn context: \\d+ facts, ${text.length} chars head=grudging$`));
   // Anyone else with a stray head field, a phone chat or a group round is unchanged.
@@ -397,7 +427,8 @@ test('the text providers say where he is right before V\'s words', () => {
   const messages = buildMessages({persona: {name: 'Johnny Silverhand', ambient: false, backstory: 'A rockerboy engram.', style: 'Dry.',
     samples: ['V: Hi. Johnny: What.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages[messages.length - 1].content;
-  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*V is in Watson\. You have no body; you go where V goes/);
+  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*under their breath\. You have no body; you go where V goes/);
+  assert.doesNotMatch(last, /Watson|somewhere in/, 'where V is is not repeated before the words of V');
 });
 
 test('shipping: the module ships and dev-installs; the setting has its row and help in English and all 15 languages', () => {

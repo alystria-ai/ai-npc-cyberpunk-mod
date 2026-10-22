@@ -245,3 +245,43 @@ test('the right-now block is never clipped below the turn-context cap', async ()
   const {MAX_CHARS} = await import('./turn-context.mjs');
   assert.ok(LIMITS.now >= MAX_CHARS, `LIMITS.now ${LIMITS.now} < turn-context MAX_CHARS ${MAX_CHARS}`);
 });
+
+test("lean character text (the bridge's PersonaBook): reviewer notes gone, rules and guardrails kept, the repeated blocks in one line each, the same headings; without the option the roster text is as shipped", () => {
+  const lean = new PersonaBook([...named, ...archetypes], {lean: true});
+  const raw = named.find(row => row.key === 'panam-palmer'), whole = book.persona('panam-palmer'), thin = lean.persona('panam-palmer');
+  assert.equal(whole.backstory, raw.backstory.replace(/^\s*\[CyberpunkConvai profile[^\]]*\]\s*$/gm, '').trim(), 'without the option nothing is cut');
+  assert.match(whole.backstory, /^Scope:/m);
+  // Provenance notes go; a Scope line that is a rule against inventing or overclaiming stays (the review of 2026-10-22 counted them by hand).
+  const scopes = text => text.split('\n').filter(line => line.startsWith('Scope:'));
+  const rule = /\b(?:do not|don't|never|avoid|invent(?:ed)?|give no)\b|^Scope:\s*No\b/i;
+  assert.ok(scopes(thin.backstory).length > 0 && scopes(thin.backstory).every(line => rule.test(line)), 'every Scope line that is left is a rule');
+  assert.ok(scopes(whole.backstory).filter(line => rule.test(line)).every(line => thin.backstory.includes(line)), 'no Scope rule is lost');
+  assert.ok(scopes(thin.backstory).length < scopes(whole.backstory).length, 'the notes are gone');
+  const johnny = lean.persona('johnny-silverhand');
+  assert.match(johnny.backstory, /Scope: [^\n]*[Dd]o not invent/, "Johnny's guardrails stay");
+  assert.doesNotMatch(thin.backstory, /Summoning a copy establishes no quest outcome, survival/, 'the 601-character save block is shorter');
+  assert.match(thin.backstory, /KNOWLEDGE AND CURRENT SAVE\nVerified current-save context overrides memory\. Summoning you establishes no quest outcome, survival, romance or prior meeting\./);
+  assert.match(thin.backstory, /a group invitation or a direct question alone does not/, 'the group-disclosure rule stays');
+  assert.match(thin.backstory, /PUBLIC INTRINSIC TOPIC MATERIAL\nBackground and personal views, not proof that V met you/);
+  assert.match(thin.backstory, /My background is Aldecaldo nomad life/, 'the claims themselves stay');
+  for (const heading of ['ESTABLISHED BACKGROUND', 'ESTABLISHED RELATIONSHIPS', 'KNOWLEDGE LIMITS']) assert.match(thin.backstory, new RegExp(`^${heading}$`, 'm'));
+  assert.ok(thin.backstory.length < whole.backstory.length * 0.9, `${thin.backstory.length} of ${whole.backstory.length}`);
+  assert.doesNotMatch(thin.style, /Speak naturally to V/);
+  assert.match(thin.style, /In a group, speak for yourself and leave room for the others\. Never reveal private conversation history to a group\.$/, 'the group-talk sentences stay');
+  assert.doesNotMatch(thin.style, /Dialogue samples are original delivery examples/);
+  assert.match(whole.style, /Speak naturally to V/);
+  const vendor = lean.persona('npc-food-vendor-male');
+  assert.match(vendor.style, /Use slang sparingly, not in every sentence\./, 'it fights the "choom" overuse of the archetypes');
+  const cop = lean.persona('npc-ncpd-male');
+  // Since fix/character-data-1022 the roster text itself tells an archetype to mention the place or the hour only if V asks; the lean pass has nothing to rewrite there (it used to).
+  assert.doesNotMatch(cop.backstory, /where you are \(district, neighborhood\)/, 'an archetype is not told to take its place from the context');
+  assert.match(cop.backstory, /Mention the place or the hour only if V asks or it changes what you would say/);
+  assert.equal(cop.backstory, book.persona('npc-ncpd-male').backstory.replace(/\n{3,}/g, '\n\n').trim(), 'an archetype\'s backstory has no reviewer notes or repeated blocks to cut, so the lean text is the roster text');
+});
+
+test('rule 7 leaves the weather, the time of day and the place unsaid unless V asks, and still names the right-now section as the truth', () => {
+  const prompt = systemPrompt({persona: book.persona('judy-alvarez')});
+  assert.doesNotMatch(prompt, /a few words of attitude about the place or the hour/);
+  assert.match(prompt, /say nothing about the weather, the time of day or the place unless V asks about them/);
+  assert.match(prompt, /The "Right now" section at the end of this message is the plain truth/);
+});

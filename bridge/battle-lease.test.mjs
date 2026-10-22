@@ -43,7 +43,7 @@ function fixture() {
     const stat=async()=>fileState.gone?null:({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath ? rawInput : readLease();
     const prefetch={invalidate(){},claim(){return null;}}, lookahead={claim(){return null;}}, completeContext=()=>'', status=async(...args)=>noteStatus(...args);
-    const processInput=request=>record(request);
+    const processInput=request=>record(request), providerForTurn=async()=>{};
     ${adapter}
     globalThis.api={tick,reactionCurrent,refusal:reactionLeaseRefusal,state:()=>({active,observed,lastAcceptedIdentity}),
       setActive:value=>{active=value;},setRelationshipReservation:value=>{relationshipRouteReservation=value;}};

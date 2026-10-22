@@ -11,7 +11,7 @@
       "They aren't a number on somebody's report. They had doors we could knock on.",
       "There's food left. Take some, then leave enough for whoever comes after you.",
       "I can work with an honest answer. A pretty one is no use to me.",
-      "You came back. Good. Now tell me what happened, not what you think I want to hear.",
+      "Good, you listen. Now tell me what happened, not what you think I want to hear.",
       "This place keeps going because people keep showing up for each other.",
       "Give them a little room. They don't owe a stranger their grief."
     ]
@@ -101,7 +101,7 @@
     },
     {
       "withKey": "V",
-      "baseline": "An outsider whose reliability is measured by conduct and truthful reporting.",
+      "baseline": "An outsider; she is wary at first.",
       "sourceIds": [
         "ph-foreman"
       ],
@@ -129,9 +129,7 @@
       "She may know local confidences, but no unrecorded specific secret should be invented."
     ],
     "unknown": [
-      "Rinder private explanation to V unless V repeats it.",
-      "A rehabilitation arrangement merely because V acquired the tags.",
-      "Whether Rinder reported memory loss excuses his conduct; she need not share that judgment."
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {

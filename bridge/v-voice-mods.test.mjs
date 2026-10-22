@@ -373,3 +373,100 @@ test('compressed lines are skipped with one log line; a mod of only compressed l
     assert.equal(logs.length, 1);
   });
 });
+
+// ---- review A2 / A10: bad lines are skipped, failed builds are remembered, a failed new mod never keeps an older mod's voice -----------------------------------
+
+test('a line the decoder cannot decode, or whose audio cannot be read, is skipped and a spare line takes its place; a decoder that fails line after line stops after three', async () => {
+  await withFolder(async folder => {
+    const logs = [];
+    await writeFile(join(folder, 'm.archive'), makeArchive(PATHS.male.map((path, i) => ({path, bytes: wem(i)}))));
+    const good = () => wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000);
+    const decode = async bytes => { if (bytes[4] === 0) throw Error('vgmstream exit 1'); return good(); };
+    const made = await buildModReference({archive: join(folder, 'm.archive'), lines: modLines.genders.male.lines, decode, log: line => logs.push(line)});
+    assert.deepEqual(made.entry.clips.map(c => c.stringId), ['male1', 'male2', 'male3'], 'the line that failed to decode is skipped, not fatal: a spare line takes its place');
+    assert.deepEqual(logs, ['1 line(s) of the mod could not be decoded and were skipped']);
+    const unreadable = async bytes => bytes[4] === 1 ? Buffer.from('not a wav at all') : good();
+    const other = await buildModReference({archive: join(folder, 'm.archive'), lines: modLines.genders.male.lines, decode: unreadable});
+    assert.deepEqual(other.entry.clips.map(c => c.stringId), ['male0', 'male2', 'male3'], 'a decoded file that is no WAV is skipped too');
+    let calls = 0;
+    await assert.rejects(buildModReference({archive: join(folder, 'm.archive'), lines: modLines.genders.male.lines, decode: async () => { calls++; throw Error('hung'); }}), {code: 'decoder'});
+    assert.equal(calls, 3, 'a broken tool is not tried on every line (a hang is 30 s each)');
+  });
+});
+
+test('a failed build is remembered by archive name, size and time: not tried again at the next start, tried again when the archive changes', async () => {
+  await withFolder(async folder => {
+    const mods = join(folder, 'mods'), out = join(folder, 'v-voice-mod'), cachePath = join(folder, 'cache.json');
+    await (await import('node:fs/promises')).mkdir(mods);
+    await writeFile(join(mods, 'jc.archive'), makeArchive([...PATHS.male.slice(0, 3), ...PROBES.male].map((path, i) => ({path, bytes: wem(i)}))));
+    let decodes = 0, failing = true;
+    const decode = async () => { decodes++; if (failing) throw Error('no tool'); return wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000); };
+    const logs = [];
+    const run = () => ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath, log: line => logs.push(line)});
+    assert.deepEqual((await run()).voices, {male: 'failed:decoder'});
+    const first = decodes;
+    assert.ok(first > 0);
+    for (let start = 0; start < 3; start++) assert.deepEqual((await run()).voices, {male: 'failed-before:decoder'}, 'every later start');
+    assert.equal(decodes, first, 'the decoder is not run again at any of them');
+    failing = false;
+    assert.deepEqual((await run()).voices, {male: 'failed-before:decoder'}, 'the archive is the same: still remembered');
+    await utimes(join(mods, 'jc.archive'), new Date(), new Date(Date.now() + 9000));
+    assert.deepEqual((await run()).voices, {male: 'built'}, 'a changed archive is tried again');
+    assert.equal(JSON.parse(await readFile(join(out, 'v-voice.json'), 'utf8')).failed, undefined, 'and the memory is cleared by the success');
+    assert.equal(logs.filter(line => /keeps the shipped voice/.test(line)).length, 5);
+  });
+});
+
+test('a new mod whose build fails does not leave the older mod\'s voice in place: its reference is removed and the log says the shipped voice is used', async () => {
+  await withFolder(async folder => {
+    const mods = join(folder, 'mods'), out = join(folder, 'v-voice-mod'), cachePath = join(folder, 'cache.json');
+    await (await import('node:fs/promises')).mkdir(mods);
+    const archive = () => makeArchive([...PATHS.male.slice(0, 3), ...PROBES.male].map((path, i) => ({path, bytes: wem(i)})));
+    await writeFile(join(mods, 'a-first.archive'), archive());
+    let failing = false;
+    const decode = async () => { if (failing) throw Error('no tool'); return wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000); };
+    const logs = [];
+    const first = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath, log: line => logs.push(line)});
+    assert.deepEqual([first.voices, first.sources], [{male: 'built'}, {male: 'a-first.archive'}]);
+    failing = true; logs.length = 0;
+    await writeFile(join(mods, 'z-second.archive'), archive());
+    const second = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode, cachePath, log: line => logs.push(line)});
+    assert.deepEqual(second.voices, {male: 'failed:decoder'});
+    assert.equal(second.directory, null, 'no reference of the older mod is kept');
+    assert.equal(existsSync(join(out, 'v-male.wav')), false);
+    assert.equal(JSON.parse(await readFile(join(out, 'v-voice.json'), 'utf8')).voices.male, undefined);
+    assert.equal(logs.some(line => /reference/.test(line) && /a-first/.test(line)), false, 'no line about the reference names the older mod');
+    assert.ok(logs.some(line => /z-second\.archive: decoder; V keeps the shipped voice/.test(line)), logs.join('|'));
+  });
+});
+
+test('with no decoder a new winner removes the older mod\'s reference too; a failure is remembered against the decoder that failed and a read error of the moment is not remembered', async () => {
+  await withFolder(async folder => {
+    const mods = join(folder, 'mods'), out = join(folder, 'v-voice-mod'), cachePath = join(folder, 'cache.json');
+    await (await import('node:fs/promises')).mkdir(mods);
+    const archive = () => makeArchive([...PATHS.male.slice(0, 3), ...PROBES.male].map((path, i) => ({path, bytes: wem(i)})));
+    await writeFile(join(mods, 'a-first.archive'), archive());
+    const good = async () => wavOf(sine({seconds: 3.5, rate: 40000, level: 0.2, lead: 0.2, tail: 0.2}), 40000);
+    await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: good, cachePath});
+    await writeFile(join(mods, 'z-second.archive'), archive());
+    const none = await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, cachePath});
+    assert.deepEqual(none.voices, {male: 'needs-decoder'});
+    assert.equal(none.directory, null, 'the older mod\'s voice is not kept under the new mod\'s name');
+    assert.equal(existsSync(join(out, 'v-male.wav')), false);
+    // A failure belongs to the decoder that failed: a different decoder (a repaired or newer one) tries the mod again.
+    let calls = 0;
+    const broken = async () => { calls++; throw Error('no tool'); };
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: broken, decoderId: '100-1', cachePath})).voices, {male: 'failed:decoder'});
+    const first = calls;
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: broken, decoderId: '100-1', cachePath})).voices, {male: 'failed-before:decoder'});
+    assert.equal(calls, first);
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: good, decoderId: '200-2', cachePath})).voices, {male: 'built'}, 'another decoder: tried again');
+    // A read error of the moment (antivirus, the game holding the file) is tried again at the next scan.
+    await rm(join(out, 'v-male.wav')); await rm(join(out, 'v-voice.json'));
+    const busy = async () => { throw Object.assign(Error('busy'), {code: 'EBUSY'}); };
+    const build = async () => { throw Object.assign(Error('busy'), {code: 'EBUSY'}); };
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: busy, decoderId: '200-2', cachePath, build})).voices, {male: 'failed:EBUSY'});
+    assert.equal(JSON.parse(await readFile(join(out, 'v-voice.json'), 'utf8')).failed, undefined, 'not remembered');
+    assert.deepEqual((await ensureVoiceModReferences({modFolder: mods, outFolder: out, modLines, decode: good, decoderId: '200-2', cachePath})).voices, {male: 'built'});
+  });
+});

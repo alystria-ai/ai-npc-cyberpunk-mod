@@ -1,5 +1,6 @@
 // The credential for the project's shared Convai account: a short-lived token from the sign-in backend (auth-backend/,
-// docs/CONVAI_AUTH_BACKEND.md) instead of the permanent key. Off unless switched on (see readAuthSettings).
+// docs/CONVAI_AUTH_BACKEND.md) instead of the permanent key. A release package ships it switched ON (app/defaults/convai-auth.json,
+// written by the release build) and ships no Convai key at all; a development checkout has it off unless switched on (see readAuthSettings).
 //
 // Latency: a turn NEVER waits on this. The token is fetched in the background when the bridge starts and renewed 8 to 10
 // minutes before it expires; current() is a synchronous read of memory. The only wait is the very first connection of a
@@ -10,14 +11,21 @@
 // and a timestamp. That signature is OBFUSCATION, not authentication: the secret ships inside the program, so anyone who
 // reads the program can sign. It only stops casual replay of a copied request (auth-backend/README.md says the same).
 //
-// Failure handling: an unreachable or broken backend lets the bridge fall back to the embedded key (while the flag allows
-// it); a backend that REFUSES (daily allowance used, rate limit, paused, outdated, blocked) is obeyed, never bypassed.
+// Failure handling: an unreachable or broken backend lets the bridge fall back to a key of the developer's own (only while the flag
+// allows it and such a key exists; a release has neither); a backend that REFUSES (daily allowance used, rate limit, paused, outdated,
+// blocked) is obeyed, never bypassed. With no token and no fallback a turn fails at once with a plain notice (unavailableError).
 import {createHmac, randomUUID} from 'node:crypto';
 import {readFile, writeFile, rename, rm} from 'node:fs/promises';
+import {join} from 'node:path';
 import {TurnLimitError, sanitizeLimit} from './shared-key-guard.mjs';
 
 export const INSTALL_FILE = 'convai-install.json';
 export const AUTH_CONFIG_FILE = 'convai-auth.json';
+// The release build's own copy of the same settings, inside the Runtime (app/defaults/convai-auth.json):
+// {"version": 1, "enabled": true, "url": "https://<backend>/api/convai/token", "secret": "<client request secret>", "fallback": false}.
+// The lowest-priority source of readAuthSettings. It is NOT the error reports' file (app/defaults/error-reports.json, bridge/error-reports.mjs):
+// the two secrets are different on purpose and neither reader looks at the other's file.
+export const PACKAGED_AUTH_FILE = join('defaults', 'convai-auth.json');
 // The request-signing secret may be compiled in here by a release build; it is empty in the repository. Normally it comes from
 // CYBERPUNK_CONVAI_AUTH_SECRET or from the "secret" field of convai-auth.json in the state folder.
 const EMBEDDED_SECRET = '';
@@ -34,24 +42,33 @@ const FALLBACK_KINDS = new Set(['unreachable', 'server', 'unauthorized', 'reject
 const truthy = value => ['1', 'true', 'yes', 'on'].includes(String(value ?? '').trim().toLowerCase());
 const falsy = value => ['0', 'false', 'no', 'off'].includes(String(value ?? '').trim().toLowerCase());
 
+async function readJsonObject(readText, path) {
+  if (!path) return {};
+  // A byte-order mark (PowerShell and older Notepad write one) is not part of the JSON; the other settings readers strip it too.
+  try { const parsed = JSON.parse((await readText(path)).replace(/^\uFEFF/, '')); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed; }
+  catch { /* none, or unreadable: the file is optional */ }
+  return {};
+}
+const asText = value => typeof value === 'string' ? value.trim() : '';
+
 /**
- * Whether backend mode is on, and how. Environment first, then convai-auth.json. Off by default: nothing changes for a player
- * until a deployed backend is enabled. Returns {enabled, url, secret, fallback, problem}; `problem` says why a requested
- * backend mode could not start (it never contains a secret).
+ * Whether backend mode is on, and how. Per field, the first source that has it: the environment, then convai-auth.json in the state
+ * folder (`path`), then the release package's app/defaults/convai-auth.json (`packagedPath`). So a developer's own state-folder file
+ * with "enabled": false still switches a package's backend mode off. Off when no source switches it on: nothing changes for a
+ * development checkout until a deployed backend is enabled. `usePackaged: false` leaves the package's file out (the bridge does that
+ * when the state folder holds a plain developer key: that key is used directly, as it always was). Returns {enabled, url, secret,
+ * fallback, problem}; `problem` says why a requested backend mode could not start (it never contains a secret).
  */
-export async function readAuthSettings({env = process.env, readText = path => readFile(path, 'utf8'), path} = {}) {
-  let file = {};
-  if (path) {
-    // A byte-order mark (PowerShell and older Notepad write one) is not part of the JSON; the other settings readers strip it too.
-    try { const parsed = JSON.parse((await readText(path)).replace(/^﻿/, '')); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) file = parsed; }
-    catch { /* none, or unreadable: the file is optional */ }
-  }
-  const asked = env.CYBERPUNK_CONVAI_AUTH_BACKEND !== undefined && env.CYBERPUNK_CONVAI_AUTH_BACKEND !== ''
-    ? truthy(env.CYBERPUNK_CONVAI_AUTH_BACKEND) : file.enabled === true;
-  const url = String(env.CYBERPUNK_CONVAI_AUTH_URL || file.url || '').trim();
-  const secret = String(env.CYBERPUNK_CONVAI_AUTH_SECRET || file.secret || EMBEDDED_SECRET || '').trim();
-  const fallback = env.CYBERPUNK_CONVAI_AUTH_FALLBACK !== undefined && env.CYBERPUNK_CONVAI_AUTH_FALLBACK !== ''
-    ? !falsy(env.CYBERPUNK_CONVAI_AUTH_FALLBACK) : file.fallback !== false;
+export async function readAuthSettings({env = process.env, readText = path => readFile(path, 'utf8'), path, packagedPath, usePackaged = true} = {}) {
+  const file = await readJsonObject(readText, path);
+  const packaged = usePackaged ? await readJsonObject(readText, packagedPath) : {};
+  const set = name => env[name] !== undefined && env[name] !== '';
+  const asked = set('CYBERPUNK_CONVAI_AUTH_BACKEND') ? truthy(env.CYBERPUNK_CONVAI_AUTH_BACKEND)
+    : typeof file.enabled === 'boolean' ? file.enabled : packaged.enabled === true;
+  const url = String(env.CYBERPUNK_CONVAI_AUTH_URL || asText(file.url) || asText(packaged.url) || '').trim();
+  const secret = String(env.CYBERPUNK_CONVAI_AUTH_SECRET || asText(file.secret) || asText(packaged.secret) || EMBEDDED_SECRET || '').trim();
+  const fallback = set('CYBERPUNK_CONVAI_AUTH_FALLBACK') ? !falsy(env.CYBERPUNK_CONVAI_AUTH_FALLBACK)
+    : typeof file.fallback === 'boolean' ? file.fallback : typeof packaged.fallback === 'boolean' ? packaged.fallback : true;
   if (!asked) return {enabled: false, url: '', secret: '', fallback, problem: null};
   let parsedUrl = null;
   try { parsedUrl = new URL(url); } catch { /* reported below */ }
@@ -65,8 +82,9 @@ export async function readAuthSettings({env = process.env, readText = path => re
 
 /**
  * The sign-in backend's address and request-signing secret as configured, whether or not backend mode is on: the automatic error
- * reports (bridge/error-reports.mjs) go to the same deployment. Same sources and order as readAuthSettings (environment, then
- * convai-auth.json, then a secret compiled into a release). Returns {url, secret} (url '' when none is set, or when it is not https
+ * reports (bridge/error-reports.mjs) go to the same deployment. Sources: the environment, then convai-auth.json in the state folder, then a
+ * secret compiled into a release. It never reads the package's app/defaults/convai-auth.json (PACKAGED_AUTH_FILE): that request secret is
+ * not the error reports' secret (their own file is app/defaults/error-reports.json). Returns {url, secret} (url '' when none is set, or when it is not https
  * and not a local address), or null when there is no secret.
  */
 export async function readBackendAddress({env = process.env, readText = path => readFile(path, 'utf8'), path} = {}) {
@@ -111,7 +129,7 @@ const clampSeconds = (value, fallback, min, max) => Number.isFinite(value) ? Mat
 
 export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
-  #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = '';
+  #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
 
   constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
     clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true, onLimit = () => {}} = {}) {
@@ -143,11 +161,23 @@ export class TokenSource {
   current() {
     return this.#token && this.#token.expiresAt - this.now() > NEAR_EXPIRY_MS ? {token: this.#token.value, expiresAt: this.#token.expiresAt} : null;
   }
-  /** Resolves true when a token is available. It waits only while the first fetch of this run is still in flight, at most
-   * `timeoutMs`; with a token already held, or no fetch running, it answers at once. */
+  /** A turn found no token although the last answer was good (or there was none yet): the token expired while no renewal ran, for example
+   * after the computer slept. Starts one fetch in the background, at most every 30 s, and only then: after a failure the retry schedule
+   * (5 s, 15 s, 60 s, 5 min) already decides, so a turn never adds requests to a backend that is down. Returns at once. */
+  kick() {
+    if (this.#stopped || !this.#started || this.#inflight || this.current()) return;
+    if (this.lastKind !== undefined && this.lastKind !== 'ok') return;
+    const now = this.now();
+    if (now - this.#lastKick < 30_000) return;
+    this.#lastKick = now;
+    void this.#attempt();
+  }
+  /** Resolves true when a token is available. It waits (at most `timeoutMs`) only while a fetch is in flight and no answer so far was a
+   * failure: the first fetch of a run, or the fetch a turn started because the token had run out after a good answer. With a token
+   * held, no fetch running, or an earlier failure (a retry runs in the background and is never waited for), it answers at once. */
   ready({timeoutMs = 4000} = {}) {
     if (this.current()) return Promise.resolve(true);
-    if (!this.#inflight) return Promise.resolve(false);
+    if (!this.#inflight || (this.lastKind !== undefined && this.lastKind !== 'ok')) return Promise.resolve(false);
     return new Promise(resolve => {
       const timer = this.setTimer(() => resolve(false), timeoutMs);
       timer?.unref?.();

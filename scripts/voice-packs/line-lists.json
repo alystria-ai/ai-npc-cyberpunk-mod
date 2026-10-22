@@ -9991,6 +9991,384 @@
           "archive": "content"
         }
       ]
+    },
+    "npc-joytoy-female": {
+      "kind": "archetypes",
+      "ids": [
+        "civ_mid_f_55_jap_25/1954542411710504964",
+        "civ_mid_f_55_jap_25/1935675942504935436",
+        "civ_mid_f_55_jap_25/1924383912166707200"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1b1fedf7c470a004",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_mid_f_55_jap_25_civ_mid_m_10_enus_30_big",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1adce7039946b00c",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_mid_f_55_jap_25_bls_ina_se1_medicstore_01",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1ab4c8f8e82c5000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_mid_f_55_jap_25_japantown",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-joytoy-female-v2": {
+      "kind": "archetypes",
+      "ids": [
+        "civ_low_f_109_bra_40/3235989956757278720",
+        "civ_low_f_109_bra_40/1974846791853854720",
+        "civ_low_f_109_bra_40/3253555070046216192"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "2ce88bb87d3fd000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_low_f_109_bra_40_ow_conversations",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "1b6810b1aa44d000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_low_f_109_bra_40_bls_ina_se5_melee_01",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "2d26f3191f46a000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_low_f_109_bra_40_ow_conversations",
+          "rest": "",
+          "archive": "ep1"
+        }
+      ]
+    },
+    "npc-joytoy-male": {
+      "kind": "archetypes",
+      "ids": [
+        "civ_cbz_m_08_rus_30/3123339694479360000",
+        "civ_cbz_m_08_rus_30/3498603149557481472"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "2b5854e76a51c000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_cbz_m_08_rus_30_q301",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "308d8907336fc000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_cbz_m_08_rus_30_mq306",
+          "rest": "",
+          "archive": "ep1"
+        }
+      ]
+    },
+    "npc-joytoy-male-v2": {
+      "kind": "archetypes",
+      "ids": [
+        "civ_low_m_99_jap_30/3336218763599368192",
+        "civ_low_m_99_jap_30/3241887215021441024"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "2e4ca14a19555000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_low_m_99_jap_30_sts_ep1_06",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "2cfd7f3eed3bc000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "civ_low_m_99_jap_30_ow_conversations",
+          "rest": "",
+          "archive": "ep1"
+        }
+      ]
+    },
+    "npc-maxtac-female": {
+      "kind": "archetypes",
+      "ids": [
+        "ncpd_mid_f_01_enus_30/2182321335500791808",
+        "ncpd_mid_f_01_enus_30/2182323254445203456",
+        "ncpd_mid_f_01_enus_30/2182337722277421056"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1e4929b13447e000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_f_01_enus_30_fat_crime_scene_chat_022",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1e492b6ffe47e000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_f_01_enus_30_fat_crime_scene_chat_023",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1e4938988c47e000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_f_01_enus_30_fat_crime_scene_chat_030",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-maxtac-male": {
+      "kind": "archetypes",
+      "ids": [
+        "ncpd_mid_m_03_afam_25/3525945675379740672",
+        "ncpd_mid_m_03_afam_25/3111475693332402176",
+        "ncpd_mid_m_03_afam_25/3236147803484262400",
+        "ncpd_mid_m_03_afam_25/3307504126170685444"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "30eeace916559000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_m_03_afam_25_ow_sa",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "2b2e2ea864571000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_m_03_afam_25_q301",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "2ce91b480b571000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_m_03_afam_25_q301",
+          "rest": "",
+          "archive": "ep1"
+        },
+        {
+          "hex": "2de69d7a958ae004",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_mid_m_03_afam_25_q306",
+          "rest": "",
+          "archive": "ep1"
+        }
+      ]
+    },
+    "npc-maxtac-male-v2": {
+      "kind": "archetypes",
+      "ids": [
+        "ncpd_low_m_04_afam_30/2260489231938011136",
+        "ncpd_low_m_04_afam_30/2182335203178438656",
+        "ncpd_low_m_04_afam_30/1963524845559595008"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1f5edefad842c000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_low_m_04_afam_30_00_afterlife_global_scene",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1e49364e0647e000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_low_m_04_afam_30_crime_scene_chat_025",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1b3fd7719f3bc000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "ncpd_low_m_04_afam_30_cct_dtn_chat_006",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-nusa-female": {
+      "kind": "archetypes",
+      "ids": [
+        "sec_low_f_02_afam_30/1905561017943334912",
+        "sec_low_f_02_afam_30/1905561274735403008"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1a71e9a654582000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_02_afam_30_security_low",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1a71e9e21e582000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_02_afam_30_security_low",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-nusa-female-v2": {
+      "kind": "archetypes",
+      "ids": [
+        "sec_low_f_03_bra_40/1905562400151052292",
+        "sec_low_f_03_bra_40/1905562400469819392",
+        "sec_low_f_03_bra_40/1905562398708211716",
+        "sec_low_f_03_bra_40/1905562398808875012"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1a71eae826582004",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_03_bra_40_security_low",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1a71eae839582000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_03_bra_40_security_low",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1a71eae7d0582004",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_03_bra_40_security_low",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1a71eae7d6582004",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_f_03_bra_40_security_low",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-nusa-male": {
+      "kind": "archetypes",
+      "ids": [
+        "sec_low_m_01_enus_30/2177976209378570240",
+        "sec_low_m_01_enus_30/2182457743878348800"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1e39b9d2b142f000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_m_01_enus_30_wat_awf_chat_001",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "1e49a5c1412b6000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_low_m_01_enus_30_bls_ina_chat_001",
+          "rest": "",
+          "archive": "content"
+        }
+      ]
+    },
+    "npc-nusa-male-v2": {
+      "kind": "archetypes",
+      "ids": [
+        "sec_high_m_10_mex_30/1898009577536364544",
+        "sec_high_m_10_mex_30/1837360181526007808",
+        "sec_high_m_10_mex_30/3466750238006616064"
+      ],
+      "englishGainDb": 0.0,
+      "gainStage": false,
+      "lines": [
+        {
+          "hex": "1a5715a799582000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_high_m_10_mex_30_security_high",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "197f9d59b04e1000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_high_m_10_mex_30_q113",
+          "rest": "",
+          "archive": "content"
+        },
+        {
+          "hex": "301c5ef94d62a000",
+          "fm": "f",
+          "vo": "vo",
+          "stem": "sec_high_m_10_mex_30_q307",
+          "rest": "",
+          "archive": "ep1"
+        }
+      ]
     }
   },
   "untraced": [

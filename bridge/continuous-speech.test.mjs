@@ -588,6 +588,93 @@ assert(lingered and lingered>0 and captions.timed==nil,'the page is held briefly
 lingered=nil;speech.abandon();assert(lingered==nil)
 `));
 
+test('a voice that breaks after the reply started: the error state carries the whole written reply and that is what shows, once',()=>run(`
+-- The first sentence is heard, then the bridge writes the error state with the COMPLETE text (bridge/convai-continuous-speech.mjs failToText).
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='First sentence.',textComplete=false});tick()
+assert(speech.requestId and captions.timed)
+captions.line=nil
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='First sentence. And the rest of the reply.',textComplete=true});tick()
+assert(not speech.requestId,'the broken stream ends the utterance')
+assert(captions.line=='First sentence. And the rest of the reply.','the complete written reply is shown, not the first sentence: '..tostring(captions.line))
+assert(tostring(speech.error):find('voice stream stopped',1,true),'the game keeps the reason for its one voice-ended notice')
+-- A broken stream whose text is not complete (the old behaviour) still shows what was known.
+captions.line=nil
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Known so far.',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Known so far.',textComplete=false});tick()
+assert(captions.line=='Known so far.')
+`));
+
+test('a reply the voice could not speak shows its text even with Subtitles off; a reaction and a voice the player turned off keep the setting',()=>run(`
+local anyway,plain={},{}
+function captions.showAnyway(name,text)anyway[#anyway+1]=text;return true end
+local show=captions.show
+function captions.show(name,text,...)plain[#plain+1]=text;return show(name,text,...)end
+-- the stream breaks after it started: the unvoiced text is shown regardless of the Subtitles setting
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Started.',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Started. And the rest.',textComplete=true});tick()
+assert(#anyway==1 and anyway[1]=='Started. And the rest.' and #plain==0,'forced: '..tostring(anyway[1]))
+-- an automatic reaction keeps the Subtitles setting
+anyway,plain={},{}
+context.reaction={kind='battle'}
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Hit!',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Hit! Cover!',textComplete=true});tick()
+assert(#anyway==0 and plain[1]=='Hit! Cover!','a reaction is not forced')
+context.reaction=nil
+-- no voice engine to play it (a text-only route): the reply is not voiced and shows anyway
+anyway,plain={},{}
+speech.target=judy
+assert(speech.start(context,{text='Text only reply.'})==false)
+assert(#anyway==1 and anyway[1]=='Text only reply.')
+-- the player turned Voice playback off: not a failure, the Subtitles setting decides
+anyway,plain={},{}
+voice=false
+assert(speech.start(context,{text='Voice is off.'})==false)
+assert(#anyway==0 and plain[1]=='Voice is off.','voice off by choice keeps the setting')
+`));
+
+test('Voice playback turned off while a reply plays keeps the Subtitles setting; a voice that breaks forces the text',()=>run(`
+local anyway,plain={},{}
+function captions.showAnyway(name,text)anyway[#anyway+1]=text;return true end
+local show=captions.show
+function captions.show(name,text,...)plain[#plain+1]=text;return show(name,text,...)end
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Half heard.',textComplete=true});tick()
+voice=false
+local frames=0
+while speech.requestId and frames<30 do snapshot({position=.5,bufferedDuration=1,text='Half heard.',textComplete=true}); tick(1/60); frames=frames+1 end
+assert(not speech.requestId)
+assert(#anyway==0 and plain[#plain]=='Half heard.','muted by the player: not forced, got '..tostring(anyway[1]))
+voice=true
+`));
+
+test('with the native change counter the speech file is neither opened nor decoded again until its revision changes, and still read once a second', () => run(`
+local open,reads,decodes,decode=io.open,0,0,json.decode
+io.open=function(path,mode)if path=='runtime/continuous-speech.json'then reads=reads+1 end;return open(path,mode)end
+json.decode=function(k)decodes=decodes+1;return decode(k)end
+local revision=7
+convaiNative={revision=function(name)assert(name=='continuous-speech.json');return revision end}
+assert(begin())
+local first=snapshot({position=.2});tick(.05)
+assert(reads==1 and decodes>=1 and speech.diagnosticCadence().position==.2)
+local before=decodes
+-- Same revision: no open, no decode, and the same state is still accepted.
+tick(.05);tick(.05);tick(.05)
+assert(reads==1,'An unchanged revision opened the file again: '..reads)
+assert(speech.diagnosticCadence().acceptedReads>=4 and speech.diagnosticCadence().position==.2)
+-- A new revision is read at once, with its new content.
+revision=8;snapshot({position=.5,updated=(wall+.05)*1000});tick(.05)
+assert(reads==2 and speech.diagnosticCadence().position==.5,'A changed revision was not read')
+-- A safety read at least once a second even if the counter never moves.
+for _=1,24 do tick(.05) end
+assert(reads>=3,'The file was never re-read while the revision stayed put')
+-- A foreign owner written under a NEW revision is refused; the cached owner never lets it through.
+revision=9;put('runtime/continuous-speech.json',{version=1,id='abcdefab-1234-1234-1234-123456789abc',requestId='other',entity=context.entity,generation=7,
+ updated=wall*1000,state='playing',position=.9,bufferedDuration=2,text='x y',textComplete=false,complete=false,ended=false,underruns=0})
+tick(.05);assert(speech.diagnosticCadence().position~=.9)
+-- Without a counter every tick reads, as before.
+convaiNative=nil;local n=reads;snapshot({position=.6,updated=(wall+.05)*1000});tick(.05);tick(.05)
+assert(reads==n+2,'Without the plugin each tick must read the file')
+`));
+
 test('a continuous reply tests who is speaking at 10 Hz instead of every frame, and still ends within 100 ms of losing the speaker or the voice', () => run(`
 local checks,voiceReads=0,0
 local attached=judy.IsAttached

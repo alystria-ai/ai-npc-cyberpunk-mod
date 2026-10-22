@@ -13,6 +13,10 @@
 // folders the Runtime ships into (ALLOWED_ROOTS), never the player's own settings or the optional packs (PROTECTED), and a path that tries
 // anything else ("..", an absolute path, a drive, a backslash, a link that leads elsewhere) is refused and counted, not followed.
 //
+// The protected paths are also checked against the REAL path of the file (the long name Windows reports for it), because on a volume with
+// 8.3 names a file has a second spelling (voices/MULTIL~1/x for voices/multilingual/x, app/RELEAS~1.JSO for app/release.json) that the text
+// of a list does not match: a part that looks like a short name (~1) is refused outright, and what is left is re-checked after the path is resolved.
+//
 // Under Mod Organizer 2 the Runtime is a mod folder (mods\<name>\red4ext\plugins\...) that exists only virtually at the game folder. This
 // process runs from the REAL place of its own files (start-service.mjs), so the root is worked out from where app/ is, not from the game
 // folder: the delete then happens in the Runtime's own mod folder, as a plain delete of a plain file. A file that lives in another MO2 mod is
@@ -22,7 +26,7 @@
 // Safe to repeat: a file that is gone is only counted. It never holds the start for long (a time budget; what is left waits for the next
 // start) and a problem is logged, never fatal.
 import {lstatSync, readFileSync, realpathSync, rmdirSync, unlinkSync} from 'node:fs';
-import {dirname, isAbsolute, relative, resolve, sep} from 'node:path';
+import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 
 export const PLUGIN = 'red4ext/plugins/AiNpcCyberpunkMod';
 export const REMOVALS_FILE = 'defaults/runtime-removals.json';
@@ -55,6 +59,7 @@ export function refusalFor(rel) {
   if (typeof rel !== 'string' || !rel || rel.length > 400) return 'not a path';
   if (/[\x00-\x1f\\:*?"<>|]/.test(rel) || rel.startsWith('/') || isAbsolute(rel)) return 'not a relative path with forward slashes';
   if (rel.split('/').some(part => !part || part === '.' || part === '..' || /[. ]$/.test(part))) return 'has an empty, "." or ".." part';
+  if (rel.split('/').some(part => /~\d/.test(part))) return 'has a part that looks like an 8.3 short name (~1)';
   const lower = rel.toLowerCase();
   const root = ALLOWED_ROOTS.find(item => lower.startsWith(item.prefix.toLowerCase()));
   if (!root) return 'outside the folders a Runtime installs into';
@@ -87,7 +92,15 @@ const inside = (root, path) => { const away = relative(root, path); return away 
 
 // Applies the list. `appDirectory` is the Runtime's app/ folder (where this script runs from). Returns
 // {state: 'no-list' | 'not-standard' | 'bad-list' | 'done' | 'partial', version, removed, absent, refused, failed, left, root}.
-export function applyRuntimeRemovals({appDirectory, log = () => {}, budgetMs = DEFAULT_BUDGET_MS, now = Date.now}) {
+// `realpath` resolves a path to the name Windows reports for it (8.3 short names written out in full); a fake in the tests.
+export function applyRuntimeRemovals({appDirectory, log = () => {}, budgetMs = DEFAULT_BUDGET_MS, now = Date.now, realpath = realpathSync.native}) {
+  // The native resolver writes short names out; where it cannot work (some network or virtual drives) the plain one stands in. A path that is not there stays an error.
+  const real = path => {
+    try { return realpath(path); } catch (error) {
+      if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') throw error;
+      return realpathSync(path);
+    }
+  };
   const result = {state: 'no-list', version: null, removed: 0, absent: 0, refused: 0, failed: 0, left: 0, root: null};
   const list = readRemovalList(resolve(appDirectory, REMOVALS_FILE));
   if (!list) return result;
@@ -97,7 +110,7 @@ export function applyRuntimeRemovals({appDirectory, log = () => {}, budgetMs = D
   if (!root) { log('Runtime removal list: this Runtime is not in the standard folder, so nothing was removed.'); return {...result, state: 'not-standard'}; }
   result.root = root;
   let realRoot;
-  try { realRoot = realpathSync(root); } catch { realRoot = resolve(root); }
+  try { realRoot = real(root); } catch { realRoot = resolve(root); }
   const started = now();
   const removes = list.removes.slice(0, MAX_ENTRIES);
   const refusals = [];
@@ -110,13 +123,20 @@ export function applyRuntimeRemovals({appDirectory, log = () => {}, budgetMs = D
     try {
       // A link on the way (a junction in the plugin folder) must not lead outside the Runtime's folder.
       let parent;
-      try { parent = realpathSync(dirname(target)); }
+      try { parent = real(dirname(target)); }
       catch (error) { if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') { result.absent++; continue; } throw error; }
       if (parent !== realRoot && !inside(realRoot, parent)) { result.refused++; if (refusals.length < 3) refusals.push(`${rel}: leads outside the Runtime's folder`); continue; }
       let info;
       try { info = lstatSync(target); }
       catch (error) { if (error?.code === 'ENOENT') { result.absent++; continue; } throw error; }
       if (info.isDirectory()) { result.refused++; if (refusals.length < 3) refusals.push(`${rel}: is a folder`); continue; }
+      // The name the file really has: a short spelling of a protected file is the protected file. (A link is only ever unlinked, never followed,
+      // so its own place, with its resolved parent, is what counts.)
+      let resolved;
+      try { resolved = info.isSymbolicLink() ? join(parent, basename(target)) : real(target); } catch { resolved = null; }
+      const away = resolved === null ? null : relative(realRoot, resolved);
+      const again = away === null || away === '' || away.startsWith('..') || isAbsolute(away) ? 'cannot be resolved inside the Runtime\'s folder' : refusalFor(away.split(sep).join('/'));
+      if (again) { result.refused++; if (refusals.length < 3) refusals.push(`${rel}: ${again}`); continue; }
       unlinkSync(target);
       result.removed++;
       parents.add(dirname(target));

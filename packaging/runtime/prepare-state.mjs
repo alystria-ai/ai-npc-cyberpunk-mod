@@ -15,7 +15,8 @@
 //     every start, so a moved game folder or an update keeps working.
 //   - managed: character profile mappings. They follow the package until the player edits one;
 //     an edited file is never overwritten (package-defaults.json remembers what was written).
-//   - player-owned: everything else (memories, sessions, settings, an own convai-key.txt). Never touched.
+//   - player-owned: everything else (memories, sessions, settings, an own convai-key.txt). Never touched, with one exception: a convai-key.txt that
+//     holds the packed key a release before 0.2.9 shipped (see removePackedKey).
 import {createHash} from 'node:crypto';
 import {mkdir, readdir, readFile, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -24,9 +25,11 @@ export const MANAGED_FILES = Object.freeze(['characters.json', 'multilingual-pro
 export const POCKET_CONFIG = 'pocket-voices.autobest.json';
 export const OMNI_CONFIGS = Object.freeze({short: 'local-voices.autobest-short.json', long: 'local-voices.autobest-long.json'});
 const RECORD = 'package-defaults.json';
-// A key file is a plain api-key=... line (the player's own) or the packed form of the package's key (bridge/key-codec.mjs;
-// this launcher imports nothing from the bridge, so the shape is checked here and the bridge decodes it).
-const KEY_LINE = /^(?:api-key\s*=\s*\S+|convai-key-v1\s+[A-Za-z0-9_-]{24,1400})\s*$/i;
+// The Runtime ships no Convai key from 0.2.9 (the shared account is reached through the sign-in backend, app/defaults/convai-auth.json). Releases
+// before that packed the project's key as one line `convai-key-v1 <base64url>` in app/defaults/service.txt. A plain `api-key=...` file in the data
+// folder is the player's or a developer's own key and is never touched; only a packed line is stale (this launcher imports nothing from the
+// bridge, so the shape is checked here).
+const PACKED_KEY_LINE = /^convai-key-v1\s+[A-Za-z0-9_-]{24,1400}\s*$/i;
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const readOptional = path => readFile(path).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
@@ -155,17 +158,22 @@ export async function omniPackInstalled(layout) {
   return (await isFile(layout.omniPython)) && (await isFile(resolve(layout.omni, 'omni-pack.json')));
 }
 
-// Chooses the Convai credential: the player's own data/convai-key.txt when it is valid, otherwise
-// the one the package provides, otherwise the (missing) player path so the service reports setup.
-export async function chooseKeyFile(layout) {
-  const own = resolve(layout.state, 'convai-key.txt');
-  for (const path of [own, resolve(layout.defaults, 'service.txt')]) {
-    try {
-      const info = await stat(path);
-      if (info.isFile() && info.size <= 4096 && KEY_LINE.test((await readFile(path, 'utf8')).trim())) return path;
-    } catch {}
-  }
-  return own;
+// The Convai key file the service reads: data/convai-key.txt, the player's or a developer's own plain key. The package provides none; the
+// supervisor and the bridge start without the file when the sign-in backend is on (bridge/convai-credential.mjs).
+export const chooseKeyFile = async layout => resolve(layout.state, 'convai-key.txt');
+
+// Removes a convai-key.txt that holds the key a release before 0.2.9 packed (an update from such a release, or a data folder that copy ended up
+// in). Only a packed line is removed, never a plain api-key= file. Returns whether a file was removed. Never throws: a file that cannot be read or
+// removed is left, and the bridge ignores a packed line anyway.
+export async function removePackedKey(layout, log = () => {}) {
+  const path = resolve(layout.state, 'convai-key.txt');
+  try {
+    const info = await stat(path);
+    if (!info.isFile() || info.size > 4096 || !PACKED_KEY_LINE.test((await readFile(path, 'utf8')).replace(/^\uFEFF/, '').trim())) return false;
+    await rm(path, {force: true});
+    log('Removed the Convai key an earlier release had placed in the data folder (conversations now sign in through the token backend).');
+    return true;
+  } catch { return false; }
 }
 
 export async function prepareState(layout, {log = () => {}} = {}) {
@@ -173,6 +181,7 @@ export async function prepareState(layout, {log = () => {}} = {}) {
   await mkdir(layout.runtime, {recursive: true});
   for (const name of ['pocket-voice-work', 'voice-studio-data']) await mkdir(resolve(layout.state, name), {recursive: true});
   await syncManaged(layout, log);
+  await removePackedKey(layout, log);
   // The bridge loads the lip-sync model from <data>/lipsync-model (bridge/convai-bridge.mjs).
   const faceTarget = resolve(layout.state, 'lipsync-model');
   await mkdir(faceTarget, {recursive: true});

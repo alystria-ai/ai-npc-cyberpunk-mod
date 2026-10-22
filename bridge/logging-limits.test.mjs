@@ -10,7 +10,7 @@ import {causeOf, repeatLimiter} from './repeat-log.mjs';
 import {capLogFile} from './log-cap.mjs';
 import {DEFAULT_TIMINGS} from './bridge-supervisor.mjs';
 import {ErrorReporter} from './error-reports.mjs';
-import {queueDirectory, readQueue, recordErrorEvent, sentPath} from './error-events.mjs';
+import {QUEUE_MAX, queueDirectory, readQueue, recordErrorEvent, sentPath} from './error-events.mjs';
 import {createWorld} from './supervisor-world.mjs';
 
 const folder = async () => mkdtemp(join(tmpdir(), 'logging-limits-'));
@@ -118,7 +118,7 @@ test('a half-written queue file is removed once an hour old, a fresh one is left
     await readQueue(dir);
     assert.deepEqual((await readdir(queue)).sort(), ['0123456789abcdef.json.123.789.tmp']);
     for (let index = 0; index < 40; index++) await recordErrorEvent(dir, {kind: 'turn-failed', message: `distinct failure ${'abcdefghijklmnopqrstuvwxyz'[index % 26]}${'qrstuvwxyz'[index % 10]}${index % 3 ? 'm' : 'n'} x${'ab'.repeat(index)}`});
-    assert.ok((await readdir(queue)).filter(name => name.endsWith('.json')).length <= 20, 'at most twenty waiting reports');
+    assert.ok((await readdir(queue)).filter(name => name.endsWith('.json')).length <= QUEUE_MAX, 'the waiting reports stay bounded by QUEUE_MAX');
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
 

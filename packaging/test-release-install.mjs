@@ -14,8 +14,8 @@
 //      the lip-sync model turns that audio into mouth frames (and, with --omni, OmniVoice speaks
 //      on the GPU from the pack's Python);
 //    - the real launcher DLL, loaded by the test host like RED4ext does, starts the packaged
-//      service, which must report Ready (with --key-file, used as the player's own key and never
-//      printed) or ask for setup (without a key); closing the host must stop it again.
+//      service, which must report Ready (a Runtime built with the token backend's address and secret has no key and signs in through the backend; with
+//      --key-file, used as the player's own key and never printed) or ask for setup (a dry-run build without either); closing the host must stop it again.
 // 4. Plugin folders: only the launcher and the native plugin install into red4ext/plugins (never the development
 //    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt (the kill switch, always shipped) lists the
 //    systems that start off.
@@ -383,7 +383,18 @@ async function main() {
     check('runtime/ exchange placeholders and launcher.log are installed', placeholders.length === 0 && existsSync(join(plugin, 'launcher.log')), placeholders.slice(0, 8).join(', '));
     // What the Runtime must carry for its features (packaging/lib/runtime-required.mjs): V's voice clips and its OmniVoice lists.
     // A Runtime without them (0.2 and 0.2.1 had no V clips) fails here, and so does one whose clips the bridge's own loader rejects.
-    const required = await requiredRuntimeFiles(project);
+    // The Runtime ships no Convai key: a build with the token backend carries its settings (app/defaults/convai-auth.json, enabled, no fallback) and no
+    // service.txt; a --dry-run build may carry neither.
+    const runtimeRelease = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
+    const signIn = runtimeRelease.convaiSignIn === 'backend';
+    check('the Runtime ships no Convai key file (no defaults/service.txt)', !existsSync(join(app, 'defaults/service.txt')) && runtimeRelease.convaiKey === 'none');
+    if (signIn) {
+      let settings = null;
+      try { settings = JSON.parse(await readFile(join(app, 'defaults/convai-auth.json'), 'utf8')); } catch {}
+      check('the sign-in settings are on, https, without a key fallback', settings?.enabled === true && settings.fallback === false
+        && /^https:\/\/[^/]+\/api\/convai\/token$/.test(String(settings.url)) && String(settings.secret).length >= 32);
+    }
+    const required = await requiredRuntimeFiles(project, {signIn});
     const installed = new Set(Object.values(required).flat().filter(rel => existsSync(join(game, rel))));
     const absent = missingRuntimeFiles(installed, required);
     check("the Runtime carries V's voice clips, its OmniVoice lists, the llama.cpp engine and vgmstream", Object.keys(absent).length === 0,
@@ -464,9 +475,8 @@ console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), lo
     await rm(status, {force: true});
     const hostProcess = spawn(join(game, 'bin/x64/Cyberpunk2077.exe'), [join(plugin, 'CyberpunkConvai.dll'), result, '900000'],
       {env: cleanEnv(), windowsHide: true, stdio: 'ignore'});
-    // A package with a built-in service key starts without setup, like one with the player's own key.
-    const builtIn = JSON.parse(await readFile(join(app, 'release.json'), 'utf8')).convaiKey === 'package';
-    const keyed = !!keyFile || builtIn;
+    // A package with the token backend's settings starts without setup, like one with the player's own key.
+    const keyed = !!keyFile || signIn;
     const expected = keyed ? 'ready' : 'failed';
     let last = null;
     const deadline = Date.now() + 240_000;

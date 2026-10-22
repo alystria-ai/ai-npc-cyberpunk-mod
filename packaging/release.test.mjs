@@ -12,11 +12,11 @@ import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {sha256Buffer, walk} from './lib/files.mjs';
 import {checkLuaPartition, importClosure} from './lib/closure.mjs';
-import {chooseKeyFile, installLayout, MANAGED_FILES, OMNI_CONFIGS, pocketConfigFor, prepareState, serviceEnvironment} from './runtime/prepare-state.mjs';
+import {chooseKeyFile, installLayout, MANAGED_FILES, OMNI_CONFIGS, pocketConfigFor, prepareState, removePackedKey, serviceEnvironment} from './runtime/prepare-state.mjs';
 import {assembleParts} from './runtime/assemble-parts.mjs';
-import {packagedKeyText} from './lib/packaged-key.mjs';
+import {AUTH_FILE, SHIPPED_KEY_FILE, addPackagedAuth, hasKeyLine, packagedAuthSettings, readAuthInputs, validateAuthSecret, validateAuthUrl} from './lib/convai-auth.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
-import {readKeyFileText} from '../bridge/key-codec.mjs';
+import {readAuthSettings} from '../bridge/convai-credential.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const config = JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8'));
@@ -220,41 +220,107 @@ test("a list an earlier Runtime left in app/defaults does not win over the pack'
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 
-test("the player's own key wins over the packaged one, and a missing key stays visible", async () => {
+// The Runtime ships no Convai key (from 0.2.9): the shared account is reached through the token backend. A stale defaults/service.txt is never used,
+// and the packed key an earlier release put in the data folder is removed.
+const PACKED_OLD = 'convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n';
+
+test('the key file is the data folder\'s own convai-key.txt whatever the package holds: a stale defaults/service.txt is never chosen', async () => {
   const f = await fakeInstall();
   try {
     await prepareState(f.layout);
     assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
-    await writeFile(join(f.app, 'defaults/service.txt'), 'api-key = packaged-test-value\n');
-    assert.equal(await chooseKeyFile(f.layout), join(f.app, 'defaults/service.txt'));
+    await writeFile(join(f.app, 'defaults/service.txt'), PACKED_OLD);
     await writeFile(join(f.layout.state, 'convai-key.txt'), 'api-key = own-test-value\n');
     assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
-    await writeFile(join(f.layout.state, 'convai-key.txt'), 'not a key');
-    assert.equal(await chooseKeyFile(f.layout), join(f.app, 'defaults/service.txt'));
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 
-test('the packaged Convai key is scrambled: no plain key line, round-trips, and is accepted as the packaged key', async () => {
-  const fake = 'packaged-fixture-value-0123456789';
-  const packed = await packagedKeyText(project, fake);
-  assert(!packed.includes(fake) && !/api-key/i.test(packed), 'no greppable key line');
-  assert.deepEqual(readKeyFileText(packed), {key: fake, packed: true});
+test('an update from a release that packed a key: the packed convai-key.txt is removed at the start, a plain api-key file never is', async () => {
   const f = await fakeInstall();
   try {
     await prepareState(f.layout);
-    await writeFile(join(f.app, 'defaults/service.txt'), packed);
-    assert.equal(await chooseKeyFile(f.layout), join(f.app, 'defaults/service.txt'), 'the launcher accepts the packed file');
-    // A player's own plain key still wins over it, and a damaged packed file falls back to the player path.
-    await writeFile(join(f.layout.state, 'convai-key.txt'), 'api-key = own-test-value\n');
-    assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
-    await rm(join(f.layout.state, 'convai-key.txt'));
-    await writeFile(join(f.app, 'defaults/service.txt'), 'convai-key-v1 !!!');
-    assert.equal(await chooseKeyFile(f.layout), join(f.layout.state, 'convai-key.txt'));
+    const own = join(f.layout.state, 'convai-key.txt'), logs = [];
+    await writeFile(own, PACKED_OLD);
+    await prepareState(f.layout, {log: line => logs.push(line)});
+    assert.equal(existsSync(own), false, 'the packed key is gone');
+    assert.equal(logs.filter(line => /Removed the Convai key/.test(line)).length, 1);
+    assert.doesNotMatch(logs.join('\n'), /AAAAAAAA/, 'the log never shows it');
+    await writeFile(own, '\uFEFF' + PACKED_OLD.replace('\n', '\r\n'));
+    assert.equal(await removePackedKey(f.layout), true, 'a byte-order mark or CRLF does not hide it');
+    for (const plain of ['api-key = own-test-value\n', 'api-key=own-test-value', 'not a key', '', PACKED_OLD.replace('convai-key-v1', 'convai-key-v2')]) {
+      await writeFile(own, plain);
+      assert.equal(await removePackedKey(f.layout), false, JSON.stringify(plain));
+      assert.equal(await readFile(own, 'utf8'), plain, 'a developer\'s or a player\'s own file is untouched');
+    }
+    await rm(own);
+    assert.equal(await removePackedKey(f.layout), false, 'no file, nothing to do');
   } finally { await rm(f.root, {recursive: true, force: true}); }
-  // The builder writes it through this helper and nowhere else.
+});
+
+test('the runtime removal list deletes the old defaults/service.txt from an updated installation', async () => {
+  const declared = JSON.parse(await readFile(resolve(project, 'packaging/runtime-removals.json'), 'utf8'));
+  const old = 'red4ext/plugins/AiNpcCyberpunkMod/app/defaults/service.txt';
+  assert.ok(declared.removes.includes(old), 'every Runtime build carries the removal, so a full install over an old one and an update zip both clean up');
+  const {refusalFor} = await import('./runtime/apply-removals.mjs');
+  assert.equal(refusalFor(old), null, 'the start step may delete it');
+});
+
+test('the token backend settings the build ships: https on /api/convai/token, a 32-character secret, both or neither, required for a real Runtime build', () => {
+  const url = 'https://backend.example/api/convai/token', secret = 'fixture-client-secret-0123456789abcdef';
+  assert.equal(validateAuthUrl(url), url);
+  for (const bad of ['', 'not a url', 'http://backend.example/api/convai/token', 'https://backend.example/', 'https://backend.example/api/convai/token/', 'https://backend.example/api/convai/token?x=1',
+    'https://user:pass@backend.example/api/convai/token', 'https://backend.example/api/errors/report']) assert.throws(() => validateAuthUrl(bad), /sign-in backend address/, bad);
+  assert.equal(validateAuthSecret(` ${secret}\n`), secret);
+  for (const bad of ['', 'tiny-value', 'has a space inside it 0123456789abcdef0123', 'x'.repeat(31)]) assert.throws(() => validateAuthSecret(bad), error => /client secret/.test(error.message) && !error.message.includes(bad.trim() || '\u0000'));
+  assert.deepEqual(readAuthInputs({url, secret, required: true}), {url, secret});
+  assert.equal(readAuthInputs({required: false}), null, 'a dry run may leave both out');
+  assert.equal(readAuthInputs({url: '  ', secret: '', required: false}), null);
+  assert.throws(() => readAuthInputs({required: true}), /needs the sign-in backend.*CONVAI_AUTH_URL.*CONVAI_AUTH_CLIENT_SECRET/, 'a real build never ships without the backend');
+  assert.throws(() => readAuthInputs({url, required: false}), /both/, 'one of the two is always an error');
+  assert.throws(() => readAuthInputs({secret, required: false}), /both/);
+  assert.throws(() => readAuthInputs({url, secret: 'tiny-value', required: true}), error => !error.message.includes('tiny-value'));
+});
+
+test('the Runtime package carries convai-auth.json (on, no key fallback) and no service.txt or key line; its secret is not the error reports\'', async () => {
+  const url = 'https://backend.example/api/convai/token', secret = 'fixture-client-secret-0123456789abcdef';
+  const reportsSecret = 'fixture-reports-secret-0123456789abcdef-different';
+  const app = 'red4ext/plugins/AiNpcCyberpunkMod/app';
+  const entries = new Map();
+  // The files a built Runtime has in app/defaults/ (error-reports.json is hand-added by the owner and not written by the build).
+  entries.set(`${app}/defaults/error-reports.json`, JSON.stringify({version: 1, url: 'https://backend.example/', secret: reportsSecret}));
+  entries.set(`${app}/defaults/pocket-voices.autobest.json`, '{}');
+  addPackagedAuth({json: (name, value) => entries.set(name, JSON.stringify(value, null, 2) + '\n')}, app, {url, secret});
+  assert.equal(AUTH_FILE, 'defaults/convai-auth.json');
+  const written = JSON.parse(entries.get(`${app}/defaults/convai-auth.json`));
+  assert.deepEqual(written, {version: 1, enabled: true, url, secret, fallback: false});
+  assert.deepEqual(written, packagedAuthSettings({url, secret}));
+  assert.equal(written.enabled, true); assert.equal(written.fallback, false);
+  assert.deepEqual([...entries.keys()].filter(name => SHIPPED_KEY_FILE.test(name)), [], 'no service.txt, no convai-key.txt');
+  assert.deepEqual([...entries].filter(([, text]) => hasKeyLine(text)).map(([name]) => name), [], 'no line that carries a Convai key');
+  const reports = JSON.parse(entries.get(`${app}/defaults/error-reports.json`));
+  assert.notEqual(written.secret, reports.secret, 'two files, two secrets');
+  // The bridge reads exactly this file as the packaged source: on, https, no fallback.
+  const settings = await readAuthSettings({env: {}, readText: async () => entries.get(`${app}/defaults/convai-auth.json`), packagedPath: 'x'});
+  assert.deepEqual(settings, {enabled: true, url, secret, fallback: false, problem: null});
+  assert.equal(hasKeyLine('api-key = abcdefgh12345678'), true); assert.equal(hasKeyLine('convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAA'), true);
+  assert.equal(hasKeyLine(JSON.stringify(written)), false);
+  // The builder writes it through this helper, refuses a key and never writes service.txt.
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /packagedKeyText\(source\.root, key\)/);
-  assert.doesNotMatch(builder, /api-key = \$\{key\}/);
+  assert.match(builder, /addPackagedAuth\(pkg, app, auth\)/);
+  assert.match(builder, /--key-env and --key-file are refused/);
+  assert.doesNotMatch(builder, /service\.txt['`]/, 'the build writes no service.txt');
+  assert.doesNotMatch(builder, /packagedKeyText|packaged-key|key-codec/);
+  assert.match(builder, /SHIPPED_KEY_FILE\.test\(entry\.name\)/, 'the final guard refuses a key file in any archive');
+});
+
+test('the release workflow builds the Runtime with the token backend settings and no Convai key', async () => {
+  const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /CONVAI_API_KEY|--key-env|--key-file/, 'no key anywhere in the workflow');
+  assert.match(workflow, /CONVAI_AUTH_URL: \$\{\{ vars\.CONVAI_AUTH_URL \}\}/, 'the address is a repository variable');
+  assert.match(workflow, /CONVAI_AUTH_CLIENT_SECRET: \$\{\{ secrets\.CONVAI_AUTH_CLIENT_SECRET \}\}/, 'the client secret is a secret');
+  const header = workflow.slice(0, workflow.indexOf('\nname: Release'));
+  assert.match(header, /CONVAI_AUTH_CLIENT_SECRET[\s\S]*CONVAI_AUTH_URL/, 'both are documented in the header');
+  assert.equal(workflow.split('CONVAI_AUTH_CLIENT_SECRET: ${{').length - 1, 1, 'only the Runtime build step gets the secret');
 });
 
 test('the daily-limit override cannot be inherited by the packaged service', async () => {
@@ -550,7 +616,7 @@ test('the optional packs are uploaded to Hugging Face, one zip each in the folde
     assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/, `${name} uploads with the pack repository's own token`);
     assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w/, `${name} never uploads to the GitHub release`);
     assert.match(job, /upload-packs\.py --check/, `${name} checks the write access before it builds`);
-    assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/, `${name} installs huggingface_hub`);
+    assert.match(job, /pip install [^\n]*--require-hashes --no-deps [^\n]*-r packaging\/ci-tools\.requirements\.txt/, `${name} installs its Python tools from the hash-locked file`);
   }
   assert.match(jobs.omni, /--pack omni --packages "\$env:OUT\\packages"/);
   assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/ai-npc-cyberpunk-mod-packs/);
@@ -892,7 +958,9 @@ test('the build pre-encodes the Mistral voice references with the bridge code an
   assert.equal(builder.split('await voxtralCache(').length - 1, 3);
   assert.match(builder, /was not compressed/);
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
-  assert.equal(workflow.split('choco install ffmpeg').length - 1, 2, 'the Runtime and OmniVoice jobs install ffmpeg');
+  assert.doesNotMatch(workflow, /choco install/, 'ffmpeg comes from a pinned download, never an unpinned package manager install');
+  assert.equal(workflow.split('FFMPEG_SHA256: ').length - 1, 2, 'the Runtime and OmniVoice jobs download ffmpeg and check its SHA-256');
+  assert.equal(workflow.split('if ($actual -ne $env:FFMPEG_SHA256) { throw').length - 1, 2, 'both ffmpeg downloads stop on a checksum mismatch');
 });
 
 test('the release notes open with where the download files are, and a rebuild refreshes them', async () => {
@@ -999,7 +1067,7 @@ test('the release workflow builds the voice-input packs only in an opt-in job: o
   assert.match(job, /python packaging\/upload-packs\.py --version "\$\{\{ needs\.runtime\.outputs\.version \}\}" --pack /);
   assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/);
   assert.match(job, /upload-packs\.py --check/);
-  assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/);
+  assert.match(job, /pip install [^\n]*--require-hashes --no-deps [^\n]*-r packaging\/ci-tools\.requirements\.txt/);
   assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w|nexus/i);
   const trigger = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
   assert(!/micpacks/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
@@ -1023,4 +1091,32 @@ test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution)
   const packaging = (await readFile(resolve(project, 'docs/PACKAGING.md'), 'utf8')).replaceAll('\r\n', '\n');
   assert(packaging.includes('### Voice-input packs (`micpack-european`, `micpack-asian`)'));
   assert(packaging.includes('--mic-pack-source DIR') && packaging.includes('CYBERPUNK_CONVAI_MIC_PACKS_DEV'));
+});
+
+test('--auth-secret-env must name a variable meant for the Convai client secret', () => {
+  const url = 'https://backend.example.invalid/api/convai/token';
+  const secret = 'f'.repeat(40);
+  assert.throws(() => readAuthInputs({url, secret, required: true, secretName: 'HF_TOKEN'}), /meant for the Convai/);
+  assert.throws(() => readAuthInputs({url, secret, required: true, secretName: 'GITHUB_TOKEN'}), /meant for the Convai/);
+  assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'CONVAI_AUTH_CLIENT_SECRET'}), {url, secret});
+  assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'MY_CONVAI_SECRET'}), {url, secret});
+});
+
+test('the release workflow is hardened: actions pinned by commit SHA, no persisted checkout token, write permission only on the Runtime job, hash-locked Python tools, no install scripts', async () => {
+  const workflow = await workflowText();
+  const refs = [...workflow.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)].map(match => match[1]);
+  assert(refs.length >= 15);
+  for (const ref of refs) assert.match(ref, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `${ref} is pinned by a full commit SHA`);
+  const checkouts = workflow.split('uses: actions/checkout@').length - 1;
+  assert(checkouts >= 5);
+  assert.equal(workflow.split('persist-credentials: false').length - 1, checkouts, 'every checkout drops its token');
+  assert.match(workflow, /\npermissions:\n  contents: read\n/, 'the workflow default is read-only');
+  assert.equal([...workflow.matchAll(/^ +contents: write$/gm)].length, 1, 'one job writes to the repository');
+  assert.match(jobOf(workflow, 'runtime'), /permissions:\n {6}contents: write/, 'the Runtime job, which creates the release, is the one that writes');
+  assert.doesNotMatch(workflow, /npm ci(?! --ignore-scripts)/, 'npm ci never runs install scripts');
+  const lock = await readFile(resolve(project, 'packaging/ci-tools.requirements.txt'), 'utf8');
+  const pins = lock.split(/\r?\n/).filter(line => line && !line.startsWith('#'));
+  assert(pins.length >= 10);
+  for (const line of pins) assert.match(line, /^[a-z0-9-]+==[\w.]+ --hash=sha256:[0-9a-f]{64}$/, `${line} is pinned and hashed`);
+  assert(pins.some(line => line.startsWith('huggingface-hub==')) && pins.some(line => line.startsWith('pip==')));
 });

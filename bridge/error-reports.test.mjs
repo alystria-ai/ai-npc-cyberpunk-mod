@@ -10,9 +10,9 @@ import {gzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
 import {MistralError, newTrace} from './mistral-client.mjs';
-import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
+import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
+import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -30,6 +30,8 @@ async function folders() {
   const runtime = join(modRoot, 'runtime'), state = join(base, 'state'), project = join(base, 'app');
   for (const folder of [runtime, state, project]) await mkdir(folder, {recursive: true});
   await writeFile(join(state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  // The in-game notice was shown (the game sets this flag in settings.json): nothing is sent before it. The tests of that gate change the file.
+  await writeFile(join(runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
   return {base, game, modRoot, runtime, state, project, cleanup: () => rm(base, {recursive: true, force: true})};
 }
 
@@ -57,6 +59,8 @@ function reporterFor(f, backend, clock, extra = {}) {
     setRepeat: () => null, clearRepeat: () => {}, ...extra});
 }
 
+// A distinct label for the n-th fault: the signature ignores digits, so letters (two of them past 26).
+const faultLabel = index => `${'abcdefghijklmnopqrstuvwxyz'[index % 26]}${'abcdefghijklmnopqrstuvwxyz'[Math.floor(index / 26)]}`;
 const event = (message, kind = 'turn-failed') => ({kind, message, frame: 'realtime-client.mjs:120 connect'});
 
 // ------------------------------------------------------------------ signatures
@@ -96,7 +100,7 @@ test('a record per signature: repeats raise its count, the queue holds at most t
     assert.equal(queue.length, 1);
     assert.equal(queue[0].count, 3);
     assert.equal(queue[0].firstAt, START);
-    for (let index = 0; index < QUEUE_MAX + 5; index++) await recordErrorEvent(f.state, event(`distinct fault ${'abcdefghijklmnopqrstuvwxyz'[index]}`), {now: START});
+    for (let index = 0; index < QUEUE_MAX + 5; index++) await recordErrorEvent(f.state, event(`distinct fault ${faultLabel(index)}`), {now: START});
     assert.equal((await readQueue(f.state, {now: START})).length, QUEUE_MAX);
     recordErrorEventSync(f.state, event('one more after the cap'), {now: START});
     assert.equal((await readQueue(f.state, {now: START})).length, QUEUE_MAX);
@@ -271,7 +275,7 @@ test('no planted secret, conversation text or account name gets out, and the pay
       stack: [`realtime-client.mjs:120 connect ${PLANTED.hexKey}`], detail: {provider: 'convai', note: PLANTED.chat}};
     const {payload, body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state,
       project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], now: () => START,
-      graphics: () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 12288}],
+      graphics: () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 12288}], memory: () => ({totalRamMiB: 32768.4, commitLimitMiB: 40960}),
       gameInfo: {game: '2.31', cet: 'v1.35.0', codeware: '1.20.5', setup: ['codeware: ok found']}});
     for (const [name, value] of Object.entries(PLANTED)) assert.ok(!body.includes(value), `planted ${name} got out`);
     assert.ok(!body.includes(INSTALL), 'the raw install id never leaves');
@@ -292,11 +296,31 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.equal(payload.report.versions.cet, 'v1.35.0');
     assert.equal(payload.report.versions.red4ext, '1.30.0');
     assert.deepEqual(payload.report.system.gpu.map(card => card.memoryMiB), [12288]);
+    // Total RAM and the commit limit (RAM plus paging files) tell a "paging file is too small" failure from another one; two numbers and nothing else.
+    assert.deepEqual([payload.report.system.totalRamMiB, payload.report.system.commitLimitMiB], [32768, 40960]);
+    assert.deepEqual(Object.keys(payload.report.system), ['gpu', 'totalRamMiB', 'commitLimitMiB']);
+    const noFacts = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
+      now: () => START, graphics: () => [], memory: () => { throw Error('powershell is missing'); }});
+    assert.deepEqual([noFacts.payload.report.system.totalRamMiB, noFacts.payload.report.system.commitLimitMiB], [null, null], 'a read that fails is two nulls and the report still goes out');
+    const junk = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
+      now: () => START, graphics: () => [], memory: () => ({totalRamMiB: 'lots', commitLimitMiB: -5})});
+    assert.deepEqual([junk.payload.report.system.totalRamMiB, junk.payload.report.system.commitLimitMiB], [null, null]);
     assert.ok(payload.report.setup.includes('game codeware: ok found'));
     assert.ok(payload.report.logs.some(item => item.source === 'bridge-stderr' && item.lines.some(line => line.includes('[text removed]'))));
     assert.ok(payload.report.logs.some(item => item.source === 'redscript' && item.lines.some(line => line.includes('Cannot resolve type'))));
     assert.ok(!payload.report.logs.some(item => item.lines.some(line => line.includes('routine line 1000'))), 'only lines around the error');
   } finally { await f.cleanup(); }
+});
+
+test('the error-report cleaner hides account names in any path (two-letter ones too), emails and user:pass@host', () => {
+  const {clean} = reportCleaner({names: ['Jo', 'Zedmaster'], secrets: [], ids: []});
+  const b = '\\';
+  assert.equal(clean(`opened E:${b}Jo${b}Games${b}y.lua and D:${b}Zedmaster${b}x`), `opened E:${b}<user>${b}Games${b}y.lua and D:${b}<user>${b}x`);
+  assert.equal(clean('then Jo went to Josephine'), 'then Jo went to Josephine', 'a two-letter name is only hidden as a path part');
+  assert.equal(clean('Zedmaster logged in'), '<user> logged in', 'a longer name is hidden anywhere');
+  const out = clean('proxy https://u:p4ssw0rd@host.example:8080/a mail a.b@c.example.com');
+  assert.equal(out, 'proxy https://[redacted]@host.example:8080/a mail [email-redacted]');
+  assert.equal(clean('key Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc here'), 'key [token-redacted] here', 'a 32-character key');
 });
 
 test('the conversation filter removes quoted sentences and text fields, and keeps the words an error needs', () => {
@@ -305,6 +329,17 @@ test('the conversation filter removes quoted sentences and text fields, and keep
   assert.equal(withoutConversation('said anyway: "Sure thing, choom you bet" ~ "x"'), 'said anyway: "[text removed]" ~ "x"');
   assert.equal(withoutConversation('{"text":"hello there","count":1}'), '{"text":"[text removed]","count":1}');
   assert.equal(withoutConversation('prompt = tell me about the heist'), 'prompt = [text removed]');
+});
+
+test('the stuck-reply diagnostic of a Convai turn survives the redactor, and a real transcript does not (2026-10-22 reports f2d59c4a, db4f10eb)', () => {
+  const {clean} = reportCleaner({names: []});
+  const stuck = 'convai: page.evaluate: Error: Convai did not finish the reply (transcript=true text=false complete=false thinking=true audio=off)';
+  assert.equal(clean(stuck), stuck, 'the five flags are written true or false, which the redactor keeps');
+  assert.equal(withoutConversation(stuck), stuck);
+  assert.equal(clean('did not finish the reply (transcript=false text=false complete=undefined thinking=false audio=false)'),
+    'did not finish the reply (transcript=false text=false complete=undefined thinking=false audio=false)');
+  assert.equal(withoutConversation('turn failed transcript=Take me to the Afterlife tonight please'), 'turn failed transcript=[text removed]', 'a transcript is still player text');
+  assert.equal(withoutConversation('(transcript=yes text=no complete=false)'), '(transcript=[text removed]', 'the old yes/no wording was removed with the rest of the line');
 });
 
 test('a large log is cut to fit: the body never passes 60 KB', async () => {
@@ -323,7 +358,7 @@ test('a large log is cut to fit: the body never passes 60 KB', async () => {
 
 // ------------------------------------------------------------------ sending and throttles
 
-test('one report per signature per day and five a day: the rest wait, signed like the token endpoint', async () => {
+test('one report per signature per day and twenty a day: the rest wait, signed like the token endpoint', async () => {
   const f = await folders();
   const clock = {now: START};
   const backend = fakeBackend({clock});
@@ -336,11 +371,12 @@ test('one report per signature per day and five a day: the rest wait, signed lik
     assert.equal(backend.calls.length, 1, 'one per signature per day');
     assert.equal(backend.calls[0].verdict, 'ok', 'signed with the backend secret');
     assert.equal(backend.calls[0].url, 'https://backend.invalid/api/errors/report');
-    for (const letter of 'abcdefg') await recordErrorEvent(f.state, event(`fault ${letter}`), {now: clock.now});
+    assert.equal(DAILY_LIMIT, 20);
+    for (let index = 0; index < DAILY_LIMIT + 2; index++) await recordErrorEvent(f.state, event(`fault ${faultLabel(index)}`), {now: clock.now});
     await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT, 'five a day');
+    assert.equal(backend.calls.length, DAILY_LIMIT, 'twenty a day in all (the first went out above)');
     assert.equal((await readQueue(f.state, {now: clock.now})).length, 3, 'the rest wait');
-    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, 5);
+    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, DAILY_LIMIT);
     clock.now += DAY;
     await recordErrorEvent(f.state, event('the same fault'), {now: clock.now});
     await reporter.flush();
@@ -417,6 +453,72 @@ test('a clock that is off is corrected once from the backend\'s time', async () 
     assert.equal(reporter.stopped, null);
     assert.equal((await readQueue(f.state, {now: clock.now})).length, 0);
   } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('nothing is sent before the in-game notice was shown: the queue waits, and goes out once the game has marked the notice', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    for (const text of [null, JSON.stringify({errorReports: true}), JSON.stringify({errorReportsNoticed: false})]) {
+      if (text === null) await rm(join(f.runtime, 'settings.json'), {force: true});
+      else await writeFile(join(f.runtime, 'settings.json'), text);
+      await recordErrorEvent(f.state, event('fault', 'service-failed'), {now: clock.now});
+      const reporter = reporterFor(f, backend, clock);
+      await reporter.flush();
+      await reporter.look({flush: true});
+      reporter.close();
+      assert.equal(backend.calls.length, 0, `nothing sent with settings ${text}`);
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and nothing is dropped: it waits');
+      assert.equal(await errorReportsMaySend(f.runtime), false);
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).noticed, false);
+    }
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), true);
+    const after = reporterFor(f, backend, clock);
+    await after.flush();
+    after.close();
+    assert.equal(backend.calls.length, 1, 'sent once the notice was shown');
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 0);
+    // The setting off wins over a shown notice.
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), false);
+  } finally { await f.cleanup(); }
+});
+
+test('an unreadable settings file is an unknown state, never on: nothing is recorded or sent, and the queue is not deleted', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    await recordErrorEvent(f.state, event('queued before the damage', 'service-failed'), {now: clock.now});
+    for (const damaged of ['{"errorReports": fal', '{"errorReports": "false"}', '', '[]', 'null', String.fromCharCode(0, 0)]) {
+      await writeFile(join(f.runtime, 'settings.json'), damaged);
+      await rm(join(f.runtime, 'settings.json.previous'), {force: true});
+      assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'unknown', noticed: false}, JSON.stringify(damaged));
+      assert.equal(await errorReportsEnabled(f.runtime), false);
+      assert.equal(errorReportsEnabledSync(f.runtime), false);
+      const reporter = reporterFor(f, backend, clock);
+      assert.equal(await reporter.record(event('new fault', 'service-failed')), null, 'not recorded');
+      await reporter.flush();
+      reporter.close();
+      assert.equal(backend.calls.length, 0, 'not sent');
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and the queue is neither sent nor deleted');
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).setting, 'unknown');
+    }
+    // A bridge crash is not recorded either.
+    const script = `import {installCrashCapture} from ${JSON.stringify(new URL('./error-events.mjs', import.meta.url).href)};
+installCrashCapture({stateDirectory: ${JSON.stringify(f.state)}, runtime: ${JSON.stringify(f.runtime)}});
+throw new Error('not recorded');`;
+    await writeFile(join(f.runtime, 'settings.json'), '{broken');
+    spawnSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8', timeout: 20000});
+    assert.equal((await readQueue(f.state)).length, 1);
+    // The previous copy stands in for a file being replaced: it still decides (here: an opt-out stays an opt-out).
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'off', noticed: true});
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'on', noticed: true});
+  } finally { await f.cleanup(); }
 });
 
 test('with the setting off nothing is sent and the queue is deleted; with no backend address nothing is sent and it waits', async () => {
@@ -558,6 +660,8 @@ test('end to end with the real backend handler: stored once, listed and fetched 
   const world = createErrorWorld();
   const f = await plantedInstall();
   await writeFile(join(f.state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  const planted = JSON.parse(await readFile(join(f.runtime, 'settings.json'), 'utf8'));
+  await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({...planted, errorReportsNoticed: true}));
   const clock = world.clock;
   // The bridge's request goes straight into the backend's handler, as Vercel would hand it over.
   const fetchImpl = async (url, init) => {
@@ -607,6 +711,30 @@ test('a released Runtime sends to the address in app/defaults/error-reports.json
       installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
     assert.ok(!body.includes(shipped), 'the shipped secret never leaves');
     assert.ok((await dataFolderSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'the shipped secret is also returned for scrubbing');
+  } finally { await f.cleanup(); }
+});
+
+test('the sign-in settings a release ships (defaults/convai-auth.json) never become the error report target or secret', async () => {
+  const {dataFolderSecrets} = await import('./report-secrets.mjs');
+  const f = await folders();
+  const signIn = `signin-${SIGNING_SECRET}`, shipped = `shipped-${SIGNING_SECRET}`;
+  try {
+    await mkdir(join(f.project, 'defaults'), {recursive: true});
+    await writeFile(join(f.project, 'defaults', 'convai-auth.json'), JSON.stringify({version: 1, enabled: true, url: 'https://signin.example/api/convai/token', secret: signIn, fallback: false}));
+    // Alone, the request secret is no report target: no secret, no reports (they wait in the queue).
+    assert.equal(await readBackendAddress({env: {}, path: join(f.state, 'convai-auth.json')}), null);
+    assert.equal(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), null);
+    // With the reports' own file, that file decides: its address and its secret, never the request secret.
+    await writeFile(join(f.project, 'defaults', 'error-reports.json'), JSON.stringify({version: 1, url: 'https://reports.example/anything', secret: shipped}));
+    assert.deepEqual(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), {url: 'https://reports.example/api/errors/report', secret: shipped});
+    // The request secret is still a secret: scrubbed from every report.
+    await writeFile(join(f.state, 'bridge.stderr.log'), `Error: boom with ${signIn} in it\n`);
+    const record = {signature: 'cccccccccccccccc', kind: 'bridge-exception', count: 1, firstAt: START, lastAt: START, message: `boom ${signIn}`, frame: '', stack: []};
+    const {body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
+    assert.ok(!body.includes(signIn) && !body.includes(shipped), 'neither shipped secret leaves');
+    const secrets = await dataFolderSecrets({stateDirectory: f.state, project: f.project});
+    assert.ok(secrets.includes(signIn) && secrets.includes(shipped), 'both are returned for scrubbing');
   } finally { await f.cleanup(); }
 });
 
@@ -663,5 +791,141 @@ test('every report says whether the Runtime\'s code files match the release: cou
     const broken = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL,
       environment: {}, names: [], graphics: () => [], secrets: [], now: () => START, integrity: () => { throw new Error('nope'); }});
     assert.deepEqual(broken.payload.report.runtimeFiles, {state: 'unavailable'});
+  } finally { await f.cleanup(); }
+});
+
+// ---------------------------------------------- a report that waits keeps the log lines of the moment
+
+test('a report over the daily limit keeps its scrubbed log excerpt from when the event was seen, not the later session\'s lines', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock);
+  const logPath = join(f.state, 'bridge.stderr.log');
+  const secret = 'PlantedSecretValue0123456789abcdef';
+  try {
+    // today's limit is used up by other faults
+    for (let index = 0; index < DAILY_LIMIT; index++) await recordErrorEvent(f.state, event(`early fault ${faultLabel(index)}`), {now: clock.now});
+    await reporter.flush();
+    assert.equal(backend.calls.length, DAILY_LIMIT);
+    await writeFile(join(f.state, 'player-mistral-key.txt'), secret);
+    // the fault that has to wait, with the lines around it in the log (a planted key and the player's account name among them)
+    await writeFile(logPath, ['before the fault', `the key is ${secret}`, 'Error: the waiting fault happened here', `at C:/Users/PlantedPlayerName/x.mjs:3:1`, 'after the fault'].join('\n'));
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the waiting fault happened here', frame: 'realtime-client.mjs:120 connect'}, {now: clock.now});
+    await reporter.look({flush: true});
+    assert.equal(backend.calls.length, DAILY_LIMIT, 'it waits: the limit is reached');
+    const [waiting] = await readQueue(f.state, {now: clock.now});
+    assert.ok(Array.isArray(waiting.logs), 'the excerpt was taken at the look, while the event was fresh');
+    const kept = JSON.stringify(waiting.logs);
+    assert.ok(kept.includes('the waiting fault happened here') && kept.includes('before the fault'));
+    assert.ok(!kept.includes(secret) && !kept.includes('PlantedPlayerName'), 'scrubbed before it is stored, with the same redactor as a sent report');
+    // the next session: the log is another one entirely
+    await writeFile(logPath, 'a completely different session\nnothing about the fault\n');
+    clock.now += DAY;
+    await reporter.flush();
+    assert.equal(backend.calls.length, DAILY_LIMIT + 1);
+    const sent = backend.calls.at(-1).body.report;
+    const lines = sent.logs.flatMap(item => item.lines).join('\n');
+    assert.ok(lines.includes('the waiting fault happened here') && lines.includes('before the fault'), 'the excerpt of the moment is what is sent');
+    assert.ok(!lines.includes('a completely different session'), 'not the next session\'s log');
+    // the same fields as a report sent at once: source ids with their lines
+    assert.deepEqual(sent.logs.map(item => Object.keys(item)), sent.logs.map(() => ['source', 'lines']));
+    assert.equal(sent.logs[0].source, 'bridge-stderr');
+    assert.ok(!backend.calls.at(-1).raw.includes(secret) && !backend.calls.at(-1).raw.includes('PlantedPlayerName'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the excerpt belongs to the first time the error was seen: a repeat bumps the count and keeps it; an older queue file with none reads the log when sent', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock);
+  const logPath = join(f.state, 'bridge.stderr.log');
+  try {
+    await writeFile(logPath, 'first sight: Error: a repeating fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'a repeating fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    await writeFile(logPath, 'second sight: Error: a repeating fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'a repeating fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.equal(record.count, 2);
+    assert.ok(JSON.stringify(record.logs).includes('first sight') && !JSON.stringify(record.logs).includes('second sight'));
+    // a record written before this change (no excerpt): the log is read when it is sent, as before
+    await rm(record.path);
+    await writeFile(logPath, 'read at send time: Error: an old queue fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'an old queue fault happened', frame: 'x.mjs:2 b'}, {now: clock.now});
+    await reporter.flush();
+    assert.ok(backend.calls.at(-1).body.report.logs.flatMap(item => item.lines).join('\n').includes('read at send time'));
+    // a kept excerpt that was edited is checked again: an unknown source or a non-text line is dropped
+    const edited = {...record, logs: [{source: 'not-a-source', lines: ['x']}, {source: 'service', lines: ['fine line', 42, {a: 1}]}]};
+    const {payload} = await buildErrorPayload({record: edited, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], secrets: [], now: () => START});
+    assert.deepEqual(payload.report.logs, [{source: 'service', lines: ['fine line']}]);
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('a supervisor event is captured at once with its log lines (no wait for the five-minute look)', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock);
+  try {
+    await writeFile(join(f.state, 'bridge-service.log'), 'service log line of the moment\n');
+    await reporter.record({kind: 'service-failed', message: 'The service failed to start', frame: 'supervisor'});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.ok(Array.isArray(record.logs));
+    assert.ok(JSON.stringify(record.logs).includes('service log line of the moment'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('an e-mail address in a log line never reaches a report or the queue file; package versions and handles are not mistaken for one', async () => {
+  const {createRedactor} = await import('./support-report.mjs');
+  const redact = createRedactor({secrets: []});
+  assert.equal(redact.text('Mistral said: contact jane.doe+cp@example.co.uk for access'), 'Mistral said: contact [email-redacted] for access');
+  assert.equal(redact.text('rate limited for a.b@mail.example.com.'), 'rate limited for [email-redacted].');
+  for (const kept of ['pocket-tts@1.2.3 loaded', 'at (file:///x/y.mjs:3:1)', 'user@localhost', '@scope/pkg 2.0', 'ratio 1@2']) assert.equal(redact.text(kept), kept);
+  // the kept excerpt of a waiting report is scrubbed at capture
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock);
+  try {
+    await writeFile(join(f.state, 'bridge.stderr.log'), 'Error: the mail fault happened: provider says write to someone@example.org please\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the mail fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.ok(!JSON.stringify(record).includes('someone@example.org'));
+    assert.ok(JSON.stringify(record.logs).includes('[email-redacted]'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the client\'s daily limit stays below what the backend allows per install, in the code defaults (the figure is in no doc)', async () => {
+  const {DEFAULTS} = await import('../auth-backend/api/_lib/config.js');
+  assert.ok(DEFAULTS.errorInstallPerDay > DAILY_LIMIT, `backend ${DEFAULTS.errorInstallPerDay} must be above the client's ${DAILY_LIMIT}`);
+  assert.ok(QUEUE_MAX > DAILY_LIMIT, 'the queue holds more than a day\'s reports');
+});
+
+// 2026-10-22 reports c8281dee, 1a895674 and ee4689b6: the player's own setup is already told in the game, so it is no error report.
+test('a custom provider that does not know the typed model, and a Local AI server of the player that does not answer, are not reported', async () => {
+  const unknownModel = new Error('The custom provider does not know that model: mistralai/mistral-7b-instruct:free is no longer available on OpenRouter [custom:model]');
+  assert.equal(reportableTurnFailure(unknownModel), false);
+  assert.equal(reportableTurnFailure(unknownModel, {errorCode: 'custom-model'}), false);
+  for (const word of ['server-unreachable', 'server-blocked', 'server-key-refused', 'server-bad-address']) {
+    const error = new Error(`LocalAiUnavailable: [local:unavailable] the local model server did not start (${word})`);
+    assert.equal(reportableTurnFailure(error, {errorCode: 'local-unavailable', localReason: 'start-failed'}), false, word);
+  }
+  // Our own server failing to start, and other custom provider failures, still count.
+  assert.equal(reportableTurnFailure(new Error('[local:unavailable] the local model server did not start (exited)'), {errorCode: 'local-unavailable', localReason: 'start-failed'}), true);
+  assert.equal(reportableTurnFailure(new Error('The custom provider did not answer in time [custom:network]')), true);
+  assert.equal(reportableTurnFailure(new Error('The custom provider answered with an empty reply [custom:empty]')), true);
+  const f = await folders();
+  try {
+    const deferred = [];
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => deferred.push(fn)});
+    events.turnFailed(unknownModel, {provider: 'custom'});
+    // The setup check: Local AI that could not start because the player's server is down or blocked is no problem report; our own failed start is.
+    events.setupChecked({checks: [{id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true, playerServer: true}]});
+    assert.equal(deferred.length, 0, 'nothing is queued for either');
+    events.setupChecked({checks: [{id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true}]});
+    assert.equal(deferred.length, 1);
   } finally { await f.cleanup(); }
 });

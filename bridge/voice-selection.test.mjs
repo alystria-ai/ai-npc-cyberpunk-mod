@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
-import {VoiceSelection, blockedByWindows} from './voice-selection.mjs';
+import {VoiceSelection, blockedByWindows, permanentVoiceFailure} from './voice-selection.mjs';
 import {LOCAL_VOICE_KEYS, ResidentVoice, NO_CUDA_FAILURE} from './resident-voice.mjs';
 import {abortable} from './transport-pool.mjs';
 
@@ -326,6 +326,31 @@ test('an unconfirmed retirement keeps replacement workers from starting', async 
   assert.equal(h.workers[1].starts, 0); assert.equal(h.peak(), 1);
   h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
   await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
+});
+
+// 0.2.6 and 0.2.7 reports ("Pocket worker exit could not be confirmed", RTX 5050 and GTX 1060): one missed confirmation left the release failed for the
+// rest of the session, and every later voice failed with it, though the process had exited a moment later.
+test('an exit that was not confirmed is looked at again, and a worker that is gone after all does not end the local voices', async () => {
+  const h = fixture(); await h.voice.start();
+  let rechecks = 0;
+  h.workers[0].close = async () => { throw Error('Pocket worker exit could not be confirmed'); };
+  h.workers[0].recoverExit = async () => { rechecks++; return true; };
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await h.voice.retiring; assert.equal(rechecks, 1);
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await h.voice.start(); assert.equal(h.workers[1].starts, 1, 'the next worker starts');
+  await h.voice.close();
+});
+
+test('an exit that is still not confirmed after the second look stays a failure that blocks a replacement, and later workers are still closed', async () => {
+  const h = fixture(); await h.voice.start();
+  h.workers[0].close = async () => { throw Error('Pocket worker exit could not be confirmed'); };
+  h.workers[0].recoverExit = async () => false;
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.start(), /exit could not be confirmed/);
+  assert.equal(h.workers[1].starts, 0);
 });
 
 test('malformed settings retain the valid selection; a withdrawn pending change is never applied', async () => {
@@ -769,8 +794,14 @@ function retryFixture({omni = [], pocket = [], options = {}} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill'].includes(mode)) {
+        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill', 'integrity', 'missing', 'fault', 'oom', 'paging', 'paging-fault'].includes(mode)) {
           this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
+            : mode === 'integrity' ? 'Pocket student runtime is unavailable (Pocket source differs from the pinned official revision (3 files))'
+            : mode === 'missing' ? 'Local voice worker exited (1): FileNotFoundError: [Errno 2] No such file or directory: model.safetensors'
+            : mode === 'fault' ? 'Local voice worker exited (3221225477 = access violation (0xC0000005)): Windows fatal exception: access violation'
+            : mode === 'paging' ? 'Local voice worker exited (1): OSError: The paging file is too small for this operation to complete. (os error 1455)'
+            : mode === 'paging-fault' ? 'Local voice worker exited (3221225477 = access violation (0xC0000005)): OSError: [Errno 22] 1455 not enough commit'
+            : mode === 'oom' ? 'Local voice worker exited (1): torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB'
             : mode === 'paths' ? 'Local voice worker did not confirm its portable asset and data paths' : mode === 'nocuda' ? NO_CUDA_FAILURE : mode.startsWith('timeout') ? 'Local voice preparation timed out' : backend + ' worker failed');
           if (mode === 'timeout-spill') this.failure.gpu = {dedicatedMiB: 2036, sharedMiB: 518};
           hooks.onState({state: 'error'}); throw this.failure;
@@ -916,21 +947,98 @@ test('an Omni timeout with graphics memory spilled into shared memory is not tri
   assert.equal(h.failures.length, 1, 'the first failure is still reported (it carries the graphics memory reading)'); assert.deepEqual(h.failures[0].gpu, SPILLED);
   // However long it waits, and whatever is chosen next, Omni is not started again.
   for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
-  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
-  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.resolvedProvider, 'pocket');
   await h.voice.close(); assert.equal(h.live(), 0);
 });
 
-test('an Omni timeout on a card of 8 GB or less (no reading needed, a startup timeout has none) is the same: Pocket, once, no retry loop', async () => {
-  const h = retryFixture({omni: ['timeout'], options: {gpuMemoryMiB: () => 8188}});
+test('choosing OmniVoice again after it ran out of memory retries it once; a second memory failure is for the session again (review A11)', async () => {
+  const h = retryFixture({omni: ['timeout-spill', 'timeout-spill', 'ok'], options: {gpuMemoryMiB: () => 12282}});
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
   h.voice.update({}, null, false); await h.voice.start(); await h.settle();
-  assert.equal(h.voice.omniRetry, null); assert.ok(h.logs.some(line => /not trying again: not enough graphics memory .*the card has 8188 MiB/.test(line)));
-  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback?.reason, 'omni-memory'); assert.equal(h.pocketWorkers().length, 1);
+  assert.equal(h.voice.omniNoMemory, true); assert.equal(h.omniWorkers().length, 1);
+  // The same choice standing in the settings does nothing, however long it waits.
+  for (const delay of [45_000, 600_000]) { h.advance(delay); h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); }
   assert.equal(h.omniWorkers().length, 1);
+  // The companions are on the loaded Pocket worker and V's line (read as Pocket, bridge/convai-bridge.mjs vOmniUsable) is spoken by it, not skipped for 'the companions are not on OmniVoice'.
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.vRouteSpeaks('johnny-silverhand'), true);
+  assert.match(h.voice.vOmniProblem('johnny-silverhand'), /not on OmniVoice/, 'the Omni engine itself would still be skipped: that is why V reads as Pocket');
+  // Choosing another voice and then OmniVoice again in the menu: one more try.
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 2, 'Omni is started once more');
+  assert.equal(h.voice.omniNoMemory, true, 'and the second failure for memory is for the session');
+  assert.ok(h.logs.some(line => /OmniVoice was chosen again: trying it once more/.test(line)));
+  for (const delay of [45_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 2, 'no third attempt without another choice');
+  assert.equal(h.voice.resolvedProvider, 'pocket');
+  // Another round: the third try works and OmniVoice is the voice again.
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 3); assert.equal(h.voice.omniNoMemory, false); assert.equal(h.voice.resolvedProvider, 'omni');
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('no CUDA is a fact about the PC: choosing OmniVoice again does not retry it', async () => {
+  const h = retryFixture({omni: ['nocuda', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniNoCuda, true);
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.omniNoCuda, true);
   await h.voice.close();
+});
+
+test('OmniVoice is not started at all on a card of 8 GB or less: Pocket speaks at once, told once as omni-memory, the saved choice stays OmniVoice', async () => {
+  const h = retryFixture({omni: ['timeout', 'ok'], options: {gpuMemoryMiB: () => 8188}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 0, 'no OmniVoice worker is ever started: nothing waits for a timeout');
+  assert.equal(h.voice.requestedProvider, 'omni', 'the setting stays OmniVoice');
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.resolvedProvider, 'pocket');
+  assert.equal(h.pocketWorkers().length, 1, 'Pocket is loaded in its place');
+  assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', reason: 'omni-memory'}, 'the one notice a failed OmniVoice start gives');
+  assert.equal(h.voice.omniRetry, null); assert.equal(h.failures.length, 0, 'nothing failed, so no error report');
+  assert.equal(h.logs.filter(line => /not starting OmniVoice: the card has 8188 MiB/.test(line)).length, 1, 'said once in the log');
+  assert.equal(h.states.at(-1).omniSmallCard, true); assert.equal(h.states.at(-1).requestedProvider, 'omni');
+  // Long after, still nothing: no retry, no background load.
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 0);
+  await h.voice.close();
+});
+
+test('OmniVoice on an 8 GB card: the preview of the voice menu does not start it either; a bigger card later just works with the same saved setting', async () => {
+  const h = retryFixture({options: {gpuMemoryMiB: () => 8188}});
+  h.voice.update({voiceProvider: 'pocket'}, {provider: 'omni', omniSteps: 16}, false); await h.settle();
+  h.voice.update({voiceProvider: 'pocket'}, {provider: 'omni', omniSteps: 16}, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 0, 'trying OmniVoice in the menu loads nothing on a card that cannot hold it');
+  await h.voice.close();
+  const big = retryFixture({options: {gpuMemoryMiB: () => 12282}});
+  big.voice.update({voiceProvider: 'omni'}, null, false); await big.settle();
+  big.voice.update({}, null, false); await big.voice.start(); await big.settle();
+  assert.equal(big.omniWorkers().length, 1); assert.equal(big.voice.provider, 'omni'); assert.equal(big.voice.fallback, null);
+  assert.equal(big.logs.filter(line => /not starting OmniVoice/.test(line)).length, 0);
+  await big.voice.close();
+});
+
+test('the card list is read before OmniVoice starts: no worker while it is being read, none on an 8 GB card, one on a big or unknown card; a cloud voice loads nothing', async () => {
+  for (const [memory, workers] of [[8188, 0], [12282, 1], [null, 1]]) {
+    let reading = true;
+    const h = retryFixture({options: {gpuMemoryMiB: () => (reading ? undefined : memory)}});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+    h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, 0, 'still reading the card list: no start yet');
+    reading = false; h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, workers, String(memory));
+    await h.voice.close();
+  }
+  // A cloud voice chosen: the card is not even asked about, and nothing local loads for OmniVoice.
+  const asked = [];
+  const cloud = retryFixture({options: {gpuMemoryMiB: wanted => { asked.push(wanted); return 8188; }, voxtral: {hasKey: true, onChange: null, setReferences() {}}}});
+  cloud.voice.update({voiceProvider: 'voxtral'}, null, false); await cloud.settle();
+  assert.equal(cloud.voice.cloudWanted, true); assert.equal(cloud.omniWorkers().length, 0); assert.ok(!asked.includes(true), 'the card list is not read for a cloud voice'); assert.equal(cloud.logs.filter(line => /not starting OmniVoice/.test(line)).length, 0);
+  await cloud.voice.close();
 });
 
 test('a plain timeout on a big card is tried once more, and a second one gives up (text, no Pocket); an unknown card list claims nothing', async () => {
@@ -1069,6 +1177,112 @@ test('a Pocket that Windows blocked (Smart App Control, an Application Control p
   assert.equal(blockedByWindows('ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.'), true);
   assert.equal(blockedByWindows('Pocket source differs from the pinned official revision'), false);
   assert.equal(blockedByWindows(undefined), false);
+});
+
+// 2026-10-22 reports (one RTX 5090 test box, install efde3b): "The paging file is too small for this operation to complete" (Windows error 1455) in the OmniVoice and both Pocket workers, with access violations
+// at the loads. Asking again loaded the models again at 45 s and 180 s.
+test('Windows out of memory (the paging file is too small): OmniVoice is not tried again, Pocket takes its place, and if Pocket fails the same way the reply is written', async () => {
+  const h = retryFixture({omni: ['paging', 'ok'], pocket: ['ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniRetry, null, 'no retry story'); assert.equal(h.states.at(-1).omniRetry, null);
+  assert.equal(h.logs.filter(line => /\[OmniRetry\] not trying again: Windows ran out of memory for the voice \(the paging file is too small\)/.test(line)).length, 1);
+  assert.ok(!h.logs.some(line => /trying again in|the CUDA graph/.test(line)));
+  assert.equal(h.voice.omniGraphOff, false);
+  // OmniVoice falls back to Pocket as it does for too little graphics memory, told once with its own reason; the menu does not claim the card is too small.
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 1); assert.equal(h.voice.provider, 'pocket');
+  assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', reason: 'virtual-memory'});
+  assert.equal(h.states.at(-1).omniSmallCard, false);
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 1, 'no second Omni load, however long it waits'); assert.equal(h.failures.length, 1);
+  await h.voice.close(); assert.equal(h.live(), 0);
+  // Pocket fails the same way: the reply is written, once told, never retried.
+  const both = retryFixture({omni: ['paging', 'ok'], pocket: ['paging', 'ok']});
+  both.voice.update({voiceProvider: 'omni'}, null, false); await both.settle();
+  both.voice.update({}, null, false); await both.voice.start(); await both.settle();
+  for (let i = 0; i < 3; i++) { both.voice.update({}, null, false); await both.settle(); }
+  assert.equal(both.voice.provider, 'text'); assert.deepEqual(both.voice.fallback, {from: 'omni', to: 'text', reason: 'virtual-memory'});
+  assert.equal(both.voice.pocketRetry, null);
+  assert.ok(both.logs.some(line => /\[PocketRetry\] not trying again: Windows ran out of memory for the voice/.test(line)));
+  for (const delay of [45_000, 180_000, 600_000]) { both.advance(delay); both.voice.update({}, null, false); await both.settle(); }
+  assert.equal(both.omniWorkers().length, 1); assert.equal(both.pocketWorkers().length, 1, 'neither is loaded again');
+  assert.equal(both.voice.voiceProblem().cause, 'virtual-memory');
+  await both.voice.close(); assert.equal(both.live(), 0);
+});
+
+test('a Pocket that Windows had no memory for is not tried again, the problem names the cause, and choosing Pocket again tries it once', async () => {
+  const h = retryFixture({pocket: ['paging', 'ok']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.pocketRetry, null);
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text', reason: 'virtual-memory'});
+  assert.deepEqual(h.voice.voiceProblem(), {engine: 'pocket', reason: h.voice.failureReasons.pocket, cause: 'virtual-memory'});
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.pocketWorkers().length, 1);
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 2, 'one more try after the player chose Pocket again'); assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null);
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('an access violation that comes with a 1455 line is the same family: no retry with the CUDA graph off; a plain access violation still gets it', async () => {
+  const h = retryFixture({omni: ['paging-fault', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniRetry, null); assert.equal(h.voice.omniGraphOff, false);
+  assert.ok(h.logs.some(line => /not trying again: Windows ran out of memory for the voice/.test(line)) && !h.logs.some(line => /CUDA graph/.test(line)));
+  const plain = retryFixture({omni: ['fault', 'ok']});
+  plain.voice.update({voiceProvider: 'omni'}, null, false); await plain.settle();
+  plain.voice.update({}, null, false); await plain.voice.start(); await plain.settle();
+  assert.equal(plain.voice.omniGraphOff, true); assert.ok(plain.voice.omniRetry);
+  assert.equal(permanentVoiceFailure('Local voice worker exited (1): OSError: The paging file is too small for this operation to complete. (os error 1455)'), 'Windows ran out of memory for the voice (the paging file is too small)');
+  assert.equal(permanentVoiceFailure('Local voice worker exited (3221225477 = access violation (0xC0000005)): Windows fatal exception: access violation'), null, 'an access violation alone is not a paging-file failure');
+  await h.voice.close(); await plain.voice.close();
+});
+
+// 2026-10-22 review of the player reports: one install logged 18 retries of a Pocket source-integrity failure (a rehash of hundreds of megabytes and a
+// Python start during play, every time, with the same answer).
+test('failures that will repeat are not retried: a Pocket file that is not the pinned one, and a file of the voice that is missing', async () => {
+  const h = retryFixture({pocket: ['integrity', 'ok']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.pocketRetry, null);
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text'}, 'a plain, permanent fallback: one notice');
+  assert.equal(h.logs.filter(line => /\[PocketRetry\] not trying again: a Pocket file is not the one this version pins/.test(line)).length, 1);
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.pocketWorkers().length, 1, 'no second load, however long it waits'); assert.equal(h.failures.length, 1);
+  const omni = retryFixture({omni: ['missing', 'ok']});
+  omni.voice.update({voiceProvider: 'omni'}, null, false); await omni.settle(); omni.voice.update({}, null, false); await omni.voice.start(); await omni.settle();
+  assert.equal(omni.voice.omniRetry, null); assert.ok(omni.logs.some(line => /\[OmniRetry\] not trying again: a file of the voice is missing from the install/.test(line)));
+  omni.advance(600_000); omni.voice.update({}, null, false); await omni.settle(); assert.equal(omni.omniWorkers().length, 1);
+  const blocked = retryFixture({omni: ['fail']});
+  assert.equal(permanentVoiceFailure('Local voice worker exited (1): ImportError: DLL load failed: An Application Control policy has blocked this file.'), 'Windows blocked a file of the voice');
+  assert.equal(permanentVoiceFailure('Pocket worker exited (1)'), null); assert.equal(permanentVoiceFailure('Pocket student startup timed out'), null);
+  assert.equal(permanentVoiceFailure('Pocket worker did not attest the selected CPU student'), 'a Pocket file is not the one this version pins (the Runtime needs its update)');
+  assert.ok(blocked);
+});
+
+test('an Omni worker that died on a memory fault is tried once at once with the CUDA graph off, then follows the normal waits', async () => {
+  const h = retryFixture({omni: ['fault', 'fault', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers()[0].hooks.extraEnvironment, undefined, 'the first worker has the graph');
+  assert.ok(h.logs.some(line => /memory fault; trying again in 5 s with the CUDA graph turned off/.test(line)));
+  h.advance(4000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.omniWorkers().length, 1);
+  h.advance(1000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 2); assert.deepEqual(h.omniWorkers()[1].hooks.extraEnvironment, {CYBERPUNK_CONVAI_CUDA_GRAPH: '0'});
+  // It fails the same way without the graph: the normal backoff (the second wait), with the graph still off.
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.omniRetry.failures, 2); assert.ok(h.voice.omniRetry.nextAt - 1000 >= 180_000 - 10_000);
+  assert.equal(h.logs.filter(line => /memory fault; trying again/.test(line)).length, 1);
+});
+
+// The worker's last stderr line now says why it died, so the out-of-memory rule applies to a load that ran out of graphics memory (it used to be "exited (1)").
+test('an Omni load that ran out of CUDA memory, with the card read as 8 GB or less only afterwards, is not tried again: Pocket speaks', async () => {
+  // The card list answers "unknown" until the worker has failed (a read that came too late to keep the worker from starting).
+  let h = null;
+  h = retryFixture({omni: ['oom', 'ok'], options: {gpuMemoryMiB: () => (h?.workers.some(worker => worker.failure) ? 8188 : null)}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.omniNoMemory, true); assert.equal(h.voice.omniRetry, null);
+  assert.ok(h.logs.some(line => /not trying again: not enough graphics memory for OmniVoice next to the game .the card has 8188 MiB./.test(line)));
 });
 
 test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {

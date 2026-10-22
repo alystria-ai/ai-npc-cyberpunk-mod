@@ -142,6 +142,8 @@ test('the report holds versions, settings, party, providers, recent errors and b
     assert.equal(summary.settings.voiceProvider, 'omni');
     assert.deepEqual(summary.settings.conversationDisabled, ['judy-alvarez']);
     assert.equal(summary.settings.conversationEnabledCount, 1);
+    assert.deepEqual(summary.settings.dynamicInfo, {location: false, quest: true}, 'Dynamic info is in the settings section');
+    assert.deepEqual(summary.settings.dynamicInfoOff, ['location'], 'and the kinds that are off are listed');
     assert(!('apiKey' in summary.settings) || summary.settings.apiKey === '[redacted]');
     assert.deepEqual(summary.party.companions.map(row => row.profile), ['bob-sagan', 'judy-alvarez']);
     const bob = summary.providers.companions.find(row => row.profile === 'bob-sagan');
@@ -181,6 +183,23 @@ test('the report lists the voice language packs the service found, with why a pa
     const without = JSON.parse((await zipText((await buildReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
       request: {...request, id: 'r-test-packs-2'}, secrets: [], knownIds: [], bridge: {busy: false}})).path)).find(entry => entry.name === 'summary.json').text);
     assert.equal(without.voiceLanguagePacks, null);
+  } finally { await f.cleanup(); }
+});
+
+test('the support report hides the player account name wherever a path carries it, not only under C:\Users; an email or user:pass@host never survives', async () => {
+  const f = await plantedInstall();
+  try {
+    const b = '\\';
+    await writeFile(join(f.runtime, 'probe.log'), [`2026-10-19T10:00:00Z opened D:${b}Zedmaster${b}Games${b}Cyberpunk 2077${b}x.lua`,
+      `2026-10-19T10:00:01Z opened E:${b}Jo${b}Games${b}y.lua`, '2026-10-19T10:00:02Z proxy https://zed:s3cretpw@proxy.example.net:8080/x',
+      '2026-10-19T10:00:03Z contact zed.master@example.org', ''].join('\n'));
+    const {entries} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-paths', issuedAt: Date.now()}, environment: {USERNAME: 'Zedmaster', USERPROFILE: `C:${b}Users${b}Jo`}});
+    const all = entries.map(entry => `${entry.name}\n${entry.data}`).join('\n');
+    assert(!all.includes('Zedmaster') && !all.includes(`E:${b}Jo${b}`), 'the account name is hidden in a path outside C:\\Users');
+    assert(all.includes(`D:${b}<user>${b}Games${b}Cyberpunk 2077${b}x.lua`), 'the rest of the path is kept');
+    assert(!all.includes('s3cretpw') && !all.includes('zed:') && all.includes('@proxy.example.net:8080/x'));
+    assert(!all.includes('zed.master@example.org') && all.includes('[email-redacted]'));
   } finally { await f.cleanup(); }
 });
 

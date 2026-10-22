@@ -25,7 +25,7 @@ function clock() {
         if (!next) break; jobs.delete(next[0]); time=next[1].at; next[1].callback(); } time=target; }};
 }
 
-function harness({autoReady=true, settings=config(), timers}={}) {
+function harness({autoReady=true, settings=config(), timers, isAlive}={}) {
   const requests=[], states=[], launches=[];
   const child=new EventEmitter(); child.pid=987; child.kills=0; child.kill=()=>{child.kills++;return true;};
   child.stdout=new PassThrough(); child.stderr=new PassThrough();
@@ -33,7 +33,7 @@ function harness({autoReady=true, settings=config(), timers}={}) {
   const client=new PocketVoice(settings,{project:process.cwd(),configPath:resolve('pocket-fixtures/config.json'),
     pythonExecutable:resolve('pocket-fixtures/python.exe'),spawnImpl:(exe,args,options)=>{
       launches.push({exe,args,options});if(autoReady)queueMicrotask(()=>ready());return child;},
-    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{})});
+    onState:state=>states.push(state),...(timers?{setTimer:timers.set,clearTimer:timers.clear}:{}),...(isAlive?{isAlive}:{})});
   const send=frame=>child.stdout.write(JSON.stringify({owner:client.owner,...frame})+'\n');
   const profiles=()=>({profiles:[profile],preparedProfiles:[profile],unavailableProfiles:{}});
   const ready=(extra={})=>send({op:'ready',protocolVersion:1,engine:'pocket-tts',device:'cpu',dtype:'torch.float32',
@@ -171,11 +171,34 @@ test('hung cancellation and shutdown kill only the owned handle and require exit
   const timers=clock(),h=harness({timers});const controller=new AbortController();
   const synthesis=h.client.synthesizeStream(profile,'One reply.',{signal:controller.signal,onPcm:()=>{}}),rejected=assert.rejects(synthesis,{name:'AbortError'});
   await tick();h.prepared();await tick();h.pcm(h.requests[1],1,0);await tick();controller.abort();await rejected;
-  timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.ok(h.client.failure);assert.equal(h.child.stdin.writableEnded,true);
-  timers.advance(POCKET_LIMITS.cancelMs);assert.equal(h.child.kills,1);
+  // The first deadline only says so and goes on waiting; the worker is stopped when the long one has passed too.
+  timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.equal(h.client.failure,undefined,'the worker is given the longer wait');
+  timers.advance(POCKET_LIMITS.cancelHardMs);await tick();assert.ok(h.client.failure);assert.match(h.client.failure.message,/did not stop its cancelled request/);assert.equal(h.child.stdin.writableEnded,true);
+  timers.advance(POCKET_LIMITS.closeGraceMs);assert.equal(h.child.kills,1);
   const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
-  timers.advance(POCKET_LIMITS.exitMs);await failed;assert.equal(h.child.kills,1);
+  timers.advance(POCKET_LIMITS.killRetryMs);assert.equal(h.child.kills,2,'stopped again before it is called unconfirmed');
+  timers.advance(POCKET_LIMITS.exitMs-POCKET_LIMITS.killRetryMs);await failed;assert.equal(h.child.kills,2);
   h.finish();
+});
+
+// An exit that was not confirmed is not a process that is still running: the process is looked at again, and the late close ends the wait.
+test('recoverExit: an unconfirmed exit is checked again, stopped again, and resolves when the process is gone',async()=>{
+  const timers=clock();let alive=true;const h=harness({timers,isAlive:()=>alive});
+  h.client.start();await tick();await tick();
+  const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
+  timers.advance(POCKET_LIMITS.closeGraceMs+POCKET_LIMITS.exitMs);await failed;
+  const kills=h.child.kills,recovered=h.client.recoverExit({timeoutMs:60_000,pollMs:1000,killMs:10_000});
+  timers.advance(25_000);assert.ok(h.child.kills>kills,'it is stopped again while it still runs');
+  alive=false;timers.advance(1000);assert.equal(await recovered,true);assert.equal(h.client.child,null);
+});
+
+test('recoverExit gives up (false) when the process is still running after its time',async()=>{
+  const timers=clock(),h=harness({timers,isAlive:()=>true});
+  h.client.start();await tick();await tick();
+  const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
+  timers.advance(POCKET_LIMITS.closeGraceMs+POCKET_LIMITS.exitMs);await failed;
+  const recovered=h.client.recoverExit({timeoutMs:5000,pollMs:1000,killMs:2000});timers.advance(6000);
+  assert.equal(await recovered,false);
 });
 
 // A first-time preparation of a voice takes 1.4 to 4.5 s and cannot be interrupted. V's typed line is cancelled on purpose when the companion's voice
@@ -202,10 +225,10 @@ test('a cancelled preparation that never ends still stops the worker, after the 
   const timers = clock(), h = harness({timers}), controller = new AbortController();
   const preparing = h.client.prepareProfile(profile, {signal: controller.signal}), rejected = assert.rejects(preparing, {name: 'AbortError'});
   await tick(); controller.abort(); await rejected;
-  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(POCKET_LIMITS.prepareCancelMs + POCKET_LIMITS.cancelHardMs - 1); await tick(); assert.equal(h.client.failure, undefined);
   timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
   assert.equal(h.child.stdin.writableEnded, true);
-  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  timers.advance(POCKET_LIMITS.closeGraceMs); assert.equal(h.child.kills, 1);
   h.finish();
 });
 
@@ -230,7 +253,7 @@ test('a stream cancelled before its first sound waits for the worker to answer i
   const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
   await tick(); h.prepared(); await tick(); const request = h.requests[1]; assert.equal(request.op, 'stream');
   controller.abort(); await rejected; assert.equal(h.requests.at(-1).op, 'cancel');
-  timers.advance(POCKET_LIMITS.cancelMs * 3); await tick();
+  timers.advance(POCKET_LIMITS.cancelMs * 2); await tick();
   assert.equal(h.client.failure, undefined); assert.equal(h.child.stdin.writableEnded, false); assert.equal(h.child.kills, 0);
   h.send({op: 'cancelled', id: request.id, profile, ...h.profiles()}); await tick();
   timers.advance(POCKET_LIMITS.prepareCancelMs); await tick();
@@ -242,9 +265,9 @@ test('a stream cancelled before its first sound that never answers still stops t
   const timers = clock(), h = harness({timers}), controller = new AbortController();
   const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
   await tick(); h.prepared(); await tick(); controller.abort(); await rejected;
-  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(POCKET_LIMITS.prepareCancelMs + POCKET_LIMITS.cancelHardMs - 1); await tick(); assert.equal(h.client.failure, undefined);
   timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
-  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  timers.advance(POCKET_LIMITS.closeGraceMs); assert.equal(h.child.kills, 1);
   h.finish();
 });
 
@@ -294,7 +317,7 @@ test('a worker stuck importing is stopped and started once more; the second one 
   const starting = h.client.start(); await tick();
   assert.equal(h.launches.length, 1);
   h.send(h.children[0], {op: 'state', state: 'loading'}); h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies'] - 1); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies'] + POCKET_LIMITS.stallGraceMs['importing-dependencies'] - 1); await tick();
   assert.equal(h.children[0].kills, 0, 'not yet');
   h.timers.advance(1); await tick();
   assert.equal(h.children[0].kills, 1, 'the stuck worker is stopped'); assert.equal(h.children[0].stdin.writableEnded, true);
@@ -314,10 +337,10 @@ test('a worker that stalls again is given up on cleanly: one restart only, no lo
   const h = restartHarness();
   const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await tick(); h.children[0].emit('close', 1); await tick();
+  h.timers.advance(STALL_AND_GRACE); await tick(); h.children[0].emit('close', 1); await tick();
   assert.equal(h.launches.length, 2);
   h.send(h.children[1], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await failed;
+  h.timers.advance(STALL_AND_GRACE); await failed;
   assert.equal(h.launches.length, 2, 'never a third worker'); assert.ok(h.client.failure);
   assert.equal(h.children[1].stdin.writableEnded, true);
   assert.match(h.logs.join(''), /stalled at importing-dependencies again; giving up/);
@@ -344,6 +367,8 @@ test('a worker that keeps moving through its phases is not restarted, and a slow
 // ---- progress: a slow import that keeps moving is never stopped; one that stands still is; the hard bound ends either ----
 
 const IMPORT = 'importing-dependencies';
+// The window of no progress plus the one bounded extra wait before a stuck worker is stopped.
+const STALL_AND_GRACE = POCKET_LIMITS.stallMs[IMPORT] + POCKET_LIMITS.stallGraceMs[IMPORT];
 const beat = async (h, child, cpuMs, step) => { h.send(child, {op: 'heartbeat', cpuMs, ...(step ? {step} : {})}); await tick(); };
 
 test('a slow import that makes progress is not killed, however long it takes within the hard bound, and then gets ready', async () => {
@@ -368,16 +393,17 @@ test('a slow import that makes progress is not killed, however long it takes wit
   h.client.close(); h.children[0].emit('close', 0);
 });
 
-test('a hung import (CPU time standing still, however many beats) is stopped at the stall window, and a slow second attempt is not', async () => {
+test('a hung import (nothing moving, however many beats) is stopped after the window and the grace wait, and a slow second attempt is not', async () => {
   const h = restartHarness();
   const starting = h.client.start(); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
   await beat(h, h.children[0], 1500);
-  // Beats that add no CPU (a deadlock) are not progress and do not push the window back.
-  for (let at = 0; at < POCKET_LIMITS.stallMs[IMPORT] - 2000; at += 2000) { h.timers.advance(2000); await beat(h, h.children[0], 1500 + 50); }
-  assert.equal(h.children[0].kills, 0, 'not before the window');
+  // Beats that add no CPU, no I/O and no module (a deadlock) are not progress and do not push the window back.
+  for (let at = 0; at < STALL_AND_GRACE - 4000; at += 2000) { h.timers.advance(2000); await beat(h, h.children[0], 1500 + 50); }
+  assert.equal(h.children[0].kills, 0, 'not before the window and the grace wait');
+  assert.match(h.logs.join(''), /nothing moved at importing-dependencies for 60s, worker CPU 1\.5s; waiting 120s more before stopping the worker/);
   h.timers.advance(4000); await tick();
-  assert.equal(h.children[0].kills, 1, 'a worker with no progress for the window is stopped');
+  assert.equal(h.children[0].kills, 1, 'a worker with no progress for the window and the grace wait is stopped');
   assert.match(h.logs.join(''), /stalled at importing-dependencies for 60s without progress, worker CPU 1\.5s; stopping/);
   // A beat that was already on its way while it is being stopped counts for nothing (and is not an error).
   await beat(h, h.children[0], 9_000_000);
@@ -392,14 +418,48 @@ test('a hung import (CPU time standing still, however many beats) is stopped at 
   h.client.close(); h.children[1].emit('close', 0);
 });
 
+// 0.2.3 reports: a virus scan or a cold disk costs the worker wall time and no CPU time, and the CPU-only watchdog stopped it in the middle of its imports.
+test('a worker whose CPU time stands still but that reads files or loads modules is not stopped, and a grace wait that sees progress starts the window over', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  const frame = (cpuMs, ioBytes, modules) => { h.send(h.children[0], {op: 'heartbeat', cpuMs, ioBytes, modules}); return tick(); };
+  await frame(500, 1_000_000, 200);
+  // A window and a half of a scan: CPU frozen, but the reads creep (a megabyte per 30 s) and a module appears now and then.
+  for (let at = 0, io = 1_000_000, modules = 200; at < 1.5 * POCKET_LIMITS.stallMs[IMPORT]; at += 2000) {
+    h.timers.advance(2000);
+    if (at % 30_000 === 0) io += 1_000_000;
+    if (at % 50_000 === 0) modules += 1;
+    await frame(500, io, modules);
+  }
+  assert.equal(h.children[0].kills, 0, 'I/O and module growth are progress'); assert.equal(h.launches.length, 1);
+  // Then it stops for the window, gets the grace wait, and shows a module before the end of it: the window starts over.
+  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT] + 1000); await tick();
+  assert.match(h.logs.join(''), /waiting 120s more/);
+  await frame(500, 9_000_000, 9999); h.timers.advance(POCKET_LIMITS.stallMs[IMPORT] - 1000); await tick();
+  assert.equal(h.children[0].kills, 0, 'progress during the grace wait is progress');
+  h.ready(h.children[0]); await starting; assert.equal(h.client.loaded, true);
+  h.client.close(); h.children[0].emit('close', 0);
+});
+
+test('heartbeat I/O and module counts are checked like the CPU time', async () => {
+  for (const bad of [{ioBytes: -1}, {ioBytes: 1.5}, {modules: '9'}, {modules: -2}]) {
+    const h = restartHarness();
+    const starting = h.client.start(), failed = assert.rejects(starting, /Invalid Pocket worker heartbeat/); await tick();
+    h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+    h.send(h.children[0], {op: 'heartbeat', cpuMs: 5, ...bad}); await failed;
+    h.children[0].emit('close', 1);
+  }
+});
+
 test('a worker that hangs on both attempts is stopped twice at the window and then given up on, and Pocket stays failed', async () => {
   const h = restartHarness();
   const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[0], 800);
-  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await tick(); h.children[0].emit('close', 1); await tick();
+  h.timers.advance(STALL_AND_GRACE); await tick(); h.children[0].emit('close', 1); await tick();
   h.send(h.children[1], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[1], 800);
   h.timers.advance(2000); await beat(h, h.children[1], 810);
-  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await failed;
+  h.timers.advance(STALL_AND_GRACE); await failed;
   assert.equal(h.launches.length, 2); assert.match(h.logs.join(''), /again; giving up/);
   assert.equal(h.children[1].stdin.writableEnded, true); h.children[1].emit('close', 1);
 });
@@ -441,4 +501,34 @@ test('a preparation a reply waits on is urgent for the worker (normal priority),
   const stream = h.requests.at(-1); assert.equal(stream.op, 'stream');
   controller.abort(); await rejected;
   h.send({op: 'cancelled', id: stream.id, profile, ...h.profiles()}); await tick(); await h.close();
+});
+
+test('a Pocket worker that dies says why: its exit code in words and the last error line of its stderr', async () => {
+  const h = harness({autoReady: false});
+  const starting = h.client.start(), failed = assert.rejects(starting, /^Error: Pocket worker exited \(3221225477 = access violation \(0xC0000005\)\): Windows fatal exception: access violation$/); await tick();
+  h.child.stderr.write('Windows fatal exception: access violation\n\nThread 0x0000 (most recent call first):\n  File "a.py", line 3 in run\n'); await tick();
+  h.finish(3221225477); await failed;
+  const plain = harness({autoReady: false}), plainFailed = assert.rejects(plain.client.start(), error => error.message === 'Pocket worker exited (1)'); await tick();
+  plain.finish(1); await plainFailed;
+});
+
+// 2026-10-22 review (W12): a reply was cut at 120 s of wall time even while the worker kept producing audio (a long reply on a slow computer).
+test('a reply is cut for standing still, not for its length: every chunk starts the time limit over', async () => {
+  const timers = clock(), h = harness({timers}), packets = [];
+  const synthesis = h.client.synthesizeStream(profile, 'A long reply on a slow computer.', {onPcm: packet => { packets.push(packet); }});
+  await tick(); h.prepared(); await tick(); const request = h.requests[1];
+  let offset = 0;
+  for (let index = 1; index <= 5; index++) {            // five chunks, each 40 s after the last: 200 s of wall time, more than the 120 s the old limit allowed
+    timers.advance(40_000); await tick(); h.pcm(request, index, offset); offset += 4; await tick();
+  }
+  assert.equal(h.client.failure, undefined); assert.equal(packets.length, 5);
+  h.done(request, 20, 5, {generationMs: 300}); const result = await synthesis; assert.equal(result.frames, 20);
+  // The same worker that then stands still for the idle limit is cut.
+  const stalled = h.client.synthesizeStream(profile, 'Another.', {onPcm: () => {}}), rejected = assert.rejects(stalled, /Pocket speech timed out/);
+  await tick(); h.prepared(h.requests.length - 1); await tick(); const next = h.requests.at(-1); assert.equal(next.op, 'stream');
+  h.pcm(next, 1, 0); await tick();
+  timers.advance(POCKET_LIMITS.renderIdleMs - 1); await tick(); assert.equal(h.client.pending.size, 1, 'still within the limit');
+  timers.advance(1); await tick(); assert.equal(h.requests.at(-1).op, 'cancel', 'the worker is told to stop it');
+  h.send({op: 'cancelled', id: next.id, profile, ...h.profiles()}); await tick(); await rejected;
+  await h.close();
 });

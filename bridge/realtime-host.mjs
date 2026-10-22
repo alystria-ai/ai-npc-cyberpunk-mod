@@ -1,16 +1,79 @@
 import {createServer} from 'node:http';
+import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {launchSystemBrowser} from './system-browser.mjs';
+import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 
-const PCM_MODULES = Object.freeze([
+// ----------------------------------------------------------------------------------------------- the hidden browser's sandbox
+// The hidden Chromium runs with its renderer sandbox on (Playwright adds --no-sandbox unless chromiumSandbox is true). A sandbox that cannot work
+// on a PC (Wine or Proton, a browser on exFAT, FAT32 or a network drive, security software that injects into renderers) usually does not stop the
+// browser from starting: it makes every renderer crash at its first page. So a sandboxed browser is trusted only after it has opened one blank page
+// and run one line in it (a few seconds at most, once per start, never per turn). If the launch fails, hangs, or that page does not work, the browser
+// is started again without the sandbox and the result is remembered: in this process (the three hosts share it) and in the state folder
+// (browser-sandbox.json, per browser, 30 days), so a PC where it fails does not pay for the attempt at every start. Delete the file to try again.
+// Known limit: a sandboxed audio service silenced by audio-enhancement software (Nahimic, Sonic Studio and similar) gives no error at all, so it
+// cannot be detected here; CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts the browser without the sandbox (docs/CONVAI_AUDIO_STREAMING.md, "The hidden browser's sandbox").
+export const SANDBOX_STATE_FILE = 'browser-sandbox.json';
+export const SANDBOX_TIMEOUTS = Object.freeze({launchMs: 20_000, probeMs: 8_000, closeMs: 3_000, rememberMs: 30 * 86_400_000});
+const sandboxRefusals = new Map();      // browser key -> when it was found not to work (ms), for this process
+const sandboxFilesRead = new Set();     // state files already read in this process
+const sandboxPassed = new Set();        // browsers whose sandbox passed the probe in this process (a later launch of the same one is not probed again)
+let sandboxLogged = false;
+const sandboxKey = options => String(options?.executablePath ?? options?.channel ?? 'default');
+/** Forgets what this process learned about the sandbox (the tests). */
+export function resetSandboxMemory() { sandboxRefusals.clear(); sandboxFilesRead.clear(); sandboxPassed.clear(); sandboxLogged = false; }
+function sandboxRefused(key, statePath, now) {
+  if (statePath && !sandboxFilesRead.has(statePath)) {
+    sandboxFilesRead.add(statePath);
+    try {
+      const saved = JSON.parse(readFileSync(statePath, 'utf8'));
+      if (saved?.version === 1 && saved.refused && typeof saved.refused === 'object') {
+        for (const [name, at] of Object.entries(saved.refused)) if (Number.isFinite(at) && !sandboxRefusals.has(name)) sandboxRefusals.set(name, at);
+      }
+    } catch { /* no file, or one that is not ours: the sandbox is simply tried */ }
+  }
+  const at = sandboxRefusals.get(key);
+  if (at === undefined) return false;
+  if (now - at > SANDBOX_TIMEOUTS.rememberMs) { sandboxRefusals.delete(key); return false; }
+  return true;
+}
+// `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
+function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {
+  sandboxRefusals.set(key, now);
+  if (!statePath || !persist) return;
+  try { writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), reason: String(reason).slice(0, 160)})); } catch { /* read-only: remembered for this process only */ }
+}
+const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
+  : resolve(process.env.CYBERPUNK_CONVAI_STATE || fileURLToPath(new URL('../runtime/', import.meta.url)), SANDBOX_STATE_FILE));
+const withTimeout = (promise, ms, what) => new Promise((resolveIt, rejectIt) => {
+  const timer = setTimeout(() => rejectIt(Error(`${what} took longer than ${Math.round(ms / 1000)} s`)), ms);
+  promise.then(value => { clearTimeout(timer); resolveIt(value); }, error => { clearTimeout(timer); rejectIt(error); });
+});
+/** One blank page that must open and run a line: the sandbox's renderer works. Closes its page. */
+export async function probeBrowser(browser, ms = SANDBOX_TIMEOUTS.probeMs) {
+  let page = null;
+  try {
+    // Opening the page is inside the limit too: a renderer that never comes up must not hang the start.
+    await withTimeout((async () => {
+      page = await browser.newPage();
+      await page.goto('about:blank');
+      if (await page.evaluate(() => 1 + 1) !== 2) throw Error('the page ran nothing');
+    })(), ms, 'the first page');
+  } finally {
+    if (page) await Promise.race([page.close({runBeforeUnload: false}).catch(() => {}), new Promise(done => setTimeout(done, 1000).unref?.())]);
+  }
+}
+
+export const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
   'local-pcm-client.mjs',
 ]);
@@ -25,6 +88,9 @@ const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 // 32 MiB leaves room for pose timestamps, metadata and bounded reply text.
 // This is a transport ceiling, not a larger utterance/facial admission limit.
 export const CONTINUOUS_SNAPSHOT_JSON_LIMIT = 32 * 1024 * 1024;
+
+// How often the text of a reply that is still being written is read from the page (see evaluateSpeech, textStream).
+export const TEXT_STREAM_POLL_MS = 40;
 
 export async function continuousSnapshotForHost(page, token, signal, pcmFrom) {
   // Playwright recursively encodes every number in a returned object. Passing
@@ -89,6 +155,22 @@ export async function installConvaiAudioRoute(page, getOwner) {
 export const pageGone = error => /has been closed|Target closed|Target crashed|Page crashed|Execution context was destroyed|browser has disconnected/i
   .test(String(error?.message ?? ''));
 
+// Convai closing (or failing) the realtime connection under a turn (the 'disconnect' and 'error' events of bridge/realtime-client.mjs): 4 reports in 3 days, 3 installs, 3 versions
+// (2026-10-22 report 92f464e9, "Convai realtime connection closed"). Convai's side or the player's network; a turn that had received nothing yet can be asked again on a fresh connection.
+export const connectionLost = error => /Convai realtime connection (?:closed|failed)/i.test(String(error?.message ?? ''));
+/**
+ * True when the page's diagnostics (window.convaiRealtime.diagnostics(), read right after the connection was closed) show that nothing of the reply had arrived: no text row of the character (the message events are not looked at: the player's own message may be echoed), no
+ * audio packet. Unknown (no diagnostics) is false: a turn that may have been answered is never asked again, so nothing is spoken twice. Pure.
+ */
+export function arrivedNothing(diagnostics) {
+  if (!diagnostics || typeof diagnostics !== 'object') return false;
+  const turn = diagnostics.previousTurn ?? diagnostics.turn ?? null;
+  if (!turn) return true;   // lost while connecting or before the message was sent: there was no turn to answer
+  const audio = turn.audio ?? null;
+  return !(Number(turn.textCharacters) > 0 || Number(turn.llmRows) > 0 || Number(turn.outputRows) > 0
+    || Number(audio?.byteCount) > 0 || Number(audio?.packetCount) > 0 || Number(audio?.frameCount) > 0);
+}
+
 const connectOwner = config => ({characterId: config.characterId,
   endUserId: config.endUserId ?? null, ttsEnabled: config.ttsEnabled !== false});
 
@@ -127,16 +209,21 @@ export class RealtimeHost {
     // The hidden browser outputs real audio in the game. Under the Node test runner (NODE_TEST_CONTEXT is set in every
     // `node --test` child) or with CYBERPUNK_CONVAI_MUTE_BROWSER=1 it stays muted, so tests never reach the player's speakers.
     muteBrowser = process.env.CYBERPUNK_CONVAI_MUTE_BROWSER === '1' || !!process.env.NODE_TEST_CONTEXT,
-    launchBrowser = options => chromium.launch(options),
+    launchBrowser, probeSandbox, sandboxStatePath = sandboxStatePathDefault(), sandboxTimeouts = {},
     // One line a retry of a lost page writes (no character, player or text in it).
     log = line => console.error(`[CyberpunkConvai] ${line}`)} = {}) {
     this.browserExecutable = absoluteRuntimeOverride(browserExecutable, 'CYBERPUNK_CONVAI_BROWSER');
     this.clientAssetsDirectory = absoluteRuntimeOverride(clientAssetsDirectory, 'CYBERPUNK_CONVAI_CLIENT_ASSETS');
-    this.launchBrowser = launchBrowser; this.muteBrowser = !!muteBrowser; this.log = log;
+    // The real launcher is probed (see "the hidden browser's sandbox"); a launcher a test hands in is not, unless it asks for it (probeSandbox: true).
+    this.probeSandbox = probeSandbox ?? launchBrowser === undefined;
+    this.launchBrowser = launchBrowser ?? (options => chromium.launch(options));
+    this.sandboxStatePath = sandboxStatePath; this.sandboxTimeouts = {...SANDBOX_TIMEOUTS, ...sandboxTimeouts};
+    this.muteBrowser = !!muteBrowser; this.log = log;
     // The page keys a running turn or microphone turn owns (key -> how many). The party plan's retain() never closes these: a page that is not in
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
     this.pinned = new Map();
+    this.running = 0;   // calls that are starting or running (runOnce): the browser is not released under them
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -283,7 +370,7 @@ export class RealtimeHost {
     let browser;
     try {
       // Edge, else an installed Chrome; CYBERPUNK_CONVAI_BROWSER (a developer's override) names an executable instead.
-      browser = await launchSystemBrowser(browserChoice => this.launchBrowser({...browserChoice, headless: true,
+      browser = await launchSystemBrowser(browserChoice => this.launchWithSandbox({...browserChoice, headless: true,
         ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
         // The hidden pages play the reply (and run the Convai connection) while the game window has the focus: Chromium must not treat them as
         // background pages (timers throttled, the renderer's priority class lowered, a window it calls occluded paused), or a reply waits.
@@ -331,11 +418,69 @@ export class RealtimeHost {
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
-  async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
+  /**
+   * Starts the hidden Chromium with its renderer sandbox on, and trusts it only once one blank page has opened and run a line (probeBrowser). A browser
+   * that will not start that way, hangs, or whose pages die is closed and started once more without the sandbox; the reason is logged and the result is
+   * remembered (module level, shared by the hosts, and on disk), so no later start tries the sandbox on that PC again. A browser that is simply not
+   * there is not retried.
+   */
+  async launchWithSandbox(options) {
+    const key = sandboxKey(options), now = Date.now();
+    const log = line => { try { this.log(line); } catch { /* a log that fails changes nothing */ } };
+    if (process.env.CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX === '1') return this.launchBrowser({...options, chromiumSandbox: false});
+    if (sandboxRefused(key, this.sandboxStatePath, now)) {
+      if (!sandboxLogged) { sandboxLogged = true; log(`The hidden browser runs without its sandbox: an earlier start found it does not work on this PC (delete ${SANDBOX_STATE_FILE} to try it again)`); }
+      return this.launchBrowser({...options, chromiumSandbox: false});
+    }
+    let browser = null;
+    try {
+      browser = await this.launchBrowser({...options, chromiumSandbox: true, ...(this.probeSandbox ? {timeout: this.sandboxTimeouts.launchMs} : {})});
+      if (this.probeSandbox && !sandboxPassed.has(key)) { await probeBrowser(browser, this.sandboxTimeouts.probeMs); sandboxPassed.add(key); }
+      if (!sandboxLogged) { sandboxLogged = true; log('The hidden browser runs with its sandbox (if replies are silent, audio-enhancement software may be silencing it: CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts it without)'); }
+      return browser;
+    } catch (error) {
+      if (browser) await Promise.race([browser.close().catch(() => {}), new Promise(done => setTimeout(done, this.sandboxTimeouts.closeMs).unref?.())]);
+      if (browserMissing(error)) throw error;
+      const reason = String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
+      const plain = await this.launchBrowser({...options, chromiumSandbox: false});
+      rememberSandboxRefusal(key, this.sandboxStatePath, now, reason, !/took longer than|\btimeout\b|timed out/i.test(String(error?.message ?? error)));
+      sandboxLogged = true;
+      log(`The hidden browser would not work with its sandbox (${reason}); it runs without it`);
+      return plain;
+    }
+  }
+  async evaluateSpeech(page, method, config, {signal, liveSpeech, textStream, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);
     config = this.withVision(config);
-    if (!liveSpeech || config?.ttsEnabled === false)
-      return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+    if (!liveSpeech || config?.ttsEnabled === false) {
+      const textKey = textStream && method === 'reply' && typeof textStream.update === 'function' ? randomUUID() : null;
+      const call = page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config: textKey ? {...config, textStreamKey: textKey} : config, method});
+      // A text-only reply the bridge voices while Convai is still writing it (a local voice on the Convai text route): the text so far is read
+      // from the page every TEXT_STREAM_POLL_MS and handed to the reply stream, which finds the first sentence the voice can start on. The reply's
+      // own result still decides the final text. A poll that fails changes nothing (the call itself reports the failure).
+      if (textKey) {
+        let over = false, last = '';
+        const poll = (async () => {
+          // Only the first sentence is read this way (the rest comes from the finished reply): the polling ends when the stream has its head, or is over.
+          while (!over && !signal?.aborted && !textStream.committed && !textStream.complete) {
+            try {
+              // null: this page runs a client bundle older than the source (npm run build:voice) and cannot hand its text over; no polling, one line.
+              const text = await page.evaluate(key => window.convaiRealtime.partialReply ? window.convaiRealtime.partialReply(key) : null, textKey);
+              if (text === null) {
+                if (!this.earlyTextMissing) { this.earlyTextMissing = true; try { this.log('The conversation page has no early reply text (an older voice client bundle: npm run build:voice); replies are voiced when finished'); } catch { /* a line never fails a turn */ } }
+                break;
+              }
+              if (!over && typeof text === 'string' && text && text !== last) { last = text; textStream.update(text); }
+            } catch { /* the reply call reports a real failure */ }
+            if (over) break;
+            await new Promise(done => { const timer = setTimeout(done, TEXT_STREAM_POLL_MS); timer.unref?.(); });
+          }
+        })();
+        void poll.catch(() => {});
+        return abortable(call.finally(() => { over = true; }), signal);
+      }
+      return abortable(call, signal);
+    }
     const {token, onFrame} = liveSpeech;
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(token) || typeof onFrame !== 'function')
       throw Error('Invalid live speech admission');
@@ -346,12 +491,19 @@ export class RealtimeHost {
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
     // The sample rate the statistics showed for this turn's audio (the page puts it in the snapshot). A turn played live that finds out its audio is mislabelled is already playing at
-    // the label's rate, so it fails; the character must still learn the rate, or every later turn of it fails the same way (2026-10-21 reports of 55741d05, 0.2.6).
+    // the label's rate: it plays on to its end at that rate (the first turn of a character not yet remembered is heard at the wrong speed) and no longer fails (it used to, with
+    // "Continuous speech format changed"); the character learns the rate, so every later turn of it starts right (2026-10-21 reports of 55741d05, 0.2.6).
     const seenRate = {};
     const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.()).then(value => {
       if (value?.token === token) {
         if (value.sampleRateCorrected) seenRate.corrected = value.sampleRateCorrected;
         if (value.sampleRateHintMissed === true) { seenRate.missed = true; seenRate.sampleRate = value.sampleRate; }
+        // The corrected rate above is for the character's memory; the live speech is checked against the rate the player runs at (a correction found at the end of the
+        // turn is not a format change of the audio that has been playing: it used to fail the turn with "Continuous speech format changed").
+        if (Number.isInteger(value.openedSampleRate) && value.openedSampleRate !== value.sampleRate) {
+          const {openedSampleRate, ...rest} = value;
+          return {...rest, sampleRate: openedSampleRate};
+        }
       }
       return value;
     });
@@ -401,7 +553,7 @@ export class RealtimeHost {
     const attempt = async () => {
       // One admission per turn; the recovery retries below repeat the same turn.
       if (method !== 'warm' && this.guard) { this.guard.check(config); this.guard.consume(config); }
-      let current = config, waited = false, lost = false;
+      let current = config, waited = false, lost = false, dropped = false;
       for (let retries = 0; ; retries++) {
         const epoch = this.epoch;
         try { return await this.runOnce(current, method, options); }
@@ -418,6 +570,14 @@ export class RealtimeHost {
               continue;
             }
           }
+          // Convai closed the connection before anything of the reply arrived (markEarlyDisconnect): asked once more on a fresh connection, then it fails as before. Nothing had been
+          // received, so nothing is spoken or written twice; the admission above is not charged again.
+          if (error?.beforeReply === true && !dropped && !options.discard) {
+            if (epoch !== this.epoch || this.closing) throw cancelled();
+            dropped = true;
+            try { this.log('Convai closed the connection before the reply began; opening a new one and asking once more'); } catch { /* a log line never fails a turn */ }
+            continue;
+          }
           if (!waited && this.exclusive?.enabled?.() && /concurrency limit/i.test(String(error?.message))) {
             waited = true;
             await abortable(new Promise(resolve => setTimeout(resolve, this.exclusive.retryMs ?? 1500)), options.signal);
@@ -431,7 +591,12 @@ export class RealtimeHost {
     };
     return this.observe(attempt(), method !== 'warm');
   }
-  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
+  async runOnce(config, method, options = {}) {
+    // A call that is starting or running keeps the browser open (releaseIfIdle / releaseIdlePages look at this).
+    this.running = (this.running ?? 0) + 1;
+    try { return await this.runOnceCounted(config, method, options); } finally { this.running--; }
+  }
+  async runOnceCounted(config, method, {signal, discard = false, onAudioChunk, liveSpeech, textStream} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
     // Retire the old per-file chunk capability. Only an explicit liveSpeech
@@ -463,8 +628,15 @@ export class RealtimeHost {
       const images = await pictures;
       throwIfCancelled(signal);
       if (images) config.visionImages = images;
-      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech,
-        current: () => epoch === this.epoch && !this.closing});
+      let result;
+      try {
+        result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech, textStream,
+          current: () => epoch === this.epoch && !this.closing});
+      } catch (error) {
+        // Only on a failure, and only for the connection Convai closed: one short look at the page (never on the way to a normal reply).
+        if (method === 'reply' && !discard) await this.markEarlyDisconnect(lease.value, error, signal);
+        throw error;
+      }
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       if (method === 'reply') this.audioRates.learn(config, result);
@@ -477,6 +649,17 @@ export class RealtimeHost {
       signal?.removeEventListener('abort', cancel);
       try { await lease.release({discard: discard || failed || signal?.aborted}); } finally { unpin(); }
     }
+  }
+  // Convai closed the connection under a text turn: if the page says nothing of the reply had arrived, the error is marked so run() asks once more on a fresh connection. The look is capped
+  // at a second and never throws. A speculative turn (discard) is not asked again: nobody is waiting for it.
+  async markEarlyDisconnect(page, error, signal) {
+    if (!error || typeof error !== 'object' || signal?.aborted || !connectionLost(error) || page.isClosed?.()) return;
+    let timer;
+    try {
+      const value = await Promise.race([page.evaluate(() => window.convaiRealtime.diagnostics()),
+        new Promise((_, reject) => { timer = setTimeout(() => reject(Error('timeout')), 1000); })]);
+      if (arrivedNothing(value)) error.beforeReply = true;
+    } catch { /* unknown: not asked again */ } finally { clearTimeout(timer); }
   }
   reply(config, options) { return this.run(config, 'reply', options); }
   warm(config, options) { return this.run(config, 'warm', options); }
@@ -555,7 +738,7 @@ export class RealtimeHost {
   // use starts it again (about 0.8 s for the browser and about 1 s for the page; a composer warm-up does it before the first reply).
   // Resolves true when the browser was closed.
   async releaseIfIdle({idleMs = 300_000, keepRenderer = false, now = Date.now()} = {}) {
-    if (keepRenderer || this.closing || this.starting || !this.browser) return false;
+    if (keepRenderer || this.closing || this.starting || !this.browser || this.running > 0) return false;
     if (this.pool?.entries.size || this.voiceLease) return false;
     for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
     if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
@@ -586,7 +769,22 @@ export class RealtimeHost {
     const entry = this.pool?.entries.get(pageKey(config));
     if (!entry?.value || entry.value.isClosed()) return {present: false, ready: false};
     if (entry.busy) return {present: true, busy: true};
+    // A page kept alive on purpose (a phone Chat that is open) is in use: the idle release (releaseIdlePages) does not count its quiet time.
+    if (keepAlive) this.pool.touch(pageKey(config));
     return {present: true, ...await entry.value.evaluate(keepAlive => window.convaiRealtime.readiness(keepAlive), keepAlive)};
+  }
+  /**
+   * Closes the conversation pages nothing has used for `idleMs` and, when that leaves the host with nothing to serve, the hidden browser itself (a process tree of
+   * several hundred MB), with the close confirmed before this resolves. The next use opens it again on demand. Resolves {pages, browser}: how many pages and
+   * whether the browser were closed. Never throws.
+   */
+  async releaseIdlePages({idleMs = 180_000, now = Date.now()} = {}) {
+    try {
+      if (this.closing || this.starting || !this.browser || this.running > 0) return {pages: 0, browser: false};
+      const pages = await (this.pool?.evictIdle({idleMs}) ?? 0);
+      const browser = await this.releaseIfIdle({idleMs, now});
+      return {pages, browser};
+    } catch { return {pages: 0, browser: false}; }
   }
   // Convai's emotion for a finished text-only reply (`lateEmotionToken` in that reply), which arrives about half a
   // second after its text. Reads the reply's own page only; never connects, waits or retains anything.

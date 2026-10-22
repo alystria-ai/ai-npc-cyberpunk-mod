@@ -8,6 +8,8 @@ import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs'
 import {omniTagsFor, keepSpeechTags, stripSpeechTags} from './natural-speech.mjs';
 import {pickVoiceKey, withoutVariants} from './voice-variants.mjs';
 import {VHelperVoice} from './v-helper-voice.mjs';
+import {closeConfirmed} from './worker-process.mjs';
+import {accessViolationFailed, missingFilesFailed, pagingFileFailed, pocketIntegrityFailed} from './voice-failures.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
 // can begin from a settings draft while that routing remains unchanged.
@@ -37,17 +39,28 @@ export const canonicalOmniReference = value => OMNI_REFERENCES.includes(value) ?
 // file that is not signed by a publisher it trusts ("DLL load failed ... An Application Control policy has blocked this file", 2026-10-20 live record).
 // Asking again cannot change that, and nothing in the mod can: the voice is not retried, and the Help row says what blocked it.
 export const blockedByWindows = reason => /application control|policy has blocked|blocked this file|smart app control|code integrity|blocked by (?:the )?(?:group )?policy/i.test(String(reason ?? ''));
+// A failure that will repeat on every try, in words for the log, or null: Windows blocked a file (above), a Pocket file is not the pinned one or is not
+// there (a version mismatch, an incomplete or changed Runtime), a file or Python module the worker needs is missing. None of these is retried: each try is a
+// rehash of hundreds of megabytes or a model load beside the game, and fails the same way. The Runtime update (or a repair) is what changes it.
+// Windows ran out of memory it can promise (error 1455, "The paging file is too small", pagingFileFailed): the same on every try until the player enlarges the page file or closes programs.
+export const permanentVoiceFailure = reason => blockedByWindows(reason) ? 'Windows blocked a file of the voice'
+  : pagingFileFailed(reason) ? 'Windows ran out of memory for the voice (the paging file is too small)'
+  : pocketIntegrityFailed(reason) ? 'a Pocket file is not the one this version pins (the Runtime needs its update)'
+  : missingFilesFailed(reason) ? 'a file of the voice is missing from the install' : null;
 export const VOICE_FALLBACK_ORDER = Object.freeze(['omni','pocket']);
 // The route of a reply that no voice speaks because the chosen LOCAL voice cannot run right now. Never a cloud voice.
 export const TEXT_ROUTE = 'text';
 const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
-export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000});
+export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 6000});
 const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
+export const CLOUD_WAIT_OUT_MS = 1500;
 // A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni
 // is loaded again in the background after each of these waits (a first failure after 45 s, then 3 min, then 10 min);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
 // due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
+// The first retry after a memory fault of the worker comes this soon, with the CUDA graph off (scheduleOmniRetry).
+export const OMNI_FAULT_RETRY_MS = 5000;
 export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
 // A chosen Pocket worker that fails (a start that stalls twice while the game loads, or a crash) is not given up on either: the same waits and
 // the same end after the fourth failure, then the normal start loads it again (it has no background candidate, since the voice it falls to,
@@ -95,11 +108,20 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
+    // keepsReference: key => boolean (the bridge): a voice whose reference a pack's clip must not replace although it is not the player's own clip (V with a V voice mod's reference, docs/V_VOICE.md).
+    this.keepsReference=typeof options.keepsReference==='function'?options.keepsReference:()=>false;
     // The PocketTTS models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
     // cloned from the pack's clip; without them Pocket speaks English only.
     this.pocketLanguages=options.pocketLanguages||null;
     this.clock = options.clock || Date.now;
     this.cloudRetryAudioMs = {...CLOUD_RETRY_AUDIO_MS, ...options.cloudRetryAudioMs};
+    // A cloud voice that is cooling down for no longer than this is waited for, not skipped (synthesizeHead).
+    this.cloudWaitOutMs = Number.isFinite(options.cloudWaitOutMs) ? options.cloudWaitOutMs : CLOUD_WAIT_OUT_MS;
+    this.sleep = options.sleep || ((ms, signal) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, ms);
+      const onAbort = () => { clearTimeout(timer); reject(signal.reason ?? cancelled()); };
+      if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, {once: true});
+    }));
     this.packCheckedAt=0;this.refreshOmniPack();
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
@@ -127,12 +149,13 @@ export class VoiceSelection {
     this.vHelperWanted=false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       onFailure:reason=>this.noteFailure('v-helper',reason),
-      clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:blockedByWindows,busy:()=>this.busy,
+      clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:permanentVoiceFailure,busy:()=>this.busy,
+      closeWorker:client=>this.closeWorker(client),
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
-    this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();
+    this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();this.omniGraphOff=false;
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
     // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
@@ -140,7 +163,9 @@ export class VoiceSelection {
     // The memory of the NVIDIA card (MiB, or null until the same lazy card list is read) and omniNoMemory: Omni ran out of its time with its graphics memory spilled into shared
     // memory, or on a card of 8 GB or less (not enough graphics memory next to the game). Like omniNoCuda, it is for the life of the service: Omni is not tried again,
     // and Pocket speaks in its place (resolve), told once (fallback.reason 'omni-memory').
-    this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniNoMemory=false;
+    this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniMemoryFailed=false;this.omniCardNoted=false;
+    // Windows ran out of memory it can promise (pagingFileFailed): for OmniVoice, then Pocket takes its place; for Pocket, the reply is written. Neither is started again until the player chooses it again.
+    this.omniPagingFailed=false;this.pocketPagingFailed=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
@@ -303,7 +328,7 @@ export class VoiceSelection {
   resolve(provider){
     if(provider==='convai')return 'convai';
     // Omni that does not get the graphics memory it needs beside the game is replaced by Pocket, which is loaded for it (a local voice, never a cloud one).
-    if(provider==='omni'&&this.omniNoMemory&&!this.cloudWanted)provider='pocket';
+    if(provider==='omni'&&!this.cloudWanted&&this.omniNoMemory)provider='pocket';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
       .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend));
@@ -356,7 +381,9 @@ export class VoiceSelection {
     if(want===this.requestedProvider||this.provider!==want)return null;
     // `reason: 'omni-no-nvidia'`: OmniVoice cannot run on this PC at all (no CUDA), so the game says that instead of a generic "unavailable".
     // `reason: 'omni-memory'`: it ran out of its time without enough graphics memory beside the game; Pocket speaks (the game says so once).
-    const reason=this.requestedProvider!=='omni'||this.requestedCloud?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
+    // `reason: 'virtual-memory'`: Windows ran out of memory for the voice (the paging file is too small), for OmniVoice (Pocket speaks or the reply is written) or for Pocket itself.
+    const paging=!this.requestedCloud&&((this.requestedProvider==='omni'&&(this.omniPagingFailed||this.pocketPagingFailed))||(this.requestedProvider==='pocket'&&this.pocketPagingFailed));
+    const reason=this.requestedCloud?null:paging&&!this.omniNoCuda?'virtual-memory':this.requestedProvider!=='omni'?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
     const value={from:this.requestedCloud??this.requestedProvider,to:want,...(reason?{reason}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
@@ -410,7 +437,12 @@ export class VoiceSelection {
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
-        if(!(chosen==='omni'&&(this.omniNoCuda||this.omniNoMemory)))this.failedBackends.delete(chosen);
+        // Choosing OmniVoice again after it ran out of memory retries it once (a failure for want of memory is for the session otherwise, and V would stay mute with it): one more
+        // attempt, and a second failure for memory sets the flag again. No CUDA is a fact about the PC and stays.
+        if(chosen==='omni'&&this.omniMemoryFailed&&!this.omniNoCuda){this.omniMemoryFailed=false;this.log('OmniVoice was chosen again: trying it once more after the memory failure');}
+        if(chosen==='omni'&&this.omniPagingFailed){this.omniPagingFailed=false;this.log('OmniVoice was chosen again: trying it once more after Windows ran out of memory');}
+        if(chosen==='pocket'&&this.pocketPagingFailed){this.pocketPagingFailed=false;this.log('Pocket was chosen again: trying it once more after Windows ran out of memory','PocketRetry');}
+        if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
         if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;
@@ -467,7 +499,7 @@ export class VoiceSelection {
     const candidates=[this.previewSettled&&this.preview&&this.resolve(this.preview.provider),
       ...(this.silent?committed.filter(candidate=>candidate==='pocket'&&this.vHelperWanted):committed)];
     return candidates.find(candidate=>local(candidate)&&this.configuredByBackend[candidate]
-      &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate))||null;
+      &&this.availabilities[candidate].size>0&&!this.failedBackends.has(candidate)&&!(candidate==='omni'&&this.omniCardPending))||null;
   }
   // Voice playback is Off: the companions' local voice has no use for a loaded worker.
   get silent(){return this.playbackEnabled===false;}
@@ -618,7 +650,7 @@ export class VoiceSelection {
     const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable}:{}),onState: value => {
+      pythonExecutable:this.options.omniPythonExecutable,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{})}:{}),onState: value => {
       if (this.client !== client || this.closed) return;
       if (value.state === 'error') queueMicrotask(()=>this.backendFailed(backend,client));
       if (value.state === 'ready') this.stageAvailability(client,backend);
@@ -666,7 +698,8 @@ export class VoiceSelection {
     return null;
   }
   // `cause: 'blocked'` when Windows refused to load a file of the voice (blockedByWindows); the Help row then says so, in plain words.
-  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:problem;}
+  // `cause: 'virtual-memory'` when Windows ran out of memory for it (pagingFileFailed): the row says to enlarge the paging file or close programs.
+  withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:pagingFileFailed(problem.reason)?{...problem,cause:'virtual-memory'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason,gpu){
@@ -684,7 +717,7 @@ export class VoiceSelection {
     // both models again beside Local AI and the game: not tried again, Pocket speaks in its place.
     const short=this.omniMemoryShort(reason,gpu);
     if(short&&this.requestedProvider==='omni'&&!this.cloudWanted){
-      this.omniNoMemory=true;
+      this.omniMemoryFailed=true;
       this.log(`not trying again: not enough graphics memory for OmniVoice next to the game (${short}); Pocket is used instead`);
       this.omniRetry=null;return;
     }
@@ -697,9 +730,23 @@ export class VoiceSelection {
       this.log(`not trying again: the worker did not confirm its asset and data paths, and they do not change until the game is restarted${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
     }
+    const permanent=permanentVoiceFailure(reason);
+    if(permanent){
+      this.log(`not trying again: ${permanent}${reason?` (${reason})`:''}`);
+      // Pocket (a local voice, loaded beside nothing else of the voice) takes its place as for too little graphics memory, and the game says what happened.
+      if(pagingFileFailed(reason)&&this.requestedProvider==='omni'&&!this.cloudWanted)this.omniPagingFailed=true;
+      this.omniRetry=null;return;
+    }
     if(this.closed||this.requestedProvider!=='omni'||this.omniPack.installed===false||delay===undefined){
       if(this.omniRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
+    }
+    // A worker that died on a memory fault (exit 3221225477) is tried once more at once with the CUDA graph off, before the normal waits: the graph is the first suspect,
+    // and a second fault without it falls into the usual backoff with the graph left off.
+    if(accessViolationFailed(reason)&&!this.omniGraphOff){
+      this.omniGraphOff=true;
+      this.log('the worker died on a memory fault; trying again in 5 s with the CUDA graph turned off');
+      this.omniRetry={failures,nextAt:this.clock()+OMNI_FAULT_RETRY_MS};return;
     }
     this.omniRetry={failures,nextAt:this.clock()+delay};
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
@@ -718,8 +765,24 @@ export class VoiceSelection {
     const card=this.graphicsMiB;
     return isSmallCard(card)?`the card has ${card} MiB`:null;
   }
+  /**
+   * OmniVoice is not started at all on a card of 8 GB or less (2026-10-22 reports: it took 4 minutes next to the game on an 8 GB card and then ran out of its time; the voice menu already says it needs 12 GB):
+   * Omni that does not get the graphics memory it needs beside the game is replaced by Pocket (resolve), told once like a failed start (fallback.reason 'omni-memory'), without waiting for a timeout. The
+   * saved choice stays OmniVoice, so a bigger card later just works. Only a card the list shows to be an NVIDIA one under 9,000 MiB counts; an unknown card claims nothing and starts Omni as before.
+   */
+  get omniCardTooSmall(){
+    let card=null;
+    try{const found=Number(this.gpuMemorySource(true));card=found>0?found:null;}catch{card=null;}
+    const small=isSmallCard(card);
+    if(small&&!this.omniCardNoted){this.omniCardNoted=true;this.log(`not starting OmniVoice: the card has ${card} MiB, not enough graphics memory for it next to the game; Pocket is used instead`);}
+    return small;
+  }
+  // The card list is still being read (the source answers undefined, not null): Omni is not started until it is known whether the card is big enough. The read is a registry query of well under a second.
+  get omniCardPending(){try{return this.gpuMemorySource(true)===undefined;}catch{return false;}}
+  // Omni failed for want of graphics memory, or the card is known to be too small for it: Pocket speaks in its place.
+  get omniNoMemory(){return this.omniMemoryFailed||this.omniPagingFailed||this.omniCardTooSmall;}
   // The menu hint "OmniVoice needs 12 GB": the NVIDIA card is known to be under 11 GB, or Omni already failed for want of memory. Unknown claims nothing.
-  get omniSmallCard(){return this.omniNoMemory||underNeeded(this.graphicsMiB);}
+  get omniSmallCard(){return this.omniMemoryFailed||underNeeded(this.graphicsMiB);}
   // The card vendors for the Omni start and failure lines: names only.
   get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
   get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
@@ -736,8 +799,10 @@ export class VoiceSelection {
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
     const failures=(this.pocketRetry?.failures??0)+1,delay=this.pocketRetryDelays[failures-1];
-    if(blockedByWindows(reason)){
-      this.log(`not trying again: Windows blocked a file of the voice (${reason})`,'PocketRetry');
+    const permanent=permanentVoiceFailure(reason);
+    if(permanent){
+      this.log(`not trying again: ${permanent} (${reason})`,'PocketRetry');
+      if(pagingFileFailed(reason)&&!this.cloudWanted)this.pocketPagingFailed=true;
       this.pocketRetry=null;return;
     }
     if(this.closed||!this.pocketWanted||delay===undefined){
@@ -778,7 +843,7 @@ export class VoiceSelection {
     if(!variant.configured){this.omniRetry=null;return;}
     const entry={reference,client:null,loaded:false,lastState:null};
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,onState:value=>{
+      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{}),onState:value=>{
         if(this.closed)return;
         if(this.candidate===entry){
           entry.lastState=value;
@@ -825,7 +890,7 @@ export class VoiceSelection {
     this.publish();
   }
   retireCandidate(entry){
-    const closing=Promise.resolve().then(()=>entry.client.close());
+    const closing=Promise.resolve().then(()=>this.closeWorker(entry.client));
     this.candidateExit=this.candidateExit.then(()=>closing);
     this.candidateExit.catch(()=>{});
     return this.candidateExit;
@@ -857,9 +922,12 @@ export class VoiceSelection {
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
     // cleanup; waiting for readiness first could prevent shutdown forever.
-    // An unconfirmed prior exit must continue blocking any replacement.
+    // An unconfirmed prior exit must continue blocking any replacement, but it never keeps THIS worker from being closed (a worker skipped
+    // here would run on, unseen, beside the next one). An exit that could not be confirmed is looked at again before it counts as failed
+    // (closeWorker), so one missed confirmation is not the end of every local voice for the session.
     const phoneRetirement=backend==='pocket'?this.phoneAnalysis?.retire().catch(()=>{}):undefined;
-    const retirement = this.retiring.then(() => Promise.all([client.close(),phoneRetirement]));
+    const closeThis = () => Promise.all([this.closeWorker(client),phoneRetirement]);
+    const retirement = this.retiring.then(closeThis, error => closeThis().then(() => { throw error; }));
     this.retiring = retirement.then(() => {
       if (this.retiring !== completed) return;
       this.releasing = false;
@@ -874,6 +942,8 @@ export class VoiceSelection {
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
+  // Closes a worker and confirms its exit; an exit that was not confirmed is checked again (bridge/worker-process.mjs) before it is a failure.
+  closeWorker(client){return closeConfirmed(client,{log:message=>this.log(message,'Voices'),recoverMs:this.options.exitRecoverMs});}
   // ---- V's own Pocket worker (bridge/v-helper-voice.mjs) ----
   // V's voice engine is the player's choice (settings `vVoiceEngine`, default Pocket). With Pocket, V's line is spoken by the Pocket worker
   // the companions use when they use Pocket themselves (`pocketRoute`: one worker, one job at a time). With any other companion voice
@@ -988,6 +1058,8 @@ export class VoiceSelection {
     try {
       if (this.hasPlayerClip(profile)) {
         const own = this.registries.pocket.profiles[profile];
+        // Only the player's own clip is a language voice of Pocket's worker (it refuses any other path outside the language pack folder): a reference kept for a V voice mod is spoken by the English student.
+        if (own && !isPlayerReference(own.reference)) return null;
         descriptor = own ? {reference: own.reference, sha256: own.sha256, transcript: own.transcript} : null;
       } else descriptor = await this.languagePacks?.omniDescriptor(language, profile) ?? null;
     } catch { descriptor = null; }
@@ -999,7 +1071,7 @@ export class VoiceSelection {
       if (this.provider !== 'pocket' || this.cloudActive || this.silent || this.clientBackend !== 'pocket' || !this.client?.loaded || !this.usesProfile(profile)) return null;
       const voice = this.voiceOf(profile), pocketLanguage = await this.pocketLanguageFor(voice, language);
       if (!pocketLanguage || this.provider !== 'pocket' || this.cloudActive) return null;
-      return await this.client.prepareLanguage(voice, pocketLanguage);
+      return await this.client.prepareLanguage(voice, pocketLanguage, {urgent: true});   // the turn's reply waits for this swap: normal priority
     } catch { return null; }
   }
   // A reply spoken by the cloud voice. No local voice takes part, so there is no fallback voice here: a request that gave no audio in
@@ -1020,6 +1092,9 @@ export class VoiceSelection {
     const ask = extra => engine.synthesizeStream(profile, spoken, {...options, onPcm, ...extra});
     try {
       if (this.cloudBarred()) throw Error(`The ${name} voice is not used while Mature content is on`);
+      // A cool-down of a moment (a 429 on a one-request-a-second key) is waited out: the reply is spoken a second late rather than written.
+      const cooling = engine.cooldownMs;
+      if (!engine.ready && engine.hasKey && cooling > 0 && cooling <= this.cloudWaitOutMs) { await this.sleep(cooling + 20, options.signal); throwIfCancelled(options.signal); }
       if (!engine.ready) throw Error(`The ${name} voice cannot be asked now (${engine.hasKey ? 'waiting out a limit' : 'no key'})`);
       try { return await ask(); }
       catch (error) {
@@ -1092,8 +1167,12 @@ export class VoiceSelection {
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps,...(languageReference?{languageReference}:{})});
   }
-  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips")? It is the player's choice and no pack replaces it.
-  hasPlayerClip(key){return isPlayerReference(this.registry?.profiles?.[key]?.reference);}
+  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips"), or a reference of the player's own making that a voice language pack must not replace (V's V voice mod
+  // reference, docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one)? Neither is replaced by a pack clip in another language.
+  hasPlayerClip(key){
+    if(isPlayerReference(this.registry?.profiles?.[key]?.reference))return true;
+    try{return this.keepsReference(key)===true;}catch{return false;}
+  }
   async prepareProfile(profile, options = {}) {
     // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other
     // voice chosen (local or Voxtral) they are written ('text'), never given to a cloud voice.
@@ -1148,7 +1227,14 @@ export class VoiceSelection {
       const phonePreparing=this.provider==='pocket'&&this.playbackEnabled!==false&&this.phoneAnalysis
         ?this.phoneAnalysis.prepare(options).catch(error=>{throwIfCancelled(options.signal);return{ready:false};}):null;
       phonePreparing?.catch(()=>{});
-      try { receipt = await client.prepareProfile(voice, options); }
+      try {
+        // A Pocket language is resident (the last language stays loaded): the voice is prepared in that language's view, so no model is swapped out for a warm-up.
+        // A character with no clip in that language's pack falls back to the English student (the client defers that one unless the caller requires it).
+        const resident = this.provider === 'pocket' && !client.profileReady?.(voice) ? client.residentLanguage : null;
+        const pocketLanguage = resident && typeof client.prepareLanguage === 'function' ? await this.pocketLanguageFor(voice, resident).catch(() => null) : null;
+        throwIfCancelled(options.signal);
+        receipt = pocketLanguage ? await client.prepareLanguage(voice, pocketLanguage, {signal: options.signal}) : await client.prepareProfile(voice, options);
+      }
       catch (error) {
         throwIfCancelled(options.signal);
         if (!this.closed && (this.provider === 'convai' || this.provider === TEXT_ROUTE)) return remote(this.remoteReason(profile));

@@ -30,6 +30,24 @@ export const VECTORS = [
   {input: `token ${PLANTED.base64} ok`, gone: [PLANTED.base64]},
   {input: 'Conversation result: generation=1 error=false', keep: ['Conversation result: generation=1 error=false']},
   {input: 'Basic information about bin/x64/plugins/cyber_engine_tweaks/mods', keep: ['Basic information about bin/x64/plugins/cyber_engine_tweaks/mods']},
+  {input: 'fetch https://alice:hunter2pass@example.com/v1/path failed', gone: ['alice', 'hunter2pass'], keep: ['https://', '@example.com/v1/path failed']},
+  {input: 'mail me at jane.doe+game@example.org please', gone: ['jane.doe', 'example.org'], keep: ['mail me at', 'please']},
+  {input: 'Mistral key Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc in use', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc'], keep: ['in use']},
+  {input: 'GET /oauth?code=abc123secretcode&state=ok', gone: ['abc123secretcode'], keep: ['state=ok']},
+  {input: 'at C:\\Users\\John Smith\\Documents\\mod\\x.lua:12', gone: ['John', 'Smith'], keep: ['<user>', 'Documents', 'x.lua:12']},
+  {input: 'version 0.2.8@build mailto:x at node@20.1.0 and react@18.3.1', keep: ['node@20.1.0', 'react@18.3.1']},
+  // The 32-character Mistral key is matched exactly (letters and digits only); names with - or _ stay readable below 40 characters.
+  {input: 'Local AI model Gemma4-E4B-MiniFantasy-V1-Q4_K_M loaded', keep: ['Gemma4-E4B-MiniFantasy-V1-Q4_K_M']},
+  {input: 'record Judy_Alvarez_Q105_romance_2nd_meeting played', keep: ['Judy_Alvarez_Q105_romance_2nd_meeting']},
+  {input: 'key=none Mistral Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc, then Mistral key a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6 again', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc', 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6'], keep: ['again']},
+  {input: 'token Abc-def_ghi-123_Abc-def_ghi-123_Abc-def_xyz-7 end', gone: ['Abc-def_ghi-123_Abc-def_ghi-123_Abc-def_xyz-7'], keep: ['end']},
+  // A file name with an @ and a version is not an e-mail address; a real one is.
+  {input: 'model kokoro@v1.0.onnx and voices@2.1.json loaded; write to player.one@mail.example.com', gone: ['player.one@mail.example.com'], keep: ['kokoro@v1.0.onnx', 'voices@2.1.json', 'loaded']},
+  {input: 'icon name@2x.png next to a.b@mail.example.com.', gone: ['a.b@mail.example.com'], keep: ['name@2x.png', 'icon']},
+  // A key right after a short name= (not a keyword the rules know), and before an @.
+  {input: 'cfg k=Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc and mk=a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6 end', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc', 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6'], keep: ['cfg k=', 'end']},
+  {input: 'mail Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc@gmail.com sent', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc', 'gmail.com'], keep: ['mail', 'sent']},
+  {input: 'GET /oauth/callback?code=200abcdef&state=x', gone: ['200abcdef'], keep: ['state=x']},
   {input: "Type 'MovePolicies' not found.", keep: ["Type 'MovePolicies' not found."]},
   {input: 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\red4ext\\logs', keep: ['E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\red4ext\\logs']},
 ];
@@ -71,7 +89,7 @@ export async function plantedInstall() {
   await f.put(join(f.modRoot, 'AiNpcCyberpunkMod.log'), `[2026-10-05 10:00:00] token=${PLANTED.base64}\n`);
   await f.put(join(f.runtime, 'settings.json'), JSON.stringify({version: 2, voiceProvider: 'omni', omniSteps: 32,
     apiKey: PLANTED.shortKey, convaiUserId: PLANTED.userId, note: `uses ${PLANTED.shortKey} and ${PLANTED.hfToken}`,
-    enabledByKey: {'bob-sagan': true, 'judy-alvarez': false}, relationshipModes: {'judy-alvarez': 'auto'}, developerMode: true}));
+    enabledByKey: {'bob-sagan': true, 'judy-alvarez': false}, relationshipModes: {'judy-alvarez': 'auto'}, dynamicInfo: {location: false, quest: true}, developerMode: true}));
   await f.put(join(f.runtime, 'knowledge-status.json'), JSON.stringify({version: 1, updated: Date.now(), currentWorld: true}));
   await f.put(join(f.runtime, 'bridge-status.json'), JSON.stringify({state: 'ready', detail: PLANTED.userId, updated: Date.now()}));
   await f.put(join(f.runtime, 'local-voice-state.json'), JSON.stringify({version: 1, state: 'ready', provider: 'omni', omniSteps: 32,

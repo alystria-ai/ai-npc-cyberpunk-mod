@@ -14,7 +14,7 @@ export function inputIdentity(input, context = '') {
 // (bridge/parsed-snapshot.mjs), so hashing the request no longer serialises 800 KB of them again.
 export function parsedInputIdentity(parsed, context = '') {
   const keyed = parsed !== null && typeof parsed === 'object'
-    ? {...parsed, worldKnowledge: snapshotKey(parsed.worldKnowledge), journalHistory: snapshotKey(parsed.journalHistory)} : parsed;
+    ? {...parsed, worldKnowledge: snapshotKey(parsed.worldKnowledge), journalHistory: snapshotKey(parsed.journalHistory), provider: undefined} : parsed;
   return createHash('sha256').update(JSON.stringify([keyed, context])).digest('hex');
 }
 

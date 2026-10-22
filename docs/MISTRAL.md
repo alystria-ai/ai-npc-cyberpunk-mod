@@ -95,7 +95,11 @@ a prefix cache keeps working on Mistral and the local model:
    journal, gear) and the world facts come after them (`worldBlocksInCacheOrder`, `bridge/mistral-prompt.mjs`): the facts are ranked by
    the words V just said, so their text changes with every turn, and placed first they made the first changed token sit right after the
    persona (first player reports, 2026-10-19: 2,350 cached and about 3,000 new tokens on every turn). The Convai context keeps its own
-   order;
+   order. Since 2026-10-22 (perf/bridge-1022) the facts are not in the world context at all when the blocks are known (`knowledgeApart`): they follow the
+   remembered summary in a section of their own, "WORLD KNOWLEDGE FOR THIS TURN", so a turn no longer re-reads the summary (up to 1,400 characters, about 350
+   tokens, measured in `bridge/prompt-budget.test.mjs`: 5,184 to 5,503 shared tokens of a 6,900-token example). The world context is cut at the same place with
+   or without them (a cut that moved with the facts' length would move the cached text), and the facts have a cap of half the world's. Moving the facts into the
+   last user message, behind the history, would keep the history too; it changes how the model weighs them and needs `scripts/Eval-MistralPrompt.mjs` first;
 3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
    system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
 4. the recent exchanges, verbatim, as alternating messages;
@@ -249,6 +253,7 @@ The `-latest` aliases did NOT move: `voxtral-mini-tts-latest` is still `voxtral-
 transcription also a 429 with an allowance of 0) the same request goes at once to the alias, and when the alias answers it is the model for ten minutes (one log line says so), then v3 is
 tried again. A limit, a server fault, a guardrail refusal and a 401 are never treated as a refused model. One test call with the developer's key on 2026-10-21 got audio from the v3 TTS id
 (HTTP 200, the usual event stream, 24 kHz float32 PCM). Whether the free "Experiment" plan includes the v3 models is NOT stated anywhere in the docs; the transcription ids were not called.
+**Player-facing wording (2026-10-22):** because of that, the README and the Nexus page say "with a Mistral key" for the Voxtral voice and never that the free plan covers it (they say replies show as text when the plan does not include it). To settle it, make a fresh free-plan key, choose the Voxtral voice and read the log: a refusal (402, 403) is retried on the older model by `modelRefused` in `bridge/voxtral-languages.mjs`, and then replies show as text with the voice notice.
 
 Voxtral TTS 3 languages (Mistral's announcement names 21: English, French, Spanish, Catalan, Dutch, German, Hungarian, Italian, Norwegian, Polish, Romanian, Russian, Turkish, Ukrainian, Portuguese,
 Arabic, Chinese, Hindi, Japanese, Korean, Vietnamese; the voice presets add Greek; "35+" is claimed). The mod speaks only those 22 and shows a reply in any other language (Czech, Swedish, Hebrew,

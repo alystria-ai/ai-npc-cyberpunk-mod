@@ -34,7 +34,8 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 --   dialogue  the character is in a scene or quest dialogue
 --   driven    the game's AI is not on its own (a scene or quest commands it)
 --             idle (a quest-bound person with no roster profile: the receptionist, the Afterlife bouncer) lets a commanded AI through
---             while the person stands in a workspot: a post the quest gave them is not a scene. V's own scene, dialogue and call (hub),
+--             while the person stands in a workspot and V is in open gameplay (scene tier 1, `staged` not true): a post the quest gave
+--             them is not a scene, but a scene's own seated or waiting actor is in a workspot too, with V past tier 1. V's own scene, dialogue and call (hub),
 --             the person's dialogue, a fight, an injury and a ride still refuse
 --   combat    the character or V is in a fight
 --   hurt      the character is injured, defeated, unconscious, stunned or ragdolled
@@ -46,7 +47,7 @@ function M.classify(facts, projection, idle)
     if facts.gone == true then return 'gone' end
     if facts.hub == true then return 'hub' end
     if facts.dialogue == true then return 'dialogue' end
-    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true) then return 'driven' end
+    if facts.driven == true and projection ~= true and not (idle == true and facts.workspot == true and facts.staged ~= true) then return 'driven' end
     if facts.combat == true or facts.playerCombat == true then return 'combat' end
     if facts.hurt == true then return 'hurt' end
     if facts.mounted == true and projection ~= true then return 'vehicle' end
@@ -61,13 +62,24 @@ end
 function M.describe(facts, projection)
     if type(facts) ~= 'table' then return 'facts=none' end
     local parts = {}
-    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
+    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'staged', 'quest', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
         local value = facts[name]
-        -- workspot is read only for a quest-bound person with no roster profile (idle), so it is listed only when it was read.
-        if name ~= 'workspot' or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
+        -- workspot and staged are read only for a quest-bound person with no roster profile (idle), so they are listed only when read; quest is the
+        -- game's runtime quest flag, for the log line only (it never refuses by itself: every story character carries it).
+        if (name ~= 'workspot' and name ~= 'staged' and name ~= 'quest') or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
     end
     if projection == true then parts[#parts + 1] = 'projection=true' end
     return table.concat(parts, ' ')
+end
+
+-- The game's own runtime quest flag of a person (GameObject:IsQuest(): set by a quest on a person whatever their TweakDB record says, a
+-- side-job witness or a rescue target on a generic record). true when set, false when read and not set, nil when it could not be read.
+-- Asked only when V picks a talk target or a reaction is offered or run, never per frame.
+function M.runtimeQuest(npc)
+    if not npc then return nil end
+    local ok, value = pcall(function() return npc:IsQuest() end)
+    if ok and type(value) == 'boolean' then return value end
+    return nil
 end
 
 -- What the player is told, by reason (the notice text itself is the interface's, mod/init.lua).
@@ -84,6 +96,7 @@ function M.read(npc, player, sample, idle)
     end
     try('gone', function() return not npc:IsAttached() or npc:IsDeadNoStatPool() end)
     try('driven', function() return not npc:IsOnAutonomousAI() end)
+    try('quest', function() return npc:IsQuest() == true end)
     if idle == true then try('workspot', function() return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end) end
     try('combat', function() return NPCPuppet.IsInCombat(npc) == true end)
     try('dialogue', function()
@@ -109,6 +122,15 @@ function M.read(npc, player, sample, idle)
         facts.hubWhy = 'dialogue=' .. tostring(seen.dialogue) .. ' choices=' .. tostring(seen.choices) .. ' call=' .. tostring(seen.call)
             .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true
+        -- Staged or limited gameplay (tier 2 or more) or an unknown tier: a workspot is then no proof of an idle post (quest-marked idle persons only, as Face.reds).
+        if idle == true then facts.staged = tier == nil or tier >= 2 end
+    elseif idle == true then
+        facts.staged = true   -- no player-side sample: fail closed, as Face.reds does when it cannot read the tier
+    end
+    -- An idle person the game does not mark as a quest person keeps the workspot as before (the bouncer at his door).
+    if idle == true and facts.staged == true then
+        local ok, marked = pcall(function() return npc:IsQuest() end)
+        if ok and marked == false then facts.staged = false end
     end
     return facts
 end
@@ -118,7 +140,7 @@ end
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local clock = options.clock or os.clock
-    local service = {held = {}, count = 0}
+    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest}
 
     -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
     -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride). idle: a quest-bound person

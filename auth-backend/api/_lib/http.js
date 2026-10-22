@@ -47,8 +47,10 @@ function ipv6Groups(text) {
  * The caller as the rate limits count it. An IPv4 address is itself. An IPv6 address counts as its /64 network: one home line or one
  * cloud machine is normally handed a whole /64 (2^64 addresses), so counting single addresses would let one caller step around the
  * per-address limits (and the new-installs-per-address limit) at will. An IPv4 address written as IPv6 (::ffff:a.b.c.d) is the IPv4 one.
+ * `prefixGroups` is how many 16-bit groups of an IPv6 address are kept (4 = /64, the default; 3 = /48, which the error reports use,
+ * since a site is normally handed a /48 and a /64 is cheap to step through inside it).
  */
-export function addressBucket(address) {
+export function addressBucket(address, { prefixGroups = 4 } = {}) {
   const text = String(address ?? '').trim();
   if (!text.includes(':')) return text;
   const groups = ipv6Groups(text);
@@ -56,17 +58,17 @@ export function addressBucket(address) {
   if (groups.slice(0, 5).every(group => group === 0) && groups[5] === 0xffff) {
     return `${groups[6] >> 8}.${groups[6] & 255}.${groups[7] >> 8}.${groups[7] & 255}`;
   }
-  return `${groups.slice(0, 4).map(group => group.toString(16)).join(':')}::/64`;
+  return `${groups.slice(0, prefixGroups).map(group => group.toString(16)).join(':')}::/${prefixGroups * 16}`;
 }
 
 /**
  * The client address, as addressBucket counts it. Vercel sets x-vercel-forwarded-for (and overwrites x-forwarded-for) itself, so a caller
  * cannot choose it. Falls back to the socket address, then to one shared "unknown" bucket (strictest outcome).
  */
-export function clientAddress(request) {
+export function clientAddress(request, options) {
   const forwarded = headerValue(request, 'x-vercel-forwarded-for') || headerValue(request, 'x-forwarded-for');
   const first = forwarded.split(',')[0].trim();
-  return addressBucket(first || request.socket?.remoteAddress || 'unknown');
+  return addressBucket(first || request.socket?.remoteAddress || 'unknown', options);
 }
 
 /** The raw request body as text, at most `limit` bytes, or null when it is larger. */

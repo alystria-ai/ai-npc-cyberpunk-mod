@@ -207,3 +207,12 @@ test('an exhausted frame returns a typed pending invitation without creating any
   companions.beginSpatialFrame()
   assert(companions.spawn('judy-alvarez') and sequence==1)
 `));
+
+test('the frame budget is one table reset in place each frame, not a new table with new injections every frame',()=>run(`
+  local first=companions.beginSpatialFrame(); local limit=first.limit
+  first.used=limit; first.deferred=3
+  local second=companions.beginSpatialFrame()
+  assert(second==first and second.used==0 and second.deferred==0 and second.limit==limit,'the budget was not reset in place')
+  local usage=companions.spatialQueryUsage()
+  assert(usage.used==0 and usage.deferred==0 and usage.limit==limit)
+`));

@@ -1,285 +1,286 @@
 {
- "recorded": "2026-10-20",
- "how": "Real token counts from the bundled llama-server (Vulkan build in local-ai/llama-vulkan, -c 16384, --reasoning off): prompt_tokens of POST /v1/chat/completions (max_tokens 1) for the messages bridge/token-estimate.test.mjs rebuilds, and POST /tokenize (add_special false) for the texts. Gemma 4 E4B (standard) and the Mature good model (Gemma 4 E4B uncensored) gave the same counts, as did Bonsai 2 4B (lite) and the Mature lite model (Qwen3.5-4B uncensored): two tokenizers. The texts are plain sentences written for this fixture (no player data).",
- "families": {
-  "gemma-4": {
-   "models": [
-    "Gemma 4 E4B (standard)",
-    "Gemma 4 E4B uncensored (Mature good)"
-   ],
-   "texts": {
-    "english": 107,
-    "slang": 97,
-    "spanish": 97,
-    "french": 113,
-    "creole": 121,
-    "german": 111,
-    "portuguese": 97,
-    "russian": 121,
-    "polish": 127,
-    "japanese": 100,
-    "chinese": 92,
-    "korean": 107,
-    "arabic": 110,
-    "ids": 166,
-    "emoji": 45,
-    "tags": 59,
-    "rules": 108,
-    "italian": 108,
-    "turkish": 108,
-    "czech": 131,
-    "hungarian": 122,
-    "greek": 118,
-    "hebrew": 121,
-    "thai": 78,
-    "hindi": 80
-   },
-   "prompts": {
-    "judy-full": {
-     "chars": 28805,
-     "messages": 8,
-     "tokens": 6452,
-     "contentTokens": 6408,
-     "formattedTokens": 6451
+  "recorded": "2026-10-20",
+  "how": "Real token counts from the bundled llama-server (Vulkan build in local-ai/llama-vulkan, -c 16384, --reasoning off): prompt_tokens of POST /v1/chat/completions (max_tokens 1) for the messages bridge/token-estimate.test.mjs rebuilds, and POST /tokenize (add_special false) for the texts. Gemma 4 E4B (standard) and the Mature good model (Gemma 4 E4B uncensored) gave the same counts, as did Bonsai 2 4B (lite) and the Mature lite model (Qwen3.5-4B uncensored): two tokenizers. The texts are plain sentences written for this fixture (no player data). Prompts re-recorded on 2026-10-22 (after fix/character-data-1022 and the lean-text pass changed the persona text) with the same method and the same four models' two tokenizers (Gemma 4 E4B and Bonsai 2 4B, llama-server b11782 from the dev install, -c 16384, --reasoning off): the \"texts\" were not touched.",
+  "families": {
+    "gemma-4": {
+      "models": [
+        "Gemma 4 E4B (standard)",
+        "Gemma 4 E4B uncensored (Mature good)"
+      ],
+      "texts": {
+        "english": 107,
+        "slang": 97,
+        "spanish": 97,
+        "french": 113,
+        "creole": 121,
+        "german": 111,
+        "portuguese": 97,
+        "russian": 121,
+        "polish": 127,
+        "japanese": 100,
+        "chinese": 92,
+        "korean": 107,
+        "arabic": 110,
+        "ids": 166,
+        "emoji": 45,
+        "tags": 59,
+        "rules": 108,
+        "italian": 108,
+        "turkish": 108,
+        "czech": 131,
+        "hungarian": 122,
+        "greek": 118,
+        "hebrew": 121,
+        "thai": 78,
+        "hindi": 80
+      },
+      "prompts": {
+        "judy-full": {
+          "chars": 27549,
+          "messages": 8,
+          "tokens": 6173,
+          "contentTokens": 6129,
+          "formattedTokens": 6172
+        },
+        "judy-full-rules-action": {
+          "chars": 28134,
+          "messages": 8,
+          "tokens": 6308,
+          "contentTokens": 6264,
+          "formattedTokens": 6307
+        },
+        "judy-compact": {
+          "chars": 21781,
+          "messages": 8,
+          "tokens": 4998,
+          "contentTokens": 4954,
+          "formattedTokens": 4997
+        },
+        "judy-compact-rules-action": {
+          "chars": 22028,
+          "messages": 8,
+          "tokens": 5055,
+          "contentTokens": 5011,
+          "formattedTokens": 5054
+        },
+        "judy-full-mature": {
+          "chars": 30362,
+          "messages": 8,
+          "tokens": 6881,
+          "contentTokens": 6837,
+          "formattedTokens": 6880
+        },
+        "judy-full-mature-rules": {
+          "chars": 30947,
+          "messages": 8,
+          "tokens": 7016,
+          "contentTokens": 6972,
+          "formattedTokens": 7015
+        },
+        "jackie-full": {
+          "chars": 26759,
+          "messages": 8,
+          "tokens": 6079,
+          "contentTokens": 6035,
+          "formattedTokens": 6078
+        },
+        "archetype-full": {
+          "chars": 22287,
+          "messages": 8,
+          "tokens": 5252,
+          "contentTokens": 5208,
+          "formattedTokens": 5251
+        },
+        "archetype2-full": {
+          "chars": 22364,
+          "messages": 8,
+          "tokens": 5288,
+          "contentTokens": 5244,
+          "formattedTokens": 5287
+        },
+        "judy-nohistory": {
+          "chars": 26780,
+          "messages": 2,
+          "tokens": 5955,
+          "contentTokens": 5941,
+          "formattedTokens": 5954
+        },
+        "judy-es": {
+          "chars": 27221,
+          "messages": 4,
+          "tokens": 6081,
+          "contentTokens": 6057,
+          "formattedTokens": 6080
+        },
+        "judy-ru": {
+          "chars": 27189,
+          "messages": 4,
+          "tokens": 6087,
+          "contentTokens": 6063,
+          "formattedTokens": 6086
+        },
+        "judy-ja": {
+          "chars": 27075,
+          "messages": 4,
+          "tokens": 6072,
+          "contentTokens": 6048,
+          "formattedTokens": 6071
+        }
+      }
     },
-    "judy-full-rules-action": {
-     "chars": 29390,
-     "messages": 8,
-     "tokens": 6587,
-     "contentTokens": 6543,
-     "formattedTokens": 6586
-    },
-    "judy-compact": {
-     "chars": 21826,
-     "messages": 8,
-     "tokens": 4986,
-     "contentTokens": 4942,
-     "formattedTokens": 4985
-    },
-    "judy-compact-rules-action": {
-     "chars": 21955,
-     "messages": 8,
-     "tokens": 5034,
-     "contentTokens": 4990,
-     "formattedTokens": 5033
-    },
-    "judy-full-mature": {
-     "chars": 31618,
-     "messages": 8,
-     "tokens": 7160,
-     "contentTokens": 7116,
-     "formattedTokens": 7159
-    },
-    "judy-full-mature-rules": {
-     "chars": 32203,
-     "messages": 8,
-     "tokens": 7295,
-     "contentTokens": 7251,
-     "formattedTokens": 7294
-    },
-    "jackie-full": {
-     "chars": 27806,
-     "messages": 8,
-     "tokens": 6339,
-     "contentTokens": 6295,
-     "formattedTokens": 6338
-    },
-    "archetype-full": {
-     "chars": 22367,
-     "messages": 8,
-     "tokens": 5273,
-     "contentTokens": 5229,
-     "formattedTokens": 5272
-    },
-    "archetype2-full": {
-     "chars": 22380,
-     "messages": 8,
-     "tokens": 5293,
-     "contentTokens": 5249,
-     "formattedTokens": 5292
-    },
-    "judy-nohistory": {
-     "chars": 28036,
-     "messages": 2,
-     "tokens": 6234,
-     "contentTokens": 6220,
-     "formattedTokens": 6233
-    },
-    "judy-es": {
-     "chars": 28477,
-     "messages": 4,
-     "tokens": 6360,
-     "contentTokens": 6336,
-     "formattedTokens": 6359
-    },
-    "judy-ru": {
-     "chars": 28445,
-     "messages": 4,
-     "tokens": 6366,
-     "contentTokens": 6342,
-     "formattedTokens": 6365
-    },
-    "judy-ja": {
-     "chars": 28331,
-     "messages": 4,
-     "tokens": 6351,
-     "contentTokens": 6327,
-     "formattedTokens": 6350
+    "qwen": {
+      "models": [
+        "Bonsai 2 4B (lite)",
+        "Qwen3.5-4B uncensored (Mature lite)"
+      ],
+      "texts": {
+        "english": 107,
+        "slang": 102,
+        "spanish": 98,
+        "french": 109,
+        "creole": 140,
+        "german": 107,
+        "portuguese": 97,
+        "russian": 116,
+        "polish": 124,
+        "japanese": 98,
+        "chinese": 80,
+        "korean": 97,
+        "arabic": 101,
+        "ids": 162,
+        "emoji": 66,
+        "tags": 61,
+        "rules": 109,
+        "italian": 104,
+        "turkish": 116,
+        "czech": 131,
+        "hungarian": 122,
+        "greek": 116,
+        "hebrew": 134,
+        "thai": 64,
+        "hindi": 117
+      },
+      "prompts": {
+        "judy-full": {
+          "chars": 27549,
+          "messages": 8,
+          "tokens": 6213,
+          "contentTokens": 6166,
+          "formattedTokens": 6213
+        },
+        "judy-full-rules-action": {
+          "chars": 28134,
+          "messages": 8,
+          "tokens": 6354,
+          "contentTokens": 6307,
+          "formattedTokens": 6354
+        },
+        "judy-compact": {
+          "chars": 21781,
+          "messages": 8,
+          "tokens": 5034,
+          "contentTokens": 4987,
+          "formattedTokens": 5034
+        },
+        "judy-compact-rules-action": {
+          "chars": 22028,
+          "messages": 8,
+          "tokens": 5099,
+          "contentTokens": 5052,
+          "formattedTokens": 5099
+        },
+        "judy-full-mature": {
+          "chars": 30362,
+          "messages": 8,
+          "tokens": 6916,
+          "contentTokens": 6869,
+          "formattedTokens": 6916
+        },
+        "judy-full-mature-rules": {
+          "chars": 30947,
+          "messages": 8,
+          "tokens": 7057,
+          "contentTokens": 7010,
+          "formattedTokens": 7057
+        },
+        "jackie-full": {
+          "chars": 26759,
+          "messages": 8,
+          "tokens": 6130,
+          "contentTokens": 6083,
+          "formattedTokens": 6130
+        },
+        "archetype-full": {
+          "chars": 22287,
+          "messages": 8,
+          "tokens": 5284,
+          "contentTokens": 5237,
+          "formattedTokens": 5284
+        },
+        "archetype2-full": {
+          "chars": 22364,
+          "messages": 8,
+          "tokens": 5310,
+          "contentTokens": 5263,
+          "formattedTokens": 5310
+        },
+        "judy-nohistory": {
+          "chars": 26780,
+          "messages": 2,
+          "tokens": 5994,
+          "contentTokens": 5977,
+          "formattedTokens": 5994
+        },
+        "judy-es": {
+          "chars": 27221,
+          "messages": 4,
+          "tokens": 6122,
+          "contentTokens": 6095,
+          "formattedTokens": 6122
+        },
+        "judy-ru": {
+          "chars": 27189,
+          "messages": 4,
+          "tokens": 6127,
+          "contentTokens": 6100,
+          "formattedTokens": 6127
+        },
+        "judy-ja": {
+          "chars": 27075,
+          "messages": 4,
+          "tokens": 6113,
+          "contentTokens": 6086,
+          "formattedTokens": 6113
+        }
+      }
     }
-   }
   },
-  "qwen": {
-   "models": [
-    "Bonsai 2 4B (lite)",
-    "Qwen3.5-4B uncensored (Mature lite)"
-   ],
-   "texts": {
-    "english": 107,
-    "slang": 102,
-    "spanish": 98,
-    "french": 109,
-    "creole": 140,
-    "german": 107,
-    "portuguese": 97,
-    "russian": 116,
-    "polish": 124,
-    "japanese": 98,
-    "chinese": 80,
-    "korean": 97,
-    "arabic": 101,
-    "ids": 162,
-    "emoji": 66,
-    "tags": 61,
-    "rules": 109,
-    "italian": 104,
-    "turkish": 116,
-    "czech": 131,
-    "hungarian": 122,
-    "greek": 116,
-    "hebrew": 134,
-    "thai": 64,
-    "hindi": 117
-   },
-   "prompts": {
-    "judy-full": {
-     "chars": 28805,
-     "messages": 8,
-     "tokens": 6489,
-     "contentTokens": 6442,
-     "formattedTokens": 6489
-    },
-    "judy-full-rules-action": {
-     "chars": 29390,
-     "messages": 8,
-     "tokens": 6630,
-     "contentTokens": 6583,
-     "formattedTokens": 6630
-    },
-    "judy-compact": {
-     "chars": 21826,
-     "messages": 8,
-     "tokens": 5024,
-     "contentTokens": 4977,
-     "formattedTokens": 5024
-    },
-    "judy-compact-rules-action": {
-     "chars": 21955,
-     "messages": 8,
-     "tokens": 5075,
-     "contentTokens": 5028,
-     "formattedTokens": 5075
-    },
-    "judy-full-mature": {
-     "chars": 31618,
-     "messages": 8,
-     "tokens": 7192,
-     "contentTokens": 7145,
-     "formattedTokens": 7192
-    },
-    "judy-full-mature-rules": {
-     "chars": 32203,
-     "messages": 8,
-     "tokens": 7333,
-     "contentTokens": 7286,
-     "formattedTokens": 7333
-    },
-    "jackie-full": {
-     "chars": 27806,
-     "messages": 8,
-     "tokens": 6389,
-     "contentTokens": 6342,
-     "formattedTokens": 6389
-    },
-    "archetype-full": {
-     "chars": 22367,
-     "messages": 8,
-     "tokens": 5304,
-     "contentTokens": 5257,
-     "formattedTokens": 5304
-    },
-    "archetype2-full": {
-     "chars": 22380,
-     "messages": 8,
-     "tokens": 5313,
-     "contentTokens": 5266,
-     "formattedTokens": 5313
-    },
-    "judy-nohistory": {
-     "chars": 28036,
-     "messages": 2,
-     "tokens": 6270,
-     "contentTokens": 6253,
-     "formattedTokens": 6270
-    },
-    "judy-es": {
-     "chars": 28477,
-     "messages": 4,
-     "tokens": 6398,
-     "contentTokens": 6371,
-     "formattedTokens": 6398
-    },
-    "judy-ru": {
-     "chars": 28445,
-     "messages": 4,
-     "tokens": 6403,
-     "contentTokens": 6376,
-     "formattedTokens": 6403
-    },
-    "judy-ja": {
-     "chars": 28331,
-     "messages": 4,
-     "tokens": 6389,
-     "contentTokens": 6362,
-     "formattedTokens": 6389
-    }
-   }
-  }
- },
- "texts": {
-  "english": "Nobody in Night City trusts a smile for free. You walk into a bar in Watson and everyone is already counting what you carry, what you owe and who might pay for your name. I keep my back to the wall, my hands where they can be seen, and my mouth shut until someone buys the first round. Then we talk about work, about weather, about the kind of people who vanish without a sound. It is not a bad way to live if you like surprises, and I have learned to like them well enough.",
-  "slang": "Listen up, choom, that gig in Kabuki is preem but the fixer is a total gonk, so watch your chrome and keep your eddies close. If the cops show, the netrunner will nova the cameras and we scatter like roaches. Nobody wants a flatline over a dozen eurodollars, but a corpo with a debt and a grudge is worse than any ripperdoc with a bad day. Delta out before the scavs smell the blood, you copy?",
-  "spanish": "Nadie en Night City confía en una sonrisa gratis. Entras en un bar de Watson y todos ya están contando lo que llevas, lo que debes y quién podría pagar por tu nombre. Yo mantengo la espalda contra la pared, las manos a la vista y la boca cerrada hasta que alguien invita la primera ronda. Luego hablamos de trabajo, del clima, de la gente que desaparece sin hacer ruido. No es mala forma de vivir si te gustan las sorpresas.",
-  "french": "Personne à Night City ne fait confiance à un sourire gratuit. Tu entres dans un bar de Watson et tout le monde compte déjà ce que tu portes, ce que tu dois et qui pourrait payer pour ton nom. Je garde le dos contre le mur, les mains bien en vue, et la bouche fermée jusqu'à ce que quelqu'un offre la première tournée. Ensuite on parle de boulot, de météo, des gens qui disparaissent sans un bruit. Ce n'est pas une mauvaise façon de vivre si tu aimes les surprises.",
-  "creole": "Pa gen moun nan Night City ki fè konfyans yon souri gratis. Ou antre nan yon ba nan Watson epi tout moun deja ap konte sa ou pote, sa ou dwe ak ki moun ki ta ka peye pou non ou. Mwen kenbe do m kont miray la, men m devan je tout moun, epi bouch mwen fèmen jouk yon moun achte premye won an. Apre sa nou pale de travay, de move tan, de moun ki disparèt san yon bri. Se pa yon move fason pou viv si ou renmen sipriz.",
-  "german": "Niemand in Night City traut einem Lächeln, das nichts kostet. Du gehst in eine Bar in Watson und alle zählen schon, was du bei dir trägst, was du schuldest und wer für deinen Namen zahlen könnte. Ich halte den Rücken zur Wand, die Hände sichtbar und den Mund geschlossen, bis jemand die erste Runde ausgibt. Dann reden wir über Arbeit, über das Wetter, über Leute, die lautlos verschwinden. Es ist keine schlechte Art zu leben, wenn man Überraschungen mag.",
-  "portuguese": "Ninguém em Night City confia num sorriso de graça. Você entra num bar em Watson e todo mundo já está contando o que você carrega, o que deve e quem poderia pagar pelo seu nome. Eu mantenho as costas na parede, as mãos à vista e a boca fechada até alguém pagar a primeira rodada. Depois falamos de trabalho, do tempo, de gente que some sem fazer barulho. Não é um jeito ruim de viver se você gosta de surpresas.",
-  "russian": "Никто в Найт-Сити не доверяет бесплатной улыбке. Ты заходишь в бар в Уотсоне, и все уже считают, что ты несёшь, сколько должен и кто мог бы заплатить за твоё имя. Я держу спину у стены, руки на виду и рот закрытым, пока кто-нибудь не купит первый круг. Потом мы говорим о работе, о погоде, о людях, которые исчезают без звука. Это не такой уж плохой способ жить, если любишь сюрпризы.",
-  "polish": "Nikt w Night City nie ufa darmowemu uśmiechowi. Wchodzisz do baru w Watson i wszyscy już liczą, co niesiesz, ile jesteś winien i kto mógłby zapłacić za twoje imię. Trzymam plecy przy ścianie, ręce na widoku i usta zamknięte, dopóki ktoś nie postawi pierwszej kolejki. Potem rozmawiamy o pracy, o pogodzie, o ludziach, którzy znikają bez słowa. To nie jest zły sposób życia, jeśli lubisz niespodzianki.",
-  "japanese": "ナイトシティでは、ただの笑顔を信じる者はいない。ワトソンの酒場に入ると、誰もが君の持ち物や借金、そして君の名前に金を払う者がいるかを数え始める。俺は壁に背を向け、手は見える場所に置き、誰かが最初の一杯をおごるまで口を閉じている。それから仕事や天気、音もなく消える連中の話をする。驚きが好きなら、悪くない生き方だ。",
-  "chinese": "在夜之城，没有人会相信免费的微笑。你走进华森的一家酒吧，每个人都已经在盘算你带着什么、欠了多少债，以及谁愿意为你的名字付钱。我背靠着墙，双手放在看得见的地方，直到有人请第一轮酒才开口。然后我们聊工作，聊天气，聊那些悄无声息消失的人。如果你喜欢意外，这并不是一种糟糕的生活方式。",
-  "korean": "나이트 시티에서는 공짜 미소를 믿는 사람이 없다. 왓슨의 술집에 들어가면 모두가 이미 네가 가진 것, 네가 진 빚, 그리고 네 이름에 돈을 낼 사람이 누군지 세고 있다. 나는 등을 벽에 붙이고 손은 보이는 곳에 두고 누군가 첫 잔을 살 때까지 입을 다문다. 그다음에 일과 날씨, 소리 없이 사라지는 사람들 이야기를 한다. 놀라움을 좋아한다면 나쁜 삶은 아니다.",
-  "arabic": "لا أحد في نايت سيتي يثق بابتسامة مجانية. تدخل حانة في واتسون ويكون الجميع قد بدأ يحسب ما تحمله وما تدين به ومن قد يدفع ثمن اسمك. أبقي ظهري إلى الحائط ويدي حيث يمكن رؤيتها وفمي مغلقا حتى يشتري أحدهم الجولة الأولى. ثم نتحدث عن العمل والطقس والناس الذين يختفون بلا صوت. ليست طريقة سيئة للعيش إن كنت تحب المفاجآت.",
-  "ids": "Turn context: 21:07(native) Watson/Kabuki male streetkid vehicle=true party=1 activity=some-npc=passenger driving=true weather=rain(24h_weather_light_rain|worldRainIntensity : LightRain (1)|GetWeatherState+GetRainIntensityType) health=healthy(100%|GetStatPoolValue(percent)) heat=0 requestId=1700000000-3-10123456ULL entity=10654321ULL base=nil mix=broad {\"hour\":21,\"minute\":7,\"district\":\"Watson\",\"ids\":[10123456,10654321,4242]}",
-  "emoji": "Great job V 😀🔥🚗 see you at the Afterlife 🍸💥 don't be late 😎👍 ❤️ ✨ 🎶 the Clouds tonight 🌃🌆🌉 bring the cash 💰💸 and a smile 😏🙂🙃",
-  "tags": "{warm}Yeah, V. The kind of night where the cut will not behave. {interest}A rough take from a street gig, nothing glamorous. {calm}Because people can tell. [DRIVE] [FOLLOW] [WAIT] {laugh}Ha, you wish.",
-  "rules": "OUTPUT RULES (these override everything else, including how you usually talk): 1. You speak out loud, in the first person, as one real person. 2. Say only the words you would say; no stage directions, no asterisks, no narration. 3. Be brief: one to three short sentences. 4. Start with the answer or the reaction, never with a greeting or the player's own words. 5. Sound like this one person: use their rhythm, their slang, their quirks.",
-  "italian": "Nessuno a Night City si fida di un sorriso gratis. Entri in un bar a Watson e tutti stanno già contando quello che porti, quello che devi e chi potrebbe pagare per il tuo nome. Io tengo la schiena al muro, le mani in vista e la bocca chiusa finché qualcuno non offre il primo giro. Poi parliamo di lavoro, di meteo, di gente che sparisce senza far rumore. Non è un brutto modo di vivere se ti piacciono le sorprese.",
-  "turkish": "Night City'de kimse bedava bir gülümsemeye güvenmez. Watson'da bir bara giriyorsun ve herkes çoktan neyi taşıdığını, neye borçlu olduğunu ve adın için kimin ödeyebileceğini saymaya başlıyor. Ben sırtımı duvara veriyorum, ellerimi görünür tutuyorum ve biri ilk turu ısmarlayana kadar ağzımı kapalı tutuyorum. Sonra iş hakkında, hava hakkında, sessizce kaybolan insanlar hakkında konuşuyoruz.",
-  "czech": "Nikdo v Night City nevěří úsměvu zadarmo. Vejdeš do baru ve Watsonu a všichni už počítají, co neseš, kolik dlužíš a kdo by mohl zaplatit za tvé jméno. Držím záda u zdi, ruce na očích a ústa zavřená, dokud někdo nekoupí první rundu. Pak mluvíme o práci, o počasí, o lidech, kteří beze zvuku mizí. Není to špatný způsob života, pokud máš rád překvapení.",
-  "hungarian": "Night Cityben senki sem bízik egy ingyen mosolyban. Belépsz egy watsoni bárba, és mindenki már azt számolja, mit hordasz magadnál, mivel tartozol, és ki fizetne a nevedért. A hátam a falnak támasztom, a kezem látható helyen tartom, a számat pedig csukva, amíg valaki ki nem fizeti az első kört. Aztán munkáról, időjárásról, hang nélkül eltűnő emberekről beszélgetünk.",
-  "greek": "Κανείς στο Νάιτ Σίτι δεν εμπιστεύεται ένα δωρεάν χαμόγελο. Μπαίνεις σε ένα μπαρ στο Γουάτσον και όλοι μετράνε ήδη τι κουβαλάς, τι χρωστάς και ποιος θα πλήρωνε για το όνομά σου. Κρατάω την πλάτη στον τοίχο, τα χέρια σε κοινή θέα και το στόμα κλειστό μέχρι να κεράσει κάποιος τον πρώτο γύρο.",
-  "hebrew": "אף אחד בנייט סיטי לא סומך על חיוך בחינם. אתה נכנס לבר בוואטסון וכולם כבר סופרים מה אתה סוחב, כמה אתה חייב ומי ישלם בשביל השם שלך. אני שומר על הגב לקיר, על הידיים בטווח הראייה ועל הפה סגור עד שמישהו קונה את הסיבוב הראשון. אחר כך מדברים על עבודה, על מזג אוויר, על אנשים שנעלמים בלי קול.",
-  "thai": "ไม่มีใครในไนต์ซิตี้เชื่อใจรอยยิ้มฟรี คุณเดินเข้าไปในบาร์ที่วัตสัน และทุกคนก็กำลังนับว่าคุณพกอะไรมา คุณเป็นหนี้อะไร และใครจะจ่ายเพื่อชื่อของคุณ ฉันเอาหลังพิงกำแพง วางมือไว้ในที่ที่มองเห็น และปิดปากเงียบจนกว่าจะมีคนเลี้ยงรอบแรก",
-  "hindi": "नाइट सिटी में कोई भी मुफ्त मुस्कान पर भरोसा नहीं करता। तुम वॉटसन के एक बार में जाते हो और सब पहले से गिन रहे होते हैं कि तुम क्या लिए हो, कितना कर्ज़ है और तुम्हारे नाम के लिए कौन पैसे देगा। मैं पीठ दीवार से लगाकर, हाथ दिखने वाली जगह पर रखकर और मुँह बंद रखकर बैठता हूँ जब तक कोई पहला दौर नहीं पिलाता।"
- }
+  "texts": {
+    "english": "Nobody in Night City trusts a smile for free. You walk into a bar in Watson and everyone is already counting what you carry, what you owe and who might pay for your name. I keep my back to the wall, my hands where they can be seen, and my mouth shut until someone buys the first round. Then we talk about work, about weather, about the kind of people who vanish without a sound. It is not a bad way to live if you like surprises, and I have learned to like them well enough.",
+    "slang": "Listen up, choom, that gig in Kabuki is preem but the fixer is a total gonk, so watch your chrome and keep your eddies close. If the cops show, the netrunner will nova the cameras and we scatter like roaches. Nobody wants a flatline over a dozen eurodollars, but a corpo with a debt and a grudge is worse than any ripperdoc with a bad day. Delta out before the scavs smell the blood, you copy?",
+    "spanish": "Nadie en Night City confía en una sonrisa gratis. Entras en un bar de Watson y todos ya están contando lo que llevas, lo que debes y quién podría pagar por tu nombre. Yo mantengo la espalda contra la pared, las manos a la vista y la boca cerrada hasta que alguien invita la primera ronda. Luego hablamos de trabajo, del clima, de la gente que desaparece sin hacer ruido. No es mala forma de vivir si te gustan las sorpresas.",
+    "french": "Personne à Night City ne fait confiance à un sourire gratuit. Tu entres dans un bar de Watson et tout le monde compte déjà ce que tu portes, ce que tu dois et qui pourrait payer pour ton nom. Je garde le dos contre le mur, les mains bien en vue, et la bouche fermée jusqu'à ce que quelqu'un offre la première tournée. Ensuite on parle de boulot, de météo, des gens qui disparaissent sans un bruit. Ce n'est pas une mauvaise façon de vivre si tu aimes les surprises.",
+    "creole": "Pa gen moun nan Night City ki fè konfyans yon souri gratis. Ou antre nan yon ba nan Watson epi tout moun deja ap konte sa ou pote, sa ou dwe ak ki moun ki ta ka peye pou non ou. Mwen kenbe do m kont miray la, men m devan je tout moun, epi bouch mwen fèmen jouk yon moun achte premye won an. Apre sa nou pale de travay, de move tan, de moun ki disparèt san yon bri. Se pa yon move fason pou viv si ou renmen sipriz.",
+    "german": "Niemand in Night City traut einem Lächeln, das nichts kostet. Du gehst in eine Bar in Watson und alle zählen schon, was du bei dir trägst, was du schuldest und wer für deinen Namen zahlen könnte. Ich halte den Rücken zur Wand, die Hände sichtbar und den Mund geschlossen, bis jemand die erste Runde ausgibt. Dann reden wir über Arbeit, über das Wetter, über Leute, die lautlos verschwinden. Es ist keine schlechte Art zu leben, wenn man Überraschungen mag.",
+    "portuguese": "Ninguém em Night City confia num sorriso de graça. Você entra num bar em Watson e todo mundo já está contando o que você carrega, o que deve e quem poderia pagar pelo seu nome. Eu mantenho as costas na parede, as mãos à vista e a boca fechada até alguém pagar a primeira rodada. Depois falamos de trabalho, do tempo, de gente que some sem fazer barulho. Não é um jeito ruim de viver se você gosta de surpresas.",
+    "russian": "Никто в Найт-Сити не доверяет бесплатной улыбке. Ты заходишь в бар в Уотсоне, и все уже считают, что ты несёшь, сколько должен и кто мог бы заплатить за твоё имя. Я держу спину у стены, руки на виду и рот закрытым, пока кто-нибудь не купит первый круг. Потом мы говорим о работе, о погоде, о людях, которые исчезают без звука. Это не такой уж плохой способ жить, если любишь сюрпризы.",
+    "polish": "Nikt w Night City nie ufa darmowemu uśmiechowi. Wchodzisz do baru w Watson i wszyscy już liczą, co niesiesz, ile jesteś winien i kto mógłby zapłacić za twoje imię. Trzymam plecy przy ścianie, ręce na widoku i usta zamknięte, dopóki ktoś nie postawi pierwszej kolejki. Potem rozmawiamy o pracy, o pogodzie, o ludziach, którzy znikają bez słowa. To nie jest zły sposób życia, jeśli lubisz niespodzianki.",
+    "japanese": "ナイトシティでは、ただの笑顔を信じる者はいない。ワトソンの酒場に入ると、誰もが君の持ち物や借金、そして君の名前に金を払う者がいるかを数え始める。俺は壁に背を向け、手は見える場所に置き、誰かが最初の一杯をおごるまで口を閉じている。それから仕事や天気、音もなく消える連中の話をする。驚きが好きなら、悪くない生き方だ。",
+    "chinese": "在夜之城，没有人会相信免费的微笑。你走进华森的一家酒吧，每个人都已经在盘算你带着什么、欠了多少债，以及谁愿意为你的名字付钱。我背靠着墙，双手放在看得见的地方，直到有人请第一轮酒才开口。然后我们聊工作，聊天气，聊那些悄无声息消失的人。如果你喜欢意外，这并不是一种糟糕的生活方式。",
+    "korean": "나이트 시티에서는 공짜 미소를 믿는 사람이 없다. 왓슨의 술집에 들어가면 모두가 이미 네가 가진 것, 네가 진 빚, 그리고 네 이름에 돈을 낼 사람이 누군지 세고 있다. 나는 등을 벽에 붙이고 손은 보이는 곳에 두고 누군가 첫 잔을 살 때까지 입을 다문다. 그다음에 일과 날씨, 소리 없이 사라지는 사람들 이야기를 한다. 놀라움을 좋아한다면 나쁜 삶은 아니다.",
+    "arabic": "لا أحد في نايت سيتي يثق بابتسامة مجانية. تدخل حانة في واتسون ويكون الجميع قد بدأ يحسب ما تحمله وما تدين به ومن قد يدفع ثمن اسمك. أبقي ظهري إلى الحائط ويدي حيث يمكن رؤيتها وفمي مغلقا حتى يشتري أحدهم الجولة الأولى. ثم نتحدث عن العمل والطقس والناس الذين يختفون بلا صوت. ليست طريقة سيئة للعيش إن كنت تحب المفاجآت.",
+    "ids": "Turn context: 21:07(native) Watson/Kabuki male streetkid vehicle=true party=1 activity=some-npc=passenger driving=true weather=rain(24h_weather_light_rain|worldRainIntensity : LightRain (1)|GetWeatherState+GetRainIntensityType) health=healthy(100%|GetStatPoolValue(percent)) heat=0 requestId=1700000000-3-10123456ULL entity=10654321ULL base=nil mix=broad {\"hour\":21,\"minute\":7,\"district\":\"Watson\",\"ids\":[10123456,10654321,4242]}",
+    "emoji": "Great job V 😀🔥🚗 see you at the Afterlife 🍸💥 don't be late 😎👍 ❤️ ✨ 🎶 the Clouds tonight 🌃🌆🌉 bring the cash 💰💸 and a smile 😏🙂🙃",
+    "tags": "{warm}Yeah, V. The kind of night where the cut will not behave. {interest}A rough take from a street gig, nothing glamorous. {calm}Because people can tell. [DRIVE] [FOLLOW] [WAIT] {laugh}Ha, you wish.",
+    "rules": "OUTPUT RULES (these override everything else, including how you usually talk): 1. You speak out loud, in the first person, as one real person. 2. Say only the words you would say; no stage directions, no asterisks, no narration. 3. Be brief: one to three short sentences. 4. Start with the answer or the reaction, never with a greeting or the player's own words. 5. Sound like this one person: use their rhythm, their slang, their quirks.",
+    "italian": "Nessuno a Night City si fida di un sorriso gratis. Entri in un bar a Watson e tutti stanno già contando quello che porti, quello che devi e chi potrebbe pagare per il tuo nome. Io tengo la schiena al muro, le mani in vista e la bocca chiusa finché qualcuno non offre il primo giro. Poi parliamo di lavoro, di meteo, di gente che sparisce senza far rumore. Non è un brutto modo di vivere se ti piacciono le sorprese.",
+    "turkish": "Night City'de kimse bedava bir gülümsemeye güvenmez. Watson'da bir bara giriyorsun ve herkes çoktan neyi taşıdığını, neye borçlu olduğunu ve adın için kimin ödeyebileceğini saymaya başlıyor. Ben sırtımı duvara veriyorum, ellerimi görünür tutuyorum ve biri ilk turu ısmarlayana kadar ağzımı kapalı tutuyorum. Sonra iş hakkında, hava hakkında, sessizce kaybolan insanlar hakkında konuşuyoruz.",
+    "czech": "Nikdo v Night City nevěří úsměvu zadarmo. Vejdeš do baru ve Watsonu a všichni už počítají, co neseš, kolik dlužíš a kdo by mohl zaplatit za tvé jméno. Držím záda u zdi, ruce na očích a ústa zavřená, dokud někdo nekoupí první rundu. Pak mluvíme o práci, o počasí, o lidech, kteří beze zvuku mizí. Není to špatný způsob života, pokud máš rád překvapení.",
+    "hungarian": "Night Cityben senki sem bízik egy ingyen mosolyban. Belépsz egy watsoni bárba, és mindenki már azt számolja, mit hordasz magadnál, mivel tartozol, és ki fizetne a nevedért. A hátam a falnak támasztom, a kezem látható helyen tartom, a számat pedig csukva, amíg valaki ki nem fizeti az első kört. Aztán munkáról, időjárásról, hang nélkül eltűnő emberekről beszélgetünk.",
+    "greek": "Κανείς στο Νάιτ Σίτι δεν εμπιστεύεται ένα δωρεάν χαμόγελο. Μπαίνεις σε ένα μπαρ στο Γουάτσον και όλοι μετράνε ήδη τι κουβαλάς, τι χρωστάς και ποιος θα πλήρωνε για το όνομά σου. Κρατάω την πλάτη στον τοίχο, τα χέρια σε κοινή θέα και το στόμα κλειστό μέχρι να κεράσει κάποιος τον πρώτο γύρο.",
+    "hebrew": "אף אחד בנייט סיטי לא סומך על חיוך בחינם. אתה נכנס לבר בוואטסון וכולם כבר סופרים מה אתה סוחב, כמה אתה חייב ומי ישלם בשביל השם שלך. אני שומר על הגב לקיר, על הידיים בטווח הראייה ועל הפה סגור עד שמישהו קונה את הסיבוב הראשון. אחר כך מדברים על עבודה, על מזג אוויר, על אנשים שנעלמים בלי קול.",
+    "thai": "ไม่มีใครในไนต์ซิตี้เชื่อใจรอยยิ้มฟรี คุณเดินเข้าไปในบาร์ที่วัตสัน และทุกคนก็กำลังนับว่าคุณพกอะไรมา คุณเป็นหนี้อะไร และใครจะจ่ายเพื่อชื่อของคุณ ฉันเอาหลังพิงกำแพง วางมือไว้ในที่ที่มองเห็น และปิดปากเงียบจนกว่าจะมีคนเลี้ยงรอบแรก",
+    "hindi": "नाइट सिटी में कोई भी मुफ्त मुस्कान पर भरोसा नहीं करता। तुम वॉटसन के एक बार में जाते हो और सब पहले से गिन रहे होते हैं कि तुम क्या लिए हो, कितना कर्ज़ है और तुम्हारे नाम के लिए कौन पैसे देगा। मैं पीठ दीवार से लगाकर, हाथ दिखने वाली जगह पर रखकर और मुँह बंद रखकर बैठता हूँ जब तक कोई पहला दौर नहीं पिलाता।"
+  },
+  "prompts_rerecorded": "2026-10-22"
 }

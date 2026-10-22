@@ -1265,6 +1265,40 @@ test('OmniVoice that cannot get the graphics memory is announced once as its own
   `);
 });
 
+test('Windows running out of memory for the voice (the paging file is too small) is its own notice, once, for OmniVoice falling to Pocket or to text and for Pocket itself', () => {
+  run(`${nsuiFixture}${managerPopupFixture}
+    popupStep = 1
+    local expected = 'Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', routedProfiles = {},
+      fallback = {from = 'omni', to = 'pocket', reason = 'virtual-memory'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one notice')
+    popupTick(true)
+    assert(#popups == 1 and popups[1] == expected, popups[1])
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 1, 'the same fallback was announced again')
+    -- OmniVoice and then Pocket failed the same way: replies are written, said again as a different fallback, with the same sentence.
+    popupClock = popupClock + 700
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'text', reason = 'virtual-memory'}, 'text', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and popups[2] == expected, popups[#popups])
+    -- Pocket itself, chosen by the player.
+    popupClock = popupClock + 700
+    state.requestedProvider = 'pocket'
+    state.fallback, state.updated = {from = 'pocket', to = 'text', reason = 'virtual-memory'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 3 and popups[3] == expected, popups[#popups])
+    -- Another Pocket failure keeps the usual wording.
+    popupClock = popupClock + 700
+    state.fallback, state.updated = {from = 'pocket', to = 'text'}, popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 4 and popups[4] == 'Pocket · Performance is unavailable right now. Replies show as text until it is back.', popups[#popups])
+  `);
+});
+
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
@@ -2110,6 +2144,35 @@ test('choosing a character and cancelling a Forget confirmation say nothing was 
     nothingDeleted()
   `);
 });
+
+test('the Forget all row names what it does and carries the count in its name ("Forget all memories (6 characters)"); its button says only Forget', () => run(`${nsuiFixture}${memoryFixture}
+  publishMemory(6, {})
+  openMemory()
+  local forget = row('memory:forget-all')
+  assert(forget.type == 'action', 'a button row')
+  assert(forget.label == 'Forget all memories (6 characters)', forget.label)
+  assert(forget.value == 'Forget', 'the button text is one word, not "Forget (6 characters)": ' .. tostring(forget.value))
+  assert(core.optionUnits(forget.label) <= core.BUTTON_LABEL_UNITS, 'the name fits a button row: ' .. core.optionUnits(forget.label))
+  assert(managerUi.LAYOUT.buttonLabelUnits == core.BUTTON_LABEL_UNITS, 'the host and the page cut to the same figure')
+  -- Two digits do not fit with the word, so the name carries the bare count; it never goes past the budget.
+  publishMemory(12, {}); reloadMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (12)' and core.optionUnits(row('memory:forget-all').label) <= core.BUTTON_LABEL_UNITS, row('memory:forget-all').label)
+  publishMemory(0, {}); reloadMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (0 characters)')
+`));
+
+test('a translation that is too wide for a button row falls back to the bare count and is never cut', () => run(`${nsuiFixture}${memoryFixture}
+  convaiUiLocale.configure('en')
+  local original = convaiUiLocale.t
+  convaiUiLocale.t = function(text, values)
+    if text == 'Forget all memories ({count} characters)' then return 'Forget every memory of every character you have talked to ({count} characters)' end
+    return original(text, values)
+  end
+  publishMemory(6, {})
+  openMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (6)', 'a translation that does not fit keeps only the number: ' .. row('memory:forget-all').label)
+  convaiUiLocale.t = original
+`));
 
 test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${nsuiFixture}${memoryFixture}
   publishMemory(0,{})
@@ -3572,11 +3635,11 @@ test('V’s voice is one row (Off, Pocket, Voxtral, OmniVoice): Voxtral needs th
     -- Back to Pocket, always allowed.
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 2)
-    -- A file that says Voxtral while no key is saved shows Pocket (2) in the row.
+    -- A file that says Voxtral while no key is saved shows Voxtral (3) in the row (V's voice follows its own setting; the entry is greyed out and says it needs the key).
     assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
     key('b', {provider = 'convai', effective = 'convai', saved = false})
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').value == 2 and row('vVoice').disabledElements[3] == true, 'Voxtral without a key reads as Pocket')
+    assert(row('vVoice').value == 3 and row('vVoice').disabledElements[3] == true and row('vVoice').elements[3] == 'Voxtral · needs Mistral key', 'Voxtral without a key still reads as Voxtral, with its note')
     key('c', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 3)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket')
@@ -3708,8 +3771,8 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     end
     assert(owner and owner.id == 'voices' and row('vVoice').label == 'V’s voice for typed lines')
     assert(row('vVoice').type == 'select' and row('vVoice').value == 2 and row('vVoice').defaultValue == 2, 'Pocket, on, by default')
-    assert(row('vVoice').description:find('type a line', 1, true)
-        and row('vVoice').description:find('Push-to-talk', 1, true))
+    assert(row('vVoice').description:find('Your typed lines', 1, true)
+        and row('vVoice').description:find('always waited for', 1, true))
     assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
     for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
@@ -3911,7 +3974,7 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
       ['Character.maelstrom_grunt1_ranged1_lexington_ma'] = 'npc-maelstrom-male',
       ['Character.tyger_claws_gang3_katana_wa'] = 'npc-tyger-claws-female',
       ['Character.wat_kab_ripperdoc_01'] = 'npc-ripperdoc-male', ['Character.CorpoWomanBag'] = 'npc-corpo-resident-female',
-      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = false, ['Character.q105_valentino_ma'] = false,
+      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = 'npc-maxtac-male', ['Character.q105_valentino_ma'] = false,
       ['Character.valentinos_grunt_ma'] = false, ['Character.maelstrom_base_android'] = false, ['Character.ChildPoor_ma'] = false}
     for id, key in pairs(expected) do
       assert(byRecord[id], id)
@@ -3927,8 +3990,8 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
     assert(description('Character.maelstrom_grunt1_ranged1_lexington_ma'):find('Conversation: Maelstrom ganger (archetype)', 1, true))
     assert(description('Character.Silverhand'):find('Conversation: Johnny Silverhand', 1, true))
     assert(not description('Character.Silverhand'):find('archetype', 1, true))
-    assert(description('Character.maxtac_rifle_ma'):find('No conversation profile', 1, true))
-    assert(row('model-status').description:find('5 of them can talk.', 1, true))
+    assert(description('Character.maxtac_rifle_ma'):find('Conversation: MaxTac officer (archetype)', 1, true))
+    assert(row('model-status').description:find('6 of them can talk.', 1, true))
     -- A Waitress has no gender in its name and no resident kind: it stays a silent follower.
     assert(description('Character.Waitress'):find('No conversation profile', 1, true))
     -- Invited, the copy joins as a model (nothing to prepare) and talks as the archetype once spawned.
@@ -4146,7 +4209,7 @@ test('The provider row says when the player key runs without memory or cannot ho
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
     assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
+      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('about 5,000 turns a day', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
@@ -4238,7 +4301,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
     assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
-    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly cap', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
+    assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
     assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
@@ -4975,6 +5038,29 @@ test('error reports are on by default, apply as on or off only, and the one-time
   assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
 `));
 
+test('a settings file that cannot be read acts as a fresh install for error reports: the setting is never saved off for it, and the notice is due again before anything is sent', () => run(`${managerFixture}
+  files['runtime/settings.json'], saved = 'not json at all', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == true, 'the default, not an opt-out the player never made')
+  assert(manager.errorReportsNoticeDue() == true, 'the flag is gone, so the notice is shown and marked again; the service sends nothing before that')
+  assert(manager.snapshot(player).settings.errorReports == true)
+  assert(manager.snapshot(player).settings.errorReportsNoticed == nil)
+`));
+
+test('a hand-edited error-report value that is not true or false is not read as an opt-in: the notice is due again before anything is sent', () => run(`${managerFixture}
+  for _, odd in ipairs({'false', 0, 'no'}) do
+    seed = {version = 2, errorReports = odd, errorReportsNoticed = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles)
+    assert(manager.errorReports() == true)
+    assert(manager.errorReportsNoticeDue() == true, 'the notice flag went with the value, so the notice shows (and is marked) again')
+  end
+  seed = {version = 2, errorReports = false, errorReportsNoticed = true, enabledByKey = {}}
+  files['runtime/settings.json'], saved = 'seed', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == false and manager.errorReportsNoticeDue() == false, 'a real opt-out is untouched')
+`));
+
 // ---- The owner's settings decisions of 2026-10-20 (the notes: scratchpad/decisions.md, the code: mod/manager.lua, mod/manager-ui.lua).
 
 // What the bridge publishes (runtime/mistral-state.json) as the page reads it, and the way Mature content tests set the Local AI models up.
@@ -5484,8 +5570,7 @@ test('Natural speech and the provider: the Convai voice beside Mistral, Local AI
     assert(manager.takeNaturalSpeechNotice() == OFF)
     -- The help of the row tells the provider-aware rule.
     loaded = registered.loadMod('manager')
-    assert(row('naturalSpeech').description:find('Not available with Convai’s cloud voice while Convai answers', 1, true))
-    assert(row('naturalSpeech').description:find('With Mistral, Local AI or Custom it works.', 1, true))
+    assert(row('naturalSpeech').description:find('Not available with Convai’s cloud voice: choosing it turns this off', 1, true))
   `);
 });
 
@@ -5735,5 +5820,98 @@ test('Custom endpoint is one button after the Mistral key row that opens a page 
     for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id) end
     core.setView('custom-endpoint')
     assert(core.view() == 'home', core.view())
+  `);
+});
+
+// ---------------------------------------------------------------------------------------------------- Home > Character editor (2026-10-22)
+// The fifth destination of Home opens the browser page at once, through the same request as Settings > Edit characters
+// (mod/character-editor.lua request()): an action row that answers with the request's result, not a navigation.
+const homeEditorModules = {'service-status.lua': moduleSource('service-status.lua'), 'character-editor.lua': moduleSource('character-editor.lua'),
+  'support-report.lua': moduleSource('support-report.lua')};
+const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorModules, ...options})}
+  local clockNow = 1800000000
+  os.time = function() return clockNow end
+  local function jsonFile(path, value)
+    jsonSequence = jsonSequence + 1
+    local token = 'editor-home-' .. jsonSequence
+    jsonFixtures[token] = value; files[path] = token
+  end
+  local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
+`;
+
+test('Home offers the Character editor as a fifth row after Settings, an action with its own id, and the Settings row stays', () => {
+  run(`${homeEditorFixture()}
+    assert(managerUi.inspect().view == 'home')
+    local nav = loaded.categories[1].settings
+    assert(#nav == 5 and nav[5].id == 'character-editor:home', 'five rows, the editor last: ' .. #nav)
+    local open = row('character-editor:home')
+    assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
+    assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
+    assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
+    -- Ids are unique on the page and the four navigations keep theirs.
+    local seen = {}
+    for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
+    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do assert(row('tab:' .. name)) end
+    -- It is on Home only: an inner page has neither it nor a second Back.
+    assert(invoke('tab:settings').ok and not row('character-editor:home'))
+    local settingsRow = row('character-editor:open')
+    assert(settingsRow and settingsRow.label == 'Edit characters' and settingsRow.description:find('and the prompting for each AI option', 1, true))
+    assert(invoke('settings:back').ok and row('character-editor:home'))
+  `);
+});
+
+test('Home > Character editor writes exactly one runtime/editor-command.json, the very command Settings > Edit characters writes, and stays on Home', () => {
+  run(`${homeEditorFixture()}
+    jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+    local writesBefore = #fileWrites
+    local result = invoke('character-editor:home')
+    assert(result.ok, tostring(result.error))
+    assert(#fileWrites == writesBefore + 1 and fileWrites[#fileWrites].path == 'runtime/editor-command.json', 'exactly one small file, got ' .. (#fileWrites - writesBefore))
+    assert(managerUi.inspect().view == 'home' and core.view() == 'home', 'no sub-page in the game')
+    assert(core.feedback() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', tostring(core.feedback()))
+    local home = jsonFixtures[files['runtime/editor-command.json']]
+    assert(home.version == 1 and home.action == 'open' and home.language == 'en' and type(home.id) == 'string')
+    -- The Settings row sends the same command (a new id, the same everything else).
+    clockNow = clockNow + 1
+    assert(invoke('tab:settings').ok and invoke('character-editor:open').ok)
+    assert(commandWrites() == 2)
+    local settings = jsonFixtures[files['runtime/editor-command.json']]
+    assert(settings.id ~= home.id and settings.version == home.version and settings.action == home.action and settings.language == home.language)
+    local count, same = 0, true
+    for source, text in pairs(home.strings) do count = count + 1; if settings.strings[source] ~= text then same = false end end
+    for _ in pairs(settings.strings) do count = count - 1 end
+    assert(same and count == 0, 'the same sentences for the page')
+    -- Every press is a new command, and a pumped menu sends nothing more.
+    assert(invoke('settings:back').ok)
+    clockNow = clockNow + 1
+    assert(invoke('character-editor:home').ok and commandWrites() == 3)
+    local settled = commandWrites()
+    for _ = 1, 20 do core.tick(player) end
+    assert(commandWrites() == settled, 'nothing is polled')
+  `);
+});
+
+test('Home > Character editor says so when the service is stopped or the write fails, and the page stays on Home', () => {
+  run(`${homeEditorFixture()}
+    jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
+    local result = invoke('character-editor:home')
+    assert(not result.ok and result.error == 'The conversation service is not running, so the editor cannot open. Restart the game.', tostring(result.error))
+    assert(commandWrites() == 0 and not files['runtime/editor-command.json'])
+    assert(core.feedback() == result.error and core.view() == 'home')
+    jsonFile('runtime/bridge-service.json', {state = 'ready', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 30000})
+    jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0})
+    failSave = true
+    local failed = invoke('character-editor:home')
+    assert(not failed.ok and failed.error == 'The editor could not be opened. Try again.', tostring(failed.error))
+    failSave = false
+    assert(invoke('character-editor:home').ok and commandWrites() == 1)
+  `);
+});
+
+test('Home has no Character editor row without the editor module, and the four destinations are as before', () => {
+  run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
+    assert(#loaded.categories[1].settings == 4 and not row('character-editor:home'), 'no row without the module')
+    assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
+    assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);
 });

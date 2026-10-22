@@ -133,6 +133,15 @@ The same rules as Mistral. A cloud voice loads no local model: Voxtral needs a M
 
 **Settings > Help > Setup check** looks up the chosen endpoint's host (and port) and connects to it, only while this provider is the chosen one, and the light first check at start makes no connection at all. A server on this computer that is not running reads as "cannot reach localhost:11434": start it. The support report names the provider, the endpoint's host (no path, no query) and the model ID, and the result code of the last test; never the key, not even its last four characters.
 
+## Prompt profile of an endpoint (2026-10-22)
+
+Every Custom endpoint and model has its own prompt profile (`bridge/prompt-profiles.mjs`, "Prompt profiles" in `docs/LOCAL_AI.md`): the output rules, the closing line, the example replies, where the turn's notes sit and the sampling.
+Its id is `custom-<host and port>-<model id>` in lower case (`custom-openrouter-ai-qwen-qwen3-30b-a3b`, `custom-127-0-0-1-1234-gemma-3-4b-it`; a long one is cut and ends in a short hash).
+It starts from the default of the model's **family**, read from the model id: `qwen`, `gemma` and `mistral` have the wording measured on a model of that family (Qwen3.5-4B, Gemma 4 E4B and ministral-8b, the first two behind a local server),
+`llama` and any other model get the base wording, the safe default for a model nobody here has measured. Nothing is sent that the server may not know: the shipped Custom defaults add no `top_p`, `repeat_penalty` or `stop` (the player can add them in the
+character editor; a server that refuses one by name loses it and is asked again, as with `temperature`). The facts the character gets, the hard-limit guard and the Mature layer (Custom may have it, Mistral never) are not part of the profile, so a player's change to
+the rules cannot remove them. The player's own change is stored in `<state>/prompt-overrides/<profile id>.json`, one file per endpoint and model, so another model starts from its own default again and the first one's change is still there when the player comes back.
+
 ## Files
 
 | Item | Where |

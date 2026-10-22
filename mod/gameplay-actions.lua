@@ -82,6 +82,15 @@ end
 function M.new(options)
     local Q = {}
     local lease, lastRaw, result, lastAdmission
+    local lastRevision, lastReadAt = nil, 0
+    -- The native plugin's revision of a file this mod reads (mod/native-core.lua: a number that changes when the bytes change), or nil
+    -- without the plugin, before its first read of the file, or while the file is missing.
+    local function revisionOf(name)
+        local source = options.revision or (type(convaiNative) == 'table' and convaiNative.revision) or nil
+        if not source then return nil end
+        local ok, value = pcall(source, name)
+        return ok and type(value) == 'number' and value > 0 and value or nil
+    end
     local clock = options.clock or function() return os.time() * 1000 end
 
     local function developerMode()
@@ -216,8 +225,16 @@ function M.new(options)
         if not gameplayReady or not worldMatches(lease, options.world()) then
             Q.revoke(gameplayReady and 'world-changed' or 'world-not-ready'); return
         end
+        -- With the native plugin the packet file is not opened while its revision (one number, no disk access) is the one of the last
+        -- read: that read left lastRaw as it is, and an unchanged text returns below anyway. A read at least once a second remains,
+        -- and without the plugin (no revision) every update reads as before.
+        local revision = revisionOf('companion-actions.json')
+        local wall = os.clock()
+        if revision and revision == lastRevision and wall >= lastReadAt and wall - lastReadAt < 1 then return end
         local readOk, raw = pcall(options.read or readPacket)
-        if not readOk or type(raw) ~= 'string' or raw == lastRaw then return end
+        if not readOk or type(raw) ~= 'string' then lastRevision = nil; return end
+        lastRevision, lastReadAt = revision, wall
+        if raw == lastRaw then return end
         lastRaw = raw
         if #raw > MAX_PACKET then return end
         local decoded, packet = pcall(options.decode or json.decode, raw)

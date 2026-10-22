@@ -47,8 +47,8 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
-    // pace: a SpeechPace (bridge/speech-pace.mjs), for a cloud voice only. After a line of the voice broke, the next ones wait for a longer
-    // lead of audio before their first sound. onEnded({underruns, seconds, playedMs}): once, when the line has played to its end.
+    // pace: a SpeechPace (bridge/speech-pace.mjs) of the voice engine. After a line of the voice broke, the next ones wait for a longer
+    // lead of audio before their first sound. onEnded({underruns, seconds, playedMs, refillSeconds}): once, when the line has played to its end.
     pace = null, onEnded = () => {},
     // holdPeek(): the same question without side effects. The host's pollMs/wake run on every poll from the stream's start, before any
     // audio exists; hold() may drop a V line that is still being synthesized (bridge/v-voice.mjs), so only frame() may call it.
@@ -325,8 +325,10 @@ export class ConvaiContinuousSpeech {
     if (snapshot.ended) {
       this.ended = true; this.model?.close();
       try {
-        this.pace?.note(snapshot.underruns);
-        this.onEnded({underruns: snapshot.underruns, seconds: duration, playedMs: this.startedAt ? this.now() - this.startedAt : undefined});
+        const playedMs = this.startedAt ? this.now() - this.startedAt : undefined;
+        this.pace?.note(snapshot.underruns, {seconds: duration, playedMs});
+        this.onEnded({underruns: snapshot.underruns, seconds: duration, playedMs,
+          ...(Number.isFinite(snapshot.refillSeconds) ? {refillSeconds: snapshot.refillSeconds} : {})});
       } catch { /* a report never affects playback */ }
       return quiet();
     }
@@ -393,6 +395,21 @@ export class ConvaiContinuousSpeech {
         if (!await this.valid()) throw Error('Continuous speech owner changed');
       }
     }
+  }
+
+  // A voice that broke after the reply was published: the same error state as fail(), carrying the COMPLETE written reply, so the game
+  // (mod/speech.lua, playback-failed) shows the whole text and says once that the voice stopped. Returns true when that state was written;
+  // false when the stream was never published, the game stopped it itself (retired) or the turn is no longer the current one: then the caller
+  // ends the turn as before. Local voices only: the written reply is never voiced by another engine.
+  async failToText(text) {
+    this.dropModel();
+    if (!this.published || this.retired || !this.last || !await this.valid()) return false;
+    const full = typeof text === 'string' ? displayText(text, true) : '';
+    const shown = this.last.textComplete ? this.last.text : (full.trim() && full.length <= 12000 ? full : this.last.text);
+    await this.writeState({...this.last, version: 1, id: this.token,
+      requestId: this.input.requestId, generation: this.input.generation, entity: this.input.entity,
+      updated: this.now(), state: 'error', error: 'The voice stream stopped.', text: shown, textComplete: true, ended: false});
+    return true;
   }
 
   async fail() {

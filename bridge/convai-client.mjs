@@ -9,7 +9,8 @@ export async function requestReply({key, characterId, sessionId = '-1', text, au
     body.set('sample_rate', '16000');
   } else body.set('userText', text);
   const response = await fetch('https://api.convai.com/character/getResponse', {
-    method: 'POST', headers: {'CONVAI-API-KEY': key}, body,
+    // A redirect is an error: fetch would forward the CONVAI-API-KEY header (only Authorization is stripped) to another host.
+    method: 'POST', redirect: 'error', headers: {'CONVAI-API-KEY': key}, body,
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35000)]) : AbortSignal.timeout(35000),
   });
   if (!response.ok) throw Error(`Convai returned HTTP ${response.status}`);

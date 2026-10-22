@@ -6,7 +6,7 @@ import {PassThrough, Writable} from 'node:stream';
 import {resolve} from 'node:path';
 import {constants as osConstants} from 'node:os';
 import {readFileSync} from 'node:fs';
-import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed, NO_CUDA_EXIT_CODE, NO_CUDA_FAILURE, noCudaFailed} from './resident-voice.mjs';
+import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS, PATH_ATTESTATION_FAILURE, pathAttestationFailed, NO_CUDA_EXIT_CODE, NO_CUDA_FAILURE, noCudaFailed, outOfMemoryFailed} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
@@ -631,4 +631,44 @@ test('English replies and malformed language references are exactly what they we
     h.reply(h.requests.length - 1); await done;
   }
   const closed = h.client.close(); h.finish(); await closed;
+});
+
+// 2026-10-22 review: "Local voice worker exited (1)" and "(3221225477)" said nothing, so a CUDA out-of-memory load was retried like any fault and a native
+// fault left no stack. The failure now carries the exit code in words and the last error line of the worker's stderr.
+test('a worker that dies says why: the exit code in words and the last error line of its stderr, and the out-of-memory rule can read it', async () => {
+  const h = harness({autoReady: false});
+  const failed = assert.rejects(h.client.start(), error => {
+    assert.match(error.message, /^Local voice worker exited \(1\): torch\.OutOfMemoryError: CUDA out of memory/);
+    assert.equal(outOfMemoryFailed(error.message), true); assert.equal(noCudaFailed(error.message), false); return true;
+  });
+  h.child.stderr.write('Loading model...\nTraceback (most recent call last):\n  File "x.py", line 1, in <module>\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB\n');
+  await tick(); h.finish(1); await failed;
+  const fault = harness({autoReady: false});
+  const faulted = assert.rejects(fault.client.start(), error => {
+    assert.match(error.message, /^Local voice worker exited \(3221225477 = access violation \(0xC0000005\)\): Windows fatal exception: access violation/); return true;
+  });
+  fault.child.stderr.write(Buffer.from('Windows fatal exception: access violation\n\nThread 0x000012f4 (most recent call first):\n  File "a.py", line 3 in run\n'));
+  await tick(); fault.finish(3221225477); await faulted;
+  await h.client.close(); await fault.client.close();
+});
+
+test('a worker started for the retry after a memory fault gets the CUDA graph turned off in its environment, and only then', async () => {
+  const seen = [];
+  for (const extraEnvironment of [undefined, {CYBERPUNK_CONVAI_CUDA_GRAPH: '0'}]) {
+    const h = harness({autoReady: false, workerOptions: {extraEnvironment}});
+    h.client.start().catch(() => {}); await tick();
+    seen.push(h.launches[0].options.env.CYBERPUNK_CONVAI_CUDA_GRAPH);
+    h.finish(1); await h.client.close();
+  }
+  assert.deepEqual(seen, [process.env.CYBERPUNK_CONVAI_CUDA_GRAPH, '0']);
+});
+
+test('recoverExit looks at the process again after an unconfirmed exit and resolves when it is gone', async () => {
+  const timers = clock(); let alive = true;
+  const h = harness({timers, workerOptions: {isAlive: () => alive}}); await h.client.start();
+  const closed = assert.rejects(h.client.close(), /exit could not be confirmed/);
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs + VOICE_WORKER_LIMITS.exitConfirmationMs); await closed;
+  const kills = h.child.kills, recovered = h.client.recoverExit({timeoutMs: 60_000, pollMs: 1000, killMs: 5000});
+  timers.advance(12_000); assert.ok(h.child.kills > kills, 'stopped again while it still runs');
+  alive = false; timers.advance(1000); assert.equal(await recovered, true); assert.equal(h.client.child, null);
 });

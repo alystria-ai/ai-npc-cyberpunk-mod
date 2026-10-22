@@ -43,6 +43,7 @@ function reasonFor(error, text) {
   // The shared key's own guard, then Convai's answers (convai-quota.mjs reads only the message text).
   const quota = classifyFailure(error);
   if (quota === 'daily') return 'daily-limit';
+  if (quota === 'signin') return 'convai-signin';
   if (quota === 'rate') return 'rate-limit';
   if (quota === 'busy') return 'convai-busy';
   if (quota === 'quota') return 'convai-quota';

@@ -20,7 +20,8 @@
     "aldecaldos": {"category": "gang", "title": "Aldecaldos nomad", "match": {"affiliations": ["Aldecaldos"]}},
     "barghest": {"category": "gang", "title": "Barghest soldier", "match": {"affiliations": ["Barghest"]}},
     "ncpd": {"category": "police", "title": "NCPD officer", "match": {"affiliations": ["NCPD"], "police": true, "excludeRecordPrefixes": ["maxtac"]}},
-    "corpo-security": {"category": "corpo-security", "title": "corporate security officer", "match": {"affiliations": ["Arasaka"], "recordPrefixes": ["security_", "civilianguard_"]}},
+    "maxtac": {"category": "police", "title": "MaxTac officer", "match": {"recordTokens": ["maxtac"]}},
+    "corpo-security": {"category": "corpo-security", "title": "corporate security officer", "match": {"affiliations": ["Arasaka", "Zetatech", "Corpbud"], "recordPrefixes": ["security_", "civilianguard_"]}},
     "ripperdoc": {"category": "vendor", "title": "ripperdoc", "match": {"vendorTypes": ["RipperDoc"]}},
     "weapons-dealer": {"category": "vendor", "title": "weapons dealer", "match": {"vendorTypes": ["Gunsmith"]}},
     "food-vendor": {"category": "vendor", "title": "food and drink vendor", "match": {"vendorTypes": ["Food", "GrilledFood", "PackedFood", "Drinks"]}},
@@ -38,6 +39,8 @@
     "militech": {"category": "faction", "title": "Militech soldier", "match": {"affiliations": ["Militech"], "recordTokens": ["militech"]}},
     "kang-tao": {"category": "faction", "title": "Kang Tao soldier", "match": {"affiliations": ["KangTao"], "recordTokens": ["kangtao", "kang_tao"]}},
     "netwatch": {"category": "faction", "title": "NetWatch agent", "match": {"affiliations": ["NetWatch"], "recordTokens": ["netwatch"]}},
+    "nusa": {"category": "faction", "title": "NUSA agent or soldier", "match": {"affiliations": ["NUSA", "NUSA_Myers"]}},
+    "joytoy": {"category": "faction", "title": "joytoy", "match": {"recordTokens": ["prostitute", "sexworker"]}},
     "trauma-team": {"category": "faction", "title": "Trauma Team responder", "match": {"affiliations": ["TraumaTeam"], "recordTokens": ["trauma_"]}},
     "biotechnica": {"category": "faction", "title": "Biotechnica employee", "match": {"affiliations": ["Biotechnica"], "recordTokens": ["biotechnica"]}},
     "merc": {"category": "faction", "title": "mercenary", "match": {"affiliations": ["AfterlifeMercs", "AfterlifeMercRogue"], "recordTokens": ["afterlife_merc", "afterlife_rare", "afterlife_netrunner", "afterlife_base", "generic_merc"]}},
@@ -120,6 +123,12 @@
     {"key": "npc-worker-resident-male", "base": "worker-resident", "gender": "MALE", "name": "City Worker Male", "voice": "convai-kokoro-a140acd135a0d3a1", "voiceName": "Mark (Bold Middle-Aged American Male)", "voiceFamilies": ["civ_low_m"], "voiceCount": 3},
     {"key": "npc-worker-resident-female", "base": "worker-resident", "gender": "FEMALE", "name": "City Worker Female", "voice": "convai-kokoro-655335922019f8a9", "voiceName": "Linda (Deep Middle-Aged American Female)", "voiceFamilies": ["civ_low_f"], "voiceCount": 3},
     {"key": "npc-dogtown-resident-male", "base": "dogtown-resident", "gender": "MALE", "name": "Dogtown Resident Male", "voice": "convai-kokoro-194d5a6334084328", "voiceName": "Cole (Husky Middle-Aged American Male)", "voiceFamilies": ["civ_low_m", "civ_mid_m"], "voiceCount": 3},
-    {"key": "npc-dogtown-resident-female", "base": "dogtown-resident", "gender": "FEMALE", "name": "Dogtown Resident Female", "voice": "convai-kokoro-66f6de32b10f0a58", "voiceName": "Katie (Husky Young-Adult American Female)", "voiceFamilies": ["civ_low_f", "civ_mid_f"], "voiceCount": 3}
+    {"key": "npc-dogtown-resident-female", "base": "dogtown-resident", "gender": "FEMALE", "name": "Dogtown Resident Female", "voice": "convai-kokoro-66f6de32b10f0a58", "voiceName": "Katie (Husky Young-Adult American Female)", "voiceFamilies": ["civ_low_f", "civ_mid_f"], "voiceCount": 3},
+    {"key": "npc-maxtac-male", "base": "maxtac", "gender": "MALE", "name": "MaxTac Officer Male", "voice": "convai-kokoro-cdaba86a412f444f", "voiceName": "Noah (Confident Adult American Male)", "voiceFamilies": ["ncpd_low_m", "ncpd_mid_m"], "voiceCount": 2},
+    {"key": "npc-maxtac-female", "base": "maxtac", "gender": "FEMALE", "name": "MaxTac Officer Female", "voice": "convai-kokoro-228cf635fab5d078", "voiceName": "Megan (Neutral Adult American Female)", "voiceFamilies": ["ncpd_low_f", "ncpd_mid_f"], "voiceCount": 2},
+    {"key": "npc-nusa-male", "base": "nusa", "gender": "MALE", "name": "NUSA Agent Male", "voice": "convai-kokoro-a140acd135a0d3a1", "voiceName": "Mark (Bold Middle-Aged American Male)", "voiceFamilies": ["sec_mid_m", "sec_high_m", "sec_low_m"], "voiceCount": 2},
+    {"key": "npc-nusa-female", "base": "nusa", "gender": "FEMALE", "name": "NUSA Agent Female", "voice": "convai-kokoro-5bcc8b021c01ea90", "voiceName": "Sarah (Authoritative Middle-Aged American Female)", "voiceFamilies": ["sec_mid_f", "sec_high_f", "sec_low_f"], "voiceCount": 2},
+    {"key": "npc-joytoy-male", "base": "joytoy", "gender": "MALE", "name": "Joytoy Male", "voice": "convai-kokoro-d854e05c9f9c4646", "voiceName": "Logan (Expressive Young-Adult American Male)", "voiceFamilies": ["civ_mid_m", "civ_low_m", "civ_cbz_m"], "voiceCount": 2},
+    {"key": "npc-joytoy-female", "base": "joytoy", "gender": "FEMALE", "name": "Joytoy Female", "voice": "convai-kokoro-3220be3d9a11d9fd", "voiceName": "Laura (Upbeat Young-Adult American Female)", "voiceFamilies": ["civ_mid_f", "civ_low_f", "civ_cbz_f"], "voiceCount": 2}
   ]
 }

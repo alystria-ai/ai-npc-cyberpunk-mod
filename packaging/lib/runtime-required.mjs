@@ -6,12 +6,15 @@
 //   - The llama.cpp engine in app/<localAi.server.runtimeFolder>/ (the server, llama-fit-params and the libraries they load).
 //   - vgmstream in app/<toolchain.vgmstream.runtimeFolder>/ (vgmstream-cli.exe and the ten libraries it loads) with its licence texts: the decoder of a player's V voice
 //     mod (docs/PACKAGING.md, "vgmstream in the Runtime"). Without them a voice mod cannot be read.
+//   - The sign-in settings in app/defaults/convai-auth.json (packaging/lib/convai-auth.mjs): the Runtime ships no Convai key, and without this file the
+//     bridge has no way to reach the shared Convai account. A --dry-run build may leave it out (`signIn: false`).
 //   - The Runtime's own OmniVoice lists in app/defaults, which the launcher reads before the OmniVoice pack's older copy (packaging/runtime/
 //     prepare-state.mjs; docs/PACKAGING.md, "Packs reused unchanged"). Without them a pack reused from an earlier version runs on its own
 //     older lists (0.2's lack the 30 voices 0.2.1 added), and a list an earlier Runtime left in app/defaults stays in charge.
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {OMNI_CONFIGS} from '../runtime/prepare-state.mjs';
+import {AUTH_FILE} from './convai-auth.mjs';
 
 export const V_VOICE_FOLDER = 'voices/v-voice';
 export const V_MANIFEST_SOURCE = 'assets/v-voice/v-voice.json';
@@ -19,7 +22,7 @@ export const V_MANIFEST_SOURCE = 'assets/v-voice/v-voice.json';
 export const V_MOD_LINES = 'v-mod-lines.json';
 
 // {group: [game-relative path, ...]} for a Runtime built from the repository at `root`.
-export async function requiredRuntimeFiles(root) {
+export async function requiredRuntimeFiles(root, {signIn = true} = {}) {
   const config = JSON.parse(await readFile(resolve(root, 'packaging/release.config.json'), 'utf8'));
   const plugin = config.layout.pluginDirectory, app = `${plugin}/app`;
   const manifest = JSON.parse((await readFile(resolve(root, V_MANIFEST_SOURCE), 'utf8')).replace(/^\uFEFF/, ''));
@@ -30,6 +33,7 @@ export async function requiredRuntimeFiles(root) {
   return {
     "V's voice clips": ['v-voice.json', ...clips, V_MOD_LINES].map(file => `${plugin}/${V_VOICE_FOLDER}/${file}`),
     "Runtime's OmniVoice lists": Object.values(OMNI_CONFIGS).map(name => `${app}/defaults/${name}`),
+    ...(signIn ? {"Runtime's sign-in settings": [`${app}/${AUTH_FILE}`]} : {}),
     // The llama.cpp engine of Local AI (docs/LOCAL_AI.md, "The engine is in the Runtime"): the update zips deliver engine fixes only if the Runtime carries it.
     'llama.cpp engine': config.localAi.server.require.map(name => `${app}/${config.localAi.server.runtimeFolder}/${name}`),
     // vgmstream-cli and its libraries (the decoder of a player's V voice mod), and the licence texts that must travel with them.

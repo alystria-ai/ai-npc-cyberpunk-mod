@@ -1,6 +1,6 @@
 import {readFile, readdir, stat} from 'node:fs/promises';
 import {join} from 'node:path';
-import {readKeyFileText} from './key-codec.mjs';
+import {parseKeyFileText} from './convai-key.mjs';
 
 // What the automatic error reports (bridge/error-reports.mjs) need from the data folder and the game's logs: the values to scrub from every
 // line, and the plugin versions RED4ext logged.
@@ -31,8 +31,8 @@ export function pluginVersions(text) {
 // Values that must be scrubbed from every line, besides the ones collectReport already reads (convai-key.txt, the Hugging Face and Kaggle
 // tokens, the custom model servers' keys): every other key file of the data folder (player-convai-key.txt, player-mistral-key.txt,
 // and player-inworld-key.txt, a leftover an old install may still have from a removed feature), the Custom (OpenAI-compatible) provider's key (the api-key line of player-custom-endpoint.txt), the sign-in
-// file's secret (or CYBERPUNK_CONVAI_AUTH_SECRET) and the key packed into the Runtime (app/defaults/service.txt). They are only returned to
-// the redactor; nothing here writes, logs or prints one.
+// file's secret (or CYBERPUNK_CONVAI_AUTH_SECRET) and the two secrets a release ships (app/defaults/convai-auth.json, the sign-in request secret, and
+// app/defaults/error-reports.json, the error reports' own). They are only returned to the redactor; nothing here writes, logs or prints one.
 export async function dataFolderSecrets({stateDirectory, project, env = {}}) {
   const found = [];
   const add = value => { if (typeof value === 'string' && value.trim().length >= 6) found.push(value.trim()); };
@@ -46,8 +46,8 @@ export async function dataFolderSecrets({stateDirectory, project, env = {}}) {
     }
   };
   const fromKeyText = raw => {
-    const parsed = readKeyFileText(raw);
-    if (parsed) add(parsed.key);
+    const parsed = parseKeyFileText(raw);
+    if (parsed) add(parsed);
     const text = raw.trim();
     add(text);
     const value = /^[A-Za-z0-9_-]+\s*=\s*(\S+)$/.exec(text)?.[1];
@@ -84,8 +84,9 @@ export async function dataFolderSecrets({stateDirectory, project, env = {}}) {
       walk(JSON.parse(raw));
     } catch { /* not JSON: nothing to scrub */ }
   }
-  const packed = project ? await readSmall(join(project, 'defaults', 'service.txt'), 4096) : null;
-  if (packed !== null) { const parsed = readKeyFileText(packed); if (parsed) add(parsed.key); }
+  // The sign-in request secret a release ships (bridge/convai-credential.mjs PACKAGED_AUTH_FILE). Not the error reports' secret below: two files, two secrets.
+  const signIn = project ? await readSmall(join(project, 'defaults', 'convai-auth.json'), 4096) : null;
+  if (signIn !== null) { try { add(JSON.parse(signIn.replace(/^﻿/, ''))?.secret); } catch { /* not JSON: nothing to scrub */ } }
   // The error reports' signing secret a release ships (bridge/error-reports.mjs, app/defaults/error-reports.json).
   const shipped = project ? await readSmall(join(project, 'defaults', 'error-reports.json'), 4096) : null;
   if (shipped !== null) { try { add(JSON.parse(shipped.replace(/^﻿/, ''))?.secret); } catch { /* not JSON: nothing to scrub */ } }

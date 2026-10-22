@@ -368,7 +368,7 @@ function bridgeFixture() {
     const stat=async()=>({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath?rawInput:readLease();
     const prefetch={invalidate(){},claim(){return null;}},lookahead={claim(){return null;}},completeContext=()=>'',status=async()=>{};
-    const processInput=request=>record(request);
+    const processInput=request=>record(request), providerForTurn=async()=>{};
     ${adapter}
     globalThis.api={tick,setRelationshipReservation:value=>{relationshipRouteReservation=value;}};
   `, context);

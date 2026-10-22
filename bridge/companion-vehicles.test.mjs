@@ -877,9 +877,9 @@ const waitFixture=`${foreignFixture}
   end
   function api.foreignPending(ids) world.pendingCalls=world.pendingCalls+1; return world.walking or 0 end
   local baseMount=api.mount
-  function api.mount(entry,car,seat,exit)
+  function api.mount(entry,car,seat,exit,failsafe)
     if exit and world.unmountRefused then
-      local c={kind='unmount',entry=entry,car=car,seat=seat,state='Failure'}
+      local c={kind='unmount',entry=entry,car=car,seat=seat,state='Failure',failsafe=failsafe}
       world.commands[#world.commands+1]=c; return c
     end
     return baseMount(entry,car,seat,exit)
@@ -994,7 +994,7 @@ test('V gets out while she sits in V car although another car was planned for he
   assert(#lines('exit-start')==1 and lines('exit-start')[1].reason=='vehicle-change')
 `));
 
-test('an unmount the game keeps refusing is retried in rounds ten seconds apart, three rounds at most',()=>run(`${waitFixture}
+test('an unmount the game keeps refusing is retried in rounds ten seconds apart: three plain rounds, then one failsafe round, then it stops',()=>run(`${waitFixture}
   party(1); tick(30)
   assert(fleet.people[1].phase=='riding')
   world.unmountRefused=true; world.primary=nil
@@ -1003,11 +1003,51 @@ test('an unmount the game keeps refusing is retried in rounds ten seconds apart,
   assert(fleet.people[1].phase=='exit-failed',tostring(fleet.people[1].phase))
   tick(150)
   assert(unmounts()>=4,unmounts())
-  tick(600)
-  assert(unmounts()==9,'bounded: '..unmounts())
+  tick(900)
+  assert(unmounts()==12,'bounded: '..unmounts())
+  local plain,failsafe=0,0
+  for _,c in ipairs(world.commands) do
+    if c.kind=='unmount' then if c.failsafe then failsafe=failsafe+1 else plain=plain+1 end end
+  end
+  assert(plain==9 and failsafe==3,plain..' plain, '..failsafe..' failsafe')
   local kinds={}
   for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
-  assert(table.concat(kinds,','):find('exit-failed-0',1,true) and table.concat(kinds,','):find('exit-failed-2',1,true),table.concat(kinds,','))
+  assert(table.concat(kinds,','):find('exit-failed-0',1,true) and table.concat(kinds,','):find('exit-failed-3',1,true),table.concat(kinds,','))
+`));
+
+test('when every unmount round failed the copy is moved out once, then removed, and the fleet leaves the exiting phase',()=>run(`${waitFixture}
+  party(1); tick(30)
+  assert(fleet.people[1].phase=='riding')
+  world.unmountRefused=true; world.primary=nil
+  local discards,asked=0,{}
+  hooks.discard=function(entry) discards=discards+1; asked[#asked+1]=entry.serial; return true end
+  tick(300)
+  assert(discards==0 and (world.recoveries[1] or 0)==0,'still inside the unmount rounds: '..discards)
+  tick(600)
+  assert(world.recoveries[1]==1,'moved out exactly once: '..tostring(world.recoveries[1]))
+  assert(discards==1 and asked[1]==1,'removal asked once: '..discards)
+  assert(fleet.people[1].removing,'no further unmounts while the removal is pending')
+  local before=unmounts(); tick(300)
+  assert(unmounts()==before and discards==1)
+  local kinds={}
+  for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
+  assert(table.concat(kinds,','):find('exit-teleport-out',1,true) and table.concat(kinds,','):find('exit-discarded',1,true),table.concat(kinds,','))
+  -- The owner of the copy deletes it: the person is removed and the fleet is done.
+  transport.remove(fleet,1); entries[1]=nil; tick(5)
+  assert(fleet.phase=='on-foot',tostring(fleet.phase))
+`));
+
+test('a removal the owner refuses is asked again ten seconds later, and a fleet without the hook just keeps its bounded retries',()=>run(`${waitFixture}
+  party(1); tick(30)
+  world.unmountRefused=true; world.primary=nil
+  local discards=0
+  hooks.discard=function(entry) discards=discards+1; return false end
+  tick(1200)
+  assert(discards>=3,'asked again: '..discards)
+  assert(not fleet.people[1].removing)
+  hooks.discard=nil
+  local before=unmounts(); tick(300)
+  assert(unmounts()==before,'no unmount beyond the failsafe round')
 `));
 
 test('a plain exit logs the start and each person once, never per tick',()=>run(`${waitFixture}
@@ -1019,4 +1059,69 @@ test('a plain exit logs the start and each person once, never per tick',()=>run(
   local perPerson={}
   for _,e in ipairs(lines('exit')) do perPerson[e.name]=(perPerson[e.name] or 0)+1 end
   for name,n in pairs(perPerson) do assert(n<=2,name..' logged '..n) end
+`));
+
+test('shutdown removes the overflow party cars this load owns and never V car',()=>run(`${fixture}
+  party(7); tick(100)
+  assert(#world.spawned==1)
+  -- an occupied car is refused by the adapter and stays for the next load's sweep
+  assert(transport.shutdown(fleet)==1 and #world.deleted==0 and #fleet.cars==1)
+  for _,seat in ipairs(world.spawned[1].info.seats) do seat.occupant=nil end
+  assert(transport.shutdown(fleet)==1 and #world.deleted==1 and world.deleted[1]=='overflow-1' and #fleet.cars==0)
+  for _,id in ipairs(world.deleted) do assert(id~='v-car') end
+  assert(transport.shutdown(fleet)==0)
+`));
+
+test('the first update sweeps party cars a reload left behind, once, never per frame, and never this load own cars',()=>run(`${fixture}
+  local calls,known={},nil
+  function api.sweepOwned(set) calls[#calls+1]=set; known=set; return 0 end
+  party(8); tick(100)
+  assert(#calls==1,'one sweep: '..#calls)
+  assert(next(calls[1])==nil,'the first sweep ran before this load had any car')
+  tick(2000); assert(#calls==1)
+`));
+
+test('the sweep asks again only while some cars were occupied or the world was not ready, a bounded number of times',()=>run(`${fixture}
+  local calls=0
+  function api.sweepOwned(set) calls=calls+1; return 2 end
+  tick(1500); assert(calls==6,'occupied cars: '..calls)
+  local fresh=transport.new(api); local waits=0
+  function api.sweepOwned() waits=waits+1; if waits<4 then return nil,'Vehicle world is not ready.' end return 0 end
+  for _=1,400 do transport.update(fresh,player,{},0.1,hooks) end
+  assert(waits==4,'not ready, then done: '..waits)
+`));
+
+test('the sweep skips the cars this load owns and stops after a save teardown',()=>run(`${fixture}
+  local seen={}
+  function api.sweepOwned(set) seen[#seen+1]=set; return 2 end
+  party(8); tick(100)
+  tick(120)
+  local last=seen[#seen]
+  assert(#seen>=2 and last['overflow-1'] and last['v-car'],'known cars are passed')
+  transport.abandon(fleet); local n=#seen; tick(1500); assert(#seen==n)
+`));
+
+test('native sweep deletes only tagged managed party cars that are empty, counting the skipped ones',()=>run(`${nativeFixture}
+  local tagged={a=true,b=true,c=true,d=true,e=false}
+  local entities={a={},b={},c={},d={}}
+  entities.b.IsPlayerMounted=function() return true end
+  entities.b.HasPassengers=function() return false end
+  entities.c.IsPlayerMounted=function() return false end
+  entities.c.HasPassengers=function() return true end
+  for _,k in ipairs({'a','d'}) do
+    entities[k].IsPlayerMounted=function() return false end
+    entities[k].HasPassengers=function() return false end
+  end
+  local deleted={}
+  system.GetTaggedIDs=function() return {{hash='a'},{hash='b'},{hash='c'},{hash='d'},{hash='e'},{hash='f'}} end
+  system.IsManaged=function(_,e) return e.hash~='f' end
+  system.IsTagged=function(_,e) return tagged[e.hash]==true end
+  system.DeleteEntity=function(_,e) deleted[#deleted+1]=e.hash; return true end
+  Game.FindEntityByID=function(e) return entities[e.hash] end
+  local left=adapter.sweepOwned({d=true})
+  table.sort(deleted)
+  assert(table.concat(deleted,',')=='a','only the empty tagged unknown car: '..table.concat(deleted,','))
+  assert(left==2,'V car and the occupied car are skipped: '..tostring(left))
+  system.IsReady=function() return false end
+  local none,why=adapter.sweepOwned(); assert(none==nil and why)
 `));

@@ -1469,6 +1469,8 @@ test('a live turn with mislabelled packets shows the corrected rate in its snaps
   c.data(data.stats); c.data(data.terminal); finalText(c); await new Promise(done => setTimeout(done, 80));
   const late = api.continuousSnapshot('mislabelled-turn');
   assert.equal(late.sampleRateCorrected.declared, 24000); assert.equal(late.sampleRateCorrected.actual, 44100); assert.equal(late.sampleRate, 44100);
+  assert.equal(late.openedSampleRate, 24000, 'and the rate the player runs at, which the live checks of the bridge keep using');
+  assert.equal(Object.hasOwn(early, 'openedSampleRate'), false, 'nothing to say while the label stands');
   assert.equal(Object.hasOwn(late, 'sampleRateHintMissed'), false);
   instances[0].drain(); await pending; await api.close();
 });
@@ -1668,8 +1670,8 @@ test('the no-speech failure never cuts off a recognised or still-thinking voice 
     offset = 16000; await new Promise(done => setTimeout(done, 120));
     assert.equal(api.diagnostics().activeTurn, true, mode + ' keeps waiting past the no-speech window');
     offset = 61000;
-    await assert.rejects(pending, error => /did not finish the reply \(transcript=(yes|no) text=no /.test(error.message)
-      && error.message.includes(mode === 'transcript' ? 'transcript=yes' : 'thinking=true'));
+    await assert.rejects(pending, error => /did not finish the reply \(transcript=(true|false) text=false /.test(error.message)
+      && error.message.includes(mode === 'transcript' ? 'transcript=true' : 'thinking=true'));
     await api.close();
   }
 });
@@ -1870,4 +1872,37 @@ test('vision: without the setting the session connects audio-only, and turning i
   assert.equal(clients[1].options.enableVideo, true);
   finalText(clients[1], 'Hi.', 'second');
   await second;
+});
+
+// ---- A text-only reply read while Convai is still writing it (bridge/realtime-host.mjs, textStream) ----------------------------------------
+
+function streamingRows(client, text, {done = false, id = 'reply'} = {}) {
+  const rows = [...client.chatMessages.filter(row => row.id !== id), {id, type: 'bot-llm-text', content: text, isStreaming: !done}];
+  client.chatMessages = rows; client.state.isThinking = !done;
+  client.handlers.get('messagesChange')(rows);
+}
+
+test('partialReply gives the text so far of the turn that asked for it, and nothing for any other key, before the turn, or after it', async () => {
+  const {api, clients} = fixture();
+  const cfg = {...config, ttsEnabled: false, textStreamKey: 'turn-key-1'};
+  await api.warm(cfg);
+  assert.equal(api.partialReply('turn-key-1'), '', 'no turn yet');
+  const pending = api.reply(cfg); await flush();
+  const client = clients[0];
+  assert.equal(api.partialReply('turn-key-1'), '', 'a turn with no text yet');
+  streamingRows(client, 'Sure, V. I can');
+  assert.equal(api.partialReply('turn-key-1'), 'Sure, V. I can');
+  assert.equal(api.partialReply('another-key'), '', 'another turn never reads this one');
+  assert.equal(api.partialReply(), '');
+  assert.equal(api.partialReply('bad key!'), '');
+  streamingRows(client, 'Sure, V. I can help with that.', {done: true});
+  const result = await pending;
+  assert.equal(result.text, 'Sure, V. I can help with that.', 'the reply call still returns the whole text');
+  assert.equal(api.partialReply('turn-key-1'), '', 'a finished turn is not readable');
+  // The next turn has no key of its own unless it asks for one: it never inherits the older reply's text.
+  const second = api.reply({...cfg, textStreamKey: undefined}); await flush();
+  streamingRows(client, 'Second reply.', {id: 'two'});
+  assert.equal(api.partialReply('turn-key-1'), '');
+  streamingRows(client, 'Second reply.', {id: 'two', done: true}); await second;
+  await api.close();
 });

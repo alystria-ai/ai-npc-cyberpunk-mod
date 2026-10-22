@@ -107,10 +107,10 @@ function blocksOf(persona) {
  *   charsPerToken   the model's characters-a-token ratio (bridge/prompt-budget.mjs TokenMeter, the estimator the soft target uses): the head aims at COMPACT.targetTokens of it;
  *             without one at COMPACT.targetChars
  */
-export function compactPersonaFor(persona, {mature = null, guard = false, limits, charsPerToken} = {}) {
+export function compactPersonaFor(persona, {mature = null, guard = false, limits, charsPerToken, profile} = {}) {
   if (!persona || typeof persona !== 'object') return persona;
   const bare = {...persona, backstory: '', style: '', samples: []};
-  const fixed = systemHead({persona: bare, limits, mature, guard}).length + (persona.worldRules ? worldRulesBlock(persona.worldRules).length + 2 : 0);
+  const fixed = systemHead({persona: bare, limits, mature, guard, profile}).length + (persona.worldRules ? worldRulesBlock(persona.worldRules).length + 2 : 0);
   const target = Number.isFinite(charsPerToken) && charsPerToken > 0 ? Math.round(COMPACT.targetTokens * charsPerToken / 100) * 100 : COMPACT.targetChars;
   let room = Math.max(COMPACT.floorChars, target - fixed);
   const blocks = blocksOf(persona), kept = new Map();
@@ -158,7 +158,7 @@ export class CompactChoice {
    * The persona to build the prompt from: `persona` itself, or its compact text. `meter` (the model's TokenMeter): the ratio the head's target is counted with, the same
    * one the soft target uses, taken once for as long as the choice stands (quantised, so a ratio that wobbles does not make a different text of the same character).
    */
-  personaFor(persona, {speed, meter, mature = null, guard = false, limits} = {}) {
+  personaFor(persona, {speed, meter, mature = null, guard = false, limits, profile} = {}) {
     if (!persona || !speed) return persona;
     if (mature) guard = false;   // the Mature layer replaces the guard-only one in the head
     let memo = this.#memo;
@@ -176,12 +176,12 @@ export class CompactChoice {
     }
     if (!memo.compact) return persona;
     // The text depends on what else is in the head (Mature layer, guard, world rules, the character's own rules): a change of those cuts it again.
-    const extras = JSON.stringify([mature, guard, persona.worldRules ?? '', persona.rules ?? [], persona.memories ?? [], persona.samples ?? [], persona.intro ?? '', persona.identityRule ?? '', persona.talkWords ?? 0]);
+    const extras = JSON.stringify([mature, guard, persona.worldRules ?? '', persona.rules ?? [], persona.memories ?? [], persona.samples ?? [], persona.intro ?? '', persona.identityRule ?? '', persona.talkWords ?? 0, profile ? JSON.stringify([profile.rules, profile.examples, profile.intro, profile.labels.rules, profile.labels.examples, profile.limits]) : '']);
     if (memo.extras !== extras) {
       memo.extras = extras;
-      memo.result = compactPersonaFor(persona, {mature, guard, limits, charsPerToken: memo.ratio});
+      memo.result = compactPersonaFor(persona, {mature, guard, limits, charsPerToken: memo.ratio, profile});
       if (memo.result !== persona) {
-        const tokens = which => Math.round(textTokens(systemHead({persona: which, limits, mature, guard}), memo.ratio));
+        const tokens = which => Math.round(textTokens(systemHead({persona: which, limits, mature, guard, profile}), memo.ratio));
         const line = `the head goes from about ${tokens(persona)} to ${tokens(memo.result)} tokens`, who = persona.name || 'a resident';
         if (this.#told.get(who) !== line) { this.#told.set(who, line); this.say(`The local AI: compact character text for ${who}: ${line}`); }
       }

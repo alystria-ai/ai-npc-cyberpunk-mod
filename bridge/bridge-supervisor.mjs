@@ -18,7 +18,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {REPORT_FOLDER, collectCrashInfo, crashLogLines, exitCodeWords, prepareReportFolder, reportArguments} from './bridge-diagnostics.mjs';
 import {capLogFile} from './log-cap.mjs';
-import {isKeyFileText} from './key-codec.mjs';
+import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
+import {parseKeyFileText} from './convai-key.mjs';
+import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
 import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
@@ -285,13 +287,24 @@ export class BridgeSupervisor {
     await this.setStatus('ready', 'existing-bridge');
   }
 
-  async preflight() {
+  // Whether Convai conversations have a credential to start from: a plain `api-key=...` file (a developer's own key; the format is checked, the
+  // key itself is never logged or published), or the sign-in backend switched on (a release ships it on, with no key at all: app/defaults/
+  // convai-auth.json; bridge/convai-credential.mjs readAuthSettings, the same reading the bridge does). A key a release before 0.2.9 packed
+  // into the state folder is not a plain key and does not count.
+  async hasCredential() {
+    let plain = false;
     try {
       const info = await stat(this.keyFile);
-      if (!info.isFile() || info.size > 4096) return 'missing-key';
-      // Validate the format only; the credential is never logged or published.
-      if (!isKeyFileText(await readFile(this.keyFile, 'utf8'))) return 'missing-key';
-    } catch { return 'missing-key'; }
+      plain = info.isFile() && info.size <= 4096 && parseKeyFileText(await readFile(this.keyFile, 'utf8')) !== null;
+    } catch { /* none */ }
+    if (plain) return true;
+    try {
+      return (await readAuthSettings({path: resolve(this.stateDirectory, AUTH_CONFIG_FILE), packagedPath: resolve(this.project, PACKAGED_AUTH_FILE)})).enabled;
+    } catch { return false; }
+  }
+
+  async preflight() {
+    if (!await this.hasCredential()) return 'missing-key';
     try {
       const ids = JSON.parse(await readFile(resolve(this.stateDirectory, 'characters.json'), 'utf8'));
       if (!ids || typeof ids !== 'object' || Array.isArray(ids)) return 'missing-character-ids';
@@ -457,6 +470,17 @@ export class BridgeSupervisor {
     if (pid && pid === this.childPid) this.retiredPids.add(pid);
     this.child = null; this.childPid = null; this.childExit = null; this.adoptedPid = null;
     this.ready = false; this.stopRequested = false;
+    // A bridge that ends without cleaning up (a V8 out-of-memory, a native crash, "End task") leaves its model server running with the card's memory: stop what it
+    // wrote down in children.json (only a process that is exactly the exe and start it recorded; bridge/child-registry.mjs), so the next bridge finds the card free.
+    // A bridge that ended on request cleaned up itself and left nothing to find. Never longer than 15 s.
+    // The cap ends the work too (no entry is started after it; what is not reached stays in the file) and a late finish removes only the records it dealt with, so the next
+    // bridge's own are never overwritten.
+    const cap = new AbortController(), timer = setTimeout(() => cap.abort(), 15_000);
+    timer.unref?.();
+    try {
+      await Promise.race([reapChildren({file: resolve(this.stateDirectory, CHILDREN_FILE), log: line => this.log(line), signal: cap.signal}), delay(15_000, undefined, {ref: false})]);
+    } catch { /* a failed look at the leftovers never changes what the supervisor does next */ }
+    finally { clearTimeout(timer); }
     if (requested) {
       this.log(`The bridge (PID ${pid}) stopped on request; it stays stopped until it is started again.`);
       this.mode = this.watchingGame ? 'stopped' : 'done';

@@ -827,7 +827,7 @@ test('the settings poll reads Mature content and the saved model choice before i
   // bridge/startup-local-ai-order.test.mjs watches the first start on a real bridge; this pins the order in the source.
   const bridge = (await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
   const poll = bridge.slice(bridge.indexOf('async function pollSettings('));
-  const at = ['matureContent.update(settings)', 'syncLocalModelChoice(settings)', 'mistral.setPreference(settings.conversationProvider)'].map(text => poll.indexOf(text));
+  const at = ['matureContent.update(settings)', 'syncLocalModelChoice(settings)', 'adoptProviderSetting(settings)'].map(text => poll.indexOf(text));
   assert.ok(at.every(position => position > 0), 'a step of the poll was renamed');
   assert.deepEqual(at, [...at].sort((first, second) => first - second));
 });

@@ -20,6 +20,7 @@ export function profileFor(input, roster) {
 }
 
 // A game request, plus the optional archetype facts of an unnamed NPC (docs/NPC_ARCHETYPES.md).
+const PROVIDER_NAMES = Object.freeze(['convai', 'mistral', 'local', 'custom']);
 export function parseInput(raw) {
   const input = parseRequest(raw);
   if (!input) return input;
@@ -80,7 +81,10 @@ function parseRequest(raw) {
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);
+  // The Conversation provider the player had chosen when the game wrote this request (mod/init.lua sendRequest); the bridge follows it for the turn.
+  const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
+    ...(provider ? {provider} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
@@ -138,7 +142,8 @@ export function placeName(value) {
 }
 
 // Per-turn context for an archetype or resident: what kind of person this is and where. Empty for named characters.
-export function archetypeContext(input) {
+// `place`: Settings > Dynamic info > Location is on (bridge/dynamic-info.mjs); off, the district is left out.
+export function archetypeContext(input, {place = true} = {}) {
   if (!input || !isAmbientProfile(input.profileKey)) return '';
   const facts = input.archetype ?? {};
   const lines = [];
@@ -156,7 +161,8 @@ export function archetypeContext(input) {
     lines.push(`You work at ${VENDOR_NAMES[facts.vendorType]} here.`);
   }
   const district = placeName(facts.district), area = placeName(facts.area);
-  if (district) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Let the place flavor what you say, without inventing a specific address.`);
+  // Said as a fact and no more: "let the place flavor what you say" made every ordinary NPC work the district into its answer (a player report, 2026-10-22).
+  if (district && place) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Mention it only when it matters to what V says: never announce the place name or tell V where they are unless V asks, and never invent a specific address.`);
   if (!lines.length) return '';
   return ['CURRENT PERSON (from the game, this conversation only)', ...lines].join('\n');
 }
