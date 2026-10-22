@@ -160,7 +160,7 @@ test('a Runtime update from a Runtime without vgmstream delivers the 11 files an
     const old = {[`${APP}/bridge/convai-bridge.mjs`]: 'bridge v1', [RELEASE_ENTRY]: stamp('0.2.7')};
     const next = {...old, ...shipped, [RELEASE_ENTRY]: stamp('0.2.8'), [`${APP}/defaults/runtime-removals.json`]: removalListText('0.2.8', [])};
     const summary = await buildRuntimeUpdate({oldZips: [await makeZip(join(dir, 'old.zip'), old)], newZips: [await makeZip(join(dir, 'new.zip'), next)], out: join(dir, 'out'), log: () => {}});
-    const zip = join(dir, 'out', 'AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.7-to-0.2.8.zip');
+    const zip = join(dir, 'out', 'Runtime-Update-0.2.7-to-0.2.8.zip');
     const held = Object.fromEntries(await Promise.all((await listZip(zip)).map(async entry => [entry.name, (await readEntry(zip, entry)).toString('utf8')])));
     for (const name of Object.keys(shipped)) assert.equal(held[name], shipped[name], `${name} is in the update`);
     assert.equal(summary.added, Object.keys(shipped).length + 1, 'the 13 files and the removal list are added');

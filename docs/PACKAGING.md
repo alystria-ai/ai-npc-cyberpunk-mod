@@ -30,8 +30,7 @@ executables, but a text-only file never needs that review and is never quarantin
 must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
 Native Settings UI): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
 binary runtime goes to the GitHub release as plain zips, which is how the core frameworks
-(RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
-publishes SHA-256 values with each release, which this pipeline does as well.
+(RED4ext, Codeware, TweakXL, Audioware) are distributed too.
 
 All of them use game-root-relative paths and merge into one install. Versions must match;
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
@@ -387,8 +386,8 @@ node packaging/build-runtime-update.mjs --old <previous full Runtime zip> --new 
 ```
 
 `--old` and `--new` may be repeated for a Runtime in several zips; `--from` and `--to` name the versions (default: read from each Runtime's `app/release.json`); `--remove <path>` adds a path to the
-list; `--listing <file>` or `--no-listing` chooses the optional-pack listing (default `packaging/pack-listings/packs-0.2.1.json`). It writes the zip, `<name>.files.json` (path, size, SHA-256
-of every file, like the full builds) and `<name>.sha256`, prints the counts and the SHA-256, and gives the same bytes for the same inputs. A removed path that the start step may not delete
+list; `--listing <file>` or `--no-listing` chooses the optional-pack listing (default `packaging/pack-listings/packs-0.2.1.json`). It writes the zip and `<name>.files.json` (path, size, SHA-256
+of every file, like the full builds), prints the counts and the SHA-256 of the zip (no loose checksum file), and gives the same bytes for the same inputs. A removed path that the start step may not delete
 (for instance the install note in the game folder's top folder) or that an optional pack ships is left in place and printed ("left in place, not in the removal list"); that is expected and
 harmless. The full Runtime of the new version carries its own removal list (the declared extras only), which the update's replaces when extracted over: the two differ by design, so
 `.files.json` of the full Runtime does not list the update's version of that file. To make a full install over an old one clean up as well, copy the update's removal paths into
@@ -782,7 +781,9 @@ package is released, because they are built by later jobs. If `v0.N`
 already exists, the workflow only re-uploads (`--clobber`) and leaves its title and notes alone.
 A new release is created with `--latest`, so the newest build is always marked Latest whatever GitHub's own ranking says.
 
-**Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to its folder of the repository (`voice/`, `local-ai/`, `mature/` or `mic/`) under its unversioned file name, for example `voice/OmniPack.zip`, and the version `V` is in the commit message only. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader refuses a build with more than one zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
+**Hugging Face upload.** The omni, localai and mature jobs install `huggingface_hub`, check first (`packaging/upload-packs.py --check`) that the `HF_TOKEN` secret can write to the repository, build their pack, and upload it with `packaging/upload-packs.py --version V --pack NAME --packages DIR` (`HfApi.upload_file`, retried, then checked against the local size). The zip goes to its folder of the repository (`voice/`, `local-ai/`, `mature/` or `mic/`) under its unversioned file name, for example `voice/OmniPack.zip`, and the version `V` is in the commit message only. A token that cannot write fails with a message naming the repository and saying the `HF_TOKEN` secret needs write access to it. The uploader takes the pack's zip by its exact build name and refuses a build in parts or without that zip. The `publish` input also gates these uploads on a manual run (a tag run always uploads).
+
+**Moving to the 0.2.9 layout.** The repository was flat before 0.2.9 (every pack at the root under `AI-NPC-Cyberpunk-Mod-<Name>.zip`, `SHA256SUMS-*.txt` beside them). `scripts/hf-reorganize-0.2.9.py` makes the change in ONE commit: server-side copies (`CommitOperationCopy`) to the folders and names above (including `updates/` and `multilingual/`, whose files lose the prefix, and the Pocket zips that become `PocketTTS-Model-<Language>.zip`), deletes of the old paths, deletes of every `SHA256SUMS*` file, and the three README files (`packaging/HF_MODEL_CARD.md`, `HF_UPDATES_README.md`, `HF_MULTILINGUAL_README.md`) written in place of the old ones. It is a dry run by default and prints the planned operations; `--apply` makes the commit (refused when the repository changed since the plan). The token is read from `runtime/huggingface-alystria-token.txt` and never printed. Run it once, right before the Nexus page is updated with the new links (`deliverables/release-0.2.9/NEXUS_LINK_CHANGES.md`). After that the release step adds its own row to `updates/README.md` and uploads the new packs with `packaging/upload-packs.py`.
 
 The optional Mature packs are built by the `mature` job, a matrix of `lite` and `standard` (one runner each; the standard pack carries the model whose tier key is `good`), that runs only when the manual run's `mature` input is ticked (default off; never on a tag push, never uploaded to Nexus or to the GitHub release). Each builds with `--packages mature-lite` or `mature-standard` `--models hf` from the bucket mirror and uploads its zip to Hugging Face. They can also be built and uploaded by hand: `node packaging/build-release.mjs --version 0.N --packages mature-lite` then `python packaging/upload-packs.py --version 0.N --pack mature-lite --packages dist/release/packages`.
 

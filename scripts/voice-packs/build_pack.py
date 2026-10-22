@@ -8,7 +8,7 @@ Reads   scripts/voice-packs/line-lists.json     (which game lines make each ship
         the installed lang_<archive>_text.archive files (subtitles, read-only)
 Writes  E:/SteamLibrary/AiNpc-voice-packs/work/<lang>/     work files (wem, wav, reports)
         E:/SteamLibrary/AiNpc-voice-packs/<lang>/stage/    the pack tree: red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/{manifest.json,picked,archetypes,v-voice}
-and a report (work/<lang>/build-report.json). prepare_slots.mjs and package_pack.mjs finish the job (Voxtral slots, zip, listing, checksums).
+and a report (work/<lang>/build-report.json). prepare_slots.mjs and package_pack.mjs finish the job (Voxtral slots, zip, listing).
 
 Per voice: the same line ids as the English reference -> the dub's file of each line (same file stem under the language's locale folder) -> decode
 (vgmstream) -> join exactly like the English build (24 kHz mono, 0.4 s of silence between clips, no EQ or denoise; the same -20 LUFS gain stage

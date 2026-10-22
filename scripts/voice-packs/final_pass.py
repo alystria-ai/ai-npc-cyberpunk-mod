@@ -22,9 +22,9 @@ PACK_ROOT = "red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual"
 
 def zip_sha(lang):
     """The SHA-256 of the language's zip, computed from the file (no loose checksum file is written any more)."""
-    zips = sorted((vp.OUT / lang).glob("Voices-*.zip"))
+    zips = sorted((vp.OUT / lang).glob("*Voices-*.zip"))
     if len(zips) != 1:
-        raise SystemExit(f"{lang}: expected one Voices-<Language>.zip in {vp.OUT / lang}, found {len(zips)}")
+        raise SystemExit(f"{lang}: expected one Voices-<Language>.zip (or an older AI-NPC-Cyberpunk-Mod-Voices-<Language>.zip) in {vp.OUT / lang}, found {len(zips)}")
     return vp.sha256_file(zips[0])
 
 

@@ -18,8 +18,10 @@ Repository: alystria-ai/ai-npc-cyberpunk-mod-packs. Decided by the owner on 2026
   * NO SHA256SUMS files anywhere (root, updates/, multilingual/): they are deleted.
 
 The commit copies each file to its new path (CommitOperationCopy, server side: nothing is downloaded or uploaded), deletes the old path, and
-deletes every checksum file. The model card and the README files of updates/ and multilingual/ are not touched here: they are published by the
-release step (packaging/HF_MODEL_CARD.md, packaging/HF_MULTILINGUAL_README.md).
+deletes every checksum file. The same commit also replaces the three README files (the model card at the root, updates/README.md and
+multilingual/README.md) with the texts of this checkout (packaging/HF_MODEL_CARD.md, HF_UPDATES_README.md, HF_MULTILINGUAL_README.md), because
+the old ones name the old paths and the checksum files: --no-readmes leaves them out. The release step adds its own row to updates/README.md.
+The commit message carries no version: the file list of the repository shows it beside every file, and these files keep their own versions.
 
 The token is read from runtime/huggingface-alystria-token.txt (of this checkout, or of the main checkout when this is a git worktree) and is never
 printed. A dry run only reads the repository's file list.
@@ -34,8 +36,9 @@ from pathlib import Path
 
 REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
 TOKEN_FILE = "runtime/huggingface-alystria-token.txt"
-COMMIT_MESSAGE = ("AI NPC Cyberpunk Mod 0.2.9: folders by kind (local-ai, mature, mic, voice), file names without the product prefix, "
-                  "PocketTTS models, no checksum files")
+# No version in the message: Hugging Face shows the last commit message beside every file, and the moved files keep the version they were uploaded in.
+COMMIT_MESSAGE = ("Reorganised into folders by kind (local-ai, mature, mic, voice), file names without the product prefix, "
+                  "PocketTTS models, no checksum files (the files themselves are unchanged)")
 PREFIX = "AI-NPC-Cyberpunk-Mod-"
 
 # Exact old path -> new path. A pack missing from the repository is reported; --apply refuses unless --allow-missing is given for it.
@@ -60,6 +63,13 @@ PATTERNS = (
 CHECKSUM = re.compile(r"(?:^|/)SHA256SUMS[^/]*$", re.IGNORECASE)
 # Files that stay exactly where they are.
 KEEP = {"README.md", "LICENSE", ".gitattributes", "updates/README.md", "multilingual/README.md"}
+# The three README files replaced in the same commit: path in the repository -> (source file in this checkout, True when the text starts below the first '---' line).
+READMES = {
+    "README.md": ("packaging/HF_MODEL_CARD.md", False),
+    "updates/README.md": ("packaging/HF_UPDATES_README.md", True),
+    "multilingual/README.md": ("packaging/HF_MULTILINGUAL_README.md", True),
+}
+CHECKOUT = Path(__file__).resolve().parent.parent
 
 
 def new_path(path: str) -> str | None:
@@ -94,6 +104,16 @@ def plan(files: dict[str, int | None]) -> dict:
     return {"copies": copies, "deletes": deletes, "sums": sums, "left": left, "problems": problems, "missing": missing}
 
 
+def readme_text(source: str, below_rule: bool) -> bytes:
+    text = (CHECKOUT / source).read_text(encoding="utf-8").replace("\r\n", "\n")
+    if below_rule:
+        head, rule, rest = text.partition("\n---\n")
+        if not rule:
+            raise SystemExit(f"{source} has no '---' line above the text of the file.")
+        text = rest.lstrip("\n")
+    return text.encode("utf-8")
+
+
 def find_token() -> str:
     here = Path(__file__).resolve().parent.parent
     roots = [here]
@@ -126,8 +146,10 @@ def show(result: dict) -> None:
     print(f"\nDelete checksum files: {len(result['sums'])}")
     for path in result["sums"]:
         print(f"  DELETE {path}")
-    print(f"\nLeft alone: {len(result['left'])}")
-    for path in result["left"]:
+    replaced = {path for path, _ in result.get("readmes", [])}
+    left = [path for path in result["left"] if path not in replaced]
+    print(f"\nLeft alone: {len(left)}")
+    for path in left:
         print(f"  keep   {path}")
     if result["missing"]:
         print(f"\nExpected but not in the repository ({len(result['missing'])}):")
@@ -135,8 +157,12 @@ def show(result: dict) -> None:
             print(f"  missing {path}")
     for problem in result["problems"]:
         print(f"\nPROBLEM: {problem}")
-    total = len(result["copies"]) * 2 + len(result["sums"])
-    print(f"\nOne commit with {len(result['copies'])} copies and {len(result['copies']) + len(result['sums'])} deletes ({total} operations).")
+    readmes = result.get("readmes", [])
+    print(f"\nReplace the README files: {len(readmes)}")
+    for path, source in readmes:
+        print(f"  WRITE  {path}  (text of {source})")
+    total = len(result["copies"]) * 2 + len(result["sums"]) + len(readmes)
+    print(f"\nOne commit with {len(result['copies'])} copies, {len(result['copies']) + len(result['sums'])} deletes and {len(readmes)} README files ({total} operations).")
 
 
 def read_listing(path: Path) -> dict[str, int | None]:
@@ -156,12 +182,14 @@ def main() -> int:
     mode.add_argument("--dry-run", action="store_true", help="list the planned operations and change nothing (the default)")
     mode.add_argument("--apply", action="store_true", help="make the one commit")
     parser.add_argument("--allow-missing", action="store_true", help="with --apply: go on although an optional pack is not in the repository (the Scripts and the Runtime are always required)")
+    parser.add_argument("--no-readmes", action="store_true", help="leave the three README files (model card, updates, multilingual) as they are")
     parser.add_argument("--listing", type=Path, help="plan from this JSON listing instead of the repository (dry run only)")
     args = parser.parse_args()
     if args.listing and args.apply:
         parser.error("--listing is only for a dry run")
 
     api = None
+    parent = None
     if args.listing:
         files = read_listing(args.listing)
     else:
@@ -170,7 +198,9 @@ def main() -> int:
         api = HfApi(token=find_token())
         info = api.model_info(REPOSITORY, files_metadata=True)
         files = {sibling.rfilename: getattr(sibling, "size", None) for sibling in info.siblings}
+        parent = info.sha
     result = plan(files)
+    result["readmes"] = [] if args.no_readmes else [(path, source) for path, (source, _) in READMES.items()]
     show(result)
     if not args.apply:
         print("\nDry run: nothing was changed. Run with --apply to make the commit.")
@@ -180,15 +210,19 @@ def main() -> int:
     absent = [path for path in result["missing"] if path in REQUIRED] or ([] if args.allow_missing else result["missing"])
     if absent:
         raise SystemExit(f"Not applying: {', '.join(absent)} is not in the repository (use --allow-missing for an optional pack).")
-    if not result["copies"] and not result["sums"]:
+    if not result["copies"] and not result["sums"] and not result["readmes"]:
         print("Nothing to do.")
         return 0
 
-    from huggingface_hub import CommitOperationCopy, CommitOperationDelete
+    from huggingface_hub import CommitOperationAdd, CommitOperationCopy, CommitOperationDelete
 
     operations = [CommitOperationCopy(src_path_in_repo=old, path_in_repo=new) for old, new, _ in result["copies"]]
     operations += [CommitOperationDelete(path_in_repo=path) for path in result["deletes"] + result["sums"]]
-    commit = api.create_commit(REPOSITORY, operations, commit_message=COMMIT_MESSAGE, repo_type="model")
+    for path, _ in result["readmes"]:
+        source, below_rule = READMES[path]
+        operations.append(CommitOperationAdd(path_in_repo=path, path_or_fileobj=readme_text(source, below_rule)))
+    # parent_commit: refused when the repository changed since the plan was made.
+    commit = api.create_commit(REPOSITORY, operations, commit_message=COMMIT_MESSAGE, repo_type="model", parent_commit=parent)
     print(f"\nCommitted: {getattr(commit, 'commit_url', commit)}")
     # Verify: every new path is there with the size the old one had, and no old path or checksum file is left.
     after = {sibling.rfilename: getattr(sibling, "size", None) for sibling in api.model_info(REPOSITORY, files_metadata=True).siblings}

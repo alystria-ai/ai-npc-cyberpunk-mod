@@ -75,7 +75,7 @@ test('the update zip from a Runtime without the engine delivers it (and a pack\'
       [`${APP}/defaults/runtime-removals.json`]: removalListText('0.2.7', [])};
     const oldZip = await makeZip(join(dir, 'old.zip'), old), newZip = await makeZip(join(dir, 'new.zip'), next);
     const summary = await buildRuntimeUpdate({oldZips: [oldZip], newZips: [newZip], out: join(dir, 'out'), log: () => {}});
-    const zip = join(dir, 'out', `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.6-to-0.2.7.zip`);
+    const zip = join(dir, 'out', `Runtime-Update-0.2.6-to-0.2.7.zip`);
     const held = Object.fromEntries(await Promise.all((await listZip(zip)).map(async entry => [entry.name, (await readEntry(zip, entry)).toString('utf8')])));
     for (const name of Object.keys(engine)) assert.equal(held[name], engine[name], `${name} is in the update`);
     assert.equal(held[`${APP}/licenses/llama.cpp-MIT.txt`], 'MIT');

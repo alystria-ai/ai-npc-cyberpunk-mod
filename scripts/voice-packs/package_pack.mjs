@@ -4,7 +4,7 @@
 //
 // The zip holds the stage folder's files under their game-relative names (red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual/<lang>/...) and the
 // same fixed "HOW TO INSTALL" note every package carries (its text is fixed: packaging/build-release.mjs). Written with the release builder's own
-// ZipWriter, so the layout, the listing (path, bytes, sha256 per file) and the checksum line are the ones the other packs have.
+// ZipWriter, so the layout, the listing (path, bytes, sha256 per file) are the ones the other packs have.
 import {mkdir, readdir, readFile, rename, stat, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';

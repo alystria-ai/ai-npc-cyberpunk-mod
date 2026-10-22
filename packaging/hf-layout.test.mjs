@@ -75,8 +75,13 @@ test('the migration script plans copies to the new folders and names, deletes th
     for (const [from] of copies) assert(deleted.includes(from), `${from} is deleted after the copy`);
     for (const sums of old.filter(path => /SHA256SUMS/.test(path))) assert(deleted.includes(sums), `${sums} is deleted`);
     assert.equal(deleted.length, copies.length + 6);
-    for (const kept of ['README.md', 'LICENSE', '.gitattributes', 'updates/README.md', 'multilingual/README.md']) assert.match(dry.stdout, new RegExp(`keep {3}${kept.replace('.', '\\.')}`));
-    assert.match(dry.stdout, /One commit with 12 copies and 18 deletes/);
+    for (const kept of ['LICENSE', '.gitattributes']) assert.match(dry.stdout, new RegExp(`keep {3}${kept.replaceAll('.', '[.]')}`));
+    assert.doesNotMatch(dry.stdout, /keep {3}(?:updates\/|multilingual\/)?README\.md/, 'the three README files are replaced, not kept');
+    assert.match(dry.stdout, /One commit with 12 copies, 18 deletes and 3 README files \((33 operations)\)/);
+    for (const [path, source] of [['README.md', 'packaging/HF_MODEL_CARD.md'], ['updates/README.md', 'packaging/HF_UPDATES_README.md'], ['multilingual/README.md', 'packaging/HF_MULTILINGUAL_README.md']]) {
+      assert(dry.stdout.includes(`WRITE  ${path}  (text of ${source})`), `${path} is replaced from ${source}`);
+    }
+    assert.doesNotMatch(dry.stdout, /\bAI NPC Cyberpunk Mod 0\.2\.9\b/, 'the commit message names no version');
     assert.match(dry.stdout, /Dry run: nothing was changed/);
     // The default is a dry run, and --apply cannot be combined with a saved listing.
     assert.notEqual(py(['scripts/hf-reorganize-0.2.9.py', '--listing', listing, '--apply']).status, 0);
@@ -116,7 +121,8 @@ test('the player texts link the files at their folders and new names, say nothin
     'docs/LOCAL_AI.md', 'docs/PACKAGING.md', 'docs/POCKET_LANGUAGE_MODELS.md', 'packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
     texts[rel] = await read(rel);
     assert.doesNotMatch(texts[rel], /\/blob\/main\/AI-NPC-Cyberpunk-Mod-|\/resolve\/main\/(?:[\w-]+\/)?AI-NPC-Cyberpunk-Mod-/, `${rel}: no link to a file under its old name`);
-    assert.doesNotMatch(texts[rel], /SHA256SUMS/, `${rel}: no checksum files`);
+    // docs/PACKAGING.md names the files once, in the paragraph on moving to this layout.
+    if (rel !== 'docs/PACKAGING.md') assert.doesNotMatch(texts[rel], /SHA256SUMS/, `${rel}: no checksum files`);
   }
   const nexus = texts['docs/NEXUS_PAGE.md'];
   assert.doesNotMatch(nexus, /;/, 'no semicolons on Nexus');

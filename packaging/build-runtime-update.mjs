@@ -11,7 +11,7 @@
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json
 //   Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
-//   Runtime-Update-<from>-to-<to>.sha256      the zip's SHA-256
+//   (no loose checksum file: the SHA-256 of the zip is in the summary this prints and returns)
 //
 // The removal list in the zip names the files the old Runtime had and the new one does not (and those the new Runtime's own list declares and
 // any --remove): extracting adds and replaces but never deletes, so the service deletes them itself at its next start
@@ -127,7 +127,6 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     await rename(temporary, zipPath);
     const sha256 = await sha256File(zipPath);
     await writeFile(resolve(out, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-    await writeFile(resolve(out, `${base}.sha256`), `${sha256}  ${base}.zip\n`);
     const summary = {from, to, zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
       unchanged: diff.unchanged, removals: checked.ok.length, leftInPlace};
     log(`${base}.zip: ${(closed.bytes / 1024 ** 2).toFixed(1)} MiB, ${closed.entries} files (${diff.added.length} added, ${diff.changed.length} changed, ${diff.unchanged} unchanged and left out), `

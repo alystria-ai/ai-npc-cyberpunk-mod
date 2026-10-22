@@ -556,7 +556,7 @@ test('the optional packs are uploaded to Hugging Face, one zip each in the folde
   assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/ai-npc-cyberpunk-mod-packs/);
   // The Runtime job still creates the GitHub release with Scripts and Runtime, and nothing else is attached to it.
   const runtime = jobOf(workflow, 'runtime');
-  assert.match(runtime, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber @files /, 'the file list is splatted as an array');
+  assert.match(runtime, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber @files\n/, 'the file list is splatted as an array');
   assert.match(runtime, /\$files = @\(Get-ChildItem /, 'the single-zip splat bug stays fixed: the file list is always an array');
   assert.doesNotMatch(runtime, /upload-packs/);
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
@@ -1005,10 +1005,10 @@ test('the release workflow builds the voice-input packs only in an opt-in job: o
   assert(!/micpacks/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
   for (const name of ['runtime', 'omni', 'mature', 'localai']) assert.doesNotMatch(jobOf(workflow, name), /micpack/, `${name} does not build the voice-input packs`);
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
-  // The uploader knows both packs and names the sums file after the pack.
+  // The uploader knows both packs and puts them in mic/.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
-  assert.match(uploader, /PACKS = \([^)]*"mature-standard", "micpack-european", "micpack-asian"\)/);
-  assert.match(uploader, /micpack-european and micpack-asian/);
+  assert.match(uploader, /"micpack-european": \("mic", "MicPack-European"\)/);
+  assert.match(uploader, /"micpack-asian": \("mic", "MicPack-Asian"\)/);
 });
 
 test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution) and SenseVoice (FunASR licence, linked)', async () => {
