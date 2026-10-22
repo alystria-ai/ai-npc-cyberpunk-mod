@@ -1231,4 +1231,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "{name} için orijinal prompta dönülsün mü? Bu karaktere yaptığın tüm değişiklikler kaldırılır.",
     ["Back to the shipped prompting."] = "Orijinal prompta dön.",
     ["Prompting"] = "Prompt",
+    ["Street reputation"] = "Sokak itibarı",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Çeteler, NCPD, şirketler ve her bölgenin halkı V’nin yaptıklarını hatırlar: Street Cred, işlerdeki seçimler, kavgalar, polisin gördüğü suçlar ve insanlara nasıl davrandığın. Selam, güven ve yardım buna göre olur.\n\nYalnızca sıradan insanlar, asla isimli veya hikâye karakterleri. Sözlerini değiştirir, oyunda hiçbir şeyi değil.",
 }

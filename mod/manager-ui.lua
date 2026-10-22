@@ -1445,6 +1445,8 @@ local function schema()
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
+            setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
+                'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
             -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 4
@@ -1902,6 +1904,7 @@ function M.apply(changes)
             values.dynamicInfo[key:sub(9)] = change.value
         elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
         elseif key == 'storyConversations' then values.storyConversations = change.value
+        elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose how often Johnny speaks up.') end
@@ -2084,6 +2087,11 @@ function M.update(currentPlayer, worldReady)
     if flushDue or clock >= slowAt or slowAt - clock > SLOW_PERIOD * 2 then
         flushDue, slowAt = false, clock + SLOW_PERIOD
         M.slowUpdate(currentPlayer, worldReady)
+        -- Street reputation was just turned on in the menu: its hooks register here, in the game's update (one nil check otherwise).
+        if convaiReputationPending and worldReady and type(convaiReputationWanted) == 'function' then
+            convaiReputationPending = nil
+            pcall(convaiReputationWanted)
+        end
     end
     if ui.revision() ~= localeRevision then localeRevision, refreshQueued = ui.revision(), true end
     local now = os.time()

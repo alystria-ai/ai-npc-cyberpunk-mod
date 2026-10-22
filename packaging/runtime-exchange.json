@@ -61,6 +61,7 @@
     "reply.json",
     "report-request.json",
     "report-result.json",
+    "reputation-events.json",
     "setup-check-request.json",
     "setup-check.json",
     "speech-state.json",
@@ -121,6 +122,7 @@
     "pocket-voices.json",
     "realtime-client.js",
     "relationship-profiles.json",
+    "reputation.json",
     "state-home.mjs",
     "vendor-memory.json",
     "voice-configs.json"

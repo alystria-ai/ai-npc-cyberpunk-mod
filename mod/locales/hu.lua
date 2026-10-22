@@ -1231,4 +1231,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "Visszaállítod {name} eredeti promptját? Minden hozzá tartozó módosításod törlődik.",
     ["Back to the shipped prompting."] = "Vissza az eredeti prompthoz.",
     ["Prompting"] = "Prompt",
+    ["Street reputation"] = "Utcai hírnév",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "A bandák, az NCPD, a korporációk és minden kerület lakói emlékeznek V tetteire: Street Cred, döntések a megbízásokban, harcok, a rendőrség által látott bűnök és ahogy az emberekkel bánsz. Ez alakítja a köszönést, a bizalmat és a segítséget.\n\nCsak hétköznapi emberek, soha nem nevesített vagy történetbeli szereplők. A szavaikat változtatja, a játékot nem.",
 }

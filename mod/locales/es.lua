@@ -1231,4 +1231,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "¿Volver al prompt original de {name}? Se eliminarán todos tus cambios en él.",
     ["Back to the shipped prompting."] = "Volver al prompt original.",
     ["Prompting"] = "Prompt",
+    ["Street reputation"] = "Reputación callejera",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "Las bandas, el NCPD, las corporaciones y la gente de cada distrito recuerdan lo que hizo V: Street Cred, decisiones en encargos, peleas, delitos que vio la policía y cómo tratas a la gente. Eso marca su saludo, confianza y ayuda.\n\nSolo gente corriente, nunca personajes con nombre o de la historia. Cambia sus palabras, nada del juego.",
 }

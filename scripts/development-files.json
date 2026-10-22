@@ -126,6 +126,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/witness-receipts.lua"
     },
     {
+      "source": "mod/reputation.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/reputation.lua"
+    },
+    {
       "source": "mod/player-gear.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
     },

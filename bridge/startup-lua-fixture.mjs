@@ -247,6 +247,7 @@ export const freshSettings = {
   battleReactions: false, lootReactions: false, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
   archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off',
+  reputation: false,
   naturalSpeech: false, followUpInterest: true,
   matureContent: false, localModel: 'auto',
   vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket',

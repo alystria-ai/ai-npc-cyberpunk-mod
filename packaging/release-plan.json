@@ -134,6 +134,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/witness-receipts.lua"
         },
         {
+          "source": "mod/reputation.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/reputation.lua"
+        },
+        {
           "source": "mod/player-gear.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
         },
@@ -733,6 +737,7 @@
             "bridge/repeat-log.mjs",
             "bridge/reply-language.mjs",
             "bridge/reply-stream.mjs",
+            "bridge/reputation.mjs",
             "bridge/request-gate.mjs",
             "bridge/request-ownership.mjs",
             "bridge/resident-phone-analysis.mjs",

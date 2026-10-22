@@ -69,6 +69,7 @@ import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
+import {ReputationStore} from './reputation.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
@@ -662,6 +663,10 @@ const worldCurrent = boundary => {
 // Vendor memory (docs/PLAYER_MEMORY.md): a returning one-shop vendor remembers V. Local and bounded; no provider ID or call.
 const vendorMemory = await VendorMemory.open({path: resolve(stateDirectory, 'vendor-memory.json'),
   onWarning: message => console.error('[CyberpunkConvai] Vendor memory: ' + message)});
+// Street reputation (docs/REPUTATION_DESIGN.md): nothing is read or written until a turn carries the game's reputation snapshot (the
+// setting is off by default). The game's deeds come in runtime/reputation-events.json and inline; the standing is kept beside vendor memory.
+const reputation = new ReputationStore({path: resolve(stateDirectory, 'reputation.json'), eventsPath: resolve(runtime, 'reputation-events.json'),
+  log: line => console.error(line)});
 let playerMemory;
 const memoryProvider = new PlayerMemoryApi({key: key ?? undefined, characterIds: relationshipRoutes.providerIds, markerKeys: relationshipRoutes.markerKeys,
   credential: () => keys.credential(),
@@ -1351,6 +1356,8 @@ const conversationBlocks = input => {
   const block = (tier, text) => ({tier, text});
   return [...intrinsicConversationContext.blocks(input), block('world', archetypeContext(input, {place: dynamicInfo.on('location')})),
     block('world', admitted ? vendorMemoryContext(prepared) : ''),
+    // Street reputation: at most two lines for an ordinary NPC's private turn, '' for everyone else and whenever the setting is off.
+    block('world', reputation.contextFor(input, {place: dynamicInfo.on('location')})),
     // Add-on context (docs/ADDON_API.md): an add-on speaker's own blocks, or what the add-ons tell companions; none without add-ons.
     ...addonHost.blocks(input),
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
@@ -3659,6 +3666,7 @@ async function shutdown() {
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
+  await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});
   await memoryControl.close(); await playerMemory.close();
   await Promise.allSettled([metricsWriting, connectionMetricsWriting, voiceMetricsWriting]);

@@ -1231,4 +1231,6 @@ return {
     ["Go back to the shipped prompting for {name}? All your changes to it are removed."] = "要將 {name} 恢復為出廠提示詞嗎？你對它所做的所有修改都會被移除。",
     ["Back to the shipped prompting."] = "恢復為出廠提示詞。",
     ["Prompting"] = "提示詞",
+    ["Street reputation"] = "街頭聲望",
+    ["Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game."] = "幫派、NCPD、企業和各區居民會記住 V 做過的事：街頭聲望、任務中的選擇、打過的架、警察看到的罪行，以及你如何待人。他們的招呼、信任和幫助都隨之而定。\n\n只影響普通人，從不影響有名字的角色或劇情角色。只改變他們的話語，不改變遊戲中的任何東西。",
 }
