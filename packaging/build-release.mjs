@@ -1,7 +1,7 @@
 // Builds the player release packages. Run by .github/workflows/release.yml, and locally:
 //
 //   node packaging/build-release.mjs --version 0.2 --dry-run          (local stand-ins, no secrets)
-//   node packaging/build-release.mjs --version 0.2 --models hf --key-env CONVAI_API_KEY   (CI)
+//   node packaging/build-release.mjs --version 0.2 --models hf   (CI: CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET in the environment)
 //
 // Packages (dist/release/packages/):
 //   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
@@ -24,12 +24,14 @@
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
-//   --dry-run          local build: models from the developer runtime/ folder, no key embedded
+//   --dry-run          local build: models from the developer runtime/ folder; the sign-in settings below may be left out
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
 //   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard,micpack-european,micpack-asian (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
-//   --key-env NAME     embed the Convai key from this environment variable (never printed)
-//   --key-file PATH    embed the Convai key from this file (local testing only)
+//   --auth-url URL     the token backend's address (https://<backend>/api/convai/token; default: the CONVAI_AUTH_URL environment variable)
+//   --auth-secret-env NAME  the environment variable that holds the backend's client request secret (default CONVAI_AUTH_CLIENT_SECRET; at least
+//                      32 characters, never printed). The Runtime ships NO Convai key: it carries these two as app/defaults/convai-auth.json,
+//                      and a build of it without both fails (a --dry-run may leave them out). --key-env and --key-file are refused.
 //   --launcher PATH    use a prebuilt launcher DLL instead of compiling native/autostart with MSVC
 //   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
 //   --no-native        leave the native plugin out (the Lua keeps its own path)
@@ -44,7 +46,7 @@
 //   --out DIR, --cache DIR   output and download-cache folders (default dist/release, dist/release-cache)
 import {createHash} from 'node:crypto';
 import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile, copyFile} from 'node:fs/promises';
-import {existsSync, readFileSync} from 'node:fs';
+import {existsSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {basename, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -52,7 +54,7 @@ import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
-import {packagedKeyText} from './lib/packaged-key.mjs';
+import {AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
@@ -93,22 +95,16 @@ for (const name of packages) if (!PACKAGE_IDS.includes(name)) throw Error(`Unkno
 
 const log = message => console.log(`[${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s] ${message}`);
 
-// ---------------------------------------------------------------- the Convai key (never printed)
-function loadKey() {
-  const envName = value('--key-env'), file = value('--key-file');
-  let raw;
-  if (envName) raw = process.env[envName];
-  else if (file) raw = existsSync(file) ? readFileSync(file, 'utf8') : undefined;
-  else return null;
-  if (!raw || !raw.trim()) {
-    if (dryRun) return null;
-    throw Error('The Convai key is empty. Set the CONVAI_API_KEY secret, or build with --dry-run.');
+// ---------------------------------------------------------------- the token backend (the secret is never printed)
+// The Runtime ships no Convai key (packaging/lib/convai-auth.mjs): only the backend's address and its client secret.
+function loadAuth() {
+  if (argv.includes('--key-env') || argv.includes('--key-file')) {
+    throw Error('The Convai key is no longer shipped: --key-env and --key-file are refused. The Runtime signs in through the token backend; use --auth-url and --auth-secret-env (or CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET).');
   }
-  const text = raw.trim();
-  const key = /^api-key\s*=\s*(\S+)$/i.exec(text)?.[1] ?? text;
-  if (!/^[A-Za-z0-9._~+/=-]{8,512}$/.test(key)) throw Error('The Convai key has an unexpected format (value not shown).');
-  if (process.env.GITHUB_ACTIONS === 'true') process.stdout.write(`::add-mask::${key}\n`);
-  return key;
+  const secretName = value('--auth-secret-env', AUTH_SECRET_ENV);
+  const secret = process.env[secretName];
+  if (secret && secret.trim() && process.env.GITHUB_ACTIONS === 'true') process.stdout.write(`::add-mask::${secret.trim()}\n`);
+  return readAuthInputs({url: value('--auth-url', process.env[AUTH_URL_ENV]), secret, required: packages.has('runtime') && !dryRun, secretName});
 }
 
 // ---------------------------------------------------------------- source tree
@@ -341,7 +337,7 @@ async function scriptsPackage(source, config) {
   return {pkg, devOnlyExcluded: excluded};
 }
 
-async function runtimePackage(source, config, models, key) {
+async function runtimePackage(source, config, models, auth) {
   const pkg = new Package('runtime');
   const plugin = config.layout.pluginDirectory, app = `${plugin}/app`;
   const stage = resolve(out, 'stage/runtime');
@@ -459,9 +455,9 @@ async function runtimePackage(source, config, models, key) {
   // otherwise win over a newer pack's at every start (docs/PACKAGING.md, "Packs reused unchanged"). Without the pack they are not used.
   for (const name of OMNI_LIST_NAMES) pkg.json(`${app}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, config.toolchain.omniModel));
   for (const name of config.releaseData.managed) pkg.file(`${app}/defaults/${name}`, resolve(source.root, 'packaging/release-data', name));
-  // Scrambled, not a greppable api-key line (bridge/key-codec.mjs); the packed file is also what marks the key as the
-  // project's shared one, which the bridge limits per day.
-  if (key) pkg.text(`${app}/defaults/service.txt`, await packagedKeyText(source.root, key));
+  // No Convai key: the Runtime signs in through the token backend (bridge/convai-credential.mjs reads this file as its lowest-priority source;
+  // the daily limit applies to that sign-in). Not the error reports' file: app/defaults/error-reports.json has its own secret and is not written here.
+  if (auth) addPackagedAuth(pkg, app, auth);
 
   // Pocket reference clips: only those the live configuration uses, each checked against its hash.
   const pocketRefs = await referencesOf(pocketConfig, models);
@@ -529,7 +525,7 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${app}/${integrity.CODE_LIST}`, integrity.codeListText({version, rows: codeRows}));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
-    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player',
+    pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none',
     nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
   return pkg;
 }
@@ -1042,10 +1038,10 @@ async function writeArchives(pkg, baseName, config, timestamp, {single = false} 
 
 // ---------------------------------------------------------------- main
 async function main() {
+  const auth = loadAuth(); // before anything is written: a build that must not start stops here
   await mkdir(out, {recursive: true});
   for (const name of ['packages', 'stage', 'native']) await rm(resolve(out, name), {recursive: true, force: true});
-  const key = loadKey();
-  log(`Building ${[...packages].join(', ')} ${version}${dryRun ? ' (dry run)' : ''}; models from ${modelSource}; Convai key ${key ? 'embedded' : 'not embedded'}.`);
+  log(`Building ${[...packages].join(', ')} ${version}${dryRun ? ' (dry run)' : ''}; models from ${modelSource}; no Convai key shipped, sign-in backend ${auth ? new URL(auth.url).host : 'not set'}.`);
   const source = await prepareSource();
   log(`Source: ${source.commit}`);
   const config = await readJson(value('--release-config') ? resolve(value('--release-config')) : resolve(source.root, 'packaging/release.config.json'));
@@ -1056,7 +1052,7 @@ async function main() {
 
   const builders = {
     scripts: async () => { const {pkg, devOnlyExcluded} = await scriptsPackage(source, config); report.devOnlyLuaExcluded = devOnlyExcluded; return pkg; },
-    runtime: () => runtimePackage(source, config, models, key),
+    runtime: () => runtimePackage(source, config, models, auth),
     omni: () => omniPackage(source, config, models),
     'localai-standard': () => localAiPackage(source, config, 'standard'),
     'localai-lite': () => localAiPackage(source, config, 'lite'),
@@ -1094,6 +1090,7 @@ async function main() {
         throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
       }
       if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);
+      if (SHIPPED_KEY_FILE.test(entry.name)) throw Error(`${item.file} would ship a Convai key file: ${entry.name}`);
       if (/(?:^|\/)(?:convai-key\.txt|kaggle-access-token\.txt|huggingface-[^/]*\.txt|\.env|(?:player|vendor)-memory[^/]*\.(?:json|bak|tmp|corrupt)|phone-sessions\.json|characters-verified\.json)$/i.test(entry.name)) {
         throw Error(`${item.file} contains a forbidden file: ${entry.name}`);
       }

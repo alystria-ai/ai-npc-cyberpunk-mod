@@ -5,7 +5,13 @@
 #   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
 #   HF_PACKS_TOKEN   WRITE access to the Hugging Face model repository that hosts the optional packs (HF_PACKS_REPO below,
 #                    owned by the alystria-ai account); the first upload creates it, private
-#   CONVAI_API_KEY   the Convai key built into the Runtime package
+#   CONVAI_AUTH_CLIENT_SECRET  the token backend's client request secret, built into the Runtime package as app/defaults/convai-auth.json
+#                    (at least 32 characters; never the error reports' secret). The Runtime ships NO Convai key: players reach the
+#                    shared Convai account with short-lived tokens from the token backend (auth-backend/, docs/CONVAI_AUTH_BACKEND.md)
+#
+# Variables (Settings > Secrets and variables > Actions > Variables):
+#   CONVAI_AUTH_URL  the token backend's address, https://<backend>/api/convai/token (not secret). A Runtime build without both
+#                    CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET fails: it never ships without the backend
 #
 # The Scripts and Runtime packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
 # (permission: contents: write), and the release is published immediately. While the repository
@@ -125,11 +131,12 @@ jobs:
         shell: pwsh
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          CONVAI_API_KEY: ${{ secrets.CONVAI_API_KEY }}
+          CONVAI_AUTH_URL: ${{ vars.CONVAI_AUTH_URL }}
+          CONVAI_AUTH_CLIENT_SECRET: ${{ secrets.CONVAI_AUTH_CLIENT_SECRET }}
         run: |
           Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
           node packaging/build-release.mjs --version "${{ steps.version.outputs.version }}" --packages scripts,runtime `
-            --models hf --key-env CONVAI_API_KEY --out $env:OUT --cache $env:CACHE
+            --models hf --out $env:OUT --cache $env:CACHE
 
       - name: Clean-install test
         shell: pwsh
