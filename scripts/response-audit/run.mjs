@@ -13,6 +13,7 @@ import {randomUUID} from 'node:crypto';
 import {TextProviderHost} from '../../bridge/text-provider-host.mjs';
 import {PromptProfiles} from '../../bridge/prompt-profile-store.mjs';
 import {MatureContent} from '../../bridge/mature-content.mjs';
+import {customProfileId} from '../../bridge/prompt-profiles.mjs';
 import {readFile} from 'node:fs/promises';
 import {buildMessages, LIMITS, joinBlocks} from '../../bridge/mistral-prompt.mjs';
 import {ReplyStream} from '../../bridge/reply-stream.mjs';
@@ -34,12 +35,16 @@ const voice = option('voice', providerName === 'convai' ? 'none' : 'pocket');
 // --candidate <file.json> lays {profileId: patch} over the shipped profiles through the same API a player's override uses (an in-memory store, nothing written). --mature turns the Mature setting on (Local AI and Custom).
 const profilesMode = option('profiles', 'default'), candidateFile = option('candidate', '');
 const matureOn = flag('mature');
-const promptProfiles = profilesMode === 'base' || providerName === 'convai' ? null : new PromptProfiles({});
-if (promptProfiles && candidateFile) {
+let promptProfiles = null;
+const makeProfiles = async describe => {
+  if (profilesMode === 'base' || providerName === 'convai') return;
+  promptProfiles = new PromptProfiles({active: () => (describe ? {route: 'custom', custom: describe} : null)});
+  if (!candidateFile) return;
   // A candidate is a .json file or a .mjs module whose default export is {profileId: patch} (the module may build its patch from the shipped profiles).
   const candidate = candidateFile.endsWith('.mjs') ? (await import(pathToFileURL(resolve(candidateFile)).href)).default : JSON.parse(await readFile(candidateFile, 'utf8'));
-  for (const [id, patch] of Object.entries(candidate)) { const done = await promptProfiles.set(id, patch); if (!done.ok) throw Error(`candidate ${id}: ${JSON.stringify(done.errors)}`); }
-}
+  // The key @custom stands for the Custom profile of this run's endpoint and model.
+  for (const [key, patch] of Object.entries(candidate)) { const id = key === '@custom' ? customProfileId(describe.origin, describe.model) : key; const done = await promptProfiles.set(id, patch); if (!done.ok) throw Error(`candidate ${id}: ${JSON.stringify(done.errors)}`); }
+};
 const matureContent = matureOn && (providerName === 'local' || providerName === 'custom') ? (() => { const setting = new MatureContent(); setting.update({matureContent: true}); return setting; })() : null;
 // The adult-talk scenarios (group `mature`) run only with --mature or when the group is named.
 const scenarios = SCENARIOS.filter(s => (!only.length || only.includes(s.id)) && (!groups.length || groups.includes(s.group)) && (s.group !== 'mature' || flag('mature') || groups.includes('mature') || only.includes(s.id)));
@@ -91,7 +96,7 @@ async function runTextTurn(setup, scn, sample) {
     prompt: main?.messages ?? null, requests: requests.map(r => ({maxTokens: r.maxTokens, ms: r.ms, usage: r.usage, finishReason: r.finishReason, error: r.error, chars: r.messages?.reduce((a, m) => a + m.content.length, 0), reply: r === main ? undefined : r.text})),
     modelText: main?.text ?? null, raw, spoken, ms, headMs: headMs ?? (error ? null : ms), model: reply?.timing?.model ?? main?.answeredBy, attempts: reply?.timing?.attempts, usage: main?.usage ?? null,
     promptTokens: main?.usage?.prompt_tokens ?? main?.timings?.promptTokens ?? null, completionTokens: main?.usage?.completion_tokens ?? null, firstTokenMs: main?.firstTokenMs ?? null,
-    profile: logs.map(line => /^[PromptProfile] turn uses (S+)/.exec(line)?.[1]).find(Boolean) ?? (promptProfiles ? null : 'base'), requestCount: requests.length, ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
+    profile: logs.map(line => new RegExp('^' + String.fromCharCode(92) + '[PromptProfile' + String.fromCharCode(92) + '] turn uses (' + String.fromCharCode(92) + 'S+)').exec(line)?.[1]).find(Boolean) ?? (promptProfiles ? null : 'base'), requestCount: requests.length, ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
 }
 
 // ---- Convai ---------------------------------------------------------------------------------------------------------------
@@ -127,12 +132,13 @@ async function runConvaiTurn(setup, scn, sample) {
 // ---- main ---------------------------------------------------------------------------------------------------------------
 let setup, localHandle = null, started = Date.now(), run;
 try {
-  if (providerName === 'mistral') setup = await mistralProvider();
+  if (providerName === 'mistral') { setup = await mistralProvider(); await makeProfiles(null); }
   else if (providerName === 'local' || providerName === 'custom') {
     const local = await startLocal({pin: option('pin', 'lite'), mature: matureOn, log: m => { if (flag('verbose')) console.error(m); }});
     localHandle = local.status;
     console.log(`local model ready: ${local.status.model} (tier ${local.status.tier}, context ${local.handle.contextSize})`);
     setup = providerName === 'local' ? localProvider(local.server) : await customProvider(local.server);
+    await makeProfiles(setup.describe ?? null);
     setup.server = local.server;
   } else if (providerName === 'convai') { setup = await convaiSetup(); setup.endUsers = []; }
   else throw Error(`unknown provider ${providerName}`);

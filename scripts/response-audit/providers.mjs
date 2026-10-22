@@ -73,7 +73,7 @@ export async function customProvider(server) {
   const custom = {ready: true, local: true, origin, chatUrl: handle.endpoint, model: handle.requestModel ?? handle.model ?? 'local', key: handle.apiKey, extraHeaders: undefined, reasoning: undefined, noThinking: undefined};
   const provider = new MistralProvider({custom: null});
   provider.key = null; provider.applied = 'custom';
-  return {provider, routeFor: (_model, chat) => ({custom: customRoute({provider, custom, chat})}), name: 'custom'};
+  return {provider, routeFor: (_model, chat) => ({custom: customRoute({provider, custom, chat})}), name: 'custom', describe: {origin: custom.origin, model: custom.model}};
 }
 
 /** Convai text-only host, anonymous. Returns {host, ids, key}. The key never leaves this module. */

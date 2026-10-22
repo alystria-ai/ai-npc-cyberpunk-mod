@@ -284,8 +284,8 @@ test('Custom profiles: one per configured endpoint and model, starting from the 
     assert.deepEqual([row.provider, row.models, row.family, row.host, row.changed], ['custom', 'qwen/qwen3-30b-a3b', 'qwen', 'openrouter.ai', false]);
     assert.deepEqual(list.filter(item => item.provider !== 'custom').map(item => item.id), [...BUILT_IN_IDS]);
     assert.equal(profiles.getDefault(id), defaultProfile(id, {family: 'qwen'}));
-    assert.equal((await profiles.set(id, {sampling: {temperature: 0.5}})).ok, true);
-    assert.equal(profiles.resolve(active).sampling.temperature, 0.5);
+    assert.equal((await profiles.set(id, {sampling: {temperature: 0.3}})).ok, true);
+    assert.equal(profiles.resolve(active).sampling.temperature, 0.3);
     // Another model: its own profile, from the generic family; the first is no longer active but is still listed, with its change.
     active = {route: 'custom', custom: {origin: 'http://127.0.0.1:1234', model: 'some-model'}};
     const second = customProfileId('http://127.0.0.1:1234', 'some-model');
@@ -293,11 +293,11 @@ test('Custom profiles: one per configured endpoint and model, starting from the 
     assert.deepEqual(next.filter(item => item.active).map(item => item.id), [second]);
     assert.equal(next.find(item => item.id === id).changed, true);
     assert.equal(profiles.resolve(active).sampling.temperature, 0.65);
-    assert.equal(profiles.getEffective(id).sampling.temperature, 0.5, 'the earlier endpoint\'s profile is still editable');
+    assert.equal(profiles.getEffective(id).sampling.temperature, 0.3, 'the earlier endpoint\'s profile is still editable');
     // After a restart the earlier endpoint is remembered from its file.
     const reopened = await PromptProfiles.open({dir, active: () => active});
     assert(reopened.list().some(item => item.id === id && item.family === 'qwen' && item.changed));
-    assert.equal(reopened.getEffective(id).sampling.temperature, 0.5);
+    assert.equal(reopened.getEffective(id).sampling.temperature, 0.3);
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
 
@@ -327,7 +327,7 @@ test('a damaged file is skipped, kept as .corrupt before the next save, and a fi
     assert.equal(profiles.getOverride('mature-lite'), null);
     assert.deepEqual(profiles.getOverride('local-standard'), {sampling: {temperature: 0.1}}, 'the valid part of a file is used');
     assert(lines.some(line => line.includes('mistral could not be read')));
-    assert.equal(profiles.resolve({route: 'mistral'}).sampling.temperature, 0.65);
+    assert.equal(profiles.resolve({route: 'mistral'}).sampling.temperature, defaultProfile('mistral').sampling.temperature);
     assert.equal((await profiles.set('mistral', {sampling: {temperature: 0.2}})).ok, true);
     assert.equal(await readFile(join(dir, 'mistral.json.corrupt'), 'utf8'), '{not json');
     assert.equal(JSON.parse(await readFile(join(dir, 'mistral.json'), 'utf8')).sampling.temperature, 0.2);
@@ -336,12 +336,13 @@ test('a damaged file is skipped, kept as .corrupt before the next save, and a fi
 
 test('preview renders the rules, the closing and the examples of the effective profile for a sample speaker', async () => {
   const profiles = new PromptProfiles();
-  const preview = profiles.preview('mistral', {name: 'Panam', talkWords: 0, mature: false});
-  assert(preview.rules.startsWith('OUTPUT RULES') && preview.rules.includes('as Panam, to V'));
+  const preview = profiles.preview('local-lite', {name: 'Panam', talkWords: 0, mature: false});
+  assert(preview.rules.startsWith('OUTPUT RULES') && preview.rules.includes('You are Panam, talking out loud to V'));
   assert(preview.closing.startsWith('(Reply as Panam'));
+  assert(profiles.preview('mistral').examples.startsWith('EXAMPLES OF A GOOD REPLY'), 'the Mistral profile ships three example replies');
   assert.equal(preview.examples, '');
-  await profiles.set('mistral', {examples: ['Fine.']});
-  assert.equal(profiles.preview('mistral').examples, 'EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)\n- Fine.');
+  await profiles.set('local-lite', {examples: ['Fine.']});
+  assert.equal(profiles.preview('local-lite').examples, 'EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)\n- Fine.');
   assert.equal(profiles.preview('nope'), null);
 });
 

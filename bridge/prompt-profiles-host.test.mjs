@@ -65,7 +65,7 @@ test('Mistral: a turn with no player change sends the base prompt and the reques
   try {
     await t.host.reply(turn('hello'));
     const body = t.llama.requests[0];
-    assert.equal(body.temperature, LIMITS.temperature);
+    assert.equal(body.temperature, defaultProfile('mistral').sampling.temperature);
     assert.equal(body.max_tokens, LIMITS.maxTokens);
     for (const field of ['top_p', 'repeat_penalty', 'stop']) assert.equal(field in body, false, field);
     assert(systemOf(body).includes('OUTPUT RULES (they outrank everything above about format)'));
@@ -85,7 +85,7 @@ test('Mistral: a change the player saves is in the very next turn (rules, closin
     assert(body.messages.at(-1).content.endsWith('(Now answer.)'));
     await t.profiles.reset('mistral');
     await t.host.reply(turn('third'));
-    assert.equal(t.llama.requests[2].temperature, LIMITS.temperature);
+    assert.equal(t.llama.requests[2].temperature, defaultProfile('mistral').sampling.temperature);
     assert.equal('top_p' in t.llama.requests[2], false);
     assert.equal(systemOf(t.llama.requests[2]), systemOf(t.llama.requests[0]), 'reset: the default prompt again, byte for byte');
   } finally { await t.close(); }
@@ -109,14 +109,20 @@ test('Local AI: the loaded model\'s tier picks the profile, the Mature setting p
   }
 });
 
-test('Local AI: with no change the request is what it always was: our end-of-turn strings only, no repeat_penalty or top_p', async () => {
-  const t = await setup('local', {tier: 'lite'});
+test('Local AI: with no change the request is the profile own: our end-of-turn strings only; Standard sends no repeat_penalty or top_p, Lite its shipped repeat penalty', async () => {
+  const lite = await setup('local', {tier: 'lite'});
+  try {
+    await lite.host.reply(turn('hello'));
+    assert.equal(lite.llama.requests[0].repeat_penalty, defaultProfile('local-lite').sampling.repeatPenalty);
+    assert.equal(lite.llama.requests[0].temperature, defaultProfile('local-lite').sampling.temperature);
+  } finally { await lite.close(); }
+  const t = await setup('local', {tier: 'standard'});
   try {
     await t.host.reply(turn('hello'));
     const body = t.llama.requests[0];
     assert.deepEqual(body.stop, [...LOCAL_STOP_STRINGS]);
     assert.equal('repeat_penalty' in body, false); assert.equal('top_p' in body, false);
-    assert.equal(body.temperature, LIMITS.temperature);
+    assert.equal(body.temperature, defaultProfile('local-standard').sampling.temperature);
   } finally { await t.close(); }
 });
 
@@ -139,7 +145,7 @@ test('Custom: the profile is the endpoint and model\'s own, starting from the mo
     await t.host.reply(turn('hello'));
     const plain = t.llama.requests[0];
     assert.equal('repeat_penalty' in plain, false); assert.equal('stop' in plain, false);
-    assert.equal(plain.temperature, LIMITS.temperature);
+    assert.equal(plain.temperature, defaultProfile(id, {family: 'qwen'}).sampling.temperature);
     const profiles = new PromptProfiles({active: () => ({route: 'custom', custom: {origin: t.llama.origin, model: 'qwen3-8b'}})});
     await profiles.set(id, {sampling: {temperature: 0.3, repeatPenalty: 1.05}});
     t.host.promptProfiles = profiles;

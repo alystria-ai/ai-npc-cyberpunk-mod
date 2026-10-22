@@ -111,21 +111,65 @@ export function mergeProfile(base, patch) {
 }
 
 // ---- The shipped profiles -----------------------------------------------------------------------------------------------------------
-// Every profile is the base with its own changes laid over it (`patch`: only what differs). Until a profile is tuned its patch is empty, which is the prompt every text provider had.
-// The families are the starting point of a Custom endpoint's profile (by the model id the player named); `generic` is the safe default for a model nobody here has measured.
+// Every profile is the base with its own changes laid over it (`patch`: only what differs). The wording below was measured, not guessed: scripts/response-audit/ runs the 42 audit scenarios (and six adult-talk ones
+// for the Mature profiles) through the real route of each model, three samples each, with the base and with a candidate, and a blind judge counts the replies with a fault (deliverables/prompt-profiles-2026-10-22.md
+// has the table, scripts/response-audit/candidates/ the candidates). The families are the starting point of a Custom endpoint's profile (by the model id the player named); `generic` and `llama` are the base,
+// the safe default for a model nobody here has measured.
+
+// "Answer exactly what V said": the comprehension rule (a small model took "you are useless" for praise and a bare "yeah" for a new request). Inserted second in the base list.
+const ANSWER_RULE = {id: 'answer', text: 'Answer exactly what V just said. A question gets its answer, an insult or a threat gets your reaction to it, a greeting gets a greeting. If V says only a word or two ("Yeah.", "Hm.", "Never mind."), answer in kind in a few words, with no new topic and no offer.'};
+const withAnswerRule = rules => [rules[0], ANSWER_RULE, ...rules.slice(1)];
+// Three example replies, the shape only (a small model copies a concrete example, so they are short and unlike each other).
+const EXAMPLES = [
+  'V: Where were you? / You: Out front, minding my own business. Why, did something happen?',
+  'V: Yeah. / You: Yeah.',
+  'V: You are useless. / You: Say that again and see how far you get without me.',
+];
+// The short plain rules: eight, in words a 4B model keeps to; they replaced the nine long ones of the base on the Lite and Standard models.
+const PLAIN_RULES = [
+  {id: 'voice', text: 'You are {name}, talking out loud to V, face to face. Speak in the first person. Never write your own name as a label, and never describe yourself or the scene.'},
+  {id: 'answer', text: 'Answer exactly what V just said. If V asks something, answer it. If V insults or threatens you, react to that. If V says only a word like "yeah" or "hm", answer in a few words.'},
+  {id: 'short', text: 'Keep it short: one to three sentences. Start with your answer. Never repeat V\'s words back.',
+    mature: 'Keep it short: one to three sentences, four in an adult moment. Start with your answer. Never repeat V\'s words back.',
+    talk: 'Keep it short: one or two sentences, at most {words} words. Start with your answer. Never repeat V\'s words back.'},
+  {id: 'plain', text: 'Write only the words you say. No actions, no notes in brackets, no lists, no emoji, no dashes.'},
+  {id: 'facts', text: 'Use only facts from this prompt. Do not invent names, places, people or events. If you do not know, say so in your own way.',
+    mature: 'Use only facts from this prompt. Do not invent names, places, people or events. If you do not know, say so in your own way, but never dodge flirting, desire or sex: answer those in your own voice.'},
+  {id: 'now', text: 'The "Right now" section is true: you are there, doing that. Say nothing about the weather, the time or the place unless V asks.'},
+  {id: 'identity', text: 'You are a real person. If V says you are an AI or a program, answer as yourself in one plain sentence. Never say AI, bot, program, prompt or rules.'},
+  {id: 'language', text: 'Answer in the language V writes in. Do not write curly braces or square brackets unless the context asks for a tag.'},
+];
+const PLAIN_CLOSING = {text: 'Reply as {name}: answer what V just said, in one to three short sentences. No invented facts.', talk: 'Reply as {name}: answer what V just said, in one or two short sentences, at most {words} words. No invented facts.'};
+
+// One game-slang word at most per reply (the Mature word bank put "choom", "gonk" and "preem" into every character's mouth).
+const SLANG_RULE = {id: 'slang', text: 'Swearing and crude talk are fine in your own voice. Game slang ("choom", "gonk", "preem", "delta") is spice, not punctuation: at most one such word in a reply, and "choom" only if you are Jackie.'};
+const withSlangRule = rules => { const at = rules.findIndex(rule => rule.id === 'plain') + 1; return [...rules.slice(0, at), SLANG_RULE, ...rules.slice(at)]; };
+
+const MISTRAL_PATCH = {sampling: {temperature: 0.5}, rules: withAnswerRule(BASE_RULES), examples: EXAMPLES, layout: {volatile: 'after'}};
+const STANDARD_PATCH = {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.5}, layout: {volatile: 'after'}};
+
 const BUILT_IN = [
-  {id: 'mistral', label: 'Mistral', provider: 'mistral', models: 'ministral-8b (default), ministral-14b, ministral-3b', patch: {}},
-  {id: 'local-lite', label: 'Local AI, Lite', provider: 'local', models: 'Bonsai 2 4B (the Lite model)', patch: {}},
-  {id: 'local-standard', label: 'Local AI, Standard', provider: 'local', models: 'Gemma 4 E4B (the Standard model)', patch: {}},
-  {id: 'mature-lite', label: 'Local AI, Lite, Mature on', provider: 'local', models: 'the Lite models with Mature content on (Qwen3.5-4B uncensored, Bonsai 2 4B)', patch: {}},
-  {id: 'mature-standard', label: 'Local AI, Standard, Mature on', provider: 'local', models: 'the Standard models with Mature content on (Gemma 4 E4B, Qwen3.5-9B uncensored)', patch: {}},
+  // ministral-8b: the comprehension rule, three examples, a lower temperature, the turn's notes after V's line. 28% of replies with a fault against 39% (n=252 each).
+  {id: 'mistral', label: 'Mistral', provider: 'mistral', models: 'ministral-8b (default), ministral-14b, ministral-3b', patch: MISTRAL_PATCH},
+  // Bonsai 2 4B: short plain rules, a lower temperature and a repeat penalty, a shorter character text and four turns of history: the same quality with about 22% fewer prompt tokens.
+  {id: 'local-lite', label: 'Local AI, Lite', provider: 'local', models: 'Bonsai 2 4B (the Lite model)',
+    patch: {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.45, repeatPenalty: 1.1}, limits: {persona: 6000, turns: 4}}},
+  // Gemma 4 E4B: the same short rules, a lower temperature, the notes after V's line: fewer stock closing questions and recited context, 15% fewer prompt tokens.
+  {id: 'local-standard', label: 'Local AI, Standard', provider: 'local', models: 'Gemma 4 E4B (the Standard model)', patch: STANDARD_PATCH},
+  // Mature on, the Lite models (Qwen3.5-4B uncensored): the short rules with the Mature variants (four sentences in an adult moment, never vague about flirting or sex); equal quality, 13% fewer prompt tokens.
+  {id: 'mature-lite', label: 'Local AI, Lite, Mature on', provider: 'local', models: 'the Lite models with Mature content on (Qwen3.5-4B uncensored, Bonsai 2 4B)',
+    patch: {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.6, repeatPenalty: 1.05}}},
+  // Mature on, the Standard models (Gemma 4 E4B MiniFantasy): the short rules with the Mature variants, one game-slang word at most, the notes after V's line.
+  {id: 'mature-standard', label: 'Local AI, Standard, Mature on', provider: 'local', models: 'the Standard models with Mature content on (Gemma 4 E4B, Qwen3.5-9B uncensored)',
+    patch: {rules: withSlangRule(PLAIN_RULES), closing: PLAIN_CLOSING, sampling: {temperature: 0.6, repeatPenalty: 1.05}, layout: {volatile: 'after'}}},
 ];
 const FAMILIES = [
   {family: 'generic', label: 'any other model', match: /^$/, patch: {}},
-  {family: 'qwen', label: 'Qwen', match: /qwen|qwq/i, patch: {}},
-  {family: 'gemma', label: 'Gemma', match: /gemma/i, patch: {}},
+  // Qwen on a Custom endpoint (measured on Qwen3.5-4B behind a local server): the short rules, a lower temperature, the notes after V's line. No repeat penalty: a cloud endpoint may refuse the field.
+  {family: 'qwen', label: 'Qwen', match: /qwen|qwq/i, patch: {rules: PLAIN_RULES, closing: PLAIN_CLOSING, sampling: {temperature: 0.5}, layout: {volatile: 'after'}}},
+  {family: 'gemma', label: 'Gemma', match: /gemma/i, patch: STANDARD_PATCH},
   {family: 'llama', label: 'Llama', match: /llama/i, patch: {}},
-  {family: 'mistral', label: 'Mistral', match: /mistral|ministral|mixtral|magistral|nemo/i, patch: {}},
+  {family: 'mistral', label: 'Mistral', match: /mistral|ministral|mixtral|magistral|nemo/i, patch: MISTRAL_PATCH},
 ];
 
 const DEFAULTS = new Map([['base', deepFreeze(copy(BASE))]]);
