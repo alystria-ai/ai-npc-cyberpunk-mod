@@ -134,7 +134,7 @@ the sections below that still describe "the voice you already chose" are history
 | **OmniVoice** (2026-10-21) | One more job on the **companions' own OmniVoice worker** (see "V on OmniVoice" below); only offered while OmniVoice is the companions' voice | Nothing extra |
 
 Not offered: the Convai voice (it cannot clone). Pocket and Voxtral are independent of the companions' voice, so every mix works for them; OmniVoice for V needs OmniVoice
-companions (and the pack), otherwise a saved OmniVoice reads as Pocket.
+companions (and the pack), otherwise a saved OmniVoice reads as Pocket. That includes an OmniVoice that has fallen back for the session (out of graphics memory, or no CUDA): V reads as Pocket then and speaks with the Pocket worker the companions already have (or, with no CUDA, V's own Pocket worker on the CPU), instead of staying silent (review 2026-10-22, A3). Choosing OmniVoice again in the Voices row after a memory failure tries it once more; no CUDA stays.
 Pocket is English only: a turn in another language gets no V line (subtitle still shows). Voxtral speaks the language of the line for the languages its model lists (Voxtral TTS 3, 22; `bridge/voxtral-languages.mjs`), so a V line in French or Japanese is spoken; a language it does not list gets no V line, as before (one log line).
 
 **What the choice does to the pipeline.**

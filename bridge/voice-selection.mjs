@@ -410,7 +410,10 @@ export class VoiceSelection {
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
-        if(!(chosen==='omni'&&(this.omniNoCuda||this.omniNoMemory)))this.failedBackends.delete(chosen);
+        // Choosing OmniVoice again after it ran out of memory retries it once (a failure for want of memory is for the session otherwise, and V would stay mute with it): one more
+        // attempt, and a second failure for memory sets the flag again. No CUDA is a fact about the PC and stays.
+        if(chosen==='omni'&&this.omniNoMemory&&!this.omniNoCuda){this.omniNoMemory=false;this.log('OmniVoice was chosen again: trying it once more after the memory failure');}
+        if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
         if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;

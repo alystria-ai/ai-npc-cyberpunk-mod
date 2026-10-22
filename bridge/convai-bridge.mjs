@@ -3440,8 +3440,9 @@ async function pollSettings(checkShutdown = true) {
     // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
     // unless the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V): the same
     // two conditions as the row's greyed-out entry (mod/manager.lua vOmniBlock). An Omni voice that is merely failing or loading is not that:
-    // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it.
-    const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false;
+    // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it. One that has FALLEN BACK is the other case (out of
+    // graphics memory, or no CUDA: both last for the session): the companions are on Pocket or text, so V reads as Pocket too and speaks with the Pocket worker that is loaded.
+    const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && !localVoice.omniNoMemory && !localVoice.omniNoCuda;
     const vSettings = vSettingsFor(settings, {cloudUsable: voxtralVoice.hasKey && matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (vVoice.enabled) startVVoiceModScan();
