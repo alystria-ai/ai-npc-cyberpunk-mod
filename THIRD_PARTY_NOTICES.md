@@ -166,6 +166,6 @@ that character, with the voice language pack of the same language. They are not 
 
 ## Installed separately by players
 
-Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
+Cyber Engine Tweaks, RED4ext, redscript, Codeware and Mod Configuration Menu
 come from Nexus Mods under their own licences. The Convai service is used under Convai's terms
 (https://convai.com/tos).

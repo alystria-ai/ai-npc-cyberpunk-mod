@@ -9,15 +9,11 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
 const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
 const setup = `
-local world, voice, paused, cursor, starts, stops, queries = true, true, false, 0, 0, 0, 0
+local world, voice, paused, queries = true, true, false, 0
 local function native() assert(world, 'native call after world teardown'); queries=queries+1 end
 local player = {
   ConvaiManagerVoice=function() native(); return voice end,
-  GetEntityID=function() native(); return {hash='V'} end,
-  ConvaiSpeechStart=function() native(); starts=starts+1; return true end,
-  ConvaiSpeechStop=function() native(); stops=stops+1 end,
-  ConvaiSpeechPause=function() native() end,
-  ConvaiSpeechPosition=function() native(); return cursor end
+  GetEntityID=function() native(); return {hash='V'} end
 }
 Game={GetPlayer=function() return player end,
   GetAllBlackboardDefs=function() return {UI_System={}} end,
@@ -44,16 +40,41 @@ end
 local judy,johnny=actor('Judy-1'),actor('Johnny-1')
 convaiCompanions={owns=function(a) return a.owned end}
 local face=(function() ${facial} end)()
-dofile=function(path) return path=='facial-playback.lua' and face or captions end
+-- The continuous voice: a small fake controller (the real one is covered by continuous-speech.test.mjs) that reports the state the
+-- test sets with heard(). The facial player is driven directly (face.start/sync/stop) when a test is about the player itself, and
+-- through speech.start/update with this controller when it is about the reply's lifecycle.
+local ctl={started=0,stops=0}
+local controller={version=1,available=true,
+  start=function() ctl.started=ctl.started+1; return true end,
+  update=function() return ctl.state end,
+  stop=function() ctl.stops=ctl.stops+1 end,
+  pause=function() return true end,
+  status=function() return {} end}
+dofile=function(path)
+  if path=='facial-playback.lua' then return face end
+  if path=='continuous-speech.lua' then return controller end
+  return captions
+end
 local speech=(function() ${speech} end)()
 speech.available=true
 local function input(a,id)
-  speech.target=a; cursor=0
-  local context={entity=a.id, requestId=id, name=a.id}
-  return context,{text='Hello V.',audio={slot=0,event='convai_reply_0',duration=2},
+  speech.target=a
+  local context={entity=a.id, requestId=id, generation=1, name=a.id}
+  return context,{text='Hello V.',continuous={version=1,id='voice-'..id},
     face={version=1,requestId=id,entity=a.id,duration=2,source='audio-envelope',
       tracks={'jaw_mid_open'},frames={{0,0},{0.5,0.35},{2,0}}}}
 end
+-- The state the continuous controller reports from now on: heard up to a position, with the reply face as a complete continuous timeline.
+local function heard(reply,at,extra)
+  local line={}
+  for key,value in pairs(reply.face) do line[key]=value end
+  line.continuous,line.complete,line.generation=true,true,1
+  local state={position=at,bufferedDuration=2,text='Hello V.',textComplete=true,state='playing',complete=true,ended=false,face=line}
+  for key,value in pairs(extra or {}) do state[key]=value end
+  ctl.state=state
+end
+-- The facial player on its own (a reply's timeline, the actor, its 2 s duration).
+local function begin(context,reply,a) return face.start(context,reply.face,a or judy,2) end
 `;
 function run(body) {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
@@ -77,51 +98,51 @@ test('real Omni phonetic builder reaches the native adapter with calibrated cont
     value&&typeof value==='object'?`{${Object.entries(value).filter(([,v])=>v!==undefined).map(([k,v])=>`[${JSON.stringify(k)}]=${literal(v)}`).join(',')}}`:
     value===null?'nil':JSON.stringify(value);
   run(`
-    local context,reply=input(judy,'omni-native');reply.audio.duration=1.8
+    local context,reply=input(judy,'omni-native')
     reply.face=${literal(timeline)}
-    assert(speech.start(context,reply) and face.active)
-    cursor=.1;speech.update(.1)
+    assert(face.start(context,reply.face,judy,1.8) and face.active)
+    face.sync(judy,.1,context.requestId)
     assert(judy.frames[#judy.frames].jaw_mid_open>0 and judy.frames[#judy.frames].lips_together_up>.5
       and judy.frames[#judy.frames].lips_together_up<.85,'local contact should ease in')
-    cursor=.3;speech.update(.2)
+    face.sync(judy,.3,context.requestId)
     assert(judy.frames[#judy.frames].lips_l_corner_stretch>.1 and judy.frames[#judy.frames].lips_l_upper_raise>0)
-    cursor=1.3;speech.update(1)
+    face.sync(judy,1.3,context.requestId)
     assert(judy.frames[#judy.frames].lips_l_lower_raise<.0001 and math.abs(judy.frames[#judy.frames].lips_suck_dn-.14)<.0001)
-    cursor=1.5;speech.update(.2);assert(math.abs(judy.frames[#judy.frames].tongue_mid_tip_up-.25)<.0001)
+    face.sync(judy,1.5,context.requestId);assert(math.abs(judy.frames[#judy.frames].tongue_mid_tip_up-.25)<.0001)
     assert(face.status().articulation=='coarticulated-v5')
-    cursor=1.8;speech.update(.3);assert(not face.active and judy.resets==1 and not speech.requestId)
+    face.sync(judy,1.8,context.requestId);face.stop(judy,'finished');assert(not face.active and judy.resets==1)
   `);
 });
 
-test('mouth follows the native audio cursor and rejoins it after pause, without restarting audio', () => run(`
+test('mouth follows the heard position of a continuous reply and rejoins it after pause, without restarting the voice', () => run(`
   local context,reply=input(judy,'one'); assert(speech.start(context,reply))
   assert(#judy.frames==0)
-  cursor=0.25; speech.update(1.2)
+  heard(reply,0.25); speech.update(1.2)
   assert(math.abs(judy.frames[1].jaw_mid_open-0.175)<0.0001)
-  assert(face.position==0.25 and starts==1)
+  assert(face.position==0.25 and ctl.started==1)
   paused=true; speech.update(1); assert(judy.resets==1 and face.state=='paused')
   speech.update(1); assert(#judy.frames==1 and judy.resets==1)
-  paused=false; cursor=0.5; speech.update(0.01)
-  assert(judy.frames[2].jaw_mid_open==0.35 and starts==1)
-  cursor=2; speech.update(0.1)
+  paused=false; heard(reply,0.5); speech.update(0.01)
+  assert(judy.frames[2].jaw_mid_open==0.35 and ctl.started==1)
+  heard(reply,2,{ended=true}); speech.update(0.1)
   assert(judy.resets==2 and not face.active and not speech.requestId)
 `));
 
 // October 8: ambient and archetype NPCs are world NPCs, never managed companions.
-// Their mouth follows the native Omni cursor once Face.reds has prepared their
+// Their mouth follows the continuous voice's heard position once Face.reds has prepared their
 // face_rig (ConvaiFaceReady); idle faces stay on companions.
-test('an ambient world NPC speaking on native Omni gets lip sync and its reset, without idle faces', () => run(`
+test('an ambient world NPC speaking a continuous reply gets lip sync and its reset, without idle faces', () => run(`
   local resident=actor('Resident-1'); resident.owned=false
   local context,reply=input(resident,'ambient-omni'); assert(speech.start(context,reply))
-  cursor=0.25; speech.update(0.1)
+  heard(reply,0.25); speech.update(0.1)
   assert(#resident.frames==1 and math.abs(resident.frames[1].jaw_mid_open-0.175)<0.0001, tostring(face.error))
-  cursor=2; speech.update(0.1)
+  heard(reply,2,{ended=true}); speech.update(0.1)
   assert(resident.resets==1 and not face.active and not speech.requestId)
   face.updateExpressions({actors={{entity=resident.id,npc=resident}}})
   assert(#resident.frames==1 and face.expressions[resident.id]==nil)
   resident.ready=false; context,reply=input(resident,'ambient-unprepared'); assert(speech.start(context,reply))
-  cursor=0.25; speech.update(0.1)
-  assert(#resident.frames==1 and starts==2 and speech.requestId=='ambient-unprepared')
+  heard(reply,0.25); speech.update(0.1)
+  assert(#resident.frames==1 and ctl.started==2 and speech.requestId=='ambient-unprepared')
 `));
 
 test('the 60 Hz sampling threshold tolerates float roundoff but rejects a true half-frame step', () => run(`
@@ -135,9 +156,9 @@ test('the 60 Hz sampling threshold tolerates float roundoff but rejects a true h
 `));
 
 test('speaker changes reset the old copy and a stale request cannot animate another entity', () => run(`
-  local c,r=input(judy,'one'); speech.start(c,r); cursor=0.5; speech.update(0.1)
-  c,r=input(johnny,'two'); assert(speech.start(c,r)); assert(judy.resets==1)
-  cursor=0.5; speech.update(0.1); assert(#johnny.frames==1 and #judy.frames==1)
+  local c,r=input(judy,'one'); speech.start(c,r); heard(r,0.5); speech.update(0.1)
+  local c2,r2=input(johnny,'two'); assert(speech.start(c2,r2)); assert(judy.resets==1)
+  heard(r2,0.5); speech.update(0.1); assert(#johnny.frames==1 and #judy.frames==1)
   face.sync(judy,0.8,'one')
   assert(face.active and #judy.frames==1 and judy.resets==1 and #johnny.frames==1)
   assert(speech.requestId=='two')
@@ -145,7 +166,8 @@ test('speaker changes reset the old copy and a stale request cannot animate anot
 `));
 
 test('unload abandons every face handle without invoking an old world object', () => run(`
-  local c,r=input(judy,'one'); speech.start(c,r); cursor=0.5; speech.update(0.1)
+  local c,r=input(judy,'one'); assert(speech.start(c,r)); heard(r,0.5); speech.update(0.1)
+  assert(face.active and #judy.frames==1)
   local before=queries; world=false
   speech.abandon()
   assert(queries==before and not face.active and not face.timeline and not face.feature)
@@ -163,44 +185,46 @@ test('invalid timelines and unsupported rigs preserve voice playback without unc
     elseif kind=='track' then r.face.tracks[1]='head_yaw'
     elseif kind=='rig' then judy.ready=false end
     assert(speech.start(c,r) and not face.active)
-    cursor=0.5; speech.update(0.1); assert(speech.state=='playing' and #judy.frames==0)
+    heard(r,0.5); speech.update(0.1); assert(speech.state=='playing' and not face.active and #judy.frames==0,kind)
     speech.stop('cancelled')
   end
 `));
 
 test('native apply failure and muting clean up once without breaking the speech owner', () => run(`
   local c,r=input(judy,'one'); speech.start(c,r); judy.reject=true
-  cursor=0.5; speech.update(0.1)
+  heard(r,0.5); speech.update(0.1)
   assert(face.state=='error' and judy.resets==1 and speech.state=='playing')
-  cursor=0.75; speech.update(0.1); assert(judy.resets==1)
-  judy.reject=false; c,r=input(judy,'two'); speech.start(c,r)
-  cursor=0.5; speech.update(0.1); voice=false; speech.update(0.1)
-  assert(speech.state=='muted' and not face.active and judy.resets==2)
+  -- The voice keeps playing on the next frame too (the face may retry its layer on each continuous update; the speech owner is untouched).
+  heard(r,0.75); speech.update(0.1); assert(speech.state=='playing' and speech.requestId=='one')
+  judy.reject=false; judy.resets=0; c,r=input(judy,'two'); speech.start(c,r)
+  heard(r,0.5); speech.update(0.1); assert(face.active and #judy.frames==1 and judy.resets==0)
+  voice=false; speech.update(0.1)
+  assert(speech.state=='muted' and not face.active and judy.resets==1)
 `));
 
 test('validation bounds follow the native ranges written by Cyberpunk dialogue lipsync',()=>run(`
   local c,r=input(judy,'contact')
   r.face.tracks={'jaw_mid_open','lips_together_up','lips_together_dn'}
   r.face.frames={{0,0,0,0},{.5,.66,1,1},{2,0,0,0}}
-  assert(speech.start(c,r) and face.active)
-  cursor=.5;speech.update(.1)
+  assert(begin(c,r) and face.active)
+  face.sync(judy,.5,c.requestId)
   assert(judy.frames[#judy.frames].lips_together_up==1 and judy.frames[#judy.frames].jaw_mid_open==.66)
-  speech.stop('cancelled');assert(judy.resets==1)
+  face.stop(judy,'cancelled');assert(judy.resets==1)
   c,r=input(judy,'bad-contact');r.face.tracks={'lips_together_up'}
   r.face.frames={{0,0},{.5,1.0001},{2,0}}
-  assert(speech.start(c,r) and not face.active);speech.stop('cancelled')
+  assert(not begin(c,r) and not face.active)
   c,r=input(judy,'bad-jaw');r.face.frames[2][2]=.7001
-  assert(speech.start(c,r) and not face.active)
+  assert(not begin(c,r) and not face.active)
   c,r=input(judy,'other-track');r.face.tracks={'lips_l_purse'};r.face.frames={{0,0},{.5,.5001},{2,0}}
-  assert(speech.start(c,r) and not face.active)
+  assert(not begin(c,r) and not face.active)
   c,r=input(judy,'upper-roll');r.face.tracks={'lips_suck_up'}
   r.face.frames={{0,0},{.5,.29},{2,0}}
-  assert(speech.start(c,r) and face.active)
-  cursor=.5;speech.update(.1);assert(judy.frames[#judy.frames].lips_suck_up==.29)
-  speech.stop('cancelled')
+  assert(begin(c,r) and face.active)
+  face.sync(judy,.5,c.requestId);assert(judy.frames[#judy.frames].lips_suck_up==.29)
+  face.stop(judy,'cancelled')
   c,r=input(judy,'bad-upper-roll');r.face.tracks={'lips_suck_up'}
   r.face.frames={{0,0},{.5,.3001},{2,0}}
-  assert(speech.start(c,r) and not face.active)
+  assert(not begin(c,r) and not face.active)
 `));
 
 test('reserved upper lip and active corner controls reach the native feature and clear with the same owner', () => run(`
@@ -208,11 +232,11 @@ test('reserved upper lip and active corner controls reach the native feature and
   r.face.source='local-phonetic'; r.face.articulation='coarticulated-v4'
   r.face.tracks={'jaw_mid_open','lips_l_upper_raise','lips_r_upper_raise','lips_l_corner_stretch','lips_r_corner_stretch'}
   r.face.frames={{0,0,0,0,0,0},{0.5,.05,0,0,.065,.065},{2,0,0,0,0,0}}
-  assert(speech.start(c,r)); cursor=0.5; speech.update(.01)
+  assert(begin(c,r)); face.sync(judy,.5,c.requestId)
   assert(judy.frames[1].lips_l_upper_raise==0 and judy.frames[1].lips_r_upper_raise==0)
   assert(judy.frames[1].lips_r_corner_stretch==.065)
   assert(face.status().articulation=='coarticulated-v4')
-  speech.stop('cancelled'); assert(judy.resets==1 and not face.active)
+  face.stop(judy,'cancelled'); assert(judy.resets==1 and not face.active)
 `));
 
 test('contiguous native audio segments retain the actual mouth pose until final completion', () => run(`
@@ -473,11 +497,12 @@ test('actual resident allphone Pocket timeline reaches the Lua consumer with var
 // is heard, close it with exactly one reset at the end, and do nothing at all while the NPC is idle.
 test('a world NPC opens the speech gate for its reply, closes it with one reset, and costs no native call while idle', () => run(`
   local resident=actor('Resident-gate'); resident.owned=false
-  local context,reply=input(resident,'gate-1'); assert(speech.start(context,reply))
-  assert(#resident.frames==0 and resident.resets==0, 'nothing is written before the audio cursor moves')
+  local context,reply=input(resident,'gate-1'); assert(begin(context,reply,resident))
+  assert(#resident.frames==0 and resident.resets==0, 'nothing is written before the heard position moves')
   local owner=0
   for _,at in ipairs({0.1,0.3,0.5,0.8,1.2}) do
-    cursor=at; speech.update(0.1)
+    face.beginExpressionFrame(0.1)
+    face.sync(resident,at,context.requestId)
     local frame=resident.frames[#resident.frames]
     assert(frame and type(frame.speech_owner)=='number', 'speech_owner is written on every speaking frame')
     assert(frame.speech_owner>0, 'the gate is open from the first speaking frame')
@@ -485,7 +510,7 @@ test('a world NPC opens the speech gate for its reply, closes it with one reset,
     owner=frame.speech_owner
   end
   assert(owner>=0.99, 'the layer is fully handed over mid reply: '..owner)
-  cursor=2; speech.update(0.1)
+  face.sync(resident,2,context.requestId); face.stop(resident,'finished')
   assert(resident.resets==1 and not face.active, 'one reset at the end closes the gate: '..resident.resets)
   local written=#resident.frames
   for _=1,30 do speech.update(0.016); face.updateExpressions({actors={{entity=resident.id,npc=resident}}}) end
@@ -501,8 +526,8 @@ test('a world NPC reply on a prepared graph with speech_owner writes the jaw unl
   local function jawFor(status)
     local npc=actor('Resident-'..tostring(status)); npc.owned=false
     if status then npc.ConvaiFaceStatus=function() native(); return status end end
-    local context,reply=input(npc,'lift-'..tostring(status)); assert(speech.start(context,reply))
-    cursor=0.5; speech.update(0.1)
+    local context,reply=input(npc,'lift-'..tostring(status)); assert(begin(context,reply,npc))
+    face.sync(npc,0.5,context.requestId)
     return npc.frames[#npc.frames].jaw_mid_open
   end
   for _,status in ipairs({'prepared:woman_average_sermo','prepared:man_average_sermo','prepared:man_big_sermo'}) do
@@ -517,8 +542,8 @@ test('a world NPC reply on a graph without speech_owner gets the per-head jaw li
   local function jawFor(status)
     local npc=actor('Resident-'..tostring(status)); npc.owned=false
     if status then npc.ConvaiFaceStatus=function() native(); return status end end
-    local context,reply=input(npc,'lift-'..tostring(status)); assert(speech.start(context,reply))
-    cursor=0.5; speech.update(0.1)
+    local context,reply=input(npc,'lift-'..tostring(status)); assert(begin(context,reply,npc))
+    face.sync(npc,0.5,context.requestId)
     return npc.frames[#npc.frames].jaw_mid_open
   end
   local raw=jawFor(nil)

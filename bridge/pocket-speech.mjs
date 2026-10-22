@@ -30,6 +30,9 @@ async function writtenReply(stream,fallback,signal){
 export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched,stream,language,capture}) {
   // The reply's language when it is not English (a voice language pack's clip for the Mistral voice; Pocket ignores it).
   const languageOption=language&&language!=='en'?{language}:{};
+  // Seconds of audio handed to the renderer and heard so far (read by an engine that renders in phrases, bridge/omni-pcm.mjs, to stay a bounded
+  // lead ahead of the player; Pocket ignores it).
+  const progress={emitted:0,heard:0};
   const facial=new PocketFacialStream({input,lipsync,phoneAnalysis,jaliFace,signal,expressionSignal:result.expressionSignal,text:result.text,textComplete:!stream,onAnalysis});
   try {
     const generated=await host.playLocalPcm({token:speech.token,text:result.text,
@@ -58,7 +61,7 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
       let response;
       try{
         response=prefetched?await prefetched.drain(feed,{signal:localSignal})
-          :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,utterance,role:'head',emotion:{marks:result.emotionMarks,sounds:result.voiceMarks},...languageOption});
+          :await voice.synthesizeStream(voiceKey,result.text,{signal:localSignal,onPcm:feed,utterance,role:'head',progress,emotion:{marks:result.emotionMarks,sounds:result.voiceMarks},...languageOption});
       }catch(error){utterance.decide('pocket');throw error;}
       utterance.settle(response);
       if(tail){
@@ -88,7 +91,7 @@ export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,re
         }
       }
       facial.finish();return response;
-    },{signal,current,onFrame:snapshot=>speech.frame(snapshot),
+    },{signal,current,onFrame:snapshot=>{if(Number.isFinite(snapshot?.positionSeconds))progress.heard=snapshot.positionSeconds;return speech.frame(snapshot);},
       // The game's lease wakes the clock poll (speech.options.wake, bridge/convai-continuous-speech.mjs).
       ...(typeof speech.options?.wake==='function'?{wake:()=>speech.options.wake()}:{}),
       ...(stream?{liveText:()=>({text:stream.text,complete:stream.complete})}:{}),

@@ -1,7 +1,6 @@
 param(
     [string]$GameDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077',
-    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
-    [switch]$StagedAudio
+    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,15 +28,11 @@ Copy-DevelopmentNativeStage -ProjectDirectory $project -ScriptsDirectory $script
 
 $deps = Join-Path $scripts '__CyberpunkConvaiCompilerDependencies'
 [IO.Directory]::CreateDirectory($deps) | Out-Null
-foreach ($plugin in @('Codeware', 'TweakXL')) {
+foreach ($plugin in @('Codeware')) {
     $pluginScripts = Join-Path $game "red4ext\plugins\$plugin\Scripts"
-    if ($StagedAudio -and $plugin -eq 'TweakXL') { $pluginScripts = Join-Path $project 'vendor\tweakxl-package\red4ext\plugins\TweakXL\Scripts' }
     if (-not [IO.Directory]::Exists($pluginScripts)) { throw "$plugin scripts are missing." }
     Get-ChildItem -LiteralPath $pluginScripts -File -Filter '*.reds' |
         Copy-Item -Destination $deps -Force
-}
-if ($StagedAudio) {
-    Copy-Item -LiteralPath (Join-Path $project 'vendor\audioware-package\r6\scripts\Audioware') -Destination $scripts -Recurse -Force
 }
 
 & (Join-Path $game 'engine\tools\scc.exe') '-compile' $scripts '-customCacheDir' $cache *>&1 |

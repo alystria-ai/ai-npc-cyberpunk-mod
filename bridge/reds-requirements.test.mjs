@@ -2,13 +2,13 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {source, catalog, run} from './setup-check-fixture.mjs';
 
-// This mod's redscript compiles without Codeware and Audioware (r6/scripts/CyberpunkConvai/Requirements.reds): a compile error would
+// This mod's redscript compiles without Codeware (r6/scripts/CyberpunkConvai/Requirements.reds): a compile error would
 // disable every redscript mod, so a missing requirement must show up as a short plain notice instead, and a mod whose scripts did not
 // compile at all must be told apart from one that compiled without them. These tests run the real mod/setup-check.lua over the
 // shared fake game (setup-check-fixture.mjs), where env.requirements is what PlayerPuppet:ConvaiRequirements answers.
 // The last tests run the real mod/init.lua and the modules that call the scripts, with a player that has none of their methods.
 
-const ALL = 'codeware codeware-ui codeware-textinput audioware';
+const ALL = 'codeware codeware-ui codeware-textinput';
 // One whole first-load: the game session starts, twelve seconds pass, the service is asked, its answer comes, and the notice is
 // returned (nil when nothing critical is wrong). The Lua text defines notice() for the test bodies.
 const firstLoad = String.raw`
@@ -25,88 +25,73 @@ test('every requirement present: no problem, no notice, nothing on the console, 
   installFiles(); serviceRunning()
   env.requirements = '${ALL}'; applyEnv()
   check.run()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', ids())
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', ids())
   assert(check.problemCount() == 0 and #check.problems() == 0)
   assert(lineOf('redscript').description == 'Loaded.' and lineOf('codeware').description == 'Version 1.20.5.')
-  for _, word in ipairs({'codeware', 'codeware-ui', 'codeware-textinput', 'audioware'}) do assert(check.requirement(word) == true, word) end
+  for _, word in ipairs({'codeware', 'codeware-ui', 'codeware-textinput'}) do assert(check.requirement(word) == true, word) end
   assert(check.requirement('something-else') == false)
   assert(check.codewareNotice() == nil)
   assert(requirementCalls == 1, 'one call for the check; the answers after it come from the kept set: ' .. requirementCalls)
-  assert(table.concat(check.reportLines(), '\n'):find('scripts compiled with: audioware codeware codeware-textinput codeware-ui', 1, true))
+  assert(table.concat(check.reportLines(), '\n'):find('scripts compiled with: codeware codeware-textinput codeware-ui', 1, true))
   assert(notice() == nil and #console == 0)
   assert(files['runtime/probe.log']:find('no critical problem', 1, true))
 `));
 
-test('the scripts without Audioware: the notice names Audioware only, from the scripts and not from the probe', () => run(String.raw`
+test('Audioware is no requirement: the word is ignored when an older build of the scripts still answers it, and its absence is never a problem', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  -- What the scripts were compiled with is the answer; Audioware's plugin may still register its class in CET (no version answers then)
-  env.requirements = 'codeware codeware-ui codeware-textinput'; env.audioware = nil; applyEnv()
+  -- the Scripts of 0.2.2 to 0.2.8 answered "audioware" when it was there: a stale word changes nothing
+  env.requirements = 'codeware codeware-ui codeware-textinput audioware'; applyEnv()
   check.run()
-  assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
-  assert(lineOf('audioware').state == 'problem' and lineOf('audioware').description:find('Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods', 1, true))
-  assert(lineOf('codeware').state == 'ok' and lineOf('redscript').state == 'ok' and lineOf('red4ext').state == 'ok')
-  assert(check.requirement('audioware') == false and check.requirement('codeware') == true)
-  local shown = notice()
-  assert(shown == 'Audioware is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
-  assert(not shown:find('Codeware', 1, true) and not shown:find('TweakXL', 1, true))
-  assert(#console == 1 and console[1]:find('[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods', 1, true), console[1])
-  assert(files['runtime/probe.log']:find('Setup check: problems: audioware', 1, true))
-  -- once per game session
-  for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
-  assert(#console == 1)
-  -- Audioware whose own version answers (its scripts are loaded) but that these scripts were built without: installed, so not "missing"
-  env.audioware = '1.9.9-rc.0'; applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'audioware')
-  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem unbuilt 1.9.9-rc.0', 1, true))
+  assert(#check.problems() == 0 and lineOf('audioware') == nil and lineOf('tweakxl') == nil, ids())
+  assert(notice() == nil and #console == 0)
+  -- without the word, with Audioware and TweakXL installed or not: the same
+  for _, installed in ipairs({true, false}) do
+    env.requirements = 'codeware codeware-ui codeware-textinput'
+    env.audioware, env.tweakxl = installed and '1.9.9' or nil, installed and '1.11.4' or nil
+    applyEnv(); check.run()
+    assert(#check.problems() == 0 and ids():find('files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok nsui=ok', 1, true), ids())
+  end
+  assert(retiredProbes == 0, 'nothing asks Audioware or TweakXL')
 `));
 
-test('the scripts without Codeware: Codeware alone, and Codeware with Audioware as one notice naming both', () => run(String.raw`
+test('the scripts without Codeware: Codeware alone, named from the scripts and not from the probe', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  env.requirements = 'audioware'; applyEnv()
+  -- What the scripts were compiled with is the answer; Codeware's probe may still find it in CET
+  env.requirements = ''; applyEnv()
   check.run()
   assert(table.concat(check.problems(), ',') == 'codeware', table.concat(check.problems(), ','))
   assert(lineOf('codeware').description == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
-  assert(lineOf('audioware').state == 'ok' and lineOf('redscript').state == 'ok')
+  assert(lineOf('redscript').state == 'ok' and lineOf('red4ext').state == 'ok')
+  assert(check.requirement('codeware') == false)
   assert(check.codewareNotice() == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
-  assert(notice() == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
-`));
-
-test('Codeware and Audioware both missing is one notice naming both, and the console says each once', () => run(String.raw`
-  ${firstLoad}
-  installFiles(); serviceRunning()
-  env.requirements = ''; env.audioware = nil; applyEnv()
-  check.run()
-  assert(table.concat(check.problems(), ',') == 'codeware,audioware', table.concat(check.problems(), ','))
-  assert(lineOf('red4ext').state == 'ok', 'the probes of the CET side still prove RED4ext')
   local shown = notice()
-  assert(shown == 'Missing: Codeware, Audioware. Install them and restart the game.', tostring(shown))
-  assert(#console == 2 and console[1]:find('Codeware is missing', 1, true) and console[2]:find('Audioware is missing', 1, true), table.concat(console, ' | '))
-  assert(files['runtime/probe.log']:find('Setup check: problems: codeware, audioware', 1, true))
+  assert(shown == 'Codeware is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
+  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Codeware is missing. Install it from Nexus Mods, then restart the game.', console[1])
+  assert(files['runtime/probe.log']:find('Setup check: problems: codeware', 1, true))
   for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
-  assert(#console == 2, 'once per game session')
-  assert(check.codewareNotice() == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
+  assert(#console == 1, 'once per game session')
 `));
 
-test('requirements missing together: up to four names, Native Settings UI left to its own notice, and a mix of missing and old', () => run(String.raw`
+test('requirements missing together: RED4ext and Codeware as one notice, Native Settings UI left to its own notice', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  -- RED4ext, Codeware, Audioware and TweakXL all absent (nothing answers), and Native Settings UI too
-  env.codeware, env.tweakxl, env.audioware, env.native, env.nsui, env.requirements = nil, nil, nil, false, 'none', ''
+  -- RED4ext and Codeware both absent (nothing answers), and Native Settings UI too
+  env.codeware, env.native, env.nsui, env.requirements = nil, false, 'none', ''
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl,nsui', table.concat(check.problems(), ','))
+  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,nsui', table.concat(check.problems(), ','))
   local shown = notice()
-  assert(shown == 'Missing: RED4ext, Codeware, Audioware, TweakXL. Install them and restart the game.', tostring(shown))
+  assert(shown == 'Missing: RED4ext, Codeware. Install them and restart the game.', tostring(shown))
   assert(not shown:find('Native Settings UI', 1, true))
-  assert(#console == 5 and console[5]:find('neither was found', 1, true), 'one line each, Native Settings UI among them')
+  assert(#console == 3 and console[3]:find('neither was found', 1, true), 'one line each, Native Settings UI among them')
 `));
 
-test('Codeware too old: its text input part missing is a Problem with the update text, alone or with other requirements', () => run(String.raw`
+test('Codeware too old: its text input part missing is a Problem with the update text', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
   -- Codeware without Codeware.UI.TextInput
-  env.requirements = 'codeware codeware-ui audioware'; applyEnv()
+  env.requirements = 'codeware codeware-ui'; applyEnv()
   check.run()
   assert(table.concat(check.problems(), ',') == 'codeware')
   assert(lineOf('codeware').state == 'problem' and lineOf('codeware').description == 'Codeware is too old. Update it from Nexus Mods, then restart the game.', lineOf('codeware').description)
@@ -119,19 +104,14 @@ test('Codeware too old: its text input part missing is a Problem with the update
   assert(not shown:find('missing', 1, true))
 `));
 
-test('Codeware without its UI part is also too old, and a mix of old Codeware and missing Audioware is one notice that says install or update', () => run(String.raw`
+test('Codeware without its UI part is also too old', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  env.requirements = 'codeware audioware'; applyEnv()
+  env.requirements = 'codeware'; applyEnv()
   check.run()
   assert(lineOf('codeware').state == 'problem' and lineOf('codeware').description:find('too old', 1, true))
   assert(check.codewareNotice() == 'Codeware is too old. Update it from Nexus Mods, then restart the game.')
-  env.requirements = 'codeware codeware-ui'; env.audioware = nil; applyEnv()
-  check.run()
-  assert(table.concat(check.problems(), ',') == 'codeware,audioware', table.concat(check.problems(), ','))
-  assert(lineOf('codeware').description:find('too old', 1, true) and lineOf('audioware').description:find('is missing', 1, true))
-  local shown = notice()
-  assert(shown == 'Install or update: Codeware, Audioware. Then restart the game.', tostring(shown))
+  assert(notice() == 'Codeware is too old. Update it from Nexus Mods, then restart the game.')
 `));
 
 test('scripts that did not compile: announced first and alone, with the log to read, and no framework is blamed', () => run(String.raw`
@@ -141,23 +121,23 @@ test('scripts that did not compile: announced first and alone, with the log to r
   -- probes do not see cannot be judged from scripts that did not load, so they are Unknown, never Missing. RED4ext is loaded: this
   -- mod's native plugin answers (it does not depend on the script compile).
   env.scripts, env.requirements = false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
+  env.codeware, env.native = nil, true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
   assert(lineOf('redscript').state == 'problem' and lineOf('red4ext').state == 'ok')
-  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  assert(lineOf('codeware').state == 'unknown')
   local help = lineOf('redscript').description
   assert(help:find('r6/logs/redscript_rCURRENT.log', 1, true) and help:find('If the error names another mod, that mod is the problem.', 1, true), help)
-  assert(help:find('Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.', 1, true))
+  assert(help:find('Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.', 1, true))
   local shown = notice()
   assert(shown == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.', tostring(shown))
-  assert(not shown:find('Codeware', 1, true) and not shown:find('Audioware', 1, true) and not shown:find('Missing', 1, true))
+  assert(not shown:find('Codeware', 1, true) and not shown:find('Missing', 1, true))
   assert(#console == 1 and console[1]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem.", 1, true), console[1])
   assert(files['runtime/probe.log']:find('Setup check: problems: redscript', 1, true))
   -- the frameworks the probes do find are shown as found; the scripts are still the one problem
-  env.codeware, env.audioware, env.tweakxl = '1.20.5', '1.9.9', '1.11.4'; applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'redscript' and lineOf('codeware').state == 'ok' and lineOf('audioware').state == 'ok')
-  assert(check.requirement('audioware') == nil and check.codewareNotice() == nil, 'nothing is known of the requirements')
+  env.codeware = '1.20.5'; applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'redscript' and lineOf('codeware').state == 'ok')
+  assert(check.requirement('codeware') == nil and check.codewareNotice() == nil, 'nothing is known of the requirements')
 `));
 
 test('scripts that did not compile come first even when every other requirement is missing and other problems exist', () => run(String.raw`
@@ -165,24 +145,24 @@ test('scripts that did not compile come first even when every other requirement 
   installFiles(); serviceRunning()
   files['phone-contacts.json'] = nil
   env.nsui, env.scripts, env.requirements = 'none', false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
+  env.codeware, env.native = nil, true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript,nsui,files', table.concat(check.problems(), ','))
   assert(notice() == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
 `));
 
-// Without RED4ext nothing it loads answers (this mod's native plugin, Codeware, TweakXL, Audioware), and Codeware's scripts never reach
-// the compile, so Audioware's import of it fails the whole compile and the redscript log lists Audioware. The cause to name is RED4ext,
-// not a mod the log lists.
+// Without RED4ext nothing it loads answers (this mod's native plugin, Codeware), and Codeware's scripts never reach the compile, so
+// every mod that imports it fails the whole compile and the redscript log lists those mods. The cause to name is RED4ext, not a mod the
+// log lists.
 test('RED4ext not loaded and scripts that did not compile: RED4ext is named first, and the log advice is still on the console', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
   env.scripts, env.requirements = false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
+  env.codeware, env.native = nil, false
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
   assert(lineOf('red4ext').state == 'problem' and lineOf('redscript').state == 'problem')
-  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  assert(lineOf('codeware').state == 'unknown')
   local shown = notice()
   assert(shown == 'RED4ext is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
   assert(#console == 2, table.concat(console, ' | '))
@@ -197,26 +177,26 @@ test('RED4ext not loaded and scripts that did not compile: RED4ext is named firs
 test('ConvaiRequirements that raises or answers a non-string is read as scripts of an older version: they loaded, the frameworks are implied', () => run(String.raw`
   installFiles(); serviceRunning()
   -- scripts of 0.2.1 and older: ConvaiPhoneIsOpen answers, ConvaiRequirements does not exist
-  env.codeware, env.audioware = nil, nil; applyEnv()
+  env.codeware = nil; applyEnv()
   check.run()
-  assert(lineOf('redscript').state == 'ok' and lineOf('codeware').state == 'ok' and lineOf('audioware').state == 'ok' and #check.problems() == 0)
+  assert(lineOf('redscript').state == 'ok' and lineOf('codeware').state == 'ok' and #check.problems() == 0)
   assert(lineOf('codeware').description == 'Found.', 'implied, with no version')
-  assert(check.requirement('audioware') == nil and check.codewareNotice() == nil, 'what they were compiled with is not known')
+  assert(check.requirement('codeware') == nil and check.codewareNotice() == nil, 'what they were compiled with is not known')
   -- a ConvaiRequirements that raises
   env.requirementsError = true; applyEnv(); check.run()
   assert(requirementCalls >= 1 and lineOf('redscript').state == 'ok' and lineOf('codeware').state == 'ok' and #check.problems() == 0)
-  assert(check.requirement('audioware') == nil)
+  assert(check.requirement('codeware') == nil)
   -- one that answers something that is not text
   env.requirementsError, env.requirements = nil, 42; applyEnv(); check.run()
-  assert(lineOf('redscript').state == 'ok' and #check.problems() == 0 and check.requirement('audioware') == nil)
+  assert(lineOf('redscript').state == 'ok' and #check.problems() == 0 and check.requirement('codeware') == nil)
 `));
 
 test('a requirement of the scripts is read when asked and kept: no player is Unknown, nothing is asked per tick', () => run(String.raw`
   installFiles(); serviceRunning()
   env.requirements = 'codeware codeware-ui codeware-textinput'; env.player = false; applyEnv()
-  assert(check.requirement('audioware') == nil and requirementCalls == 0, 'no player yet')
+  assert(check.requirement('codeware') == nil and requirementCalls == 0, 'no player yet')
   env.player = true; applyEnv()
-  assert(check.requirement('audioware') == false and requirementCalls == 1)
+  assert(check.requirement('something-else') == false and requirementCalls == 1)
   for _ = 1, 20 do assert(check.requirement('codeware') == true) end
   assert(requirementCalls == 1, 'kept for the session: ' .. requirementCalls)
   -- the first-load timer's idle ticks ask nothing, and neither does anything else per frame
@@ -234,7 +214,7 @@ test('every sentence the requirement notices can show is a catalogued English UI
     'Missing: {names}. Install them and restart the game.',
     'Install or update: {names}. Then restart the game.',
     'Codeware is too old. Update it from Nexus Mods, then restart the game.',
-    'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.',
+    'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.',
   ];
   for (const text of sentences) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
@@ -362,7 +342,7 @@ test('installers that work are called exactly as before: no arguments, and no fa
 test('the text box refused for want of Codeware: one probe.log line for the session, and the player is told on each press of the talk key', () => runInit(String.raw`
   ${barePlayer}
   -- scripts that compiled without Codeware: the box and the movement tracker answer, but the box cannot open
-  function player:ConvaiRequirements() return 'audioware' end
+  function player:ConvaiRequirements() return '' end
   function player:ConvaiComposerOpen() return false end
   function player:ConvaiOpenComposer() return false end
   function player:ConvaiPhoneFeedback(text) feedback[#feedback + 1] = text end
@@ -409,65 +389,6 @@ import {run as runHost, diskLua, managerLua, modSource as hostSource} from './st
 // The setup check as init.lua's neighbours reach it: a global, created again for each player (it keeps what the first player said).
 const freshSetupCheck = `convaiSetupCheck = nil; convaiSetupCheck = (function() ${hostSource('setup-check.lua')} end)()`;
 
-test('speech offers audio to the service only when Audioware was there, and says why a voice did not start', () => runHost(`
-  ${freshSetupCheck}
-  local function playerWith(requirements, position)
-    local voice = true
-    local player = {GetEntityID = function() return {hash = 'player'} end, ConvaiManagerVoice = function() return true end,
-      ConvaiSpeechStart = function() return false end, ConvaiSpeechStop = function() end}
-    if requirements then player.ConvaiRequirements = function() return requirements end end
-    if position then player.ConvaiSpeechPosition = function() return -1.0 end end
-    return player
-  end
-  local board = {SetVariant = function() end, GetBool = function() return false end}
-  local current
-  Game = {GetPlayer = function() return current end,
-    GetAllBlackboardDefs = function() return {UI_System = {}, UIGameData = {}} end,
-    GetBlackboardSystem = function() return {Get = function() return board end} end}
-  CRUID = function(v) return v end
-  ToVariant = function(v) return v end
-  CName = {new = function(v) return v end}
-  scnDialogLineData = {new = function() return {} end}
-  scnDialogLineType = {OwnerlessRegular = 1}
-  io.open = function() return nil end
-  local captions = (function() ${hostSource('subtitles.lua')} end)()
-  local face = (function() ${hostSource('facial-playback.lua')} end)()
-  dofile = function(path) return path == 'facial-playback.lua' and face or captions end
-  local speech = (function() ${hostSource('speech.lua')} end)()
-  local function available(requirements, position)
-    convaiSetupCheck = nil; convaiSetupCheck = (function() ${hostSource('setup-check.lua')} end)()
-    current = playerWith(requirements, position)
-    speech.available = nil
-    speech.update(2.5)
-    return speech.available
-  end
-  -- scripts compiled with Audioware: audio can be offered
-  assert(available('codeware codeware-ui codeware-textinput audioware', true) == true)
-  -- scripts compiled without it: the stand-ins answer, but nothing can play, so the service is told there is no audio
-  assert(available('codeware codeware-ui codeware-textinput', true) == false)
-  assert(available('', true) == false)
-  -- scripts of 0.2.1 and older say nothing about it: as before
-  assert(available(nil, true) == true)
-  -- no scripts at all: the method is not there
-  assert(available(nil, false) == false)
-  -- a voice that cannot start because Audioware is missing says so, and the subtitle still shows
-  convaiSetupCheck = nil; convaiSetupCheck = (function() ${hostSource('setup-check.lua')} end)()
-  current = playerWith('codeware', true)
-  speech.available = true
-  speech.target = {GetEntityID = function() return {hash = 'npc'} end, IsAttached = function() return true end,
-    IsDeadNoStatPool = function() return false end}
-  local started = speech.start({entity = 'npc', requestId = 'r1', name = 'Judy'},
-    {text = 'Hello V', audio = {slot = 0, event = 'convai_reply_0', duration = 5}})
-  assert(started == false and speech.state == 'playback-failed' and speech.error == 'Audioware is missing', tostring(speech.error))
-  assert(captions.line, 'the reply is still shown as text')
-  -- the same with Audioware there: the reason is the answer of the call
-  convaiSetupCheck = nil; convaiSetupCheck = (function() ${hostSource('setup-check.lua')} end)()
-  current = playerWith('codeware audioware', true)
-  speech.available = true
-  speech.start({entity = 'npc', requestId = 'r2', name = 'Judy'}, {text = 'Hello V', audio = {slot = 0, event = 'convai_reply_0', duration = 5}})
-  assert(speech.error == 'false', tostring(speech.error))
-`));
-
 test('the Chat tab is offered no contact without Codeware’s text input, and every contact with it or when that is not known', () => {
   const chatWith = requirements => runHost(`
     ${diskLua}
@@ -491,11 +412,11 @@ test('the Chat tab is offered no contact without Codeware’s text input, and ev
     report('cleared', cleared)
     report('done', chat.registered == true)
   `);
-  const without = chatWith('codeware codeware-ui audioware');
+  const without = chatWith('codeware codeware-ui');
   assert.deepEqual([without.registered, without.cleared, without.done], ['', 1, true], 'cleared once, nothing offered');
-  const withIt = chatWith('codeware codeware-ui codeware-textinput audioware');
+  const withIt = chatWith('codeware codeware-ui codeware-textinput');
   assert.deepEqual([withIt.registered, withIt.cleared], ['judy,panam', 1]);
-  const noCodeware = chatWith('audioware');
+  const noCodeware = chatWith('');
   assert.equal(noCodeware.registered, '');
   const older = chatWith(null);
   assert.equal(older.registered, 'judy,panam', 'scripts that cannot say are offered as before');
@@ -655,12 +576,12 @@ const declarations = redsDeclarations();
 const guarded = declarations.filter(item => item.guard);
 const key = item => `${item.owner}.${item.name}`;
 
-test('the guards name only Codeware, its UI parts and Audioware, and Requirements.reds reports each in the words the setup check reads', () => {
+test('the guards name only Codeware and its UI parts, and Requirements.reds reports each in the words the setup check reads', () => {
   const modules = new Set(guarded.map(item => item.guard.module));
-  assert.deepEqual([...modules].sort(), ['Audioware', 'Codeware', 'Codeware.UI', 'Codeware.UI.TextInput']);
+  assert.deepEqual([...modules].sort(), ['Codeware', 'Codeware.UI', 'Codeware.UI.TextInput']);
   const requirements = readFileSync(new URL('Requirements.reds', redsFolder), 'utf8');
   const getters = {Codeware: ['ConvaiHasCodeware', 'codeware'], 'Codeware.UI': ['ConvaiHasCodewareUi', 'codeware-ui'],
-    'Codeware.UI.TextInput': ['ConvaiHasCodewareTextInput', 'codeware-textinput'], Audioware: ['ConvaiHasAudioware', 'audioware']};
+    'Codeware.UI.TextInput': ['ConvaiHasCodewareTextInput', 'codeware-textinput']};
   for (const [module, [getter, word]] of Object.entries(getters)) {
     const name = module.replace(/\./g, '\\.');
     assert.match(requirements, new RegExp(`@if\\(ModuleExists\\("${name}"\\)\\)\\s*public func ${getter}\\(\\) -> Bool \\{ return true; \\}`), getter);
@@ -709,8 +630,7 @@ test('every guarded method that Lua or the native plugin calls by name has a sta
     called.push(item.name);
     assert(standIns.has(key(item)), `${item.at}: ${key(item)} is called from ${byLua ? 'Lua' : 'the native plugin'} but has no stand-in`);
   }
-  for (const name of ['ConvaiOpenComposer', 'ConvaiFaceReady', 'ConvaiFaceApply', 'ConvaiSpeechStart', 'ConvaiSpeechPosition',
-    'ConvaiManagerIsOpen', 'ConvaiHolocallHasBacking']) {
+  for (const name of ['ConvaiOpenComposer', 'ConvaiFaceReady', 'ConvaiFaceApply', 'ConvaiManagerIsOpen', 'ConvaiHolocallHasBacking']) {
     assert(called.includes(name), `${name} is no longer seen as a guarded method that is called: ${called.join(' ')}`);
   }
 });

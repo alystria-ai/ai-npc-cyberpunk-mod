@@ -223,13 +223,12 @@ Every method checks its arguments and returns `true` (or a value), or `false, re
   `Remark plays through a game scene: ... signals=dialogue+tier=2`, names the flags that were up.
 - `voiceFrom(player) -> GameObject` (optional): where the voice is heard from when that is not the anchor. Skippy's anchor stays V
   (subtitles, availability, the talk key), but his voice comes from the gun in V's hand. It is asked once when a reply starts and
-  changes the pan and distance of the browser voice (continuous Pocket playback); an object that is detached, unreadable or more than
-  3 m from the camera is dropped for the rest of that reply and the anchor is used. The native Omni phrases play **on that object** (it is
-  their emitter): Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log), so a speaker anchored to V with no
-  `voiceFrom` object could not be heard with the native voice. Without one, the main mod plays on the weapon in V's hands, else the
-  chest item V wears (the same goes for a holocall reply, which is heard through the phone); with neither the voice does not start, the
-  CET log line `Conversation result` says `speech=playback-failed why=Audioware cannot play on V ...`, and the text is shown as a
-  subtitle. A speaker anchored to something else (the cab) is unchanged.
+  changes the pan and distance of the voice (every voice is the browser renderer's, including OmniVoice); an object that is detached,
+  unreadable or more than 3 m from the camera is dropped for the rest of that reply and the anchor is used. Superseded on 2026-10-22:
+  until then the native Omni phrases played **on that object** (it was their Audioware emitter, and Audioware refused V as an emitter),
+  so a V-anchored speaker with no `voiceFrom` object fell back to the weapon in V's hands or the chest item V wears, and failed with
+  `speech=playback-failed why=Audioware cannot play on V ...` when V had neither. There is no such emitter now: a speaker anchored to V
+  is heard from V's position with or without `voiceFrom`, and the weapon and chest-item fallback and that failure are gone.
 - `showsReply(text, event) -> boolean` (optional): the add-on shows its remarks itself, so they need no subtitle. Asked **once per
   remark**, when the reply text arrives and before anything is shown. `true`: the main mod plays that remark's voice **without a
   subtitle** (speech.lua skips every caption call that follows the voice). `false`, nothing or an error: the subtitle is shown as always,
@@ -830,8 +829,8 @@ check the list of calls.
 ## What the game must confirm live
 
 1. `GetMod('AiNpcCyberpunkMod')` from another mod's `onInit` returns the API (CET load order).
-2. The voice of a `'player'` speaker plays as V's own audio, and of a `'vehicle'` speaker from the car (Audioware emitter on V and
-   on vehicles). Subtitles show the speaker's name.
+2. The voice of a `'player'` speaker plays as V's own audio, and of a `'vehicle'` speaker from the car (the browser renderer, panned and
+   attenuated from V's or the vehicle's position). Subtitles show the speaker's name.
 3. A remark's latency from `handle:remark` to the first audio on Mistral (target under 2 s, with `prepare` called at the start of
    the fight).
 4. A vehicle anchor survives `IsAttached`, and no `IsDeadNoStatPool` call reaches a vehicle.
@@ -856,8 +855,7 @@ check the list of calls.
 11. Held remarks, menus and a screen face (the Delamain cab, 2026-10-14). (a) Call a cab and walk to it: the log shows
     `Remark ... event=boarded ... (held until its moment)` and `Remark ready, held` before you sit, and nothing is heard. (b) The
     welcome starts the moment V sits (`Remark hold released ... after <s>`), with no wait for the text or voice. (c) It keeps playing
-    while the destination map is open (Pocket/Voxtral browser voice, and the native Omni voice: note whether a paused game also
-    pauses Audioware). (d) Delamain's face on the seat-back screens moves with our line (log `Screen face watched: addon-delamain-cab-delamain`;
+    while the destination map is open (every voice is the browser renderer's now: note whether it follows a paused game). (d) Delamain's face on the seat-back screens moves with our line (log `Screen face watched: addon-delamain-cab-delamain`;
     if the mouth stays still, the screen NPC may not spawn as an `NPCPuppet`, may spawn before the cab state reaches 1, or its rig may
     fail the 59-track check: the face status reads `screen:unsupported-rig`). (e) The game's own vanilla lip sync of other Delamain
     lines still works, and the FPS during the ride is unchanged.

@@ -7,7 +7,7 @@ import {NaturalSpeech, OMNI_TAGS, displayText, keepSpeechTags, parseTagged, spee
   hasSpeechTags} from './natural-speech.mjs';
 import {ExpressiveEmotions, EXPRESSIVE_TEXT} from './expressive-emotions.mjs';
 import {FollowUp, FOLLOW_UP_TEXT} from './follow-up.mjs';
-import {splitSpeechText} from './speech-stream.mjs';
+import {splitSpeechText} from './speech-phrases.mjs';
 
 // ---- the grammar ------------------------------------------------------------------------------------------------------
 

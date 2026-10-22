@@ -6,18 +6,17 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
 import {configureKnowledgeParts, preloadKnowledgePart} from './knowledge-parts.mjs';
-import {audioReady, prepareSpeech} from './speech-audio.mjs';
+import {audioReady, removeAudioDepot} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
-import {buildFacialTimeline} from './facial-timeline.mjs';
 import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {SpeechPace} from './speech-pace.mjs';
 import {encodeSegmentedFace} from './continuous-face-file.mjs';
 import {timelineRecord, TIMELINE_PREFIX} from './expression-timeline.mjs';
 import {JaliFace} from './jali-face.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
-import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
+import {planSignal, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
-import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
+import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
 import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
@@ -896,23 +895,18 @@ const partyPath = resolve(runtime, 'party-connections.json');
 const nearbyPath = resolve(runtime, 'nearby-connections.json');
 const sessions = new Map();
 const realtimeSessions = new Map();
-const audioDepot = resolve(game, 'r6/audioware/CyberpunkConvai');
+// Older versions wrote Audioware's reply slots here; nothing uses them now (every voice plays through the renderer), so what is left is removed.
+void removeAudioDepot(game).catch(() => {});
 const speechStateFile = async () => {
   try { return JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8')); } catch { return {}; }
 };
-// The game's heartbeat file: readSpeechState() reads it (receipts, the watchdog, the speech slots); readSpeechStateCached() answers a turn's
+// The game's heartbeat file: readSpeechState() reads it (receipts, the watchdog); readSpeechStateCached() answers a turn's
 // questions from a read at most 1 s old (bridge/speech-state-cache.mjs).
 const speechStateReader = createSpeechStateReader({read: speechStateFile});
 const readSpeechState = () => speechStateReader.fresh();
 const readSpeechStateCached = () => speechStateReader.cached();
-const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
-let streamWriting=Promise.resolve(),streaming=0;
-function writeStreamManifest(document,current){
-  const job=streamWriting.catch(()=>{}).then(async()=>{
-    if(await current())await atomic(resolve(runtime,'speech-stream.json'),JSON.stringify(document),
-      {isCurrent:current,isCurrentSync:current.sync});
-  });streamWriting=job;return job;
-}
+// How many OmniVoice replies are still rendering phrases (the worker takes one job at a time; a held look-ahead turn waits for them).
+let streaming = 0;
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options),
   // One line for every turn that carried an ordinary NPC's reaction offer (docs/NPC_REACTIONS.md): where it stopped, or that it was handed over.
@@ -1177,11 +1171,6 @@ function referenceSetFor(engine, language, voiceKey) {
     : localVoice.cloudActive ? cloudReferenceOf(localVoice, voiceKey, voiceSources) : referenceOf(localVoice, 'pocket', voiceKey, voiceSources);
   return english?.set ?? null;
 }
-// Developer mode: the capture of the reply OmniVoice is speaking now (every phrase of it is added by synthesizeOmniPhrase).
-let omniReplyCapture;
-const beginOmniCapture = (voiceKey, language) => {
-  omniReplyCapture = replyCapture.enabled ? replyCapture.begin({engine: 'omni', voiceKey, language: language ?? 'en', reference: referenceSetFor('omni', language, voiceKey)}) : undefined;
-};
 // The local voice that speaks this turn: an ambient profile (unnamed NPC) may have several (bridge/voice-variants.mjs),
 // chosen from the NPC's stable identity. Decided once per turn (the same turn's phrases, look-ahead and prefetch agree)
 // and only when it is spoken; routing, readiness and the provider keep using the BASE profile key.
@@ -1685,8 +1674,8 @@ const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
 
 // `streamed` (optional, set by respondStreamed): the reply is still being written and `result` holds only its first sentence, which
 // is voiced at once; the finished reply is merged into the returned result when the voice is done (bridge/reply-stream.mjs).
-async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input), streamed, omniSpeculation) {
-  const spoken = await synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed, omniSpeculation);
+async function synthesizeReply(input, result, signal, current, profile = profileFor(input, roster), receiptPrepared = preparedInputs.get(input), streamed) {
+  const spoken = await synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed);
   if (!streamed) return spoken;
   return streamed.settle ? streamed.settle(spoken) : mergeFinishedReply(spoken, await finishedReply(streamed, spoken), streamed);
 }
@@ -1710,7 +1699,7 @@ function mergeFinishedReply(spoken, final, streamed) {
     timing: {...final?.timing, ...spoken.timing}};
 }
 
-async function synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed, omniSpeculation) {
+async function synthesizeReplyBody(input, result, signal, current, profile, receiptPrepared, streamed) {
   if(localVoice.playbackEnabled===false)return{...result,audio:undefined,faces:[],captions:[]};
   const turnPlan = turnVoice(input);
   if (turnPlan.engine === 'convai') {
@@ -1747,13 +1736,10 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   // Convai turns send that label about 0.5 s after the text (lateEmotionToken), so it is awaited alongside the voice
   // and used when it is there in time: Omni re-plans before the first phrase's face is built, Pocket's stream
   // planner picks it up on its next rebuild. The receipt records what was used, with no dialogue text.
-  // Omni renders one audio file per phrase: its phrase edges are forced segment boundaries, so every phrase gets its
-  // own expression aligned to its own audio. Pocket and Convai streams segment by sentence and are aligned to the
-  // audio by pauses/duration (bridge/expression-timeline.mjs).
+  // The face's expression is aligned to the audio by pauses and duration (bridge/expression-timeline.mjs), for every voice.
   const player = typeof result.userText === 'string' && result.userText.trim() ? result.userText : input.text;
-  const spans = omni ? phraseOffsets(result.text, splitSpeechText(result.text)) : undefined;
   const planFor = convai => emotionSelection.plan({player, reply: result.text, profile: input.profileKey, convai,
-    marks: result.emotionMarks, breaks: spans ? spans.slice(1).map(span => span[0]) : []});
+    marks: result.emotionMarks, breaks: []});
   const late = {signal: undefined, settled: false, startedAt: Date.now()};
   if (result.expressionSignal === undefined && Number.isSafeInteger(result.lateEmotionToken)) {
     const config = realtimeConfig(input), token = result.lateEmotionToken;
@@ -1776,7 +1762,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     basis: expression?.basis ?? null, delivered: expression !== undefined, ...extra,
     plan: plan ? {trait: plan.trait, baseline: plan.baseline, evidence: plan.evidence ?? null, summary: plan.summary ?? null,
       segments: plan.segments.map(segment => ({from: segment.start, to: segment.end, seconds: Math.round(segment.seconds * 100) / 100,
-        weights: segment.weights, dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags})), phrases: spans} : null})).catch(() => {});
+        weights: segment.weights, dominant: segment.dominant, mixed: segment.mixed, tags: segment.tags}))} : null})).catch(() => {});
   // A calm plan has no reply-level cue: the face rests neutral instead of holding a label after the reply.
   const withPlan = (base, plan) => {
     let next = {...base, expressionSignal: base.expressionSignal ?? result.expressionSignal};
@@ -1806,7 +1792,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     expressionReceipt(plan, late.signal, {convai: late.signal.emotion, convaiLate: late.lateMs ?? null});
     return true;
   };
-  if (!omni && !streamed) late.promise?.then(() => refine(), () => {});
+  if (!streamed) late.promise?.then(() => refine(), () => {});
   if (streamed) streamed.settle = async spoken => {
     const final = await finishedReply(streamed, spoken);
     const merged = mergeFinishedReply(spoken, final, streamed);
@@ -1824,63 +1810,27 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       ...(result.expressionPlan ? {expressionPlan: result.expressionPlan} : {})};
   };
   const ahead = current?.ahead;
-  if(omni){
-    // The one GPU worker is FIFO. A look-ahead phrase queued while the speaker
-    // being heard still has phrases to render would delay that speaker's own
-    // next phrase; wait for its production to finish (its audio plays on).
-    if(ahead?.isHeld())await waitUntil(()=>streaming===0,{signal});
-    const lookahead=new AbortController(),cancelLookahead=()=>lookahead.abort();
-    signal?.addEventListener('abort',cancelLookahead,{once:true});
-    try{
-      const phrases=splitSpeechText(result.text),steps=localVoice.steps;
-      // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase.
-      const voiced=(naturalSpeech.enabled?speechPhrases(phrases,result.speechText,omniTagsFor(language)):undefined)??phrases;
-      // OmniVoice renders one phrase at a time: the first phrase of a reply whose first sentence was seen while it was still being
-      // written is already rendering (respondStreamed). It is used when it is the phrase this reply starts with, else dropped.
-      const reuse=omniSpeculation&&omniSpeculation.phrase===voiced[0]&&omniSpeculation.language===language&&omniSpeculation.steps===steps;
-      if(omniSpeculation&&!reuse)omniSpeculation.cancel();
-      // Developer mode: a reply that was not rendered ahead starts its capture here (a rendered-ahead one began it with its first phrase).
-      if(!reuse)beginOmniCapture(voiceKey,language);
-      const first=reuse?omniSpeculation.promise:synthesizeOmniPhrase(voiceKey,voiced[0],{signal,steps,language,preStore:true});
-      // Queue phrase 2 behind phrase 1 now: the GPU renders it while phrase 1's
-      // lip analysis, storage and publication run, instead of after them.
-      let second;
-      if(phrases.length>1){second=synthesizeOmniPhrase(voiceKey,voiced[1],{signal:lookahead.signal,steps,language});second.catch(()=>{});}
-      const generated=await first;
-      // Convai's late label is normally in by now (phrase 1 takes longer to render than it takes to arrive); never wait.
-      // If it comes later, the phrases not yet rendered use it: the stream holds this same plan object.
-      if(late.settled)refine();
-      else{const shared=result.expressionPlan;late.promise?.then(()=>{if(refine()&&shared&&result.expressionPlan!==shared)Object.assign(shared,result.expressionPlan);},()=>{});}
-      // The worker says when it spoke from the English reference because the pack's clip was refused: the line says so too.
-      logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText, ...(generated.timing?.voiceLanguageReference === 'fallback' ? {languageSet: null} : {})});
-      // The record says whether the first phrase rendered while the model wrote was used (a voice tag in it, Natural speech, makes the
-      // finished reply's first phrase differ and the phrase is rendered again: docs/perf, LATENCY.md).
-      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing,
-          ...(omniSpeculation?{omniSpeculation:reuse?'reused':'dropped'}:{})},
-        streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,voiceKey,lookahead:{promise:second,cancel:cancelLookahead},
-          expressionPlan:result.expressionPlan,spans}:undefined};
-    }catch(error){
-      cancelLookahead();
-      throwIfCancelled(signal);console.error('[CyberpunkConvai] Omni speech:',error.message);
-      logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'OmniVoice worker error: written reply only'});
-      return {...result,audio:undefined,faces:[],captions:[],audioError:'Local voice is unavailable; showing the written reply.'};
-    }
-  }
   if ((await readSpeechStateCached()).continuousAvailable !== true) {
     logVoiceRoute(input, profile, {engine: 'none', language: voice.language}, {reason: 'local streaming unavailable: written reply only'});
     return {...result, audio: undefined, faces: [], captions: [],
       audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   logVoiceRoute(input, profile, voice);
-  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, streamed ? streamed.marks : result.emotionMarks, {player, late});
+  const speech = continuousSpeech(input, profile, current, signal, receiptPrepared, true, streamed ? streamed.marks : result.emotionMarks, {player, late, engine: omni ? 'omni' : 'pocket'});
+  // OmniVoice speaks through the same renderer as Pocket (docs/OMNIVOICE_PCM.md): its phrases arrive as PCM packets from this adapter.
+  let capture;
+  const engineVoice = omni ? omniVoiceFor({input, result, streamed, language, capture: () => capture}) : localVoice;
   let prefetched;
   if (ahead?.isHeld()) {
+    // The one GPU worker is FIFO: a look-ahead phrase queued while the speaker being heard still has phrases to render would delay that
+    // speaker's own next phrase, so the look-ahead of an OmniVoice reply waits for that production to finish (its audio plays on).
+    if (omni) await waitUntil(() => streaming === 0, {signal});
     // Synthesize now, into memory (the one renderer page may still be draining
     // the previous speaker); the whole text is still sent to Pocket once.
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
     // The voices ignore a reply's emotion marks; they are carried with the request.
     const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, ahead: true, emotion: {marks: replyMarks, sounds: replySounds}, ...(language ? {language} : {})})});
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => engineVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, ahead: true, emotion: {marks: replyMarks, sounds: replySounds}, ...(language ? {language} : {})})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);
@@ -1889,41 +1839,42 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     } catch (error) { prefetched.discard(); throw error; }
   }
   // Developer mode: keep this reply's audio and its reference (undefined, and nothing held, while it is off).
-  const capture = replyCapture.enabled ? replyCapture.begin({engine: localVoice.cloudActive ? 'voxtral' : 'pocket', voiceKey, language: language ?? 'en',
-    reference: referenceSetFor('pocket', language, voiceKey)}) : undefined;
-  return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: localVoice, host: realtime, speech,
+  capture = replyCapture.enabled ? replyCapture.begin({engine: omni ? 'omni' : localVoice.cloudActive ? 'voxtral' : 'pocket', voiceKey, language: language ?? 'en',
+    reference: referenceSetFor(omni ? 'omni' : 'pocket', language, voiceKey)}) : undefined;
+  return deliverPocketSpeech({input, profile, voiceKey, result, current, signal, voice: engineVoice, host: realtime, speech,
     phoneAnalysis:localVoice.phoneAnalysis,jaliFace,prefetched,stream:streamed?.stream,language,capture,
     onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
 }
 
-// options.preStore (the reply's first phrase): the audio is written for its speech slot while the face analysis runs, not after it
-// (bridge/speech-audio.mjs prepareSpeech); the result carries `preStored` for publishResult.
-async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={}){
-  markStage('ttsSent');
-  const capture=omniReplyCapture;
-  const generated=await localVoice.synthesize(profile,text,options);
-  markStage('firstPcm');
-  // Developer mode only (capture is undefined otherwise): the phrase's audio joins the reply's file, and the file says when the English reference spoke instead.
-  if(capture){
-    if(generated.timing?.voiceLanguageReference==='fallback')capture.note({referenceUsed:'english-fallback'});
-    capture.addWav(generated.audio);
-  }
-  let preStored;
-  // The analysis is started first (it runs in a worker), then the file is prepared on this thread while that runs: the other way round
-  // the preparation's 10 ms of decoding and levelling would delay the start of the analysis.
-  const analysing=jaliFace?jaliFace.analyseWav(generated.audio,{...options,text}):null;// the phrase as voiced, tags included
-  analysing?.catch(()=>{});
-  if(preStore&&typeof generated.audio==='string')try{preStored=prepareSpeech(generated.audio,audioDepot);}catch{/* the ordinary store follows */}
-  const withStore=result=>preStored?{...result,preStored}:result;
-  if(jaliFace)try{
-    const facial=await analysing;
-    return withStore({...generated,...facial,timing:{...generated.timing,...facial.timing,voiceProvider:'omni'}});
-  }catch(error){
-    if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);console.error('[CyberpunkConvai] Facial model fallback:',error.message);
-  }
-  // No facial model, or it failed: no cues. The line plays on its audio envelope; no other analyser is started.
-  if(options?.signal?.aborted)void preStored?.discard();throwIfCancelled(options?.signal);
-  return withStore({...generated,timing:{...generated.timing,voiceProvider:'omni'}});
+// OmniVoice's voice for the continuous renderer: the resident worker renders one phrase at a time (a WAV), bridge/omni-pcm.mjs turns the
+// phrases into the PCM packets deliverPocketSpeech feeds the renderer and the streaming face model. Per reply (it knows the reply's
+// voice-tagged text, language and capture); nothing is held between replies. `capture` is read when a phrase arrives (Developer mode).
+function omniVoiceFor({input, result, streamed, language, capture}) {
+  const tagged = (phrases, raw) => naturalSpeech.enabled && typeof raw === 'string' ? speechPhrases(phrases, raw, omniTagsFor(language)) : undefined;
+  let headPhrases = [];
+  const voice = createOmniPcmVoice({
+    steps: () => localVoice.steps,
+    synthesize: async (key, text, options) => {
+      const generated = await localVoice.synthesize(key, text, options);
+      if (generated.timing?.voiceLanguageReference === 'fallback') capture()?.note({referenceUsed: 'english-fallback'});
+      return generated;
+    },
+    // Voice tags (Natural speech) go to OmniVoice only, where the model wrote them; subtitles keep the clean phrase. A reply voiced while it
+    // is still written has them for its rest only (the finished reply's tagged text), never for its first sentence.
+    voicedPhrases: (phrases, {role}) => {
+      if (role === 'tail') {
+        const all = tagged([...headPhrases, ...phrases], streamed?.stream?.meta?.speechText);
+        return all?.slice(headPhrases.length);
+      }
+      headPhrases = phrases;
+      return streamed ? undefined : tagged(phrases, result.speechText);
+    }});
+  // The count keeps memory maintenance and a held look-ahead turn off the worker while this reply still has phrases to render.
+  return {synthesizeStream: async (key, text, options) => {
+    streaming++;
+    try { return await voice.synthesizeStream(key, text, options); }
+    finally { streaming--; prefetchObserved = ''; }
+  }};
 }
 
 // Status writes are queued in call order, so a caller may leave one unawaited (a turn's 'thinking' no longer holds up the
@@ -1942,13 +1893,13 @@ async function status(state, detail = '', turn = null) {
 
 // What a voice engine's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound, sized from how
 // slowly the broken line was produced. One per engine (the Mistral cloud voice, the Pocket voice, the Convai voice): the speed is the engine's.
-const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace();
+const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace(), omniPace = new SpeechPace();
 const paceOf = (local, cloud) => local ? (cloud ? cloudPace : pocketPace) : convaiPace;
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
-  {player = input.text, late} = {}) {
+  {player = input.text, late, engine} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
-  const pace = paceOf(local, localVoice.cloudActive);
+  const pace = engine === 'omni' ? omniPace : paceOf(local, localVoice.cloudActive);
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
     onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
@@ -1984,7 +1935,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
     // The record is written in the background (still in order): the poll that reads the game's lease does not wait for a 25 KB file.
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
-      note(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+      note(input, {...timing, stream: {mode: engine === 'omni' ? 'omni-continuous' : local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
     // The game's first lease reached the bridge (the turn's record: published -> leaseRead is the game's half of the hand-off).
     onLease: () => turnMark(input.requestId, 'leaseRead'),
     // The game was paused (a pause or a menu) while this reply waited for its sound: the slow-turn report leaves the turn out.
@@ -2020,14 +1971,16 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
 }
 
 // Original remote PCM has a continuous renderer. It never enters Omni's text
-// splitter, local TTS worker or per-phrase Audioware file queue.
+// splitter or the local TTS worker.
 async function convaiReply(input, profile, current, signal) {
   logVoiceRoute(input, profile, {engine: 'convai', language: turnVoice(input).language});
   const state = await readSpeechStateCached();
-  // Retain the complete-file adapter until this game session advertises the
-  // new Lua admission controller; installing files alone does not load them.
+  // A game session whose Lua adapter does not advertise continuous playback (the scripts are not loaded yet, or the adapter failed) has no way
+  // to play a voice: the reply is asked as text (no audio is requested) and written, with the one reason the game shows.
   if (state.continuousAvailable !== true) {
-    return {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'};
+    logVoiceRoute(input, profile, {engine: 'none', language: turnVoice(input).language}, {reason: 'local streaming unavailable: written reply only'});
+    return {...await realtime.reply({...realtimeConfig(input), ttsEnabled: false}, {signal}), transport: 'realtime',
+      audioError: 'Local streaming is unavailable; showing the written reply.'};
   }
   const speech = continuousSpeech(input, profile, current, signal);
   try {
@@ -2090,19 +2043,8 @@ async function voiceStreamedReply(input, profile, {signal, current, stream, fina
   const head = await abortable(stream.headReady, signal);
   if (!head) return whole();
   const voice = replyVoice({plan: turnVoice(input), text: head, local: localChoice(input.profileKey)});
-  if (voice.engine === 'omni' && localVoice.playbackEnabled !== false) {
-    // The first phrase renders while the model writes the rest.
-    const phrase = splitSpeechText(head)[0], language = voice.language && voice.language !== 'en' ? voice.language : undefined, steps = localVoice.steps;
-    const controller = new AbortController(), cancel = () => controller.abort();
-    signal?.addEventListener('abort', cancel, {once: true});
-    beginOmniCapture(voiceKeyFor(input), language);   // Developer mode: this phrase opens the capture of the reply
-    const promise = synthesizeOmniPhrase(voiceKeyFor(input), phrase, {signal: controller.signal, steps, language, preStore: true});
-    promise.catch(() => {});
-    final.then(() => {}, cancel);
-    try { return await synthesizeReply(input, await final, signal, current, profile, receiptPrepared, undefined, {phrase, language, steps, promise, cancel}); }
-    finally { signal?.removeEventListener('abort', cancel); cancel(); }
-  }
-  if (voice.engine !== 'pocket' || localVoice.playbackEnabled === false || (await readSpeechStateCached()).continuousAvailable !== true) return whole();
+  // Pocket, Voxtral and OmniVoice are voiced while the reply is still being written: the first sentence goes to the renderer at once.
+  if ((voice.engine !== 'pocket' && voice.engine !== 'omni') || localVoice.playbackEnabled === false || (await readSpeechStateCached()).continuousAvailable !== true) return whole();
   throwIfCancelled(signal);
   // The tags written inside the first sentence move the face from its first frame (the finished reply re-plans with all of them).
   const headMarks = expressiveEmotions.active ? stream.headMarks : [];
@@ -2171,49 +2113,23 @@ async function publishResult(input, profile, result, current = async () => true,
     commitExchange(input);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
-      stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : 'convai-continuous', complete: true},
+      stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : result.timing?.voiceProvider === 'omni' ? 'omni-continuous' : 'convai-continuous', complete: true},
       continuousPlaybackCompleteAt: Date.now()});
     await status('ready', profile.name, {requestId: input.requestId});
     return true;
   }
-  const preparationStartedAt = Date.now();
-  let audio, face, stream, audioError = result.audioError, diagnostic;
-  if (result.audio) {
-    try {
-      if(result.streamPlan){
-        stream=new SpeechStream({input,...result.streamPlan,slots,readState:readSpeechState,current,signal,
-          writeManifest:document=>writeStreamManifest(document,current),
-          synthesize:(text,options)=>synthesizeOmniPhrase(result.streamPlan.voiceKey??profile.key,text,{...options,language:result.streamPlan.language})});
-        const first=await stream.begin(result);audio=first.audio;face=first.face;
-      }else{
-        const id=randomUUID();await slots.begin(id,current);audio=await slots.write(id,1,result.audio,current,result.preStored);
-      }
-      if (!await current()) { stream?.closeQueue(); return false; }
-      try { face ??= buildFacialTimeline(result, input); }
-      catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
-      // A diagnostic file (40 KB): written after the reply is committed, not in front of it (docs/LATENCY_2026-10-13.md, 4.6).
-      diagnostic = () => atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
-        requestId: input.requestId, faces: result.faces, facesFormat: result.facesFormat,
-        captions: result.captions, duration: audio.duration, face,
-      }), {signal, isCurrent: current, isCurrentSync: current.sync});
-    } catch (error) {
-      stream?.closeQueue();result.streamPlan?.lookahead?.cancel?.();
-      audio = undefined; face = undefined;stream=undefined;
-      audioError = 'Voice could not be prepared; showing the written reply.';
-      console.error('[CyberpunkConvai] Voice preparation failed:', error.message);
-    }
-  }
-  if (!await current()) { stream?.closeQueue(); return false; }
+  // Every voice that speaks has been played through the renderer by now (the continuous branch above): what reaches this point is a
+  // written reply, with the reason when the voice could not be had.
+  const audioError = result.audioError;
   // The next group speaker may be prepared from this reply's text from now on.
   lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-    entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
-    stream:stream?.descriptor(),updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
-  if (!committed || !await current()) { stream?.closeQueue(); return false; }
-  void diagnostic?.().catch(() => {});
+    entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
+    updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  if (!committed || !await current()) return false;
   commitExchange(input);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
-    plan: result.expressionPlan, face, signal: result.expressionSignal});
+    plan: result.expressionPlan, face: undefined, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
   prefetch.published(input, result.text);
@@ -2221,21 +2137,8 @@ async function publishResult(input, profile, result, current = async () => true,
   prefetchObserved = '';
   markPublished(input.requestId);
   await measure(input, {transport: result.transport || 'rest', timing: result.timing, preparation: result.preparation,
-    audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
-    stream:stream?{id:stream.manifest.streamId,chunks:stream.phrases.length,mode:'omni-phrases'}:undefined,
-    nativePlaybackObserved: false});
+    publishedAt: Date.now(), nativePlaybackObserved: false});
   await status('ready', profile.name, {requestId: input.requestId});
-  if(stream){
-    streaming++;
-    try{
-      await stream.finish();
-      if(await current())await measure(input,{stream:{id:stream.manifest.streamId,mode:'omni-phrases',
-        chunks:stream.manifest.chunks.length,complete:stream.manifest.complete,error:stream.error,
-        productionMs:Date.now()-stream.started,audioDurationSeconds:stream.totalDuration,
-        timings:stream.manifest.chunks.map(chunk=>({index:chunk.index,readyAt:chunk.readyAt,
-          duration:chunk.audio.duration,...chunk.timing}))}});
-    }finally{streaming--;prefetchObserved='';}
-  }
   return true;
 }
 
@@ -3022,10 +2925,10 @@ async function runInput(request, prepared, clock) {
     if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
     if (canWarm && !ahead && keys.singleSession && input.group?.index === 1 && groupLookaheadAllowed()) void warmRoundAhead(input, controller.signal);
     throwIfCancelled(controller.signal);
-    // A reply the local renderer will voice (Pocket, Voxtral): its page and a silent output device open now, while the model thinks,
+    // A reply the local renderer will voice (Pocket, Voxtral, OmniVoice): its page and a silent output device open now, while the model thinks,
     // instead of after the first sentence (0.15 to 0.75 s under the game in the live records). Not awaited; does nothing while the
     // renderer is busy with another reply.
-    if (!ahead && canWarm && localVoice.playbackEnabled !== false && turnVoice(input).engine === 'pocket'
+    if (!ahead && canWarm && localVoice.playbackEnabled !== false && ['pocket', 'omni'].includes(turnVoice(input).engine)
       && (await readSpeechStateCached()).continuousAvailable === true) void realtime.standbyLocal?.()?.catch(() => {});
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
@@ -3269,8 +3172,8 @@ let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
 let settingsPolling = false, lastVoiceHeartbeat = 0;
 const voicePreview = new VoicePreviewLease();
 // Lip sync delay (Bluetooth), bridge/audio-delay.mjs. The resolved value goes to
-// every browser renderer through its control and to the game (Omni/Audioware
-// path) through runtime/audio-delay.json, read once per utterance.
+// every browser renderer through its control (the game no longer reads
+// runtime/audio-delay.json, the file is still written for diagnostics).
 let audioDelaySetting = 'auto', audioOutput = null, audioDelayPublished = '';
 const audioWatch = new AudioOutputWatch({onChange: output => { audioOutput = output; void applyAudioDelay(); }});
 async function applyAudioDelay() {

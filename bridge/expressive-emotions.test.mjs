@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 import {NaturalSpeech, EMOTION_NAMES, parseTagged, stripSpeechTags, keepSpeechTags, displayText, hasSpeechTags,
   hasEmotionTags, speechPhrases, OMNI_TAGS} from './natural-speech.mjs';
 import {ExpressiveEmotions, EXPRESSIVE_TEXT, EMOTION_FAMILY, MARK_WEIGHT, plannedMarks} from './expressive-emotions.mjs';
-import {analyseReply, createPlanner, planRange, planSignal, phraseOffsets, FAMILIES} from './emotion-analysis.mjs';
+import {analyseReply, createPlanner, planSignal, FAMILIES} from './emotion-analysis.mjs';
 import {attachExpressionTrack, sampleTrack, alignSegments, findPauses, speechActivity} from './expression-timeline.mjs';
-import {splitSpeechText} from './speech-stream.mjs';
+import {splitSpeechText} from './speech-phrases.mjs';
 
 const RAW = '{interest} Hey V, [sigh] you made it. {sadness:strong} But Jackie is gone, and I miss him. {calm} Let us go {joy} and celebrate.';
 
@@ -250,23 +250,26 @@ test('a mark in the middle of a sentence is placed by spoken length inside its s
   assert.ok(starts[2] > 3 && starts[2] < 4.3, `sadness at ${starts[2]}`);
 });
 
-test('OmniVoice: each phrase is its own audio, so a mark at a phrase start changes the face at that phrase\'s first sound', () => {
+test('OmniVoice: its phrases are one stream, so a mark at a phrase start changes the face at the first sound of its phrase, found from the pause before it', () => {
   const raw = '{interest} Hey V, I have been thinking about what happened last night. {sadness:strong} We could head down to the market together, pick up some food and talk about the next job. That sounds good to me.';
   const parsed = parseTagged(raw), phrases = splitSpeechText(parsed.display);
   assert.ok(phrases.length >= 2);
-  const spans = phraseOffsets(parsed.display, phrases);
-  const plan = analyseReply(parsed.display, {profile: 'judy-alvarez', marks: parsed.marks,
-    breaks: spans.slice(1).map(span => span[0])});
   const second = parsed.marks[1].at;
-  assert.equal(spans[1][0], second, 'the sadness mark opens the second phrase');
-  const phrasePlan = planRange(plan, spans[1][0], spans[1][1]);
-  assert.equal(phrasePlan.segments[0].start, 0);
-  assert.equal(phrasePlan.segments[0].dominant, 'sadness');
-  const face = attachExpressionTrack(mouth(4, []), phrasePlan);
-  const first = sampleTrack(face.expressionTrack, 0);
-  assert.ok(first[FAMILIES.indexOf('sadness')] > .5, 'the phrase\'s audio starts already sad (its own timeline begins at 0)');
-  const firstPhrase = planRange(plan, spans[0][0], spans[0][1]);
-  assert.equal(firstPhrase.segments[0].dominant, 'anticipation');
+  assert.equal(parsed.display.indexOf(phrases[1]), second, 'the sadness mark opens the second phrase');
+  // One plan for the whole reply (the continuous planner, no per-phrase plan): the mark starts a part of its own at the phrase start.
+  const plan = analyseReply(parsed.display, {profile: 'judy-alvarez', marks: parsed.marks});
+  const part = plan.segments.findIndex(segment => segment.from === second || (segment.start <= second && segment.end > second));
+  assert.ok(part > 0);
+  assert.equal(plan.segments[part].dominant, 'sadness');
+  assert.equal(plan.segments[0].dominant, 'anticipation');
+  // The audio is the phrases back to back with the silence the renderer got between them: phrase one 0-3.2 s, a pause, phrase two from 3.9 s.
+  const face = attachExpressionTrack(mouth(9, [[3.2, 3.9]]), plan);
+  const track = face.expressionTrack, sad = FAMILIES.indexOf('sadness');
+  assert.ok(Math.abs(track.segments[part].start - 3.9) <= .1, `the sad part starts at ${track.segments[part].start}`);
+  assert.equal(track.segments[part].anchored, true);
+  assert.ok(sampleTrack(track, 2)[sad] < .2, 'phrase one is not sad');
+  assert.ok(sampleTrack(track, 3.9 + .6)[sad] > .5, 'the second phrase is sad from its first sound');
+  assert.ok(sampleTrack(track, 1)[FAMILIES.indexOf('anticipation')] > .3);
 });
 
 test('Pocket: the planner reads the marks the growing stream has reached and aligns them as the audio arrives', () => {
@@ -294,9 +297,9 @@ test('the bridge cleans every reply, adds the block after Natural speech, and ha
   assert.equal(bridge.match(/transformReply: cleanReply/g).length, 4, 'conversation, phone, Mistral and add-on speaker hosts');
   assert.match(bridge, /naturalSpeechContext\(input\)\), block\('notes', expressiveEmotionsContext\(input\)\),/);
   assert.match(bridge, /expressiveEmotions\.contextFor\(\{engine, spoken: !phone && localVoice\.playbackEnabled !== false\}\)/);
-  // One plan function serves Omni and Pocket's first plan (bridge/emotion-selector.mjs); Pocket's stream planner gets the marks too.
+  // OmniVoice and Pocket share one continuous speech and one planner (bridge/emotion-selector.mjs), which gets the marks.
   assert.equal(bridge.match(/marks: result\.emotionMarks/g).length, 1, 'the reply plan');
-  assert.match(bridge, /continuousSpeech\(input, profile, current, signal, receiptPrepared, true, streamed \? streamed\.marks : result\.emotionMarks, \{player, late\}\)/);
+  assert.match(bridge, /continuousSpeech\(input, profile, current, signal, receiptPrepared, true, streamed \? streamed\.marks : result\.emotionMarks, \{player, late, engine: omni \? 'omni' : 'pocket'\}\)/);
   assert.match(bridge, /emotionSelection\.planner\(\{player, profile: input\.profileKey, marks, late\}\)/);
   assert.match(bridge, /expressiveEmotions\.update\(settings\)/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');

@@ -2,6 +2,10 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in the next release
+
+- **Fewer mods needed**: Audioware and TweakXL are no longer needed. Voices play through the mod's own audio, so game patches that break Audioware no longer silence the mod. If you still have either installed, nothing changes for you.
+
 ## What's new in 0.2.9
 
 - **A safer Convai sign-in**: the Runtime no longer contains the shared Convai login. It signs in to the shared account through a small online service instead, and tells you once if it cannot.
@@ -111,7 +115,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
-- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, and either Mod Configuration Menu 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518, tested with 1.96). One of the two is enough; with both, the manager uses Mod Configuration Menu.
+- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, and either Mod Configuration Menu 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518, tested with 1.96). One of the two is enough; with both, the manager uses Mod Configuration Menu.
 - A Chromium browser for the conversation service: Microsoft Edge, which comes with Windows, is enough. Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too; Firefox does not
 - An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
@@ -226,7 +230,7 @@ Delete these folders from your Cyberpunk 2077 folder:
 - `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your settings and phone chats)
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice and Local AI packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
-- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (the scripts and speech files; internal names)
+- `r6\scripts\CyberpunkConvai` (the scripts; internal name), and `r6\audioware\CyberpunkConvai` if an older version left it
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 - `HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt`, if it is still there
 

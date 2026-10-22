@@ -382,7 +382,7 @@ done:
 
 __declspec(dllexport) uint32_t Supports(void) {
     /* RED4EXT_API_VERSION_1. With the 0.5.0 SDK field below this matches what the
-     * installed audioware plugin reports to RED4ext 1.30, which loads it. */
+     * other RED4ext plugins report to RED4ext 1.30, which loads this one. */
     return 1;
 }
 

@@ -1,11 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import {DIALOGUE_MAKEUP_DB, activeMakeupDb, applyGainLimited, dbToGain, dialogueLevel, integratedLoudness,
   kWeighting, levelWav, updateDialogueLevel} from './dialogue-level.mjs';
-import {readPcmWav, silentWav, storeSpeech} from './speech-audio.mjs';
+import {readPcmWav, silentWav} from './speech-audio.mjs';
 import {ContinuousPcmPlayer, LIMITER, airCutoff} from './continuous-pcm-player.mjs';
 import {playbackControl} from './continuous-pcm-core.mjs';
 
@@ -41,18 +38,29 @@ test('levelling adds the makeup gain, holds peaks under the ceiling and keeps le
   assert.equal(out.indexOf(Math.max(...out)), 2400);
 });
 
-test('Audioware slot WAVs carry the level; matching off writes the original bytes', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'dialogue-level-'));
-  try {
-    const source = wav16(sine(24000, 1.5, .1), 24000);
-    await storeSpeech(source.toString('base64'), directory, 1, {makeupDb: 0});
-    assert.deepEqual(await readFile(join(directory, 'reply-1.wav')), source);
-    const stored = await storeSpeech(source.toString('base64'), directory, 2, {makeupDb: 6});
-    assert.equal(stored.duration, 1.5);
-    const gained = lufs(pcmOf(await readFile(join(directory, 'reply-2.wav'))), 24000) - lufs(pcmOf(source), 24000);
-    assert.ok(Math.abs(gained - 6) < .1, `gain ${gained}`);
-    assert.deepEqual(levelWav(readPcmWav(silentWav()), 6), silentWav());
-  } finally { await rm(directory, {recursive: true, force: true}); }
+test('levelWav, the offline helper, adds the level to any supported WAV and writes a 16-bit WAV of the same length and rate', () => {
+  const source = wav16(sine(24000, 1.5, .1), 24000);
+  const out = levelWav(readPcmWav(source), 6);
+  const info = readPcmWav(out);
+  assert.equal(info.bits, 16); assert.equal(info.sampleRate, 24000); assert.equal(info.channels, 1); assert.equal(info.duration, 1.5);
+  const gained = lufs(pcmOf(out), 24000) - lufs(pcmOf(source), 24000);
+  assert.ok(Math.abs(gained - 6) < .1, `gain ${gained}`);
+  assert.deepEqual(levelWav(readPcmWav(silentWav()), 6), silentWav());
+  // Stereo keeps its image: both channels get the same gain.
+  const stereo = Buffer.alloc(44 + 4800 * 4);
+  silentWav().copy(stereo, 0, 0, 44); stereo.writeUInt16LE(2, 22); stereo.writeUInt32LE(96000, 28); stereo.writeUInt16LE(4, 32); stereo.writeUInt32LE(4800 * 4, 40);
+  stereo.writeUInt32LE(stereo.length - 8, 4);
+  for (let i = 0; i < 4800; i++) { stereo.writeInt16LE(Math.round(3000 * Math.sin(i / 7)), 44 + i * 4); stereo.writeInt16LE(Math.round(1500 * Math.sin(i / 7)), 46 + i * 4); }
+  const wide = readPcmWav(levelWav(readPcmWav(stereo), 6)), left = [], right = [];
+  for (let i = 0; i < 4800; i++) { left.push(wide.data.readInt16LE(i * 4)); right.push(wide.data.readInt16LE(i * 4 + 2)); }
+  assert.equal(wide.channels, 2);
+  for (const i of [100, 1000, 3000]) assert.ok(Math.abs(left[i] / right[i] - 2) < .01, `left/right at ${i}`);
+  // A float32 file is read and written as PCM16.
+  const float = Buffer.alloc(44 + 2400 * 4); silentWav().copy(float, 0, 0, 44);
+  float.writeUInt16LE(3, 20); float.writeUInt32LE(96000, 28); float.writeUInt16LE(4, 32); float.writeUInt16LE(32, 34); float.writeUInt32LE(2400 * 4, 40); float.writeUInt32LE(float.length - 8, 4);
+  for (let i = 0; i < 2400; i++) float.writeFloatLE(.1 * Math.sin(i / 5), 44 + i * 4);
+  const fromFloat = readPcmWav(levelWav(readPcmWav(float), 0));
+  assert.equal(fromFloat.bits, 16); assert.equal(fromFloat.codec, 1); assert.equal(fromFloat.duration, .1);
 });
 
 test('runtime/dialogue-level.json switches matching off, sets a calibrated level, and is clamped', () => {

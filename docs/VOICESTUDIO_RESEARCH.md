@@ -99,7 +99,7 @@ Sources: [raw DSP bypass](https://github.com/debpalash/VoiceStudio/blob/08a1592e
 
 Sources: [NDJSON delivery](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/backend/api/routers/generation.py#L2291-L2446), [WebSocket render and delivery](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/backend/api/routers/tts_stream.py#L150-L185), [WebSocket chunks](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/backend/api/routers/tts_stream.py#L377-L445), [compatible API final buffering](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/backend/api/routers/openai_compat.py#L761-L798).
 
-The native mod currently plays a completed file from a fixed Audioware slot. Using a streaming HTTP API alone cannot change that. Sentence-at-a-time native playback would require explicit queue ownership, slot lifetimes, subtitle timing and group completion changes. First remove the Convai TTS wait and measure full-WAV local synthesis; only add sentence playback if the remaining gap warrants that work.
+The native mod played a completed file from a fixed Audioware slot (written when this was researched; since 2026-10-22 each phrase is fed as PCM to the continuous browser renderer instead). Using a streaming HTTP API alone cannot change that. Sentence-at-a-time native playback would require explicit queue ownership, slot lifetimes, subtitle timing and group completion changes. First remove the Convai TTS wait and measure full-WAV local synthesis; only add sentence playback if the remaining gap warrants that work.
 
 ## 4. Supported engine choices on this Windows host
 

@@ -376,7 +376,7 @@ export function parseGameEvents(text) {
   if (!value || typeof value !== 'object' || value.version !== 1) return {game: {}, events: []};
   const game = {};
   if (value.game && typeof value.game === 'object' && !Array.isArray(value.game)) {
-    for (const key of ['game', 'cet', 'codeware', 'audioware', 'tweakxl', 'redscript', 'red4ext', 'mcm', 'scripts', 'language']) {
+    for (const key of ['game', 'cet', 'codeware', 'redscript', 'red4ext', 'mcm', 'scripts', 'language']) {
       if (typeof value.game[key] === 'string' && value.game[key].trim()) game[key] = clip(value.game[key].trim(), 40);
     }
     if (Array.isArray(value.game.setup)) game.setup = value.game.setup.slice(0, 16).map(line => clip(String(line), 120)).filter(Boolean);

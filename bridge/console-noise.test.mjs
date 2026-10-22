@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {run} from './manager-fixture.mjs';
 
 // The CET console of a player whose setup is incomplete (no Runtime, no browser, Local AI without its pack, an old Mod Configuration
-// Menu, no Native Settings UI, no Audioware): a problem is one short line per session, never a line per tick, press or turn. The
+// Menu, no Native Settings UI): a problem is one short line per session, never a line per tick, press or turn. The
 // once-per-key logger of mod/init.lua is tested here over its real source; the hosts' own once-lines are in mcm-host.test.mjs.
 const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const slice = (from, to) => {
