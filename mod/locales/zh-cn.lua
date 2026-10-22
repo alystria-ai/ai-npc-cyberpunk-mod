@@ -1089,7 +1089,6 @@ return {
     ["Dynamic info"] = "动态信息",
     ["Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider."] = "选择告诉角色哪些实时游戏信息：位置、时间与天气、同行者、生命值、金钱、装备、V 的性别与出身、任务与日志，以及近期游戏对话。\n\n默认全部开启。关闭的类别不会发送给任何对话提供方。",
     ["What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom)."] = "游戏向每个角色告知的当下情况。角色只会在合适的时候提及。\n\n关闭的类别会从每个对话提供方（Convai、Mistral、Local AI 和自定义）中移除。",
-    ["Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider."] = "选择告诉角色哪些实时游戏信息：位置、时间与天气、同行者、生命值、金钱、装备、任务与日志，以及近期游戏对话。\n\n默认全部开启。关闭的类别不会发送给任何对话提供方。",
     ["Location"] = "位置",
     ["Where V is: the district, and V’s apartment or the named place when the game says so.\n\nOff: characters are not told where you are, and the mod stops reading it from the game. The picture Convai gets of what V sees, and an add-on’s own text, are not affected."] = "V 所在的位置：所在街区，以及 V 的公寓，或游戏指明时的具名地点。\n\n关闭：不会告知角色你在哪里，模组也会停止从游戏中读取位置。Convai 获取的 V 所见画面，以及附加模组自身的文字，不受影响。",
     ["Time and weather"] = "时间与天气",
