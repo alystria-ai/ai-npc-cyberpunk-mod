@@ -9,7 +9,7 @@ When the mod hits an error, it sends a small, redacted error report to the proje
 - What went wrong: the kind of error, its message and where in the code it happened.
 - Versions: the mod's Scripts and Runtime, the game, Cyber Engine Tweaks, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node and Windows.
 - Your choices: conversation provider, companion voice, Local AI model, interface language, and whether Mature content is on (on or off, nothing more).
-- Your graphics card's name and memory.
+- Your graphics card's name and memory, and how much RAM the PC has and how much memory Windows can hand out in all (RAM plus the paging file), two numbers.
 - When replies stay slow: how long each stage of a few recent replies took (numbers and stage names only), their token counts and how long the session had run. Never what was said.
 - The setup check's lines (the same ones as on the Help page).
 - Up to 150 log lines from around the error: the conversation service's log, the launcher's, the mod's own logs, and the error lines of the redscript log.

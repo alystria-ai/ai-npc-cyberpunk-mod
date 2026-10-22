@@ -794,11 +794,13 @@ function retryFixture({omni = [], pocket = [], options = {}} = {}) {
       profileReady(key) { return loaded && this.hasProfile(key); }, setSteps(value) { this.steps = value; }, setKeepPrepared() {},
       async start() {
         this.starts++;
-        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill', 'integrity', 'missing', 'fault', 'oom'].includes(mode)) {
+        if (['fail', 'blocked', 'paths', 'nocuda', 'timeout', 'timeout-spill', 'integrity', 'missing', 'fault', 'oom', 'paging', 'paging-fault'].includes(mode)) {
           this.failure = Error(mode === 'blocked' ? 'Pocket student runtime is unavailable (ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.)'
             : mode === 'integrity' ? 'Pocket student runtime is unavailable (Pocket source differs from the pinned official revision (3 files))'
             : mode === 'missing' ? 'Local voice worker exited (1): FileNotFoundError: [Errno 2] No such file or directory: model.safetensors'
             : mode === 'fault' ? 'Local voice worker exited (3221225477 = access violation (0xC0000005)): Windows fatal exception: access violation'
+            : mode === 'paging' ? 'Local voice worker exited (1): OSError: The paging file is too small for this operation to complete. (os error 1455)'
+            : mode === 'paging-fault' ? 'Local voice worker exited (3221225477 = access violation (0xC0000005)): OSError: [Errno 22] 1455 not enough commit'
             : mode === 'oom' ? 'Local voice worker exited (1): torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB'
             : mode === 'paths' ? 'Local voice worker did not confirm its portable asset and data paths' : mode === 'nocuda' ? NO_CUDA_FAILURE : mode.startsWith('timeout') ? 'Local voice preparation timed out' : backend + ' worker failed');
           if (mode === 'timeout-spill') this.failure.gpu = {dedicatedMiB: 2036, sharedMiB: 518};
@@ -1175,6 +1177,67 @@ test('a Pocket that Windows blocked (Smart App Control, an Application Control p
   assert.equal(blockedByWindows('ImportError: DLL load failed while importing _streams: An Application Control policy has blocked this file.'), true);
   assert.equal(blockedByWindows('Pocket source differs from the pinned official revision'), false);
   assert.equal(blockedByWindows(undefined), false);
+});
+
+// 2026-10-22 reports (one RTX 5090 test box, install efde3b): "The paging file is too small for this operation to complete" (Windows error 1455) in the OmniVoice and both Pocket workers, with access violations
+// at the loads. Asking again loaded the models again at 45 s and 180 s.
+test('Windows out of memory (the paging file is too small): OmniVoice is not tried again, Pocket takes its place, and if Pocket fails the same way the reply is written', async () => {
+  const h = retryFixture({omni: ['paging', 'ok'], pocket: ['ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniRetry, null, 'no retry story'); assert.equal(h.states.at(-1).omniRetry, null);
+  assert.equal(h.logs.filter(line => /\[OmniRetry\] not trying again: Windows ran out of memory for the voice \(the paging file is too small\)/.test(line)).length, 1);
+  assert.ok(!h.logs.some(line => /trying again in|the CUDA graph/.test(line)));
+  assert.equal(h.voice.omniGraphOff, false);
+  // OmniVoice falls back to Pocket as it does for too little graphics memory, told once with its own reason; the menu does not claim the card is too small.
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 1); assert.equal(h.voice.provider, 'pocket');
+  assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', reason: 'virtual-memory'});
+  assert.equal(h.states.at(-1).omniSmallCard, false);
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 1, 'no second Omni load, however long it waits'); assert.equal(h.failures.length, 1);
+  await h.voice.close(); assert.equal(h.live(), 0);
+  // Pocket fails the same way: the reply is written, once told, never retried.
+  const both = retryFixture({omni: ['paging', 'ok'], pocket: ['paging', 'ok']});
+  both.voice.update({voiceProvider: 'omni'}, null, false); await both.settle();
+  both.voice.update({}, null, false); await both.voice.start(); await both.settle();
+  for (let i = 0; i < 3; i++) { both.voice.update({}, null, false); await both.settle(); }
+  assert.equal(both.voice.provider, 'text'); assert.deepEqual(both.voice.fallback, {from: 'omni', to: 'text', reason: 'virtual-memory'});
+  assert.equal(both.voice.pocketRetry, null);
+  assert.ok(both.logs.some(line => /\[PocketRetry\] not trying again: Windows ran out of memory for the voice/.test(line)));
+  for (const delay of [45_000, 180_000, 600_000]) { both.advance(delay); both.voice.update({}, null, false); await both.settle(); }
+  assert.equal(both.omniWorkers().length, 1); assert.equal(both.pocketWorkers().length, 1, 'neither is loaded again');
+  assert.equal(both.voice.voiceProblem().cause, 'virtual-memory');
+  await both.voice.close(); assert.equal(both.live(), 0);
+});
+
+test('a Pocket that Windows had no memory for is not tried again, the problem names the cause, and choosing Pocket again tries it once', async () => {
+  const h = retryFixture({pocket: ['paging', 'ok']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.pocketRetry, null);
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'text', reason: 'virtual-memory'});
+  assert.deepEqual(h.voice.voiceProblem(), {engine: 'pocket', reason: h.voice.failureReasons.pocket, cause: 'virtual-memory'});
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.pocketWorkers().length, 1);
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 2, 'one more try after the player chose Pocket again'); assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null);
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('an access violation that comes with a 1455 line is the same family: no retry with the CUDA graph off; a plain access violation still gets it', async () => {
+  const h = retryFixture({omni: ['paging-fault', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniRetry, null); assert.equal(h.voice.omniGraphOff, false);
+  assert.ok(h.logs.some(line => /not trying again: Windows ran out of memory for the voice/.test(line)) && !h.logs.some(line => /CUDA graph/.test(line)));
+  const plain = retryFixture({omni: ['fault', 'ok']});
+  plain.voice.update({voiceProvider: 'omni'}, null, false); await plain.settle();
+  plain.voice.update({}, null, false); await plain.voice.start(); await plain.settle();
+  assert.equal(plain.voice.omniGraphOff, true); assert.ok(plain.voice.omniRetry);
+  assert.equal(permanentVoiceFailure('Local voice worker exited (1): OSError: The paging file is too small for this operation to complete. (os error 1455)'), 'Windows ran out of memory for the voice (the paging file is too small)');
+  assert.equal(permanentVoiceFailure('Local voice worker exited (3221225477 = access violation (0xC0000005)): Windows fatal exception: access violation'), null, 'an access violation alone is not a paging-file failure');
+  await h.voice.close(); await plain.voice.close();
 });
 
 // 2026-10-22 review of the player reports: one install logged 18 retries of a Pocket source-integrity failure (a rehash of hundreds of megabytes and a

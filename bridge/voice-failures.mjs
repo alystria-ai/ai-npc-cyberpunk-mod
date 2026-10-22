@@ -20,13 +20,34 @@ export function describeExitCode(code) {
   return meaning ? `${code} = ${meaning} (0x${unsigned.toString(16).toUpperCase()})` : String(code);
 }
 
+// Windows ran out of memory it can promise ("commit": RAM plus the paging file), error 1455 (ERROR_COMMITMENT_LIMIT): "The paging file is too small for this operation
+// to complete" in a safetensors load, an ImportError of a DLL, or `import torch`. A page file that is small, fixed or switched off, beside the game and Local AI. Asking again
+// cannot change it. 2026-10-22 reports (one RTX 5090 test box): the OmniVoice worker and both Pocket workers failed this way, with an access violation (3221225477) in the
+// workers that died in the middle of a load, and the retries (45 s, 180 s) loaded the models again each time.
+const PAGING_FILE_WORDS = /paging file (?:is )?too small|\b(?:win)?(?:error|errno)\W{0,3}1455\b|ERROR_COMMITMENT_LIMIT/i;
+const ACCESS_VIOLATION = /\b3221225477\b|0xC0000005|access violation/i;
+const COMMIT_CODE = /\b1455\b/;
+
+/**
+ * Windows is out of commit (the paging file is too small): the words, the code 1455, or an access violation (exit 3221225477) that comes together with a 1455 line. Takes
+ * a worker's stderr (or its tail) or the failure line built from it.
+ */
+export const pagingFileFailed = text => {
+  const value = String(text ?? '');
+  return PAGING_FILE_WORDS.test(value) || (ACCESS_VIOLATION.test(value) && COMMIT_CODE.test(value));
+};
+
 /**
  * The line of a worker's stderr that says why it died: the last one that names an error (a Python exception, an out-of-memory error, a Windows
- * fatal exception), else the last line. Short, no control characters; a report removes any folder from it.
+ * fatal exception), else the last line. Short, no control characters; a report removes any folder from it. A paging-file line (pagingFileFailed) wins over
+ * later lines: the access violation or the traceback end that follows it is only the aftermath, and the line is what the retry logic recognises.
  */
 export function stderrReason(tail, limit = 160) {
   const lines = String(tail ?? '').split(/\r?\n/).map(line => line.replace(/[\u0000-\u001f\u007f]/g, ' ').trim()).filter(Boolean);
   if (!lines.length) return '';
+  const paging = [...lines].reverse().find(line => PAGING_FILE_WORDS.test(line))
+    ?? (lines.some(line => ACCESS_VIOLATION.test(line)) ? [...lines].reverse().find(line => COMMIT_CODE.test(line)) : undefined);
+  if (paging) return paging.slice(0, limit);
   const named = [...lines].reverse().find(line => /(?:error|exception|exit|out of memory|fatal|violation|cuda|failed|cannot|could not)/i.test(line));
   return (named ?? lines.at(-1)).slice(0, limit);
 }

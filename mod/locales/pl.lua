@@ -1075,6 +1075,7 @@ return {
     ["Portuguese"] = "portugalski",
 
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "OmniVoice potrzebuje więcej wolnej pamięci graficznej obok gry. Używany jest Pocket.",
+    ["Windows ran out of memory for the voice. A larger paging file or closing other apps helps."] = "Windows nie ma pamięci dla głosu. Zwiększ plik stronicowania lub zamknij inne programy.",
     ["OmniVoice needs 12 GB"] = "OmniVoice wymaga 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · wymaga karty 12 GB",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Karta graficzna w tym PC ma obok gry mniej niż 12 GB, których potrzebuje OmniVoice. Jeśli OmniVoice się nie uruchomi, użyty zostanie Pocket. Aby pominąć czekanie, wybierz Pocket.",

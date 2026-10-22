@@ -1075,6 +1075,7 @@ return {
     ["Portuguese"] = "Portekizce",
 
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "OmniVoice, oyunun yanında boş olandan fazla ekran belleği gerektiriyor. Pocket kullanılır.",
+    ["Windows ran out of memory for the voice. A larger paging file or closing other apps helps."] = "Windows’ta ses için bellek bitti. Sayfalama dosyasını büyütün veya uygulamaları kapatın.",
     ["OmniVoice needs 12 GB"] = "OmniVoice 12 GB gerektirir",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB kartı gerekir",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Bu bilgisayardaki ekran kartının belleği, oyunun yanında OmniVoice’un ihtiyaç duyduğu 12 GB’tan az. Başlayamazsa Pocket kullanılır. Beklemeden geçmek için Pocket’ı seç.",

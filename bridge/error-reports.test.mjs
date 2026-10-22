@@ -275,7 +275,7 @@ test('no planted secret, conversation text or account name gets out, and the pay
       stack: [`realtime-client.mjs:120 connect ${PLANTED.hexKey}`], detail: {provider: 'convai', note: PLANTED.chat}};
     const {payload, body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state,
       project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], now: () => START,
-      graphics: () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 12288}],
+      graphics: () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 12288}], memory: () => ({totalRamMiB: 32768.4, commitLimitMiB: 40960}),
       gameInfo: {game: '2.31', cet: 'v1.35.0', codeware: '1.20.5', setup: ['codeware: ok found']}});
     for (const [name, value] of Object.entries(PLANTED)) assert.ok(!body.includes(value), `planted ${name} got out`);
     assert.ok(!body.includes(INSTALL), 'the raw install id never leaves');
@@ -296,6 +296,15 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.equal(payload.report.versions.cet, 'v1.35.0');
     assert.equal(payload.report.versions.red4ext, '1.30.0');
     assert.deepEqual(payload.report.system.gpu.map(card => card.memoryMiB), [12288]);
+    // Total RAM and the commit limit (RAM plus paging files) tell a "paging file is too small" failure from another one; two numbers and nothing else.
+    assert.deepEqual([payload.report.system.totalRamMiB, payload.report.system.commitLimitMiB], [32768, 40960]);
+    assert.deepEqual(Object.keys(payload.report.system), ['gpu', 'totalRamMiB', 'commitLimitMiB']);
+    const noFacts = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
+      now: () => START, graphics: () => [], memory: () => { throw Error('powershell is missing'); }});
+    assert.deepEqual([noFacts.payload.report.system.totalRamMiB, noFacts.payload.report.system.commitLimitMiB], [null, null], 'a read that fails is two nulls and the report still goes out');
+    const junk = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser],
+      now: () => START, graphics: () => [], memory: () => ({totalRamMiB: 'lots', commitLimitMiB: -5})});
+    assert.deepEqual([junk.payload.report.system.totalRamMiB, junk.payload.report.system.commitLimitMiB], [null, null]);
     assert.ok(payload.report.setup.includes('game codeware: ok found'));
     assert.ok(payload.report.logs.some(item => item.source === 'bridge-stderr' && item.lines.some(line => line.includes('[text removed]'))));
     assert.ok(payload.report.logs.some(item => item.source === 'redscript' && item.lines.some(line => line.includes('Cannot resolve type'))));
@@ -320,6 +329,17 @@ test('the conversation filter removes quoted sentences and text fields, and keep
   assert.equal(withoutConversation('said anyway: "Sure thing, choom you bet" ~ "x"'), 'said anyway: "[text removed]" ~ "x"');
   assert.equal(withoutConversation('{"text":"hello there","count":1}'), '{"text":"[text removed]","count":1}');
   assert.equal(withoutConversation('prompt = tell me about the heist'), 'prompt = [text removed]');
+});
+
+test('the stuck-reply diagnostic of a Convai turn survives the redactor, and a real transcript does not (2026-10-22 reports f2d59c4a, db4f10eb)', () => {
+  const {clean} = reportCleaner({names: []});
+  const stuck = 'convai: page.evaluate: Error: Convai did not finish the reply (transcript=true text=false complete=false thinking=true audio=off)';
+  assert.equal(clean(stuck), stuck, 'the five flags are written true or false, which the redactor keeps');
+  assert.equal(withoutConversation(stuck), stuck);
+  assert.equal(clean('did not finish the reply (transcript=false text=false complete=undefined thinking=false audio=false)'),
+    'did not finish the reply (transcript=false text=false complete=undefined thinking=false audio=false)');
+  assert.equal(withoutConversation('turn failed transcript=Take me to the Afterlife tonight please'), 'turn failed transcript=[text removed]', 'a transcript is still player text');
+  assert.equal(withoutConversation('(transcript=yes text=no complete=false)'), '(transcript=[text removed]', 'the old yes/no wording was removed with the rest of the line');
 });
 
 test('a large log is cut to fit: the body never passes 60 KB', async () => {
