@@ -86,15 +86,14 @@ local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
 local render
 
--- The decoded table (or nil), and whether the file was there at all (a second value, for a caller that must tell a missing file from an unreadable one).
 local function readJSON(path)
     local file = io.open(path, 'rb')
-    if not file then return nil, false end
+    if not file then return nil end
     local raw = file:read('*a'); file:close()
     -- Windows PowerShell and older Notepad save UTF-8 with a byte-order mark (EF BB BF), which the codec reads as garbage.
     if raw:sub(1, 3) == '\239\187\191' then raw = raw:sub(4) end
     local ok, value = pcall(json.decode, raw)
-    return ok and type(value) == 'table' and value or nil, true
+    return ok and type(value) == 'table' and value or nil
 end
 
 local function clean(value, limit)
@@ -652,12 +651,7 @@ local function loadSettings()
         settingsDeferred, initialized = false, false
     end
     settingsLoaded = true
-    local current, currentThere = readJSON('runtime/settings.json')
-    local previous, previousThere
-    if not current then previous, previousThere = readJSON('runtime/settings.json.previous') end
-    settings = current or previous
-    -- A settings file that is there but cannot be read, with no readable copy, is an unknown state for the error-report setting: not on.
-    local unreadable = settings == nil and (currentThere or previousThere) == true
+    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous')
     settingsDeferred = settings == nil and restorePending()
     settings = settings or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'
@@ -668,8 +662,8 @@ local function loadSettings()
     ui.configure(settings.uiLanguage)
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
-    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off (or the settings file could not be read, see above). The service reads a missing key as on too.
-    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = not unreadable end
+    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
+    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
