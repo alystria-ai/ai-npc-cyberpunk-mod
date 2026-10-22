@@ -140,6 +140,7 @@ test('an English reply after a language swaps the student back; the English path
   const sent = h.requests.slice(count);
   assert.deepEqual(sent.map(row => row.op).filter(op => op !== 'ack'), ['language', 'prepare', 'stream']);
   assert.equal(sent[0].language, null);
+  assert.equal(sent[0].urgent, true, 'the English swap a reply waits for runs at normal priority, like the language one');
   assert.equal(h.client.language, null);
   await h.close();
 });
@@ -175,7 +176,32 @@ test('warming an English voice that is already prepared does not swap the langua
   await h.close();
 });
 
-test('prepareLanguage swaps the model in and prepares the voice ahead of the reply, without urgency', async () => {
+test('while a language is resident an English warm-up swaps nothing, and a voice prepared in the language view counts as ready', async () => {
+  const h = harness();
+  await h.client.start();
+  const spoken = h.client.synthesizeStream(french, 'Salut.', {onPcm: () => {}, pocketLanguage: pocketLanguage()});
+  await h.serve(0); await spoken;
+  assert.equal(h.client.residentLanguage, 'fr');
+  const count = h.requests.length;
+  // nearby warm-up, composer: the English voice is not prepared, but the French model stays (no swap out, no swap back, no hash of the model again)
+  const warm = await h.client.prepareProfile(english);
+  assert.equal(h.requests.length, count, 'nothing is sent to the worker');
+  assert.equal(warm.ready, false); assert.equal(warm.deferred, true);
+  assert.equal(h.client.language, 'fr');
+  // a character prepared through the language view is ready for an invitation, and asking for it again sends nothing
+  assert.equal(h.client.profileReady(french), true);
+  const again = await h.client.prepareProfile(french, {required: true});
+  assert.equal(again.ready, true); assert.equal(h.requests.length, count);
+  // a caller that cannot go on without the English voice (an invitation of a character with no clip in the language's pack) still gets it
+  const needed = h.client.prepareProfile(english, {required: true});
+  await h.serve(count); const receipt = await needed;
+  assert.equal(receipt.ready, true);
+  assert.deepEqual(h.requests.slice(count).map(row => row.op), ['language', 'prepare']);
+  assert.equal(h.requests[count].language, null);
+  await h.close();
+});
+
+test('prepareLanguage swaps the model in and prepares the voice ahead of the reply, urgent only when asked', async () => {
   const h = harness();
   await h.client.start();
   const ahead = h.client.prepareLanguage(french, pocketLanguage());
@@ -184,6 +210,9 @@ test('prepareLanguage swaps the model in and prepares the voice ahead of the rep
   assert.deepEqual(h.requests.slice(0).map(row => row.op), ['language', 'prepare']);
   assert.equal(h.requests[0].urgent, undefined);
   assert.equal(receipt.ready, true);
+  const turn = h.client.prepareLanguage(french, pocketLanguage('it', 'it'), {urgent: true});
+  await h.serve(2); await turn;
+  assert.equal(h.requests.find(row => row.op === 'language' && row.language === 'it').urgent, true, 'a turn-start swap a reply waits for is urgent');
   assert.equal(receipt.language, 'fr');
   assert.equal((await h.client.prepareLanguage(french, null)).ready, false);
   await h.close();

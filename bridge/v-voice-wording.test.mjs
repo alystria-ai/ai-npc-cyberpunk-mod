@@ -15,7 +15,7 @@ test('the companion voice row says the companions\' voice loads no local model a
   assert(!/It loads no local voice model/.test(row) && !/It loads no local voice model/.test(menu));
   assert(menu.includes(row.replace(/\n/g, '\\n')), 'the row in the menu is this text');
   // the V row still says what its own engines load
-  assert(menu.includes('it loads its own small model if the companions use another voice'));
+  assert(menu.includes('its own small model if the companions use another voice'));
 });
 
 test('every language carries the changed row', () => {

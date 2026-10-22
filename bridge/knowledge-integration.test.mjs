@@ -636,15 +636,23 @@ test('group voice missing transcript, first error and stale recognized replies n
 
 test('group voice pause cancels at zero delta, save callbacks cancel ownership and old results cannot revive the round', () => run(`
  start();looked=judy;people={judy,alex}
- for _,stage in ipairs({'recording','waiting','playing'})do
+ -- A menu ends a recording that is still opening or running. A turn already sent (waiting for its reply) completes like a typed one.
+ do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  if stage~='recording'then settle();hotkeys.cyberpunk_convai_group_voice()end
-  if stage=='playing'then respond(context,'Actual spoken question');tick()end
   local plays=#playbacks
   paused=true;tick(0)
   assert(not group.round and not microphone.context and runtime.pending()==nil and not speech.requestId)
   paused=false;respond(context,'Late reply');tick();tick()
   assert(#playbacks==plays and not files['runtime/last-input.json'])
+ end
+ do
+  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
+  settle();hotkeys.cyberpunk_convai_group_voice()
+  paused=true;tick(0)
+  assert(group.round and group.round.stage=='waiting' and microphone.context==context and runtime.pending()==context, 'a sent turn survives the menu')
+  paused=false;respond(context,'Spoken while the menu was open');tick();tick()
+  assert(#playbacks==1 and group.round and group.round.text=='Spoken while the menu was open', 'the reply plays when V is back')
+  group.cancel();speech.requestId=nil
  end
  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
  settle();hotkeys.cyberpunk_convai_group_voice();hooks.OnGameRestored()

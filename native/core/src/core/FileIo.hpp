@@ -20,9 +20,12 @@
 // Model:
 //   - Write/Remove/Rename/Append are queued and return at once. The worker runs them in order.
 //     A Write replaces the file atomically (temp file + a POSIX-semantics rename, which works
-//     while a reader holds the old file open; then MoveFileExW; in-place only as a last resort),
-//     so a reader never sees a torn file. Two queued writes to one channel collapse into the last;
-//     a Remove followed by a Write collapses into the Write (an atomic replace needs no remove).
+//     while a reader holds the old file open; then MoveFileExW; in-place only as a last resort. Under
+//     Mod Organizer 2's virtual file system the POSIX rename is skipped: it bypasses that system),
+//     so a reader never sees a torn file. Two writes to one channel that are next to each other in the queue
+//     collapse into the last; a Remove followed by a Write collapses into the Write (an atomic replace needs
+//     no remove). Operations on different files are never reordered: a write is merged only into the last
+//     queued operation, so a marker file written after its payload always lands after it.
 //   - Read returns the worker's latest copy of a watched file. The worker polls each watched
 //     file at its own period (stat first; it reads only when size or time changed, while the
 //     last write is under 50 ms old, and on a forced re-read every 1 s), and bumps the channel's
@@ -156,8 +159,11 @@ private:
         uint64_t wroteTime = 0;
     };
 
+    // The thread entry points catch everything; the loops hold the work.
     void WorkerMain();
+    void WorkerLoop();
     void WatcherMain();
+    void WatcherLoop();
     void NoteChanged(const std::vector<std::string>& aNames, bool aAll);
     void RunOp(Op& aOp);
     void PollDue(uint64_t aNow);
@@ -199,11 +205,19 @@ private:
 
 FileIo& GlobalFileIo();
 
+// Keeps this DLL mapped until the process ends (GetModuleHandleEx with the pin flag). Called before a
+// plugin thread is detached, so a library RED4ext frees cannot pull the code from under it.
+// Safe to call twice; returns false only if the module could not be pinned.
+bool PinThisModule() noexcept;
+
 // Disk helpers, exposed for the tests.
 namespace fileio
 {
 bool ReadWhole(const std::wstring& aPath, std::string& aOut, bool& aExists);
 bool WriteAtomic(const std::wstring& aPath, std::string_view aData, bool& aUsedFallback);
+// True when a virtual file system (Mod Organizer 2's USVFS) is loaded in this process: WriteAtomic then
+// replaces files with MoveFileExW, which that system sees, instead of the handle-based rename.
+bool VirtualFileSystemLoaded() noexcept;
 bool AppendBytes(const std::wstring& aPath, std::string_view aData);
 bool RemoveFile(const std::wstring& aPath);
 bool RenameFile(const std::wstring& aFrom, const std::wstring& aTo);

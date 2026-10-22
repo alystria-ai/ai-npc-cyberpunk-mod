@@ -21,6 +21,14 @@ export only the original character response and preserve third-party names.
 
 All 80 profiles are written in the first person ("I'm Judy Alvarez, ..."). The research dossiers and native claim packs stay third person (they are evidence-bound); `first-person-profiles.json` holds a first-person copy of each composed backstory and speaking style, keyed by the SHA-256 of the third-person text it was written from, and `buildProfiles` applies it. If a dossier or claim pack changes, the build stops with "the third-person source changed"; remove that key from `first-person-profiles.json`, rebuild, then redo that character: `node scripts/Rewrite-FirstPersonProfiles.mjs extract <workdir>` writes the profiles that are third person again, rewrite their lines, then `check` and `apply`. `report` writes a before/after list to `runtime/first-person-report.md`.
 
+## Example lines and the limit text (2026-10-22)
+
+A profile carries at most ten example lines (`MAX_SAMPLES` in `research/cyberpunk/scripts/build_research.mjs`; the build stops above that). The lines are the dossier's `speakingStyleSampleDialogues` plus those of the adopted native claim pack. The pack's lines are hash-bound and cannot be edited, so a dossier picks the ones to keep with `profile.nativeSampleIds` (pack sample IDs, in order); the dossier keeps at least six lines of its own.
+
+The persona text is the character's own life before V meets them: no quest actions or outcomes narrated as past events, no talk about the game, the mod, saves or quest branches. The knowledge limits of every named character end with one neutral line ("Nothing that happens after V meets me, about myself, V or anyone else, unless the live context says so"); only plain access limits (what the person cannot perceive or reach) and invention guards stay besides it. `bridge/research-build.test.mjs` checks both.
+
+When a dossier changes, the first-person text is renewed in the same commit: the new source hash is the SHA-256 of the composed third-person text (`splitBackstory(...).core` of `buildProfiles` run without the first-person store), and the stored text is edited by hand or by a helper. Lines that come from a native claim pack (the PUBLIC INTRINSIC section) can only be changed in the stored first-person text; do that sparingly, because a later pack change makes the source hash stale and the text must be rewritten.
+
 ## Build and apply
 
 1. Run `npm run build:profiles` to validate coverage and rebuild `roster.json`, `profile-text/`, and the build report.

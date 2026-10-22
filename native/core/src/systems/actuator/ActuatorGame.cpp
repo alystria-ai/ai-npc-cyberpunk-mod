@@ -47,7 +47,8 @@ CBaseFunction* Find(Slot& aSlot, RED4ext::IScriptable* aInstance, const char* aN
 
 Slot g_isAttached, g_isDead, g_position, g_forward, g_aiController, g_commandState;
 
-// A zero-argument call that returns a bool (any size the game writes fits the buffer).
+// A zero-argument call that returns a Bool. The function is checked (no parameters, a Bool back) before it runs:
+// a function of another shape is "unavailable", and Lua reads the value itself.
 bool CallBool(Slot& aSlot, const Object& aObject, const char* aName, bool& aOut)
 {
     if (!aObject || !aObject.instance)
@@ -55,7 +56,7 @@ bool CallBool(Slot& aSlot, const Object& aObject, const char* aName, bool& aOut)
         return false;
     }
     CBaseFunction* function = Find(aSlot, aObject.instance, aName);
-    if (!function || !function->returnType)
+    if (!function || !convai::game::Verified(function, {}, convai::game::Returns::Fits("Bool", 1)))
     {
         return false;
     }
@@ -75,7 +76,9 @@ bool CallVector(Slot& aSlot, const Object& aObject, const char* aName, RED4ext::
         return false;
     }
     CBaseFunction* function = Find(aSlot, aObject.instance, aName);
-    if (!function || !function->returnType)
+    if (!function ||
+        !convai::game::Verified(function, {},
+                                convai::game::Returns::Fits("Vector4", static_cast<uint32_t>(sizeof(RED4ext::Vector4)))))
     {
         return false;
     }
@@ -99,18 +102,25 @@ int32_t ReadState(const Object& aNpc, const Object& aCommand)
         return kStateUnavailable;
     }
     CBaseFunction* controller = Find(g_aiController, aNpc.instance, "GetAIControllerComponent");
-    if (!controller || !controller->returnType ||
-        !RED4ext::ExecuteFunction(static_cast<void*>(aNpc.instance), controller, &ai) || !ai || !ai.instance)
+    RED4ext::StackArgs_t none;
+    // The component comes back as a strong or a weak handle; ExecuteForObject converts either (never a weak
+    // reference written into our strong Handle as it is).
+    if (!controller || !convai::game::Verified(controller, {}, convai::game::Returns::Unchecked()) ||
+        !convai::game::ExecuteForObject(static_cast<void*>(aNpc.instance), controller, none, ai) || !ai || !ai.instance)
     {
         return kStateUnavailable;
     }
     CBaseFunction* function = Find(g_commandState, ai.instance, "GetCommandState");
-    if (!function || !function->returnType || function->params.Size() != 1)
+    // GetCommandState(command) reads the command's fields: one handle in, an enum of at most 8 bytes out, and the
+    // object has to be an AICommand.
+    if (!function ||
+        !convai::game::Verified(function, {convai::game::Arg{"handle", static_cast<uint32_t>(sizeof(Object))}},
+                                convai::game::Returns::Fits(nullptr, 8)) ||
+        !convai::game::IsA(aCommand, "AICommand"))
     {
         return kStateUnavailable;
     }
-    static RED4ext::StackArgs_t args;
-    args.clear();
+    RED4ext::StackArgs_t args; // a local: another mod's observer of the call can re-enter
     args.emplace_back(nullptr, const_cast<Object*>(&aCommand));
     uint64_t buffer = 0; // an enum of 1 to 8 bytes lands in the low bytes
     if (!RED4ext::ExecuteFunction(static_cast<void*>(ai.instance), function, &buffer, args))

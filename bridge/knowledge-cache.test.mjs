@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {configureKnowledgeParts, resolveKnowledgeParts} from './knowledge-parts.mjs';
+import {configureKnowledgeParts, resolveKnowledgeParts, preloadKnowledgePart} from './knowledge-parts.mjs';
 import {parseWorldSnapshot, resolveKnowledge} from './world-knowledge.mjs';
 import {parseJournalHistory} from './journal-history.mjs';
 import {freezeDeep, isImmutable, isParsed, snapshotKey, digestOf} from './parsed-snapshot.mjs';
@@ -186,4 +186,96 @@ test('a rule resolved over cached parts equals the same rule over a plain copy o
   assert.equal(viaParts.context, viaCopy.context);
   assert.match(viaParts.context, /"choices":\[\{"questKey":"q"/);
   assert.deepEqual(viaParts.diagnostics, viaCopy.diagnostics);
+});
+
+// ---- Preloaded at start when a session is running: the first turn does not read, parse or freeze (perf review 2026-10-22) ----------------
+
+function asyncDisk(files, {later = []} = {}) {
+  const syncReads = [];
+  configureKnowledgeParts({runtimeDir: '/runtime',
+    readFile: path => { const name = path.replace(/^.*[\\/]/, ''); syncReads.push(name); if (!(name in files)) throw Error('no such file'); return JSON.stringify(files[name]); },
+    readFileLater: async path => { const name = path.replace(/^.*[\\/]/, ''); later.push(name); if (!(name in files)) throw Error('no such file'); const value = files[name]; return typeof value === 'string' ? value : JSON.stringify(value); }});
+  return syncReads;
+}
+
+test('a preloaded revision is found in memory by the turn: no read on the turn path, the same frozen object a turn would have made', async () => {
+  const later = [];
+  const reads = asyncDisk({'knowledge-world.json': worldPart(5, 7)}, {later});
+  assert.equal(await preloadKnowledgePart('world'), true);
+  assert.deepEqual(later, ['knowledge-world.json']);
+  const turn = resolveKnowledgeParts({worldKnowledge: worldRef(5)}).worldKnowledge;
+  assert.deepEqual(reads, [], 'the turn read nothing');
+  assert.equal(isImmutable(turn.facts), true);
+  assert.equal(turn.facts.f.value, 7);
+  // The same snapshot a turn that read the file itself gets.
+  const other = asyncDisk({'knowledge-world.json': worldPart(5, 7)});
+  const plain = resolveKnowledgeParts({worldKnowledge: worldRef(5)}).worldKnowledge;
+  assert.deepEqual(other, ['knowledge-world.json']);
+  assert.deepEqual(plain, turn);
+});
+
+test('a preloaded revision is not parsed again by a second preload, and the revisions kept are the newest three of a part', async () => {
+  const files = {'knowledge-world.json': worldPart(1)};
+  const reads = asyncDisk(files);
+  await preloadKnowledgePart('world');
+  const first = resolveKnowledgeParts({worldKnowledge: worldRef(1)}).worldKnowledge.facts;
+  await preloadKnowledgePart('world');   // the same revision again (a duplicate event)
+  assert.equal(resolveKnowledgeParts({worldKnowledge: worldRef(1)}).worldKnowledge.facts, first, 'the kept object stays');
+  for (const revision of [2, 3, 4]) { files['knowledge-world.json'] = worldPart(revision); await preloadKnowledgePart('world'); }
+  // Only the file of revision 4 is on disk now: 2, 3 and 4 answer from memory, 1 was let go and cannot be rebuilt.
+  for (const revision of [2, 3, 4]) assert.equal(resolveKnowledgeParts({worldKnowledge: worldRef(revision)}).worldKnowledge.status, 'ready', 'revision ' + revision);
+  assert.equal(resolveKnowledgeParts({worldKnowledge: worldRef(1)}).worldKnowledge.status, 'unavailable');
+  assert.deepEqual(reads, ['knowledge-world.json'], 'one read, for the let-go revision (a turn that names a revision no longer held reads the file, as before)');
+});
+
+test('a half-written, foreign or oversized part file preloads nothing, and the turn reads and judges the file itself as before', async () => {
+  const files = {'knowledge-world.json': '{"version":1,"part":"world","revi'};
+  const later = [];
+  const reads = asyncDisk(files, {later});
+  assert.equal(await preloadKnowledgePart('world'), false);
+  files['knowledge-world.json'] = JSON.stringify(historyPart(2, ['1']));   // another part's document in this file
+  assert.equal(await preloadKnowledgePart('world'), false);
+  files['knowledge-world.json'] = JSON.stringify({...worldPart(2), data: 'nope'});
+  assert.equal(await preloadKnowledgePart('world'), false);
+  assert.equal(await preloadKnowledgePart('nonsense'), false);
+  assert.equal(await preloadKnowledgePart('history'), false, 'a file that is not there');
+  files['knowledge-world.json'] = worldPart(3);
+  const turn = resolveKnowledgeParts({worldKnowledge: worldRef(3)}).worldKnowledge;
+  assert.equal(turn.status, 'ready');
+  assert.deepEqual(reads, ['knowledge-world.json'], 'the turn did its own read');
+  // A preloaded revision never answers for another one.
+  files['knowledge-world.json'] = worldPart(8, 3);
+  await preloadKnowledgePart('world');
+  const other = resolveKnowledgeParts({worldKnowledge: worldRef(9)}).worldKnowledge;
+  assert.equal(other.status, 'unavailable');
+  assert.equal(resolveKnowledgeParts({worldKnowledge: {...worldRef(8), worldToken: 'another-world'}}).worldKnowledge.status, 'unavailable', 'nor for another world');
+});
+
+test('a revision a turn has already parsed is not parsed again by a preload (the header is read first), and calls for one part share one read', async () => {
+  const later = [];
+  asyncDisk({'knowledge-world.json': worldPart(6, 2)}, {later});
+  const turn = resolveKnowledgeParts({worldKnowledge: worldRef(6)}).worldKnowledge;   // the turn parsed it
+  assert.equal(turn.status, 'ready');
+  const parse = JSON.parse; let parses = 0;
+  JSON.parse = (...args) => { parses++; return parse(...args); };
+  try {
+    const [a, b] = await Promise.all([preloadKnowledgePart('world'), preloadKnowledgePart('world')]);
+    assert.deepEqual([a, b], [true, true]);
+    assert.deepEqual(later, ['knowledge-world.json'], 'one read for both calls');
+    assert.equal(parses, 0, 'nothing was parsed: the revision is in memory');
+    // A revision that is not in memory is parsed once.
+    asyncDisk({'knowledge-world.json': worldPart(7, 2)}, {later});
+    assert.equal(await preloadKnowledgePart('world'), true);
+    assert.equal(parses, 1);
+  } finally { JSON.parse = parse; }
+});
+
+test('a preload at start reads only a file written recently enough to be this session\'s', async () => {
+  const later = [];
+  configureKnowledgeParts({runtimeDir: '/runtime', readFileLater: async path => { later.push(path); return JSON.stringify(worldPart(2)); },
+    statFileLater: async () => ({mtimeMs: Date.now() - 3 * 3600_000})});
+  assert.equal(await preloadKnowledgePart('world', {maxAgeMs: 15 * 60_000}), false);
+  assert.deepEqual(later, [], 'an old file is not even read');
+  configureKnowledgeParts({runtimeDir: '/runtime', readFileLater: async () => JSON.stringify(worldPart(2)), statFileLater: async () => ({mtimeMs: Date.now() - 60_000})});
+  assert.equal(await preloadKnowledgePart('world', {maxAgeMs: 15 * 60_000}), true);
 });

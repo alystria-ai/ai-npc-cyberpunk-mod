@@ -13,6 +13,7 @@ namespace convai::faces::game
 namespace
 {
 using convai::game::Call;
+using convai::game::CallStatic; // StatusEffectSystem.ObjectHasStatusEffectWithTag: a static, found by script name
 using convai::game::Object;
 
 // entEntityID: one 64-bit hash.
@@ -59,21 +60,6 @@ const Layout& LayoutFor(RED4ext::IScriptable* aFeature)
         }
     }
     return g_layout;
-}
-
-// A static function of a class (StatusEffectSystem.ObjectHasStatusEffectWithTag), no instance; found by script name
-// and parameter count.
-template<typename TOut, typename... TArgs>
-bool CallStatic(const char* aClass, const char* aFunction, TOut* aOut, TArgs&&... aArgs)
-{
-    auto* function = convai::game::StaticFunction(aClass, aFunction, static_cast<uint32_t>(sizeof...(TArgs)));
-    if (!function)
-    {
-        return false;
-    }
-    RED4ext::StackArgs_t args;
-    ((args.emplace_back(nullptr, &aArgs)), ...);
-    return RED4ext::ExecuteFunction(static_cast<void*>(nullptr), function, aOut, args);
 }
 } // namespace
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2026-10-18T15:57:22.082Z",
+  "builtAt": "2026-10-22T10:03:04.901Z",
   "profilesExpected": 125,
   "profilesAuthored": 125,
   "profilesMissing": [],
@@ -14,7 +14,10 @@
   },
   "nativeMappingComplete": false,
   "errors": [],
-  "warnings": [],
+  "warnings": [
+    "dossiers/brendan: quest coin-operated-boy has no authored map yet",
+    "dossiers/garry-the-prophet: quest the-prophets-song has no authored map yet"
+  ],
   "nativeIntrinsic": [
     {
       "key": "8ug8ear",
@@ -391,7 +394,7 @@
         "sample.work",
         "sample.memorial"
       ],
-      "sourceContentSha256": "a07b788a81b5fb6a0d3156da59ed373d15636ef15d3507130e935c8a1ce5f456",
+      "sourceContentSha256": "f4da5f90783684330138337eacd0cb46acf514eb132f548c3b295dd689628104",
       "referencesVerified": 167,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -528,7 +531,7 @@
         "contacts",
         "district"
       ],
-      "sourceContentSha256": "2947ab8a75229240f0670fa1e8a48b0b1e5687922830ada3fa4f85312e65482e",
+      "sourceContentSha256": "be1fa5e3f8d6ab2de8b89b73404f6ba3d1cc9f1b14065104197c2a4a67e69981",
       "referencesVerified": 332,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -787,7 +790,7 @@
         "nancy-practical",
         "denny-respect"
       ],
-      "sourceContentSha256": "5595590d7a6eb007db5056fe3a31dcdfd6f75eb67d60a39700a09c306d651de4",
+      "sourceContentSha256": "0833e37123c0be8b02d0bdc8315974fddcf7f4879d11953d33a3e4521d3cf125",
       "referencesVerified": 330,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -986,7 +989,7 @@
         "original.07",
         "original.08"
       ],
-      "sourceContentSha256": "a8da578ffe49e2837ce04fadd81a8b4a615d7d79c4435053a25de81ed10d54b4",
+      "sourceContentSha256": "96d553e74c9837ac85231ca6e3b54e3470a0cee693f039ba6184cfbe72b024a4",
       "referencesVerified": 268,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -1057,7 +1060,7 @@
         "original.07",
         "original.08"
       ],
-      "sourceContentSha256": "67cfa7bc854c707b2d33c440c99e6fd61c6990cc1c8d721514dfe8a4b4449e41",
+      "sourceContentSha256": "ca88d20bf26f5b31da6c7adbfa0afa0ca3557a94e6aa0b9f18819e1c332751af",
       "referencesVerified": 632,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
@@ -1334,7 +1337,7 @@
         "on-clock",
         "toast"
       ],
-      "sourceContentSha256": "1b514a7bc4d16700b22e52eaed976581fa8834444fd313f22bbcf3a6f6cc878d",
+      "sourceContentSha256": "5645cfb12f6fb0674d9a8e934cca233d81544df61ee48292d3c579c741b44203",
       "referencesVerified": 446,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },

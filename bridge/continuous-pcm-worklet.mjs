@@ -14,7 +14,7 @@ class ConvaiContinuousPcm extends AudioWorkletProcessor {
         if (this.done) throw Error('PCM stream is closed');
         switch (data.type) {
           case 'ready': break;
-          case 'append': this.core.append(new Uint8Array(data.bytes), data.offsetFrames); break;
+          case 'append': this.core.append(new Uint8Array(data.bytes), data.offsetFrames, this.clock.controlTime(currentFrame) * 1000); break;
           case 'arm': this.core.arm(this.clock.controlTime(currentFrame) * 1000); break;
           case 'control': this.core.control(data.value, this.clock.controlTime(currentFrame) * 1000); break;
           case 'hold': this.core.hold(); break;

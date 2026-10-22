@@ -11,13 +11,13 @@ import {join, dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 
 export const EDIT_LIMITS = Object.freeze({
-  bio: 9000,            // characters; the longest shipped bio is 8,266
+  bio: 9000,            // characters; the longest shipped bio is 7,759 (8,266 before the 2026-10-22 character data fixes)
   bioMin: 40,           // a bio of a few words leaves the model nothing to be
-  style: 1800,          // the longest shipped speaking style is 1,439
+  style: 1800,          // the longest shipped speaking style is 1,469
   rules: 10, rule: 160,         // the player's own rules of speech: a short list of short rules
-  examples: 20, example: 240, exampleTotal: 3000,   // the longest shipped set is 18 lines of up to 146 characters
+  examples: 20, example: 240, exampleTotal: 3000,   // the longest shipped set is 10 lines (the cap) of up to 142 characters
   memories: 12, memory: 200,    // things written by hand that the character always knows
-  total: 14000,         // bio + style + rules + examples + memories together (the longest shipped profile is 11,295)
+  total: 12500,         // bio + style + rules + examples + memories together (the longest shipped profile is 9,940)
 });
 export const FIELDS = Object.freeze(['bio', 'style', 'rules', 'examples', 'memories']);
 const LISTS = new Set(['rules', 'examples', 'memories']);

@@ -230,7 +230,7 @@ test('seated release retries its exact failed look and abandonment never queries
 `));
 
 const initSource=readFileSync(new URL('../mod/init.lua',import.meta.url),'utf8');
-const targetSource=initSource.slice(initSource.indexOf('local function targetAtCrosshair()'),
+const targetSource=initSource.slice(initSource.indexOf('convaiEntityKey = function'),
   initSource.indexOf('local function resetGaze()'));
 const targetingFixture=`
   local player={}

@@ -26,14 +26,13 @@
 //     and nothing in the game's single pending-request machinery changes.
 //   - The companion's reply is ready when its first audio exists. If V's line is audible by then, the companion's audio waits (it
 //     is buffered, silent and unpublished: ConvaiContinuousSpeech `hold`) until V has finished, so the two never overlap. If V's
-//     line is not yet audible, the reply waits for its first audio for at most V_GRACE_MS (a short, fixed grace, the only wait on
-//     V's synthesis); after that V is dropped and the reply goes on. Live 2026-10-19: V's first audio came 40 ms after the reply's
-//     and the line was lost for that.
-//   - A worker the companion's voice shares with V (the Pocket voice speaking both) works one job at a time. A V line still waiting for
-//     its first audio when the companion's own text-to-speech request goes out is stopped, so it never stands in front of the reply's
-//     voice. (A line that is already audible keeps going: the companion cannot be heard before it ends anyway.) A V line on its own
-//     worker or on the cloud shares nothing with the companion, so nothing stops it. A V line on OmniVoice shares the worker but is in
-//     FRONT of the companion's render in its queue, so it is not stopped either: it is the one thing the reply waits for.
+//     line is not yet audible, the reply waits for its first audio (V_GRACE_MS, 30 s: a line is never dropped for being slow, only for
+//     being stuck); the reply follows V's end. Before 2026-10-22 the wait was 600 ms and a line of ten words or more was dropped the
+//     moment the reply was ready.
+//   - A worker the companion's voice shares with V (the Pocket voice speaking both) works one job at a time: the companion's own
+//     text-to-speech request waits its turn behind V's line there (V's line is no longer stopped for it), so the reply follows V.
+//     A V line on its own worker or on the cloud shares nothing with the companion. A V line on OmniVoice shares the worker but is in
+//     FRONT of the companion's render in its queue: it is the one thing the reply waits for.
 //   - Any failure drops the line, writes one log line and never touches the conversation.
 // V's line runs under a TurnClock of its own (the stage clock, bridge/turn-clock.mjs), so its marks never mix into the companion's.
 import {createHash, randomBytes} from 'node:crypto';
@@ -56,22 +55,16 @@ export const V_VOICE_KEYS = Object.freeze({male: 'v-male', female: 'v-female'});
 const requestedHandoff = Number(process.env.CYBERPUNK_CONVAI_V_HANDOFF_MS);
 export const V_HANDOFF_LEAD_MS = Number.isFinite(requestedHandoff) && requestedHandoff >= 0 && requestedHandoff <= 2000 ? requestedHandoff : 300;
 /**
- * How long a companion reply that is ready waits for V's first audio before V's line is dropped (docs/V_VOICE.md, "The grace"). It is the
- * only wait on V's synthesis. 600 ms is the renderer's own start buffer (400 ms) plus about one Pocket chunk: it covers a line whose
- * synthesis is nearly done when the reply is (live 2026-10-19: 40 ms late), while a voice that is seconds away (a cold one: 2.8 s) is not
- * waited for. CYBERPUNK_CONVAI_V_GRACE_MS sets it (0: V is dropped the moment the reply is ready, as before; at most 2000).
+ * How long a companion reply that is ready waits for V's first audio before the line is given up as stuck (docs/V_VOICE.md, "The wait"). A line is
+ * never dropped for being slow: the player typed it and waits to hear it, so the reply waits for it (or follows it: its sound is held until V's line
+ * has ended). Only a line that has still given no audio after this long has gone wrong (a worker that is wedged, a connection that never answers;
+ * measured first audio: p50 0.2 s, p90 0.7 s, one outlier of 90 s from a line queued behind a busy worker), and the reply goes on without it. It
+ * used to be 600 ms, and a line of ten words or more was dropped the moment the reply was ready (2026-10-22 review: 22 dropped lines in the reports,
+ * 19 of them for slowness). CYBERPUNK_CONVAI_V_GRACE_MS sets it (0: V is dropped the moment the reply is ready; at most 120000).
  */
 const requestedGrace = Number(process.env.CYBERPUNK_CONVAI_V_GRACE_MS);
-export const V_GRACE_MS = Number.isFinite(requestedGrace) && requestedGrace >= 0 && requestedGrace <= 2000 ? requestedGrace : 600;
-/**
- * The most a rescued late line may add to the reply: the wait for its first audio plus the line itself (it no longer overlaps the model's
- * wait, so the reply follows V's end). A line whose estimated length (V_WORDS_PER_SECOND, plus the 160 ms lead-in and 320 ms tail of
- * bridge/pcm-edges.mjs) would push that past this is dropped at once, or waited for only as long as the budget allows: a long line that
- * missed the reply is not worth seconds of silence before the companion speaks. A line that is audible in time is not affected.
- */
-export const V_RESCUE_BUDGET_MS = 4000;
+export const V_GRACE_MS = Number.isFinite(requestedGrace) && requestedGrace >= 0 && requestedGrace <= 120_000 ? requestedGrace : 30_000;
 export const V_WORDS_PER_SECOND = 2.8;
-const V_EDGES_MS = 480;
 export const V_MANIFEST = 'v-voice.json';
 /** The longest line V speaks; a longer one is cut at the last sentence or word that fits. */
 export const V_MAX_CHARS = 240;
@@ -82,11 +75,13 @@ const SAMPLE_RATE = 24000;
 const PACKET_FRAMES = 48000;
 
 /**
- * The settings V's engine is read from: a saved engine that cannot speak right now counts as Pocket, as the settings row shows it (the saved
- * value is left alone, so the engine is back the moment it can speak). `cloudUsable`: a Mistral key is saved and Mature content is off (Voxtral).
- * `omniUsable`: the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V); an Omni
- * worker that is only loading or failing does not count here, so V stays on OmniVoice (its line is skipped with the reason) and no Pocket
- * worker loads beside it.
+ * The settings V's engine is read from. A saved OmniVoice that cannot be used now counts as Pocket (the saved value is left alone, so the engine is back
+ * the moment it can speak). `cloudUsable`: cloud voices are allowed at all, that is Mature content is off (owner decision 2026-10-20: no cloud voice beside
+ * Mature content, so a saved Voxtral reads as Pocket then). A saved Voxtral stays Voxtral whether a Mistral key is saved or not (owner rule: a cloud voice loads
+ * no local model, and one that cannot be asked falls back to written text): without a key V's line is skipped with the reason and shows as its subtitle, and no
+ * Pocket worker is loaded for it (it used to count as Pocket and loaded one: 2026-10-22 review). `omniUsable`: the companions' chosen voice is OmniVoice and its
+ * pack is installed (a second big GPU model is never loaded for V); an Omni worker that is only loading or failing does not count here, so V stays on OmniVoice
+ * (its line is skipped with the reason) and no Pocket worker loads beside it.
  */
 export function vSettingsFor(settings, {cloudUsable = false, omniUsable = false} = {}) {
   const engine = settings?.vVoiceEngine;
@@ -213,11 +208,11 @@ export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {}, reference = null,
     after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, onGrace = () => {},
-    graceMs = V_GRACE_MS, rescueMs = V_RESCUE_BUDGET_MS, patient = false, now = () => performance.now()}) {
+    graceMs = V_GRACE_MS, patient = false, now = () => performance.now()}) {
     // `patient`: the player chose an engine that is waited for (OmniVoice). There is no grace and no budget: the reply waits for V's first
     // audio for as long as the render takes, and only a failure or the end of the turn drops the line.
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log, reference,
-      after, edges, token, onSettled, onAudible, onGrace, graceMs, rescueMs, patient, now});
+      after, edges, token, onSettled, onAudible, onGrace, graceMs, patient, now});
     // The grace (V_GRACE_MS): started once, by the first time the reply asks while V is not audible yet.
     this.graceTimer = null; this.graceStarted = false; this.graceAt = 0; this.waitedMs = 0;
     this.state = 'synth';
@@ -257,9 +252,8 @@ export class VLine {
   startGrace() {
     if (this.state !== 'synth' || this.graceStarted || this.patient) return;
     this.graceStarted = true;
-    // The wait is what the budget leaves after the line's own length; no room (a long line) is no wait.
-    const lineMs = this.text.split(/\s+/).filter(Boolean).length / V_WORDS_PER_SECOND * 1000 + V_EDGES_MS;
-    const wait = Math.min(this.graceMs, this.rescueMs - lineMs);
+    // The reply waits for V's first audio as long as the line is not stuck (graceMs); a long line is no reason to drop it.
+    const wait = this.graceMs;
     if (!(wait >= 50)) { this.drop('slower-than-reply'); return; }
     this.graceAt = this.now();
     this.clock.mark('graceStart');
@@ -324,8 +318,12 @@ export class VLine {
     });
   }
 
-  /** The companion's text-to-speech request went out: a local voice must not have V's unfinished line in front of its own. */
-  companionVoiceStarted() { if (this.local && this.state === 'synth') this.drop('reply-voice-started'); }
+  /**
+   * The companion's text-to-speech request went out. V's unfinished line is no longer stopped for it (it used to be, on the worker the two share: 'reply-voice-started',
+   * 7 lines in the reports): the line is the player's, it plays, and the companion's request waits its turn on the worker and speaks after V (its sound is held until
+   * V's line has ended anyway). Kept as the call the bridge makes at that moment.
+   */
+  companionVoiceStarted() { /* V's line goes on */ }
 
   drop(reason) {
     if (this.settled) return;

@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
-import {validateResearch, buildProfiles} from '../research/cyberpunk/scripts/build_research.mjs';
+import {validateResearch, buildProfiles, MAX_SAMPLES} from '../research/cyberpunk/scripts/build_research.mjs';
 import {characterPayload} from '../scripts/character-payload.mjs';
 import {serializeCharacterSamples} from '../scripts/character-samples.mjs';
 
@@ -119,6 +119,25 @@ test('every checked-in profile exports only its original response while preservi
   assert.equal(JSON.stringify(dossiers), researchBefore);
   const bugbear = generated.find(profile => profile.key === '8ug8ear');
   assert.doesNotMatch(bugbear.speakingStyleSampleDialogues, /8ug8ear:|^V:/mu);
+});
+
+// 2026-10-22 character data review: the persona text is the character's own life, not notes about the game, the mod or a save.
+test('checked-in character data holds at most ten example lines and no game, mod or save talk', async () => {
+  const roster = JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'));
+  const archetypes = JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'));
+  const META = /\b(?:wiki|database entry|the game\b|game's|summon\w*|spawn\w*|playthrough|this save|current[- ]save|noncanonical|Phantom Liberty|mod presentation|a mod\b|the mod\b|branch|lifepath|quest-dependent|point of no return)/iu;
+  const SPOKEN = new RegExp(META.source.replace(String.raw`the game\b|game's|`, ''), 'iu');   // a character may talk about a game of cards
+  const NEUTRAL = /Nothing that happens after V meets (?:me|you), about /u;
+  for (const row of [...roster, ...archetypes]) {
+    assert((row.speakingStyleSampleDialogues.match(/\S[^\n]*(?:\n(?!\n)[^\n]*)*/gu) || []).length <= MAX_SAMPLES, `${row.key}: more than ${MAX_SAMPLES} example lines`);
+    // The shared "KNOWLEDGE AND CURRENT SAVE" paragraph, the appearance and the "Scope:" notes of the native packs are not under review here.
+    const persona = row.backstory.split(/\n\n/u).filter(block => !/^(?:KNOWLEDGE AND CURRENT SAVE|Your appearance:)/u.test(block))
+      .join('\n').split('\n').filter(line => !line.startsWith('Scope:')).join('\n');
+    const found = persona.match(META);
+    assert.equal(found, null, `${row.key}: "${found?.[0]}" in the persona text`);
+    assert.doesNotMatch(row.speakingStyleSampleDialogues, SPOKEN, `${row.key}: samples`);
+    if (!/^npc-/u.test(row.key)) assert.match(persona, NEUTRAL, `${row.key}: the neutral limit line`);
+  }
 });
 
 test('malformed outcomes report validation errors rather than crash or claim full coverage', () => {

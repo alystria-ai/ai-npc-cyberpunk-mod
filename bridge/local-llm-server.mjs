@@ -40,7 +40,7 @@ import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, cpus, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {FIT_LIMITS, SMALL_CARD_ROOM, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadRamNeedMiB, offloadThreads, probeProjectedMiB, smallCardRoom} from './local-vram-fit.mjs';
 import {SPILL_LIMITS, readGpuProcessMemory, slowReply, spillVerdict} from './gpu-memory.mjs';
 import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
@@ -351,11 +351,11 @@ export class LlamaProcess extends EventEmitter {
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
       tmpDir = tmpdir(), platform = process.platform, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
-      healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server'} = {}) {
+      healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server', registry = null} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
     Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, platform, setTimer, clearTimer, log,
-      lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
+      lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label, registry});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
 
@@ -415,6 +415,8 @@ export class LlamaProcess extends EventEmitter {
       throw error?.code === 'stopped' ? error : startError('spawn-failed', 'could not be started (' + (error?.code || error?.message || 'error') + ')');
     }
     this.#child = child;
+    // Written down for the bridge that finds this child running after this process died without cleaning up (bridge/child-registry.mjs). Never throws.
+    if (this.registry && child.pid !== undefined) { try { this.registry.add({pid: child.pid, exe: this.command, label: this.label}); } catch { /* the orphan guard is optional */ } }
     if (this.lowerAfter === 'spawn') this.lower();
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
@@ -471,6 +473,7 @@ export class LlamaProcess extends EventEmitter {
   #markExited(code, signal, message) {
     if (this.#exited) return;
     this.#exited = true; this.#healthy = false;
+    this.#unregister();
     this.#removeKey();
     this.#resolveExit(true);
     this.#settleWait?.({ok: false, code: signal === 'spawn-failed' ? 'spawn-failed' : 'exited',
@@ -482,6 +485,11 @@ export class LlamaProcess extends EventEmitter {
     this.#tail = (this.#tail + text).slice(-this.tailChars);
   }
   #redact(text) { return this.#key ? text.split(this.#key).join('[redacted]') : text; }
+
+  #unregister() {
+    const pid = this.#child?.pid;
+    if (this.registry && pid !== undefined) { try { this.registry.remove(pid); } catch { /* best effort */ } }
+  }
 
   #removeKey() {
     const directory = this.#keyDir; this.#keyDir = null;
@@ -516,7 +524,7 @@ export class LlamaProcess extends EventEmitter {
   killSync() {
     this.#expected = true;
     this.#healthy = false;
-    try { if (this.#child && !this.#exited) this.#child.kill(); } catch { /* gone */ }
+    try { if (this.#child && !this.#exited) { this.#child.kill(); this.#unregister(); } } catch { /* gone */ }
     this.#removeKey();
   }
 }
@@ -592,8 +600,8 @@ export class LocalLlmServer extends EventEmitter {
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
   // selection: () => {pin, matureOn, matureModels}, read at each start and each reselect (the player's model choice, bridge/local-model-choice.mjs).
   // tier ('standard' | 'lite') is the older, stricter form of a pin: that tier or an error, no memory check.
-  // gameRoom: {voiceMiB(), uptimeSeconds()}, set by the bridge (null = off): on a card of 12 GB or less the first placement after the service started leaves the game's room and the
-  // voice engine still to load out of what the model may take (bridge/local-vram-fit.mjs smallCardRoom). voiceMiB() is the resident size of a voice engine that is wanted and not loaded.
+  // gameRoom: {voiceMiB(), residentVoiceMiB()}, set by the bridge (null = off): on a card of 12 GB or less the placement leaves the part of the game's room the game has not taken yet and the
+  // voice engine still to load out of what the model may take (bridge/local-vram-fit.mjs smallCardRoom). voiceMiB() is the size of a voice engine that is wanted and not loaded yet; residentVoiceMiB() the size of one that is loaded (it is not the game's).
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
@@ -921,12 +929,12 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // The room for the game on a small card (see the constructor's gameRoom): null when it is off, on a reload after a spill or a step-down (the game is running then and the free memory is real),
-  // when the service is older than SMALL_CARD_ROOM.settleSeconds, or when the card is large or unreadable.
+  // or when the card is large or unreadable. Only the part of the room the game has not taken yet is kept back (smallCardRoom measures the game's footprint from the card's used memory), so a
+  // service that starts with the game already in the world, or after OmniVoice has loaded, keeps nothing back twice.
   #gameRoomFor(freeMiB, reload) {
     if (!this.gameRoom || reload || !(this.#totalMiB > 0)) return null;
     try {
-      if (!(Number(this.gameRoom.uptimeSeconds?.() ?? Infinity) <= SMALL_CARD_ROOM.settleSeconds)) return null;
-      return smallCardRoom({totalMiB: this.#totalMiB, freeMiB, voiceMiB: Number(this.gameRoom.voiceMiB?.() ?? 0)});
+      return smallCardRoom({totalMiB: this.#totalMiB, freeMiB, voiceMiB: Number(this.gameRoom.voiceMiB?.() ?? 0), residentVoiceMiB: Number(this.gameRoom.residentVoiceMiB?.() ?? 0)});
     } catch { return null; }
   }
 

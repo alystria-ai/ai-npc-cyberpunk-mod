@@ -150,38 +150,68 @@ export async function findVgmstream({explicit = null, env = process.env, candida
 /**
  * Brings the folder of mod-built references in line with the mods installed: for each gender with a winning archive, the reference is kept when the
  * manifest says it was built from that very archive (name, size, time) and its WAV still matches its SHA-256, otherwise it is built again; a gender with no
- * winner has its reference removed (the mod is gone). The folder holds v-voice.json and v-<gender>.wav in the shape of assets/v-voice, so the bridge's
+ * winner has its reference removed (the mod is gone). A build that fails is remembered in the manifest (`failed`, by archive name, size, modification time and line-list digest), so
+ * the same archive is not tried again at every start (a decoder that is missing is not a failure of the archive and is not remembered); and when the winner changed, the
+ * previous mod's reference goes (V then speaks with the shipped clip, never with an older mod's voice under the new mod's name). The folder holds v-voice.json and v-<gender>.wav in the shape of assets/v-voice, so the bridge's
  * loadVVoiceReferences reads it as it reads the shipped one (nothing in the folder is a script or is ever run). A missing decoder means nothing is built
  * and the result says so (`needsDecoder`), never an error. Resolves to {directory, voices: {male?, female?}: 'kept' | 'built' | 'removed' | 'needs-decoder'
- * | 'failed:<code>', detection}.
+ * | 'failed:<code>' | 'failed-before:<code>', sources: {male?, female?}: the archive each kept or built reference came from, detection}.
  */
-export async function ensureVoiceModReferences({modFolder = null, list = null, outFolder, modLines, decode = null, cachePath = null, log = () => {}, files = {readFile, atomicFile, rm, mkdir}, detect = detectVoiceMods, build = buildModReference} = {}) {
+export async function ensureVoiceModReferences({modFolder = null, list = null, outFolder, modLines, decode = null, decoderId = null, cachePath = null, log = () => {}, files = {readFile, atomicFile, rm, mkdir}, detect = detectVoiceMods, build = buildModReference} = {}) {
   const detection = await detect({folder: modFolder, list, modLines, cachePath, log});
   const manifestPath = resolve(outFolder, 'v-voice.json');
   let manifest = {version: 1, voices: {}};
   try { const raw = JSON.parse(String(await files.readFile(manifestPath, 'utf8')).replace(/^﻿/, '')); if (raw?.version === 1 && raw.voices && typeof raw.voices === 'object') manifest = raw; } catch { /* none yet */ }
-  const voices = {}, wavName = gender => `v-${gender}.wav`;
+  if (!manifest.failed || typeof manifest.failed !== 'object' || Array.isArray(manifest.failed)) manifest.failed = {};
+  const voices = {}, sources = {}, wavName = gender => `v-${gender}.wav`;
+  const removeReference = async gender => { delete manifest.voices[gender]; await files.rm(resolve(outFolder, wavName(gender)), {force: true}).catch(() => {}); };
   let changed = false;
   for (const gender of GENDERS) {
     const winner = detection.winners[gender], row = manifest.voices[gender];
     if (!winner) {
-      if (row) { delete manifest.voices[gender]; changed = true; await files.rm(resolve(outFolder, wavName(gender)), {force: true}).catch(() => {}); voices[gender] = 'removed'; log(`the ${gender} V voice mod is gone; its reference was removed`); }
+      if (manifest.failed[gender]) { delete manifest.failed[gender]; changed = true; }
+      if (row) { await removeReference(gender); changed = true; voices[gender] = 'removed'; log(`the ${gender} V voice mod is gone; its reference was removed`); }
       continue;
     }
     const source = {archive: winner.relative, size: winner.size, mtimeMs: winner.mtimeMs};
-    if (row?.source && row.source.archive === source.archive && row.source.size === source.size && row.source.mtimeMs === source.mtimeMs) {
-      try { if (createHash('sha256').update(await files.readFile(resolve(outFolder, wavName(gender)))).digest('hex') === row.sha256) { voices[gender] = 'kept'; continue; } } catch { /* rebuilt below */ }
+    const same = other => other?.archive === source.archive && other.size === source.size && other.mtimeMs === source.mtimeMs;
+    if (same(row?.source)) {
+      try { if (createHash('sha256').update(await files.readFile(resolve(outFolder, wavName(gender)))).digest('hex') === row.sha256) { voices[gender] = 'kept'; sources[gender] = source.archive; continue; } } catch { /* rebuilt below */ }
     }
-    if (!decode) { voices[gender] = 'needs-decoder'; continue; }
+    // A build of this very archive failed before (same name, size, time and line list): not tried again until the archive or the list changes.
+    const failedBefore = manifest.failed[gender];
+    if (same(failedBefore) && failedBefore.lines === modLines.digest && (failedBefore.decoder ?? null) === decoderId) {
+      if (row) { await removeReference(gender); changed = true; }
+      voices[gender] = `failed-before:${failedBefore.code}`;
+      log(`V's ${gender} reference was not built from ${basename(winner.relative)} (${failedBefore.code}, as before); V keeps the shipped voice`);
+      continue;
+    }
+    if (!decode) {
+      // Another mod's reference must not stay either while the new winner cannot be built (the decoder is missing): V keeps the shipped voice.
+      if (row && !same(row.source)) { await removeReference(gender); changed = true; }
+      voices[gender] = 'needs-decoder'; continue;
+    }
     try {
       const made = await build({archive: winner.path ?? resolve(modFolder, winner.relative), log, lines: linesHeld(modLines, gender, winner), decode, file: wavName(gender)});
       await files.mkdir(outFolder, {recursive: true});
       await files.atomicFile(resolve(outFolder, wavName(gender)), made.wav);
       manifest.voices[gender] = {...made.entry, source};
-      changed = true; voices[gender] = 'built';
+      delete manifest.failed[gender];
+      changed = true; voices[gender] = 'built'; sources[gender] = source.archive;
       log(`V's ${gender} reference was built from ${basename(winner.relative)} (${made.entry.seconds} s)`);
-    } catch (error) { voices[gender] = `failed:${error?.code ?? 'error'}`; log(`V's ${gender} reference was not built from ${basename(winner.relative)}: ${error?.code ?? 'error'}`); }
+    } catch (error) {
+      const code = String(error?.code ?? 'error').slice(0, 40);
+      voices[gender] = `failed:${code}`;
+      // Only what the archive or the decoder does again every time is remembered: a read error of the moment (EBUSY, EPERM, EMFILE: antivirus, the game) is tried again at the next scan, and
+      // a failure of the decoder is remembered against that decoder (`decoder`: its size and time), so a repaired or newer one retries the mod.
+      if (!/^E[A-Z0-9]+$/.test(code)) manifest.failed[gender] = {...source, lines: modLines.digest, decoder: decoderId, code}; else delete manifest.failed[gender];
+      // The reference of another (older) mod must not stay: V would speak with its voice while the log and the report name the new one.
+      if (row) await removeReference(gender);
+      changed = true;
+      log(`V's ${gender} reference was not built from ${basename(winner.relative)}: ${code}; V keeps the shipped voice`);
+    }
   }
+  if (!Object.keys(manifest.failed).length) delete manifest.failed;
   if (changed) { await files.mkdir(outFolder, {recursive: true}); await files.atomicFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n'); }
-  return {directory: Object.keys(manifest.voices).length ? outFolder : null, voices, detection};
+  return {directory: Object.keys(manifest.voices).length ? outFolder : null, voices, sources, detection};
 }

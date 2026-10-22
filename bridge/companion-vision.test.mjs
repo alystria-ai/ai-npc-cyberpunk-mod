@@ -413,3 +413,42 @@ test('the realtime host never lets a picture fail a turn, and never gives one to
   assert.deepEqual(await host.prestageVision({characterId: 'c'}, []), {staged: false, reason: 'no-page'});
   await host.unstageVision({characterId: 'c'});
 });
+
+test('unload rule for memory: no picture is held while another provider answers, and the pictures of turns that are over are let go (the ids stay)', async () => {
+  const {vision, state, run, tick} = scene();
+  await run(FRAME_INTERVAL_MS * 3);
+  assert.ok(vision.frames.length > 0);
+  // A typed turn on Convai answers with the buffered picture, and the turn's picture is remembered for a retry.
+  const config = {characterId: 'judy', visionTurn: 'request-0000000a'};
+  const first = await vision.imagesForTurn(config);
+  assert.ok(first?.length === 1);
+  assert.deepEqual(await vision.imagesForTurn(config), first, 'a retry of the turn sends the same picture');
+  vision.attachToNextTurn(pictureOf(QUEUED));
+  assert.equal(vision.queue.length, 1);
+  vision.beginVoice('voice-0000000b');
+  await new Promise(done => setImmediate(done));
+  const voice = vision.voice.get('voice-0000000b');
+  assert.ok(voice.frame && voice.images, 'the recording holds its staged frame');
+  // The turn's picture is let go once no retry can come, and the id stays.
+  state.now += 91_000; await tick({});
+  assert.equal(vision.answered.has('request-0000000a'), true);
+  assert.equal(vision.answered.get('request-0000000a'), null, 'the picture of an answered turn is dropped after the retry window');
+  assert.ok(voice.frame && voice.images, 'a recording keeps its frame for longer');
+  // Another provider answers: nothing at all is held.
+  state.convai = false; await tick({});
+  assert.equal(vision.frames.length, 0); assert.equal(vision.queue.length, 0); assert.equal(vision.stagedFrame, null);
+  assert.equal(voice.frame, null); assert.equal(voice.images, null);
+  assert.equal(vision.voice.has('voice-0000000b'), true, 'its id stays');
+  assert.equal(vision.answeredAt.size, 0);
+  // And it comes back when Convai answers again, with nothing left over.
+  state.convai = true; await run(FRAME_INTERVAL_MS * 2);
+  assert.ok(vision.frames.length > 0);
+  assert.equal(vision.answered.get('request-0000000a'), null);
+});
+
+test('answered turns keep at most TURN_MEMORY ids and their picture times follow them out', async () => {
+  const {vision, run} = scene();
+  await run(FRAME_INTERVAL_MS * 2);
+  for (let index = 0; index < 50; index++) await vision.imagesForTurn({characterId: 'judy', visionTurn: 'turn-' + String(index).padStart(8, '0')});
+  assert.ok(vision.answered.size <= 32 && vision.answeredAt.size <= 32, `${vision.answered.size} ids, ${vision.answeredAt.size} times`);
+});

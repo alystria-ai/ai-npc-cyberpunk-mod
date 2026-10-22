@@ -102,6 +102,50 @@ test('onUpdate: the frames that run on every tick build no closure (session, wor
   assert.ok(/mark\('init:tick'\)[\s\S]{0,300}local player = menuPlayer\b/.test(initSource));
 });
 
+const menuText = initSource.slice(initSource.indexOf('convaiInMenu = function()'), initSource.indexOf('local function gameplayCanAcquire'));
+test('onUpdate helpers: one ConvaiFrameFlags call answers the session, world, menu and phone checks, and scripts without it keep the separate calls', () => run(`
+  local others, flagReads, mask = 0, 0, 0
+  local function native() others = others + 1 end
+  local requests = {IsPreGame=function() native(); return false end, IsGamePaused=function() native(); return false end}
+  local player = {ConvaiFrameFlags=function() flagReads = flagReads + 1; return mask end,
+    IsAttached=function() native(); return true end, IsDeadNoStatPool=function() native(); return false end,
+    ConvaiComposerOpen=function() native(); return false end, ConvaiPhoneIsOpen=function() native(); return false end}
+  Game = {GetSystemRequestsHandler=function() native(); return requests end}
+  convaiHeartbeat = {frame = 1}
+  ${menuText}
+  ${helperText}
+  local ATTACHED, DEAD, PREGAME, PAUSED, MENU, COMPOSER, PHONE = 1, 2, 4, 8, 16, 32, 64
+  local function frame(bits)
+    convaiHeartbeat.frame = convaiHeartbeat.frame + 1; mask = bits; flagReads, others = 0, 0
+    local ok, ready, handler = pcall(convaiSessionReady, player, false)
+    assert(ok)
+    local world
+    if ready then local okWorld; okWorld, world = pcall(convaiWorldReady, handler, player); assert(okWorld) end
+    return ready, world, handler
+  end
+  local ready, world, handler = frame(ATTACHED)
+  assert(ready == true and world == true and handler == convaiHeartbeat and flagReads == 1 and others == 0, 'running: ' .. others .. ' other calls')
+  assert(convaiInMenu() == false and others == 0, 'the frame flags seed the menu read')
+  assert(select(1, frame(ATTACHED + DEAD)) == false and select(1, frame(ATTACHED + PREGAME)) == false and select(1, frame(0)) == false)
+  ready, world = frame(ATTACHED + PAUSED); assert(ready == true and world == false)
+  ready, world = frame(ATTACHED + MENU); assert(ready == true and world == false, 'menu'); assert(convaiInMenu() == true and others == 0, 'menu seed ' .. others)
+  ready, world = frame(ATTACHED + COMPOSER); assert(ready == true and world == false and convaiInMenu() == false)
+  ready, world = frame(ATTACHED + PHONE); assert(world == true and convaiHeartbeat.flags % 128 >= 64 and others == 0, 'phone')
+  ready, world = frame(ATTACHED + MENU + COMPOSER + PAUSED + PHONE); assert(world == false and convaiInMenu() == true)
+  assert(not pcall(convaiSessionReady, nil, true) or select(1, convaiSessionReady(nil, true)) == false)
+  -- Scripts without the method: the separate calls answer (as before), and the flags are not asked again for 1200 frames.
+  local old = {IsAttached=player.IsAttached, IsDeadNoStatPool=player.IsDeadNoStatPool, ConvaiComposerOpen=player.ConvaiComposerOpen}
+  convaiHeartbeat.frame = 5000; others = 0
+  local okOld, readyOld, handlerOld = pcall(convaiSessionReady, old, false)
+  assert(okOld and readyOld == true and handlerOld == requests and others == 4 and convaiHeartbeat.flagsRetryAt == 6200, 'the old path answered')
+  convaiHeartbeat.frame = 5001; others = 0; flagReads = 0
+  readyOld, handlerOld = convaiSessionReady(player, false)
+  assert(readyOld == true and handlerOld == requests and flagReads == 0, 'no new attempt inside the retry window')
+  convaiHeartbeat.frame = 6200; mask = ATTACHED; others = 0
+  readyOld, handlerOld = convaiSessionReady(player, false)
+  assert(readyOld == true and handlerOld == convaiHeartbeat and others == 0, 'the flags are tried again after the window')
+`));
+
 test('onUpdate helpers: they answer exactly as the closures did (attached, alive, past the main menu, running, no menu, composer closed)', () => run(`
   local calls = {}
   local state = {attached=true, dead=false, preGame=false, paused=false, composer=false, menu=false, phone=true}
@@ -114,6 +158,7 @@ test('onUpdate helpers: they answer exactly as the closures did (attached, alive
     ConvaiBoom=function() error('native failure') end}
   Game={GetSystemRequestsHandler=function() calls[#calls+1]='handler'; return requests end}
   convaiInMenu=function() calls[#calls+1]='menu'; return state.menu end
+  convaiHeartbeat = {frame = 1}
   ${helperText}
   local function ready(p, suspended) return pcall(convaiSessionReady, p, suspended) end
   local ok, value, handler = ready(player, false)

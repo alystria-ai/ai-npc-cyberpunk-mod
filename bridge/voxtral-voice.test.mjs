@@ -339,7 +339,7 @@ test('capWav cuts a long reference to the working length and fixes the header; s
   assert.equal(cut.length, 44 + 25 * 24000 * 2); assert.equal(cut.readUInt32LE(40), 25 * 24000 * 2); assert.equal(cut.readUInt32LE(4), cut.length - 8);
   const short = wav(5); assert.equal(capWav(short, 25), short);
   const other = Buffer.from('not a wav file at all, just bytes'); assert.equal(capWav(other, 25), other);
-  assert.equal(VOXTRAL_LIMITS.firstAudioMs, 7000);
+  assert.equal(VOXTRAL_LIMITS.firstAudioMs, 5000);
 });
 
 // ---- where the reference comes from: long set, short set, Pocket, then clips extracted for the character ----------------------
@@ -1842,4 +1842,148 @@ test('Voxtral speaks the language of the text: the request carries no language f
   assert.equal(voxtralSpeaks('en', VOXTRAL_FALLBACK_MODEL), true); assert.equal(voxtralSpeaks(null), true); assert.equal(voxtralSpeaks('fr', VOXTRAL_FALLBACK_MODEL), true);
   assert.equal(modelRefused({status: 404, kind: 'request'}), true); assert.equal(modelRefused({status: 403, kind: 'key'}), false); assert.equal(modelRefused({status: 403, kind: 'key'}, 1), true);
   assert.equal(modelRefused({status: 403, kind: 'content'}, 1), false); assert.equal(modelRefused({status: 429, kind: 'limit'}, 1), false);
+});
+
+// 2026-10-22 review (R1): V's echo starts at the top of the turn on the same key as the companion's reply. A 429 that V's request earned set the
+// engine-wide cool-down (20 to 60 s) and held every Mistral request, so the companion's first sentence failed `ready` and went to text.
+test('a 429 on V\'s lane pauses V only: the companion\'s reply on the same key is asked at once, and the scheduler is held for a moment, not for the Retry-After', async () => {
+  let limited = true;
+  const server = await serve((request, response) => {
+    if (limited) { response.writeHead(429, {'retry-after': '30'}); response.end('{"message":"rate limited"}'); return; }
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+  });
+  try {
+    let time = 1_000_000;
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {clock: () => time, scheduler});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello.', {...collect(), lane: 'v'}), {kind: 'limit', status: 429});
+    assert.deepEqual(paused, [VOXTRAL_LIMITS.vPauseCapMs], 'the shared scheduler is held for a moment only');
+    assert.equal(voice.ready, true, 'the companion\'s lane is open'); assert.equal(voice.readyForV, false, 'V waits out the limit');
+    assert.equal(voice.degraded, null, 'V\'s limit does not mark the companion\'s voice as degraded');
+    // V's own next line waits without a request, the companion's reply is asked.
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Again.', {...collect(), lane: 'v'}), {kind: 'limit'});
+    assert.equal(server.requests.length, 1);
+    limited = false;
+    const spoken = await voice.synthesizeStream('judy-alvarez', 'Reply.', collect());
+    assert.equal(spoken.provider, 'voxtral'); assert.equal(server.requests.length, 2);
+    time += 30_001; assert.equal(voice.readyForV, true, 'V is back after the Retry-After');
+  } finally { await server.close(); }
+});
+
+test('a 429 on the companion\'s lane still pauses both lanes, and a refused key is the key\'s whoever asked', async () => {
+  const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '12'}); response.end(); });
+  try {
+    let time = 2_000_000;
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {clock: () => time, scheduler});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Reply.', collect()), {kind: 'limit'});
+    assert.deepEqual(paused, [12000]); assert.equal(voice.ready, false); assert.equal(voice.readyForV, false); assert.equal(voice.cooldownMs, 12000);
+    time += 12_001; assert.equal(voice.ready, true); assert.equal(voice.cooldownMs, 0);
+  } finally { await server.close(); }
+  const refused = await serve((request, response) => { response.writeHead(401); response.end(); });
+  try {
+    const {voice} = voiceFor(refused);
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', {...collect(), lane: 'v'}), {kind: 'key'});
+    assert.equal(voice.ready, false, 'a refused key stops the companion too'); assert.equal(voice.degraded.reason, 'key');
+  } finally { await refused.close(); }
+});
+
+test('a reply that finds the cloud voice cooling down for a moment waits it out and is spoken; a long cool-down still writes the reply', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    let time = 4_000_000; const slept = [];
+    const h = selection(server, {voxtral: {...quick, clock: () => time}, extra: {sleep: async ms => { slept.push(ms); time += ms; }}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    h.cloud.until = time + 900;
+    const spoken = await h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}});
+    assert.equal(spoken.provider, 'voxtral'); assert.equal(slept.length, 1); assert.ok(slept[0] >= 900 && slept[0] <= 1000);
+    h.cloud.until = time + 20_000; slept.length = 0;
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello again.', {onPcm() {}}), /cannot be asked now/);
+    assert.equal(slept.length, 0, 'a long cool-down is not waited for');
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+// 2026-10-22 review (R2): the written reply appears with the first audio, and a stalled first request held it for up to 17 s (29 s with queueing); the second ask is
+// nearly always quick. The first ask is hedged now: no audio after hedgeMs and the same line is asked again in parallel; the first audio of either is the reply's.
+test('a first ask that stalls is hedged: the second ask\'s audio is the reply\'s, handed on once, and the stalled one is cancelled', async () => {
+  let asked = 0;
+  const server = await serve(async (request, response, record) => {
+    asked++;
+    if (asked === 1) { sse(response); await wait(5000); response.end(done); return; }   // the stalled call: headers, then nothing
+    sse(response); response.write(delta(bytesOf(samples(4800)))); response.end(done);
+  });
+  try {
+    const {voice} = voiceFor(server, {limits: {hedgeMs: 40}}), sink = collect(), started = Date.now();
+    const result = await voice.synthesizeStream('judy-alvarez', 'Hello V, are you there?', sink);
+    assert.ok(Date.now() - started < 2000, 'the reply did not wait for the stalled call');
+    assert.equal(server.requests.length, 2); assert.equal(result.frames, 4800); assert.equal(sink.packets.reduce((sum, packet) => sum + packet.frames, 0), 4800, 'the audio is handed on once');
+    await until(() => server.requests[0].closed === true, 'the stalled call to be cancelled');
+    assert.equal(voice.degraded, null);
+  } finally { await server.close(); }
+});
+
+test('a first ask that gives audio in time is not hedged, and one that fails at once is not hedged either (its own retries and the caller\'s second ask follow)', async () => {
+  const quickServer = await serve(async (request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const {voice} = voiceFor(quickServer, {limits: {hedgeMs: 400}});
+    await voice.synthesizeStream('judy-alvarez', 'Hi.', collect()); await wait(500);
+    assert.equal(quickServer.requests.length, 1);
+  } finally { await quickServer.close(); }
+  const refusing = await serve((request, response) => { response.writeHead(401); response.end(); });
+  try {
+    const {voice} = voiceFor(refusing, {limits: {hedgeMs: 400}});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', collect()), {kind: 'key'}); await wait(500);
+    assert.equal(refusing.requests.length, 1, 'a refused key is not asked twice');
+  } finally { await refusing.close(); }
+});
+
+test('when both of the hedged asks give no audio the reply fails with the first one\'s timeout, and the asked-again path (a longer wait) is not hedged', async () => {
+  const server = await serve(async (request, response) => { sse(response); await wait(3000); response.end(done); });
+  try {
+    const {voice} = voiceFor(server, {limits: {hedgeMs: 30, firstAudioMs: 150}});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', collect()), {kind: 'timeout'});
+    assert.equal(server.requests.length, 2, 'the ask and its hedge');
+    server.requests.length = 0;
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', {...collect(), firstAudioMs: 150}), {kind: 'timeout'});
+    assert.equal(server.requests.length, 1, 'the second ask of the voice selection is a plain ask');
+  } finally { await server.close(); }
+});
+
+// Opus review of the hedge: its timer starts when the first ask is sent (a wait in the gate or the scheduler is not a stall), V's lines are not hedged, and when both asks
+// fail the first ask's error stands (a 429 earned by the hedge must not replace a timeout the caller would ask again for, nor pause everything for its Retry-After).
+test('the hedge waits for the first ask to be sent, and V\'s lane is never hedged', async () => {
+  const server = await serve(async (request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const slowStart = {schedule: task => wait(200).then(() => task({})), noteHeaders() {}, pause() {}};
+    const {voice} = voiceFor(server, {limits: {hedgeMs: 60}, scheduler: slowStart});
+    await voice.synthesizeStream('judy-alvarez', 'Hi.', collect());
+    assert.equal(server.requests.length, 1, 'queued behind the scheduler for 200 ms is not a stalled request');
+    server.requests.length = 0;
+    const stalled = await serve(async (request, response) => { sse(response); await wait(400); response.end(done); });
+    try {
+      const {voice: v} = voiceFor(stalled, {limits: {hedgeMs: 30, firstAudioMs: 120}});
+      await assert.rejects(v.synthesizeStream('judy-alvarez', 'Hi.', {...collect(), lane: 'v'}), {kind: 'timeout'});
+      assert.equal(stalled.requests.length, 1, 'a V line is asked once');
+    } finally { await stalled.close(); }
+  } finally { await server.close(); }
+});
+
+test('when the hedge earns a long 429 and the first ask times out, the reply fails with the first ask\'s timeout and the scheduler is held for a moment only', async () => {
+  let asked = 0;
+  const server = await serve(async (request, response) => {
+    asked++;
+    if (asked === 1) { sse(response); await wait(2000); response.end(done); return; }
+    response.writeHead(429, {'retry-after': '40', 'content-type': 'application/json'}); response.end('{"message":"rate limited"}');
+  });
+  try {
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {limits: {hedgeMs: 30, firstAudioMs: 200}, scheduler});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello there.', collect()), error => {
+      assert.equal(error.kind, 'timeout', String(error)); assert.notEqual(error.retried, true); return true;
+    });
+    assert.equal(server.requests.length, 2);
+    assert.deepEqual(paused, [VOXTRAL_LIMITS.vPauseCapMs], 'the hedge\'s limit holds the shared scheduler for a moment, not 40 s');
+    assert.equal(voice.ready, true, 'and the companion\'s own lane is not paused by it');
+  } finally { await server.close(); }
 });

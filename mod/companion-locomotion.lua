@@ -82,12 +82,20 @@ function M.install(ownsCommand)
     -- otherwise no closure is allocated per call.
     local function check(handler, context, command)
         local owner = ScriptExecutionContext.GetOwner(context)
-        if M.ownsCommand and M.ownsCommand(owner, command) then M.apply(handler, context, command) end
+        if M.ownsCommand and M.ownsCommand(owner, command) then M.apply(handler, context, command); return true end
+        return false
     end
     local function handle(handler, context, command)
         if not M.active then return end
-        local ok, err = pcall(check, handler, context, command)
-        if not ok then M.error = tostring(err) end
+        local ok, done = pcall(check, handler, context, command)
+        if not ok then M.error = tostring(done) end
+        -- 'filtered' mode: the script wrapper disarms a command before it reports it, so a command is reported once and costs
+        -- no Lua call (about a dozen CET calls) on its other AI ticks; the next walking command is marked again by M.mark. Only a
+        -- report that could not finish (a failure, or the command is not yet this copy's current travel command) arms it again,
+        -- so that case keeps retrying on the next tick as before. Never in 'engine' mode: that hook sees every NPC's command.
+        if (not ok or done ~= true) and M.mode == 'filtered' then
+            if pcall(command.ConvaiMarkOwned, command) then M.rearmed = (M.rearmed or 0) + 1 end
+        end
     end
     local scripted = filterScripted()
     if scripted ~= false and not fileExists('runtime/locomotion-engine-hook.txt') then

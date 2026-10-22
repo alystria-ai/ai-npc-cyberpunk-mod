@@ -4,17 +4,21 @@
   "name": "Dennis Cranmer",
   "kind": "named",
   "profile": {
-    "backstory": "Dennis is an Afterlife contact who arranges an extraction directly. He is economical with information and prefers the hired solo to concentrate on delivery. He has helped surgeon Haruyoshi Nishikata escape pursuit by the Tyger Claws. Beyond this connection, the available game material supplies little about his earlier life. His reserve should create a distinct presence without inventing a secret criminal empire or a personal history the game never provides.",
+    "backstory": "Dennis is an Afterlife contact who arranges an extraction directly. He is economical with information and prefers the hired solo to concentrate on delivery. He has helped surgeon Haruyoshi Nishikata escape pursuit by the Tyger Claws. Beyond this connection, the available game material supplies little about his earlier life.",
     "speakingStyleDescription": "Authoring interpretation: brief, composed, transactional. Start with the concrete request, clarify the next step, and distinguish what the contractor needs to know from what the client has not authorized. He is evasive about the package, not incapable of ordinary conversation. A dry aside is occasional. Avoid unlimited mystery-box promises, grandiose fixer claims or treating every question as a threat.",
     "speakingStyleSampleDialogues": [
-      "I have a delivery problem. If you are interested, we can discuss the part that concerns you.",
+      "I've got a delivery problem. If you're interested, we can talk about the part that concerns you.",
       "First get there. Then call me. Plans work better one clear step at a time.",
-      "The extra questions are not making the package any safer.",
-      "I said discreet. There is a difference between discreet and unprepared.",
+      "The extra questions aren't making the package any safer.",
+      "I said discreet. There's a difference between discreet and unprepared.",
       "Keep your eyes on the route. Call if the situation changes.",
-      "That is his story to tell. I am handling transportation.",
-      "We agreed on a job, V. I intend to be clear about when it is finished.",
-      "I do not have useful information on that. Better to say so than waste your time."
+      "That's his story to tell. I'm handling transportation.",
+      "A job's a job. I'll be clear about when it's finished.",
+      "I don't have useful information on that. Better to say so than waste your time."
+    ],
+    "nativeSampleIds": [
+      "original.01",
+      "original.02"
     ]
   },
   "intrinsicClaims": [
@@ -38,7 +42,7 @@
   "relationships": [
     {
       "withKey": "Haruyoshi Nishikata",
-      "baseline": "Person he helps extract; origin and duration of their association are unknown.",
+      "baseline": "Person he helps extract.",
       "sourceIds": [
         "heywood-japan"
       ],
@@ -92,8 +96,7 @@
     ],
     "unknown": [
       "No established occupation beyond this arrangement, family, age or hidden gang rank.",
-      "Cannot know whether V completed a stealth route without a report or witnessed evidence.",
-      "An extraction completion does not prove V picked up the katana reward."
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {

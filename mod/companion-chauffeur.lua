@@ -4,6 +4,7 @@ local M={}
 local catalog=dofile('companion-vehicle-catalog.lua')
 local RELEASE_TIMEOUT,BOARD_TIMEOUT,START_TIMEOUT=12,25,5
 local STOP_TIMEOUT,PARTY_TIMEOUT,TRIP_TIMEOUT,STALL_TIMEOUT=15,75,1800,35
+local STOPPING_HARD_TIMEOUT=60
 local PLAYER_WAIT_TIMEOUT,PLAYER_WAIT_DISTANCE=300,40
 local DRIVER_SEAT_GRACE=45
 local ARRIVAL_DISTANCE,RETARGET_INTERVAL=7,0.2
@@ -232,8 +233,18 @@ function M.cancel(s,reason)
     s.chauffeur.cancelled=true
     stop(s,reason or 'Trip cancelled.','cancelled'); return true
 end
+-- Our exact driving command is still live (or its retirement was never confirmed).
+local function commandLive(c)
+    if not c.operation or c.stopConfirmed then return false end
+    return not (c.observed and terminal(c.observed.commandState))
+end
+-- The driver may be dismissed once the trip is only waiting for her exit and no drive command of ours is live: a failing exit
+-- (V parked against a wall) must never keep her in the driver seat for the session. V is out of the car in that phase, so removing
+-- the driver cannot switch V into her seat.
 function M.canDismiss(s,serial)
-    if s.chauffeur and s.chauffeur.serial==serial then
+    local c=s.chauffeur
+    if c and c.serial==serial then
+        if c.phase=='exiting-driver' and not commandLive(c) then return true end
         return false,'Stop the trip and step out before dismissing your driver.'
     end
     return true
@@ -322,6 +333,14 @@ function M.update(s,player,entries,hooks,ops)
     end
     if person and present then person.entry=c.entry end
     if not present or not person or person.removing then stop(s,'The selected companion is leaving.','cancelled') end
+    if c.phase=='stopping' and not c.yieldToPlayer and s.clock-c.phaseAt>STOPPING_HARD_TIMEOUT then
+        -- The owned driving command could not be retired (its owner is gone, or the cancel never lands) or the car never reported
+        -- stopped. Do not wait for ever: one last brake, drop the command, and let the driver leave. canDismiss now allows removal.
+        if c.stopObligation then safe(s.chauffeurApi.brake,c.car,c.operation) end
+        c.operation,c.commandReceipt,c.stopConfirmed=nil,nil,true
+        c.error='The driving command could not be retired in time. The companion leaves the car anyway.'
+        phase(s,'exiting-driver')
+    end
     local sample,err=safe(s.chauffeurApi.sample,player,c.entry,c.car,s.api,c.operation)
     if not sample then
         stop(s,'Vehicle information became unavailable.','failed')
@@ -597,6 +616,7 @@ function M.snapshot(s)
     return {active=true,phase=c.phase,generation=c.generation,offer=copy(c.offer),
         reason=c.reason,error=c.error,outcome=c.outcome,observed=copy(c.observed),
         backend='npc',vehicleCommand=copy(c.commandReceipt),stopObligation=c.stopObligation==true,
+        dismissible=M.canDismiss(s,c.serial)==true,
         destinationRevision=c.destinationRevision,driveRevision=c.driveRevision,retargets=c.retargets,
         passengerSeat=c.passengerSeat,seated=c.seated,partyReady=c.partyReady==true,
         driverSeatWaitUsed=(c.driverSeatWaitUsed or 0)+(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0),

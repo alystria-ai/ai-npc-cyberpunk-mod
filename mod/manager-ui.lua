@@ -456,12 +456,13 @@ local function voiceIndexOf(record)
     return voicePreviewModule.indexOf({voiceProvider = record.provider, omniSteps = record.steps, omniReference = record.reference})
 end
 
--- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice) for the saved settings. With Mature content on a Voxtral engine reads as Pocket (it
--- is not used); so does a saved OmniVoice engine that cannot be used now (`omniOk` false: the companions are not on OmniVoice, or its pack is missing).
+-- V's voice row as it is held (1 Off, 2 Pocket, 3 Voxtral, 4 OmniVoice) for the saved settings. The row shows what is saved, whatever the Mistral key (V's voice follows
+-- its own setting; without a key the entry reads "Voxtral · needs Mistral key" and V's line is skipped, no Pocket worker loads for it, 2026-10-22). With Mature content on
+-- a Voxtral engine reads as Pocket (it is not used); so does a saved OmniVoice engine that cannot be used now (`omniOk` false: the companions are not on OmniVoice, or its pack is missing).
 local function savedVIndex(settings, keySaved, omniOk)
     if settings.vVoice ~= true then return 1 end
     if settings.vVoiceEngine == 'omni' and omniOk then return 4 end
-    return settings.vVoiceEngine == 'voxtral' and keySaved and settings.matureContent ~= true and 3 or 2
+    return settings.vVoiceEngine == 'voxtral' and settings.matureContent ~= true and 3 or 2
 end
 
 -- Is the custom endpoint set up (an address and a model ID, mod/custom-provider.lua state `ready`)? Read from the file the bridge writes, at most
@@ -1475,11 +1476,12 @@ local function schema()
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved),
             -- 4 OmniVoice (greyed out until the OmniVoice pack is installed and the saved companion voice is OmniVoice; the pack comes first).
-            -- A saved Voxtral without a key, or a saved OmniVoice that cannot be used, reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
+            -- A saved Voxtral shows as Voxtral without a key too (its entry says it needs one; V's line is skipped meanwhile and no Pocket worker loads for it). A saved
+            -- OmniVoice that cannot be used reads as Pocket (the bridge speaks it with Pocket then, bridge/convai-bridge.mjs).
             setting('vVoice', 'V’s voice for typed lines', 'select',
-                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and (snapshot.mistral or {}).saved and snapshot.settings.matureContent ~= true) and 3
+                snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and snapshot.settings.matureContent ~= true) and 3
                     or (snapshot.settings.vVoiceEngine == 'omni' and not vOmniBlock) and 4 or 2, 2,
-                'Your typed lines are spoken out loud too, in the male or female V voice that matches yours, then the companion answers. Push-to-talk is not replayed.\n\nPocket: on your processor, about 0.2 s; it loads its own small model if the companions use another voice. Voxtral: cloud, with your Mistral key, nothing loads on your PC. OmniVoice: the companions’ GPU voice, a second more wait.',
+                'Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.',
                 {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
                     or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
                     vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
