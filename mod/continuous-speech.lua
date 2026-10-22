@@ -15,6 +15,9 @@ local readSequence, acceptedSequence = 0, 0
 -- older than 400 ms as quiet). The facial timeline (up to ~100 KB) is read
 -- and decoded only when its revision changes, at most every FACE_PERIOD.
 local CONTROL_PERIOD, FACE_PERIOD = .15, .2
+-- Who the speaker is cannot change faster than this: the player/actor identity test (8 native calls) runs at 10 Hz, not every frame.
+local VALID_PERIOD = .1
+local validAt = nil
 local written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
 -- The last decoded continuous-speech.json (before validation) and the native revision it was read at: while that revision is unchanged
 -- the file is neither opened nor decoded again and the validation runs on a copy of it, as on a fresh decode. A revision read just
@@ -147,7 +150,7 @@ end
 
 function M.stop()
     write(false, true, 0, 0)
-    owner, previous, lastUpdated, volume, speakerDistance = nil, nil, nil, nil, nil
+    owner, previous, lastUpdated, volume, speakerDistance, validAt = nil, nil, nil, nil, nil, nil
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     segmentCache = {}
     readSequence, acceptedSequence = 0, 0
@@ -198,6 +201,7 @@ function M.start(context, descriptor, player, actor, paused, source)
         return spatial(player, actor)
     end)
     if not authorized then M.stop(); return false, 'Continuous speech target unavailable' end
+    validAt = M.now()
     if not write(true, paused, level, pan) then M.stop(); return false, 'Continuous permission could not be written' end
     return true
 end
@@ -398,7 +402,12 @@ function M.update(delta, player, actor, paused)
     if not owner then return nil, 'Continuous speech was cancelled' end
     delta = finite(delta) and math.max(0, math.min(5, delta)) or 0
     poll, wait, volumePoll = poll+delta, wait+delta, volumePoll+delta
-    local ok, valid = pcall(validActors, player, actor)
+    local ok, valid = true, true
+    local clock = M.now()
+    if not validAt or clock - validAt >= VALID_PERIOD or clock < validAt then
+        validAt = clock
+        ok, valid = pcall(validActors, player, actor)
+    end
     if not ok or not valid then M.stop(); return nil, 'Continuous speech target unavailable' end
     -- Paused menus can report zero simulation delta; still refresh the small
     -- permission file so they cannot accidentally resume stale audio later.

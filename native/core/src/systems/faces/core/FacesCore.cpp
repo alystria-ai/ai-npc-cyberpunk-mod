@@ -135,6 +135,20 @@ bool IsCornerTrack(int aTrack) noexcept
     return aTrack >= LCornerUp && aTrack <= RCornerDn;
 }
 
+std::size_t SanitizeFinite(double* aValues, std::size_t aCount) noexcept
+{
+    std::size_t replaced = 0;
+    for (std::size_t index = 0; aValues && index < aCount; ++index)
+    {
+        if (!std::isfinite(aValues[index]))
+        {
+            aValues[index] = 0.0;
+            ++replaced;
+        }
+    }
+    return replaced;
+}
+
 bool DecodeControl(const double* aControl, std::size_t aControlCount, const double* aSpeech, std::size_t aSpeechCount,
                    FrameInput& aOut) noexcept
 {

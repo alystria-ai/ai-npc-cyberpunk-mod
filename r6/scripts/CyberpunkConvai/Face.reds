@@ -582,6 +582,13 @@ public class ConvaiFaceService extends ScriptableService {
     // the Lua side (mod/world-talk.lua, for a quest-bound character), and the game dialogue above.
     let atPost = GameInstance.GetWorkspotSystem(npc.GetGame()).IsActorInWorkspot(npc);
     if !atPost && (npc.IsQuest() || !npc.IsOnAutonomousAI()) { return "skipped:driven"; };
+    // A quest-marked person at a workspot is at a post only when V is in open gameplay (scene tier 1). A scene's own seated, leaning or
+    // waiting actor stands in a workspot too, and V is then in staged or limited gameplay (tier 2 or more) or the tier cannot be read.
+    // An unmarked person (the bouncer) keeps the workspot as before. Read once on the talk key, never per frame.
+    if atPost && npc.IsQuest() {
+      let player = GetPlayer(npc.GetGame());
+      if !IsDefined(player) || PlayerPuppet.GetSceneTier(player) != 1 { return "skipped:staged"; };
+    };
     return "";
   }
 

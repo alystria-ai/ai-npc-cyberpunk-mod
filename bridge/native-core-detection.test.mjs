@@ -135,7 +135,7 @@ local before = io
 local M, api = boot(true)
 assert(io == before, 'the game io table is untouched')
 assert(api.present == false and api.pending == nil, 'a plugin that answered "no" is final: nothing to wait for')
-assert(lastPrint():find('Native core: io=lua %(plugin API differs or its file worker is not running%)'), lastPrint())
+assert(lastPrint():find('Native core: io=lua %(plugin API differs%)'), lastPrint())
 assert(n('Write') == 0 and n('Flush') == 0 and n('PluginVersion') == 0, 'no handshake with a plugin that refused the version')
 assert(api.use('actuator') == false and api.use('io') == false)
 assert(logCount('Native core: actuator=lua (plugin API differs') == 1, 'the first question about a system logs its state, once')
@@ -158,7 +158,7 @@ fakeCore.CheckVersion = function() return false end
 local M, api = boot(true)
 OUT = api.status()
 `);
-  assert.deepEqual(JSON.parse(out), {present: false, reason: 'plugin API differs or its file worker is not running'});
+  assert.deepEqual(JSON.parse(out), {present: false, reason: 'plugin API differs'});
 });
 
 // Add-ons read this through handle:native().status() (mod/addons.lua). The reason of a plugin that failed the late checks carries the
@@ -262,8 +262,9 @@ for (const missing of ['Write', 'Flush', 'Remove']) {
 fakeIo.${missing} = nil
 local before = io
 local M, api = boot(true)
-assert(io == before and api.present == false and api.use('io') == false, 'the game io table is untouched')
+assert(io == before and api.present == true and api.ioReady == false and api.use('io') == false, 'the game io table is untouched; the plugin itself stays usable')
 assert(lastPrint():find('Native core: io=lua'), lastPrint())
+assert(api.use('actuator') == true, 'a failed file handshake gates only io')
 local handshake = ioCalls()
 assert(handshake <= 3, 'only the handshake itself touched the plugin')
 cycle(1); cycle(2); cycle(3)

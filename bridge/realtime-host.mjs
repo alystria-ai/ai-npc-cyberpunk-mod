@@ -1,4 +1,5 @@
 import {createServer} from 'node:http';
+import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {chromium} from 'playwright';
@@ -25,6 +26,9 @@ const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 // 32 MiB leaves room for pose timestamps, metadata and bounded reply text.
 // This is a transport ceiling, not a larger utterance/facial admission limit.
 export const CONTINUOUS_SNAPSHOT_JSON_LIMIT = 32 * 1024 * 1024;
+
+// How often the text of a reply that is still being written is read from the page (see evaluateSpeech, textStream).
+export const TEXT_STREAM_POLL_MS = 40;
 
 export async function continuousSnapshotForHost(page, token, signal, pcmFrom) {
   // Playwright recursively encodes every number in a returned object. Passing
@@ -137,6 +141,7 @@ export class RealtimeHost {
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
     this.pinned = new Map();
+    this.running = 0;   // calls that are starting or running (runOnce): the browser is not released under them
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -331,11 +336,38 @@ export class RealtimeHost {
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
-  async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
+  async evaluateSpeech(page, method, config, {signal, liveSpeech, textStream, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);
     config = this.withVision(config);
-    if (!liveSpeech || config?.ttsEnabled === false)
-      return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+    if (!liveSpeech || config?.ttsEnabled === false) {
+      const textKey = textStream && method === 'reply' && typeof textStream.update === 'function' ? randomUUID() : null;
+      const call = page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config: textKey ? {...config, textStreamKey: textKey} : config, method});
+      // A text-only reply the bridge voices while Convai is still writing it (a local voice on the Convai text route): the text so far is read
+      // from the page every TEXT_STREAM_POLL_MS and handed to the reply stream, which finds the first sentence the voice can start on. The reply's
+      // own result still decides the final text. A poll that fails changes nothing (the call itself reports the failure).
+      if (textKey) {
+        let over = false, last = '';
+        const poll = (async () => {
+          // Only the first sentence is read this way (the rest comes from the finished reply): the polling ends when the stream has its head, or is over.
+          while (!over && !signal?.aborted && !textStream.committed && !textStream.complete) {
+            try {
+              // null: this page runs a client bundle older than the source (npm run build:voice) and cannot hand its text over; no polling, one line.
+              const text = await page.evaluate(key => window.convaiRealtime.partialReply ? window.convaiRealtime.partialReply(key) : null, textKey);
+              if (text === null) {
+                if (!this.earlyTextMissing) { this.earlyTextMissing = true; try { this.log('The conversation page has no early reply text (an older voice client bundle: npm run build:voice); replies are voiced when finished'); } catch { /* a line never fails a turn */ } }
+                break;
+              }
+              if (!over && typeof text === 'string' && text && text !== last) { last = text; textStream.update(text); }
+            } catch { /* the reply call reports a real failure */ }
+            if (over) break;
+            await new Promise(done => { const timer = setTimeout(done, TEXT_STREAM_POLL_MS); timer.unref?.(); });
+          }
+        })();
+        void poll.catch(() => {});
+        return abortable(call.finally(() => { over = true; }), signal);
+      }
+      return abortable(call, signal);
+    }
     const {token, onFrame} = liveSpeech;
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(token) || typeof onFrame !== 'function')
       throw Error('Invalid live speech admission');
@@ -346,12 +378,19 @@ export class RealtimeHost {
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
     // The sample rate the statistics showed for this turn's audio (the page puts it in the snapshot). A turn played live that finds out its audio is mislabelled is already playing at
-    // the label's rate, so it fails; the character must still learn the rate, or every later turn of it fails the same way (2026-10-21 reports of 55741d05, 0.2.6).
+    // the label's rate: it plays on to its end at that rate (the first turn of a character not yet remembered is heard at the wrong speed) and no longer fails (it used to, with
+    // "Continuous speech format changed"); the character learns the rate, so every later turn of it starts right (2026-10-21 reports of 55741d05, 0.2.6).
     const seenRate = {};
     const snapshot = () => continuousSnapshotForHost(page, token, controller.signal, liveSpeech.pcmCursor?.()).then(value => {
       if (value?.token === token) {
         if (value.sampleRateCorrected) seenRate.corrected = value.sampleRateCorrected;
         if (value.sampleRateHintMissed === true) { seenRate.missed = true; seenRate.sampleRate = value.sampleRate; }
+        // The corrected rate above is for the character's memory; the live speech is checked against the rate the player runs at (a correction found at the end of the
+        // turn is not a format change of the audio that has been playing: it used to fail the turn with "Continuous speech format changed").
+        if (Number.isInteger(value.openedSampleRate) && value.openedSampleRate !== value.sampleRate) {
+          const {openedSampleRate, ...rest} = value;
+          return {...rest, sampleRate: openedSampleRate};
+        }
       }
       return value;
     });
@@ -431,7 +470,12 @@ export class RealtimeHost {
     };
     return this.observe(attempt(), method !== 'warm');
   }
-  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
+  async runOnce(config, method, options = {}) {
+    // A call that is starting or running keeps the browser open (releaseIfIdle / releaseIdlePages look at this).
+    this.running = (this.running ?? 0) + 1;
+    try { return await this.runOnceCounted(config, method, options); } finally { this.running--; }
+  }
+  async runOnceCounted(config, method, {signal, discard = false, onAudioChunk, liveSpeech, textStream} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
     // Retire the old per-file chunk capability. Only an explicit liveSpeech
@@ -463,7 +507,7 @@ export class RealtimeHost {
       const images = await pictures;
       throwIfCancelled(signal);
       if (images) config.visionImages = images;
-      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech,
+      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech, textStream,
         current: () => epoch === this.epoch && !this.closing});
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
@@ -555,7 +599,7 @@ export class RealtimeHost {
   // use starts it again (about 0.8 s for the browser and about 1 s for the page; a composer warm-up does it before the first reply).
   // Resolves true when the browser was closed.
   async releaseIfIdle({idleMs = 300_000, keepRenderer = false, now = Date.now()} = {}) {
-    if (keepRenderer || this.closing || this.starting || !this.browser) return false;
+    if (keepRenderer || this.closing || this.starting || !this.browser || this.running > 0) return false;
     if (this.pool?.entries.size || this.voiceLease) return false;
     for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
     if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
@@ -586,7 +630,22 @@ export class RealtimeHost {
     const entry = this.pool?.entries.get(pageKey(config));
     if (!entry?.value || entry.value.isClosed()) return {present: false, ready: false};
     if (entry.busy) return {present: true, busy: true};
+    // A page kept alive on purpose (a phone Chat that is open) is in use: the idle release (releaseIdlePages) does not count its quiet time.
+    if (keepAlive) this.pool.touch(pageKey(config));
     return {present: true, ...await entry.value.evaluate(keepAlive => window.convaiRealtime.readiness(keepAlive), keepAlive)};
+  }
+  /**
+   * Closes the conversation pages nothing has used for `idleMs` and, when that leaves the host with nothing to serve, the hidden browser itself (a process tree of
+   * several hundred MB), with the close confirmed before this resolves. The next use opens it again on demand. Resolves {pages, browser}: how many pages and
+   * whether the browser were closed. Never throws.
+   */
+  async releaseIdlePages({idleMs = 180_000, now = Date.now()} = {}) {
+    try {
+      if (this.closing || this.starting || !this.browser || this.running > 0) return {pages: 0, browser: false};
+      const pages = await (this.pool?.evictIdle({idleMs}) ?? 0);
+      const browser = await this.releaseIfIdle({idleMs, now});
+      return {pages, browser};
+    } catch { return {pages: 0, browser: false}; }
   }
   // Convai's emotion for a finished text-only reply (`lateEmotionToken` in that reply), which arrives about half a
   // second after its text. Reads the reply's own page only; never connects, waits or retains anything.

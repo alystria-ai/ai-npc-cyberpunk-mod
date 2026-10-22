@@ -9,6 +9,7 @@ import argparse
 import base64
 from collections import OrderedDict
 from contextlib import redirect_stdout
+import faulthandler
 import gc
 import json
 import os
@@ -53,6 +54,31 @@ def safetensors_state_io():
 
 class Cancelled(RuntimeError):
     pass
+
+
+def skip_decoding_when_stopped(mimi, stop):
+    """A cancelled reply must stop quickly, and the pinned upstream decoder does not: it decodes every latent frame that is queued before it
+    says it is done, and on a busy computer that backlog is seconds of audio (the 2 s cancel deadline of the bridge killed the worker for it:
+    "Pocket worker did not stop its cancelled request"). While `stop` is set the decode of a chunk is replaced by one silent sample of the
+    right shape: nothing is heard (the chunk is thrown away by the cancelled request), the decoder thread's bookkeeping and its end sentinel
+    work as before, and it empties its queue in milliseconds. The decoder state belongs to the request, so the next reply starts fresh."""
+    original = mimi.decode_from_latent
+    if getattr(original, "stops_when_cancelled", False):
+        return original
+
+    def decode(latent, *args, **kwargs):
+        if stop.is_set():
+            return latent.new_zeros(latent.shape[0], 1, 1)
+        return original(latent, *args, **kwargs)
+
+    decode.stops_when_cancelled = True
+    mimi.decode_from_latent = decode
+    return decode
+
+
+# The longest the worker waits for the bridge to acknowledge one PCM packet. The bridge gives its consumer 30 s for the first packet (a
+# cold renderer) and 10 s for the others, so this is longer than either.
+ACK_WAIT_SECONDS = 45
 
 
 class CommandPipe:
@@ -156,6 +182,11 @@ class Commands:
         self.last_id = 0
         self.error = None
         self.cancelled = set()
+        # Called from the reader thread when the active (or the queued) request is cancelled: the worker goes to normal priority at once so a
+        # cancelled warm-up that was running below normal under a busy game stops in time (main sets it).
+        self.on_cancel = None
+        # The request in hand reports its progress here (ProgressTimer.touch): a chunk of audio produced, a packet acknowledged.
+        self.on_progress = None
         self.thread = threading.Thread(target=self.read, name="pocket-command-reader", daemon=True)
 
     def finish_input(self, error=None):
@@ -191,6 +222,11 @@ class Commands:
                             if request_id == self.active:
                                 self.stop.set()
                                 self.ack.set()
+                            if callable(self.on_cancel):
+                                try:
+                                    self.on_cancel()
+                                except Exception:  # noqa: BLE001 - a priority is an optimisation, never a failure.
+                                    pass
                         elif request_id > self.last_id:
                             raise ValueError("Pocket cancellation has no owner")
                     elif op == "ack":
@@ -229,6 +265,11 @@ class Commands:
             self.expected_ack = None
             self.ack.clear()
 
+    def touch(self):
+        hook = self.on_progress
+        if callable(hook):
+            hook()
+
     def check(self):
         if self.error:
             raise self.error
@@ -241,12 +282,43 @@ class Commands:
             self.ack.clear()
         self.check()
 
-    def await_ack(self, seconds=10):
-        if not self.ack.wait(seconds):
-            raise TimeoutError("Pocket PCM consumer did not acknowledge output")
+    def await_ack(self, seconds=None):
+        """Waits for the bridge to take a packet. The bridge owns this deadline (POCKET_LIMITS.sinkFirstMs / sinkMs, and it cancels the
+        request when its own limit passes); this one is only a backstop for a bridge that went quiet, longer than both so it never
+        fires first, and it ends the request, not the worker: a cold hidden renderer under game load used to take the whole worker
+        down ("generation stopped") and cost a 19 to 47 s reload."""
+        if not self.ack.wait(ACK_WAIT_SECONDS if seconds is None else seconds):
+            raise Cancelled("Pocket PCM consumer did not acknowledge output")
         self.check()
         with self.lock:
             self.expected_ack = None
+
+
+class ProgressTimer:
+    """Stops a request (calls `on_stall`) that has made no progress for `seconds`. The old limit was one wall-clock timer of MAX_AUDIO_SECONDS for the
+    whole request, which cut a long reply on a slow computer in the middle of a line even though audio was still being produced; now every chunk of
+    audio and every acknowledged packet (`touch`) starts the time over, so only a request that stands still is stopped."""
+
+    def __init__(self, seconds, on_stall, clock=time.monotonic, poll=1.0):
+        self.seconds, self.on_stall, self.clock, self.poll = seconds, on_stall, clock, poll
+        self.last = clock()
+        self.done = threading.Event()
+        self.thread = threading.Thread(target=self.run, name="pocket-request-progress", daemon=True)
+
+    def start(self):
+        self.thread.start()
+
+    def touch(self):
+        self.last = self.clock()
+
+    def cancel(self):
+        self.done.set()
+
+    def run(self):
+        while not self.done.wait(self.poll):
+            if self.clock() - self.last >= self.seconds:
+                self.on_stall()
+                return
 
 
 def acquire_lock(work):
@@ -306,6 +378,7 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     try:
         for chunk in generator:
             yielded_ms = (now() - started) * 1000
+            commands.touch()
             commands.check()
             payload, frames = encode_pcm(chunk)
             # The decoder turns every latent frame that is queued by the time it runs into ONE chunk. On a busy computer it falls
@@ -331,6 +404,7 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
                       "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
                 total += piece
                 commands.await_ack()
+                commands.touch()
     except BaseException:
         # Closing the upstream generator at a yield skips its decoder.join().
         # Set the native stop event and drain to its real EOF first. The owned
@@ -348,6 +422,45 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     return {"frames": total, "chunks": index, "sampleRate": 24000, "channels": 1,
             "firstPcmYieldMs": first_yield, "firstPcmCopiedReadyMs": first_ready,
             "generationMs": (now() - started) * 1000}
+
+
+def process_io_bytes():
+    """The bytes this process has read and written so far, or None when the system cannot say. A start that waits for a virus scan or a cold
+    disk spends wall time and no CPU time; its reads still move this number once the wait is over, and the bridge counts that as life."""
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            class IoCounters(ctypes.Structure):
+                _fields_ = [(name, ctypes.c_ulonglong) for name in (
+                    "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+                    "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.GetProcessIoCounters.argtypes = [ctypes.c_void_p, ctypes.POINTER(IoCounters)]
+            kernel32.GetProcessIoCounters.restype = ctypes.c_int
+            counters = IoCounters()
+            if not kernel32.GetProcessIoCounters(kernel32.GetCurrentProcess(), ctypes.byref(counters)):
+                return None
+            return int(counters.ReadTransferCount + counters.WriteTransferCount)
+        with open("/proc/self/io", "r", encoding="ascii") as handle:
+            values = dict(line.split(": ", 1) for line in handle.read().splitlines() if ": " in line)
+        return int(values["rchar"]) + int(values["wchar"])
+    except Exception:  # noqa: BLE001 - a progress marker is advisory only.
+        return None
+
+
+def heartbeat_frame(step=None, cpu_ms=None, io_bytes=process_io_bytes, modules=lambda: len(sys.modules)):
+    """The start-up heartbeat: CPU time, bytes read and written and Python modules loaded (the last two only when known), and the import mark."""
+    frame = {"op": "heartbeat", "cpuMs": int(time.process_time() * 1000) if cpu_ms is None else cpu_ms}
+    io = io_bytes()
+    if isinstance(io, int) and io >= 0:
+        frame["ioBytes"] = io
+    frame["modules"] = int(modules())
+    if step is not None:
+        frame["step"] = step
+    return frame
 
 
 NORMAL_PRIORITY_CLASS = 0x00000020
@@ -413,6 +526,12 @@ class PriorityGate:
 
 
 def main():
+    # A native fault (an access violation in a library, exit 3221225477) used to leave no trace: with this the Python stack of every thread goes to
+    # stderr, which the bridge keeps the tail of and names in the failure.
+    try:
+        faulthandler.enable(file=sys.stderr, all_threads=True)
+    except Exception:  # noqa: BLE001 - a diagnostic never stops the worker.
+        pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--owner", required=True)
@@ -434,16 +553,14 @@ def main():
             output.write(json.dumps({"owner": args.owner, **frame}, ensure_ascii=False, allow_nan=False) + "\n")
             output.flush()
 
-    # Startup progress for the bridge's stall watchdog: how much CPU this process has used (a slow import under a virus scan or a busy
-    # disk still creeps forward; a hung one uses none), once every two seconds while starting, and a mark after each heavy import. It
+    # Startup progress for the bridge's stall watchdog: how much CPU this process has used, how many bytes it has read and written and how many
+    # modules it has loaded (a slow import under a virus scan or a busy disk still creeps forward in one of them; a hung one in none), once every two
+    # seconds while starting, and a mark after each heavy import. It
     # stops when the worker is ready, so a worker that is serving never beats.
     started = threading.Event()
 
     def beat(step=None):
-        frame = {"op": "heartbeat", "cpuMs": int(time.process_time() * 1000)}
-        if step is not None:
-            frame["step"] = step
-        send(frame)
+        send(heartbeat_frame(step))
 
     def heartbeats():
         while not started.wait(2.0):
@@ -454,6 +571,7 @@ def main():
 
     threading.Thread(target=heartbeats, name="pocket-start-heartbeat", daemon=True).start()
     commands = Commands(command_pipe(sys.stdin), args.owner)
+    commands.on_cancel = gate.request
     commands.thread.start()
     cleaned = threading.Event()
 
@@ -511,6 +629,7 @@ def main():
             if not model.has_voice_cloning or model.sample_rate != 24000:
                 raise RuntimeError("Pocket export lacks the expected reference-conditioned audio")
             dtypes = require_cpu_float32(torch, model)
+            skip_decoding_when_stopped(model.mimi, commands.stop)
         send({"op": "state", "state": "loading", "phase": "student-loaded"})
 
         # Saved voice setups live beside the worker's other mutable files (runtime, never the immutable assets).
@@ -563,6 +682,7 @@ def main():
             if not loaded.has_voice_cloning or loaded.sample_rate != 24000:
                 raise RuntimeError("Pocket export lacks the expected reference-conditioned audio")
             require_cpu_float32(torch, loaded)
+            skip_decoding_when_stopped(loaded.mimi, commands.stop)
             return loaded
 
         def switch_language(request):
@@ -576,7 +696,7 @@ def main():
                 raise ValueError("Pocket has no model for this language")
             if target == lang["tag"]:
                 if target:
-                    add_language_voices(lang["registry"], request.get("voices", {}))
+                    add_language_voices(lang["registry"], request.get("voices", {}), lang["cache"])
                 return 0.0
             started_at = time.perf_counter()
             config = None
@@ -607,7 +727,7 @@ def main():
                 lang_store = PreparedVoiceStore(registry["paths"]["workDirectory"] / "prepared-voices" / f"lang-{target}", lang["sha256"],
                                                 SOURCE_SHA256, save_state, load_state)
                 lang["cache"] = ReferenceCache(lang["registry"], lambda path: model.get_state_for_audio_prompt(path, truncate=False), store=lang_store)
-                add_language_voices(lang["registry"], request.get("voices", {}))
+                add_language_voices(lang["registry"], request.get("voices", {}), lang["cache"])
                 kept = stash.pop(target, None)
                 if kept and kept[0] == lang["sha256"]:
                     for key, (reference_sha256, state) in kept[1].items():
@@ -677,8 +797,8 @@ def main():
             if urgent:
                 gate.request()
             synthesis_started = False
-            timer = threading.Timer(MAX_AUDIO_SECONDS, commands.stop.set)
-            timer.daemon = True
+            timer = ProgressTimer(MAX_AUDIO_SECONDS, commands.stop.set)
+            commands.on_progress = timer.touch
             timer.start()
             try:
                 commands.check()
@@ -735,6 +855,7 @@ def main():
                     return 1
             finally:
                 timer.cancel()
+                commands.on_progress = None
                 commands.finish(request_id)
                 if urgent:
                     gate.request()

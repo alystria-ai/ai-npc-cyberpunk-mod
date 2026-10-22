@@ -176,6 +176,24 @@ public final func ConvaiComposerOpen() -> Bool {
     return IsDefined(this.m_convaiComposerToken);
 }
 
+// The per-frame world facts onUpdate asks for, in one call instead of eleven. A bit mask, the same answers the separate calls give:
+//   1 attached, 2 dead, 4 pre-game (the main menu), 8 game paused, 16 in a menu, 32 composer open, 64 phone open.
+// mod/init.lua reads it once per frame (convaiSessionReady) and falls back to the separate calls when this method is missing.
+@addMethod(PlayerPuppet)
+public final func ConvaiFrameFlags() -> Int32 {
+    let flags: Int32 = 0;
+    if this.IsAttached() { flags += 1; };
+    if this.IsDeadNoStatPool() { flags += 2; };
+    let requests: wref<inkISystemRequestsHandler> = GameInstance.GetSystemRequestsHandler();
+    if requests.IsPreGame() { flags += 4; };
+    if requests.IsGamePaused() { flags += 8; };
+    let defs = GetAllBlackboardDefs();
+    if GameInstance.GetBlackboardSystem(this.GetGame()).Get(defs.UI_System).GetBool(defs.UI_System.IsInMenu) { flags += 16; };
+    if this.ConvaiComposerOpen() { flags += 32; };
+    if this.ConvaiPhoneIsOpen() { flags += 64; };
+    return flags;
+}
+
 @addMethod(PlayerPuppet)
 public final func ConvaiTakeSubmission() -> String {
     this.m_convaiSubmissionReady = false;

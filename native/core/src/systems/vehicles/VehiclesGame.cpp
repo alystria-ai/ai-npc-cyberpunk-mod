@@ -21,8 +21,8 @@ using namespace convai::vreflect;
 // Lua: TweakDBID.new('Vehicle.v_standard3_thorton_mackinaw_ncu_player'), computed at compile time.
 constexpr RED4ext::TweakDBID kMackinaw(kMackinawRecord);
 
-// One slot per call site; the car classes differ (bike, car, truck) but each call site sees mostly
-// one class, and a different class re-resolves.
+// One slot per call site, each holding a few (class, function) pairs: the mounting check asks the car, the
+// NPC and the player in turn every frame, and a single remembered class would re-resolve on each change.
 Slot g_attached, g_isVehicle, g_destroyed, g_ai, g_recordId, g_record, g_package, g_seatSet, g_seats, g_seatName,
     g_hasSlot, g_entityId, g_reserved, g_velocity, g_gap, g_playerMounted, g_scene, g_mountObjects, g_mountIds;
 
@@ -66,7 +66,8 @@ bool ReadSeatRecords(const Object& aEntity, RED4ext::CRTTIBaseArrayType*& aType,
     }
     aType = static_cast<RED4ext::CRTTIBaseArrayType*>(function->params[0]->type);
     aType->Construct(aStorage);
-    if (!Invoke(seatSet.instance, function, nullptr, {aStorage}))
+    // The storage is a DynArray (16 bytes); the parameter is the array type, whatever its element.
+    if (!Invoke(seatSet.instance, function, nullptr, {TypedArg(static_cast<void*>(aStorage), nullptr, 16)}))
     {
         aType->Destruct(aStorage);
         aType = nullptr;
@@ -171,7 +172,7 @@ bool ReadInspect(const Object& aEntity, bool aOwned, InspectRaw& aRaw)
     {
         return false;
     }
-    aRaw.mackinaw = recordId == kMackinaw.value;
+    aRaw.mackinaw = SameTweakName(recordId, kMackinaw.value);
 
     uint64_t carHash = 0;
     SeatList list;

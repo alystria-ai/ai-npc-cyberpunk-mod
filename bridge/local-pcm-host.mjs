@@ -18,6 +18,26 @@ function jsonCopy(value, label) {
   return JSON.parse(raw);
 }
 
+/**
+ * The owned copy of a facial prefix. A producer that builds a new face object on every poll but keeps the very same row arrays until its timeline changes (a poll that
+ * only moved the audible cursor; bridge/pocket-facial-stream.mjs) says so with `rows`, a key that changes with the rows. Rows under one key are copied once and the
+ * copy is reused, and only the small rest of the face (its fields, its coverage) is copied on each poll. A face with no `rows` is copied whole every time, as it
+ * always was. Nothing downstream changes a face (it is read, validated, spread into a new object, written), so a shared copy of rows that did not change is never
+ * seen to move. `rows` is the producer's note, not part of the face: the copy has none. `cache` ({rows, copy}) is the caller's, one per turn.
+ */
+export function ownedFaceCopy(face, cache) {
+  const rows = typeof face?.rows === 'string' ? face.rows : null;
+  if (rows !== null && Array.isArray(face.frames) && cache.copy && cache.rows === rows) {
+    const {frames: _frames, modelExpressions, rows: _rows, ...rest} = face;
+    const light = jsonCopy({...rest, ...(modelExpressions ? {modelExpressions: {...modelExpressions, frames: []}} : {})}, 'local PCM facial prefix');
+    return {...light, frames: cache.copy.frames, ...(modelExpressions ? {modelExpressions: {...light.modelExpressions, frames: cache.copy.modelExpressions.frames}} : {})};
+  }
+  const copy = jsonCopy(face, 'local PCM facial prefix');
+  if (rows !== null && Array.isArray(face.frames)) { cache.rows = rows; cache.copy = copy; }
+  delete copy.rows;
+  return copy;
+}
+
 // Match encodePcmWav's established PCM16 device conversion. No normalization,
 // trimming, fades, resampling or packet-level sound objects enter this path.
 export function ownedLocalPcmPacket(packet, {token, frames, index, identity} = {}) {
@@ -116,8 +136,17 @@ export class LocalPcmHost {
     const cancel = () => controller.abort(cancelled());
     signal?.addEventListener('abort', cancel, {once: true});
     if (signal?.aborted) cancel();
-    const deadline = setTimeout(() => controller.abort(Error('Local PCM playback timed out')), this.timeoutMs);
+    // The page's time limit is for standing still, not for length: a reply that a slow computer is still producing, or that is still playing, runs on. Every
+    // accepted packet and every advance of the heard position is progress (a timestamp: no timer is re-armed per packet or per poll); the one timer looks
+    // at it when it fires and waits out what is left of the window.
+    let progressAt = this.now(), deadline, heardSeconds = 0;
+    const arm = ms => { deadline = setTimeout(() => {
+      const idle = this.now() - progressAt;
+      if (idle >= this.timeoutMs) controller.abort(Error('Local PCM playback timed out')); else arm(this.timeoutMs - idle);
+    }, ms); };
+    arm(this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
+    const faceCopies = {};   // the last facial prefix's row arrays and their owned copy (ownedFaceCopy)
     let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
     // Ends the clock poll's sleep the moment the renderer accepts the first audio: that snapshot is the one that publishes the reply,
     // so it should not wait out the rest of a 40 ms sleep (docs/perf, LATENCY.md: 20 to 45 ms per reply in the live records).
@@ -147,7 +176,7 @@ export class LocalPcmHost {
         if (!ack || ack.version !== 1 || ack.token !== turn.token || ack.index !== expected.index
             || ack.offsetFrames !== frames || ack.frames !== expected.frames || ack.receivedFrames !== frames + expected.frames)
           throw Error('Local PCM renderer did not acknowledge the owned copy');
-        frames += expected.frames; index = expected.index; identity = owned.identity;
+        frames += expected.frames; index = expected.index; identity = owned.identity; progressAt = this.now();
         if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); firstAudio?.(); }
         return ack;
       } finally { emitting = false; }
@@ -187,11 +216,12 @@ export class LocalPcmHost {
             this.commandTimeoutMs, 'Local PCM renderer clock timed out', controller.signal);
           await check();
           if (snapshot.error) throw Error('Local PCM renderer failed');
+          if (snapshot.positionSeconds > heardSeconds) { heardSeconds = snapshot.positionSeconds; progressAt = this.now(); }
           if (liveText) { const live = liveText(); snapshot.text = live.text; snapshot.textComplete = live.complete === true; }
           if (getFace) {
             const face = await abortable(Promise.resolve().then(() => getFace(snapshot)), controller.signal);
             await check();
-            if (face !== undefined && face !== null) snapshot.face = jsonCopy(face, 'local PCM facial prefix');
+            if (face !== undefined && face !== null) snapshot.face = ownedFaceCopy(face, faceCopies);
           }
           const control = await abortable(Promise.resolve().then(() => onFrame(snapshot)), controller.signal);
           await check(); final = snapshot;

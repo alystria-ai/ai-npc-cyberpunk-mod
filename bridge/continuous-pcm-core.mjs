@@ -2,6 +2,11 @@
 // packet boundaries as sound boundaries and never changes the supplied PCM.
 export const PCM_LIMITS = Object.freeze({maxSeconds: 120, maxBytes: 24000000,
   startupSeconds: 0.4, holdAfterMs: 500, expireAfterMs: 2000,
+  // After the voice breaks (the buffer ran dry), the audio to have in hand before it plays on again grows with each break of the line
+  // (0.8, 1.6, 3.2 s, never above maxRefillSeconds) and jumps further when the audio was measured to arrive slower than it plays: a
+  // refill of the start's 0.4 s taking longer to arrive than to play broke the line every 0.4 s (a Pocket voice on a busy CPU: 17 breaks in
+  // 30 s). carrySeconds: how long one refill should carry a line arriving at the measured speed. refillWaitMs: the longest a refill waits.
+  maxRefillSeconds: 4, carrySeconds: 2.5, refillWaitMs: 6000, minMeasureMs: 250,
   // A device opened before its first audio exists waits silently for at most this
   // long (the Convai request's own 60 s ceiling plus margin). It is not a lease:
   // nothing can sound until arm() starts the ordinary 2 s game lease.
@@ -112,6 +117,9 @@ export class ContinuousPcmCore {
     this.started = false; this.rebuffering = false; this.sealed = false;
     this.stopped = false; this.error = null; this.state = 'awaiting-admission';
     this.startAt = null; this.drainAt = null;
+    // The refill target after a break (frames) and the arrival measure it comes from (first and latest append: the time and the frames received).
+    this.refillFrames = this.startupFrames; this.breaks = 0; this.rebufferSinceMs = null;
+    this.firstAppend = null; this.lastAppend = null;
     this.segment = {start: 0, end: 0, from: 0, to: 0, advancingEnd: 0};
   }
 
@@ -121,7 +129,8 @@ export class ContinuousPcmCore {
     throw Error(this.error);
   }
 
-  append(bytes, offsetFrames) {
+  // nowMs (optional): the clock of render(), when the packet was taken; the audio's arrival speed is measured from it.
+  append(bytes, offsetFrames, nowMs = null) {
     if (this.stopped || this.sealed) throw Error(this.error || 'PCM stream is closed');
     if (this.standby) return this.fail('PCM audio arrived before the stream was armed');
     if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength % this.align
@@ -139,6 +148,26 @@ export class ContinuousPcmCore {
     }
     this.writeFrame = (this.writeFrame + frames) % this.capacityFrames;
     this.receivedFrames += frames; this.bufferedFrames += frames;
+    if (Number.isFinite(nowMs)) {
+      this.firstAppend ??= {nowMs, frames: this.receivedFrames};
+      this.lastAppend = {nowMs, frames: this.receivedFrames};
+    }
+  }
+
+  /** How fast the audio has been arriving, in seconds of audio per second (1: as fast as it plays), after the first packet; null before it can be told. */
+  arrivalSpeed() {
+    const first = this.firstAppend, last = this.lastAppend;
+    if (!first || !last || last.nowMs - first.nowMs < PCM_LIMITS.minMeasureMs) return null;
+    return (last.frames - first.frames) / this.sampleRate / ((last.nowMs - first.nowMs) / 1000);
+  }
+
+  // The buffer ran dry: the next refill is bigger (doubled, and as large as the measured speed says one refill must be to carry the line).
+  growRefill(nowMs) {
+    this.breaks++; this.rebufferSinceMs = nowMs;
+    let target = Math.max(this.startupFrames, this.refillFrames * 2);
+    const speed = this.arrivalSpeed();
+    if (speed !== null && speed < 1) target = Math.max(target, Math.ceil(PCM_LIMITS.carrySeconds * (1 - speed) * this.sampleRate));
+    this.refillFrames = Math.min(Math.ceil(PCM_LIMITS.maxRefillSeconds * this.sampleRate), this.capacityFrames, Math.ceil(target));
   }
 
   // Ends standby and starts the ordinary lease at nowMs. Playback still needs a
@@ -200,7 +229,11 @@ export class ContinuousPcmCore {
     if (this.externalHold || age >= PCM_LIMITS.holdAfterMs) { this.state = 'lease-held'; return segment; }
     if (!this.allow) { this.state = 'awaiting-admission'; return segment; }
     if (this.paused) { this.state = 'paused'; return segment; }
-    if ((!this.started || this.rebuffering) && this.bufferedFrames < this.startupFrames && !this.sealed) {
+    // The start waits for startupFrames; a refill after a break for refillFrames, but never longer than refillWaitMs (a producer that slow
+    // gets what it has, which is still more than the start's).
+    const target = this.started ? this.refillFrames : this.startupFrames;
+    if ((!this.started || this.rebuffering) && this.bufferedFrames < target && !this.sealed
+        && !(this.rebuffering && this.bufferedFrames >= this.startupFrames && nowMs - this.rebufferSinceMs >= PCM_LIMITS.refillWaitMs)) {
       this.state = 'buffering'; return segment;
     }
     const count = Math.min(frames, this.bufferedFrames);
@@ -219,7 +252,7 @@ export class ContinuousPcmCore {
     }
     if (this.sealed && !this.bufferedFrames) this.state = 'drained';
     else if (count < frames) {
-      if (this.started && !this.rebuffering) this.underruns++;
+      if (this.started && !this.rebuffering) { this.underruns++; this.growRefill(nowMs); }
       this.rebuffering = true; this.state = 'buffering';
     } else this.state = 'playing';
     return segment;
@@ -227,7 +260,7 @@ export class ContinuousPcmCore {
 
   snapshot() {
     return {state: this.state, playedFrames: this.playedFrames, bufferedFrames: this.bufferedFrames,
-      receivedFrames: this.receivedFrames, underruns: this.underruns, sampleRate: this.sampleRate,
+      receivedFrames: this.receivedFrames, underruns: this.underruns, refillSeconds: this.refillFrames / this.sampleRate, sampleRate: this.sampleRate,
       channels: this.channels, sealed: this.sealed, ended: false, error: this.error,
       startAt: this.startAt, drainAt: this.drainAt};
   }

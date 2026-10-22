@@ -286,8 +286,8 @@ assert(not speech.requestId and not state().lastDelivery)
 `));
 
 test('mute, actor loss and world unload revoke playback without letting a late snapshot restart it',()=>run(`
-assert(begin());snapshot();tick();voice=false;tick();assert(not speech.requestId and not control().allow)
-voice=true;assert(begin());snapshot();tick();judy.attached=false;tick();assert(not speech.requestId and not control().allow)
+assert(begin());snapshot();tick();voice=false;tick(.1);assert(not speech.requestId and not control().allow)
+voice=true;assert(begin());snapshot();tick();judy.attached=false;tick(.1);assert(not speech.requestId and not control().allow)
 judy.attached=true;assert(begin());snapshot();tick();local calls=nativeCalls
 world=false;speech.abandon();assert(nativeCalls==calls and not control().allow and not speech.actor and not face.active)
 world=true;snapshot({ended=true,complete=true,textComplete=true,position=2});tick()
@@ -615,4 +615,28 @@ tick(.05);assert(speech.diagnosticCadence().position~=.9)
 -- Without a counter every tick reads, as before.
 convaiNative=nil;local n=reads;snapshot({position=.6,updated=(wall+.05)*1000});tick(.05);tick(.05)
 assert(reads==n+2,'Without the plugin each tick must read the file')
+`));
+
+test('a continuous reply tests who is speaking at 10 Hz instead of every frame, and still ends within 100 ms of losing the speaker or the voice', () => run(`
+local checks,voiceReads=0,0
+local attached=judy.IsAttached
+function judy:IsAttached() checks=checks+1; return attached(self) end
+local managerVoice=player.ConvaiManagerVoice
+function player:ConvaiManagerVoice() voiceReads=voiceReads+1; return managerVoice(self) end
+assert(begin());snapshot();tick(1/60)
+checks,voiceReads=0,0
+for i=1,60 do snapshot({position=.2+i/60}); tick(1/60) end
+assert(speech.requestId,'the reply kept playing')
+print('identity checks per 60 frames',checks,'voice reads',voiceReads)
+assert(checks<=30,'actor identity checks in 60 frames: '..checks)
+assert(voiceReads<=11,'voice setting reads in 60 frames: '..voiceReads)
+judy.attached=false
+local frames=0
+while speech.requestId and frames<30 do snapshot({position=1.3}); tick(1/60); frames=frames+1 end
+assert(not speech.requestId and frames<=7,'the lost speaker ended the reply after '..frames..' frames')
+judy.attached=true;assert(begin());snapshot();tick(1/60)
+voice=false;frames=0
+while speech.requestId and frames<30 do snapshot({position=.3}); tick(1/60); frames=frames+1 end
+assert(not speech.requestId and frames<=7,'the muted voice ended the reply after '..frames..' frames')
+voice=true
 `));

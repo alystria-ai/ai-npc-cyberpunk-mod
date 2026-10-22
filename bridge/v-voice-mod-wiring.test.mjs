@@ -10,13 +10,24 @@ import {V_VOICE_KEYS} from './v-voice.mjs';
 
 const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
 
-test('the bridge looks for a V voice mod once, before the voice configurations are merged, and not at any other time', () => {
-  const calls = [...bridge.matchAll(/loadVVoiceReferencesWithMods\(/g)];
-  assert.equal(calls.length, 1, 'one call in the whole bridge');
-  const at = calls[0].index, merged = bridge.indexOf('addonHost.voiceConfigPaths(');
-  assert.ok(at > 0 && merged > at, 'before the merge of the voice configurations');
-  assert.doesNotMatch(bridge, /ensureVoiceModReferences|detectVoiceMods|listVoiceModArchives/, 'the bridge never runs the scan itself (no timer, no poll, no reply)');
-  assert.match(bridge, /const \{report: vVoiceModReport, \.\.\.vVoiceReferences\} = await loadVVoiceReferencesWithMods\(/);
+test('at start the bridge only reads what an earlier V voice mod scan built (no scan, no process), before the voice configurations are merged', () => {
+  const start = bridge.indexOf('await loadVVoiceReferencesWithMods({...vVoiceLoadOptions, scan: false})'), merged = bridge.indexOf('addonHost.voiceConfigPaths(');
+  assert.ok(start > 0 && merged > start, 'the start-up call is scan: false and comes before the merge');
+  assert.doesNotMatch(bridge, /ensureVoiceModReferences|detectVoiceMods|listVoiceModArchives/, 'the bridge never runs the archive scan itself');
+  assert.match(bridge, /const \{report: initialVVoiceModReport, \.\.\.vVoiceReferences\} = await loadVVoiceReferencesWithMods\(/);
+});
+
+test('the scan runs once, in the background a little after start-up, and only while V\'s voice is on; what it changes is installed and applied live', () => {
+  const scans = [...bridge.matchAll(/loadVVoiceReferencesWithMods\(\{\.\.\.vVoiceLoadOptions, scan: true, current: vVoiceReferences\.voices\}\)/g)];
+  assert.equal(scans.length, 1, 'one scan call in the whole bridge');
+  assert.match(bridge, /if \(vVoice\.enabled\) startVVoiceModScan\(\);/, 'asked for only on the settings poll, when V\'s voice is on');
+  const starter = bridge.slice(bridge.indexOf('const startVVoiceModScan ='), bridge.indexOf('const startVVoiceModScan =') + 400);
+  assert.match(starter, /if \(vModScanStarted\) return;/);
+  assert.match(starter, /setTimeout\(\(\) => \{ void scanVVoiceMods\(\); \}, V_MOD_SCAN_DELAY_MS\)\.unref\?\.\(\)/, 'deferred, never awaited');
+  const body = bridge.slice(bridge.indexOf('const scanVVoiceMods ='), bridge.indexOf('const startVVoiceModScan ='));
+  assert.match(body, /installVVoiceReference\(voice, \[\.\.\.referenceRoots, voiceConfig\.runtime\?\.referenceDirectory\]/);
+  assert.match(body, /await liveVoices\?\.refresh\(V_VOICE_KEYS\[gender\]\)/, 'the running voices follow, the player\'s own clip still wins inside refresh');
+  assert.ok(!/await scanVVoiceMods|await startVVoiceModScan/.test(bridge), 'nothing waits for the scan');
 });
 
 test('the player\'s own clip for V is allowed, and beats the mod-built and the shipped reference (it is merged last, as a player clip)', () => {

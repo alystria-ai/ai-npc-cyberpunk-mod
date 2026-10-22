@@ -33,6 +33,38 @@ bool Present(const Object& aObject)
     return static_cast<bool>(aObject) && aObject.instance != nullptr;
 }
 
+// True when the object's class, or one of its ancestors, is named aName (aExact) or has aName in its name.
+bool ClassChainHas(const Object& aObject, const char* aName, bool aExact)
+{
+    if (!Present(aObject))
+    {
+        return false;
+    }
+    for (RED4ext::CClass* type = aObject.instance->GetType(); type; type = type->parent)
+    {
+        const char* name = type->GetName().ToString();
+        if (name && (aExact ? std::strcmp(name, aName) == 0 : std::strstr(name, aName) != nullptr))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The owner Lua hands over is the game's dynamic entity system (Game.GetDynamicEntitySystem()): the natives take any
+// object (handle:IScriptable), and IsReady, IsManaged and IsTagged are called on whatever arrives, so anything that
+// is not that system is refused here (the sample is then unavailable and the Lua reads it itself).
+bool OwnerAccepted(const Object& aOwner)
+{
+    return ClassChainHas(aOwner, "DynamicEntitySystem", false);
+}
+
+// A command object (AICommand and its subclasses): GetCommandState takes one and reads its fields.
+bool IsAiCommand(const Object& aObject)
+{
+    return ClassChainHas(aObject, "AICommand", true);
+}
+
 // A Vector4 or Vector3 return value as doubles (the Lua reads .x .y .z of either).
 bool ReadPoint(const Value& aValue, Vec3& aOut)
 {
@@ -106,6 +138,10 @@ bool ReadActor(const SampleArgs& aArgs, ActorRaw& aRaw)
         return false;
     }
     aRaw.sameEntity = hash == aArgs.actorHash;
+    if (Present(aArgs.owner) && !OwnerAccepted(aArgs.owner))
+    {
+        return false;
+    }
     aRaw.ownerPresent = Present(aArgs.owner);
     if (!aRaw.sameEntity || !aRaw.ownerPresent)
     {
@@ -458,7 +494,7 @@ bool ReadDrive(const Object& aCar, const DriveArgs& aArgs, DriveRaw& aRaw)
             Value state;
             RED4ext::CBaseFunction* function = Find(g_cmdState, ai.instance, "GetCommandState", 1);
             double number = 0.0;
-            if (!function || !Invoke(ai.instance, function, &state, {&handle}) || !state.Number(number) ||
+            if (!function || !IsAiCommand(handle) || !Invoke(ai.instance, function, &state, {&handle}) || !state.Number(number) ||
                 number < 0.0 || number > 6.0)
             {
                 return false;
