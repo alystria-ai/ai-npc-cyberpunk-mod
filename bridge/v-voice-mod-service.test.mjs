@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, writeFile, rm, readFile} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm, readFile, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -43,7 +43,7 @@ function fakeEnsure(winners, {calls = []} = {}) {
     }
     await writeFile(join(options.outFolder, 'v-voice.json'), JSON.stringify(manifest));
     const archives = Object.entries(winners).map(([gender, relative]) => ({relative, path: join('C:/secret/place', relative), size: 5, [gender]: {probeHits: 290, probeTotal: 300, lineHits: [0, 1, 2]}}));
-    return {directory: Object.keys(winners).length ? options.outFolder : null, voices, detection: {archives, winners: Object.fromEntries(Object.entries(winners).map(([g, r]) => [g, archives.find(a => a.relative === r)])),
+    return {directory: Object.keys(winners).length ? options.outFolder : null, voices, sources: {...winners}, detection: {archives, winners: Object.fromEntries(Object.entries(winners).map(([g, r]) => [g, archives.find(a => a.relative === r)])),
       stats: {total: archives.length, inspected: archives.length, cached: 0, failed: 0, ms: 12}}};
   };
 }
@@ -212,6 +212,7 @@ test('installVVoiceReference puts the clip where the workers read it, once per r
     assert.equal(sha(await readFile(join(root, 'refs', 'addons', 'v-male.wav'))), voice.sha256);
     assert.equal(sha(await readFile(join(root, 'pocket', 'addons', 'v-male.wav'))), voice.sha256);
     assert.equal(await installVVoiceReference(voice, [join(root, 'refs')]), 0, 'the same bytes are not copied again');
+    assert.deepEqual((await readdir(join(root, 'refs', 'addons'))).sort(), ['v-male.wav'], 'no temporary file is left beside the clip');
     const other = encodeWav16(sine(9, 300), 24000);
     await writeFile(source, other);
     assert.equal(await installVVoiceReference({...voice, sha256: sha(other)}, [join(root, 'refs')]), 1, 'a new clip replaces the copy');

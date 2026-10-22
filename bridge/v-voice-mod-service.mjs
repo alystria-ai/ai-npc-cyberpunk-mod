@@ -12,7 +12,7 @@
 // What runs: file reads of the index of each archive that changed (cached by name, size and time) and, only when a reference has to be (re)built, the
 // decoder (vgmstream-cli, shipped in the Runtime under app/vgmstream) once per line, each process exiting when its line is done. Nothing stays resident.
 // The mods replace the English voice-over only: with another voice-over language in the game's settings they are ignored (one log line).
-import {copyFile, mkdir, readFile} from 'node:fs/promises';
+import {copyFile, mkdir, readFile, rename, rm, stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {basename, join, resolve} from 'node:path';
 import {loadVVoiceReferences, V_VOICE_KEYS} from './v-voice.mjs';
@@ -102,7 +102,8 @@ export async function loadVVoiceReferencesWithMods({shippedDirectories, game, st
     const executable = await findVgmstream({candidates: [resolve(project, 'vgmstream', VGMSTREAM_EXECUTABLE), resolve(project, 'vendor', 'vgmstream', VGMSTREAM_EXECUTABLE)], env});
     report.decoder = executable ? 'found' : 'missing';
     const outFolder = resolve(stateDirectory, V_MOD_FOLDER);
-    const made = await ensure({list: () => list({game}), outFolder, modLines, decode: executable ? decoder(executable) : null, cachePath: resolve(stateDirectory, V_MOD_CACHE_FILE), log: line => log(line)});
+    const decoderId = executable ? await stat(executable).then(info => `${info.size}-${Math.floor(info.mtimeMs)}`).catch(() => null) : null;
+    const made = await ensure({list: () => list({game}), outFolder, modLines, decode: executable ? decoder(executable) : null, decoderId, cachePath: resolve(stateDirectory, V_MOD_CACHE_FILE), log: line => log(line)});
     const {stats, archives} = made.detection;
     report.scan = {archives: stats.total, inspected: stats.inspected, cached: stats.cached, failed: stats.failed, ms: stats.ms};
     report.mods = archives.filter(a => GENDERS.some(g => coverageOf(a[g]) > 0)).slice(0, 12).map(a => ({archive: basename(a.relative), male: coverageOf(a.male), female: coverageOf(a.female)}));
@@ -111,7 +112,7 @@ export async function loadVVoiceReferencesWithMods({shippedDirectories, game, st
     if (made.directory) {
       const mod = await loadVVoiceReferences([made.directory], {log});
       for (const gender of GENDERS) {
-        const row = mod.voices[gender], winner = made.detection.winners[gender], from = made.sources?.[gender] ?? winner?.relative;
+        const row = mod.voices[gender], winner = made.detection.winners[gender], from = made.sources?.[gender];
         // Only a reference built from the mod that wins now: another mod's voice is never labelled with this one's name.
         if (!row || !winner || from !== winner.relative) continue;
         voices[gender] = {...row, source: modLabel(winner.relative)};
@@ -133,7 +134,7 @@ export const vGenderOfKey = key => GENDERS.find(gender => V_VOICE_KEYS[gender] =
  * Puts a V reference where the voice workers read it (`<root>/addons/<key>.wav`, the copy the voice configurations name: runtime/voice-references/addons/<key>.wav), in each root
  * that has one. A copy with the same SHA-256 is left alone. Resolves to the number of roots written; one root failing does not stop the others.
  */
-export async function installVVoiceReference(voice, roots, {files = {readFile, copyFile, mkdir}, log = () => {}} = {}) {
+export async function installVVoiceReference(voice, roots, {files = {readFile, copyFile, mkdir, rename, rm}, log = () => {}} = {}) {
   let written = 0;
   const done = new Set();
   for (const root of roots.filter(value => typeof value === 'string' && value)) {
@@ -145,7 +146,13 @@ export async function installVVoiceReference(voice, roots, {files = {readFile, c
       const target = resolve(folder, `${voice.key}.wav`);
       let same = false;
       try { same = createHash('sha256').update(await files.readFile(target)).digest('hex') === voice.sha256; } catch { /* not there yet */ }
-      if (!same) { await files.copyFile(voice.reference, target); written++; }
+      if (!same) {
+        // Copied beside it and renamed over it, so a worker never reads half a clip; a rename Windows refuses (the worker has the old clip open) falls back to a copy over it.
+        const temporary = `${target}.${process.pid}.tmp`;
+        try { await files.copyFile(voice.reference, temporary); await files.rename(temporary, target); }
+        catch { await files.rm(temporary, {force: true}).catch(() => {}); await files.copyFile(voice.reference, target); }
+        written++;
+      }
     } catch (error) { log(`V's reference could not be copied to a reference folder: ${error?.code ?? 'error'}`); }
   }
   return written;
