@@ -54,12 +54,12 @@ const RULES = [
   [/\b([a-z][a-z0-9+.-]{1,20}:\/\/)[^\s\/?#@"'<>\\]+@/gi, '$1[redacted]@'],
   [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig|pass|passwd|password|pwd|code|secret|client_secret|refresh_token)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
-  // An e-mail address (a provider's error text can carry one): the whole address goes.
-  [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}\b/g, '[email-redacted]'],
 ];
-// An email address: name@domain with a dot and an alphabetic top-level part. A file name such as kokoro@v1.0.onnx (a model and its version, or a
-// versioned file) ends in a file extension, not a domain, so it is left alone (emailLike).
-const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g;
+// The one e-mail rule, shared by every redactor (the support report, the error reports and their queued log excerpts all go through createRedactor;
+// the Lua redactor in mod/support-report.lua has the same rule): name@domain with a dot and an alphabetic top-level part, the whole address
+// replaced (a provider's error text can carry one). A file name such as kokoro@v1.0.onnx or name@2x.png ends in a file extension, not a domain,
+// so it is left alone (emailLike). The name and the top-level part are length-bounded so a long run of text cannot make the match slow.
+const EMAIL = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}\b/g;
 const FILE_EXTENSIONS = new Set(["onnx", "json", "wav", "mp3", "ogg", "flac", "wem", "opus", "mjs", "js", "cjs", "ts", "lua", "txt", "log", "md", "csv", "gguf", "bin", "pt", "pth", "safetensors", "yaml", "yml", "toml", "ini", "cfg", "zip", "dll", "exe", "pdb", "so", "archive", "reds", "xml", "html", "css", "py", "bat", "ps1", "png", "jpg", "jpeg", "webp", "bmp", "tga", "dds", "mp4", "webm", "gz", "tar", "7z", "bak", "tmp"]);
 const emailLike = match => !FILE_EXTENSIONS.has(match.slice(match.lastIndexOf('.') + 1).toLowerCase());
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
