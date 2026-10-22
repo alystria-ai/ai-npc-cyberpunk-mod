@@ -1970,9 +1970,20 @@ async function convaiReply(input, profile, current, signal) {
 async function respondStreamed(input, profile, {signal, current}) {
   const config = realtimeConfig(input);
   const stream = newReplyStream(config, profile);
-  const final = Promise.resolve(realtime.reply(config, {signal, stream})).then(result => ({...result, transport: 'realtime'}));
+  const final = Promise.resolve(realtime.reply(config, {signal, stream, deferRecord: deferExchange(input)})).then(result => ({...result, transport: 'realtime'}));
   final.catch(() => {});
   return voiceStreamedReply(input, profile, {signal, current, stream, final, config});
+}
+// The exchange of a text-provider turn (Mistral, Local AI, Custom) is remembered only when its reply is published (publishResult): a reply the
+// player never heard (a target switch, a cancel, the game's 90 s cutoff, an interrupted stream) leaves no memory. The text host hands over a one-shot
+// commit per turn through its deferRecord option; a turn that is dropped never commits it, and the WeakMap lets it go with the turn's input.
+const pendingExchanges = new WeakMap();
+const deferExchange = input => commit => { pendingExchanges.set(input, commit); };
+function commitExchange(input) {
+  const commit = pendingExchanges.get(input);
+  if (!commit) return;
+  pendingExchanges.delete(input);
+  try { commit(); } catch (error) { console.error('[CyberpunkConvai] Memory exchange not recorded:', error?.message); }
 }
 const newReplyStream = (config, profile) => new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
 
@@ -2025,13 +2036,13 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
     // Mistral has no Convai audio: a turn that would use the cloud voice (no local voice available) is a written reply.
     if (!turnUsesLocal(input) && !mistral.active) return convaiReply(input, profile, current, signal);
     if (mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondStreamed(input, profile, {signal, current});
-    return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
+    return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal, deferRecord: deferExchange(input)}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
   throwIfCancelled(signal);
   // Text-only replies keep the same identified transport when native playback
   // is unavailable; legacy HTTP does not document the player-memory binding.
-  return {...await realtime.reply({...realtimeConfig(input), ttsEnabled: false}, {signal}), transport: 'realtime'};
+  return {...await realtime.reply({...realtimeConfig(input), ttsEnabled: false}, {signal, deferRecord: deferExchange(input)}), transport: 'realtime'};
 }
 
 // One compact line per reply for scripts/Show-EmotionTimeline.mjs (bridge/expression-timeline.mjs). Diagnostic only.
@@ -2064,6 +2075,7 @@ async function publishResult(input, profile, result, current = async () => true,
     // The game already received admission, live text and the consumed-sample
     // clock. Publishing a second ordinary reply would replay or replace it.
     realtimeSessions.set(sessionKey(input), result.sessionID);
+    commitExchange(input);
     connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : 'convai-continuous', complete: true},
@@ -2106,6 +2118,7 @@ async function publishResult(input, profile, result, current = async () => true,
     stream:stream?.descriptor(),updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) { stream?.closeQueue(); return false; }
   void diagnostic?.().catch(() => {});
+  commitExchange(input);
   logEmotionTimeline(input, profile, {provider: result.timing?.voiceProvider ?? null, text: result.text,
     plan: result.expressionPlan, face, signal: result.expressionSignal});
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -2801,12 +2814,12 @@ async function runCustomTurn(request, input, profile, current, clock, {userText 
   if (voiced && !input.reaction && replyStreaming && !ahead) {
     // The first sentence goes to the voice while the rest is still being written, as for any text-provider turn.
     const stream = newReplyStream(config, profile);
-    const final = Promise.resolve(mistralHost.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
+    const final = Promise.resolve(mistralHost.reply(config, {signal, stream, deferRecord: deferExchange(input)})).then(reply => ({...reply, transport: 'realtime'}));
     final.catch(() => {});
     startV();
     result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText: () => userText});
   } else {
-    const making = Promise.resolve(mistralHost.reply(config, {signal})).then(reply => ({...reply, transport: 'realtime'}));
+    const making = Promise.resolve(mistralHost.reply(config, {signal, deferRecord: deferExchange(input)})).then(reply => ({...reply, transport: 'realtime'}));
     making.catch(() => {});
     startV();
     const reply = await making;

@@ -850,3 +850,56 @@ test('a server the player runs is asked for no thinking from its very first requ
   const own = await localRoute({server: serverFor(lease({external: false}))}).connect(undefined, {});
   assert.deepEqual([own.adapt, own.noThinking], [undefined, undefined], 'the packaged models never think');
 });
+
+// ---- The exchange is remembered only for a reply the player could hear ------------------------------------------------------------
+
+const recalled = memory => memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns;
+
+test('a reply is remembered at once when nobody defers it, as before', async () => {
+  const {host, memory, close} = await harness(() => 'Sure thing, V.');
+  try {
+    await host.reply(turn('hello there'));
+    assert.deepEqual(recalled(memory).map(row => row.r), ['Sure thing, V.']);
+  } finally { await close(); }
+});
+
+test('a turn cancelled while the reply was being written leaves no memory of it', async () => {
+  const controller = new AbortController();
+  const {host, memory, close} = await harness(() => { controller.abort(); return 'Sure thing, V.'; });
+  try {
+    await assert.rejects(host.reply(turn('hello there'), {signal: controller.signal}));
+    assert.deepEqual(recalled(memory), []);
+  } finally { await close(); }
+});
+
+test('with deferRecord the exchange waits for the commit: a dropped reply is never remembered, a published one is, once', async () => {
+  const {host, memory, close} = await harness(() => 'Sure thing, V.');
+  try {
+    let commit;
+    const result = await host.reply(turn('hello there'), {deferRecord: held => { commit = held; }});
+    assert.equal(result.text, 'Sure thing, V.');
+    assert.equal(typeof commit, 'function');
+    assert.deepEqual(recalled(memory), [], 'nothing is remembered before the reply is published');
+    commit(); commit();
+    assert.deepEqual(recalled(memory).map(row => ({v: row.v, r: row.r})), [{v: 'hello there', r: 'Sure thing, V.'}]);
+    // A dropped reply: the commit is never called.
+    await host.reply(turn('and then'), {deferRecord: () => {}});
+    assert.equal(recalled(memory).length, 1);
+  } finally { await close(); }
+});
+
+test('with deferRecord a battle line hands over nothing', async () => {
+  const {host, memory, close} = await harness(() => 'Stay down!');
+  try {
+    let handed = 0;
+    await host.reply(turn('Behind you!', {reaction: {phase: 'battle'}}), {deferRecord: () => { handed++; }});
+    assert.equal(handed, 0); assert.deepEqual(recalled(memory), []);
+  } finally { await close(); }
+});
+
+test('the bridge defers the exchange of its typed and custom text turns and commits it only where a reply is published', async () => {
+  const {readFileSync} = await import('node:fs');
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.equal([...source.matchAll(/deferRecord: deferExchange\(input\)/g)].length, 5);
+  assert.equal([...source.matchAll(/^\s*commitExchange\(input\);/gm)].length, 2);
+});

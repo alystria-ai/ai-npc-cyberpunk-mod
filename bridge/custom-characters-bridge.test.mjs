@@ -24,8 +24,9 @@ function rig({active = true, route = 'local', voiced = false, streaming = true, 
     roster: [profile],
     mistral: {active, route},
     stopped: false,
+    deferExchange: () => commit => { log.push(['deferred', typeof commit]); },
     mistralHost: {
-      reply: async (config, options) => { log.push(['reply', config, !!options.stream]); return {text: 'Boom.', model: 'm', timing: {}}; },
+      reply: async (config, options) => { log.push(['reply', config, !!options.stream, typeof options.deferRecord]); return {text: 'Boom.', model: 'm', timing: {}}; },
       prewarm: async config => { log.push(['prewarm', config]); },
     },
     warmConnection: async options => { log.push(['warmConnection', options]); },
@@ -83,8 +84,9 @@ test('with Convai answering, the turn is refused in one plain sentence and nothi
 test('a text turn goes to the main text host and is published without sound when no local voice speaks', async () => {
   const r = rig({voiced: false});
   await r.runCustomTurn(r.request(), r.input(), profile, r.currentFn, r.clock);
-  const [, config, streamed] = find(r.log, 'reply')[0];
+  const [, config, streamed, deferRecord] = find(r.log, 'reply')[0];
   assert.equal(streamed, false);
+  assert.equal(deferRecord, 'function', 'the exchange is handed over to be remembered when the reply is published');
   assert.deepEqual(config.local, {profileKey: profile.key, name: 'Rebecca', channel: 'private'});
   assert.deepEqual(find(r.log, 'status')[0], ['status', 'thinking', 'Rebecca']);
   assert.equal(find(r.log, 'v-start').length, 1, 'V\'s typed line is voiced beside the reply');
