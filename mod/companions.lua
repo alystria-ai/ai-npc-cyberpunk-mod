@@ -1101,11 +1101,17 @@ function M.chauffeurAutodriveToggled(enabled) return vehicles.chauffeurAutodrive
 function M.chauffeurArrived(entity) return vehicles.chauffeurArrived(fleet,entity) end
 
 function M.beginFastTravel()
-    if transit then return false end
+    -- A second fast travel can start while the first one's recovery still runs (a copy in transit or spawning, up to 12 s). It takes
+    -- over: copies already waiting in transit keep their receipts, the ones that came back become receipts again, and the fleet's
+    -- suspended state stays the first travel's (it resumes once, when the last recovery ends).
+    local previous=transit
     local party={}
     for _,entry in ipairs(entries) do
         local eligible=entry.state=='spawning'
-        if entry.state=='ready' then
+        if previous and entry.state=='transit' then
+            entry.retryAt=nil
+            party[#party+1]=entry
+        elseif entry.state=='ready' then
             local ok,alive=pcall(function() return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() end)
             eligible=ok and alive
         end
@@ -1134,7 +1140,7 @@ function M.beginFastTravel()
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
     end
-    transit={phase='loading',clock=0,fleet=vehicles.suspend(fleet)}
+    transit={phase='loading',clock=0,fleet=previous and previous.fleet or vehicles.suspend(fleet)}
     entries=party; groupFrame=nil; elapsed=0
     passageState.trail,passageState.lift,passageState.z={},nil,nil
     return true

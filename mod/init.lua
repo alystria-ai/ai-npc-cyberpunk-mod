@@ -4277,6 +4277,21 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- The 120 s timeout of a fast travel whose loading screen never reported its end (called from onUpdate, once, when it expires): with V in
+-- the world it finishes the travel the way the loading screen's end does, so the party recovers and the mod resumes; with V still gone it
+-- drops the receipts and the attach hooks resume the mod. A global, so the onUpdate closure gains no upvalue and builds no closure.
+convaiFastTravelExpired = function()
+    local attached = false
+    pcall(function() local player = Game.GetPlayer(); attached = player ~= nil and player:IsAttached() == true end)
+    if attached then
+        log('Fast travel completion did not arrive within 120 s: recovering the party and resuming')
+        fastTravelActive.finished = true
+        pcall(companions.fastTravel)
+        worldSuspended = false
+    else
+        fastTravelActive=nil; abandonSession('fast travel timed out')
+    end
+end
 -- onUpdate's native checks as plain functions that take what they read: a pcall(function() ... end) inside onUpdate built a
 -- new closure (and boxed the locals it captured) on every frame. Globals, so the onUpdate closure gains no upvalue.
 -- V attached, alive and past the main menu: true and the requests handler (the pause check reuses it), or false.
@@ -4337,11 +4352,11 @@ registerForEvent('onUpdate', function(delta)
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
     if convaiLog.n > 0 then convaiLogTick() end
-    -- A missing completion must not keep a stale travel intent armed for a
-    -- later unrelated load. Expiration only drops receipts; it never restores.
-    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
-        fastTravelActive=nil; abandonSession('fast travel timed out')
-    end
+    -- A completion that never arrived must neither keep a stale travel intent armed for a later unrelated load nor leave the mod
+    -- suspended with the party's copies alive and uncontrolled. With V in the world the timeout finishes the travel the way the
+    -- loading screen's end does (the party recovers on the next tick and the mod resumes); with V still gone the receipts are dropped
+    -- and the attach hooks resume the mod.
+    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then convaiFastTravelExpired() end
     -- A detach that no save restore followed (a new game started from the menu): two minutes after the new V attached, the mod resumes.
     local restoreAttached = convaiHeartbeat.restoreAttached
     if restoreAttached and os.clock() - restoreAttached > 120 then

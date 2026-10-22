@@ -129,6 +129,25 @@ test('Johnny recreation after fast travel keeps his initial solid appearance',()
   assert(row.serial==serial and row.state=='ready')
 `));
 
+test('a second fast travel during the first recovery takes over: the pending copy keeps its receipt and still returns',()=>run(`
+  local johnny=spawn('johnny-silverhand')
+  local serial=companions.list()[1].serial
+  assert(companions.beginFastTravel())
+  entities[tonumber(johnny.id.hash)]=nil
+  assert(companions.fastTravel())
+  tick(1)
+  local mid=companions.list()[1]
+  assert(mid.state=='transit' or mid.state=='spawning', 'the copy is still on its way back: '..tostring(mid.state))
+  assert(companions.beginFastTravel(), 'the second travel is not refused while the first recovery runs')
+  local again=companions.list()
+  assert(#again==1 and again[1].serial==serial, 'the pending copy was dropped')
+  assert(companions.fastTravel())
+  tick(10)
+  local row=companions.list()[1]
+  assert(row and row.serial==serial and row.state=='ready', 'the copy never returned: '..tostring(row and row.state))
+  assert(companions.beginFastTravel() and companions.fastTravel(), 'an ordinary travel afterwards still works')
+`));
+
 test('Kerry is created in his native clothed appearance without rewriting the quest record or rebuilding his face',()=>run(`
   companions.spawn('kerry-eurodyne')
   local kerry=entities[sequence]
