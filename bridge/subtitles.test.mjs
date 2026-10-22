@@ -1542,3 +1542,31 @@ enabled=false;m.clear()
 assert(m.showAnyway('Judy',42,judy,'201ULL')~=true)
 assert(m.show('Judy','Still hidden.',judy,'201ULL')==false,'a failed forced show does not leave the override set')
 `));
+
+test('a forced caption (Subtitles off) stays through the per-frame updates until it expires, a timed revision does not drop it, and the next caption follows the setting again', () => run(setup + `
+enabled=false
+assert(m.showAnyway('Judy','Nobody heard this reply, so it is written.',judy,'201ULL')==true)
+for _=1,30 do m.update(0.016, player) end
+assert(#shown()>=1 and shown()[1].speaker==judy,'the forced page is still shown after 30 frames')
+assert(m.ownsUtterance(),'the caption is still the current utterance after the frames')
+-- the update path without a frame player (a caller that asks the game) behaves the same
+for _=1,10 do m.update(0.016) end
+assert(m.ownsUtterance())
+-- it goes away by itself when its reading time is over
+for _=1,2000 do m.update(0.1, player) end
+assert(not m.ownsUtterance(),'the page expires after its reading time')
+-- clear drops the mark: the next ordinary caption is hidden again and cleared by the first update
+m.clear()
+assert(m.show('Judy','Follows the setting.',judy,'201ULL')==false)
+-- a forced caption replaced by a shown one that is not forced is removed by Subtitles off at the next frame (the mark never outlives its caption)
+enabled=true
+assert(m.show('Judy','Ordinary page.',judy,'201ULL')==true)
+enabled=false
+m.update(0.016, player)
+assert(not m.ownsUtterance(),'an ordinary caption is cleared when Subtitles go off, as before')
+-- a growing timed reply that was forced is revised without being cleared
+m.clear()
+assert(m.showAnyway('Judy','First words.',judy,'201ULL')==true)
+m.update(0.016, player)
+assert(m.ownsUtterance())
+`));

@@ -211,6 +211,7 @@ function M.enabled(framePlayer)
 end
 function M.abandon()
     -- Death/detach destroys the HUD. Release references without native calls.
+    M.forced = nil
     M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
     M.timedIdle = nil
@@ -576,6 +577,9 @@ function M.showAnyway(speaker, text, actor, expected)
     forceShow = true
     local ok, shown = pcall(M.show, speaker, text, actor, expected)
     forceShow = nil
+    -- The page stays for its whole reading time: update and reviseTimed test the Subtitles setting every frame and would clear it at once. The mark
+    -- belongs to this caption only (clear and abandon drop it), so the next ordinary caption follows the setting again.
+    M.forced = (ok and shown) and true or nil
     return ok and shown or false
 end
 -- V's own words while V speaks by voice, shown as one dialogue-HUD line that is replaced as the recognised words grow.
@@ -646,7 +650,7 @@ function M.reviseTimed(text, duration, position, captions)
     if not M.timed or not finite(duration) or duration <= 0 or duration > 120
         or not finite(position) or position < 0 then return false end
     if M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.abandon(); return false end
-    if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
+    if not (M.forced or M.enabled()) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
     -- Switching an ongoing utterance from overhead to the cabin HUD must not
     -- change page boundaries on the next streamed transcript revision.
     local pages, ranges, timed = layout(text, duration, M.cues(captions), M.paginationStyle or M.mode)
@@ -694,7 +698,7 @@ function M.update(delta, framePlayer)
     local player, ok = framePlayer, true
     if not player then ok, player = pcall(function() return Game.GetPlayer() end) end
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
-    if not M.enabled(player) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
+    if not (M.forced or M.enabled(player)) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
     if M.mode == 'overhead' and vehicleConversation(player) then
         -- The player has already seen this page on foot. Retire its root and
         -- preserve progress; only unread continuation text may enter the HUD.

@@ -631,3 +631,15 @@ voice=false
 assert(speech.start(context,{text='Voice is off.'})==false)
 assert(#anyway==0 and plain[1]=='Voice is off.','voice off by choice keeps the setting')
 `));
+
+test('Voice playback turned off while a reply plays keeps the Subtitles setting; a voice that breaks forces the text',()=>run(`
+local anyway,plain={},{}
+function captions.showAnyway(name,text)anyway[#anyway+1]=text;return true end
+local show=captions.show
+function captions.show(name,text,...)plain[#plain+1]=text;return show(name,text,...)end
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Half heard.',textComplete=true});tick()
+voice=false
+snapshot({position=.5,bufferedDuration=1,text='Half heard.',textComplete=true});tick()
+assert(#anyway==0 and plain[#plain]=='Half heard.','muted by the player: not forced, got '..tostring(anyway[1]))
+voice=true
+`));

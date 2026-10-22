@@ -212,7 +212,8 @@ end
 local function fallback(reason, text)
     local name, actor, entity = M.speaker, M.actor, M.context and M.context.entity
     local heard = M.continuousHeardAll == true
-    local reaction = M.reactionReply == true
+    -- An automatic reaction, and a voice the player turned off while the reply played ('muted'), keep the Subtitles setting.
+    local reaction = M.reactionReply == true or reason == 'muted'
     M.stop(reason)
     -- A reply that was already heard to its end (its last state said so) has nothing left to show: re-showing the whole written text
     -- after the voice is done would leave the subtitle on screen for its reading time.
