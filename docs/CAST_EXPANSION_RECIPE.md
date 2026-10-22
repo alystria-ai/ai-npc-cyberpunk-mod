@@ -346,9 +346,7 @@ knowledge, Convai original and twin are done; the game voices and the twins' lan
     `node scripts/clip-search/cast-expansion/merge_rows.mjs --keys hasan-demir,pedro-aimar,mr-blue-eyes`, `node ... merge.mjs release-plan --keys ...`,
     the ear check, the bucket upload (recipe section 9), and finally move the keys into `CAST_EXPANSION_KEYS` (the `todo` voice test and the twin-map
     allowance in `bridge/multilingual.test.mjs` go away). `staging/cast/` is git-ignored: recreate `voice-spec.json` per key from the lines above.
-- **Twins' language boxes (owed, needs a signed-in Convai dashboard session).** `POST https://convai.com/api/character/update` with
-  `{character_id, workspace_id, language_hardening_mode: 'off'}` for the three twins (`hasan-demir`, `pedro-aimar`, `mr-blue-eyes`; ids in
-  `packaging/release-data/multilingual-profiles.json`), read back, then `languageBoxOff: true` in `runtime/multilingual-profiles.json` and the release data.
-  Until then the router keeps using the originals.
+- **Twins' language boxes: DONE 2026-10-23.** Set to `off` through the signed-in dashboard (`POST https://convai.com/api/character/update` with
+  `{character_id, workspace_id, language_hardening_mode: 'off'}`), read back `off`, `languageBoxOff: true` recorded in `runtime/multilingual-profiles.json` and the release data.
 - **Appearance.** Only Mr. Blue Eyes has a text (wiki: black hair, blue eyes, an understated expensive suit). Hasan's wiki Appearance section is
   empty and Pedro's says only grey hair; both stay `source: none` until a picture is approved for download (infobox image, step 5).

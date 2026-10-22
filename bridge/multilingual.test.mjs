@@ -8,7 +8,7 @@ import {detectLanguage, isNonEnglish} from './reply-language.mjs';
 import {VOXTRAL_TTS_MODEL, VOXTRAL_TTS_FALLBACK_MODEL, voxtralSpeaks} from './voxtral-languages.mjs';
 import {MultilingualConversations, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext, twinMarkerKey,
   wantsTwin} from './multilingual.mjs';
-import {CAST_EXPANSION_KEYS, CAST_EXPANSION_3_KEYS} from './cast-expansion-keys.mjs';
+import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, parseRelationshipState,
   RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PlayerMemory} from './player-memory.mjs';
@@ -465,8 +465,7 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  // The 2026-10-23 third batch (CAST_EXPANSION_3_KEYS) waits for the signed-in dashboard step; remove this allowance when its boxes are recorded off.
-  assert.ok(unrouted.every(key => key.startsWith('npc-') || CAST_EXPANSION_3_KEYS.includes(key)), 'only a new archetype batch (npc-*) or the third cast batch may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-') && !CAST_EXPANSION_3_KEYS.includes(key)));
+  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch (npc-*) may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-')));
   for (const key of CAST_EXPANSION_KEYS) assert.equal(document.characters[key]?.languageBoxOff, true, key + ' language box must be off');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {

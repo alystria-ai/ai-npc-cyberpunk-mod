@@ -12,8 +12,8 @@ Lucy Kushinada and Rita Wheeler (`lucy-kushinada`, `rita-wheeler`, the Night Cit
 Alt Cunningham (`alt-cunningham`, added 2026-10-10) has a profile and a twin like the rest. Her twin's language box is not yet recorded
 as unticked (`languageBoxOff` is false in `runtime/multilingual-profiles.json`): until that web-session step is done the
 bridge answers her with the original profile. See `needsLanguageBoxOff` in `scripts/Create-MultilingualProfiles.mjs`.
-The same holds for the 2026-10-23 cast batch 3 twins (`hasan-demir`, `pedro-aimar`, `mr-blue-eyes`): created and read back, language box not yet
-recorded off (`CAST_EXPANSION_3_KEYS`; the twin-map test allows exactly these three to wait).
+The 2026-10-23 cast batch 3 twins (`hasan-demir`, `pedro-aimar`, `mr-blue-eyes`) were created and read back, and their language boxes were set off
+through the signed-in dashboard the same day (readback `off`, `languageBoxOff: true` recorded).
 
 ```powershell
 node scripts/Create-MultilingualProfiles.mjs --dry-run        # default: plan only, no remote calls

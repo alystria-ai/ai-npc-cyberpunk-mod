@@ -3705,7 +3705,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "pedro-aimar": {
@@ -3723,7 +3723,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "mr-blue-eyes": {
@@ -3741,7 +3741,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     }
   }
