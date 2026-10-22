@@ -499,6 +499,7 @@ function beginTurn(timing = {}, config = {}) {
     // The reply is spoken by a voice that is not Convai's (an English-only local voice, planned for Convai's cloud voice only for a turn in another language): Convai's audio is
     // a bonus then, and a fault in its format (a sample rate or a size that does not match) must not fail a turn whose text is fine. Never for a turn played live.
     audioOptional: config.audioOptional === true,
+    textKey: typeof config.textStreamKey === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(config.textStreamKey) ? config.textStreamKey : undefined,
     providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
   current.emotion = new ConvaiEmotion({retiredOwners: retiredExpressionOwners});
   // config.audioRate: the correction an earlier turn of this character showed (bridge/realtime-host.mjs, rememberAudioRate).
@@ -948,6 +949,15 @@ function readLateEmotion(token) {
   return !held.closed && !held.emotion.ambiguous && performance.now() - held.at < LATE_EMOTION_MS ? {pending: true} : {};
 }
 
+// The text of the reply so far (a text-only turn the bridge voices while Convai is still writing it, bridge/realtime-host.mjs textStream): the rebuilt
+// text of the current turn, or '' when there is none, it failed, or a newer conversation replaced it. Never anything but the character's own reply.
+// `key` is the reading turn's own marker (config.textStreamKey): another turn's text, an older one's included, is never returned.
+function partialReply(key) {
+  const current = turn;
+  return typeof key === 'string' && key && current && current.textKey === key && current.epoch === epoch && !current.error && !current.microphone
+    && typeof current.text === 'string' ? current.text : '';
+}
+
 window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision, prestageVision, unstageVision,
-  heard: () => heardText(turn),
+  heard: () => heardText(turn), partialReply,
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};

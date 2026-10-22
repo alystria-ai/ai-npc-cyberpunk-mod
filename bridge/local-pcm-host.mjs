@@ -18,6 +18,26 @@ function jsonCopy(value, label) {
   return JSON.parse(raw);
 }
 
+/**
+ * The owned copy of a facial prefix. A producer that builds a new face object on every poll but keeps the very same row arrays until its timeline changes (a poll that
+ * only moved the audible cursor; bridge/pocket-facial-stream.mjs) says so with `rows`, a key that changes with the rows. Rows under one key are copied once and the
+ * copy is reused, and only the small rest of the face (its fields, its coverage) is copied on each poll. A face with no `rows` is copied whole every time, as it
+ * always was. Nothing downstream changes a face (it is read, validated, spread into a new object, written), so a shared copy of rows that did not change is never
+ * seen to move. `rows` is the producer's note, not part of the face: the copy has none. `cache` ({rows, copy}) is the caller's, one per turn.
+ */
+export function ownedFaceCopy(face, cache) {
+  const rows = typeof face?.rows === 'string' ? face.rows : null;
+  if (rows !== null && Array.isArray(face.frames) && cache.copy && cache.rows === rows) {
+    const {frames: _frames, modelExpressions, rows: _rows, ...rest} = face;
+    const light = jsonCopy({...rest, ...(modelExpressions ? {modelExpressions: {...modelExpressions, frames: []}} : {})}, 'local PCM facial prefix');
+    return {...light, frames: cache.copy.frames, ...(modelExpressions ? {modelExpressions: {...light.modelExpressions, frames: cache.copy.modelExpressions.frames}} : {})};
+  }
+  const copy = jsonCopy(face, 'local PCM facial prefix');
+  if (rows !== null && Array.isArray(face.frames)) { cache.rows = rows; cache.copy = copy; }
+  delete copy.rows;
+  return copy;
+}
+
 // Match encodePcmWav's established PCM16 device conversion. No normalization,
 // trimming, fades, resampling or packet-level sound objects enter this path.
 export function ownedLocalPcmPacket(packet, {token, frames, index, identity} = {}) {
@@ -126,6 +146,7 @@ export class LocalPcmHost {
     }, ms); };
     arm(this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
+    const faceCopies = {};   // the last facial prefix's row arrays and their owned copy (ownedFaceCopy)
     let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
     // Ends the clock poll's sleep the moment the renderer accepts the first audio: that snapshot is the one that publishes the reply,
     // so it should not wait out the rest of a 40 ms sleep (docs/perf, LATENCY.md: 20 to 45 ms per reply in the live records).
@@ -200,7 +221,7 @@ export class LocalPcmHost {
           if (getFace) {
             const face = await abortable(Promise.resolve().then(() => getFace(snapshot)), controller.signal);
             await check();
-            if (face !== undefined && face !== null) snapshot.face = jsonCopy(face, 'local PCM facial prefix');
+            if (face !== undefined && face !== null) snapshot.face = ownedFaceCopy(face, faceCopies);
           }
           const control = await abortable(Promise.resolve().then(() => onFrame(snapshot)), controller.signal);
           await check(); final = snapshot;

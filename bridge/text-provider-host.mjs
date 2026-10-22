@@ -604,7 +604,14 @@ export class TextProviderHost {
     }
     // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
     const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
-    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
+    // A route that serves one request at a time (`parallel: false`: the local AI, a model server the player runs) cannot write the reply while the decision is read: the
+    // decision is a whole request in front of the reply, and it also replaces the persona in the slot (the next reply then reads the persona again). There the model is
+    // asked only when the words certainly settle it (bridge/text-action-words.mjs certainWords): a line that is nothing but a command ("drive me", "follow me"; the game still
+    // checks the exact offer), or nothing but a question about the character herself ("do you know how to drive?"). Questions, suggestions, remarks, dismissals and every
+    // other language are decided by the model as before.
+    const serial = maybe.length > 0 && this.routes[this.provider.route]?.parallel === false;
+    const byWords = serial ? this.#settleByWords(menu, text, maybe) : null;
+    const deciding = maybe.length && !byWords ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
     // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
     // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
     const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
@@ -615,7 +622,7 @@ export class TextProviderHost {
       try { remembered = await this.memory.retrieve({...memoryKey, query: text, signal}) ?? []; } catch { remembered = []; }
       if (signal?.aborted) throw cancelled();
     }
-    const decision = deciding && !guess ? await deciding : null;
+    const decision = byWords ? (byWords.code ? byWords : null) : deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
     const chosen = decided => decided && menu.message(decided) ? decided.code : null;
     // An ordinary NPC's reaction (docs/NPC_REACTIONS.md): the reply itself decides, so its note is only one more sentence of the prompt.
@@ -657,7 +664,7 @@ export class TextProviderHost {
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
         currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
           promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
-        if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
+        if (deciding || byWords?.code) { const settled = byWords?.code ? byWords : await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
@@ -795,6 +802,20 @@ export class TextProviderHost {
       this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
       return this.#plainRequest(menu, text, 'decision failed');
     }
+  }
+
+  /**
+   * What V's words certainly settle without a model request, for a route that answers one request at a time (bridge/text-action-words.mjs certainWords): a line that
+   * is only a command ("drive me", "follow me", "attack him") is the decision `{code, argument}`; a line that is only a question about the character herself is
+   * `{none: true}`; anything else is null (the model decides). Never a leave. Never throws.
+   */
+  #settleByWords(menu, text, maybe) {
+    try {
+      const settled = menu.settle?.(text, maybe) ?? null;
+      if (settled?.code) this.log(`action ${settled.code}: V's words are only that command, no decision asked (one request at a time)`);
+      return settled;
+    } catch { /* the model decides */ }
+    return null;
   }
 
   /**

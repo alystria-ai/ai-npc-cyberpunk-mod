@@ -5,7 +5,7 @@ import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
-import {configureKnowledgeParts} from './knowledge-parts.mjs';
+import {configureKnowledgeParts, preloadKnowledgePart} from './knowledge-parts.mjs';
 import {audioReady, prepareSpeech} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
@@ -19,7 +19,7 @@ import {planSignal, phraseOffsets, traitFor} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {deliverPocketSpeech} from './pocket-speech.mjs';
-import {ReplyStream} from './reply-stream.mjs';
+import {ReplyStream, finishedText} from './reply-stream.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {ownedPocketFace} from './pocket-facial-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -64,7 +64,7 @@ import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
-import {PhoneWarm} from './phone-warm.mjs';
+import {PhoneWarm, PHONE_HOST_IDLE_MS} from './phone-warm.mjs';
 import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
@@ -115,6 +115,7 @@ import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
+import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
@@ -445,7 +446,12 @@ const customScanner = new CustomModelScanner({project, log: message => console.e
 let customScan = {models: [], problems: []}, cardTotalMiB = null, cardAskedAt = 0;
 const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: localServer.totalVramMiB ?? cardTotalMiB}));
 const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
-const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
+// The model servers a bridge that died hard (a V8 out-of-memory, a crash, "End task") left running are stopped before ours start, so the card's memory is free for them
+// (bridge/child-registry.mjs: only a process that is exactly the exe and the start we wrote down, whose bridge is gone). Ours are written down as they start.
+const childrenFile = resolve(stateDirectory, CHILDREN_FILE);
+await reapChildren({file: childrenFile, log: message => console.error(message)});
+const childRegistry = new ChildRegistry({file: childrenFile, log: message => console.error('[Resource] ' + message)});
+const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry},
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
   log: message => console.error('[LocalAI] ' + message)});
@@ -491,7 +497,7 @@ localServer.on('diagnostics', () => {
   diagnosticsTimer = setTimeout(() => { diagnosticsTimer = null; try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } }, 500);
   diagnosticsTimer.unref?.();
 });
-const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
+const localEmbedder = new LlamaEmbedder({pack: localPack, processOptions: {registry: childRegistry}, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
 let localPackCheckedAt = 0;
 function refreshLocalPack(force = false) {
@@ -870,6 +876,10 @@ async function pollPhone() {
 const inputPath = resolve(runtime, 'last-input.json');
 // Requests name the world and journal parts the game publishes beside them (mod/knowledge-parts.lua); parseInput rebuilds them.
 configureKnowledgeParts({runtimeDir: runtime});
+// A bridge that starts while a game session is running (the supervisor restarted it) reads, parses and freezes the parts that session published a little after start-up,
+// so the first turn does not (bridge/knowledge-parts.mjs preloadKnowledgePart). Only files written in the last 15 minutes: an older one is from an earlier session. Not per
+// revision: the game publishes a part inside the turn's own capture, so there is nothing earlier to read.
+setTimeout(() => { for (const name of ['world', 'active', 'history']) void preloadKnowledgePart(name, {maxAgeMs: 15 * 60_000}); }, 2000).unref();
 const replyPath = resolve(runtime, 'reply.json');
 const statusPath = resolve(runtime, 'bridge-status.json');
 const prefetchPath = resolve(runtime, 'group-prefetch.json');
@@ -1734,6 +1744,16 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     const config = realtimeConfig(input), token = result.lateEmotionToken;
     late.promise = waitLateEmotion(() => realtime.lateEmotion(config, token), {signal})
       .then(value => { late.signal = value; late.settled = true; late.lateMs = Date.now() - late.startedAt; return value; });
+  } else if (streamed?.convaiLate) {
+    // A streamed Convai reply: Convai's label (the ordered one, or the late one the page hands a token for) is known only when the reply has returned. The stream's planner
+    // reads `late` at each rebuild; the finished reply's plan below takes it when it is there.
+    late.settled = false;
+    const config = streamed.convaiLate;
+    late.promise = Promise.resolve(streamed.final).then(async final => {
+      if (final?.expressionSignal !== undefined) return final.expressionSignal;
+      if (!Number.isSafeInteger(final?.lateEmotionToken)) return undefined;
+      return waitLateEmotion(() => realtime.lateEmotion(config, final.lateEmotionToken), {signal});
+    }, () => undefined).then(value => { late.signal = value; late.settled = true; late.lateMs = Date.now() - late.startedAt; return value; });
   } else late.settled = true;
   const expressionReceipt = (plan, expression, extra = {}) => atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({
     version: 3, updated: Date.now(), requestId: input.requestId, profile: input.profileKey, provider: omni ? 'omni' : 'pocket',
@@ -1771,12 +1791,16 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     expressionReceipt(plan, late.signal, {convai: late.signal.emotion, convaiLate: late.lateMs ?? null});
     return true;
   };
-  if (!omni) late.promise?.then(() => refine(), () => {});
+  if (!omni && !streamed) late.promise?.then(() => refine(), () => {});
   if (streamed) streamed.settle = async spoken => {
     const final = await finishedReply(streamed, spoken);
     const merged = mergeFinishedReply(spoken, final, streamed);
     const {expressionSignal: _signal, expressionPlan: _plan, ...base} = merged;
-    result = {...base, ...(final?.expressionSignal !== undefined ? {expressionSignal: final.expressionSignal} : {})};
+    // Convai's late label (a streamed Convai reply): normally in long before the voice has ended; when it is not yet, it is waited for here (the wait is capped by waitLateEmotion),
+    // so the mood carried to the next turn and the receipt have it.
+    if (!late.settled && late.promise) await late.promise.catch(() => {});
+    const known = final?.expressionSignal ?? (late.settled ? late.signal : undefined);
+    result = {...base, ...(known !== undefined ? {expressionSignal: known} : {})};
     plan = planFor(result.expressionSignal);
     result = withPlan(result, plan);
     emotionSelection.remember(input.profileKey, plan);
@@ -2010,13 +2034,30 @@ async function respondStreamed(input, profile, {signal, current}) {
   final.catch(() => {});
   return voiceStreamedReply(input, profile, {signal, current, stream, final, config});
 }
+// The default route: Convai writes the text (its own voice is off), a local voice speaks it. The text so far is read from the conversation page while Convai writes it
+// (bridge/realtime-host.mjs, textStream) and the first complete sentence goes to the voice before the reply is finished, as on the text routes. Convai's own emotion label
+// belongs to the finished reply: it is read when the reply returns and the face takes it up as it does for a reply voiced as a whole (late, below).
+async function respondConvaiStreamed(input, profile, {signal, current}) {
+  const config = realtimeConfig(input);
+  const stream = newReplyStream(config, profile);
+  const final = Promise.resolve(realtime.reply(config, {signal, textStream: stream})).then(result => {
+    markStage('fullText');
+    // The finished text is cleaned the way the sentence given to the voice was, then agrees with it or is cut back to it (the text never contradicts the audio).
+    const text = finishedText(stream, result.text);
+    const done = {...result, text, transport: 'realtime'};
+    stream.finish(text, done);
+    return done;
+  }, error => { stream.fail(error); throw error; });
+  final.catch(() => {});
+  return voiceStreamedReply(input, profile, {signal, current, stream, final, config, convaiLate: config});
+}
 const newReplyStream = (config, profile) => new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
 
 // The voice half of a streamed reply, shared by a typed turn (respondStreamed) and a voice-key turn (bridge/voice-key-stream.mjs, started
 // from prepareReply while the text host is still writing the reply). 'stream' is the ReplyStream the text host feeds, 'final' the
 // finished reply's promise. 'userText' (voice key only) is what the player said: the first sentence's admission carries it.
 // 'receiptPrepared' is the turn's knowledge receipt when it is not the default one (undefined: the default).
-async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared}) {
+async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared, convaiLate}) {
   const marks = [];
   stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
   const whole = async () => synthesizeReply(input, await final, signal, current, profile, receiptPrepared);
@@ -2044,7 +2085,7 @@ async function voiceStreamedReply(input, profile, {signal, current, stream, fina
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
     ...(said ? {userText: said} : {}),
     ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
-  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal});
+  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal, ...(convaiLate ? {convaiLate} : {})});
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
@@ -2061,6 +2102,7 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
     // Mistral has no Convai audio: a turn that would use the cloud voice (no local voice available) is a written reply.
     if (!turnUsesLocal(input) && !mistral.active) return convaiReply(input, profile, current, signal);
     if (mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondStreamed(input, profile, {signal, current});
+    if (!mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondConvaiStreamed(input, profile, {signal, current});
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -3266,6 +3308,9 @@ async function applyProviderChoice() {
 //   - The hidden browser closes when nothing uses it for BROWSER_IDLE_MS: no Convai page in the pool or kept for the party, no
 //     recording, no renderer turn, and (text provider with playback on) no wish to keep the local voice's renderer warm.
 const BROWSER_IDLE_MS = 300_000;
+// The phone Chat host (a second hidden Edge, Convai only) keeps a conversation page for every contact V wrote to. A page nobody used for this long is closed, and the
+// host's browser with the last one (the close is confirmed before the next look); the next message to that contact opens a page again (a Chat that is open keeps its
+// page alive, bridge/phone-warm.mjs keepAlive, so the cold start is hidden while V types).
 let releasingUnused = false;
 async function releaseUnused() {
   if (releasingUnused || stopped) return;
@@ -3278,6 +3323,8 @@ async function releaseUnused() {
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
     await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
     await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
+    const phoneReleased = await phoneRealtime.releaseIdlePages({idleMs: PHONE_HOST_IDLE_MS});
+    if (phoneReleased.pages || phoneReleased.browser) console.error(`[Resource] phone chat host: ${phoneReleased.pages} idle page(s) closed after ${PHONE_HOST_IDLE_MS / 1000} s${phoneReleased.browser ? ', the hidden browser closed' : ''}`);
   } finally { releasingUnused = false; }
 }
 // The Local AI model choice (bridge/local-model-choice.mjs), looked at on the settings poll: the pin from settings.json, Mature content and

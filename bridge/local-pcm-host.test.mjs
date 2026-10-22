@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runInNewContext} from 'node:vm';
 import {LocalPcmClient} from './local-pcm-client.mjs';
-import {LocalPcmHost, ownedLocalPcmPacket, localSnapshotForHost} from './local-pcm-host.mjs';
+import {LocalPcmHost, ownedLocalPcmPacket, ownedFaceCopy, localSnapshotForHost} from './local-pcm-host.mjs';
 import {encodePcmWav} from './convai-audio-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
@@ -607,4 +607,28 @@ test('the page time limit is for standing still: a reply whose packets keep comi
   }, {onFrame: () => control}));
   await assert.rejects(stuck, {name: 'AbortError'});
   assert.ok(performance.now() - stuckAt >= 380, 'cut only after standing still for the whole limit');
+});
+
+test('ownedFaceCopy: rows the producer attests as unchanged are copied once and reused, the rest of the face is copied every poll, and a face without the note is copied whole', () => {
+  const rows = Array.from({length: 40}, (_, index) => [index / 60, .1, .2]);
+  const upper = [[0, 1], [1 / 60, 2]];
+  const make = cursor => ({version: 1, requestId: 'r', duration: .7, frames: rows, modelExpressions: {version: 1, format: 'jali-upper-v1', frames: upper},
+    coverage: {version: 1, audiblePositionSeconds: cursor, phoneticIntervals: []}, rows: 'geometry-1', revision: 4});
+  const cache = {};
+  const first = ownedFaceCopy(make(0), cache), second = ownedFaceCopy(make(.08), cache);
+  assert.deepEqual(first.frames, rows); assert.notEqual(first.frames, rows, 'an owned copy, not the producer\'s array');
+  assert.equal(second.frames, first.frames, 'the same copied rows on the next poll');
+  assert.equal(second.modelExpressions.frames, first.modelExpressions.frames);
+  assert.deepEqual(second.modelExpressions, {version: 1, format: 'jali-upper-v1', frames: upper});
+  assert.equal(first.coverage.audiblePositionSeconds, 0); assert.equal(second.coverage.audiblePositionSeconds, .08, 'the small part is fresh');
+  assert.equal('rows' in first, false); assert.equal('rows' in second, false); assert.equal(second.revision, 4);
+  // New rows (another key) are copied again; a face without the note never shares anything.
+  const grown = ownedFaceCopy({...make(.1), rows: 'geometry-2', frames: [...rows, [40 / 60, 0, 0]]}, cache);
+  assert.equal(grown.frames.length, 41); assert.notEqual(grown.frames, first.frames);
+  const plain = {version: 1, frames: rows, coverage: {audiblePositionSeconds: 0}};
+  const one = ownedFaceCopy(plain, {}), two = ownedFaceCopy(plain, cache);
+  assert.notEqual(one.frames, two.frames); assert.notEqual(one.frames, rows);
+  const loose = {};
+  const a = ownedFaceCopy(plain, loose), b = ownedFaceCopy(plain, loose);
+  assert.notEqual(a.frames, b.frames, 'no note, no reuse, even with the same array');
 });

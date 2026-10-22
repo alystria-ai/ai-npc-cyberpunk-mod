@@ -490,8 +490,21 @@ test('a route that serves one request at a time (the local server) never overlap
   });
   try {
     host.routes.mistral.parallel = false;
-    await host.reply(turn('drive for me', {companionAction: ride()}));
+    // A line the words cannot settle (not a plain request, not a question about her): the model decides, and the reply waits for it.
+    await host.reply(turn('hop in the car and head over to the marker, will you', {companionAction: ride()}));
     assert.ok(times.reply - times.decision >= 120, 'the reply came after the decision');
+  } finally { await close(); }
+});
+
+test('a route that serves one request at a time asks no decision for a plain request: the first word is not held up, the action still goes to the game', async () => {
+  const seen = [];
+  const {host, close} = await harness(body => { seen.push(isDecision(body) ? 'decision' : 'reply'); return isDecision(body) ? {text: 'NONE', wait: 400} : 'Sure, hop in. I will drive.'; });
+  try {
+    host.routes.mistral.parallel = false;
+    const began = performance.now();
+    await host.reply(turn('drive for me', {companionAction: ride()}));
+    assert.deepEqual(seen, ['reply'], 'the reply is the only request');
+    assert.ok(performance.now() - began < 300, 'no decision wait in front of the reply');
   } finally { await close(); }
 });
 
