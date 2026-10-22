@@ -130,6 +130,16 @@ export const SCENARIOS = [
     text: 'Did you hear what that guy just said?',
     want: 'Kerry picks up the line that was just spoken in the game and reacts as himself, without quoting it back wholesale.'},
 
+  // Guards for the right-now block: a question that needs the place, and one that needs what she is doing.
+  {id: 'panam-where-are-we', group: 'context', char: 'panam-palmer', party: [{activity: 'following'}], place: {hour: 10, minute: 30, ...place('Badlands', 'Badlands_RockyRidge', {weather: 'clear'})}, ongoing: true,
+    history: [{v: 'Ready?', r: 'Born ready. Lead on.'}],
+    text: 'Remind me, where are we right now?',
+    want: 'Panam says where they are (the Badlands, Rocky Ridge) in her own words. Here the place is asked for, so naming it is right.'},
+  {id: 'jackie-what-up', group: 'context', char: 'jackie-welles', party: [{activity: 'following'}], place: {hour: 17, minute: 10, ...place('Heywood', 'Heywood_Glen', {weather: 'clear'})}, ongoing: true,
+    history: [{v: 'Good to see you, Jackie.', r: 'Ha, you too, choom. Feels like old times already.'}],
+    text: 'So what are you up to?',
+    want: 'Jackie answers from the situation: he is walking along with V on foot in Glen. He does not claim to be at a shop, at home or on a job.'},
+
   // ---- requests for actions ----
   {id: 'judy-drive-waypoint', group: 'action', char: 'judy-alvarez', party: [{activity: 'standing'}], place: {hour: 19, minute: 30, ...place('Watson', 'Kabuki', {weather: 'cloudy'})}, offer: 'ride', ongoing: true,
     text: 'Drive us to the waypoint on the map.',

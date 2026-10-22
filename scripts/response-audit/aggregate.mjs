@@ -12,20 +12,28 @@ const option = (name, fallback) => { const i = argv.indexOf(`--${name}`); return
 const name = option('name', 'base'), worst = Number(option('worst', 8)), by = option('by', '');
 const dir = resolve(dataDir, 'sheets', name);
 const key = JSON.parse(await readFile(resolve(dir, 'key.json'), 'utf8'));
+// --merge "before=run-a,run-b;after=run-c": runs that are one condition (a later add-on run of more scenarios) are reported as one.
+const merge = Object.fromEntries(option('merge', '').split(';').filter(Boolean).flatMap(entry => { const [name, list] = entry.split('='); return list.split(',').map(run => [run, name]); }));
+const labelOf = run => merge[run] ?? run;
 const scores = [];
 for (const file of (await readdir(dir)).filter(f => /^scores-\d+\.json$/.test(f))) {
   let list; try { list = JSON.parse(await readFile(resolve(dir, file), 'utf8')); } catch (e) { console.error(`${file}: unreadable (${e.message})`); continue; }
-  for (const row of list) if (key[String(row.item)]) scores.push({...row, ...key[String(row.item)]});
+  for (const row of list) if (key[String(row.item)]) scores.push({...row, ...key[String(row.item)], run: labelOf(key[String(row.item)].run)});
 }
 const flagRows = [];
 for (const file of (await readdir(dir)).filter(f => /^flags-\d+\.json$/.test(f))) {
   let list; try { list = JSON.parse(await readFile(resolve(dir, file), 'utf8')); } catch (e) { console.error(`${file}: unreadable (${e.message})`); continue; }
-  for (const row of list) if (key[String(row.item)]) flagRows.push({...row, ...key[String(row.item)]});
+  for (const row of list) if (key[String(row.item)]) flagRows.push({...row, ...key[String(row.item)], run: labelOf(key[String(row.item)].run)});
 }
 const wanted = option('runs', '').split(',').filter(Boolean);
 const labels = [...new Set(scores.map(s => s.run))].filter(l => !wanted.length || wanted.includes(l));
 const cache = {};
-const runOf = async label => cache[label] ??= JSON.parse(await readFile(resolve(dataDir, `${label}.json`), 'utf8'));
+const runOf = async label => {
+  if (cache[label]) return cache[label];
+  const parts = Object.entries(merge).filter(([, name]) => name === label).map(([run]) => run);
+  const files = await Promise.all((parts.length ? parts : [label]).map(async part => JSON.parse(await readFile(resolve(dataDir, `${part}.json`), 'utf8'))));
+  return cache[label] = {...files[0], results: files.flatMap(file => file.results), summary: {...files[0].summary, replies: files.reduce((a, file) => a + file.results.length, 0)}};
+};
 const mean = list => list.length ? list.reduce((a, b) => a + b, 0) / list.length : null;
 const f = (v, d = 2) => v === null || v === undefined ? '-' : v.toFixed(d);
 

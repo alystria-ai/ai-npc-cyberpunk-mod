@@ -27,7 +27,13 @@ const model = option('model', 'ministral-8b-latest'), n = Number(option('n', 1))
 const only = option('only', '').split(',').filter(Boolean), groups = option('group', '').split(',').filter(Boolean);
 const voice = option('voice', providerName === 'convai' ? 'none' : 'pocket');
 const scenarios = SCENARIOS.filter(s => (!only.length || only.includes(s.id)) && (!groups.length || groups.includes(s.group)));
-const personas = await loadPersonas();
+const personas = await loadPersonas({lean: option('lean', '1') !== '0'});   // --lean 0: the roster text as it was before the response audit's prompt pass
+// --compact: every character with the compact text a machine measured to read slowly is given (bridge/compact-persona.mjs), to see what a small card's player gets.
+if (flag('compact')) {
+  const {compactPersonaFor} = await import('../../bridge/compact-persona.mjs');
+  const whole = personas.persona.bind(personas);
+  personas.persona = (key, name) => compactPersonaFor(whole(key, name), {limits: LIMITS});
+}
 
 if (flag('dry')) {
   for (const scn of scenarios) {
@@ -87,14 +93,17 @@ async function runConvaiTurn(setup, scn, sample) {
   try {
     // The canned earlier talk is sent as real turns of one session (Convai keeps its own history); the replies to it are Convai's own.
     for (const earlier of turn.memory.turns) {
-      const r = await setup.host.reply({key: setup.key, characterId, endUserId, ttsEnabled: false, text: earlier.v, context: turn.context, ...(sessionId ? {sessionId} : {})});
+      const r = await setup.host.reply({key: setup.key, characterId, endUserId, scope: 'private', ttsEnabled: false, text: earlier.v, context: turn.context, ...(sessionId ? {sessionId} : {})});
       sessionId = r.sessionID ?? sessionId; history.push({v: earlier.v, r: r.text});
     }
-    reply = await setup.host.reply({key: setup.key, characterId, endUserId, ttsEnabled: false, text: turn.text, context: turn.context, ...(sessionId ? {sessionId} : {})});
+    // An action request carries the game's offer (the host arms it only for a private turn of an identified user, which the throwaway end user is).
+    setup.delivered.length = 0;
+    reply = await setup.host.reply({key: setup.key, characterId, endUserId, scope: 'private', ttsEnabled: false, text: turn.text, context: turn.context,
+      ...(scn.offer ? {companionAction: offerFor(scn, turn.persona.name)} : {}), ...(sessionId ? {sessionId} : {})});
   } catch (e) { error = redact(String(e?.message ?? e), setup.key).slice(0, 200); }
   const raw = reply?.text ?? '', spoken = spokenText(raw);
   return {id: scn.id, sample, group: scn.group, char: scn.char, name: turn.persona.name, playerText: scn.text, want: scn.want, history,
-    contextSent: turn.context, prompt: null, raw, spoken, ms: Date.now() - at, llmMs: reply?.timing?.llmMs ?? null, requestCount: 1 + history.length,
+    contextSent: turn.context, prompt: null, ...(scn.offer ? {offer: scn.offer, action: setup.delivered.length ? Object.keys(setup.delivered[0]).filter(k => !['version', 'token', 'source', 'expiresAt'].includes(k)) : []} : {}), raw, spoken, ms: Date.now() - at, llmMs: reply?.timing?.llmMs ?? null, requestCount: 1 + history.length,
     ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
 }
 

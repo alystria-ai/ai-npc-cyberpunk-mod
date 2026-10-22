@@ -31,10 +31,10 @@ export const sleep = ms => new Promise(done => setTimeout(done, ms));
 
 // ---- Personas ---------------------------------------------------------------------------------------------------------------
 
-export async function loadPersonas() {
+export async function loadPersonas({lean = true} = {}) {
   const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
     ...JSON.parse(await readFile(resolve(project, 'characters/archetype-roster.json'), 'utf8'))];
-  return new PersonaBook(roster);
+  return new PersonaBook(roster, {lean});
 }
 
 let intrinsic = null;

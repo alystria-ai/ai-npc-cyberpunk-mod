@@ -88,6 +88,7 @@ export async function convaiSetup() {
   if (!key) throw Error('no Convai key found');
   const ids = JSON.parse(await readFile(resolve(mainCheckout, 'runtime/characters.json'), 'utf8'));
   const twins = JSON.parse(await readFile(resolve(mainCheckout, 'runtime/multilingual-profiles.json'), 'utf8')).characters ?? {};
-  const host = new RealtimeHost({log: () => {}});
-  return {host, ids, twins, key};
+  const delivered = [];
+  const host = new RealtimeHost({log: () => {}, onCompanionAction: message => { delivered.push(message); return true; }});
+  return {host, ids, twins, key, delivered};
 }
