@@ -815,3 +815,39 @@ test('bridge admission takes the session-only fast path for ambient routes and r
   assert.ok(provider.memory.refreshMs >= 0);
   assert.deepEqual(calls.map(row => row.kind), ['enable']); assert.deepEqual(retired, ['panam']);
 });
+
+test('a brief file lock on the rename or the verify read is retried and never faults the registry', async t => {
+  let renameFails = 0, readFails = 0;
+  const files = {...fs,
+    rename: async (...args) => { if (renameFails > 0 && args[1].endsWith('player-memory.json')) { renameFails--; throw Object.assign(Error('locked'), {code: 'EBUSY'}); } return fs.rename(...args); },
+    readFile: async (...args) => { if (readFails > 0 && String(args[0]).endsWith('player-memory.json')) { readFails--; throw Object.assign(Error('locked'), {code: 'EPERM'}); } return fs.readFile(...args); }};
+  const {memory, calls} = await fixture(t, {fsImpl: files});
+  renameFails = 2; readFails = 2;
+  await talk(memory, 'judy');
+  assert.equal(renameFails, 0); assert.equal(readFails, 0);
+  assert.equal(memory.status().available, true); assert.equal(memory.status().talkedToCount, 1); assert.ok(calls.length > 0);
+});
+
+test('a lock that outlasts the retries fails one call, and the next successful verify clears it', async t => {
+  let locked = false;
+  const files = {...fs, readFile: async (...args) => {
+    if (locked && String(args[0]).endsWith('player-memory.json')) throw Object.assign(Error('locked'), {code: 'EACCES'});
+    return fs.readFile(...args);
+  }};
+  const {memory} = await fixture(t, {fsImpl: files});
+  locked = true; await assert.rejects(talk(memory, 'judy'), {code: 'STORAGE_FAILURE'});
+  locked = false;
+  assert.equal(memory.status().available, true);
+  await talk(memory, 'judy');
+  assert.equal(memory.status().talkedToCount, 1);
+});
+
+test('a registry or identity change stays a sticky fault even after the file reads cleanly again', async t => {
+  const {memory, path} = await fixture(t);
+  const original = await fs.readFile(path, 'utf8');
+  await fs.writeFile(path, 'tampered');
+  await assert.rejects(talk(memory, 'judy'), {code: 'REGISTRY_CHANGED'});
+  await fs.writeFile(path, original);
+  await assert.rejects(talk(memory, 'judy'), {code: 'REGISTRY_CHANGED'});
+  assert.equal(memory.status().available, false);
+});

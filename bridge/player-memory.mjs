@@ -148,11 +148,26 @@ const MESSAGES = Object.freeze({
 });
 const MESSAGE_VALUES = new Set(Object.values(MESSAGES));
 
+// Windows refuses to read or rename a file another process (antivirus, an indexer, a backup tool) has open at that instant. These codes are
+// retried with a short backoff of about 300 ms in total, the same as guarded-file.mjs; a call that does not fail waits for nothing.
+const TRANSIENT_IO = new Set(['EPERM', 'EBUSY', 'EACCES']);
+const IO_BACKOFF_MS = [10, 20, 40, 80, 150];
+async function retryTransient(operation) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await operation(); }
+    catch (error) {
+      if (attempt >= IO_BACKOFF_MS.length || !TRANSIENT_IO.has(error?.code)) throw error;
+      await new Promise(done => setTimeout(done, IO_BACKOFF_MS[attempt]));
+    }
+  }
+}
 async function readOptional(files, path, limit = MAX_BYTES) {
   try {
-    const stat = await files.stat(path);
-    if (!stat.isFile() || stat.size > limit) fail('CORRUPT_REGISTRY');
-    return await files.readFile(path, 'utf8');
+    return await retryTransient(async () => {
+      const stat = await files.stat(path);
+      if (!stat.isFile() || stat.size > limit) fail('CORRUPT_REGISTRY');
+      return await files.readFile(path, 'utf8');
+    });
   } catch (error) { if (error?.code === 'ENOENT') return null; throw error; }
 }
 async function syncDirectory(files, directory) {
@@ -169,7 +184,7 @@ async function atomicWrite(files, path, raw) {
   try {
     handle = await files.open(temp, 'wx', 0o600);
     await handle.writeFile(raw, 'utf8'); await handle.sync(); await handle.close(); handle = null;
-    await files.rename(temp, path);
+    await retryTransient(() => files.rename(temp, path));
     await syncDirectory(files, dirname(path));
   } finally {
     await handle?.close().catch(() => {});
@@ -459,10 +474,18 @@ export class PlayerMemory {
       if (disk !== this.#diskRaw) fail('REGISTRY_CHANGED');
       if (anchor !== this.#anchorRaw) fail('IDENTITY_CHANGED');
     } catch (error) {
-      this.#fault = ['REGISTRY_CHANGED', 'IDENTITY_CHANGED'].includes(error?.code) ? error.code : 'STORAGE_FAILURE';
-      for (const controller of this.#controllers) controller.abort();
-      throw new PlayerMemoryError(this.#fault);
+      throw this.#storageError(error);
     }
+  }
+  // Only a changed registry or identity file is a sticky fault: the player's memory can no longer be trusted. Any other disk error (a lock held by
+  // another program that outlasted the retries, a full disk) fails this one call and leaves the next verify free to succeed and carry on.
+  #storageError(error) {
+    const sticky = ['REGISTRY_CHANGED', 'IDENTITY_CHANGED'].includes(error?.code);
+    if (sticky) {
+      this.#fault = error.code;
+      for (const controller of this.#controllers) controller.abort();
+    }
+    return new PlayerMemoryError(sticky ? error.code : 'STORAGE_FAILURE');
   }
   #persist(change) {
     const writing = this.#mutation.then(async () => {
@@ -479,9 +502,7 @@ export class PlayerMemory {
       } catch (error) {
         // Exhaustion/validation errors do not mean disk lost durability.
         if (['REGISTRY_LIMIT', 'ACTION_LIMIT', 'CHARACTER_LIMIT', 'EPOCH_EXHAUSTED', 'STALE_TURN', 'CANCELLED'].includes(error?.code)) throw error;
-        this.#fault = ['REGISTRY_CHANGED', 'IDENTITY_CHANGED'].includes(error?.code) ? error.code : 'STORAGE_FAILURE';
-        for (const controller of this.#controllers) controller.abort();
-        throw new PlayerMemoryError(this.#fault);
+        throw this.#storageError(error);
       }
     });
     this.#mutation = writing.catch(() => {});
