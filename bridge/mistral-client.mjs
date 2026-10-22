@@ -791,8 +791,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       if (adapt) applyAdaptation(body, adapt);
       markStage('llmSent');
       response = await fetchImpl(url, {method: 'POST', signal: controller.signal, ...(dispatcher ? {dispatcher} : {}),
-        // The key's origin is the endpoint's; a redirect to another host is an error, not something to follow with the key.
-        ...(provider === 'custom' ? {redirect: 'error'} : {}),
+        // The key's origin is the endpoint's; a redirect to another host is an error, not something to follow with the key (Mistral's included).
+        redirect: 'error',
         headers: {...(apiKey ? {Authorization: `Bearer ${apiKey}`} : {}), 'Content-Type': 'application/json',
           Accept: body.stream === false ? 'application/json' : 'text/event-stream', ...extraHeaders},
         body: JSON.stringify(body)});
