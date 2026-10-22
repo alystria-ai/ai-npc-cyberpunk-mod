@@ -4404,7 +4404,15 @@ registerForEvent('onUpdate', function(delta)
     end
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
-    if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end
+    -- Only a recording that is still opening or running ends here; a spoken turn whose reply is pending (microphone state 'reply', or a group
+    -- voice round past its recording) completes like a typed one and the reply plays when V is back.
+    if not worldReady then
+        gameplayActions.revoke('menu')
+        local round = groupChat.round
+        if (microphone.context ~= nil and microphone.state ~= 'reply') or (round and round.mode == 'voice' and round.stage == 'recording') then
+            cancelVoice('menu')
+        end
+    end
     -- A companion riding a lift car with V moves with V every frame, only
     -- while the car moves (companions.lua M.carry); otherwise one field check.
     if worldReady and companions.riders then pcall(companions.carry, menuPlayer) end
