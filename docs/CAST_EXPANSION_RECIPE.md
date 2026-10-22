@@ -298,3 +298,57 @@ nothing else (the 15 voice rows are already in the live `runtime/` configs), res
     line each. Check: the voice matches the gender and age in the roster and no two sound the same as each other.
 11. For one of them, type or speak a short line in Spanish. Check: the reply comes in Spanish (their twins are on Convai with the language
     box off) and the voice is still theirs.
+
+## Third batch (2026-10-23, branch `feat/cast-batch-3`)
+
+Three characters, listed in `bridge/cast-expansion-keys.mjs` as `CAST_EXPANSION_3_KEYS`: Hasan Demir, Pedro Aimar and Mr. Blue Eyes. Text,
+knowledge, Convai original and twin are done; the game voices and the twins' language boxes are owed (below).
+
+- **Body records found (the two "no body record found" characters of batch 2 have one each).** A record name can be tested by hash, but
+  guessing names found nothing for Hasan. Two reads of installed data settled both:
+  1. Scene exports hold the record when the scene actor is looked up in the world: Pedro's `sts_std_arr_12_car` and `_diner_scene` carry
+     `specRecordId` = `Character.sts_std_arr_12_pedro_1` (hash present in both TweakDBs; scene actors of the street story have `rec=0` in the
+     `specCharacterRecordId` column the attribution tool prints, so read `specRecordId` too).
+  2. The localisation index (`research/cyberpunk/cache/game/localization/index/lookup.sqlite3`, domain `onscreen.primaryKey`) keeps the source
+     path of every record's name strings in `secondary_key` (`...characters-npcs-records-quest-street_stories-sts_std_arr_12-sts_std_arr_12_pedro_1:_displayName`,
+     `...quest-quests-q203-q203_mr_x_displayName`). That names the files, and for ep1 gigs it gave the file `sts_ep1_04_hasan` with the name keys
+     `hasan_displayName` ("Hasan"), `hasan_FullDisplayName` ("Hasan Demir") and `prisoner_displayName`. The record's own name is a role name
+     (Rinder's record is `sts_ep1_03_target`, the client's `sts_ep1_03_client`), so testing `sts_ep1_04_<role>` names found
+     `Character.sts_ep1_04_hostage` (ep1 TweakDB only; all seven usual flats exist, so it is a real record, not a hash collision).
+  3. Check by value: the TweakDB flat entry `Character.<record>.displayName` is `5-byte id, 3 zero bytes, u32 value index`; the index times 8 plus the
+     table base (32100023 in `tweakdb_ep1.bin` of game 2.31) is a LocKey primary key. `sts_ep1_04_hostage.displayName` resolves to key 79003, the
+     `hasan_displayName` string "Hasan"; `q203_mr_x.displayName` to 32502 "Mr. Blue Eyes"; `sts_std_arr_12_pedro_1` to 32859 "Pedro". So all three
+     records are verified by name text without a live scene. (Hasan's `fullDisplayName` flat is the shared "Restricted Data" tertiary text.)
+- **Roster records:** Hasan `Character.sts_ep1_04_hostage`, Pedro `Character.sts_std_arr_12_pedro_1`, Mr. Blue Eyes `Character.q203_mr_x`
+  (also scene actor `mrx` in `q203_06_cosmos`). `q203_` is a quest prefix, so Mr. Blue Eyes's world body is protected story. Recognition by record is
+  therefore wired for all three; the invitable copies are untested until a live check.
+- **Mr. Blue Eyes is a minimal row by the owner's decision.** His dossier has no relationships and no conditional knowledge, his background
+  stays at a distant observer's level and the row names no plot (a test checks the profile text for the endgame names). His appearances
+  (`Dream On`, `Path of Glory`, a glimpse in `The Killing Moon`) are all unmapped to native predicates (`silverhand.crystal-palace-job` is
+  `unmapped`), and the batch method gives a character no rule about an unmapped outcome, so the engine can never hand him a plot fact.
+- **Knowledge.** Two audience additions to existing source-verified rules, no new pack: `fo5.desperate.truck` (Pedro rode the stolen car with V;
+  scene actor `Pedro` of `sts_std_arr_12_car`) and `pg5.prototype.hands-safe` (Hasan is in `sts_ep1_04_hasan_final` for V's holocall with Hands
+  that sets `sts_ep1_04_mr_hands_holo_convinced`). The rule files carry CRLF; edit with a JSON round trip and write the CRLF back, then
+  `node research/cyberpunk/scripts/build_native_pack.mjs --apply`. Review text: `research/cyberpunk/native-reviews/cast-knowledge-20261023.md`.
+- **`merge.mjs profiles` and the first-person store.** `characters/first-person-profiles.json` is not uniformly indented any more, so the merge
+  script rewrites the whole file with 2-space indentation (about 2,500 changed lines). Restore the file from git and append the new entries in the
+  file's own style instead (a few lines of Node; the content is identical).
+- **Voices (owed).** Evidence is already attributed by the tools (read-only on the game files):
+  - Hasan: `python attribute.py --key hasan-demir --prefix hasan --token sts_ep1_04 --token hasan_default`: 110 of 119 lines; scenes `sts_ep1_04_hasan`,
+    `sts_ep1_04_hasan_final` (actor `hasan`, voicetag 3262303400953671680) and `sts_04_hasan_default` (actors `hasan`, `hasan_squat`); the 9 open-world
+    `hasan_ow_vsets_sts_chars` lines are in no scene and stay out. 443 s of `hasan_sts_ep1_04`, 182 s of `hasan_quest_3rd_chars_defaults`.
+  - Pedro: `python attribute.py --key pedro-aimar --prefix pedro_aimar --token sts_std_arr_12 --token pedro_aimar`: 92 of 92 lines; actor `pedro`/`Pedro`,
+    voicetag 1628937564366319784 (the holocall scene `pedro_aimar_holocall` is not exported; add `--export` to get it). 303 s, 50 clips of 3 to 9 s.
+  - Mr. Blue Eyes: `python attribute.py --key mr-blue-eyes --prefix civ_high_m_07_enus_40_q203 --token q203`: 28 of 28 lines; scene `q203_05_afterlife` actor
+    `mr_blue_eyes` (20 lines) and `q203_06_cosmos` actor `mrx` (8 lines), one voicetag 1624173162010259544. The stem is a shared civilian model, but every
+    line is his by scene actor. 168 s, 17 clips of 3 to 9 s. Accept only those two scenes and these two actors in `voice-spec.json`.
+  - Then per key: `python extract.py --key <key>`, `<VS> analyze.py --key <key>` (Whisper on a free GPU), `<VS> build.py --key <key> [--dry-run]`,
+    `node scripts/clip-search/cast-expansion/merge_rows.mjs --keys hasan-demir,pedro-aimar,mr-blue-eyes`, `node ... merge.mjs release-plan --keys ...`,
+    the ear check, the bucket upload (recipe section 9), and finally move the keys into `CAST_EXPANSION_KEYS` (the `todo` voice test and the twin-map
+    allowance in `bridge/multilingual.test.mjs` go away). `staging/cast/` is git-ignored: recreate `voice-spec.json` per key from the lines above.
+- **Twins' language boxes (owed, needs a signed-in Convai dashboard session).** `POST https://convai.com/api/character/update` with
+  `{character_id, workspace_id, language_hardening_mode: 'off'}` for the three twins (`hasan-demir`, `pedro-aimar`, `mr-blue-eyes`; ids in
+  `packaging/release-data/multilingual-profiles.json`), read back, then `languageBoxOff: true` in `runtime/multilingual-profiles.json` and the release data.
+  Until then the router keeps using the originals.
+- **Appearance.** Only Mr. Blue Eyes has a text (wiki: black hair, blue eyes, an understated expensive suit). Hasan's wiki Appearance section is
+  empty and Pedro's says only grey hair; both stay `source: none` until a picture is approved for download (infobox image, step 5).
