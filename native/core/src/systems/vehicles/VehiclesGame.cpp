@@ -171,7 +171,7 @@ bool ReadInspect(const Object& aEntity, bool aOwned, InspectRaw& aRaw)
     {
         return false;
     }
-    aRaw.mackinaw = recordId == kMackinaw.value;
+    aRaw.mackinaw = SameTweakName(recordId, kMackinaw.value);
 
     uint64_t carHash = 0;
     SeatList list;
