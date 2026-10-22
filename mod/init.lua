@@ -3563,7 +3563,7 @@ local function keyReplyNotice(reply)
         local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
         local language = names[reply.keyNoticeLanguage]
         if language then
-            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.', {language = language})
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} voice language pack is missing.', {language = language})
         end
     end
     if reply.keyNotice == 'mistral-no-key' then

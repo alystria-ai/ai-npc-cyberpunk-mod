@@ -176,7 +176,7 @@ test('a reply written because the voice pack is missing says so once per languag
 test('the game maps the notice to a sentence in the menu language, with the language name translated, for each of the five languages', () => {
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8'), notices = readFileSync(new URL('../mod/notices.lua', import.meta.url), 'utf8');
   assert.match(lua, /reply\.keyNotice == 'pocket-language-pack'/);
-  assert.match(lua, /ui\.t\('The Pocket voice for \{language\} is installed, but it needs the \{language\} voice language pack, which is missing\. Replies in \{language\} show as text until you install it\.', \{language = language\}\)/);
+  assert.match(lua, /ui\.t\('\{language\} replies show as text: the \{language\} voice language pack is missing\.', \{language = language\}\)/);
   for (const tag of ['fr', 'it', 'de', 'es', 'pt']) {
     assert.ok(lua.includes(`keyId == 'pocket-pack-${tag}' then convaiNotices.send(player, 'pocket-pack-${tag}', keyText)`), tag);
     assert.ok(notices.includes(`['pocket-pack-${tag}'] = {class = PLAYER, repeatS = 86400}`), tag);

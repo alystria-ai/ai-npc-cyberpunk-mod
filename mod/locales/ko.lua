@@ -1075,7 +1075,7 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice에 NVIDIA 필요",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "이 PC에는 OmniVoice에 필요한 NVIDIA 그래픽 카드가 없습니다. OmniVoice는 여기서 시작되지 않습니다. 음성을 들으려면 Pocket을 선택하세요.",
     ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA 카드 필요",
-    ["The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "{language}용 Pocket 음성은 설치되어 있지만 {language} 음성 언어 팩이 없습니다. 팩을 설치하기 전까지 {language} 응답은 텍스트로 표시됩니다.",
+    ["{language} replies show as text: the {language} voice language pack is missing."] = "{language} 답변은 텍스트로 표시됩니다: {language} 음성 언어 팩이 없습니다.",
     ["French"] = "프랑스어",
     ["Italian"] = "이탈리아어",
     ["German"] = "독일어",
