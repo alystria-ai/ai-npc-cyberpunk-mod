@@ -3911,7 +3911,7 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
       ['Character.maelstrom_grunt1_ranged1_lexington_ma'] = 'npc-maelstrom-male',
       ['Character.tyger_claws_gang3_katana_wa'] = 'npc-tyger-claws-female',
       ['Character.wat_kab_ripperdoc_01'] = 'npc-ripperdoc-male', ['Character.CorpoWomanBag'] = 'npc-corpo-resident-female',
-      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = false, ['Character.q105_valentino_ma'] = false,
+      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = 'npc-maxtac-male', ['Character.q105_valentino_ma'] = false,
       ['Character.valentinos_grunt_ma'] = false, ['Character.maelstrom_base_android'] = false, ['Character.ChildPoor_ma'] = false}
     for id, key in pairs(expected) do
       assert(byRecord[id], id)
@@ -3927,8 +3927,8 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
     assert(description('Character.maelstrom_grunt1_ranged1_lexington_ma'):find('Conversation: Maelstrom ganger (archetype)', 1, true))
     assert(description('Character.Silverhand'):find('Conversation: Johnny Silverhand', 1, true))
     assert(not description('Character.Silverhand'):find('archetype', 1, true))
-    assert(description('Character.maxtac_rifle_ma'):find('No conversation profile', 1, true))
-    assert(row('model-status').description:find('5 of them can talk.', 1, true))
+    assert(description('Character.maxtac_rifle_ma'):find('Conversation: MaxTac officer (archetype)', 1, true))
+    assert(row('model-status').description:find('6 of them can talk.', 1, true))
     -- A Waitress has no gender in its name and no resident kind: it stays a silent follower.
     assert(description('Character.Waitress'):find('No conversation profile', 1, true))
     -- Invited, the copy joins as a model (nothing to prepare) and talks as the archetype once spawned.

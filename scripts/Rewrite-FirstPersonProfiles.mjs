@@ -26,7 +26,8 @@ const storePath = resolve(root, 'characters/first-person-profiles.json');
 
 // A profile still to be rewritten opens with the character's name, a description or "You are"; a finished one opens "I'm".
 // (Name kept from the first pass; it means "not yet first person".)
-export const isThirdPerson = row => !/^(I(?:'|’)m\b|I\b)/u.test(row.backstory);
+// The generic residents are written in the archetype format (IDENTITY, second person, 2026-10-22) and are not rewritten.
+export const isThirdPerson = row => !/^(I(?:'|’)m\b|I\b|IDENTITY\n)/u.test(row.backstory);
 
 function pieces(row) {
   const {core: backstoryCore, tail: backstoryTail} = splitBackstory(row.backstory);

@@ -18,20 +18,20 @@ test('the prompt Mistral and the local AI build is byte for byte what it was (ha
   // Re-taken on 2026-10-22 (response audit): rule 7 no longer asks for "a few words of attitude about the place or the hour" and says nothing of weather, time or place unless V asks; the copy of the
   // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
   const expected = {
-    a: '9b24e92a8f72071e87faed1568160ef1fb8d356187c5f51d5e37f94c42689cea',
-    b: 'b98623c3a8ce57c217fe31e43ef7cc2658a5ce941d9ac4feb12358e466123a11',
-    c: 'ce88ffac54fd4416f13ae4723c248104e7368f71fd068b12bea62df30f9af0aa',
-    d: 'e02cef47e123370446c740b07917bd0912d55707bbb7e1db2b67e4f87dd59e83',
-    e: 'ec554e7bf867204f45240be0cd46d2ad1d7deb6ad00f53516ddd7af948cada74',
-    f: 'b403324739a4eeec049e958b78b1890bf61211474c05b29079326031134dc3eb',
-    g: '0d3a68eee22cff60e6933ee17c635fed2f4233fc60a1d7ac79e6adf3dbe4a5ea',
+    a: '673d59521d0de368442a0e021e20be609ead20c280aded68c3a0ca6311131eb8',
+    b: 'fc68e51460d945ec25def020d5ca8226c85676ec9074eabc391c29f767dc4e55',
+    c: '493861a79c4c6adb0c4f4bc0a723be5f4ce81b52ade61366d8f5e04312bbbf7c',
+    d: '7f797d3ea0168432a33c393404c66ba71984528675d0074a2f754785ef87fe31',
+    e: 'c6e3188ba7818043591bce270d1eddc70e8ca31ded783037be26e6e1139da5b4',
+    f: 'd0f28ead166022f0ba5681505d77add3767fd00b3fd0d47ac7c1a853f846a84c',
+    g: 'f84b3bfc6782af6709805cbcf2241e3f7e4e892acb67e8855fbf833197a867fe',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '76890f8f594bbcb36d542200512c9ae563e7ede7e56aa9a485bafba684627406');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '0a5d2681164e2b0b8e2ef8d98e923cd50933e24764f53ed39bb392cce2513b3a');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '7f933442ae619c5f94fd241b699d8a0a28a7808450262e0de38207efd830fc5f');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '845bef80722e91182583b11a0064312787c2e542bf3bea0fdab8c85ce8a127d6');
-  assert.equal(sha(systemHead({persona: prompt.persona})), '56050c0db2c3d4bd9b252f4c681e401769dfd3d313534b03ba7149321896aa41');
+    'b73c697299ad24497e5a7b9fa8d1a6d8287f13173efdcc9ff0bbf9a2e21c7d5f');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'ad4e0a03666c1f432cc8931aa6bf6850daa9055413ba0f50f7400738ae519223');
+  assert.equal(sha(systemHead({persona: prompt.persona})), 'e280e404f9a7f4db6cf79db635db722f61f92b3189b561a30b75fe257938c856');
 });
 
 // ---- The budget's new options ----------------------------------------------------------------------------------------------

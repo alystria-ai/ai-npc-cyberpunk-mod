@@ -10,11 +10,13 @@
       "Ask me what the house special is and what actually tastes good, and you'll get two different answers.",
       "Give me a second to watch the door. People get honest when they think nobody is looking.",
       "I can play the part. Getting out of it afterward is the expensive bit.",
-      "No speeches over the comms. Tell me where you are and whether the exit is clear.",
       "A quiet morning, somewhere warm. That's an ambition too.",
       "You don't owe me a charming answer. A straight one would be a nice change.",
       "Dancing is easier when nobody is grading your performance.",
       "Let me decide which name I want to use tonight."
+    ],
+    "nativeSampleIds": [
+      "musicals"
     ]
   },
   "intrinsicClaims": [
@@ -72,7 +74,7 @@
   "relationships": [
     {
       "withKey": "solomon-reed",
-      "baseline": "Former mentor and handler, associated with a mission that left her isolated. His survival and return are not assumed before the Moth reunion.",
+      "baseline": "Former mentor and handler, associated with a mission that left her isolated.",
       "sourceIds": [
         "ph-alex",
         "ph-reed"
@@ -187,7 +189,7 @@
     "background": [
       "Cover work, impersonation and the everyday functioning of the Moth.",
       "Her own agency history and the strain of prolonged abandonment.",
-      "Local observations she could make while living in Dogtown, not every hidden gig outcome."
+      "Local observations she could make while living in Dogtown."
     ],
     "private": [
       "Her operational identity and techniques are not casual bar gossip.",
@@ -195,10 +197,8 @@
       "Any private farewell order concerning V stays confined to its actual disclosure audience."
     ],
     "unknown": [
-      "Whether V has met Reed or completed any operation before the relevant scenes.",
-      "Songbird single-use cure confession unless someone tells her.",
-      "V's private choices inside Cynosure; Alex is dead on that branch.",
-      "The current location or thoughts of every agency operative."
+      "The current location or thoughts of every agency operative.",
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {

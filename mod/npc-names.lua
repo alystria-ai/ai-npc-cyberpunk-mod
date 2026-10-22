@@ -75,7 +75,7 @@ local PROFILES = {
     ['animals'] = P('animals', 'animals', .28), ['voodoo-boys'] = P('voodoo', 'voodoo-boys', .28),
     ['scavengers'] = P('scavengers', 'scavengers', .28), ['wraiths'] = P('wraiths', 'nomad', .26),
     ['mox'] = P('mox', 'moxes', .28), ['aldecaldos'] = P('aldecaldos', 'nomad', .2), ['barghest'] = P('barghest', 'street-generic', .1),
-    ['ncpd'] = P('police', nil, 0),
+    ['ncpd'] = P('police', nil, 0), ['maxtac'] = P('police', nil, 0), ['nusa'] = P('militech', nil, .03), ['joytoy'] = P('broad', 'street-generic', .22),
     ['corpo-security'] = P('corpo', nil, .03), ['militech'] = P('militech', nil, .05), ['kang-tao'] = P('kangtao', nil, .05),
     ['netwatch'] = P('corpo', nil, .08), ['trauma-team'] = P('medical', nil, .04), ['biotechnica'] = P('biotechnica', nil, .03),
     ['merc'] = P('street', 'street-generic', .3), ['street-goon'] = P('street', 'street-generic', .24),
