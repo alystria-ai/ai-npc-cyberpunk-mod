@@ -159,7 +159,7 @@ export function describeFit(fit, freeMiB, marginMiB) {
 }
 
 /**
- * Room for the game on a small card, worked out when the model is first placed (2026-10-22, LordValerius's 0.2.7 report: an RTX 3070 with 8 GB; Local AI took 7,461 MiB free at the
+ * Room for the game on a card of up to 24 GB, worked out when the model is first placed (2026-10-22, LordValerius's 0.2.7 report: an RTX 3070 with 8 GB; Local AI took 7,461 MiB free at the
  * game's start and loaded whole, the game and OmniVoice then took the card, 3,209 MiB of the model went into shared system memory, and a spill reload 10 minutes into play ended with 0% of
  * the layers on the card after 52 s of full CPU). The service starts with the game, before the game has allocated anything, so the free memory it reads is memory the game is about to take.
  * On a card of `maxCardMiB` or less the model is placed against what is left after the game's room and the voice engine that is still to load.
@@ -173,16 +173,24 @@ export function describeFit(fit, freeMiB, marginMiB) {
  *                  against 11,242 - 4,608 = 6,634 MiB, then lost 993 MiB to shared system memory, stalled at the 75 s limit and was reloaded at 40% of its layers. The game takes what the card has to give, so the
  *                  room is a share of the card: 62% is 7,446 MiB on that card (7,438 on a card that reads 11,997, 6,349 on a 10 GB card), the cap 7,680 MiB. One report: the live check is the
  *                  "graphics memory of the model server after ..." lines of 12 GB installs.
+ *   maxCardMiB     the reserve now applies up to a 24,576 MiB card (was 12,288, 2026-10-22 late report 8e09af42: an RTX 4090 with 24 GB, Local AI Mature good and OmniVoice, 0.2.7). The first placement
+ *                  gave the model all the free memory; the game and OmniVoice then took the card, 3,102 MiB of the model stayed on it and 3,254 MiB went into shared memory, the first word came after
+ *                  18.4 s and the turn stalled at the 74 s limit, and the step-down reloaded the model to the 3.9 GB that was free. Reading that report: with the model unloaded 3.9 GB were free, so the game
+ *                  held about 24,564 - 3,900 - 2,500 (OmniVoice) - 1,000 (desktop) = 17,160 MiB, about 70% of the card. The same 62% share is used (it was measured on 12 GB, and 70% is a single report
+ *                  on 24 GB), 15,237 MiB on a 24,576 MiB card and 10,150 MiB on a 16 GB one; the cap is raised from 7,680 to 15,360 MiB so it only stops a card that reads a little above 24 GB (on
+ *                  every card of 12,288 MiB or less 62% is under 7,680, so those numbers do not change). The model's room at the start is then free - voice - reserve: a 24 GB card with OmniVoice still to load
+ *                  keeps about 5.7 GB for the model, which is what was left in that report, instead of a 74 s stall and a step-down. One report: the live check is the "game room on a small card" and
+ *                  "graphics memory of the model server after ..." lines of 16 and 24 GB installs.
  *   Reserved only for what the game has NOT taken yet (2026-10-22 review, A1): the game's footprint is measured (card total - free - a resident voice engine - desktopMiB) and subtracted from the room, so a service
  *   restarted mid-play, or a quick Continue that has the game and OmniVoice on the card already, keeps nothing back twice. Nothing depends on how long the service has run.
  */
-export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 12288, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, desktopMiB: 1000,
-  bigCardAboveMiB: 9216, bigGameShare: 0.62, bigGameCapMiB: 7680});
+export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 24576, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, desktopMiB: 1000,
+  bigCardAboveMiB: 9216, bigGameShare: 0.62, bigGameCapMiB: 15360});
 
 /** The game's room (MiB) on a card of this size, or 0 for a card above SMALL_CARD_ROOM.maxCardMiB or an unknown one. */
 export function gameRoomMiB(totalMiB, limits = SMALL_CARD_ROOM) {
   if (!(Number.isFinite(totalMiB) && totalMiB > 0 && totalMiB <= limits.maxCardMiB)) return 0;
-  // A card above 9 GB (10 and 12 GB): the game was measured holding 62% of a 12 GB card (see SMALL_CARD_ROOM); 8 GB cards and smaller keep the first, smaller numbers.
+  // A card above 9 GB (10 GB up to 24 GB): the game was measured holding 62% of a 12 GB card and about 70% of a 24 GB one (see SMALL_CARD_ROOM); 8 GB cards and smaller keep the first, smaller numbers.
   const big = totalMiB > limits.bigCardAboveMiB;
   const share = big ? limits.bigGameShare : limits.gameShare, cap = big ? limits.bigGameCapMiB : limits.gameCapMiB;
   return Math.round(Math.max(limits.gameFloorMiB, Math.min(cap, totalMiB * share)));
