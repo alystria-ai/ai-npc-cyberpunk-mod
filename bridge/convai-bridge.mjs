@@ -115,6 +115,7 @@ import {SMALL_CARD_ROOM} from './local-vram-fit.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
+import {ChildRegistry, CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
@@ -438,7 +439,12 @@ const customScanner = new CustomModelScanner({project, log: message => console.e
 let customScan = {models: [], problems: []}, cardTotalMiB = null, cardAskedAt = 0;
 const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: localServer.totalVramMiB ?? cardTotalMiB}));
 const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
-const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
+// The model servers a bridge that died hard (a V8 out-of-memory, a crash, "End task") left running are stopped before ours start, so the card's memory is free for them
+// (bridge/child-registry.mjs: only a process that is exactly the exe and the start we wrote down, whose bridge is gone). Ours are written down as they start.
+const childrenFile = resolve(stateDirectory, CHILDREN_FILE);
+await reapChildren({file: childrenFile, log: message => console.error(message)});
+const childRegistry = new ChildRegistry({file: childrenFile, log: message => console.error('[Resource] ' + message)});
+const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection, processOptions: {registry: childRegistry},
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   gameRoom: {voiceMiB: omniStillToLoadMiB, uptimeSeconds: () => process.uptime()},
   log: message => console.error('[LocalAI] ' + message)});
@@ -484,7 +490,7 @@ localServer.on('diagnostics', () => {
   diagnosticsTimer = setTimeout(() => { diagnosticsTimer = null; try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } }, 500);
   diagnosticsTimer.unref?.();
 });
-const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
+const localEmbedder = new LlamaEmbedder({pack: localPack, processOptions: {registry: childRegistry}, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
 let localPackCheckedAt = 0;
 function refreshLocalPack(force = false) {

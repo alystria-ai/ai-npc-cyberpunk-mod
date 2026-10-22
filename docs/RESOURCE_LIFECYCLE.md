@@ -114,7 +114,11 @@ Every worker's release is awaited: Pocket and the V helper retire through confir
 `python.exe` is a launcher); a new Pocket worker starts only after the old one, and the V helper before it, have exited (the work folder has
 one lock). OmniVoice, the phone-analysis worker and the facial thread are closed by the voice service's `close()`, which the bridge's
 `shutdown()` awaits together with the recogniser (now awaited too), both model servers and the browser. The model servers also have a
-synchronous kill on process exit (`killSync`).
+synchronous kill on process exit (`killSync`), which covers a JavaScript-level exit only: a V8 out-of-memory, a native crash or "End task" on
+`node.exe` skips it. So every model server the bridge spawns is also written down in `runtime/children.json` (pid, exe path, start time, owning bridge;
+`bridge/child-registry.mjs`) and removed when it exits. The supervisor right after an unexpected bridge exit, and the next bridge at its start, stop what is
+still listed, and only a process that is exactly the exe and the start that were written down, whose owning bridge is gone; the exit is confirmed before the
+`[Resource]` line is written. Anything else is only dropped from the list.
 
 ## Live checks (Task Manager, Details tab, or the bridge log)
 
