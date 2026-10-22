@@ -15,7 +15,7 @@ import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 import {PlayerVoices} from './player-voices.mjs';
 import {speechWav} from './voice-clip-fixture.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
-import {customProfileId} from './prompt-profiles.mjs';
+import {customProfileId, defaultProfile, renderRules} from './prompt-profiles.mjs';
 
 // The real page in real Edge, muted and headless (no sound, nothing leaves 127.0.0.1): the player's whole path through the editor,
 // and the checks that make the page safe (no outside request, no markup from a bio, a warning before unsaved text is lost).
@@ -562,6 +562,10 @@ test('World rules: a page of its own, saved, reverted and cleared, in force on t
 
 
 // ---- Prompting (docs/CHARACTER_EDITOR.md, "Prompting"): the wording of the prompt per conversation option
+// The shipped profiles are read from the profile module (never written out here), so tuning them cannot break these tests.
+const STANDARD = defaultProfile('local-standard');
+const differs = (shipped, ...options) => options.find(option => option !== shipped);
+const withFirstRule = (profile, text) => ({...profile, rules: [{...profile.rules[0], text}, ...profile.rules.slice(1)]});
 const saveBar = page => page.locator('.actions.sticky');
 const savedToast = page => page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Saved.');
 const preview = page => page.locator('.ppreview');
@@ -585,14 +589,14 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.match(text, /Your Custom models and APIs/);
   assert.equal(await page.locator('#list .pick.on').count(), 0);
   await previewHas(page, 'OUTPUT RULES (they outrank everything above about format)');
-  assert.match(await preview(page).textContent(), /1\. You speak out loud, as Judy, to V\./);
+  assert.equal(await preview(page).locator('pre').first().textContent(), renderRules(STANDARD, {name: 'Judy'}), 'the preview is the shipped rules as the prompt renders them');
   assert.equal(await saveBar(page).getByRole('button', {name: 'Save'}).isDisabled(), true, 'nothing to save yet');
   assert.equal(await page.locator('section[data-field=rules] .phead').getByRole('button', {name: 'Reset to default'}).isDisabled(), true, 'nothing to reset yet');
   await e.shot('20-prompting');
 
   // Rules: the preview follows the keys before anything is saved.
   const rule1 = page.locator('textarea[aria-label="Rule 1"]');
-  assert.match(await rule1.inputValue(), /^You speak out loud/);
+  assert.equal(await rule1.inputValue(), STANDARD.rules[0].text);
   await rule1.fill('Be short, {name}.');
   await previewHas(page, '1. Be short, Judy.');
   assert.equal(e.profiles.getOverride('local-standard'), null, 'a preview stores nothing');
@@ -601,52 +605,55 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await previewHas(page, '1. Be short, Rogue.');
   await page.locator('#p-sample-talk').check();
   await page.fill('#p-sample-words', '25');
-  await previewHas(page, 'at most 25 words');
+  await previewHas(page, renderRules(withFirstRule(STANDARD, 'Be short, {name}.'), {name: 'Rogue', talkWords: 25}));
   await page.locator('#p-sample-talk').uncheck();
   await page.locator('#p-sample-mature').check();
-  await previewHas(page, 'Four in an adult moment');
+  await previewHas(page, renderRules(withFirstRule(STANDARD, 'Be short, {name}.'), {name: 'Rogue', mature: true}));
   await page.locator('#p-sample-mature').uncheck();
   // An added rule is moved up, and a rule with other versions shows them.
   await page.getByRole('button', {name: 'Add a rule'}).click();
-  const rule10 = page.locator('textarea[aria-label="Rule 10"]');
-  await rule10.fill('Never swear.');
-  await page.getByRole('button', {name: 'Move rule 10 up'}).click();
-  assert.equal(await page.locator('textarea[aria-label="Rule 9"]').inputValue(), 'Never swear.');
+  const N = STANDARD.rules.length;
+  await page.locator(`textarea[aria-label="Rule ${N + 1}"]`).fill('Never swear.');
+  await page.getByRole('button', {name: `Move rule ${N + 1} up`}).click();
+  assert.equal(await page.locator(`textarea[aria-label="Rule ${N}"]`).inputValue(), 'Never swear.');
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
   const stored = e.profiles.getOverride('local-standard');
   assert.equal(stored.rules[0].text, 'Be short, {name}.');
-  assert.equal(stored.rules[8].text, 'Never swear.');
-  assert.match(stored.rules[8].id, /^own-\d+$/);
+  assert.equal(stored.rules[N - 1].text, 'Never swear.');
+  assert.match(stored.rules[N - 1].id, /^own-\d+$/);
   assert.equal(new Set(stored.rules.map(rule => rule.id)).size, stored.rules.length, 'ids stay unique');
   assert.equal(await page.locator('.profiles .profile').nth(2).locator('.chip').count(), 2, 'In use now and Edited');
   assert.equal(await page.locator('section[data-field=rules] .phead').getByRole('button', {name: 'Reset to default'}).isEnabled(), true);
   assert.equal(await saveBar(page).getByRole('button', {name: 'Save'}).isDisabled(), true, 'saved: nothing left to save');
   await e.shot('21-prompting-rules');
   // The talk and Mature versions of the shipped 'brief' rule are there.
-  const brief = page.locator('.rule').nth(2);
+  const variantAt = STANDARD.rules.findIndex(rule => rule.talk && rule.mature);
+  assert(variantAt >= 0, 'the shipped profile has a rule with a talk and a Mature version');
+  const brief = page.locator('.rule').nth(variantAt);
   assert.equal(await brief.locator('details').getAttribute('open'), '', 'a rule with other versions shows them open');
-  assert.match(await brief.locator('textarea').nth(1).inputValue(), /at most \{words\} words/);
-  assert.match(await brief.locator('textarea').nth(2).inputValue(), /Four in an adult moment/);
+  assert.equal(await brief.locator('textarea').nth(1).inputValue(), STANDARD.rules[variantAt].talk);
+  assert.equal(await brief.locator('textarea').nth(2).inputValue(), STANDARD.rules[variantAt].mature);
   await brief.locator('textarea').nth(2).fill('');
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
-  assert.equal('mature' in e.profiles.getOverride('local-standard').rules[2], false, 'an emptied version is gone');
+  assert.equal('mature' in e.profiles.getOverride('local-standard').rules[variantAt], false, 'an emptied version is gone');
   // Delete the added rule.
-  await page.getByRole('button', {name: 'Delete rule 9'}).click();
+  await page.getByRole('button', {name: `Delete rule ${N}`}).click();
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
-  await page.waitForFunction(() => document.querySelectorAll('.rule').length === 9);
-  assert.equal(e.profiles.getOverride('local-standard').rules.length, 9);
+  await page.waitForFunction(count => document.querySelectorAll('.rule').length === count, N);
+  assert.equal(e.profiles.getOverride('local-standard').rules.length, N);
 
   // Opening line, closing line, headings, layout, stop texts, examples.
   await page.fill('#p-closing-text', 'Now answer as {name}.');
   await page.fill('#p-labels-rules', 'MY RULES');
   await page.fill('#p-intro-named', 'You are {name}, a fixer.');
-  await page.selectOption('#p-layout-volatile', 'after');
+  const otherPlace = STANDARD.layout.volatile === 'after' ? 'before' : 'after';
+  await page.selectOption('#p-layout-volatile', otherPlace);
   await page.getByRole('button', {name: 'Add a stop text'}).click();
-  await page.locator('textarea[aria-label="Stop text 1"]').fill('\nV says:');
+  await page.locator(`textarea[aria-label="Stop text ${STANDARD.stop.length + 1}"]`).fill('\nV says:');
   await page.getByRole('button', {name: 'Add an example reply'}).click();
-  await page.locator('input[aria-label="Example reply 1"]').fill('Fine, V.');
+  await page.locator(`input[aria-label="Example reply ${STANDARD.examples.length + 1}"]`).fill('Fine, V.');
   await previewHas(page, 'MY RULES');
   await previewHas(page, '(Now answer as Rogue.)');
   await previewHas(page, '- Fine, V.');
@@ -656,31 +663,32 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(second.closing.text, 'Now answer as {name}.');
   assert.equal(second.labels.rules, 'MY RULES');
   assert.equal(second.intro.named, 'You are {name}, a fixer.');
-  assert.equal(second.layout.volatile, 'after');
-  assert.deepEqual([...second.stop], ['\nV says:']);
-  assert.deepEqual([...second.examples], ['Fine, V.']);
+  assert.equal(second.layout.volatile, otherPlace);
+  assert.deepEqual([...second.stop], [...STANDARD.stop, '\nV says:']);
+  assert.deepEqual([...second.examples], [...STANDARD.examples, 'Fine, V.']);
 
   // Sampling and limits: numbers with ranges, and Off for Top P and the repeat penalty.
-  assert.match(await page.locator('#p-sampling-temperature-h').textContent(), /From 0 to 2\. Shipped: 0\.65/);
-  assert.match(await page.locator('#p-sampling-topP-h').textContent(), /From 0 to 1\. Shipped: off/);
-  assert.equal(await page.locator('#p-sampling-topP').isDisabled(), true);
-  await page.fill('#p-sampling-temperature', '0.3');
-  await page.locator('#p-sampling-topP-off').uncheck();
-  assert.equal(await page.inputValue('#p-sampling-topP'), '0.9');
-  await page.fill('#p-sampling-topP', '0.8');
-  await page.fill('#p-sampling-maxTokens', '300');
-  await page.fill('#p-limits-persona', '3000');
-  await page.fill('#p-limits-turns', '4');
+  const shippedTopP = STANDARD.sampling.topP, temperature = differs(STANDARD.sampling.temperature, 0.3, 0.35), topP = differs(shippedTopP, 0.8, 0.85), maxTokens = differs(STANDARD.sampling.maxTokens, 300, 310);
+  const persona = differs(STANDARD.limits.persona, 3000, 3100), turns = differs(STANDARD.limits.turns, 4, 5);
+  assert.match(await page.locator('#p-sampling-temperature-h').textContent(), new RegExp(`From 0 to 2\\. Shipped: ${STANDARD.sampling.temperature}`));
+  assert.match(await page.locator('#p-sampling-topP-h').textContent(), new RegExp(`From 0 to 1\\. Shipped: ${shippedTopP === null ? 'off' : shippedTopP}`));
+  assert.equal(await page.locator('#p-sampling-topP').isDisabled(), shippedTopP === null);
+  await page.fill('#p-sampling-temperature', String(temperature));
+  if (shippedTopP === null) { await page.locator('#p-sampling-topP-off').uncheck(); assert.equal(await page.inputValue('#p-sampling-topP'), '0.9'); }
+  await page.fill('#p-sampling-topP', String(topP));
+  await page.fill('#p-sampling-maxTokens', String(maxTokens));
+  await page.fill('#p-limits-persona', String(persona));
+  await page.fill('#p-limits-turns', String(turns));
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
   const third = e.profiles.getOverride('local-standard');
-  assert.deepEqual({...third.sampling}, {temperature: 0.3, topP: 0.8, maxTokens: 300});
-  assert.deepEqual({...third.limits}, {persona: 3000, turns: 4});
+  assert.deepEqual({...third.sampling}, {temperature, topP, maxTokens});
+  assert.deepEqual({...third.limits}, {persona, turns});
   await page.locator('#p-sampling-topP-off').check();
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
-  assert.equal('topP' in e.profiles.getOverride('local-standard').sampling, false, 'off is the shipped value, so nothing is stored');
-  assert.equal(e.profiles.getEffective('local-standard').sampling.topP, null);
+  assert.equal(e.profiles.getEffective('local-standard').sampling.topP, null, 'Off is not sent');
+  assert.equal('topP' in e.profiles.getOverride('local-standard').sampling, shippedTopP !== null, 'where Off is the shipped value nothing is stored for it');
 
   // Errors, in plain words, in the sections they belong to; Save is refused with the same words and stores nothing.
   const before = JSON.stringify(e.profiles.getOverride('local-standard'));
@@ -699,7 +707,7 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await e.shot('22-prompting-errors');
   await saveBar(page).getByRole('button', {name: 'Revert changes'}).click();
   assert.equal(await page.locator('.err').count(), 0, 'reverted: no problem left');
-  assert.equal(await page.inputValue('#p-sampling-temperature'), '0.3');
+  assert.equal(await page.inputValue('#p-sampling-temperature'), String(temperature));
   await page.waitForFunction(() => !document.querySelector('.ppreview .stale'));
 
   // Reset one part, then everything.
@@ -708,12 +716,12 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Back to the shipped prompting.');
   assert.deepEqual(e.dialogs, ['Go back to the shipped prompting for Local AI, Standard? Your changes to this part are removed.']);
   assert.equal('sampling' in e.profiles.getOverride('local-standard'), false);
-  assert.equal(await page.inputValue('#p-sampling-temperature'), '0.65');
+  assert.equal(await page.inputValue('#p-sampling-temperature'), String(STANDARD.sampling.temperature));
   assert.equal(await page.inputValue('#p-labels-rules'), 'MY RULES', 'the other parts stay');
   // An unsaved edit in another part is kept while one part is reset.
   await page.fill('#p-labels-examples', 'MY EXAMPLES');
   await page.locator('section[data-field=limits] .phead').getByRole('button', {name: 'Reset to default'}).click();
-  await page.waitForFunction(() => document.querySelector('#p-limits-persona')?.value === '');
+  await page.waitForFunction(value => document.querySelector('#p-limits-persona')?.value === value, String(STANDARD.limits.persona ?? ''));
   assert.equal(await page.inputValue('#p-labels-examples'), 'MY EXAMPLES', 'unsaved text in another part survives a reset of one part');
   await saveBar(page).getByRole('button', {name: 'Revert changes'}).click();
   e.dialogs.length = 0;
@@ -732,7 +740,7 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await picks.nth(0).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Mistral');
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
-  assert.equal((await page.locator('textarea[aria-label="Rule 1"]').inputValue()).startsWith('You speak out loud'), true, 'the unsaved text was dropped');
+  assert.equal(await page.locator('textarea[aria-label="Rule 1"]').inputValue(), defaultProfile('mistral').rules[0].text, 'the unsaved text was dropped');
   await page.fill('#p-closing-text', 'Mistral closing.');
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
@@ -741,13 +749,14 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(await page.locator('#p-sample-mature').isChecked(), true);
   await picks.nth(5).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Custom: qwen3-8b at openrouter.ai');
-  await page.locator('#p-sampling-repeatPenalty-off').uncheck();
-  await page.fill('#p-sampling-repeatPenalty', '1.1');
+  const custom = defaultProfile(customProfileId('https://openrouter.ai', 'qwen3-8b'), {family: 'qwen'}), penalty = differs(custom.sampling.repeatPenalty, 1.1, 1.15);
+  if (custom.sampling.repeatPenalty === null) await page.locator('#p-sampling-repeatPenalty-off').uncheck();
+  await page.fill('#p-sampling-repeatPenalty', String(penalty));
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
   assert.equal(e.profiles.getOverride('mistral').closing.text, 'Mistral closing.');
   assert.equal(e.profiles.getOverride('local-standard'), null, 'a change never reaches another option');
-  assert.equal(e.profiles.getOverride(customProfileId('https://openrouter.ai', 'qwen3-8b')).sampling.repeatPenalty, 1.1);
+  assert.equal(e.profiles.getOverride(customProfileId('https://openrouter.ai', 'qwen3-8b')).sampling.repeatPenalty, penalty);
   assert.deepEqual(await page.locator('.profiles .profile').evaluateAll(nodes => nodes.map(node => node.querySelectorAll('.chip').length)), [1, 0, 1, 0, 0, 1]);
   assert.deepEqual(e.problems, ['Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)'], 'no console message but the browser noting the one refused save');
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer');
@@ -768,7 +777,7 @@ test('Prompting: sentences and problems in the player\'s language, text from a r
   await page.fill('#p-sampling-temperature', '5');
   await page.waitForSelector('section[data-field=sampling] .err');
   assert.equal(await page.locator('section[data-field=sampling] .err').textContent(), 'Température : Utilisez un nombre de 0 à 2.');
-  await page.fill('#p-sampling-temperature', '0.65');
+  await page.fill('#p-sampling-temperature', String(STANDARD.sampling.temperature));
   await page.waitForFunction(() => !document.querySelector('section[data-field=sampling] .err'));
   // Text with markup in it stays text, in the form and in the preview.
   const markup = '<img src=x onerror="window.__x=1"><script>window.__x=2</script>';
@@ -783,7 +792,7 @@ test('Prompting: sentences and problems in the player\'s language, text from a r
   // An empty rule: the sentence is in French too.
   await page.getByRole('button', {name: 'Ajouter une règle'}).click();
   await page.waitForSelector('section[data-field=rules] .err');
-  assert.equal(await page.locator('section[data-field=rules] .err').textContent(), 'La règle 10 est vide. Écrivez-la ou supprimez-la.');
+  assert.equal(await page.locator('section[data-field=rules] .err').textContent(), `La règle ${STANDARD.rules.length + 1} est vide. Écrivez-la ou supprimez-la.`);
   // Phone width: no sideways scroll, the preview comes after the form.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert(overflow <= 1, 'no sideways scroll, got ' + overflow);
