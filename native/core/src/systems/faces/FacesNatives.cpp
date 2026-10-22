@@ -101,12 +101,28 @@ void Frame(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut, i
                            [&]() -> int32_t {
                                Widen(control, controlWide);
                                Widen(speech, speechWide);
+                               // A NaN or infinity from Lua is bad input, not a plugin fault: clean it and go on.
+                               const std::size_t cleaned = faces::SanitizeFinite(controlWide.data(), controlWide.size()) +
+                                                           faces::SanitizeFinite(speechWide.data(), speechWide.size());
+                               if (cleaned > 0)
+                               {
+                                   static bool warned = false;
+                                   if (!warned)
+                                   {
+                                       warned = true;
+                                       CONVAI_WARN("Faces: %zu non-finite values in a frame from Lua were replaced by 0 "
+                                                   "(logged once)",
+                                                   cleaned);
+                                   }
+                               }
                                faces::FrameInput in;
                                const bool decoded = faces::DecodeControl(controlWide.data(), controlWide.size(),
                                                                          speechWide.data(), speechWide.size(), in);
                                if (!decoded)
                                {
-                                   throw std::runtime_error("faces: malformed control array");
+                                   // A short array or an unknown family: the frame is rejected (Lua runs its own path for
+                                   // it), and it does not count as a fault of the plugin.
+                                   return -1;
                                }
                                if (!in.speaking || speechWide.size() < static_cast<std::size_t>(faces::kFieldCount))
                                {

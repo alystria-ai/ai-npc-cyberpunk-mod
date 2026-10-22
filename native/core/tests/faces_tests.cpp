@@ -414,3 +414,20 @@ TEST(faces_frame_cost)
     std::printf("    core cost of a speaking frame: %.2f us (sink %.1f)\n", micros, sink);
     CHECK(micros < 50.0);
 }
+
+TEST(faces_non_finite_numbers_from_lua_are_cleaned_not_rejected)
+{
+    std::vector<double> control = IdleControl();
+    control[ctl::kWarmth] = std::nan("");
+    control[ctl::kGain] = INFINITY;
+    std::vector<double> speech(3, 0.5);
+    speech[1] = -INFINITY;
+    CHECK_EQ(SanitizeFinite(control.data(), control.size()), static_cast<std::size_t>(2));
+    CHECK_EQ(SanitizeFinite(speech.data(), speech.size()), static_cast<std::size_t>(1));
+    CHECK(control[ctl::kWarmth] == 0.0 && control[ctl::kGain] == 0.0 && speech[1] == 0.0 && speech[0] == 0.5);
+    FrameInput in;
+    CHECK(DecodeControl(control.data(), control.size(), nullptr, 0, in));
+    // Clean data passes through untouched, and a null array is not an error.
+    CHECK_EQ(SanitizeFinite(control.data(), control.size()), static_cast<std::size_t>(0));
+    CHECK_EQ(SanitizeFinite(nullptr, 4), static_cast<std::size_t>(0));
+}
