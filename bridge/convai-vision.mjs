@@ -8,8 +8,8 @@
 // Transport 'video' (the default) is Convai's documented dynamic vision context (@convai/web-sdk 1.7, "Vision dynamic context
 // beta"): the session connects with enableVideo and a vision_input_config, the canvas is published as a LiveKit video track only
 // for this turn, the server samples it into a small buffer and attaches the freshest frame to the next model turn. Vision
-// arrives on the silent lane, so a picture never makes the character speak on its own. visionStatus() acknowledgements say
-// when a frame is buffered; 'vision_not_enabled' marks the session so later turns do not try again.
+// arrives on the silent lane, so a picture never makes the character speak on its own. The server's vision-status replies are read
+// for diagnostics only: they say 'vision_not_enabled' while the picture is in use, so nothing waits for them or stops on them.
 // Transport 'upload' is the SDK's uploadFile (LiveKit byte stream, topic 'file-upload'): the composed JPEG is sent once.
 // Its server-side behaviour is not documented; it exists for the live check only (settings.json "visionTransport": "upload").
 
@@ -57,7 +57,17 @@ export function applyGamma(data, gamma) {
   return data;
 }
 const REPAINT_MS = 200;
-const STATUS_POLL_MS = 100;
+
+// What a turn waits for before its line is sent: nothing. Measured live 2026-10-23 on fresh Convai sessions, asking "what do you
+// see" with a new word on each picture: a picture published 3 s or more before the line was described 8 of 8 times (2.5 s: 2 of 3),
+// one published 0.5 to 1.5 s before it 2 of 8 times, and one published a moment before it about 1 time in 3 whether the turn
+// waited for the publish (100 to 480 ms) or not. The server needs about 2.5 to 3 s to start taking frames from a new track, and
+// its status replies never say so (they stay 'vision_not_enabled'), so no short wait buys a picture; it only delays the line. The
+// picture is therefore published ahead (composer open, talk key down) and the turn is sent at once. visionWaitMs (developer
+// setting, 0 to 900) can still wait for the publish to finish.
+export const VISION_READY_MS = 0;
+export const MIN_LEAD_MS = 3000;
+export const visionWaitCap = config => Number.isFinite(config?.visionWaitMs) ? Math.max(0, Math.min(900, config.visionWaitMs)) : VISION_READY_MS;
 
 // The ConvaiClient options a vision session connects with (none when vision is off).
 export function visionConnectOptions(config) {
@@ -99,21 +109,30 @@ function decode(base64) {
   return bytes;
 }
 
-// The acknowledgement fields this module reads from a server-response (vision-status / vision-trigger), whatever their nesting.
+// The acknowledgement fields this module reads from a server-response (vision-status / vision-trigger). Convai's real vision-status
+// reply (live 2026-10-23) is {event_type: 'vision-status', status: 'success', message: 'Vision status', extras: {vision_status_outcome,
+// update_id, vision_buffer: {enabled, status, retained_frames, source_active, ...}}}; the older guesses (extras.outcome and so on) are
+// still read. These fields are diagnostics only: that same session answered 'vision_not_enabled', enabled:false and 0 retained
+// frames while its model described the published picture, so no turn waits for, or is stopped by, what a status reply says.
+const OUTCOME = /^[a-z_]{3,40}$/;
 export function readAck(response) {
   const extras = response?.extras && typeof response.extras === 'object' ? response.extras : {};
   const buffer = extras.vision_buffer && typeof extras.vision_buffer === 'object' ? extras.vision_buffer : {};
-  const outcome = [extras.outcome, extras.vision_outcome, extras.vision_attach_outcome, response?.message]
-    .find(value => typeof value === 'string' && /^[a-z_]{3,40}$/.test(value)) ?? null;
+  const outcome = [extras.vision_status_outcome, extras.outcome, extras.vision_outcome, extras.vision_attach_outcome, buffer.status, response?.message]
+    .find(value => typeof value === 'string' && OUTCOME.test(value)) ?? null;
   const retained = Number.isFinite(buffer.retained_frames) ? buffer.retained_frames
     : Number.isFinite(extras.retained_frames) ? extras.retained_frames : null;
   const updateId = typeof extras.update_id === 'string' ? extras.update_id
     : typeof response?.update_id === 'string' ? response.update_id : null;
   return {eventType: typeof response?.event_type === 'string' ? response.event_type : null,
     status: typeof response?.status === 'string' ? response.status : null, outcome, retained, updateId,
+    enabled: typeof buffer.enabled === 'boolean' ? buffer.enabled : null,
+    sourceActive: typeof buffer.source_active === 'boolean' ? buffer.source_active : null,
     imageTokens: Number.isFinite(extras.vision_image_tokens_est) ? extras.vision_image_tokens_est
       : Number.isFinite(buffer.last_attach?.vision_image_tokens_est) ? buffer.last_attach.vision_image_tokens_est : null};
 }
+// True when an acknowledgement says the server holds a frame for the next turn.
+export const ackHasFrame = ack => ack.retained > 0 || ack.outcome === 'frames_available' || ack.outcome === 'attached';
 
 // The browser functions this module uses, bound (a detached setTimeout throws "Illegal invocation"). Tests pass their own.
 export const browserEnv = () => ({document: globalThis.document, createImageBitmap: (...args) => globalThis.createImageBitmap(...args),
@@ -127,20 +146,22 @@ export class ConvaiVision {
     this.connection = connection;
     this.transport = transport === 'upload' ? 'upload' : 'video';
     this.env = env;
-    this.staged = null; this.notEnabled = false;
+    this.staged = null;
     this.stats = {staged: 0, attached: 0, skipped: 0, lastOutcome: null, lastReadyMs: null, lastImageTokens: null, lastReason: null,
-      lastMean: null, lastGamma: null};
+      lastMean: null, lastGamma: null, serverEnabled: null, serverSourceActive: null, serverRetained: null};
     this.unsubscribe = typeof connection?.on === 'function' ? connection.on('serverResponse', response => this.onServerResponse(response)) : null;
-    this.waiters = new Set();
   }
   get enabled() { return this.connection?.connectionType === 'video' || this.transport === 'upload'; }
+  // Records what the server says, for diagnostics. It never switches vision off and no turn waits for it: a session that said
+  // 'vision_not_enabled' still described the published picture (live 2026-10-23). A reply that does report a frame marks the
+  // staged picture as buffered.
   onServerResponse(response) {
     const ack = readAck(response);
     if (!ack.eventType || !/vision/.test(ack.eventType)) return;
     this.stats.lastOutcome = ack.outcome;
+    this.stats.serverEnabled = ack.enabled; this.stats.serverSourceActive = ack.sourceActive; this.stats.serverRetained = ack.retained;
     if (ack.imageTokens !== null) this.stats.lastImageTokens = ack.imageTokens;
-    if (ack.outcome === 'vision_not_enabled') this.notEnabled = true;
-    for (const waiter of [...this.waiters]) waiter(ack);
+    if (ackHasFrame(ack) && this.staged && !this.staged.attached) { this.staged.attached = true; this.stats.attached++; }
   }
   // Starts handing `images` to the session. Never throws: a failure only means the turn goes without a picture.
   // Returns {staged: boolean, reason?}.
@@ -149,13 +170,12 @@ export class ConvaiVision {
     const valid = validImages(images);
     if (!valid.length) return this.skip('no-valid-image');
     if (this.transport === 'video' && this.connection?.connectionType !== 'video') return this.skip('no-video-session');
-    if (this.notEnabled) return this.skip('vision-not-enabled');
     const signature = signatureOf(valid);
     // The same picture is already on the session (staged ahead while V typed or talked): nothing to publish again.
     if (this.staged?.signature === signature) { if (!ttlMs) this.claim(); return {staged: true, reused: true}; }
     await this.retire();
     const started = this.env.now();
-    const staged = this.staged = {started, signature, ready: null, attached: false, handle: null, timer: null, canvas: null, expiry: null};
+    const staged = this.staged = {started, signature, ready: null, published: false, attached: false, handle: null, timer: null, canvas: null, expiry: null};
     if (ttlMs > 0) staged.expiry = this.env.setTimeout(() => { if (this.staged === staged) void this.retire(); }, ttlMs);
     try {
       staged.canvas = await this.compose(valid);
@@ -214,7 +234,7 @@ export class ConvaiVision {
     const handle = await this.connection.videoControls.publishCanvas(staged.canvas, {source: 'canvas', name: 'game-view', fps: 5,
       stopTrackOnUnpublish: true});
     if (this.staged !== staged) { await handle.unpublish().catch(() => {}); return false; }
-    staged.handle = handle;
+    staged.handle = handle; staged.published = true;
     // A canvas track carries a frame only when the canvas is painted. Repaint the same picture until the turn ends, so the
     // server's sampler finds a frame however late it subscribes. This timer lives in the hidden browser, never in the game.
     const context = staged.canvas.getContext('2d');
@@ -225,46 +245,27 @@ export class ConvaiVision {
     const blob = await new Promise((resolve, reject) => staged.canvas.toBlob(value => value ? resolve(value) : reject(Error('encode')), 'image/jpeg', 0.85));
     if (this.staged !== staged) return false;
     await this.connection.uploadFile(new File([blob], 'game-view.jpg', {type: 'image/jpeg'}));
-    staged.attached = this.staged === staged;
-    return staged.attached;
+    staged.published = this.staged === staged;
+    return staged.published;
   }
-  // Waits until the staged picture is buffered by the server (or uploaded), at most until `deadline` (a time from env.now).
-  // Returns {attached, outcome, ms}. Never throws.
+  // Waits until the staged picture is on the session (the track is published, or the file uploaded), at most until `deadline` (a
+  // time from env.now). That is all a turn waits for: the server's status replies are not a gate (see readAck), and the track
+  // keeps carrying the picture, so the server samples it while the line is sent.
+  // Returns {published, attached, outcome, ms, waitedMs}; attached is true only when a server reply said it holds a frame.
   async ready(deadline) {
     const staged = this.staged, now = () => this.env.now(), asked = now();
-    if (!staged) return {attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0};
-    const result = attached => {
+    if (!staged) return {published: false, attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0};
+    const result = published => {
       const ms = now() - staged.started;
       this.stats.lastReadyMs = ms;
-      if (attached && !staged.attached) { staged.attached = true; this.stats.attached++; }
-      return {attached, outcome: this.notEnabled ? 'vision_not_enabled' : this.stats.lastOutcome, ms, waitedMs: now() - asked};
+      return {published, attached: staged.attached, outcome: this.stats.lastOutcome, ms, waitedMs: now() - asked};
     };
-    // Buffered already (staged ahead and acknowledged while V typed or talked): the turn waits for nothing.
-    if (staged.attached) return result(true);
-    const remaining = () => Math.max(0, deadline - now());
-    const published = await this.within(staged.ready.catch(() => false), remaining());
-    if (published !== true || this.staged !== staged) return result(false);
-    if (this.transport === 'upload') return result(true);
-    // Poll the server's buffer until a frame is admitted, the session says vision is not enabled, or time runs out.
-    while (remaining() > 0 && this.staged === staged && !this.notEnabled) {
-      const id = this.connection.visionStatus?.();
-      if (!id) break;
-      const ack = await this.nextAck(ack => ack.updateId === id || (ack.updateId === null && ack.eventType === 'vision-status'),
-        Math.min(STATUS_POLL_MS * 2, remaining()));
-      if (ack && (ack.retained > 0 || ack.outcome === 'frames_available')) return result(true);
-      if (ack?.outcome === 'vision_not_enabled') break;
-      if (remaining() > 0) await this.within(new Promise(resolve => this.env.setTimeout(resolve, STATUS_POLL_MS)), remaining());
-    }
-    // Out of time without an acknowledgement: the picture stays published for the turn and may still be sampled in time.
-    return result(false);
-  }
-  nextAck(match, timeoutMs) {
-    return new Promise(resolve => {
-      const done = ack => { this.waiters.delete(waiter); this.env.clearTimeout(timer); resolve(ack); };
-      const waiter = ack => { if (match(ack)) done(ack); };
-      const timer = this.env.setTimeout(() => done(null), timeoutMs);
-      this.waiters.add(waiter);
-    });
+    // Published already (staged ahead while V typed or talked): the turn waits for nothing.
+    if (staged.published) return result(true);
+    // No time to wait (the default): answer now, without even a zero-length timer.
+    const remaining = Math.max(0, deadline - now());
+    const published = remaining > 0 ? await this.within(staged.ready.catch(() => false), remaining) : false;
+    return result(published === true && this.staged === staged);
   }
   within(promise, timeoutMs) {
     return new Promise(resolve => {
@@ -282,8 +283,8 @@ export class ConvaiVision {
     try { await staged.ready; } catch {}
     if (staged.handle) await staged.handle.unpublish().catch(() => {});
   }
-  close() { void this.retire(); this.unsubscribe?.(); this.unsubscribe = null; for (const waiter of [...this.waiters]) waiter({}); }
+  close() { void this.retire(); this.unsubscribe?.(); this.unsubscribe = null; }
   diagnostics() {
-    return {transport: this.transport, enabled: this.enabled, notEnabled: this.notEnabled, staged: !!this.staged, ...this.stats};
+    return {transport: this.transport, enabled: this.enabled, staged: !!this.staged, ...this.stats};
   }
 }

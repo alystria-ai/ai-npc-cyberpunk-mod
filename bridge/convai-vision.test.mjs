@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {ConvaiVision, VISION_INPUT_CONFIG, visionConnectOptions, visionIdentity, validImages, layout, readAck,
+import {ConvaiVision, VISION_INPUT_CONFIG, visionConnectOptions, visionIdentity, validImages, layout, readAck, ackHasFrame,
+  visionWaitCap, VISION_READY_MS, MIN_LEAD_MS,
   MAX_IMAGES, VISION_NOTE, gammaFor, meanLuma, applyGamma, MIN_GAMMA, TARGET_MEAN} from './convai-vision.mjs';
 
 // The SDK's own serializer (the installed @convai/web-sdk, read only): its dist uses bundler-style imports, so the one
@@ -57,14 +58,34 @@ test('one to four images always make one picture: full, side by side, or a 2x2 g
   assert.deepEqual(layout(4), {columns: 2, rows: 2, cell: 512});
 });
 
+// The vision-status reply Convai really sent (live 2026-10-23, @convai/web-sdk 1.7.0 serverResponse), field for field.
+const REAL_STATUS = {label: 'rtvi-ai', event_type: 'vision-status', status: 'success', message: 'Vision status',
+  extras: {vision_buffer: {enabled: false, status: 'vision_not_enabled', first_frame_pts: null, last_frame_pts: null, last_frame_age_ms: null,
+    first_frame_index: null, retained_frames: 0, evicted_frames: 0, effective_fps: null, selected_participant: null, source_active: false,
+    source_label: null}, vision_status_outcome: 'vision_not_enabled', active_source: null, active_source_label: null,
+  update_id: 'vision-status:d6cbaac1-d942-4792-9b7f-610ba427990b', duplicate: false}};
+
 test('server acknowledgements are read from either nesting', () => {
   assert.deepEqual(readAck({event_type: 'vision-status', status: 'success', extras: {update_id: 'u1', outcome: 'frames_available',
     vision_buffer: {retained_frames: 1}}}), {eventType: 'vision-status', status: 'success', outcome: 'frames_available',
-    retained: 1, updateId: 'u1', imageTokens: null});
+    retained: 1, updateId: 'u1', enabled: null, sourceActive: null, imageTokens: null});
   const ack = readAck({event_type: 'vision-status', status: 'error', message: 'vision_not_enabled', extras: null});
   assert.equal(ack.outcome, 'vision_not_enabled');
   assert.equal(readAck({event_type: 'vision-trigger', extras: {vision_image_tokens_est: 258}}).imageTokens, 258);
   assert.equal(readAck({}).eventType, null);
+});
+
+test('the real vision-status reply is read: vision_status_outcome, vision_buffer.status, enabled, source_active, retained_frames', () => {
+  assert.deepEqual(readAck(REAL_STATUS), {eventType: 'vision-status', status: 'success', outcome: 'vision_not_enabled', retained: 0,
+    updateId: 'vision-status:d6cbaac1-d942-4792-9b7f-610ba427990b', enabled: false, sourceActive: false, imageTokens: null});
+  // 'Vision status' (the message) is prose, never an outcome; vision_buffer.status stands in when the outcome field is absent.
+  const bufferOnly = {...REAL_STATUS, extras: {vision_buffer: {enabled: true, status: 'frames_available', retained_frames: 2, source_active: true}}};
+  assert.deepEqual(readAck(bufferOnly), {eventType: 'vision-status', status: 'success', outcome: 'frames_available', retained: 2, updateId: null,
+    enabled: true, sourceActive: true, imageTokens: null});
+  assert.equal(readAck({event_type: 'vision-status', message: 'Vision status'}).outcome, null);
+  // Garbage in the fields never becomes an outcome.
+  assert.equal(readAck({event_type: 'vision-status', extras: {vision_status_outcome: 'Not An Outcome!', vision_buffer: {status: 7, enabled: 'yes'}}}).outcome, null);
+  assert.equal(readAck({event_type: 'vision-status', extras: {vision_buffer: {enabled: 'yes'}}}).enabled, null);
 });
 
 function fakeEnv() {
@@ -103,46 +124,106 @@ function fakeConnection({video = true, ack} = {}) {
 }
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-test('a staged picture is published as a canvas track on the silent lane and ready once the server buffers a frame', async () => {
+test('a staged picture is published as a canvas track on the silent lane; a turn waits for the publish, never for a status reply', async () => {
   const {env, advance, timers} = fakeEnv();
-  const connection = fakeConnection({ack: (id, n) => ({event_type: 'vision-status', status: 'success',
-    extras: {update_id: id, vision_buffer: {retained_frames: n >= 2 ? 1 : 0}, outcome: n >= 2 ? 'frames_available' : 'buffer_empty'}})});
+  const connection = fakeConnection({ack: id => ({...REAL_STATUS, extras: {...REAL_STATUS.extras, update_id: id}})});
   const vision = new ConvaiVision(connection, {env});
   assert.deepEqual(await vision.stage([image()]), {staged: true});
   const ready = vision.ready(900);
-  for (let i = 0; i < 10; i++) { await settle(); advance(100); }
+  await settle(); advance(1);
   const result = await ready;
-  assert.equal(result.attached, true);
-  assert.equal(result.outcome, 'frames_available');
+  assert.equal(result.published, true);
+  assert.equal(result.waitedMs <= 1, true, 'returns as soon as the track is published, not after any polling');
   assert.deepEqual(connection.calls[0], ['publish', {source: 'canvas', name: 'game-view', fps: 5, stopTrackOnUnpublish: true}]);
-  assert.ok(connection.calls.filter(call => call[0] === 'status').length >= 2);
+  assert.equal(connection.calls.filter(call => call[0] === 'status').length, 0, 'the status request is never sent: no turn polls for an acknowledgement');
   assert.ok([...timers.values()].some(timer => timer.every), 'the picture is repainted while it is staged');
   await vision.retire();
   assert.deepEqual(connection.calls.at(-1), ['unpublish']);
   assert.ok(![...timers.values()].some(timer => timer.every), 'the repaint stops with the turn');
-  assert.equal(vision.diagnostics().attached, 1);
 });
 
-test('vision_not_enabled is remembered: later turns of that session do not publish again', async () => {
+// Live 2026-10-23: every status reply said vision_not_enabled / enabled:false / source_active:false / 0 retained frames while the
+// model described the published picture. So the replies are recorded for diagnostics and never switch vision off.
+test('vision_not_enabled is recorded but never gates: the picture is still published, kept and used on every later turn', async () => {
   const {env, advance} = fakeEnv();
-  const connection = fakeConnection({ack: id => ({event_type: 'vision-status', status: 'error', message: 'vision_not_enabled', extras: {update_id: id}})});
+  const connection = fakeConnection();
+  const vision = new ConvaiVision(connection, {env});
+  vision.onServerResponse(REAL_STATUS);
+  assert.equal(vision.diagnostics().lastOutcome, 'vision_not_enabled');
+  assert.equal(vision.diagnostics().serverEnabled, false);
+  assert.equal(vision.diagnostics().serverSourceActive, false);
+  assert.equal(vision.diagnostics().serverRetained, 0);
+  assert.equal('notEnabled' in vision.diagnostics(), false);
+  for (let turn = 0; turn < 3; turn++) {
+    assert.deepEqual(await vision.stage([image()]), {staged: true}, 'turn ' + turn);
+    const ready = vision.ready(900);
+    await settle(); advance(1);
+    assert.equal((await ready).published, true);
+    vision.onServerResponse(REAL_STATUS);
+    await vision.retire();
+  }
+  assert.equal(connection.calls.filter(call => call[0] === 'publish').length, 3);
+  assert.equal(vision.diagnostics().skipped, 0);
+  assert.equal(vision.diagnostics().attached, 0, 'a not-enabled reply is not a buffered frame');
+});
+
+test('a reply that does report a frame marks the staged picture as buffered; other vision events and other replies are ignored', async () => {
+  const {env} = fakeEnv();
+  const vision = new ConvaiVision(fakeConnection(), {env});
+  vision.onServerResponse({event_type: 'vision-status', extras: {vision_buffer: {retained_frames: 1}}});
+  assert.equal(vision.diagnostics().attached, 0, 'nothing staged yet');
+  await vision.stage([image()]);
+  vision.onServerResponse({event_type: 'context-update', extras: {vision_buffer: {retained_frames: 1}}});
+  assert.equal(vision.diagnostics().attached, 0, 'not a vision event');
+  vision.onServerResponse({event_type: 'vision-status', extras: {vision_status_outcome: 'frames_available', vision_buffer: {enabled: true, retained_frames: 1}}});
+  vision.onServerResponse({event_type: 'vision-status', extras: {vision_status_outcome: 'frames_available', vision_buffer: {enabled: true, retained_frames: 1}}});
+  assert.equal(vision.diagnostics().attached, 1, 'counted once');
+  assert.equal((await vision.ready(0)).attached, true);
+  assert.equal(ackHasFrame(readAck({extras: {vision_status_outcome: 'attached'}})), true);
+  assert.equal(ackHasFrame(readAck(REAL_STATUS)), false);
+  assert.equal(ackHasFrame(readAck({extras: {vision_buffer: {retained_frames: 0, status: 'buffer_empty'}}})), false);
+});
+
+test('the wait decision: no wait by default, the developer cap is 0 to 900 ms, and a pending publish never holds the line past it', async () => {
+  assert.equal(VISION_READY_MS, 0);
+  assert.equal(visionWaitCap({}), 0);
+  assert.equal(visionWaitCap(null), 0);
+  assert.equal(visionWaitCap({visionWaitMs: 250}), 250);
+  assert.equal(visionWaitCap({visionWaitMs: 5000}), 900);
+  assert.equal(visionWaitCap({visionWaitMs: -5}), 0);
+  assert.equal(visionWaitCap({visionWaitMs: 'soon'}), 0);
+  assert.ok(MIN_LEAD_MS >= 2500, 'a picture needs to be on the session about 3 s before the line for the server to use it');
+  // A publish that is slow: with the default cap the turn is released at once and the picture keeps publishing.
+  const {env, advance} = fakeEnv();
+  let finish;
+  const connection = fakeConnection();
+  connection.videoControls.publishCanvas = () => new Promise(resolve => { finish = () => resolve({unpublish: async () => { connection.calls.push(['unpublish']); }}); });
   const vision = new ConvaiVision(connection, {env});
   await vision.stage([image()]);
-  const ready = vision.ready(900);
-  for (let i = 0; i < 4; i++) { await settle(); advance(100); }
-  assert.deepEqual(await ready.then(r => [r.attached, r.outcome]), [false, 'vision_not_enabled']);
-  assert.deepEqual(await vision.stage([image()]), {staged: false, reason: 'vision-not-enabled'});
-  assert.equal(connection.calls.filter(call => call[0] === 'publish').length, 1);
+  const none = await vision.ready(env.now() + visionWaitCap({}));
+  assert.deepEqual([none.published, none.waitedMs], [false, 0], 'sent at once');
+  const capped = vision.ready(env.now() + visionWaitCap({visionWaitMs: 200}));
+  advance(200);
+  assert.equal((await capped).published, false, 'released at the cap');
+  const later = vision.ready(env.now() + 900);
+  await settle(); finish(); await settle();
+  assert.equal((await later).published, true, 'a publish that finishes inside the cap is reported');
+  await vision.retire();
+  assert.deepEqual(connection.calls.at(-1), ['unpublish'], 'the late track is withdrawn after the turn');
 });
 
-test('without an acknowledgement the turn waits no longer than its deadline', async () => {
+test('a turn is never held by what a server reply says: a never-answering session costs no wait either', async () => {
   const {env, advance} = fakeEnv();
   const vision = new ConvaiVision(fakeConnection(), {env});
   await vision.stage([image()]);
-  const ready = vision.ready(900);
-  for (let i = 0; i < 12; i++) { await settle(); advance(100); }
+  await settle();
+  const started = env.now();
+  const ready = vision.ready(env.now() + 900);
+  await settle(); advance(0);
   const result = await ready;
+  assert.equal(result.published, true);
   assert.equal(result.attached, false);
+  assert.equal(env.now() - started, 0, 'no timer was needed');
   assert.ok(result.ms <= 1000, `waited ${result.ms} ms`);
 });
 
@@ -153,7 +234,7 @@ test('an audio-only session, a bad image or nothing staged never publishes', asy
   const video = fakeConnection();
   const vision = new ConvaiVision(video, {env});
   assert.deepEqual(await vision.stage([image('image/gif')]), {staged: false, reason: 'no-valid-image'});
-  assert.deepEqual(await vision.ready(100), {attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0});
+  assert.deepEqual(await vision.ready(100), {published: false, attached: false, outcome: 'nothing-staged', ms: 0, waitedMs: 0});
   assert.equal(audio.calls.length + video.calls.length, 0);
 });
 
@@ -163,7 +244,7 @@ test('the upload transport sends one composed JPEG through uploadFile', async ()
   const vision = new ConvaiVision(connection, {env, transport: 'upload'});
   assert.deepEqual(await vision.stage([image(), image('image/png')]), {staged: true});
   const result = await vision.ready(900);
-  assert.equal(result.attached, true);
+  assert.equal(result.published, true);
   assert.deepEqual(connection.calls, [['upload', 'game-view.jpg', 'image/jpeg', undefined]]);
 });
 
@@ -178,18 +259,17 @@ test('a newer picture replaces the staged one (its track is withdrawn first)', a
   assert.deepEqual(connection.calls.map(call => call[0]), ['publish', 'unpublish', 'publish']);
 });
 
-test('a picture staged ahead is reused by its turn (no second publish) and the turn waits for nothing once it is buffered', async () => {
+test('a picture staged ahead is reused by its turn (no second publish) and the turn waits for nothing once it is published', async () => {
   const {env, advance} = fakeEnv();
-  const connection = fakeConnection({ack: id => ({event_type: 'vision-status', status: 'success',
-    extras: {update_id: id, vision_buffer: {retained_frames: 1}, outcome: 'frames_available'}})});
+  const connection = fakeConnection();
   const vision = new ConvaiVision(connection, {env});
   assert.deepEqual(await vision.stage([image()], {ttlMs: 60000}), {staged: true});
   const ahead = vision.ready(5000);
-  for (let i = 0; i < 4; i++) { await settle(); advance(100); }
-  assert.equal((await ahead).attached, true, 'buffered while V typed');
+  await settle(); advance(1);
+  assert.equal((await ahead).published, true, 'published while V typed');
   assert.deepEqual(await vision.stage([image()]), {staged: true, reused: true});
-  const turn = await vision.ready(350);
-  assert.equal(turn.attached, true);
+  const turn = await vision.ready(env.now());
+  assert.equal(turn.published, true);
   assert.equal(turn.waitedMs, 0);
   assert.equal(connection.calls.filter(call => call[0] === 'publish').length, 1);
   advance(61000);
