@@ -393,8 +393,14 @@ before['VendorDataManager.TransferItem']({},world,player,data(drink,1),1)
 before['VendorDataManager.BuyItemFromVendor']({},data(drink,1),1)
 assert(reads==0 and natives==0,'reads '..reads..' natives '..natives)
 assert(#m.drain()==0 and m.status().intents==0 and m.status().vetoes==0)
--- A pickup while off records nothing as a receipt.
+-- A pickup while off records nothing as a receipt. The three inventory callbacks read nothing at all: no player, no item hash.
+local hashReads=0;local realHash=ItemID.GetCombinedHash
+ItemID.GetCombinedHash=function(id)hashReads=hashReads+1;return realHash(id)end
 added(drink,0,1,false);assert(#m.drain()==0)
+changed(drink,1,1);after['PlayerPuppet.OnItemChangedEvent'](player,{itemID=drink,currentQuantity=1,difference=-1})
+before['PlayerPuppet.OnItemBeingRemovedFromInventory'](player,{itemID=drink})
+assert(natives==0 and hashReads==0,'inventory callbacks while off: natives '..natives..' hashes '..hashReads)
+ItemID.GetCombinedHash=realHash
 -- On again: the next update takes a new baseline and a world pickup is a receipt as it always was.
 on=true;now=1010;update()
 assert(m.status().baseline.complete)
