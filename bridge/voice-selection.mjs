@@ -95,6 +95,8 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
+    // keepsReference: key => boolean (the bridge): a voice whose reference a pack's clip must not replace although it is not the player's own clip (V with a V voice mod's reference, docs/V_VOICE.md).
+    this.keepsReference=typeof options.keepsReference==='function'?options.keepsReference:()=>false;
     // The Pocket language models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
     // cloned from the pack's clip; without them Pocket speaks English only.
     this.pocketLanguages=options.pocketLanguages||null;
@@ -1095,8 +1097,12 @@ export class VoiceSelection {
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps,...(languageReference?{languageReference}:{})});
   }
-  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips")? It is the player's choice and no pack replaces it.
-  hasPlayerClip(key){return isPlayerReference(this.registry?.profiles?.[key]?.reference);}
+  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips"), or a reference of the player's own making that a voice language pack must not replace (V's V voice mod
+  // reference, docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one)? Neither is replaced by a pack clip in another language.
+  hasPlayerClip(key){
+    if(isPlayerReference(this.registry?.profiles?.[key]?.reference))return true;
+    try{return this.keepsReference(key)===true;}catch{return false;}
+  }
   async prepareProfile(profile, options = {}) {
     // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other
     // voice chosen (local or Voxtral) they are written ('text'), never given to a cloud voice.

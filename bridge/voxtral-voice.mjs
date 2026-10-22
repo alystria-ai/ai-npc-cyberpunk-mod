@@ -369,10 +369,10 @@ export class VoxtralVoice {
    */
   constructor({getKey, referenceRoot, playerRoot = null, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
-    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare, fetchOptions = cloudFetchOptions, languagePacks = null} = {}) {
+    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare, fetchOptions = cloudFetchOptions, languagePacks = null, keepsReference = () => false} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
     Object.assign(this, {getKey, referenceRoot, playerRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
-      setTimer, clearTimer, now, clock, scheduler, prepare, fetchOptions, languagePacks});
+      setTimer, clearTimer, now, clock, scheduler, prepare, fetchOptions, languagePacks, keepsReference});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
       tightMs: this.limits.tightMs, now: clock, setTimer, clearTimer});
@@ -434,11 +434,12 @@ export class VoxtralVoice {
 
   /**
    * The voice language pack's entry for this voice in a reply language (bridge/voice-language-packs.mjs), or null: English, no pack, a voice the pack lacks, or a
-   * voice the player gave a clip of their own (their choice is not replaced).
+   * voice the player gave a clip of their own (their choice is not replaced), or one whose reference `keepsReference` says a pack clip must not replace (V with a V voice mod's reference).
    */
   languageEntry(key, language) {
     if (!language || language === 'en' || !this.languagePacks) return null;
     if (this.registries.some(registry => isPlayerReference(registry?.profiles?.[key]?.reference))) return null;
+    try { if (this.keepsReference(key) === true) return null; } catch { /* a broken hook keeps nothing */ }
     return this.languagePacks.entry(language, key) ?? null;
   }
   /** The set (multilingual/<lang>/picked/<voice>) the reference of this voice in this language comes from, or null: the English reference speaks. */

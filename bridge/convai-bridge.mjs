@@ -324,8 +324,11 @@ const voxtralPreparer = (options = {}) => {
   }
   return options.player ? voxtralPreparers.player : voxtralPreparers.shipped;
 };
+// V's reference built from a V voice mod is the player's own making: a voice language pack's V clip (the game's own dub in that language) does not replace it, in any language
+// (docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one). Read from memory per reply.
+const vModKeepsReference = key => { const gender = vGenderOfKey(key); return gender !== null && String(vVoiceReferences.voices[gender]?.source ?? '').startsWith('mod:'); };
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks,
+  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks, keepsReference: vModKeepsReference,
   prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 // The graphics card vendors (names only, bridge/gpu-vendors.mjs), from the card list the setup check and the error report read too (looked up once):
@@ -349,7 +352,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,languagePacks,pocketLanguages,
+  voxtral:voxtralVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
