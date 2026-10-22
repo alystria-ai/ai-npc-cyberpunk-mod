@@ -136,6 +136,34 @@ Neither pack is part of the Runtime package.
   Japanese and Korean (the other languages of the model are not used).
 - sherpa-onnx itself (Apache-2.0) runs both models; it is in the Runtime package (see the table at the top).
 
+## Bundled in the optional Pocket language model packs
+
+Five optional downloads, one per language: `AI-NPC-Cyberpunk-Mod-Pocket-fr.zip`, `-it`, `-de`, `-es-es` and `-pt-br`, hosted on Hugging Face only
+(never on Nexus Mods). Each unpacks into `red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/` (a sibling of the voice language
+pack's `multilingual/<lang>/` folder) and carries `model.safetensors`, `tokenizer.json`, `inference.yaml`, a `NOTICE.txt` with the licence, the
+attribution, Kyutai's prohibited-use terms and the changes, and a `pocket-model.json` marker (sizes and SHA-256 of the files). They are built by
+`packaging/build-pocket-models.mjs`. The mod uses them only to speak replies in that language, in a character's voice cloned from the game's own dub of
+that character, with the voice language pack of the same language. They are not part of the Runtime package.
+
+| Component | Version | Licence | Where the licence text is |
+|---|---|---|---|
+| Kyutai Pocket TTS language models: French, Italian, German, Spanish and Portuguese (`languages/french`, `italian`, `german`, `spanish`, `portuguese` of `kyutai/pocket-tts`; the voice-cloning weights, 6 layers, float32) | revision `db04f0e653473e5c7333c69686ac92b7460b0c1d` of https://huggingface.co/kyutai/pocket-tts | CC-BY-4.0, copyright Kyutai | https://creativecommons.org/licenses/by/4.0/ (stated by the model card; repeated in each pack's `NOTICE.txt`) |
+| Tokenizers (`languages/<name>/tokenizer.json`) | revision `a7056f505a4a8ca72d8b5fb1440071d6f1a35739` of https://huggingface.co/kyutai/pocket-tts-without-voice-cloning (the same files as in the gated repository) | CC-BY-4.0, copyright Kyutai (the model-card licence of the repository) | each pack's `NOTICE.txt` |
+| Configurations (`inference.yaml`, from `pocket_tts/config/<name>.yaml`) | tag `v4.0.0` of https://github.com/kyutai-labs/pocket-tts | MIT (the code repository's licence) | https://github.com/kyutai-labs/pocket-tts/blob/v4.0.0/LICENSE |
+
+- **CC-BY-4.0.** Attribution is required: Pocket TTS by Kyutai (https://kyutai.org/pocket-tts), the licence link, and an indication of changes. Each
+  pack's `NOTICE.txt` carries all three.
+- **Changes.** `model.safetensors` and `tokenizer.json` are byte for byte the upstream files (their SHA-256 values are pinned in the build script and
+  listed in `pocket-model.json`). `inference.yaml` is Kyutai's configuration with exactly three values changed, the weight path, the
+  voice-cloning-free weight path (set to `null`) and the tokenizer path, which point at the local files in the pack instead of `hf://` addresses.
+- **Prohibited use.** Kyutai gates the original weights behind an access form that asks for acceptance of its prohibited-use terms, and the model card
+  states them: use "must comply with all applicable laws and regulations and must not result in, involve, or facilitate any illegal, harmful,
+  deceptive, fraudulent, or unauthorized activity", and the prohibited uses "include, without limitation, voice impersonation or cloning without
+  explicit and lawful consent; misinformation, disinformation, or deception (including fake news, fraudulent calls, or presenting generated content
+  as genuine recordings of real people or events); and the generation of unlawful, harmful, libelous, abusive, harassing, discriminatory, hateful,
+  or privacy-invasive content". Kyutai disclaims all liability for non-compliant use. The full wording is in each pack's `NOTICE.txt`.
+- The pack is an optional download from Hugging Face; it does not replace the English Pocket voice model (see "Pocket voice model (Kyutai)" above).
+
 ## Installed separately by players
 
 Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu

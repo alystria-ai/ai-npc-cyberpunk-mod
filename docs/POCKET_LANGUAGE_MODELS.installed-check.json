@@ -1,0 +1,110 @@
+{
+ "started": "2026-10-22T00:32:37.577Z",
+ "language": "fr",
+ "installedVersion": "0.2.8-candidate",
+ "steps": [
+  {
+   "step": "scan",
+   "packs": [
+    "de",
+    "es-es",
+    "fr",
+    "it",
+    "ja",
+    "ko",
+    "pl",
+    "pt-br",
+    "ru",
+    "zh-cn"
+   ],
+   "models": [
+    {
+     "language": "fr",
+     "tag": "fr",
+     "version": "2026-10-22",
+     "megabytes": 219,
+     "packInstalled": true,
+     "usable": true
+    }
+   ],
+   "problems": [],
+   "speaks": true,
+   "entry": "multilingual/fr/picked/panam-palmer"
+  },
+  {
+   "step": "start",
+   "provider": "pocket",
+   "ms": 14574
+  },
+  {
+   "step": "plan",
+   "plan": {
+    "engine": "pocket",
+    "language": "fr",
+    "reason": "pocket-language",
+    "textProvider": true
+   },
+   "reply": {
+    "engine": "pocket",
+    "language": "fr"
+   }
+  },
+  {
+   "step": "warm",
+   "ms": 2418,
+   "receipt": {
+    "provider": "pocket",
+    "ready": true,
+    "profile": "panam-palmer",
+    "language": "fr"
+   }
+  },
+  {
+   "step": "fr-1-after-warm",
+   "firstAudioMs": 181,
+   "totalMs": 2476,
+   "audioS": 5.12,
+   "modelSha256": "08404fdbce73",
+   "language": "fr"
+  },
+  {
+   "step": "fr-2-resident",
+   "firstAudioMs": 181,
+   "totalMs": 2711,
+   "audioS": 5.92,
+   "modelSha256": "08404fdbce73",
+   "language": "fr"
+  },
+  {
+   "step": "en-after-fr",
+   "firstAudioMs": 2609,
+   "totalMs": 3767,
+   "audioS": 2.96,
+   "modelSha256": "c6bdd31eebf4",
+   "language": null
+  },
+  {
+   "step": "fr-3-after-english",
+   "firstAudioMs": 1024,
+   "totalMs": 3351,
+   "audioS": 5.52,
+   "modelSha256": "08404fdbce73",
+   "language": "fr"
+  },
+  {
+   "step": "model-without-pack",
+   "reply": {
+    "engine": "none",
+    "language": "fr",
+    "reason": "pocket-language-pack-missing"
+   },
+   "notice": {
+    "keyNotice": "pocket-language-pack",
+    "keyNoticeLanguage": "fr"
+   },
+   "second": null
+  }
+ ],
+ "routing": "2026-10-22 06:03:07 profile=panam-palmer name=\"Panam Palmer\" requested=\"Pocket · Performance\" used=\"Pocket (language model)\" ref=\"multilingual/fr/picked/panam-palmer\" model=multilingual-pocket/fr lang=fr",
+ "finished": "2026-10-22T00:33:08.311Z"
+}

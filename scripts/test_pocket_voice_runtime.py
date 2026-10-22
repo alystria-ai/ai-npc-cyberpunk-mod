@@ -636,6 +636,106 @@ class Assets(unittest.TestCase):
         self.assertNotIn('pocket_tts',sys.modules)
 
 
+class LanguageModels(Assets):
+    """Pocket language models (docs/POCKET_LANGUAGE_MODELS.md): a folder under the reference directory, checked against the hashes the bridge sends, and voices that are
+    clips of the voice pack of the same language."""
+    def setUp(self):
+        super().setUp()
+        self.language = self.refs / 'multilingual-pocket' / 'fr'
+        self.language.mkdir(parents=True)
+        (self.language / 'model.safetensors').write_bytes(b'not a neural model; a French fixture')
+        (self.language / 'tokenizer.json').write_text('{}')
+        (self.language / 'inference.yaml').write_text(json.dumps({**self.inference, 'replace_characters': {'\u2019': "'"}}))
+        self.expected = {'sha256': runtime.digest_file(self.language / 'model.safetensors'), 'tokenizerSha256': runtime.digest_file(self.language / 'tokenizer.json'),
+                         'configSha256': runtime.digest_file(self.language / 'inference.yaml')}
+        self.paths = runtime.validate_config(self.config, yaml_load=json.loads, source_hasher=lambda _: runtime.SOURCE_SHA256)['paths']
+        pack = self.refs / 'multilingual' / 'fr' / 'picked'
+        wav(pack / 'panam-palmer.wav')
+        self.descriptor = {'reference': 'runtime/voice-references/multilingual/fr/picked/panam-palmer.wav',
+                           'sha256': runtime.digest_file(pack / 'panam-palmer.wav'), 'transcript': 'Salut, ca fait longtemps.'}
+
+    def test_a_language_model_is_checked_against_its_hashes_and_relocated_to_its_own_files(self):
+        config = runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+        self.assertEqual(Path(config['weights_path']), (self.language / 'model.safetensors').resolve())
+        self.assertEqual(Path(config['flow_lm']['lookup_table']['tokenizer_path']), (self.language / 'tokenizer.json').resolve())
+        self.assertIsNone(config['weights_path_without_voice_cloning'])
+        self.assertEqual(config['replace_characters'], {'\u2019': "'"}, 'the language configuration is the one that was downloaded')
+        self.assertEqual(json.loads((self.language / 'inference.yaml').read_text())['weights_path'], 'model.safetensors', 'the downloaded file is not changed')
+
+    def test_a_changed_file_a_wrong_hash_an_unknown_language_or_a_deeper_model_is_refused(self):
+        for field in ('sha256', 'tokenizerSha256', 'configSha256'):
+            with self.assertRaises(ValueError):
+                runtime.inspect_language_export(self.paths, 'fr', {**self.expected, field: '0' * 64}, yaml_load=json.loads)
+        for language in ('en', 'xx', '../fr', None, 'fr/../it'):
+            with self.assertRaises(ValueError):
+                runtime.inspect_language_export(self.paths, language, self.expected, yaml_load=json.loads)
+        with self.assertRaises(ValueError):
+            runtime.inspect_language_export(self.paths, 'it', self.expected, yaml_load=json.loads)   # no model installed for it
+        with self.assertRaises(ValueError):
+            runtime.inspect_language_export(self.paths, 'fr', {'sha256': 'x'}, yaml_load=json.loads)
+        (self.language / 'inference.yaml').write_text(json.dumps({**self.inference, 'flow_lm': {**self.inference['flow_lm'], 'transformer': {'num_layers': 24}}}))
+        expected = {**self.expected, 'configSha256': runtime.digest_file(self.language / 'inference.yaml')}
+        with self.assertRaises(ValueError):
+            runtime.inspect_language_export(self.paths, 'fr', expected, yaml_load=json.loads)   # only the six-layer models run
+
+    def test_a_linked_model_file_is_refused(self):
+        target = self.root / 'elsewhere.bin'
+        target.write_bytes((self.language / 'model.safetensors').read_bytes())
+        (self.language / 'model.safetensors').unlink()
+        try:
+            os.symlink(target, self.language / 'model.safetensors')
+        except (OSError, NotImplementedError):
+            self.skipTest('symbolic links are not available here')
+        with self.assertRaises(ValueError):
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+
+    def test_language_voices_are_clips_of_the_pack_of_that_language_or_the_players_own_and_nothing_else(self):
+        registry = runtime.new_language_registry(self.validate(), 'fr', self.expected['sha256'])
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': self.descriptor}), ['panam-palmer'])
+        self.assertEqual(sorted(registry['refs']), ['panam-palmer'])
+        self.assertEqual(registry['unavailable'], {})
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': self.descriptor}), [], 'the same clip again changes nothing')
+        english = {'reference': 'runtime/voice-references/johnny-silverhand.wav', 'sha256': self.voices['johnny-silverhand']['sha256'], 'transcript': 'x'}
+        with self.assertRaises(ValueError):
+            runtime.add_language_voices(registry, {'johnny-silverhand': english})   # an English reference is not a French voice
+        german = {**self.descriptor, 'reference': 'runtime/voice-references/multilingual/de/picked/panam-palmer.wav'}
+        with self.assertRaises(ValueError):
+            runtime.add_language_voices(registry, {'panam-palmer': german})
+        with self.assertRaises(ValueError):
+            runtime.add_language_voices(registry, {'../x': self.descriptor})
+        self.assertEqual(sorted(registry['refs']), ['panam-palmer'], 'a refused change changes nothing')
+
+    def test_a_missing_or_changed_pack_clip_withdraws_only_that_voice(self):
+        registry = runtime.new_language_registry(self.validate(), 'fr', self.expected['sha256'])
+        runtime.add_language_voices(registry, {'panam-palmer': {**self.descriptor, 'sha256': '0' * 64}})
+        self.assertEqual(registry['refs'], {})
+        self.assertEqual(registry['unavailable'], {'panam-palmer': 'unavailable'})
+
+    def test_the_language_command_is_read_like_any_serial_command(self):
+        pipe = Pipe()
+        commands = worker.Commands(pipe, 'a' * 32)
+        commands.thread.start()
+        pipe.send({'owner': 'a' * 32, 'op': 'language', 'id': 1, 'language': 'fr'})
+        self.assertEqual(commands.queue.get(timeout=2)['op'], 'language')
+        commands.begin(1)
+        commands.finish(1)
+        pipe.send({'owner': 'a' * 32, 'op': 'stream', 'id': 2, 'profile': 'x', 'text': 'hello'})
+        self.assertEqual(commands.queue.get(timeout=2)['op'], 'stream')
+        commands.shutdown.set()
+
+    def test_the_worker_swaps_one_model_in_place_keeps_the_english_voices_and_never_swaps_by_itself(self):
+        source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
+        # verified before anything is dropped; the old model is released before the new one is read; the student is put back when a language will not load
+        self.assertLess(source.index('inspect_language_export(registry["paths"]'), source.index('gc.collect()'))
+        self.assertIn('The student is put back', source)
+        # prepare and stream use the active view; the English voices command never touches a language
+        self.assertIn('active_registry, active_cache = view()', source)
+        self.assertIn('**english_profiles()', source)
+        # the language is changed only by a command: the last language used stays loaded until a reply needs another model (no timer in the worker)
+        self.assertNotIn('threading.Timer(LANGUAGE', source)
+        self.assertEqual(source.count('switch_language('), 2, 'defined once, called by the language command only')
+
+
 class UsvfsPaths(unittest.TestCase):
     """Inside Mod Organizer 2's virtual file system (USVFS) Path.resolve() of a file answers with the mod folder that holds it, which is not where
     resolve() of its folder points when the folder is the merge of several mods. USVFS does not exist here, so it is simulated: the files are plain
@@ -921,7 +1021,8 @@ class Priority(unittest.TestCase):
         source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
         self.assertIn('urgent = request["op"] == "stream" or request.get("urgent") is True', source)
         self.assertIn('if urgent:' + chr(10) + ' ' * 16 + 'gate.request()', source)
-        self.assertEqual(source.count('gate.request()'), 2, 'when a reply starts and when it ends')
+        self.assertEqual(source.count('gate.request()'), 4, 'when a reply starts and when it ends, and the same for a language swap a reply waits on')
+        self.assertIn('if request.get("urgent") is True:' + chr(10) + ' ' * 20 + 'gate.request()', source)
         self.assertIn('gate.settle()', source)
 
     def test_the_start_runs_at_normal_priority_and_the_worker_is_lowered_only_when_ready(self):

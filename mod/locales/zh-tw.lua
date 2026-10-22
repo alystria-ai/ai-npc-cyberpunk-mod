@@ -1078,6 +1078,13 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice 需要 NVIDIA",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "這台電腦沒有 OmniVoice 所需的 NVIDIA 顯示卡，OmniVoice 無法在此啟動。要聽到語音，請選擇 Pocket。",
     ["{voice} · needs NVIDIA card"] = "{voice} · 需要 NVIDIA 顯示卡",
+    ["The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "Pocket 的{language}語音已安裝，但缺少{language}語音語言包。安裝之前，{language}回覆會以文字顯示。",
+    ["French"] = "法文",
+    ["Italian"] = "義大利文",
+    ["German"] = "德文",
+    ["Spanish"] = "西班牙文",
+    ["Portuguese"] = "葡萄牙文",
+
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "OmniVoice 需要的顯示記憶體多於遊戲旁可用的顯示記憶體。將改用 Pocket。",
     ["OmniVoice needs 12 GB"] = "OmniVoice 需要 12 GB",
     ["{voice} · needs 12 GB card"] = "{voice} · 需要 12 GB 顯示卡",

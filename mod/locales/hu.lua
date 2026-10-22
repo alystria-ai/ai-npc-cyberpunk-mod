@@ -1078,6 +1078,13 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice NVIDIA-t igényel",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Ezen a gépen nincs NVIDIA videokártya, pedig az OmniVoice-nak szüksége van rá. Az OmniVoice itt nem indul el. A hangokhoz válaszd a Pocketet.",
     ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA-kártya kell",
+    ["The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "A Pocket hang telepítve van {language} nyelvhez, de hiányzik hozzá a {language} hangnyelvi csomag. {language} nyelvű válaszok szövegként jelennek meg, amíg nem telepíted a csomagot.",
+    ["French"] = "francia",
+    ["Italian"] = "olasz",
+    ["German"] = "német",
+    ["Spanish"] = "spanyol",
+    ["Portuguese"] = "portugál",
+
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "Az OmniVoice-hoz a játék mellett kevés a videomemória. Helyette Pocket fut.",
     ["OmniVoice needs 12 GB"] = "OmniVoice 12 GB-ot igényel",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB-os kártya kell",

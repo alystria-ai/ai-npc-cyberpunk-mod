@@ -1,0 +1,295 @@
+[
+ {
+  "step": "start",
+  "ms": 12654,
+  "rssMB": 792
+ },
+ {
+  "step": "round 1 en",
+  "firstAudioMs": 2691,
+  "totalMs": 4413,
+  "audioS": 4,
+  "preparationSource": "memory",
+  "rssMB": 2129
+ },
+ {
+  "step": "round 1 fr",
+  "firstAudioMs": 2164,
+  "totalMs": 3504,
+  "audioS": 2.96,
+  "preparationSource": "memory",
+  "rssMB": 2265
+ },
+ {
+  "step": "round 1 fr again",
+  "firstAudioMs": 171,
+  "totalMs": 1502,
+  "audioS": 2.96,
+  "preparationSource": "memory",
+  "rssMB": 2265
+ },
+ {
+  "step": "round 1 it",
+  "firstAudioMs": 2312,
+  "totalMs": 3803,
+  "audioS": 3.84,
+  "preparationSource": "memory",
+  "rssMB": 2283
+ },
+ {
+  "step": "round 1 it again",
+  "firstAudioMs": 155,
+  "totalMs": 1786,
+  "audioS": 3.68,
+  "preparationSource": "memory",
+  "rssMB": 2285
+ },
+ {
+  "step": "round 1 de",
+  "firstAudioMs": 2430,
+  "totalMs": 3782,
+  "audioS": 3.12,
+  "preparationSource": "memory",
+  "rssMB": 2289
+ },
+ {
+  "step": "round 1 de again",
+  "firstAudioMs": 158,
+  "totalMs": 1598,
+  "audioS": 3.28,
+  "preparationSource": "memory",
+  "rssMB": 2292
+ },
+ {
+  "step": "round 1 es",
+  "firstAudioMs": 2581,
+  "totalMs": 3908,
+  "audioS": 3.04,
+  "preparationSource": "memory",
+  "rssMB": 2324
+ },
+ {
+  "step": "round 1 es again",
+  "firstAudioMs": 143,
+  "totalMs": 1350,
+  "audioS": 2.88,
+  "preparationSource": "memory",
+  "rssMB": 2323
+ },
+ {
+  "step": "round 1 pt",
+  "firstAudioMs": 2325,
+  "totalMs": 4159,
+  "audioS": 4.16,
+  "preparationSource": "memory",
+  "rssMB": 2320
+ },
+ {
+  "step": "round 1 pt again",
+  "firstAudioMs": 151,
+  "totalMs": 1802,
+  "audioS": 3.84,
+  "preparationSource": "memory",
+  "rssMB": 2294
+ },
+ {
+  "step": "round 1 en after languages",
+  "firstAudioMs": 894,
+  "totalMs": 2712,
+  "audioS": 3.92,
+  "preparationSource": "memory",
+  "rssMB": 2285
+ },
+ {
+  "step": "round 2 en",
+  "firstAudioMs": 174,
+  "totalMs": 1960,
+  "audioS": 4,
+  "preparationSource": "memory",
+  "rssMB": 2285
+ },
+ {
+  "step": "round 2 fr",
+  "firstAudioMs": 2490,
+  "totalMs": 3527,
+  "audioS": 2.64,
+  "preparationSource": "memory",
+  "rssMB": 2314
+ },
+ {
+  "step": "round 2 fr again",
+  "firstAudioMs": 140,
+  "totalMs": 1340,
+  "audioS": 2.8,
+  "preparationSource": "memory",
+  "rssMB": 2318
+ },
+ {
+  "step": "round 2 it",
+  "firstAudioMs": 2555,
+  "totalMs": 4173,
+  "audioS": 3.76,
+  "preparationSource": "memory",
+  "rssMB": 2288
+ },
+ {
+  "step": "round 2 it again",
+  "firstAudioMs": 198,
+  "totalMs": 1817,
+  "audioS": 3.68,
+  "preparationSource": "memory",
+  "rssMB": 2287
+ },
+ {
+  "step": "round 2 de",
+  "firstAudioMs": 2113,
+  "totalMs": 3414,
+  "audioS": 3.28,
+  "preparationSource": "memory",
+  "rssMB": 2334
+ },
+ {
+  "step": "round 2 de again",
+  "firstAudioMs": 150,
+  "totalMs": 1647,
+  "audioS": 3.36,
+  "preparationSource": "memory",
+  "rssMB": 2334
+ },
+ {
+  "step": "round 2 es",
+  "firstAudioMs": 2632,
+  "totalMs": 3825,
+  "audioS": 2.96,
+  "preparationSource": "memory",
+  "rssMB": 2323
+ },
+ {
+  "step": "round 2 es again",
+  "firstAudioMs": 122,
+  "totalMs": 1514,
+  "audioS": 3.2,
+  "preparationSource": "memory",
+  "rssMB": 2322
+ },
+ {
+  "step": "round 2 pt",
+  "firstAudioMs": 2242,
+  "totalMs": 3825,
+  "audioS": 3.52,
+  "preparationSource": "memory",
+  "rssMB": 2307
+ },
+ {
+  "step": "round 2 pt again",
+  "firstAudioMs": 173,
+  "totalMs": 1869,
+  "audioS": 3.84,
+  "preparationSource": "memory",
+  "rssMB": 2311
+ },
+ {
+  "step": "round 2 en after languages",
+  "firstAudioMs": 886,
+  "totalMs": 2436,
+  "audioS": 3.92,
+  "preparationSource": "memory",
+  "rssMB": 2257
+ },
+ {
+  "step": "round 3 en",
+  "firstAudioMs": 119,
+  "totalMs": 1664,
+  "audioS": 4,
+  "preparationSource": "memory",
+  "rssMB": 2252
+ },
+ {
+  "step": "round 3 fr",
+  "firstAudioMs": 1997,
+  "totalMs": 3173,
+  "audioS": 2.88,
+  "preparationSource": "memory",
+  "rssMB": 2325
+ },
+ {
+  "step": "round 3 fr again",
+  "firstAudioMs": 154,
+  "totalMs": 1308,
+  "audioS": 2.96,
+  "preparationSource": "memory",
+  "rssMB": 2329
+ },
+ {
+  "step": "round 3 it",
+  "firstAudioMs": 2148,
+  "totalMs": 3613,
+  "audioS": 3.6,
+  "preparationSource": "memory",
+  "rssMB": 2372
+ },
+ {
+  "step": "round 3 it again",
+  "firstAudioMs": 141,
+  "totalMs": 1649,
+  "audioS": 3.6,
+  "preparationSource": "memory",
+  "rssMB": 2345
+ },
+ {
+  "step": "round 3 de",
+  "firstAudioMs": 2489,
+  "totalMs": 3923,
+  "audioS": 3.28,
+  "preparationSource": "memory",
+  "rssMB": 2371
+ },
+ {
+  "step": "round 3 de again",
+  "firstAudioMs": 144,
+  "totalMs": 1533,
+  "audioS": 3.28,
+  "preparationSource": "memory",
+  "rssMB": 2343
+ },
+ {
+  "step": "round 3 es",
+  "firstAudioMs": 2407,
+  "totalMs": 3751,
+  "audioS": 3.04,
+  "preparationSource": "memory",
+  "rssMB": 2368
+ },
+ {
+  "step": "round 3 es again",
+  "firstAudioMs": 148,
+  "totalMs": 1524,
+  "audioS": 3.04,
+  "preparationSource": "memory",
+  "rssMB": 2368
+ },
+ {
+  "step": "round 3 pt",
+  "firstAudioMs": 2578,
+  "totalMs": 4180,
+  "audioS": 3.76,
+  "preparationSource": "memory",
+  "rssMB": 2344
+ },
+ {
+  "step": "round 3 pt again",
+  "firstAudioMs": 141,
+  "totalMs": 1722,
+  "audioS": 3.68,
+  "preparationSource": "memory",
+  "rssMB": 2351
+ },
+ {
+  "step": "round 3 en after languages",
+  "firstAudioMs": 880,
+  "totalMs": 2526,
+  "audioS": 3.84,
+  "preparationSource": "memory",
+  "rssMB": 2309
+ }
+]

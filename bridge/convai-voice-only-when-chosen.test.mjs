@@ -39,7 +39,7 @@ function selectionOf({cloud = cloudStub(), extra = {}} = {}) {
 const localChoice = (voice, profile) => ({uses: voice.usesProfile(profile) && !voice.cloudKeyless, provider: voice.provider, convai: voice.convaiVoiceAllowed,
   cloud: voice.cloudActive ? voice.cloud : null, speaks: language => voxtralSpeaks(language)});
 test('the bridge composes the turn voice from the voice selection exactly as this file does, and Convai TTS follows the Convai voice only', () => {
-  assert.ok(bridgeSource.includes("const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,\n  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language)});"));
+  assert.ok(bridgeSource.includes("const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,\n  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language),\n  pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});"));
   assert.ok(bridgeSource.includes('const convaiSpeaks = input => localVoice.playbackEnabled !== false && localVoice.convaiVoiceAllowed && !turnUsesLocal(input);'));
   // Every Convai text turn: the live turn, the first connection of a character and the warm connections ask the same question.
   assert.ok(bridgeSource.includes('ttsEnabled: convaiSpeaks(input),'));

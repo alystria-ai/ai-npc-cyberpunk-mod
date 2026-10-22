@@ -95,6 +95,9 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
+    // The Pocket language models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
+    // cloned from the pack's clip; without them Pocket speaks English only.
+    this.pocketLanguages=options.pocketLanguages||null;
     this.clock = options.clock || Date.now;
     this.cloudRetryAudioMs = {...CLOUD_RETRY_AUDIO_MS, ...options.cloudRetryAudioMs};
     this.packCheckedAt=0;this.refreshOmniPack();
@@ -958,7 +961,46 @@ export class VoiceSelection {
     const client = this.client;
     if (!client || this.clientBackend!=='pocket'||!this.usesProfile(profile))throw Error('Voice selection changed before synthesis');
     utterance?.decide('pocket');
+    // A reply in another language: the Pocket model of the language is made the resident one and the voice is the pack's clip of this character.
+    if (options.language && options.language !== 'en') {
+      const pocketLanguage = await this.pocketLanguageFor(profile, options.language);
+      if (pocketLanguage) {
+        try { return await client.synthesizeStream(profile, spoken, {...plain, pocketLanguage}); }
+        catch (error) {
+          // A model the worker refused (its files differ from the manifest, it would not load) is not tried again until its files change.
+          if (error?.refused) this.pocketLanguages?.markFailed(options.language, error.message);
+          throw error;
+        }
+      }
+      // The model is installed but this character has no clip in the language's pack: never the English student reading foreign text.
+      if (this.pocketLanguages?.has(options.language)) throw Error('Pocket has no voice of this character in this language');
+    }
     return client.synthesizeStream(profile, spoken, plain);
+  }
+  /**
+   * What the Pocket worker needs to speak `profile` in `language`: {tag, expected (the model's hashes), voices: {profile: descriptor}}, or null (no model, no voice pack, or no clip
+   * of this character in the pack). The player's own clip for the character is used as it is (a pack never replaces it). In-memory lookups plus one hash of the clip, once.
+   */
+  async pocketLanguageFor(profile, language) {
+    if (!language || language === 'en' || !this.pocketLanguages || !this.pocketLanguages.speaks(language)) return null;
+    const model = this.pocketLanguages.model(language);
+    let descriptor = null;
+    try {
+      if (this.hasPlayerClip(profile)) {
+        const own = this.registries.pocket.profiles[profile];
+        descriptor = own ? {reference: own.reference, sha256: own.sha256, transcript: own.transcript} : null;
+      } else descriptor = await this.languagePacks?.omniDescriptor(language, profile) ?? null;
+    } catch { descriptor = null; }
+    return model && descriptor ? {tag: language, expected: model.expected, folder: model.language, voices: {[profile]: descriptor}} : null;
+  }
+  /** Swaps the language model in and prepares the voice ahead of the reply (the turn's language is known before its reply is written). Quiet: never starts the worker, never throws. */
+  async warmPocketLanguage(profile, language) {
+    try {
+      if (this.provider !== 'pocket' || this.cloudActive || this.silent || this.clientBackend !== 'pocket' || !this.client?.loaded || !this.usesProfile(profile)) return null;
+      const voice = this.voiceOf(profile), pocketLanguage = await this.pocketLanguageFor(voice, language);
+      if (!pocketLanguage || this.provider !== 'pocket' || this.cloudActive) return null;
+      return await this.client.prepareLanguage(voice, pocketLanguage);
+    } catch { return null; }
   }
   // A reply spoken by the cloud voice. No local voice takes part, so there is no fallback voice here: a request that gave no audio in
   // time (or lost its connection) is asked again once with a longer wait (CLOUD_RETRY_AUDIO_MS), and a reply that still has no audio

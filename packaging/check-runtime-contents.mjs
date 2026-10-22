@@ -8,7 +8,7 @@ import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {listZip} from './lib/zip.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles} from './lib/runtime-required.mjs';
-import {LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
+import {LANGUAGE_PACK_TREE, POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 
@@ -18,7 +18,7 @@ export async function checkRuntimeContents(zips, {root = project, log = console.
   const required = await requiredRuntimeFiles(root);
   const missing = missingRuntimeFiles(names, required);
   // The Runtime never ships anything in the voice language packs' folder (docs/VOICE_LANGUAGE_PACKS.md): their own zips write it.
-  const inPackTree = [...names].filter(name => name.toLowerCase().startsWith(LANGUAGE_PACK_TREE.toLowerCase()));
+  const inPackTree = [...names].filter(name => [LANGUAGE_PACK_TREE, POCKET_MODEL_TREE].some(tree => name.toLowerCase().startsWith(tree.toLowerCase())));
   if (inPackTree.length) missing['voice language packs\' folder (must be empty in a Runtime)'] = inPackTree.slice(0, 20);
   for (const [group, files] of Object.entries(required)) log(`${group}: ${files.length - (missing[group]?.length ?? 0)} of ${files.length} present`);
   for (const [group, files] of Object.entries(missing)) for (const file of files) log(`  MISSING (${group}): ${file}`);

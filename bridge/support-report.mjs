@@ -526,6 +526,23 @@ export function voiceLanguagePacksSection(value) {
 }
 
 /**
+ * The Pocket language models as the service reports them (bridge/pocket-language-models.mjs report()): which model is installed (language, size, version), whether the
+ * voice language pack it clones from is installed and whether Pocket may speak the language, and which installed model it ignores and why. No path. null when the report
+ * was made without the service.
+ */
+export function pocketLanguageModelsSection(value) {
+  if (!value || typeof value !== 'object') return null;
+  const list = Array.isArray(value.models) ? value.models : [], problems = Array.isArray(value.problems) ? value.problems : [];
+  return {
+    installed: list.slice(0, 12).map(model => ({language: clip(model?.language, 12), megabytes: Number.isFinite(model?.megabytes) ? model.megabytes : null,
+      version: clip(model?.version, 24) ?? null, voicePackInstalled: model?.packInstalled === true, usable: model?.usable === true,
+      ...(typeof model?.refused === 'string' ? {refused: clip(model.refused, 120)} : {})})),
+    problems: problems.slice(0, 12).map(row => ({language: clip(row?.language, 12), reason: clip(row?.reason, 240)})),
+    scanned: typeof value.scannedAt === 'string' ? clip(value.scannedAt, 40) : null,
+  };
+}
+
+/**
  * V's voice mods as the service reports them (bridge/v-voice-mod-service.mjs): whether the step ran or why not, the game's voice-over language, whether the
  * decoder is there, what the scan did (counts and milliseconds), the archives that replace part of V's voice (file name and the share of V's lines of each gender
  * they replace), and which reference V speaks from per gender ('manual', 'mod:<archive file name>' or 'shipped'). No path. null when the report was made
@@ -573,7 +590,7 @@ function companionProviders({settings, voice, routing, party}) {
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
-  const {voiceLanguagePacks: languagePackFacts, vVoiceMods: vVoiceModFacts, ...bridgeFacts} = bridge;
+  const {voiceLanguagePacks: languagePackFacts, pocketLanguageModels: pocketModelFacts, vVoiceMods: vVoiceModFacts, ...bridgeFacts} = bridge;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
   // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
@@ -659,6 +676,8 @@ export async function collectReport(options) {
     voiceClips,
     // The voice language packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
     voiceLanguagePacks: voiceLanguagePacksSection(languagePackFacts),
+    // The Pocket language models the service found (docs/POCKET_LANGUAGE_MODELS.md): language, size, whether their voice pack is installed, and why an installed model is not used.
+    pocketLanguageModels: pocketLanguageModelsSection(pocketModelFacts),
     // Which reference V's typed-line voice is cloned from (the player's clip, a V voice mod's or the shipped one) and what the mod scan found (docs/V_VOICE.md).
     vVoiceMods: vVoiceModsSection(vVoiceModFacts),
     recentErrors, logs: index,

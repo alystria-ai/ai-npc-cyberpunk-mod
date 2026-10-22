@@ -199,7 +199,7 @@ const between = (start, end) => bridge.slice(bridge.indexOf(start), bridge.index
 test('the bridge logs the cloud voice, written-only, Omni and Pocket replies once each at the point of decision', () => {
   const synthesize = between('async function synthesizeReply(', 'async function status(');
   const calls = synthesize.match(/logVoiceRoute\(/g) ?? [];
-  assert.equal(calls.length, 6, 'cloud voice, written-only, Omni reply, Omni error, no streaming, Pocket');
+  assert.equal(calls.length, 7, 'cloud voice, written-only, Pocket without a clip in the language pack, Omni reply, Omni error, no streaming, Pocket');
   assert.match(between('async function convaiReply(', 'const state = await readSpeechState'), /logVoiceRoute\(input, profile, \{engine: 'convai'/);
   // Nothing is logged for a reply that is not spoken (voice playback off).
   assert.ok(synthesize.indexOf('playbackEnabled===false') < synthesize.indexOf('logVoiceRoute('));

@@ -1,0 +1,4246 @@
+{
+ "date": "2026-10-22",
+ "note": "Pocket v4 language models (no-cloning public weights + English-student Mimi encoder) cloned from the dub packs; scores per scripts/pocket-v4-dub/score.py",
+ "scores": {
+  "method": "see docstring",
+  "languages": {
+   "french": {
+    "pack": "fr",
+    "sentences": [
+     "Salut, ça fait longtemps.",
+     "Night City est calme ce soir, allons boire un verre.",
+     "Où veux-tu aller en premier ?"
+    ],
+    "voices": {
+     "panam-palmer": {
+      "dubVsEnglishRef": 0.020082153379917145,
+      "dubAsrSimilarity": 0.9948186528497409,
+      "a": {
+       "cosDub": 0.4805887043476105,
+       "cosEnglish": -0.002042439766228199,
+       "perSentenceCosDub": [
+        0.4845559000968933,
+        0.4689534306526184,
+        0.19243334233760834
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.13057394325733185,
+       "cosEnglish": 0.4169081449508667,
+       "perSentenceCosDub": [
+        0.0842713937163353,
+        0.14851486682891846,
+        0.11030424386262894
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.7468,
+       "cosEnglishCond": 0.1477,
+       "asr": [
+        {
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "judy-alvarez": {
+      "dubVsEnglishRef": 0.2799576222896576,
+      "dubAsrSimilarity": 0.9542857142857143,
+      "a": {
+       "cosDub": 0.4756999611854553,
+       "cosEnglish": 0.11560923606157303,
+       "perSentenceCosDub": [
+        0.3849850594997406,
+        0.4660857915878296,
+        0.27957668900489807
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.07030821591615677,
+       "cosEnglish": 0.4379289746284485,
+       "perSentenceCosDub": [
+        -0.012151231057941914,
+        0.09697533398866653,
+        0.07371799647808075
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait l'anta.",
+         "similarity": 0.6956521739130435
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allant boire un verre.",
+         "similarity": 0.96
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.8852173913043478
+      },
+      "omnivoice": {
+       "cosDub": 0.7006,
+       "cosEnglishCond": 0.2941,
+       "asr": [
+        {
+         "heard": "Salut ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Veux-tu aller en premier?",
+         "similarity": 0.8888888888888888
+        }
+       ],
+       "asrMean": 0.9629629629629629
+      }
+     },
+     "jackie-welles": {
+      "dubVsEnglishRef": 0.27499401569366455,
+      "dubAsrSimilarity": 0.940677966101695,
+      "a": {
+       "cosDub": 0.6799566745758057,
+       "cosEnglish": 0.1990581601858139,
+       "perSentenceCosDub": [
+        0.5131833553314209,
+        0.6181464195251465,
+        0.5362173318862915
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.3839380145072937,
+       "cosEnglish": 0.3973010182380676,
+       "perSentenceCosDub": [
+        0.2882632613182068,
+        0.3676072359085083,
+        0.27532458305358887
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.8682,
+       "cosEnglishCond": 0.3853,
+       "asr": [
+        {
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "resident-female": {
+      "dubVsEnglishRef": 0.07931159436702728,
+      "dubAsrSimilarity": 0.975609756097561,
+      "a": {
+       "cosDub": 0.5580673217773438,
+       "cosEnglish": 0.16346023976802826,
+       "perSentenceCosDub": [
+        0.42812228202819824,
+        0.5300622582435608,
+        0.3957529366016388
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.2169017791748047,
+       "cosEnglish": 0.5304226875305176,
+       "perSentenceCosDub": [
+        0.35303327441215515,
+        0.202622190117836,
+        0.25241854786872864
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir, allon boire un verre.",
+         "similarity": 0.98
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "The channel premier.",
+         "similarity": 0.4444444444444444
+        }
+       ],
+       "asrMean": 0.8081481481481481
+      },
+      "omnivoice": {
+       "cosDub": 0.8249,
+       "cosEnglishCond": 0.3319,
+       "asr": [
+        {
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "v-male": {
+      "dubVsEnglishRef": 0.205113485455513,
+      "dubAsrSimilarity": 1.0,
+      "a": {
+       "cosDub": 0.4310927093029022,
+       "cosEnglish": 0.09130235016345978,
+       "perSentenceCosDub": [
+        0.301137238740921,
+        0.497611403465271,
+        0.34435123205184937
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir, allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.2580532431602478,
+       "cosEnglish": 0.2901156544685364,
+       "perSentenceCosDub": [
+        0.13833467662334442,
+        0.220975860953331,
+        0.14332205057144165
+       ],
+       "asr": [
+        {
+         "text": "Salut, ça fait longtemps.",
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City est calme ce soir, allons boire un verre.",
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Où veux-tu aller en premier ?",
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.7227,
+       "cosEnglishCond": 0.2133,
+       "asr": [
+        {
+         "heard": "Salut, ça fait longtemps.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City est calme ce soir. Allons boire un verre.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Où veux-tu aller en premier?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     }
+    },
+    "summary": {
+     "lang": "french",
+     "threads": 4,
+     "loadS": 0.9751209000005474,
+     "paramsM": 109.501826,
+     "rssStartMB": 354.394112,
+     "rssLoadedMB": 799.404032,
+     "rssPeakMB": 935.112704,
+     "rssAfterUseMB": 910.60224,
+     "rssAfterUnloadMB": 872.112128,
+     "peakWorkingSetMB": 1326.993408
+    },
+    "timing": [
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2489.046500000768,
+      "ttfaMs": 134.69979999899806,
+      "wallS": 0.7203606999992189,
+      "audioS": 1.44,
+      "rtf": 0.5002504861105688,
+      "cores": 2.364266956820169
+     },
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2489.046500000768,
+      "ttfaMs": 141.95650000146998,
+      "wallS": 1.2900110999999015,
+      "audioS": 2.88,
+      "rtf": 0.44792052083329914,
+      "cores": 2.083315407131152
+     },
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2489.046500000768,
+      "ttfaMs": 107.89329999897745,
+      "wallS": 0.6716672000002291,
+      "audioS": 1.6,
+      "rtf": 0.41979200000014316,
+      "cores": 2.4891419441048033
+     },
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2161.005500000101,
+      "ttfaMs": 115.82429999907617,
+      "wallS": 0.9511380000003555,
+      "audioS": 1.52,
+      "rtf": 0.6257486842107602,
+      "cores": 2.2013104302416866
+     },
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2161.005500000101,
+      "ttfaMs": 126.91590000031283,
+      "wallS": 1.931522999999288,
+      "audioS": 3.04,
+      "rtf": 0.6353694078945026,
+      "cores": 2.014278369970968
+     },
+     {
+      "lang": "french",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2161.005500000101,
+      "ttfaMs": 107.28410000047006,
+      "wallS": 1.0226051999998163,
+      "audioS": 1.6,
+      "rtf": 0.6391282499998852,
+      "cores": 2.276660631102226
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2975.044800001342,
+      "ttfaMs": 141.13050000014482,
+      "wallS": 0.9903659000010521,
+      "audioS": 1.52,
+      "rtf": 0.6515565131585869,
+      "cores": 2.2087796035764926
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2975.044800001342,
+      "ttfaMs": 179.873500001122,
+      "wallS": 1.9309296000010363,
+      "audioS": 3.12,
+      "rtf": 0.6188876923080244,
+      "cores": 1.9177938957474228
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2975.044800001342,
+      "ttfaMs": 154.5882000009442,
+      "wallS": 1.094932300000437,
+      "audioS": 1.68,
+      "rtf": 0.6517454166669268,
+      "cores": 2.083462146471603
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2961.1196000005293,
+      "ttfaMs": 116.1627999990742,
+      "wallS": 0.8505980999998428,
+      "audioS": 1.84,
+      "rtf": 0.4622815760868711,
+      "cores": 2.1308535723279123
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2961.1196000005293,
+      "ttfaMs": 126.57539999963774,
+      "wallS": 1.7803474000011192,
+      "audioS": 4.4,
+      "rtf": 0.40462440909116343,
+      "cores": 1.957132074334374
+     },
+     {
+      "lang": "french",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2961.1196000005293,
+      "ttfaMs": 123.62769999890588,
+      "wallS": 0.9129858999986027,
+      "audioS": 1.92,
+      "rtf": 0.4755134895826056,
+      "cores": 2.2590710327543464
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2015.326400000049,
+      "ttfaMs": 105.65039999892178,
+      "wallS": 0.7878813999996055,
+      "audioS": 1.68,
+      "rtf": 0.468977023809289,
+      "cores": 2.340136472317944
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2015.326400000049,
+      "ttfaMs": 136.21509999939008,
+      "wallS": 2.623059599998669,
+      "audioS": 3.6,
+      "rtf": 0.728627666666297,
+      "cores": 1.787035262180996
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2015.326400000049,
+      "ttfaMs": 130.4225999992923,
+      "wallS": 1.3563097000005655,
+      "audioS": 1.68,
+      "rtf": 0.807327202381289,
+      "cores": 2.05060097999656
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2040.732500001468,
+      "ttfaMs": 103.2638999986375,
+      "wallS": 0.7713567999999213,
+      "audioS": 1.76,
+      "rtf": 0.4382709090908644,
+      "cores": 2.1877035374552634
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2040.732500001468,
+      "ttfaMs": 126.977199999601,
+      "wallS": 1.5146485999994184,
+      "audioS": 3.6,
+      "rtf": 0.4207357222220606,
+      "cores": 2.0322370482507837
+     },
+     {
+      "lang": "french",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2040.732500001468,
+      "ttfaMs": 134.7406000004412,
+      "wallS": 0.8312342000008357,
+      "audioS": 1.76,
+      "rtf": 0.47229215909138395,
+      "cores": 2.218087273115262
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 3200.8028000000195,
+      "ttfaMs": 99.84889999941515,
+      "wallS": 0.6062191000000894,
+      "audioS": 1.44,
+      "rtf": 0.4209854861111732,
+      "cores": 2.448578410016743
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 3200.8028000000195,
+      "ttfaMs": 122.29499999921245,
+      "wallS": 1.5102208999996947,
+      "audioS": 3.44,
+      "rtf": 0.43901770348828334,
+      "cores": 2.007156701380979
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 3200.8028000000195,
+      "ttfaMs": 119.58659999982046,
+      "wallS": 0.7957236999991437,
+      "audioS": 1.68,
+      "rtf": 0.4736450595232998,
+      "cores": 2.2974369118350593
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 3628.4520999997767,
+      "ttfaMs": 140.17599999897357,
+      "wallS": 0.7704185000002326,
+      "audioS": 1.6,
+      "rtf": 0.4815115625001454,
+      "cores": 2.2106491471836227
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 3628.4520999997767,
+      "ttfaMs": 144.81089999935648,
+      "wallS": 1.5125239999997575,
+      "audioS": 3.36,
+      "rtf": 0.45015595238088024,
+      "cores": 1.9834396016198625
+     },
+     {
+      "lang": "french",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 3628.4520999997767,
+      "ttfaMs": 151.2987999994948,
+      "wallS": 0.7621257999999216,
+      "audioS": 1.68,
+      "rtf": 0.45364630952376284,
+      "cores": 2.296208841112819
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "a",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2190.426999999545,
+      "ttfaMs": 135.1704000007885,
+      "wallS": 1.0689996000000974,
+      "audioS": 1.52,
+      "rtf": 0.7032892105263798,
+      "cores": 2.192470418136533
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2190.426999999545,
+      "ttfaMs": 140.13359999989916,
+      "wallS": 1.3012471999991249,
+      "audioS": 2.96,
+      "rtf": 0.4396105405402449,
+      "cores": 2.0052876962976405
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "a",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2190.426999999545,
+      "ttfaMs": 105.95280000052298,
+      "wallS": 0.8372935999996116,
+      "audioS": 1.6,
+      "rtf": 0.5233084999997573,
+      "cores": 2.2206965394228053
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "b",
+      "n": 1,
+      "text": "Salut, ça fait longtemps.",
+      "refPrepMs": 2303.165999999692,
+      "ttfaMs": 191.68250000075204,
+      "wallS": 0.9236254999996163,
+      "audioS": 1.6,
+      "rtf": 0.5772659374997602,
+      "cores": 2.165379799497557
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City est calme ce soir, allons boire un verre.",
+      "refPrepMs": 2303.165999999692,
+      "ttfaMs": 132.86279999920225,
+      "wallS": 2.5205636999999115,
+      "audioS": 3.6,
+      "rtf": 0.7001565833333088,
+      "cores": 1.8535040395924784
+     },
+     {
+      "lang": "french",
+      "key": "v-male",
+      "cond": "b",
+      "n": 3,
+      "text": "Où veux-tu aller en premier ?",
+      "refPrepMs": 2303.165999999692,
+      "ttfaMs": 158.61120000045048,
+      "wallS": 1.1331804000001284,
+      "audioS": 1.44,
+      "rtf": 0.7869308333334225,
+      "cores": 2.0407165531628837
+     }
+    ]
+   },
+   "italian": {
+    "pack": "it",
+    "sentences": [
+     "Ciao, è passato tanto tempo.",
+     "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+     "Dove vuoi andare per prima cosa?"
+    ],
+    "voices": {
+     "panam-palmer": {
+      "dubVsEnglishRef": -0.06138794869184494,
+      "dubAsrSimilarity": 0.9818181818181818,
+      "a": {
+       "cosDub": 0.4209020435810089,
+       "cosEnglish": 0.06360583752393723,
+       "perSentenceCosDub": [
+        0.38659632205963135,
+        0.4055708944797516,
+        0.2187305986881256
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao! È passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Niki City è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 0.9454545454545454
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9818181818181818
+      },
+      "b": {
+       "cosDub": 0.14278432726860046,
+       "cosEnglish": 0.3057692348957062,
+       "perSentenceCosDub": [
+        0.1757655143737793,
+        0.11317585408687592,
+        -0.062130142003297806
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Make Tizi è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.8545454545454545
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9515151515151515
+      },
+      "omnivoice": {
+       "cosDub": 0.8096,
+       "cosEnglishCond": -0.0338,
+       "asr": [
+        {
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "judy-alvarez": {
+      "dubVsEnglishRef": 0.05102505162358284,
+      "dubAsrSimilarity": 0.9802631578947368,
+      "a": {
+       "cosDub": 0.5242205262184143,
+       "cosEnglish": 0.13851548731327057,
+       "perSentenceCosDub": [
+        0.3849550783634186,
+        0.5921956896781921,
+        0.37767139077186584
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao. È passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Nick City, è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 0.9454545454545454
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare, per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9818181818181818
+      },
+      "b": {
+       "cosDub": 0.11270219087600708,
+       "cosEnglish": 0.43452805280685425,
+       "perSentenceCosDub": [
+        0.08929572254419327,
+        0.10751954466104507,
+        0.1357131451368332
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Nig City è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.9636363636363636
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9878787878787879
+      },
+      "omnivoice": {
+       "cosDub": 0.6672,
+       "cosEnglishCond": 0.067,
+       "asr": [
+        {
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "jackie-welles": {
+      "dubVsEnglishRef": 0.3434388339519501,
+      "dubAsrSimilarity": 0.989010989010989,
+      "a": {
+       "cosDub": 0.6287575364112854,
+       "cosEnglish": 0.2282368689775467,
+       "perSentenceCosDub": [
+        0.48045915365219116,
+        0.5700407028198242,
+        0.4920082986354828
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao! È passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Nikci ti è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 0.8909090909090909
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9636363636363635
+      },
+      "b": {
+       "cosDub": 0.518633246421814,
+       "cosEnglish": 0.37751445174217224,
+       "perSentenceCosDub": [
+        0.4327269196510315,
+        0.4927733242511749,
+        0.3915131986141205
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao! È passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Nick City è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 0.9454545454545454
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9818181818181818
+      },
+      "omnivoice": {
+       "cosDub": 0.8423,
+       "cosEnglishCond": 0.605,
+       "asr": [
+        {
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "resident-female": {
+      "dubVsEnglishRef": 0.08036850392818451,
+      "dubAsrSimilarity": 0.9735449735449735,
+      "a": {
+       "cosDub": 0.7179892659187317,
+       "cosEnglish": 0.039394598454236984,
+       "perSentenceCosDub": [
+        0.5714372396469116,
+        0.5927318334579468,
+        0.32576313614845276
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Nigdy è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.8909090909090909
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9636363636363635
+      },
+      "b": {
+       "cosDub": 0.26999586820602417,
+       "cosEnglish": 0.2706701159477234,
+       "perSentenceCosDub": [
+        0.22057992219924927,
+        0.25478285551071167,
+        0.294607549905777
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Miki Z.T. è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.8727272727272728
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa.",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9575757575757576
+      },
+      "omnivoice": {
+       "cosDub": 0.712,
+       "cosEnglishCond": 0.0644,
+       "asr": [
+        {
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City è tranquilla stasera. Andiamo a bere qualcosa.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "v-male": {
+      "dubVsEnglishRef": 0.14684803783893585,
+      "dubAsrSimilarity": 1.0,
+      "a": {
+       "cosDub": 0.5746192932128906,
+       "cosEnglish": 0.07112250477075577,
+       "perSentenceCosDub": [
+        0.5003201961517334,
+        0.4973437190055847,
+        0.4278281033039093
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Miki City, è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.9272727272727272
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9757575757575757
+      },
+      "b": {
+       "cosDub": 0.3380959630012512,
+       "cosEnglish": 0.1973118931055069,
+       "perSentenceCosDub": [
+        0.2066468894481659,
+        0.2833886742591858,
+        0.26339399814605713
+       ],
+       "asr": [
+        {
+         "text": "Ciao, è passato tanto tempo.",
+         "heard": "Ciao. È passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+         "heard": "Mig City è tranquilla stasera, andiamo a bere qualcosa.",
+         "similarity": 0.9454545454545454
+        },
+        {
+         "text": "Dove vuoi andare per prima cosa?",
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9818181818181818
+      },
+      "omnivoice": {
+       "cosDub": 0.7919,
+       "cosEnglishCond": 0.2767,
+       "asr": [
+        {
+         "heard": "Ciao, è passato tanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City, è tranquilla stasera, andiamo a bere qualcosa. È fa.",
+         "similarity": 0.9166666666666666
+        },
+        {
+         "heard": "Dove vuoi andare per prima cosa?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9722222222222222
+      }
+     }
+    },
+    "summary": {
+     "lang": "italian",
+     "threads": 4,
+     "loadS": 1.0573027999998885,
+     "paramsM": 109.501826,
+     "rssStartMB": 355.360768,
+     "rssLoadedMB": 800.223232,
+     "rssPeakMB": 914.526208,
+     "rssAfterUseMB": 914.69824,
+     "rssAfterUnloadMB": 866.381824,
+     "peakWorkingSetMB": 1407.209472
+    },
+    "timing": [
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2207.120799999757,
+      "ttfaMs": 111.0393999988446,
+      "wallS": 1.0887544999986858,
+      "audioS": 2.64,
+      "rtf": 0.4124070075752597,
+      "cores": 2.023527801724502
+     },
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2207.120799999757,
+      "ttfaMs": 145.23630000076082,
+      "wallS": 1.6121517999999924,
+      "audioS": 3.68,
+      "rtf": 0.4380847282608675,
+      "cores": 1.967479117040973
+     },
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2207.120799999757,
+      "ttfaMs": 146.3303000000451,
+      "wallS": 0.8755135000010341,
+      "audioS": 2.0,
+      "rtf": 0.43775675000051706,
+      "cores": 2.2486803458743636
+     },
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2181.674200000998,
+      "ttfaMs": 110.32830000112881,
+      "wallS": 0.8216963000013493,
+      "audioS": 2.0,
+      "rtf": 0.41084815000067465,
+      "cores": 2.3959582147281995
+     },
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2181.674200000998,
+      "ttfaMs": 149.67059999980847,
+      "wallS": 1.4696426999998948,
+      "audioS": 3.2,
+      "rtf": 0.45926334374996713,
+      "cores": 1.9243622956792168
+     },
+     {
+      "lang": "italian",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2181.674200000998,
+      "ttfaMs": 115.68040000020119,
+      "wallS": 0.8657910999991145,
+      "audioS": 1.92,
+      "rtf": 0.4509328645828722,
+      "cores": 2.2919789773792196
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2636.1421999990853,
+      "ttfaMs": 115.29279999922437,
+      "wallS": 1.2080458000000363,
+      "audioS": 2.72,
+      "rtf": 0.44413448529413097,
+      "cores": 2.1211944116687653
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2636.1421999990853,
+      "ttfaMs": 132.7355000012176,
+      "wallS": 2.2503580000011425,
+      "audioS": 4.72,
+      "rtf": 0.4767707627121065,
+      "cores": 1.819154996670717
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2636.1421999990853,
+      "ttfaMs": 109.42469999827154,
+      "wallS": 1.0288585999987845,
+      "audioS": 2.16,
+      "rtf": 0.47632342592536314,
+      "cores": 2.110955771767438
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2670.295800000531,
+      "ttfaMs": 122.6500999982818,
+      "wallS": 1.0874033999989479,
+      "audioS": 2.32,
+      "rtf": 0.468708362068512,
+      "cores": 2.0547802223187475
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2670.295800000531,
+      "ttfaMs": 149.2776999984926,
+      "wallS": 1.7453702999991947,
+      "audioS": 3.76,
+      "rtf": 0.4641942287231901,
+      "cores": 1.9426393356192462
+     },
+     {
+      "lang": "italian",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2670.295800000531,
+      "ttfaMs": 110.70400000062364,
+      "wallS": 1.7553514999999607,
+      "audioS": 2.32,
+      "rtf": 0.756617025862052,
+      "cores": 1.8870864325464582
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2034.7592000016448,
+      "ttfaMs": 117.53619999944931,
+      "wallS": 1.4513733000003413,
+      "audioS": 2.88,
+      "rtf": 0.5039490625001185,
+      "cores": 2.088539178720793
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2034.7592000016448,
+      "ttfaMs": 135.15279999955965,
+      "wallS": 1.8518648000008398,
+      "audioS": 3.92,
+      "rtf": 0.4724144897961326,
+      "cores": 1.9912360772764448
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2034.7592000016448,
+      "ttfaMs": 128.8500999999087,
+      "wallS": 1.1870937999992748,
+      "audioS": 2.24,
+      "rtf": 0.5299525892853905,
+      "cores": 2.0664963459513466
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 1886.1748999988777,
+      "ttfaMs": 152.69309999894176,
+      "wallS": 1.7485075000004144,
+      "audioS": 2.88,
+      "rtf": 0.6071206597223662,
+      "cores": 1.939153821187039
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 1886.1748999988777,
+      "ttfaMs": 151.3606999997137,
+      "wallS": 2.781713899999886,
+      "audioS": 4.32,
+      "rtf": 0.6439152546296032,
+      "cores": 1.848006367585182
+     },
+     {
+      "lang": "italian",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 1886.1748999988777,
+      "ttfaMs": 138.14579999962007,
+      "wallS": 1.200774700000693,
+      "audioS": 2.24,
+      "rtf": 0.5360601339288807,
+      "cores": 2.068976803057698
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 3159.1341999992437,
+      "ttfaMs": 103.63350000079663,
+      "wallS": 0.9651257000004989,
+      "audioS": 2.16,
+      "rtf": 0.44681745370393466,
+      "cores": 2.1046481302890907
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 3159.1341999992437,
+      "ttfaMs": 148.55209999950603,
+      "wallS": 1.5041022000004887,
+      "audioS": 3.28,
+      "rtf": 0.45856774390258803,
+      "cores": 2.036098344912337
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 3159.1341999992437,
+      "ttfaMs": 110.23860000022978,
+      "wallS": 0.9184774000004836,
+      "audioS": 2.08,
+      "rtf": 0.44157567307715556,
+      "cores": 2.2795879354232316
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 3322.772800000166,
+      "ttfaMs": 114.77899999954388,
+      "wallS": 0.9926302000003489,
+      "audioS": 2.32,
+      "rtf": 0.4278578448277366,
+      "cores": 2.156518107145287
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 3322.772800000166,
+      "ttfaMs": 138.78120000117633,
+      "wallS": 1.3451374000014766,
+      "audioS": 3.04,
+      "rtf": 0.44247940789522255,
+      "cores": 2.032784903606872
+     },
+     {
+      "lang": "italian",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 3322.772800000166,
+      "ttfaMs": 106.58060000059777,
+      "wallS": 0.9407805999999255,
+      "audioS": 2.24,
+      "rtf": 0.419991339285681,
+      "cores": 2.142502725927979
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "a",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2255.4536999996344,
+      "ttfaMs": 168.3973999988666,
+      "wallS": 1.6308879999996861,
+      "audioS": 2.16,
+      "rtf": 0.7550407407405954,
+      "cores": 1.8873920220153637
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2255.4536999996344,
+      "ttfaMs": 183.568300000843,
+      "wallS": 1.476920400000381,
+      "audioS": 3.2,
+      "rtf": 0.4615376250001191,
+      "cores": 1.9466181115781582
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "a",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2255.4536999996344,
+      "ttfaMs": 112.78889999994135,
+      "wallS": 0.9757466999999451,
+      "audioS": 2.08,
+      "rtf": 0.469108990384589,
+      "cores": 2.113765795979752
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "b",
+      "n": 1,
+      "text": "Ciao, è passato tanto tempo.",
+      "refPrepMs": 2094.096000000718,
+      "ttfaMs": 114.53199999959907,
+      "wallS": 1.3273585000006278,
+      "audioS": 2.96,
+      "rtf": 0.4484319256758878,
+      "cores": 2.012926424924944
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+      "refPrepMs": 2094.096000000718,
+      "ttfaMs": 166.91770000034012,
+      "wallS": 1.5146065999997518,
+      "audioS": 3.44,
+      "rtf": 0.44029261627899763,
+      "cores": 1.9910285614762897
+     },
+     {
+      "lang": "italian",
+      "key": "v-male",
+      "cond": "b",
+      "n": 3,
+      "text": "Dove vuoi andare per prima cosa?",
+      "refPrepMs": 2094.096000000718,
+      "ttfaMs": 129.69890000022133,
+      "wallS": 1.0322865000016463,
+      "audioS": 2.16,
+      "rtf": 0.47791041666742884,
+      "cores": 2.1342185526949025
+     }
+    ]
+   },
+   "german": {
+    "pack": "de",
+    "sentences": [
+     "Hallo, lange nicht gesehen.",
+     "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+     "Wohin willst du zuerst?"
+    ],
+    "voices": {
+     "panam-palmer": {
+      "dubVsEnglishRef": 0.1742703914642334,
+      "dubAsrSimilarity": 0.9852216748768473,
+      "a": {
+       "cosDub": 0.495078444480896,
+       "cosEnglish": 0.029840664938092232,
+       "perSentenceCosDub": [
+        0.41529741883277893,
+        0.48077264428138733,
+        0.35968858003616333
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.13342532515525818,
+       "cosEnglish": 0.2570338547229767,
+       "perSentenceCosDub": [
+        -0.020774435251951218,
+        0.11496757715940475,
+        0.1024438664317131
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.7718,
+       "cosEnglishCond": 0.1882,
+       "asr": [
+        {
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "judy-alvarez": {
+      "dubVsEnglishRef": -0.0012361779808998108,
+      "dubAsrSimilarity": 0.993006993006993,
+      "a": {
+       "cosDub": 0.5996718406677246,
+       "cosEnglish": 0.03998603671789169,
+       "perSentenceCosDub": [
+        0.4282439351081848,
+        0.4897562265396118,
+        0.3622555136680603
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.11935308575630188,
+       "cosEnglish": 0.30584031343460083,
+       "perSentenceCosDub": [
+        0.07828938215970993,
+        0.10509958118200302,
+        0.11845839768648148
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Next City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 0.9508196721311475
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.983606557377049
+      },
+      "omnivoice": {
+       "cosDub": 0.7822,
+       "cosEnglishCond": 0.0263,
+       "asr": [
+        {
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "jackie-welles": {
+      "dubVsEnglishRef": 0.3115217387676239,
+      "dubAsrSimilarity": 0.97,
+      "a": {
+       "cosDub": 0.544029951095581,
+       "cosEnglish": 0.21948237717151642,
+       "perSentenceCosDub": [
+        0.5158905982971191,
+        0.4983607828617096,
+        0.44506996870040894
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.4137110412120819,
+       "cosEnglish": 0.44960588216781616,
+       "perSentenceCosDub": [
+        0.4242594540119171,
+        0.363014280796051,
+        0.27441513538360596
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.7971,
+       "cosEnglishCond": 0.4062,
+       "asr": [
+        {
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "resident-female": {
+      "dubVsEnglishRef": 0.05911431089043617,
+      "dubAsrSimilarity": 1.0,
+      "a": {
+       "cosDub": 0.5585191249847412,
+       "cosEnglish": 0.14344269037246704,
+       "perSentenceCosDub": [
+        0.46985310316085815,
+        0.49602246284484863,
+        0.18177345395088196
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.32917463779449463,
+       "cosEnglish": 0.3313324749469757,
+       "perSentenceCosDub": [
+        0.08620923012495041,
+        0.2621827721595764,
+        0.10726650059223175
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.8337,
+       "cosEnglishCond": 0.1735,
+       "asr": [
+        {
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "v-male": {
+      "dubVsEnglishRef": 0.22760295867919922,
+      "dubAsrSimilarity": 0.9795918367346939,
+      "a": {
+       "cosDub": 0.6684660911560059,
+       "cosEnglish": 0.2013944685459137,
+       "perSentenceCosDub": [
+        0.5119933485984802,
+        0.6110419034957886,
+        0.4697999060153961
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen?",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "b": {
+       "cosDub": 0.3596872091293335,
+       "cosEnglish": 0.26216694712638855,
+       "perSentenceCosDub": [
+        0.3769034445285797,
+        0.35998719930648804,
+        0.2500612139701843
+       ],
+       "asr": [
+        {
+         "text": "Hallo, lange nicht gesehen.",
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "heard": "Night City, ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Wohin willst du zuerst?",
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      },
+      "omnivoice": {
+       "cosDub": 0.7859,
+       "cosEnglishCond": 0.3534,
+       "asr": [
+        {
+         "heard": "Hallo, lange nicht gesehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City ist heute Nacht ruhig. Lass uns etwas trinken gehen.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Wohin willst du zuerst?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     }
+    },
+    "summary": {
+     "lang": "german",
+     "threads": 4,
+     "loadS": 0.7319833999990806,
+     "paramsM": 109.501826,
+     "rssStartMB": 354.402304,
+     "rssLoadedMB": 800.100352,
+     "rssPeakMB": 920.899584,
+     "rssAfterUseMB": 914.558976,
+     "rssAfterUnloadMB": 860.848128,
+     "peakWorkingSetMB": 1366.122496
+    },
+    "timing": [
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2364.844300000186,
+      "ttfaMs": 118.92900000020745,
+      "wallS": 0.8128242999991926,
+      "audioS": 1.68,
+      "rtf": 0.4838239880947575,
+      "cores": 2.191433007110847
+     },
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2364.844300000186,
+      "ttfaMs": 129.5391000003292,
+      "wallS": 1.3466676999996707,
+      "audioS": 3.2,
+      "rtf": 0.4208336562498971,
+      "cores": 2.0072694993729048
+     },
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2364.844300000186,
+      "ttfaMs": 102.08670000065467,
+      "wallS": 0.7429534000002604,
+      "audioS": 1.68,
+      "rtf": 0.4422341666668217,
+      "cores": 2.4185568031580043
+     },
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2522.581600000194,
+      "ttfaMs": 135.48810000065714,
+      "wallS": 1.2927687000010337,
+      "audioS": 1.68,
+      "rtf": 0.7695051785720439,
+      "cores": 2.0184391840535074
+     },
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2522.581600000194,
+      "ttfaMs": 224.10320000017236,
+      "wallS": 2.0127876000005926,
+      "audioS": 3.2,
+      "rtf": 0.6289961250001852,
+      "cores": 1.8320363261373998
+     },
+     {
+      "lang": "german",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2522.581600000194,
+      "ttfaMs": 114.83799999950861,
+      "wallS": 0.8415217999991,
+      "audioS": 1.68,
+      "rtf": 0.5009058333327977,
+      "cores": 2.320944032587259
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2179.09089999921,
+      "ttfaMs": 145.1305999999022,
+      "wallS": 1.0295576000007713,
+      "audioS": 2.4,
+      "rtf": 0.42898233333365476,
+      "cores": 2.1550518397400378
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2179.09089999921,
+      "ttfaMs": 140.6502999998338,
+      "wallS": 1.6834194000002753,
+      "audioS": 4.0,
+      "rtf": 0.42085485000006884,
+      "cores": 1.9677211751269221
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2179.09089999921,
+      "ttfaMs": 100.69599999951606,
+      "wallS": 0.7976421000003029,
+      "audioS": 1.76,
+      "rtf": 0.45320573863653574,
+      "cores": 2.331089344455733
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2600.040199999057,
+      "ttfaMs": 106.33360000065295,
+      "wallS": 1.1673329000004742,
+      "audioS": 2.24,
+      "rtf": 0.521130758928783,
+      "cores": 2.021167226588955
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2600.040199999057,
+      "ttfaMs": 173.7553000002663,
+      "wallS": 1.86659470000086,
+      "audioS": 4.4,
+      "rtf": 0.4242260681820136,
+      "cores": 1.967151733581108
+     },
+     {
+      "lang": "german",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2600.040199999057,
+      "ttfaMs": 110.99339999964286,
+      "wallS": 0.9353288999991491,
+      "audioS": 1.76,
+      "rtf": 0.5314368749995165,
+      "cores": 2.205106674242479
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 1692.6662000005308,
+      "ttfaMs": 120.99549999948067,
+      "wallS": 1.0494177999989915,
+      "audioS": 2.4,
+      "rtf": 0.4372574166662465,
+      "cores": 2.1291567572058976
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 1692.6662000005308,
+      "ttfaMs": 146.52290000049106,
+      "wallS": 1.6986369000005652,
+      "audioS": 3.92,
+      "rtf": 0.43332573979606254,
+      "cores": 1.986887250594213
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 1692.6662000005308,
+      "ttfaMs": 110.62200000014855,
+      "wallS": 0.7822546000006696,
+      "audioS": 1.84,
+      "rtf": 0.42513836956558126,
+      "cores": 2.33699488631762
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 1709.6204000008584,
+      "ttfaMs": 138.21959999950195,
+      "wallS": 1.2979780999994546,
+      "audioS": 2.4,
+      "rtf": 0.5408242083331061,
+      "cores": 2.0103382329802764
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 1709.6204000008584,
+      "ttfaMs": 156.92200000012235,
+      "wallS": 1.6453184999991208,
+      "audioS": 4.24,
+      "rtf": 0.3880468160375285,
+      "cores": 1.8898316648124125
+     },
+     {
+      "lang": "german",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 1709.6204000008584,
+      "ttfaMs": 91.98020000076212,
+      "wallS": 0.6624542999998084,
+      "audioS": 1.84,
+      "rtf": 0.3600295108694611,
+      "cores": 2.3350667359249497
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2825.529199999437,
+      "ttfaMs": 92.1554999986256,
+      "wallS": 0.6587405999998737,
+      "audioS": 1.92,
+      "rtf": 0.34309406249993424,
+      "cores": 2.4193893620649853
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2825.529199999437,
+      "ttfaMs": 122.63119999988703,
+      "wallS": 1.0254067000005307,
+      "audioS": 3.2,
+      "rtf": 0.32043959375016584,
+      "cores": 2.0571106079167496
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2825.529199999437,
+      "ttfaMs": 90.64450000005309,
+      "wallS": 0.5824559000011504,
+      "audioS": 1.76,
+      "rtf": 0.33094085227338094,
+      "cores": 2.602128332800829
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 3069.178900001134,
+      "ttfaMs": 88.80780000072264,
+      "wallS": 0.6683589000003849,
+      "audioS": 2.0,
+      "rtf": 0.33417945000019245,
+      "cores": 2.501462911616853
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 3069.178900001134,
+      "ttfaMs": 121.3741999999911,
+      "wallS": 1.321231899999475,
+      "audioS": 4.0,
+      "rtf": 0.33030797499986875,
+      "cores": 2.0577386906878954
+     },
+     {
+      "lang": "german",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 3069.178900001134,
+      "ttfaMs": 93.39720000025409,
+      "wallS": 0.6118587999990268,
+      "audioS": 1.76,
+      "rtf": 0.3476470454539925,
+      "cores": 2.5026198855069755
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "a",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 2022.97229999931,
+      "ttfaMs": 89.67130000019097,
+      "wallS": 0.7421049000004132,
+      "audioS": 2.16,
+      "rtf": 0.3435670833335246,
+      "cores": 2.2528823081468254
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 2022.97229999931,
+      "ttfaMs": 119.46389999866369,
+      "wallS": 1.2222060999993118,
+      "audioS": 3.76,
+      "rtf": 0.3250548138296042,
+      "cores": 2.0838343058518807
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "a",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 2022.97229999931,
+      "ttfaMs": 91.01129999908153,
+      "wallS": 0.6240596999996342,
+      "audioS": 1.76,
+      "rtf": 0.35457937499979214,
+      "cores": 2.553842204521353
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "b",
+      "n": 1,
+      "text": "Hallo, lange nicht gesehen.",
+      "refPrepMs": 1882.5005000016972,
+      "ttfaMs": 89.60219999971741,
+      "wallS": 0.7266762999988714,
+      "audioS": 2.16,
+      "rtf": 0.33642421296244046,
+      "cores": 2.408224955186674
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City ist heute Nacht ruhig, lass uns etwas trinken gehen.",
+      "refPrepMs": 1882.5005000016972,
+      "ttfaMs": 119.528100000025,
+      "wallS": 1.3736507000012352,
+      "audioS": 4.24,
+      "rtf": 0.3239742216984045,
+      "cores": 2.013339344563733
+     },
+     {
+      "lang": "german",
+      "key": "v-male",
+      "cond": "b",
+      "n": 3,
+      "text": "Wohin willst du zuerst?",
+      "refPrepMs": 1882.5005000016972,
+      "ttfaMs": 88.47939999941445,
+      "wallS": 0.6058661000006396,
+      "audioS": 1.76,
+      "rtf": 0.34424210227309066,
+      "cores": 2.450005042365686
+     }
+    ]
+   },
+   "spanish": {
+    "pack": "es-es",
+    "sentences": [
+     "Hola, cuánto tiempo sin verte.",
+     "Night City está tranquila esta noche, vamos a tomar algo.",
+     "¿Adónde quieres ir primero?"
+    ],
+    "voices": {
+     "panam-palmer": {
+      "dubVsEnglishRef": 0.03154170140624046,
+      "dubAsrSimilarity": 1.0,
+      "a": {
+       "cosDub": 0.5019077658653259,
+       "cosEnglish": 0.12539184093475342,
+       "perSentenceCosDub": [
+        0.3322979807853699,
+        0.4240424931049347,
+        0.4081186056137085
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mijeti está tranquila esta noche, vamos a tomar algo.",
+         "similarity": 0.8727272727272728
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿a dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9447552447552447
+      },
+      "b": {
+       "cosDub": 0.22502222657203674,
+       "cosEnglish": 0.2494478076696396,
+       "perSentenceCosDub": [
+        0.10338837653398514,
+        0.08768189698457718,
+        0.17427769303321838
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, ¿cuánto tiempo sin verte?",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Nick City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9454545454545454
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "a donde quieres ir primero.",
+         "similarity": 0.9230769230769231
+        }
+       ],
+       "asrMean": 0.9561771561771563
+      },
+      "omnivoice": {
+       "cosDub": 0.8035,
+       "cosEnglishCond": 0.0469,
+       "asr": [
+        {
+         "heard": "Hola, ¿cuánto tiempo sin verte?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9871794871794872
+      }
+     },
+     "judy-alvarez": {
+      "dubVsEnglishRef": 0.3513535261154175,
+      "dubAsrSimilarity": 0.9802631578947368,
+      "a": {
+       "cosDub": 0.4348064661026001,
+       "cosEnglish": 0.18766717612743378,
+       "perSentenceCosDub": [
+        0.3484495282173157,
+        0.4144148826599121,
+        0.3823434114456177
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mic City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9272727272727272
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9629370629370629
+      },
+      "b": {
+       "cosDub": 0.16150303184986115,
+       "cosEnglish": 0.322934091091156,
+       "perSentenceCosDub": [
+        0.19743318855762482,
+        0.0860174149274826,
+        0.16024184226989746
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Nichit, está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9090909090909091
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.956876456876457
+      },
+      "omnivoice": {
+       "cosDub": 0.7746,
+       "cosEnglishCond": 0.3508,
+       "asr": [
+        {
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9871794871794872
+      }
+     },
+     "jackie-welles": {
+      "dubVsEnglishRef": 0.2827410101890564,
+      "dubAsrSimilarity": 0.9387755102040817,
+      "a": {
+       "cosDub": 0.6592585444450378,
+       "cosEnglish": 0.23809370398521423,
+       "perSentenceCosDub": [
+        0.6291981339454651,
+        0.5263328552246094,
+        0.5596662759780884
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mi city está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9272727272727272
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9629370629370629
+      },
+      "b": {
+       "cosDub": 0.43066003918647766,
+       "cosEnglish": 0.3254190981388092,
+       "perSentenceCosDub": [
+        0.38687047362327576,
+        0.36701226234436035,
+        0.3527648448944092
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mic City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9272727272727272
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9629370629370629
+      },
+      "omnivoice": {
+       "cosDub": 0.8346,
+       "cosEnglishCond": 0.3734,
+       "asr": [
+        {
+         "heard": "Hola, ¿cuánto tiempo sin verte?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9871794871794872
+      }
+     },
+     "resident-female": {
+      "dubVsEnglishRef": 0.08806560933589935,
+      "dubAsrSimilarity": 0.9744897959183674,
+      "a": {
+       "cosDub": 0.5248119831085205,
+       "cosEnglish": 0.06028377264738083,
+       "perSentenceCosDub": [
+        0.389879047870636,
+        0.5105371475219727,
+        0.4726831614971161
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mi Head City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9122807017543859
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9579397210976158
+      },
+      "b": {
+       "cosDub": 0.3099015951156616,
+       "cosEnglish": 0.20045821368694305,
+       "perSentenceCosDub": [
+        0.11366520076990128,
+        0.29213857650756836,
+        0.29338595271110535
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, ¿cuánto tiempo sin verte?",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mi Heat City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9298245614035088
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.96378767431399
+      },
+      "omnivoice": {
+       "cosDub": 0.7686,
+       "cosEnglishCond": 0.098,
+       "asr": [
+        {
+         "heard": "Hola, ¿cuánto tiempo sin verte?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila no sé esta noche. Vamos a tomar algo.",
+         "similarity": 0.9016393442622951
+        },
+        {
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9543926019335855
+      }
+     },
+     "v-male": {
+      "dubVsEnglishRef": 0.22874900698661804,
+      "dubAsrSimilarity": 1.0,
+      "a": {
+       "cosDub": 0.6005188822746277,
+       "cosEnglish": 0.08962416648864746,
+       "perSentenceCosDub": [
+        0.562009871006012,
+        0.5528491139411926,
+        0.5514004826545715
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mi Hitsity está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9090909090909091
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.956876456876457
+      },
+      "b": {
+       "cosDub": 0.25792399048805237,
+       "cosEnglish": 0.23333445191383362,
+       "perSentenceCosDub": [
+        0.16167858242988586,
+        0.29596635699272156,
+        0.21215078234672546
+       ],
+       "asr": [
+        {
+         "text": "Hola, cuánto tiempo sin verte.",
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+         "heard": "Mi Heat City, está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 0.9298245614035088
+        },
+        {
+         "text": "¿Adónde quieres ir primero?",
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.96378767431399
+      },
+      "omnivoice": {
+       "cosDub": 0.886,
+       "cosEnglishCond": 0.193,
+       "asr": [
+        {
+         "heard": "Hola, cuánto tiempo sin verte.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila esta noche. Vamos a tomar algo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "¿A dónde quieres ir primero?",
+         "similarity": 0.9615384615384616
+        }
+       ],
+       "asrMean": 0.9871794871794872
+      }
+     }
+    },
+    "summary": {
+     "lang": "spanish",
+     "threads": 4,
+     "loadS": 0.7218776999998227,
+     "paramsM": 109.501826,
+     "rssStartMB": 354.103296,
+     "rssLoadedMB": 799.1296,
+     "rssPeakMB": 956.06784,
+     "rssAfterUseMB": 919.220224,
+     "rssAfterUnloadMB": 870.11328,
+     "peakWorkingSetMB": 1391.603712
+    },
+    "timing": [
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2052.7404000004026,
+      "ttfaMs": 95.8346999996138,
+      "wallS": 0.6199829999986832,
+      "audioS": 1.76,
+      "rtf": 0.35226306818107,
+      "cores": 2.419421177682591
+     },
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2052.7404000004026,
+      "ttfaMs": 110.78380000071775,
+      "wallS": 0.9584463999999571,
+      "audioS": 2.88,
+      "rtf": 0.332793888888874,
+      "cores": 2.135617599481924
+     },
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2052.7404000004026,
+      "ttfaMs": 94.26989999883517,
+      "wallS": 0.503467599999567,
+      "audioS": 1.44,
+      "rtf": 0.3496302777774771,
+      "cores": 2.7620943234503987
+     },
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2005.8360000002722,
+      "ttfaMs": 210.56870000029448,
+      "wallS": 1.5286560999993526,
+      "audioS": 2.24,
+      "rtf": 0.6824357589282823,
+      "cores": 1.850072753447422
+     },
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2005.8360000002722,
+      "ttfaMs": 165.30600000078266,
+      "wallS": 2.2112293999998656,
+      "audioS": 3.44,
+      "rtf": 0.6427992441860074,
+      "cores": 1.844279476385511
+     },
+     {
+      "lang": "spanish",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2005.8360000002722,
+      "ttfaMs": 151.68249999987893,
+      "wallS": 0.7389815999995335,
+      "audioS": 1.28,
+      "rtf": 0.5773293749996355,
+      "cores": 2.3046920248096505
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2406.997500000216,
+      "ttfaMs": 98.48980000060692,
+      "wallS": 1.0010689999999158,
+      "audioS": 2.48,
+      "rtf": 0.40365685483867575,
+      "cores": 2.169555744908875
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2406.997500000216,
+      "ttfaMs": 114.15649999980815,
+      "wallS": 1.4770248000004358,
+      "audioS": 4.08,
+      "rtf": 0.362015882353048,
+      "cores": 1.957059217962452
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2406.997500000216,
+      "ttfaMs": 91.85969999998633,
+      "wallS": 0.6220940000002884,
+      "audioS": 2.0,
+      "rtf": 0.3110470000001442,
+      "cores": 2.436327950437229
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2223.2521999994788,
+      "ttfaMs": 90.54789999936474,
+      "wallS": 0.8868837999998505,
+      "audioS": 2.96,
+      "rtf": 0.2996229054053549,
+      "cores": 2.2374689897372515
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2223.2521999994788,
+      "ttfaMs": 103.45320000124048,
+      "wallS": 1.4616126000000804,
+      "audioS": 4.96,
+      "rtf": 0.29467995967743554,
+      "cores": 2.0204567202005768
+     },
+     {
+      "lang": "spanish",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2223.2521999994788,
+      "ttfaMs": 127.09469999936118,
+      "wallS": 0.8588798000000679,
+      "audioS": 2.48,
+      "rtf": 0.3463225000000274,
+      "cores": 2.21946074409929
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 1478.6462000010943,
+      "ttfaMs": 100.83230000054755,
+      "wallS": 0.8754930000013701,
+      "audioS": 2.72,
+      "rtf": 0.32187242647109193,
+      "cores": 2.266580086873218
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 1478.6462000010943,
+      "ttfaMs": 106.31089999878895,
+      "wallS": 1.2393639000001713,
+      "audioS": 4.16,
+      "rtf": 0.2979240144231181,
+      "cores": 2.1054147212127443
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 1478.6462000010943,
+      "ttfaMs": 88.41010000105598,
+      "wallS": 0.601240100000723,
+      "audioS": 1.84,
+      "rtf": 0.3267609239134364,
+      "cores": 2.3908917585474945
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 1341.6717000000062,
+      "ttfaMs": 88.24060000006284,
+      "wallS": 0.9004550999998173,
+      "audioS": 3.04,
+      "rtf": 0.2962023355262557,
+      "cores": 2.2384514230641916
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 1341.6717000000062,
+      "ttfaMs": 101.51589999986754,
+      "wallS": 1.2798495999995794,
+      "audioS": 4.48,
+      "rtf": 0.28568071428562036,
+      "cores": 2.087647642348662
+     },
+     {
+      "lang": "spanish",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 1341.6717000000062,
+      "ttfaMs": 87.95520000057877,
+      "wallS": 0.7395366000000649,
+      "audioS": 2.16,
+      "rtf": 0.3423780555555856,
+      "cores": 2.366346709547366
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 3211.7295999996713,
+      "ttfaMs": 91.81660000103875,
+      "wallS": 0.7499645000007149,
+      "audioS": 2.48,
+      "rtf": 0.3024050403228689,
+      "cores": 2.3542781024946073
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 3211.7295999996713,
+      "ttfaMs": 105.58900000069116,
+      "wallS": 1.164938700001585,
+      "audioS": 3.92,
+      "rtf": 0.2971782397963227,
+      "cores": 2.078972052346364
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 3211.7295999996713,
+      "ttfaMs": 93.98790000159352,
+      "wallS": 0.6791140000004816,
+      "audioS": 2.24,
+      "rtf": 0.30317589285735785,
+      "cores": 2.4848552673024016
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2861.8470999990677,
+      "ttfaMs": 91.58580000075744,
+      "wallS": 0.7503959999994549,
+      "audioS": 2.48,
+      "rtf": 0.3025790322578447,
+      "cores": 2.394569000902597
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2861.8470999990677,
+      "ttfaMs": 105.48500000004424,
+      "wallS": 1.217248599999948,
+      "audioS": 4.16,
+      "rtf": 0.292607836538449,
+      "cores": 2.0923211577323717
+     },
+     {
+      "lang": "spanish",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2861.8470999990677,
+      "ttfaMs": 93.11890000026324,
+      "wallS": 0.6694702999993751,
+      "audioS": 2.16,
+      "rtf": 0.3099399537034144,
+      "cores": 2.473970839336033
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "a",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 2145.3416000003926,
+      "ttfaMs": 89.93759999975737,
+      "wallS": 0.8707002999999531,
+      "audioS": 2.88,
+      "rtf": 0.30232649305553927,
+      "cores": 2.189329669462733
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 2145.3416000003926,
+      "ttfaMs": 102.59729999961564,
+      "wallS": 1.146746999998868,
+      "audioS": 3.92,
+      "rtf": 0.29253749999971124,
+      "cores": 2.111952331248646
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "a",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 2145.3416000003926,
+      "ttfaMs": 89.5001000008051,
+      "wallS": 0.5831964000008156,
+      "audioS": 1.84,
+      "rtf": 0.31695456521783455,
+      "cores": 2.4112803165417915
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "b",
+      "n": 1,
+      "text": "Hola, cuánto tiempo sin verte.",
+      "refPrepMs": 1794.7317999987717,
+      "ttfaMs": 88.67839999948046,
+      "wallS": 0.7651550999999017,
+      "audioS": 2.56,
+      "rtf": 0.2988887109374616,
+      "cores": 2.3483800865997373
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila esta noche, vamos a tomar algo.",
+      "refPrepMs": 1794.7317999987717,
+      "ttfaMs": 104.33550000016112,
+      "wallS": 1.3266029000005801,
+      "audioS": 4.56,
+      "rtf": 0.2909216885966185,
+      "cores": 2.0258511420401875
+     },
+     {
+      "lang": "spanish",
+      "key": "v-male",
+      "cond": "b",
+      "n": 3,
+      "text": "¿Adónde quieres ir primero?",
+      "refPrepMs": 1794.7317999987717,
+      "ttfaMs": 87.2999000002892,
+      "wallS": 0.647676100001263,
+      "audioS": 2.16,
+      "rtf": 0.299850046296881,
+      "cores": 2.484845434310239
+     }
+    ]
+   },
+   "portuguese": {
+    "pack": "pt-br",
+    "sentences": [
+     "Oi, quanto tempo.",
+     "Night City está tranquila hoje, vamos tomar um drink.",
+     "Aonde você quer ir primeiro?"
+    ],
+    "voices": {
+     "panam-palmer": {
+      "dubVsEnglishRef": -0.03255203366279602,
+      "dubAsrSimilarity": 0.9441340782122905,
+      "a": {
+       "cosDub": 0.4638656973838806,
+       "cosEnglish": 0.05341268703341484,
+       "perSentenceCosDub": [
+        0.36313897371292114,
+        0.36499103903770447,
+        0.14686058461666107
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nicty, Kit está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.9019607843137255
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Onde você quer ir primeiro?",
+         "similarity": 0.962962962962963
+        }
+       ],
+       "asrMean": 0.9549745824255629
+      },
+      "b": {
+       "cosDub": 0.2543709874153137,
+       "cosEnglish": 0.14609044790267944,
+       "perSentenceCosDub": [
+        0.13168267905712128,
+        0.1584913283586502,
+        0.026413677260279655
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo?",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nig Titsti, está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.9019607843137255
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9673202614379085
+      },
+      "omnivoice": {
+       "cosDub": 0.7426,
+       "cosEnglishCond": -0.0398,
+       "asr": [
+        {
+         "heard": "Oi. Quanto tempo?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "judy-alvarez": {
+      "dubVsEnglishRef": 0.19891364872455597,
+      "dubAsrSimilarity": 0.9937106918238994,
+      "a": {
+       "cosDub": 0.5362169146537781,
+       "cosEnglish": 0.13120484352111816,
+       "perSentenceCosDub": [
+        0.4709790349006653,
+        0.417766273021698,
+        0.41598668694496155
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nikti, está tranquila hoje? Vamos tomar um drink.",
+         "similarity": 0.8823529411764706
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9607843137254902
+      },
+      "b": {
+       "cosDub": 0.29841548204421997,
+       "cosEnglish": 0.27447858452796936,
+       "perSentenceCosDub": [
+        0.2520289123058319,
+        0.26062390208244324,
+        0.2562987506389618
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nig Tite está tranquila hoje? Vamos tomar um drink.",
+         "similarity": 0.9215686274509804
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9738562091503269
+      },
+      "omnivoice": {
+       "cosDub": 0.6632,
+       "cosEnglishCond": 0.2317,
+       "asr": [
+        {
+         "heard": "Oi, quanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     },
+     "jackie-welles": {
+      "dubVsEnglishRef": 0.254253625869751,
+      "dubAsrSimilarity": 0.4328358208955224,
+      "a": {
+       "cosDub": 0.40619635581970215,
+       "cosEnglish": 0.10056793689727783,
+       "perSentenceCosDub": [
+        0.3147222399711609,
+        0.36140257120132446,
+        0.40533560514450073
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi quanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Mig Titi está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.9019607843137255
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Onde você quer ir primeiro?",
+         "similarity": 0.962962962962963
+        }
+       ],
+       "asrMean": 0.9549745824255629
+      },
+      "b": {
+       "cosDub": 0.20214667916297913,
+       "cosEnglish": 0.3827937841415405,
+       "perSentenceCosDub": [
+        0.2813422679901123,
+        0.21026606857776642,
+        0.10448739677667618
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nick Titista tá tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.8235294117647058
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Onde você quer ir primeiro?",
+         "similarity": 0.962962962962963
+        }
+       ],
+       "asrMean": 0.9288307915758897
+      },
+      "omnivoice": {
+       "cosDub": 0.6535,
+       "cosEnglishCond": 0.1905,
+       "asr": [
+        {
+         "heard": "Oi, quanto tempo?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "É, Night City está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.9622641509433962
+        },
+        {
+         "heard": "Onde você quer ir primeiro?",
+         "similarity": 0.962962962962963
+        }
+       ],
+       "asrMean": 0.9750757046354531
+      }
+     },
+     "resident-female": {
+      "dubVsEnglishRef": 0.15227225422859192,
+      "dubAsrSimilarity": 0.9795918367346939,
+      "a": {
+       "cosDub": 0.5902038812637329,
+       "cosEnglish": 0.05873717740178108,
+       "perSentenceCosDub": [
+        0.31904730200767517,
+        0.4683021008968353,
+        0.3072769343852997
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo?",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Mig T-Kit está tranquila hoje? Vamos tomar um drink.",
+         "similarity": 0.9215686274509804
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9738562091503269
+      },
+      "b": {
+       "cosDub": 0.38691049814224243,
+       "cosEnglish": 0.19499795138835907,
+       "perSentenceCosDub": [
+        0.24285954236984253,
+        0.337968647480011,
+        0.29749199748039246
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nig. Está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.8627450980392157
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Onde você quer ir primeiro?",
+         "similarity": 0.962962962962963
+        }
+       ],
+       "asrMean": 0.9419026870007263
+      },
+      "omnivoice": {
+       "cosDub": 0.7279,
+       "cosEnglishCond": 0.2204,
+       "asr": [
+        {
+         "heard": "Oi, quanto tempo?",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquilo hoje. Vamos tomar um drink.",
+         "similarity": 0.9803921568627451
+        },
+        {
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9934640522875817
+      }
+     },
+     "v-male": {
+      "dubVsEnglishRef": 0.182811439037323,
+      "dubAsrSimilarity": 0.9671052631578947,
+      "a": {
+       "cosDub": 0.5057847499847412,
+       "cosEnglish": 0.18206851184368134,
+       "perSentenceCosDub": [
+        0.4455903172492981,
+        0.4159466326236725,
+        0.39444929361343384
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nick Titista está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.8679245283018868
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9559748427672957
+      },
+      "b": {
+       "cosDub": 0.4254508912563324,
+       "cosEnglish": 0.3161846995353699,
+       "perSentenceCosDub": [
+        0.36658453941345215,
+        0.34149616956710815,
+        0.22084535658359528
+       ],
+       "asr": [
+        {
+         "text": "Oi, quanto tempo.",
+         "heard": "Oi, quanto tempo!",
+         "similarity": 1.0
+        },
+        {
+         "text": "Night City está tranquila hoje, vamos tomar um drink.",
+         "heard": "Nictiki está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 0.8823529411764706
+        },
+        {
+         "text": "Aonde você quer ir primeiro?",
+         "heard": "Aonde você quer ir primeiro?",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 0.9607843137254902
+      },
+      "omnivoice": {
+       "cosDub": 0.8054,
+       "cosEnglishCond": 0.188,
+       "asr": [
+        {
+         "heard": "Oi, quanto tempo.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Night City está tranquila hoje. Vamos tomar um drink.",
+         "similarity": 1.0
+        },
+        {
+         "heard": "Aonde você quer ir? Primeiro.",
+         "similarity": 1.0
+        }
+       ],
+       "asrMean": 1.0
+      }
+     }
+    },
+    "summary": {
+     "lang": "portuguese",
+     "threads": 4,
+     "loadS": 0.7337029999998776,
+     "paramsM": 109.501826,
+     "rssStartMB": 355.0208,
+     "rssLoadedMB": 799.80544,
+     "rssPeakMB": 924.471296,
+     "rssAfterUseMB": 915.468288,
+     "rssAfterUnloadMB": 871.8336,
+     "peakWorkingSetMB": 1331.335168
+    },
+    "timing": [
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 1783.0283000002964,
+      "ttfaMs": 81.2353000001167,
+      "wallS": 0.45186649999959627,
+      "audioS": 1.44,
+      "rtf": 0.3137961805552752,
+      "cores": 2.8700401556680095
+     },
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 1783.0283000002964,
+      "ttfaMs": 110.58919999959471,
+      "wallS": 1.1242951000003814,
+      "audioS": 3.84,
+      "rtf": 0.292785182291766,
+      "cores": 2.2097178934597843
+     },
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "a",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 1783.0283000002964,
+      "ttfaMs": 87.12029999878723,
+      "wallS": 0.5569904000003589,
+      "audioS": 1.76,
+      "rtf": 0.31647181818202214,
+      "cores": 2.552781879183346
+     },
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 1873.3678000007785,
+      "ttfaMs": 83.4008999991056,
+      "wallS": 0.4225170999998227,
+      "audioS": 1.28,
+      "rtf": 0.33009148437486147,
+      "cores": 2.958460142797829
+     },
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 1873.3678000007785,
+      "ttfaMs": 110.46139999962179,
+      "wallS": 1.0094580000004498,
+      "audioS": 3.36,
+      "rtf": 0.3004339285715625,
+      "cores": 2.197961678444285
+     },
+     {
+      "lang": "portuguese",
+      "key": "panam-palmer",
+      "cond": "b",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 1873.3678000007785,
+      "ttfaMs": 85.53659999961383,
+      "wallS": 0.42347440000048664,
+      "audioS": 1.28,
+      "rtf": 0.3308393750003802,
+      "cores": 2.7672865231018764
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 2215.0120999995124,
+      "ttfaMs": 86.65000000110012,
+      "wallS": 0.5342804000010801,
+      "audioS": 1.68,
+      "rtf": 0.31802404761969055,
+      "cores": 2.7197797261457883
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 2215.0120999995124,
+      "ttfaMs": 112.47829999956593,
+      "wallS": 1.1788609999985056,
+      "audioS": 4.0,
+      "rtf": 0.2947152499996264,
+      "cores": 2.0941824354212497
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "a",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 2215.0120999995124,
+      "ttfaMs": 87.31559999978344,
+      "wallS": 0.615581399999428,
+      "audioS": 2.0,
+      "rtf": 0.307790699999714,
+      "cores": 2.563633339151356
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 2117.424600000959,
+      "ttfaMs": 82.30170000024373,
+      "wallS": 0.5205036000006658,
+      "audioS": 1.68,
+      "rtf": 0.3098235714289677,
+      "cores": 2.641672411100022
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 2117.424600000959,
+      "ttfaMs": 111.27870000018447,
+      "wallS": 1.2260984999993525,
+      "audioS": 4.16,
+      "rtf": 0.2947352163459982,
+      "cores": 2.102706267075085
+     },
+     {
+      "lang": "portuguese",
+      "key": "judy-alvarez",
+      "cond": "b",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 2117.424600000959,
+      "ttfaMs": 87.10640000026615,
+      "wallS": 0.6367633999998361,
+      "audioS": 2.08,
+      "rtf": 0.3061362499999212,
+      "cores": 2.4783538124213895
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 1323.5386000014842,
+      "ttfaMs": 82.68099999986589,
+      "wallS": 0.5403776000002836,
+      "audioS": 1.76,
+      "rtf": 0.3070327272728884,
+      "cores": 2.77583674822793
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 1323.5386000014842,
+      "ttfaMs": 108.82280000078026,
+      "wallS": 1.1140739000002213,
+      "audioS": 3.76,
+      "rtf": 0.2962962500000589,
+      "cores": 2.1177903907447533
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "a",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 1323.5386000014842,
+      "ttfaMs": 82.76590000059514,
+      "wallS": 0.6503957000004448,
+      "audioS": 2.16,
+      "rtf": 0.30110912037057624,
+      "cores": 2.4744551662916887
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 1347.521499999857,
+      "ttfaMs": 83.3954999998241,
+      "wallS": 0.5720856000007188,
+      "audioS": 1.84,
+      "rtf": 0.3109160869569124,
+      "cores": 2.512735856309255
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 1347.521499999857,
+      "ttfaMs": 109.72600000059174,
+      "wallS": 1.039480999999796,
+      "audioS": 3.52,
+      "rtf": 0.2953071022726693,
+      "cores": 2.1946048075919116
+     },
+     {
+      "lang": "portuguese",
+      "key": "jackie-welles",
+      "cond": "b",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 1347.521499999857,
+      "ttfaMs": 82.6097999997728,
+      "wallS": 0.6918580000001384,
+      "audioS": 2.32,
+      "rtf": 0.2982146551724735,
+      "cores": 2.3939160926081198
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 2500.5355999983294,
+      "ttfaMs": 81.24669999961043,
+      "wallS": 0.4634388000013132,
+      "audioS": 1.44,
+      "rtf": 0.32183250000091196,
+      "cores": 2.6972277677148697
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 2500.5355999983294,
+      "ttfaMs": 111.74270000083197,
+      "wallS": 1.1463464999997086,
+      "audioS": 3.84,
+      "rtf": 0.29852773437492414,
+      "cores": 2.017278370894479
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "a",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 2500.5355999983294,
+      "ttfaMs": 87.96170000096026,
+      "wallS": 0.5961757000004582,
+      "audioS": 1.92,
+      "rtf": 0.310508177083572,
+      "cores": 2.5422455158753285
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 2972.2048999992694,
+      "ttfaMs": 86.4689999998518,
+      "wallS": 0.5513125999987096,
+      "audioS": 1.76,
+      "rtf": 0.3132457954538123,
+      "cores": 2.6074136524421254
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 2972.2048999992694,
+      "ttfaMs": 112.85059999863734,
+      "wallS": 1.2308552999984386,
+      "audioS": 4.16,
+      "rtf": 0.29587867788424005,
+      "cores": 2.119968935425074
+     },
+     {
+      "lang": "portuguese",
+      "key": "resident-female",
+      "cond": "b",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 2972.2048999992694,
+      "ttfaMs": 84.75750000070548,
+      "wallS": 0.6639892000002874,
+      "audioS": 2.16,
+      "rtf": 0.30740240740754043,
+      "cores": 2.3061369070450803
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "a",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 2117.8441000010935,
+      "ttfaMs": 81.68110000042361,
+      "wallS": 0.4964137999995728,
+      "audioS": 1.6,
+      "rtf": 0.310258624999733,
+      "cores": 2.706915077705649
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "a",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 2117.8441000010935,
+      "ttfaMs": 115.06089999966207,
+      "wallS": 1.228634900000543,
+      "audioS": 4.16,
+      "rtf": 0.2953449278847459,
+      "cores": 2.0220612323473004
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "a",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 2117.8441000010935,
+      "ttfaMs": 86.8585999996867,
+      "wallS": 0.6035348999994312,
+      "audioS": 2.0,
+      "rtf": 0.3017674499997156,
+      "cores": 2.5371357977830993
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "b",
+      "n": 1,
+      "text": "Oi, quanto tempo.",
+      "refPrepMs": 1797.5728999990679,
+      "ttfaMs": 82.19509999980801,
+      "wallS": 1.2208391999993182,
+      "audioS": 1.68,
+      "rtf": 0.7266899999995942,
+      "cores": 2.0221745828618367
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "b",
+      "n": 2,
+      "text": "Night City está tranquila hoje, vamos tomar um drink.",
+      "refPrepMs": 1797.5728999990679,
+      "ttfaMs": 138.75709999956598,
+      "wallS": 2.3720620999993116,
+      "audioS": 4.0,
+      "rtf": 0.5930155249998279,
+      "cores": 1.798277119305282
+     },
+     {
+      "lang": "portuguese",
+      "key": "v-male",
+      "cond": "b",
+      "n": 3,
+      "text": "Aonde você quer ir primeiro?",
+      "refPrepMs": 1797.5728999990679,
+      "ttfaMs": 140.28619999953662,
+      "wallS": 1.4122423999997409,
+      "audioS": 2.08,
+      "rtf": 0.6789626923075677,
+      "cores": 2.0025776028254914
+     }
+    ]
+   }
+  }
+ },
+ "studentBaselineAndSwap": {
+  "rssImportedMB": 355,
+  "student": {
+   "loadS": 1.6091276000006474,
+   "rssLoadedMB": 799,
+   "paramsM": 109.501826,
+   "refPrepMs": 3421.6058000001794,
+   "ttfaMsMedian": 96.7464999994263,
+   "rtfMedian": 0.3805944642863323,
+   "rssAfterUseMB": 884,
+   "runs": [
+    {
+     "ttfaMs": 103.59430000062275,
+     "rtf": 0.4235872058817382,
+     "audioS": 1.36
+    },
+    {
+     "ttfaMs": 128.8300000014715,
+     "rtf": 0.3784404583340499,
+     "audioS": 2.4
+    },
+    {
+     "ttfaMs": 96.7464999994263,
+     "rtf": 0.42081192307600407,
+     "audioS": 1.04
+    },
+    {
+     "ttfaMs": 94.56479999971634,
+     "rtf": 0.4032896527772007,
+     "audioS": 1.44
+    },
+    {
+     "ttfaMs": 108.45220000010158,
+     "rtf": 0.347368060344926,
+     "audioS": 2.32
+    },
+    {
+     "ttfaMs": 88.47359999890614,
+     "rtf": 0.3970825000001591,
+     "audioS": 1.04
+    },
+    {
+     "ttfaMs": 94.66680000150518,
+     "rtf": 0.35640309210616816,
+     "audioS": 1.52
+    },
+    {
+     "ttfaMs": 114.9846999996953,
+     "rtf": 0.3580297083332577,
+     "audioS": 2.4
+    },
+    {
+     "ttfaMs": 93.63300000040908,
+     "rtf": 0.3951767307696103,
+     "audioS": 1.04
+    },
+    {
+     "ttfaMs": 90.60040000076697,
+     "rtf": 0.3565411805551675,
+     "audioS": 1.44
+    },
+    {
+     "ttfaMs": 104.77410000021337,
+     "rtf": 0.3500902678573376,
+     "audioS": 2.24
+    },
+    {
+     "ttfaMs": 91.8227999991359,
+     "rtf": 0.39388803571357905,
+     "audioS": 1.12
+    },
+    {
+     "ttfaMs": 100.26779999861901,
+     "rtf": 0.3863860156243959,
+     "audioS": 1.28
+    },
+    {
+     "ttfaMs": 111.01310000049125,
+     "rtf": 0.3404819999999139,
+     "audioS": 2.4
+    },
+    {
+     "ttfaMs": 86.78770000005898,
+     "rtf": 0.3805944642863323,
+     "audioS": 1.12
+    }
+   ],
+   "rssAfterUnloadTrimmedMB": 854
+  },
+  "swaps": [
+   {
+    "lang": "french",
+    "rssBeforeLoadMB": 854,
+    "loadS": 0.6226447999997617,
+    "rssLoadedMB": 942,
+    "rssAfterUseMB": 949,
+    "rssAfterDelMB": 935,
+    "rssAfterDelTrimmedMB": 935
+   },
+   {
+    "lang": "german",
+    "rssBeforeLoadMB": 935,
+    "loadS": 0.7659698000006756,
+    "rssLoadedMB": 892,
+    "rssAfterUseMB": 963,
+    "rssAfterDelMB": 955,
+    "rssAfterDelTrimmedMB": 955
+   },
+   {
+    "lang": "italian",
+    "rssBeforeLoadMB": 955,
+    "loadS": 1.014235300001019,
+    "rssLoadedMB": 888,
+    "rssAfterUseMB": 965,
+    "rssAfterDelMB": 927,
+    "rssAfterDelTrimmedMB": 927
+   },
+   {
+    "lang": "french",
+    "rssBeforeLoadMB": 927,
+    "loadS": 0.7464364000006753,
+    "rssLoadedMB": 864,
+    "rssAfterUseMB": 931,
+    "rssAfterDelMB": 893,
+    "rssAfterDelTrimmedMB": 893
+   }
+  ]
+ },
+ "zipBytes": {
+  "french": {
+   "public": {
+    "raw": 219029196,
+    "zip": 160132322
+   },
+   "spliced": {
+    "raw": 237478516,
+    "zip": 176619635
+   }
+  },
+  "italian": {
+   "public": {
+    "raw": 219029196,
+    "zip": 160238462
+   },
+   "spliced": {
+    "raw": 237478516,
+    "zip": 176726910
+   }
+  },
+  "german": {
+   "public": {
+    "raw": 219029196,
+    "zip": 160188133
+   },
+   "spliced": {
+    "raw": 237478516,
+    "zip": 176675547
+   }
+  },
+  "spanish": {
+   "public": {
+    "raw": 219029196,
+    "zip": 160136819
+   },
+   "spliced": {
+    "raw": 237478516,
+    "zip": 176624145
+   }
+  },
+  "portuguese": {
+   "public": {
+    "raw": 219029196,
+    "zip": 160161038
+   },
+   "spliced": {
+    "raw": 237478516,
+    "zip": 176648089
+   }
+  }
+ },
+ "nightCityRespelling": {
+  "italian": {
+   "lang": "italian",
+   "text": "Nait Siti è tranquilla stasera, andiamo a bere qualcosa.",
+   "saysName": 4,
+   "heard": [
+    "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+    "Night City è tranquilla stasera. Andiamo a bere qualcosa.",
+    "Night City è tranquilla stasera. Andiamo a bere qualcosa.",
+    "Night City è tranquilla stasera, andiamo a bere qualcosa.",
+    "Maid City è tranquilla stasera, andiamo a bere qualcosa."
+   ]
+  },
+  "portuguese": {
+   "lang": "portuguese",
+   "text": "Nait Siti está tranquila hoje, vamos tomar um drink.",
+   "saysName": 0,
+   "heard": [
+    "Naitice está tranquila hoje. Vamos tomar um drink.",
+    "Naiti é tranquila hoje? Vamos tomar um drink.",
+    "Naitície está tranquila hoje. Vamos tomar um drink.",
+    "Naititi está tranquila hoje? Vamos tomar um drink.",
+    "Naititi está tranquila hoje. Vamos tomar um drink."
+   ]
+  },
+  "pt_NaitCiti": {
+   "lang": "portuguese",
+   "text": "Nait Citi está tranquila hoje, vamos tomar um drink.",
+   "saysName": 0,
+   "heard": [
+    "Naite City está tranquila hoje. Vamos tomar um drink.",
+    "Nike City está tranquila hoje. Vamos tomar um drink.",
+    "Naiti está tranquila hoje. Vamos tomar um drink.",
+    "Naite, se te está tranquila hoje? Vamos tomar um drink.",
+    "Naiti está tranquila hoje. Vamos tomar um drink."
+   ]
+  },
+  "pt_NitSti": {
+   "lang": "portuguese",
+   "text": "Náit Síti está tranquila hoje, vamos tomar um drink.",
+   "saysName": 4,
+   "heard": [
+    "Night City está tranquila hoje. Vamos tomar um drink.",
+    "Night City está tranquila hoje? Vamos tomar um drink.",
+    "Night City está tranquila hoje. Vamos tomar um drink.",
+    "Naite City está tranquila hoje. Vamos tomar um drink.",
+    "Night City está tranquila hoje? Vamos tomar um drink."
+   ]
+  },
+  "spanish": {
+   "lang": "spanish",
+   "text": "Nait Siti está tranquila esta noche, vamos a tomar algo.",
+   "saysName": 5,
+   "heard": [
+    "Night City está tranquila esta noche. Vamos a tomar algo.",
+    "Night City está tranquila esta noche. Vamos a tomar algo.",
+    "Night City está tranquila esta noche. Vamos a tomar algo.",
+    "Night City está tranquila esta noche, vamos a tomar algo.",
+    "Night City está tranquila esta noche, vamos a tomar algo."
+   ]
+  }
+ }
+}

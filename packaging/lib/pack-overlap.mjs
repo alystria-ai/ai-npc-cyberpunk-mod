@@ -31,6 +31,12 @@ export const PACK_OWN_TREES = Object.freeze([`${PLUGIN}/app/omni/python/`, `${PL
 // Runtime update must never touch a pack's clips), and nothing deletes in it (packaging/runtime/apply-removals.mjs protects it).
 export const LANGUAGE_PACK_TREE = `${PLUGIN}/voices/multilingual/`;
 export const LANGUAGE_PACK_NAME = 'Voice language packs';
+// The Pocket language models (docs/POCKET_LANGUAGE_MODELS.md) extract into voices/multilingual-pocket/<lang>/, one optional zip per language: their tree is theirs alone in the same way.
+export const POCKET_MODEL_TREE = `${PLUGIN}/voices/multilingual-pocket/`;
+export const POCKET_MODEL_NAME = 'Pocket language models';
+/** The pack-owned tree a path is in ({tree, name}), or null. */
+export const packTreeOf = path => [[LANGUAGE_PACK_TREE, LANGUAGE_PACK_NAME], [POCKET_MODEL_TREE, POCKET_MODEL_NAME]]
+  .map(([tree, name]) => ({tree, name})).find(({tree}) => String(path).toLowerCase().startsWith(tree.toLowerCase())) ?? null;
 
 // Files of the 0.2.1 Runtime that nothing in it uses (neither its Pocket list nor its OmniVoice lists point at them: both use voices/picked/autobest)
 // and that the OmniVoice pack carries too, with the same bytes, for its own older lists. Harmless, but Windows still asks about them, so a
@@ -87,7 +93,7 @@ export function validateListing(listing) {
 export function compareWithPacks(files, listing) {
   const identical = [], different = [], inPackTrees = [];
   // The voice language packs' tree is pack-owned whether or not the listing knows a pack that writes there: any file of a Runtime or Scripts zip in it is refused.
-  for (const file of files) if (file.path.toLowerCase().startsWith(LANGUAGE_PACK_TREE.toLowerCase())) inPackTrees.push({pack: LANGUAGE_PACK_NAME, path: file.path});
+  for (const file of files) { const tree = packTreeOf(file.path); if (tree) inPackTrees.push({pack: tree.name, path: file.path}); }
   for (const pack of listing.packs) {
     const known = new Map(pack.files.map(([path, size, crc]) => [path.toLowerCase(), {size, crc}]));
     for (const file of files) {

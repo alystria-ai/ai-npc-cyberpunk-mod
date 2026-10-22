@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+from collections import OrderedDict
 from contextlib import redirect_stdout
+import gc
 import json
 import os
 from pathlib import Path
@@ -20,8 +22,8 @@ import time
 
 from pocket_voice_runtime import (
     MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
-    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, apply_voices, cpu_environment, read_json, spelled_inside, text_valid,
-    usvfs_active, validate_config,
+    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, add_language_voices, apply_voices, cpu_environment, inspect_language_export,
+    language_valid, new_language_registry, read_json, spelled_inside, text_valid, usvfs_active, validate_config,
 )
 
 
@@ -198,7 +200,7 @@ class Commands:
                             self.ack.set()
                         elif request_id > self.last_id:
                             raise ValueError("Pocket acknowledgement has no owner")
-                    elif op in ("prepare", "stream", "voices"):
+                    elif op in ("prepare", "stream", "voices", "language"):
                         if request_id <= self.last_id or self.active is not None or self.pending is not None:
                             raise ValueError("Pocket accepts one serial command at a time")
                         self.pending = request_id
@@ -530,9 +532,89 @@ def main():
                     "parameterDtypes": dtypes, "sourceRevision": SOURCE_REVISION,
                     "sourceSha256": SOURCE_SHA256, "model": registry["raw"]["model"]}
 
+        # Language models (docs/POCKET_LANGUAGE_MODELS.md). One model is resident at a time: the English student, or the model of one language, swapped
+        # in place by the `language` command. The English registry and its prepared voices are kept while a language is active (a prepared state is
+        # plain tensors of the English weights, which are loaded again from the same file), so going back costs the model load and nothing else.
+        lang = {"tag": None, "registry": None, "cache": None, "sha256": None}
+        # The prepared voices (plain tensors, tied to the language model's weights and the clip's hash) of the last languages left, so going back to one does not encode its
+        # clips again. Bounded: a few states of the last LANGUAGE_STASH languages, and nothing else of a language survives a swap.
+        stash = OrderedDict()
+        LANGUAGE_STASH = 2
+
+        def view():
+            return (lang["registry"], lang["cache"]) if lang["tag"] else (registry, cache)
+
         def profiles():
+            reg, held = view()
+            return {"profiles": sorted(reg["refs"]), "preparedProfiles": held.prepared(),
+                    "unavailableProfiles": dict(reg["unavailable"]), "language": lang["tag"]}
+
+        def english_profiles():
             return {"profiles": sorted(registry["refs"]), "preparedProfiles": cache.prepared(),
-                    "unavailableProfiles": dict(registry["unavailable"])}
+                    "unavailableProfiles": dict(registry["unavailable"]), "language": lang["tag"]}
+
+        def load_model(config):
+            # The relocated YAML belongs to this load only (the same way the student was loaded at start).
+            with tempfile.TemporaryDirectory(prefix=f"pocket-{args.owner}-", dir=registry["paths"]["workDirectory"]) as temporary:
+                relocated_path = Path(temporary) / "inference.yaml"
+                relocated_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+                loaded = TTSModel.load_model(config=relocated_path, temp=registry["temperature"],
+                                             sampler_decode_steps=1, eos_threshold=-1.0, noise_clamp=None)
+            if not loaded.has_voice_cloning or loaded.sample_rate != 24000:
+                raise RuntimeError("Pocket export lacks the expected reference-conditioned audio")
+            require_cpu_float32(torch, loaded)
+            return loaded
+
+        def switch_language(request):
+            """Makes request["language"] (None: the English student) the resident model, or adds voices to the language already resident.
+            The files are verified before anything is dropped, so a refused model leaves the resident one as it was. The old model is released
+            before the new one is read, so the process never holds two (a swap measured flat at about 0.9 GB; deleting a model frees little to the
+            operating system, but its memory is reused by the next one)."""
+            nonlocal model
+            target = request.get("language")
+            if target is not None and not language_valid(target):
+                raise ValueError("Pocket has no model for this language")
+            if target == lang["tag"]:
+                if target:
+                    add_language_voices(lang["registry"], request.get("voices", {}))
+                return 0.0
+            started_at = time.perf_counter()
+            config = None
+            if target:
+                config = inspect_language_export(registry["paths"], target, request.get("expected"), yaml_load=yaml.safe_load)
+            if lang["tag"] and lang["cache"].states:
+                stash[lang["tag"]] = (lang["sha256"], {key: (lang["registry"]["descriptors"][key]["sha256"], state)
+                                                       for key, state in lang["cache"].states.items() if key in lang["registry"]["descriptors"]})
+                stash.move_to_end(lang["tag"])
+                while len(stash) > LANGUAGE_STASH:
+                    stash.popitem(last=False)
+            model = None
+            lang["tag"] = None
+            lang["registry"] = lang["cache"] = lang["sha256"] = None
+            gc.collect()
+            try:
+                model = load_model(config if target else registry["inference"])
+            except Exception:
+                if target:
+                    # The student is put back: a language that would not load never leaves the worker without a voice.
+                    model = None
+                    gc.collect()
+                    model = load_model(registry["inference"])
+                raise
+            if target:
+                lang["tag"], lang["sha256"] = target, request["expected"]["sha256"]
+                lang["registry"] = new_language_registry(registry, target, lang["sha256"])
+                lang_store = PreparedVoiceStore(registry["paths"]["workDirectory"] / "prepared-voices" / f"lang-{target}", lang["sha256"],
+                                                SOURCE_SHA256, save_state, load_state)
+                lang["cache"] = ReferenceCache(lang["registry"], lambda path: model.get_state_for_audio_prompt(path, truncate=False), store=lang_store)
+                add_language_voices(lang["registry"], request.get("voices", {}))
+                kept = stash.pop(target, None)
+                if kept and kept[0] == lang["sha256"]:
+                    for key, (reference_sha256, state) in kept[1].items():
+                        descriptor = lang["registry"]["descriptors"].get(key)
+                        if key in lang["registry"]["refs"] and descriptor and descriptor["sha256"] == reference_sha256:
+                            lang["cache"].states[key] = state
+            return (time.perf_counter() - started_at) * 1000
 
         started.set()
         lower_priority()   # ready: from now on the game's own threads win any contested core, except while a reply is being voiced (PriorityGate)
@@ -547,6 +629,31 @@ def main():
                 gate.settle()
                 continue
             request_id, key = request["id"], request.get("profile")
+            if request["op"] == "language":
+                # Serial like every other command, so it never lands in the middle of a reply. Urgent when a reply waits on it.
+                commands.begin(request_id)
+                if request.get("urgent") is True:
+                    gate.request()
+                try:
+                    with redirect_stdout(sys.stderr):
+                        load_ms = switch_language(request)
+                    commands.finish(request_id)
+                    reg, _held = view()
+                    send({"op": "language", "id": request_id, "loadMs": load_ms, **profiles(),
+                          "referenceHashes": {name: reg["descriptors"][name]["sha256"] for name in reg["refs"]}})
+                except Exception as error:
+                    print(f"Pocket language change refused: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+                    commands.finish(request_id)
+                    if model is None:
+                        raise
+                    reason = f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}"[:200]
+                    send({"op": "error", "id": request_id, "message": "Pocket language model could not be loaded.",
+                          "terminal": False, "reason": reason, **profiles()})
+                finally:
+                    commands.finish(request_id)
+                    if request.get("urgent") is True:
+                        gate.request()
+                continue
             if request["op"] == "voices":
                 # A change to the voices of a running worker (bridge/pocket-voice.mjs setVoices): serial like every other command, so it
                 # never lands in the middle of a reply. Checked as a whole first; a refused change leaves everything as it was.
@@ -555,13 +662,13 @@ def main():
                     with redirect_stdout(sys.stderr):
                         changed = apply_voices(registry, request, cache)
                     commands.finish(request_id)
-                    send({"op": "voices", "id": request_id, "changed": changed, **profiles(),
+                    send({"op": "voices", "id": request_id, "changed": changed, **english_profiles(),
                           "referenceHashes": {name: registry["descriptors"][name]["sha256"] for name in registry["refs"]}})
                 except Exception as error:
                     print(f"Pocket voice change refused: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
                     commands.finish(request_id)
                     send({"op": "error", "id": request_id, "message": "Pocket voices could not be changed.",
-                          "terminal": False, **profiles()})
+                          "terminal": False, **english_profiles()})
                 finally:
                     commands.finish(request_id)
                 continue
@@ -575,16 +682,17 @@ def main():
             timer.start()
             try:
                 commands.check()
-                if not isinstance(key, str) or key not in registry["refs"]:
+                active_registry, active_cache = view()
+                if not isinstance(key, str) or key not in active_registry["refs"]:
                     raise ValueError("Pocket voice is unavailable for this character")
                 # "keep" is the player's "Keep prepared voices" setting; absent means off (no disk cache).
                 with redirect_stdout(sys.stderr):
-                    state, preparation_ms = cache.prepare(key, keep=request.get("keep") is True)
+                    state, preparation_ms = active_cache.prepare(key, keep=request.get("keep") is True)
                 commands.check()
                 if request["op"] == "prepare":
                     commands.finish(request_id)
                     send({"op": "prepared", "id": request_id, "profile": key,
-                          "preparationMs": preparation_ms, "preparationSource": cache.last_source,
+                          "preparationMs": preparation_ms, "preparationSource": active_cache.last_source,
                           **profiles()})
                     continue
                 text = request.get("text")
@@ -606,7 +714,7 @@ def main():
                     result = stream_request(model, state, text, commands, send, request_id, key, encode_pcm)
                 commands.finish(request_id)
                 send({"op": "done", "id": request_id, "profile": key,
-                      "preparationMs": preparation_ms, "preparationSource": cache.last_source,
+                      "preparationMs": preparation_ms, "preparationSource": active_cache.last_source,
                       **result, **profiles()})
             except Cancelled:
                 commands.finish(request_id)

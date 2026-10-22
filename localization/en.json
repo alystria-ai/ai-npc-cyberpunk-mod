@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1082,
+    "strings": 1088,
     "dynamicTemplates": 54,
     "contexts": 36
   },
@@ -366,6 +366,7 @@
     "Found.": "Found.",
     "Found: {list}.": "Found: {list}.",
     "Free": "Free",
+    "French": "French",
     "From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.": "From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.",
     "GAME MODELS": "GAME MODELS",
     "Game version": "Game version",
@@ -378,6 +379,7 @@
     "Generate report": "Generate report",
     "Generated reports are saved in {path}. The five newest are kept.": "Generated reports are saved in {path}. The five newest are kept.",
     "Gentle (default)": "Gentle (default)",
+    "German": "German",
     "Get your Convai API key": "Get your Convai API key",
     "Give the character a name.": "Give the character a name.",
     "Go back to the shipped text for {name}? All your changes to this character are removed.": "Go back to the shipped text for {name}? All your changes to this character are removed.",
@@ -411,6 +413,7 @@
     "It answered in {ms} ms.": "It answered in {ms} ms.",
     "It could not be saved.": "It could not be saved.",
     "It picks the voice when the character has no clip.": "It picks the voice when the character has no clip.",
+    "Italian": "Italian",
     "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.",
     "Johnny in your head": "Johnny in your head",
     "Joining...": "Joining...",
@@ -593,6 +596,7 @@
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
     "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
+    "Portuguese": "Portuguese",
     "Preparing connection to {name}…": "Preparing connection to {name}…",
     "Preparing to drive": "Preparing to drive",
     "Preparing {count} more companions…": "Preparing {count} more companions…",
@@ -702,6 +706,7 @@
     "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.": "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.",
     "Some model records could not be read.": "Some model records could not be read.",
     "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.": "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.",
+    "Spanish": "Spanish",
     "Speaking rules": "Speaking rules",
     "Speaking style": "Speaking style",
     "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
@@ -766,6 +771,7 @@
     "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
     "The Mistral model is unavailable right now. Try again in a minute.": "The Mistral model is unavailable right now. Try again in a minute.",
     "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.": "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
+    "The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.": "The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.",
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.": "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.",
     "The Scripts and Runtime versions do not match. Install the same version of both.": "The Scripts and Runtime versions do not match. Install the same version of both.",
     "The account is out of credits. Add credits with your provider.": "The account is out of credits. Add credits with your provider.",
@@ -1916,6 +1922,7 @@
       "Found.",
       "Found: {list}.",
       "Free",
+      "French",
       "From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.",
       "Game version",
       "Gamer Pro, monthly",
@@ -1924,6 +1931,7 @@
       "Gamer, yearly",
       "Gender",
       "Generated reports are saved in {path}. The five newest are kept.",
+      "German",
       "Give the character a name.",
       "Go back to the shipped text for {name}? All your changes to this character are removed.",
       "Go back to the shipped text for {name}? Your changes to this part are removed.",
@@ -1940,6 +1948,7 @@
       "It answered in {ms} ms.",
       "It could not be saved.",
       "It picks the voice when the character has no clip.",
+      "Italian",
       "Lines in their voice. They show the tone only and are never said back word for word.",
       "Listening - press the same voice chat shortcut again to finish",
       "Listening - press {key} again to finish",
@@ -2060,6 +2069,7 @@
       "Pocket voice is ready.",
       "Pocket · On your PC",
       "Pocket · Performance",
+      "Portuguese",
       "Preparing connection to {name}…",
       "Preparing {count} more companions…",
       "Preparing {name}: waiting for the conversation connection to open…",
@@ -2128,6 +2138,7 @@
       "Some game models have special rigs or roles and may not behave as ordinary companions.",
       "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.",
       "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.",
+      "Spanish",
       "Speaking rules",
       "Speaking style",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
@@ -2164,6 +2175,7 @@
       "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
       "The Mistral model is unavailable right now. Try again in a minute.",
       "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
+      "The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.",
       "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.",
       "The Scripts and Runtime versions do not match. Install the same version of both.",
       "The account is out of credits. Add credits with your provider.",
@@ -2645,7 +2657,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3975"
+        "mod/init.lua:3988"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2653,7 +2665,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3933"
+        "mod/init.lua:3946"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2661,7 +2673,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3974"
+        "mod/init.lua:3987"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2669,7 +2681,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3932"
+        "mod/init.lua:3945"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2677,7 +2689,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3973"
+        "mod/init.lua:3986"
       ]
     },
     "Above the speaker": {
@@ -4485,7 +4497,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3568"
+        "mod/init.lua:3576"
       ]
     },
     "Custom: free daily limit reached": {
@@ -5051,6 +5063,14 @@
         "mod/convai-paid-tier.lua:101"
       ]
     },
+    "French": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3563"
+      ]
+    },
     "From Convai or Mistral, turning it on selects Local AI, or Custom when Local AI is not installed. With Local AI it also selects the largest uncensored model that fits. Turning it off restores your choices.": {
       "contexts": [
         "ui.localized"
@@ -5146,6 +5166,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:1437"
+      ]
+    },
+    "German": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3563"
       ]
     },
     "Get your Convai API key": {
@@ -5420,6 +5448,14 @@
       ],
       "references": [
         "mod/character-editor.lua:120"
+      ]
+    },
+    "Italian": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3563"
       ]
     },
     "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": {
@@ -5911,7 +5947,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3562"
+        "mod/init.lua:3570"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -5919,7 +5955,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3564"
+        "mod/init.lua:3572"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6246,7 +6282,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4623"
+        "mod/init.lua:4636"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6946,6 +6982,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:1462"
+      ]
+    },
+    "Portuguese": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3563"
       ]
     },
     "Preparing connection to {name}…": {
@@ -7862,6 +7906,14 @@
         "mod/setup-check.lua:481"
       ]
     },
+    "Spanish": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3563"
+      ]
+    },
     "Speaking rules": {
       "contexts": [
         "ui.localized"
@@ -7933,7 +7985,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3759"
+        "mod/init.lua:3772"
       ]
     },
     "Starting": {
@@ -8396,6 +8448,14 @@
       ],
       "references": [
         "mod/setup-check.lua:503"
+      ]
+    },
+    "The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3566"
       ]
     },
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.": {
@@ -8902,7 +8962,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3566"
+        "mod/init.lua:3574"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -11274,7 +11334,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3824"
+        "mod/init.lua:3837"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
@@ -12023,7 +12083,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3824"
+        "mod/init.lua:3837"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

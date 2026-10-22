@@ -3558,6 +3558,14 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'voice-language' then
         return 'voice-language', ui.t('Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.')
     end
+    -- The Pocket voice model for a language is installed, but the voice language pack it clones from is not: that language's replies show as text. Said once per language per game session.
+    if reply.keyNotice == 'pocket-language-pack' then
+        local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
+        local language = names[reply.keyNoticeLanguage]
+        if language then
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.', {language = language})
+        end
+    end
     if reply.keyNotice == 'mistral-no-key' then
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
@@ -3581,6 +3589,11 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'local-cpu' then convaiNotices.send(player, 'local-cpu', keyText)
     elseif keyId == 'voice-language' then convaiNotices.send(player, 'voice-language', keyText)
+    elseif keyId == 'pocket-pack-fr' then convaiNotices.send(player, 'pocket-pack-fr', keyText)
+    elseif keyId == 'pocket-pack-it' then convaiNotices.send(player, 'pocket-pack-it', keyText)
+    elseif keyId == 'pocket-pack-de' then convaiNotices.send(player, 'pocket-pack-de', keyText)
+    elseif keyId == 'pocket-pack-es' then convaiNotices.send(player, 'pocket-pack-es', keyText)
+    elseif keyId == 'pocket-pack-pt' then convaiNotices.send(player, 'pocket-pack-pt', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText)
     elseif keyId == 'local-stepdown' then convaiNotices.send(player, 'local-stepdown', keyText) end
 end

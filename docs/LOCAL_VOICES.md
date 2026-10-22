@@ -205,8 +205,8 @@ fallback ("OmniVoice · Balanced is unavailable right now. Replies show as text 
 lasting case. Invitations
 that were preparing against the failed backend continue with a `{provider: "text", ready: true}` receipt instead
 of failing (the companion joins; its replies are written). The pre-existing readiness and availability checks are unchanged.
-Multilingual conversations are the same: Pocket speaks English only, so a Pocket choice paired with them (a hand-edited setting) or a
-reply in another language on Pocket is shown as text, not read by Pocket and not handed to the Convai voice.
+Multilingual conversations are the same: Pocket speaks English only (and the five languages that have an installed Pocket model and voice language pack, docs/POCKET_LANGUAGE_MODELS.md), so a reply in any other
+language on Pocket is shown as text, not read by Pocket and not handed to the Convai voice.
 
 Pocket uses **float32 on CPU**, with four inference threads, one
 shared model and per-character acoustic reference states. It does not load the
