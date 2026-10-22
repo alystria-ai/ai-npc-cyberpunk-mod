@@ -587,3 +587,19 @@ assert(lingered and lingered>0 and captions.timed==nil,'the page is held briefly
 -- Nothing playing: abandon touches no caption.
 lingered=nil;speech.abandon();assert(lingered==nil)
 `));
+
+test('a voice that breaks after the reply started: the error state carries the whole written reply and that is what shows, once',()=>run(`
+-- The first sentence is heard, then the bridge writes the error state with the COMPLETE text (bridge/convai-continuous-speech.mjs failToText).
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='First sentence.',textComplete=false});tick()
+assert(speech.requestId and captions.timed)
+captions.line=nil
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='First sentence. And the rest of the reply.',textComplete=true});tick()
+assert(not speech.requestId,'the broken stream ends the utterance')
+assert(captions.line=='First sentence. And the rest of the reply.','the complete written reply is shown, not the first sentence: '..tostring(captions.line))
+assert(tostring(speech.error):find('voice stream stopped',1,true),'the game keeps the reason for its one voice-ended notice')
+-- A broken stream whose text is not complete (the old behaviour) still shows what was known.
+captions.line=nil
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Known so far.',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Known so far.',textComplete=false});tick()
+assert(captions.line=='Known so far.')
+`));

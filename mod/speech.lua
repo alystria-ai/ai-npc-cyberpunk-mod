@@ -594,7 +594,11 @@ end
 
 local function updateContinuous(delta, player, paused)
     local state, problem = continuous.update(delta, player, M.actor, paused)
-    if problem then M.error=problem;fallback('playback-failed', M.text);return end
+    if problem then
+        -- A voice that broke after the reply started: the bridge's error state carries the complete written reply, so the whole text shows.
+        local complete = type(state) == 'table' and state.textComplete == true and type(state.text) == 'string' and state.text:find('%S')
+        M.error=problem;fallback('playback-failed', complete and state.text or M.text);return
+    end
     if paused then M.continuousFaceCursor=nil;face.pause(M.actor);return end
     if state then
         -- The source/audio/subtitle position remains the exact device report.
