@@ -89,6 +89,7 @@ return {
     ["Confirm memory clear"] = "Hafıza temizlemeyi onayla",
     ["Connecting microphone - wait for Listening"] = "Mikrofon bağlanıyor - Dinleniyor yazısını bekle",
     ["Convai voice"] = "Convai sesi",
+    ["Text only (no voice)"] = "Yalnızca metin (ses yok)",
     ["Convai · Cloud voice"] = "Convai · Bulut sesi",
     ["Conversation interrupted. Your message is in the draft."] = "Konuşma kesildi. Mesajın taslakta.",
     ["Conversation is unavailable for this contact."] = "Bu kişi için konuşma kullanılamıyor.",

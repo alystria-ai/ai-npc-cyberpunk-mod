@@ -76,6 +76,7 @@ return {
     ["Confirm memory clear"] = "Подтвердить удаление",
     ["Connecting microphone - wait for Listening"] = "Подключение микрофона — дождитесь начала записи",
     ["Convai voice"] = "Голос Convai",
+    ["Text only (no voice)"] = "Только текст (без голоса)",
     ["Conversation interrupted. Your message is in the draft."] = "Беседа прервана. Ваше сообщение сохранено в черновике.",
     ["Conversation is unavailable for this contact."] = "Беседа с этим контактом недоступна.",
     ["Conversation profile cleared."] = "Профиль беседы убран.",

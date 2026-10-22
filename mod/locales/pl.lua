@@ -89,6 +89,7 @@ return {
     ["Confirm memory clear"] = "Potwierdź wyczyszczenie pamięci",
     ["Connecting microphone - wait for Listening"] = "Łączenie z mikrofonem - poczekaj na Nasłuchiwanie",
     ["Convai voice"] = "Głos Convai",
+    ["Text only (no voice)"] = "Tylko tekst (bez głosu)",
     ["Convai · Cloud voice"] = "Convai · Głos w chmurze",
     ["Conversation interrupted. Your message is in the draft."] = "Rozmowa została przerwana. Twoja wiadomość jest w szkicu.",
     ["Conversation is unavailable for this contact."] = "Rozmowa z tym kontaktem jest niedostępna.",

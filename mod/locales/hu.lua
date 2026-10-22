@@ -89,6 +89,7 @@ return {
     ["Confirm memory clear"] = "Emléktörlés megerősítése",
     ["Connecting microphone - wait for Listening"] = "A mikrofon csatlakozik - várd meg a Hallgatás jelzést",
     ["Convai voice"] = "Convai-hang",
+    ["Text only (no voice)"] = "Csak szöveg (hang nélkül)",
     ["Convai · Cloud voice"] = "Convai · Felhőhang",
     ["Conversation interrupted. Your message is in the draft."] = "A beszélgetés megszakadt. Az üzeneted a vázlatban van.",
     ["Conversation is unavailable for this contact."] = "A beszélgetés ennél a névjegynél nem érhető el.",

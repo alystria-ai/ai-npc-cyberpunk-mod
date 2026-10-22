@@ -209,8 +209,8 @@ test('the not-dialogue proof line names the visualizer and success of the pick, 
   assert.doesNotMatch(raw, /Secret option text/);
 });
 
-test('the setting defaults to off, is a boolean, and is exposed to the bridge snapshot', () => {
-  assert.match(managerSource, /settings\.decisionLedger, settingsNeedSave = false, true/);
+test('the setting defaults to on, is a boolean, and is exposed to the bridge snapshot', () => {
+  assert.match(managerSource, /settings\.decisionLedger, settingsNeedSave = true, true/);
   assert.match(managerSource, /function M\.decisionLedger\(\)/);
   assert.match(managerSource, /decisionLedger = settings\.decisionLedger/);
 });
@@ -240,7 +240,7 @@ test('a character is told only the picks it was part of, of this world, no later
   const base = {ledger: ledger(rows), worldToken: 'world-a', gameTimeSeconds: 201, profileKey: 'judy-alvarez'};
   const judy = ledgerPicks(base).map(row => row.text);
   assert.equal(judy.length, LEDGER_LIMIT);
-  assert.deepEqual(judy, ['Pick 5', 'Pick 6', 'Pick 7', 'Pick 8', 'Panam stood by']);
+  assert.deepEqual(judy, ['Pick 7', 'Pick 8', 'Panam stood by']);
   assert.deepEqual(ledgerPicks({...base, profileKey: 'panam-palmer'}).map(row => row.text), ['To Panam']);
   assert.deepEqual(ledgerPicks({...base, profileKey: 'river-ward'}), []);
   assert.deepEqual(ledgerPicks({...base, worldToken: 'world-b'}), []);

@@ -678,9 +678,9 @@ const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, 
   // character otherwise (bridge/multilingual.mjs wantsTwin). A warm connection has no message and stays on the ordinary character: a language
   // change must not re-warm every nearby character on its twin; the first turn on a twin opens its session, the later ones reuse it.
   selectProfile: (profile, boundary, turn) => relationshipRoutes.select(profile, boundary, {multilingual: twinForTurn(turn)}),
-  // Off unless the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
+  // On by default, the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
   decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync}),
-  // Off unless the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
+  // On by default, the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
   witnessReceipts: witnessReceiptsReader(resolve(stateDirectory, 'witness-receipts.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync})});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 // "Natural speech": the setting, and the display text of every reply with voice tags removed (bridge/natural-speech.mjs).

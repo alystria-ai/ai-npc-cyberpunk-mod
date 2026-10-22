@@ -13,6 +13,17 @@ log line that proves the choice hook. Live checks are in section 6.
 a reviewed alias. Witness receipts (step C2) are now built, opt-in and default off (section 4.3). The ledger stays off: the probe log shows the
 choice hook fires every session but has never recorded a dialogue pick (section 4.4). Section 7 lists what is still the user's call.
 
+**Update, 2026-10-23 (branch `feat/features-on`): both are ON by default.** The owner asked why quest decision memory was off. The ledger and the witness
+receipts were off only because they were new; neither polls. The ledger works at a dialogue pick (a JSON encode and one small file write, never per
+frame; with no recorded pick the hook returns at once). The receipts work inside the world scan that already runs (about every 30 s, resting up to
+120 s when the journal-change event says nothing moved): one map lookup per known fact and, only when a value changed, one lookup of who stands
+within 15 m and one small file write. The bridge made one `stat` per turn for each file before and still does. For the prompt, the ledger line is
+now at most 3 picks and 700 characters (was 5 and 1,100), added only for a character who was spoken to or stood by, and taken out of the same
+8,000-character knowledge budget; a widened receipt row is one existing knowledge row. Files saved before this carry `decisionLedger: false` and
+`witnessReceipts: false` only because that was the default, so `loadSettings` moves them to true once (`defaultsRevision` 1 in `settings.json`);
+after that a saved false (a hand edit) stands. The ledger is still unproven in the game (the pick hook has not yet been seen recording one), so
+the live checks in section 6 are owed; the downside of a hook that never fires is nothing written and nothing added to a prompt.
+
 ## Answer
 
 **Yes, for most of the decisions the reviewed pack covers, and the wording says what V chose, not only what happened.**
@@ -408,7 +419,7 @@ Today: declared speaker, plus Johnny's co-witness list. Proposed, in order of sa
    The honest alternative is the existing "V told" rule: if V says it in chat, the memory path records it.
 4. Romance and relationship rules keep their relationship gate (`romance-context.mjs`).
 
-**Witness receipts: built 2026-10-15, opt-in, OFF by default (setting `witnessReceipts`).** The four open questions below were closed as
+**Witness receipts: built 2026-10-15, ON by default since 2026-10-23 (setting `witnessReceipts`; opt-in and off before).** The four open questions below were closed as
 follows.
 
 - **Who writes it (a).** The Lua world-knowledge scan (`mod/world-knowledge.lua`) already compares each value it reads with the one before. A
@@ -430,7 +441,7 @@ follows.
 - **The remaining risk is wording.** The sentence of a `witnessed` rule is written for its declared speaker ("Jackie and T-Bug heard the
   disclosure"). A neutral second wording for rules of other perspectives was not built; only `witnessed` rules are widened, which is why the
   risk is small, but a live read of a widened row is still needed (probe 5).
-- To try it: set `"witnessReceipts": true` in `runtime/settings.json`, reload CET, make a decision with a spawned companion beside V, then
+- To try it: it is on by default (`"witnessReceipts": false` in `runtime/settings.json` turns it off); reload CET, make a decision with a spawned companion beside V, then
   read `runtime/witness-receipts.json` and ask a bystander what they saw. Tests: `bridge/witness-receipts.test.mjs` (42: the Lua module and
   collector through fengari, the parser and the receipt lookup, the widening and its limits, and the off case) and the receipts cases in
   `bridge/decision-ledger.test.mjs`.
@@ -443,9 +454,9 @@ witnesses" for existing decisions and only help new ones; (d) the safe direction
 today, so skipping the receipt costs nothing that is wrong. Before building: pick ten `witnessed` rules, list who was in the scene
 from the quest data, and compare with what `conversationCandidates` would have returned. Probe 5 in section 6 is that comparison.
 
-### 4.4 Step D: a decision ledger for choices the game leaves no fact for (built 2026-10-14, OFF by default)
+### 4.4 Step D: a decision ledger for choices the game leaves no fact for (built 2026-10-14, ON by default since 2026-10-23)
 
-**Status.** Code is in, behind `settings.decisionLedger` (default false, boolean, saved in `settings.json`, exposed in the manager
+**Status.** Code is in, behind `settings.decisionLedger` (default TRUE since 2026-10-23, boolean, saved in `settings.json`, exposed in the manager
 snapshot). The choice hook is not yet proven live (section 6, probe 1), so nothing is written until the setting is turned on in a
 test session. With it off the code costs one function call per dialogue pick and writes no file; the bridge makes one failed stat per turn and
 adds nothing to the prompt.
@@ -462,7 +473,7 @@ adds nothing to the prompt.
   next pick (an earlier save was loaded). The bridge applies the same rule on read, using the world snapshot's clock. A reload can
   only forget, never invent.
 - `bridge/game-dialogue.mjs`: `parseDecisionLedger` (strict, bounded, fails closed), `ledgerPicks` (this world only; the character was
-  the addressee or stood in `present`; at most `LEDGER_LIMIT` = 5, oldest first), `decisionLedgerContext` (one line, at most 1,100
+  the addressee or stood in `present`; at most `LEDGER_LIMIT` = 3, oldest first), `decisionLedgerContext` (one line, at most 700
   characters, quoted JSON with `<>&` escaped) and `decisionLedgerReader` (one `stat` per turn; re-reads only when the file changed).
 - `bridge/player-knowledge.mjs`: `PlayerKnowledge({decisionLedger})` is optional. In `prepare` the picks' length is taken from the
   8,000-character knowledge budget (so total size does not grow) and the line is appended after the knowledge context. No ledger, a
@@ -481,10 +492,10 @@ module ignored it".
 (PreventionSystem.OnPlayerChoice)`), but no pick has ever been recorded: the log has 0 `choice recorded` lines and 6 `choice not recorded
 (not-dialogue)` lines. So the wrapper runs and then decides the event is not a dialogue pick; nothing has proven that a real dialogue
 option reaches it. The `not recorded` line now also carries `visualizer=<type> success=<..>` (no option text), so the next session shows
-what the hook was called with. **Recommendation: keep the ledger OFF by default** until one real dialogue pick is recorded and read back in
-a test session (probe 1b); turning on something that so far records nothing would cost the per-pick call and add nothing to prompts.
+what the hook was called with. **The ledger was kept OFF by default until 2026-10-23**, waiting for one real dialogue pick to be recorded and read back in
+a test session (probe 1b). The owner turned it on anyway: while the hook records nothing it costs the per-pick call and adds nothing to prompts.
 
-**To try it.** Set `"decisionLedger": true` in `settings.json` (no UI yet, deliberately), reload CET, pick options in two or three
+**To try it.** It is on by default; `"decisionLedger": false` in `settings.json` (no UI, deliberately) turns it off, reload CET, pick options in two or three
 conversations, then check `probe.log` and `runtime/decision-ledger.json`, and ask a companion who was present what V picked.
 
 Tests: `bridge/decision-ledger.test.mjs` (the Lua module through fengari: off, on, bounds, world change, clock rollback, unbound,
@@ -555,10 +566,10 @@ fact scan, paced, not in the journal lane. Check the maxima before and after (pr
    the Queen alias (built, reviewed, pinned). Default taken: the offline check promoted what real saves and the graph support and left the
    rest non-executable. Still the user's call: when to run the live checks. Recommended order: Kerry's rooftop call, Frank's sofa, Joshua
    killed, then the rest of the table.
-3. The ledger (Step D) is built and OFF. Default taken: OFF. Recommendation: do not turn it on by default; the probe log shows the hook
-   fires but 0 picks recorded in 7 sessions (section 4.4). The user's call is when to run a test session with `"decisionLedger": true`; the
+3. The ledger (Step D) is built and ON by default since 2026-10-23 (the owner's call; see the update above). The probe log showed the hook
+   fires but 0 picks recorded in 7 sessions (section 4.4), so it may record nothing until a real pick reaches it. The user's call is when to run a test session with `"decisionLedger": true`; the
    first thing to read is the `visualizer=`/`success=` detail on the `not recorded` line.
-4. Witness receipts (Step C2): built, opt-in, OFF (section 4.3). Default taken: off, only `witnessed` rules widen. The user's call: turn it
+4. Witness receipts (Step C2): built, ON by default since 2026-10-23 (section 4.3). Only `witnessed` rules widen. The user's call: turn it
    on after the ten-rule comparison (probe 5) and a read of one widened row, or keep the declared audience. A neutral second wording for
    rules of other perspectives was not built; recommended only if the comparison shows many `participant` rules that bystanders should hear.
 

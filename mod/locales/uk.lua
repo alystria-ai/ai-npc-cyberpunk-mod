@@ -89,6 +89,7 @@ return {
     ["Confirm memory clear"] = "Підтвердити очищення пам’яті",
     ["Connecting microphone - wait for Listening"] = "Підключення мікрофона — зачекай, поки з’явиться «Слухаю»",
     ["Convai voice"] = "Голос Convai",
+    ["Text only (no voice)"] = "Лише текст (без голосу)",
     ["Convai · Cloud voice"] = "Convai · Хмарний голос",
     ["Conversation interrupted. Your message is in the draft."] = "Розмову перервано. Твоє повідомлення залишилося в чернетці.",
     ["Conversation is unavailable for this contact."] = "Розмова з цим контактом недоступна.",

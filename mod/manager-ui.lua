@@ -341,35 +341,10 @@ end
 -- number of copies in the party and `shared` comes from sharedCharacterLines.
 local function profileDescription(profile, snapshot, shared, count)
     local settings = snapshot.settings
-    local voice = profile.voiceName or ui.t('Convai voice')
-    -- The label names the voice actually in use, which differs from the choice
-    -- while a fallback is active.
-    local active, routed = snapshot.localVoice.provider, false
-    if active == 'pocket' or active == 'omni' then
-        for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
-            if key == profile.key then
-                voice = snapshot.localVoice.cloudVoice == 'voxtral' and manager.voiceLabel(snapshot.localVoice.cloudVoice)
-                    or manager.voiceLabel(active, snapshot.localVoice.omniSteps, snapshot.localVoice.omniReference)
-                routed = true
-                break
-            end
-        end
-    end
-    -- The Mistral cloud voice needs a Mistral key: say so instead of naming a voice that will not be heard.
-    if not routed and settings.voiceProvider == 'voxtral' and not (snapshot.mistral or {}).saved then
-        voice = ui.t('{voice} · needs Mistral key', {voice = manager.voiceLabel('voxtral')})
-    end
-    -- An OmniVoice choice cannot run without its pack: say so instead of naming a voice that will not be heard.
-    if not routed and settings.voiceProvider == 'omni' and shared.pack.known and not shared.pack.installed then
-        voice = ui.t('{voice} · needs Omni pack',
-            {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
-    elseif not routed and settings.voiceProvider == 'omni' and shared.pack.noNvidia then
-        voice = ui.t('{voice} · needs NVIDIA card',
-            {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
-    elseif not routed and settings.voiceProvider == 'omni' and shared.pack.smallCard then
-        voice = ui.t('{voice} · needs 12 GB card',
-            {voice = manager.voiceLabel('omni', settings.omniSteps, settings.omniReference)})
-    end
+    -- The voice that really speaks this character's replies, or text when none does (manager.characterVoiceLabel). It names the Convai
+    -- voice only when that voice speaks, not when a local voice or the Mistral voice could not run.
+    local voice = manager.characterVoiceLabel(profile,
+        {settings = settings, localVoice = snapshot.localVoice, mistralSaved = (snapshot.mistral or {}).saved == true}, shared.pack)
     local conversing = settings.enabledByKey[profile.key] ~= false
     local lines = {(profile.summary or profile.name) .. '\n', ui.t('Voice: {voice}',{voice=voice}),
         ui.t('Conversation: {state}',{state=ui.t(conversing and 'On' or 'Off')})}

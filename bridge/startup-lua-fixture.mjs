@@ -244,7 +244,7 @@ export const freshSettings = {
   relationshipModes: {'judy-alvarez': 'auto', 'panam-palmer': 'auto', 'river-ward': 'auto', 'kerry-eurodyne': 'auto', 'meredith-stout': 'auto'},
   dynamicInfo: {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true},
   developerMode: false, useOwnConvaiKey: false, conversationProvider: 'convai',
-  battleReactions: false, lootReactions: false, decisionLedger: false, witnessReceipts: false,
+  battleReactions: false, lootReactions: false, decisionLedger: true, witnessReceipts: true, defaultsRevision: 1,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
   archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off',
   naturalSpeech: false, followUpInterest: true,

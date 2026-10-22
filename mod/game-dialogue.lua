@@ -5,7 +5,7 @@
 -- snapshot to the addressed character; nothing here is written to memory.
 local M = {}
 M.MAX_AGE, M.MAX_LINES, M.MAX_AMBIENT, M.MAX_TEXT = 180, 40, 10, 600
--- Decision ledger (docs/QUEST_DECISIONS.md section 4.4): OFF unless options.ledgerEnabled() is true (settings.decisionLedger, default false).
+-- Decision ledger (docs/QUEST_DECISIONS.md section 4.4): ON by default (settings.decisionLedger, true since 2026-10-23), recorded only when options.ledgerEnabled() is true.
 M.LEDGER_MAX, M.LEDGER_TEXT, M.LEDGER_LABEL, M.LEDGER_PATH = 40, 120, 80, 'runtime/decision-ledger.json'
 local DUPLICATE_WINDOW, PRESENT_RADIUS = 6, 15
 -- mod/subtitles.lua shows its own replies as CRUID(0x436F6E760000 + serial).

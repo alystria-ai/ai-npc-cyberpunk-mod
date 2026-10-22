@@ -76,6 +76,7 @@ return {
   ["Confirm memory clear"] = "記憶消去の確認",
   ["Connecting microphone - wait for Listening"] = "マイク接続中 - 「聞き取り中」になるまでお待ちください",
   ["Convai voice"] = "Convai音声",
+  ["Text only (no voice)"] = "テキストのみ（音声なし）",
   ["Conversation interrupted. Your message is in the draft."] = "会話が中断されました。メッセージは下書きに残っています。",
   ["Conversation is unavailable for this contact."] = "この連絡先とは会話できません。",
   ["Conversation profile cleared."] = "会話プロフィールを解除しました。",

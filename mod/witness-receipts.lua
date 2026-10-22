@@ -1,4 +1,4 @@
--- Witness receipts (docs/QUEST_DECISIONS.md section 4.3, step C2). OFF unless options.enabled() is true (settings.witnessReceipts, default false).
+-- Witness receipts (docs/QUEST_DECISIONS.md section 4.3, step C2). ON by default (settings.witnessReceipts, true since 2026-10-23), recorded only when options.enabled() is true.
 -- When the world-knowledge scan sees a quest fact or journal entry change (an "edge", mod/world-knowledge.lua onEdges), this keeps which of V's
 -- spawned companions stood within 15 m at that moment, and writes runtime/witness-receipts.json. The bridge lets such a companion hear a
 -- rule whose perspective is `witnessed`, which it could not before (bridge/witness-receipts.mjs). The receipt is approximate (the scan runs
