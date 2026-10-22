@@ -615,5 +615,17 @@
     "text": "You have a shaved head and dark skin. Visor-style glasses with a metal frame sit across your eyes, with orange accents at one temple and a bright silver plate below them. Metal trim runs down one side of your face toward the jaw, and you wear a dark jacket.",
     "source": "https://cyberpunk.fandom.com/wiki/Carl_Robinson",
     "image": "appearance-images/carl-robinson.webp"
+  },
+  "hasan-demir": {
+    "text": "",
+    "source": "none"
+  },
+  "pedro-aimar": {
+    "text": "",
+    "source": "none"
+  },
+  "mr-blue-eyes": {
+    "text": "You have black hair and blue eyes. You wear an expensive, understated suit.",
+    "source": "https://cyberpunk.fandom.com/wiki/Mr._Blue_Eyes"
   }
 }

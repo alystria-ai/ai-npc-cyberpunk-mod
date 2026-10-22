@@ -1293,6 +1293,21 @@
    "voice": "AZURE-MULTILINGUAL-552d02efd8",
    "voiceName": "Isidora",
    "reason": "Voice of the nightlife resident female twin, reused for the joytoy kind (same voice as the club-goer: the closest nightlife voice)."
+  },
+  "hasan-demir": {
+   "voice": "AZURE-MULTILINGUAL-1aabb8bc8a",
+   "voiceName": "Adam",
+   "reason": "Light, clear and talkative male voice for a nervous, articulate former Zetatech engineer."
+  },
+  "pedro-aimar": {
+   "voice": "RyanMultilingualNeural",
+   "voiceName": "RyanMultilingual",
+   "reason": "Plain, soft American male voice for a nervous, polite, wheelchair-bound coder (the same voice as the tired working-man archetype)."
+  },
+  "mr-blue-eyes": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher",
+   "reason": "Calm, even, mid male voice for a polished, unhurried corporate stranger."
   }
  }
 }

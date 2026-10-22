@@ -1,6 +1,6 @@
 {
-  "profiles": 125,
-  "named": 123,
+  "profiles": 128,
+  "named": 126,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -2981,6 +2981,33 @@
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 3,
       "researchRevision": "fbd7673fdced8a10dc28f7f8dedc9d524689738d6dd848e14351961e0e43192c"
+    },
+    {
+      "key": "hasan-demir",
+      "words": 631,
+      "speakingStyleWords": 176,
+      "sampleDialogueWords": 169,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 3,
+      "researchRevision": "7fe4d17891f4b9034803b9d07e3acd5791964d61177642cc7f931ada3726b59a"
+    },
+    {
+      "key": "pedro-aimar",
+      "words": 544,
+      "speakingStyleWords": 208,
+      "sampleDialogueWords": 164,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 3,
+      "researchRevision": "b2635ca6adf83235b655442c0b1c0db32c46a062e9a9173b704d20c1a9829a00"
+    },
+    {
+      "key": "mr-blue-eyes",
+      "words": 347,
+      "speakingStyleWords": 188,
+      "sampleDialogueWords": 118,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 2,
+      "researchRevision": "5e67814c5880a502c3690cd8a8f4a375555583dcd47e54d326880f91827111bf"
     }
   ]
 }
