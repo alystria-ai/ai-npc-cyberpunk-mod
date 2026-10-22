@@ -209,6 +209,29 @@ test('once every hold has run out the hooks are idle again: no stimulus read or 
   `);
 });
 
+test('with nothing addressed a hook is one idle test and straight back to vanilla, and a failing clock never blocks it', () => {
+  run(`${fixture}
+    local rounds = 0
+    local quiet = make({round = function() rounds = rounds + 1; return group end})
+    quiet.install(override)
+    nativeReads = 0
+    for _ = 1, 50 do
+      assert(fire('OnEventReceived', 'e1', {kind = 'Provoke'}) and fire('TriggerFacialLookAtReaction', 'e1')
+        and fire('OnAreaEnter', 'e1', {}) and fire('OnDistrurbComfortZoneAggressiveEvent', 'e1', {}) and fire('OnBumpEvent', 'e1', {isMounted = false}))
+    end
+    assert(nativeReads == 0 and rounds == 250, 'one idle test per event: reads=' .. nativeReads .. ' rounds=' .. rounds)
+    quiet.focus('e2')
+    assert(not fire('OnEventReceived', 'e2', {kind = 'Provoke'}), 'a focused NPC is quiet at once')
+    local failing = false
+    local broken = make({clock = function() if failing then error('no clock') end return wall end})
+    hooks = {}
+    broken.install(override)
+    broken.focus('e3')
+    failing = true
+    assert(fire('OnEventReceived', 'e3', {kind = 'Provoke'}) and fire('OnBumpEvent', 'e3', {isMounted = false}), 'a failing clock blocked vanilla')
+  `);
+});
+
 test('a timed hold never shortens a longer one, and a missed release expires after maxPinned', () => {
   run(`${fixture}
     local quiet = make({config = {maxPinned = 60}})

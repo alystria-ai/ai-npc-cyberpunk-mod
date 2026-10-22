@@ -150,7 +150,9 @@ function M.new(options)
     -- without a stimulus read or an owner lookup (before, one finished conversation kept that work on for the rest of the session).
     function R.idle()
         if next(holds) ~= nil then
-            if clock() <= quietAfter then return false end
+            -- The hooks call this unprotected: a clock that fails means "not idle", and the protected checks decide.
+            local ok, now = pcall(clock)
+            if not ok or now <= quietAfter then return false end
             holds = {}
         end
         return currentRound() == nil
@@ -262,23 +264,30 @@ function M.new(options)
             if ok then installed[#installed + 1] = method
             else log('Vanilla reaction hook unavailable: ' .. method .. ' ' .. tostring(err)) end
         end
+        -- Nothing addressed (the usual state): straight back to vanilla, without the protected call, the varargs or the
+        -- stimulus read. R.idle is the same test the checks below start with, so the verdict is unchanged.
         hook('OnEventReceived', function(self, event, wrapped)
+            if R.idle() then return wrapped(event) end
             if skip(R.stimulus, self, event) then return false end
             return wrapped(event)
         end)
         hook('TriggerFacialLookAtReaction', function(self, forceFear, playVO, wrapped)
+            if R.idle() then return wrapped(forceFear, playVO) end
             if skip(R.reaction, 'lookat', self) then return end
             return wrapped(forceFear, playVO)
         end)
         hook('OnAreaEnter', function(self, trigger, wrapped)
+            if R.idle() then return wrapped(trigger) end
             if skip(R.reaction, 'comfort-zone', self) then return false end
             return wrapped(trigger)
         end)
         hook('OnDistrurbComfortZoneAggressiveEvent', function(self, event, wrapped)
+            if R.idle() then return wrapped(event) end
             if skip(R.reaction, 'comfort-zone-provoke', self) then return false end
             return wrapped(event)
         end)
         hook('OnBumpEvent', function(self, event, wrapped)
+            if R.idle() then return wrapped(event) end
             if skip(R.bump, self, event) then return false end
             return wrapped(event)
         end)
