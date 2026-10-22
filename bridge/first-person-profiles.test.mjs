@@ -104,7 +104,9 @@ test('every checked-in profile opens in the first person, none in the second or 
   const roster = await json('../characters/roster.json');
   assert.equal(roster.length, 125);
   for (const row of roster) {
-    assert.match(row.backstory, /^I(?:'|’)m\b/u, row.key);
+    // The generic residents use the archetype format (IDENTITY, then "You are an unnamed ..."), 2026-10-22.
+    if (/^resident-/u.test(row.key)) assert.match(row.backstory, /^IDENTITY\nYou are an unnamed ordinary Night City local/u, row.key);
+    else assert.match(row.backstory, /^I(?:'|’)m\b/u, row.key);
     assert(!isThirdPerson(row), row.key);
   }
 });
