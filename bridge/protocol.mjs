@@ -156,7 +156,7 @@ export function archetypeContext(input) {
     lines.push(`You work at ${VENDOR_NAMES[facts.vendorType]} here.`);
   }
   const district = placeName(facts.district), area = placeName(facts.area);
-  if (district) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Let the place flavor what you say, without inventing a specific address.`);
+  if (district) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. You live with it: let it colour your attitude, but never announce the place name or tell V where they are unless V asks. Invent no specific address.`);
   if (!lines.length) return '';
   return ['CURRENT PERSON (from the game, this conversation only)', ...lines].join('\n');
 }

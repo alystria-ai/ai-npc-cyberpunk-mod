@@ -725,12 +725,23 @@ test('an add-on host cuts V\'s own line off the front of a reply, in the voice\'
   } finally { await close(); }
 });
 
-test('without the option a host leaves a reply as the model wrote it (the main companions are unchanged)', async () => {
-  const {host, close} = await harness(() => 'Thanks, Del. A short drive is still a drive, and I will make it smooth.');
+test('without the option a host still cuts a short echo of V\'s words off the front (rule 4) and a stock closing question (rule 5), and leaves every other opening as the model wrote it', async () => {
+  // The add-on option above cuts V's whole line and V's script labels; the echo opener (a first sentence of up to five words that is V's own words) is cut for every speaker.
+  const echo = await harness(() => 'Thanks, Del. A short drive is still a drive, and I will make it smooth.');
   try {
-    const result = await host.reply(turn('thanks del'));
-    assert.match(result.text, /^Thanks, Del\. A short drive/);
-  } finally { await close(); }
+    const result = await echo.host.reply(turn('thanks del'));
+    assert.equal(result.text, 'A short drive is still a drive, and I will make it smooth.');
+  } finally { await echo.close(); }
+  const plain = await harness(() => 'Hey yourself. A short drive is still a drive, and I will make it smooth.');
+  try {
+    const result = await plain.host.reply(turn('hey'));
+    assert.match(result.text, /^Hey yourself\. A short drive/, 'a greeting answered in kind is not the fault');
+  } finally { await plain.close(); }
+  const stock = await harness(() => 'I am fine, the work is the work. What is on your mind?');
+  try {
+    const result = await stock.host.reply(turn('how are you?'));
+    assert.equal(result.text, 'I am fine, the work is the work.', 'a generic closing question is dropped when the reply has words of its own');
+  } finally { await stock.close(); }
 });
 
 test('an add-on host keeps only its own lines when the model writes V\'s side of the talk as a script', async () => {

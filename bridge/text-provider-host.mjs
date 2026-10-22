@@ -10,7 +10,7 @@
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
-import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
+import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
@@ -869,7 +869,8 @@ export class TextProviderHost {
     let recentSpoken = [];
     if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
-      const shown = splitActions(soFar, {streaming: true}).text;
+      // A reply that opens with a short fragment of V's own line ("Dex?") loses it, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one.
+      const shown = reaction ? splitActions(soFar, {streaming: true}).text : stripEchoOpener(splitActions(soFar, {streaming: true}).text, text, {streaming: true});
       if (!cutEcho) return shown;
       const own = stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true});
       return recentSpoken.length && startsLikeLine(own, recentSpoken) ? '' : own;
@@ -904,6 +905,8 @@ export class TextProviderHost {
       }
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
+      // Rule 4 (no opening with V's words) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
+      if (!reaction) cleaned = stripStockTail(stripEchoOpener(cleaned, text));
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       if (wordLimit) reply = capWords(reply, wordLimit);

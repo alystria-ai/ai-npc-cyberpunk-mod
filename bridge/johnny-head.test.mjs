@@ -397,7 +397,8 @@ test('the text providers say where he is right before V\'s words', () => {
   const messages = buildMessages({persona: {name: 'Johnny Silverhand', ambient: false, backstory: 'A rockerboy engram.', style: 'Dry.',
     samples: ['V: Hi. Johnny: What.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
   const last = messages[messages.length - 1].content;
-  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*V is in Watson\. You have no body; you go where V goes/);
+  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*under their breath\. You have no body; you go where V goes/);
+  assert.doesNotMatch(last, /Watson/, 'the place is in the system message only: a model that reads it last answers with it');
 });
 
 test('shipping: the module ships and dev-installs; the setting has its row and help in English and all 15 languages', () => {

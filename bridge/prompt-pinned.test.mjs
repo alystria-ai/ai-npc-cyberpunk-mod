@@ -15,21 +15,23 @@ const judyArgs = (text = USER_LINES.a) => ({persona: prompt.persona, memory: MEM
 
 test('the prompt Mistral and the local AI build is byte for byte what it was (hashes taken from commit 1e207eec, re-taken on 2026-10-14 for the first-person profiles)', () => {
   // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
+  // Re-taken on 2026-10-22 (response audit): rule 7 no longer asks for "a few words of attitude about the place or the hour" and says nothing of weather, time or place unless V asks; the copy of the
+  // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
   const expected = {
-    a: 'fc2e4b79f61a57a59f1096ee382f6f8dd166ac4bda11bd0b2d3d98ab592145c3',
-    b: '0608c96199b48c85e22836ab5f67048b5e9aaee49047ff45b8e05b3abd400155',
-    c: 'a98797c7a6e727b6ae1533db323e78cba20059a7c6ee947f4b8f22e9246b3d0c',
-    d: '5de8d96bbe3ad28b2328b0ace2fa819413a3b38b21f49a9b60f915c9bfec70e2',
-    e: 'c0721b02e9ae82419537f559650581893a3a4f46f2a1771e7bf240cd9d236771',
-    f: 'cd6737349af79f4ae49af71d420253c2aa4473da14baa1f9d13ca4ff32ca61db',
-    g: '4c38340851c68b4daf8caff9adb229dcc368134954001f2faabcb8ed9fface34',
+    a: '9b24e92a8f72071e87faed1568160ef1fb8d356187c5f51d5e37f94c42689cea',
+    b: 'b98623c3a8ce57c217fe31e43ef7cc2658a5ce941d9ac4feb12358e466123a11',
+    c: 'ce88ffac54fd4416f13ae4723c248104e7368f71fd068b12bea62df30f9af0aa',
+    d: 'e02cef47e123370446c740b07917bd0912d55707bbb7e1db2b67e4f87dd59e83',
+    e: 'ec554e7bf867204f45240be0cd46d2ad1d7deb6ad00f53516ddd7af948cada74',
+    f: 'b403324739a4eeec049e958b78b1890bf61211474c05b29079326031134dc3eb',
+    g: '0d3a68eee22cff60e6933ee17c635fed2f4233fc60a1d7ac79e6adf3dbe4a5ea',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '5828073f8aeee4566df719750403d687e79d29196c114a17182386a4ee7b3d5e');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), '76890f8f594bbcb36d542200512c9ae563e7ede7e56aa9a485bafba684627406');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '71afe8b30cf3be13bf64bdd54f4a34283b875d3679159a9affe2944f5f9bbaa1');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), 'cd11a7d668dc918d79205888dbbecf7379c895320c39283891f2302c31dbde1a');
-  assert.equal(sha(systemHead({persona: prompt.persona})), 'dc55ee3f93c420f63746cbbed90314261e4d78c936f5e034614424f98cbd39e0');
+    '7f933442ae619c5f94fd241b699d8a0a28a7808450262e0de38207efd830fc5f');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '845bef80722e91182583b11a0064312787c2e542bf3bea0fdab8c85ce8a127d6');
+  assert.equal(sha(systemHead({persona: prompt.persona})), '56050c0db2c3d4bd9b252f4c681e401769dfd3d313534b03ba7149321896aa41');
 });
 
 // ---- The budget's new options ----------------------------------------------------------------------------------------------

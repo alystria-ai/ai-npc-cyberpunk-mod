@@ -245,3 +245,29 @@ test('the right-now block is never clipped below the turn-context cap', async ()
   const {MAX_CHARS} = await import('./turn-context.mjs');
   assert.ok(LIMITS.now >= MAX_CHARS, `LIMITS.now ${LIMITS.now} < turn-context MAX_CHARS ${MAX_CHARS}`);
 });
+
+test('lean character text (the bridge\'s PersonaBook): no reviewer notes, the repeated blocks in one line each, the same headings; without the option the roster text is as shipped', () => {
+  const lean = new PersonaBook([...named, ...archetypes], {lean: true});
+  const raw = named.find(row => row.key === 'panam-palmer'), whole = book.persona('panam-palmer'), thin = lean.persona('panam-palmer');
+  assert.equal(whole.backstory, raw.backstory.replace(/^\s*\[CyberpunkConvai profile[^\]]*\]\s*$/gm, '').trim(), 'without the option nothing is cut');
+  assert.match(whole.backstory, /^Scope:/m);
+  assert.doesNotMatch(thin.backstory, /^Scope:/m);
+  assert.doesNotMatch(thin.backstory, /Summoning a copy establishes no quest outcome, survival/, 'the 601-character save block is one line');
+  assert.match(thin.backstory, /KNOWLEDGE AND CURRENT SAVE\nVerified current-save context overrides memory\./);
+  assert.match(thin.backstory, /PUBLIC INTRINSIC TOPIC MATERIAL\nBackground and personal views, not proof that V met you/);
+  assert.match(thin.backstory, /My background is Aldecaldo nomad life/, 'the claims themselves stay');
+  for (const heading of ['ESTABLISHED BACKGROUND', 'ESTABLISHED RELATIONSHIPS', 'KNOWLEDGE LIMITS']) assert.match(thin.backstory, new RegExp(`^${heading}$`, 'm'));
+  assert.ok(thin.backstory.length < whole.backstory.length * 0.75, `${thin.backstory.length} of ${whole.backstory.length}`);
+  assert.doesNotMatch(thin.style, /Speak naturally to V/);
+  assert.match(whole.style, /Speak naturally to V/);
+  const cop = lean.persona('npc-ncpd-male');
+  assert.doesNotMatch(cop.backstory, /where you are \(district, neighborhood\)/, 'an archetype is not told to take its place from the context');
+  assert.match(cop.backstory, /Use the per-turn context for what V can see about you/);
+});
+
+test('rule 7 leaves the weather, the time of day and the place unsaid unless V asks, and still names the right-now section as the truth', () => {
+  const prompt = systemPrompt({persona: book.persona('judy-alvarez')});
+  assert.doesNotMatch(prompt, /a few words of attitude about the place or the hour/);
+  assert.match(prompt, /say nothing about the weather, the time of day or the place unless V asks about them/);
+  assert.match(prompt, /The "Right now" section at the end of this message is the plain truth/);
+});
