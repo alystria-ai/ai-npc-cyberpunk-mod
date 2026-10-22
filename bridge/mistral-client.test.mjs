@@ -252,6 +252,11 @@ test('a daily limit is not retried, and a short per-second one is', () => {
   const headers = value => new Headers(value === undefined ? {} : {'retry-after': String(value)});
   const daily = mapFailure(429, {error: {message: 'Rate limit reached for model on tokens per day (TPD): Limit 200000'}}, {headers: headers(), provider: 'mistral'});
   assert.equal(daily.daily, true); assert.equal(retryable(daily), false);
+  // The short names alone (the word boundaries in the pattern were once backspace characters, so these never matched).
+  for (const message of ['Limit reached: RPD 1000', 'quota exceeded (TPD)']) {
+    assert.equal(mapFailure(429, {error: {message}}, {headers: headers(), provider: 'mistral'}).daily, true, message);
+  }
+  assert.equal(mapFailure(429, {error: {message: 'stpdx'}}, {headers: headers(), provider: 'mistral'}).daily, false);
   const quick = mapFailure(429, {error: {message: 'Rate limit reached'}}, {headers: headers(1), provider: 'mistral'});
   assert.equal(retryable(quick), true);
   const mistral = mapFailure(429, {message: 'Requests rate limit exceeded'}, {headers: headers(), provider: 'mistral'});

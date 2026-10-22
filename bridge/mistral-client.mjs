@@ -299,7 +299,7 @@ export function mapFailure(status, body, {headers, apiKey, provider, now} = {}) 
   if (status === 429) {
     const error = new MistralError('limit', 'rate limited', options);
     // A daily allowance does not clear by waiting a few seconds: no retry (the body's words are the only hint).
-    error.daily = /per day|TPD|RPD|daily/i.test(lower);
+    error.daily = /per day|\bTPD\b|\bRPD\b|daily/i.test(lower);
     return error;
   }
   // llama-server refuses a prompt longer than its context and says how many tokens it counted (docs/LOCAL_AI.md, "Context budget"). A server in front of it
