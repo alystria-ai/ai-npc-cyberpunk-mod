@@ -435,7 +435,7 @@ const omniSettled = () => voiceSettingsRead && (localVoice.requestedProvider !==
 const omniStillToLoadMiB = () => localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
   && (localVoice.fallback == null || localVoice.omniRetry != null) ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // The graphics memory OmniVoice holds while it is loaded: part of the card's used memory that is not the game's (the small-card room measures the game's footprint without it).
-const omniResidentMiB = () => localVoice.provider === 'omni' ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
+const omniResidentMiB = () => localVoice.clientBackend === 'omni' && localVoice.client?.loaded === true && localVoice.playbackEnabled !== false ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
