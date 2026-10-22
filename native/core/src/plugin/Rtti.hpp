@@ -23,9 +23,10 @@
 //
 // Rules:
 //   - Natives run on the game thread. Keep them to microseconds: copy, compute, enqueue.
-//   - Every native body goes through Guard(): an exception (or, with /EHa, an access violation)
-//     is logged, counted against the system, and the fallback is returned. Three faults trip the
-//     system's kill switch, so Lua returns to its own path for the rest of the session.
+//   - Every native body goes through Guard(): an exception is logged, counted against the system, and
+//     the fallback is returned. Three C++ faults trip the system's kill switch. A structured exception
+//     (an access violation) trips it at the first one, logged with its code and the native's name. A
+//     switched-off system returns its fallback at once. Lua then runs its own path.
 //   - Parameter types are RTTI names: "Bool", "Int32", "Uint32", "Float", "Double", "String",
 //     "CName", "Vector4", "handle:entEntity", "whandle:gameObject", ...
 
@@ -43,6 +44,7 @@
 #include <exception>
 #include <functional>
 #include <initializer_list>
+#include <source_location>
 #include <string>
 #include <utility>
 #include <vector>
@@ -181,15 +183,59 @@ inline void Return(RED4ext::CString* aOut, const std::string& aValue)
     }
 }
 
+// A C++ exception in a native: counted, and the third one trips the system.
 void NoteFault(const char* aSystem, const char* aWhat) noexcept;
 
-// Runs aBody; on any exception logs it, counts it against aSystem and returns aFallback.
-template<typename F, typename R>
-R Guard(const char* aSystem, F&& aBody, R aFallback) noexcept
+// What a structured exception (an access violation, a stack overflow, a divide by zero) looked like.
+struct SehInfo
 {
+    unsigned long code = 0;
+    const void* address = nullptr;     // where the CPU faulted
+    unsigned long long target = 0;     // the address an access violation touched
+    unsigned long long accessKind = 0; // 0 read, 1 write, 8 execute (access violations only)
+};
+
+// Runs aFunction(aContext) under a structured-exception handler (a __try/__except in Rtti.cpp, so no
+// C++ object lives in that frame). Returns true when it ran to the end. Returns false when it ended on a
+// structured exception, with the details in aInfo. C++ exceptions, breakpoints and debugger messages
+// are not handled here: they pass through to the surrounding catch.
+bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo) noexcept;
+
+// A structured exception in a native. Unlike a C++ exception it may have left the game's own state
+// half updated (a lock held, a count off by one), so the system is switched off at the first one: the
+// kill switch is set, every later native of the system returns its fallback at once, and the Lua side
+// runs its own path. aNative is the C++ function that was running.
+void NoteStructuredFault(const char* aSystem, const char* aNative, const SehInfo& aInfo) noexcept;
+
+template<typename F>
+void InvokeThunk(void* aBody)
+{
+    (*static_cast<F*>(aBody))();
+}
+
+// Runs aBody and returns its value. Returns aFallback at once when the system is switched off (the
+// kill-switch file, "all", or a trip) and on any failure of aBody: a C++ exception is logged and counted
+// against aSystem (three trip it), a structured exception is logged with its code and the native's name
+// and trips the system at the first one. aNative is the calling native's own function name.
+template<typename F, typename R>
+R Guard(const char* aSystem, F&& aBody, R aFallback,
+        std::source_location aNative = std::source_location::current()) noexcept
+{
+    if (GlobalSwitches().Off(aSystem))
+    {
+        return aFallback;
+    }
+    R result = aFallback;
     try
     {
-        return aBody();
+        auto run = [&] { result = aBody(); };
+        SehInfo info;
+        if (!RunProtected(&InvokeThunk<decltype(run)>, &run, info))
+        {
+            NoteStructuredFault(aSystem, aNative.function_name(), info);
+            return aFallback;
+        }
+        return result;
     }
     catch (const std::exception& error)
     {
@@ -197,7 +243,7 @@ R Guard(const char* aSystem, F&& aBody, R aFallback) noexcept
     }
     catch (...)
     {
-        NoteFault(aSystem, "structured exception");
+        NoteFault(aSystem, "unknown C++ exception");
     }
     return aFallback;
 }

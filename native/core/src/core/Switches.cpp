@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <cstring>
 
 namespace convai
 {
@@ -65,10 +66,70 @@ void Switches::ParseFile(std::string_view aContent)
     std::lock_guard<std::mutex> lock(m_mutex);
     if (allOff != m_allOff || off != m_off)
     {
-        CONVAI_INFO("Kill switches changed: all=%s, %zu named", allOff ? "off" : "on", off.size());
+        std::string names;
+        for (const std::string& name : off)
+        {
+            names += (names.empty() ? "" : ", ") + name;
+        }
+        CONVAI_INFO("Kill switches changed: all=%s, %zu named (%s)", allOff ? "off" : "on", off.size(),
+                    names.c_str());
     }
     m_allOff = allOff;
     m_off = std::move(off);
+    // Mirror into the lock-free flags: every known slot is recomputed, named systems get a slot.
+    for (const std::string& name : m_off)
+    {
+        SlotLocked(name, true);
+    }
+    const size_t count = m_slotCount.load(std::memory_order_relaxed);
+    for (size_t i = 0; i < count; ++i)
+    {
+        const bool named = std::find(m_off.begin(), m_off.end(), std::string_view(m_slots[i].name)) != m_off.end();
+        m_slots[i].fileOff.store(named, std::memory_order_release);
+    }
+    m_allOffFlag.store(allOff, std::memory_order_release);
+}
+
+Switches::Slot* Switches::SlotLocked(std::string_view aSystem, bool aCreate)
+{
+    const size_t count = m_slotCount.load(std::memory_order_relaxed);
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (aSystem == m_slots[i].name)
+        {
+            return &m_slots[i];
+        }
+    }
+    if (!aCreate || count >= kSlots || aSystem.empty() || aSystem.size() >= sizeof(Slot::name))
+    {
+        return nullptr;
+    }
+    std::memcpy(m_slots[count].name, aSystem.data(), aSystem.size());
+    m_slots[count].name[aSystem.size()] = '\0';
+    m_slotCount.store(count + 1, std::memory_order_release);
+    return &m_slots[count];
+}
+
+bool Switches::Off(const char* aSystem) const noexcept
+{
+    if (!aSystem || std::strcmp(aSystem, "core") == 0)
+    {
+        return false;
+    }
+    if (m_allOffFlag.load(std::memory_order_acquire))
+    {
+        return true;
+    }
+    const size_t count = m_slotCount.load(std::memory_order_acquire);
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (std::strcmp(aSystem, m_slots[i].name) == 0)
+        {
+            return m_slots[i].fileOff.load(std::memory_order_acquire) ||
+                   m_slots[i].tripped.load(std::memory_order_acquire);
+        }
+    }
+    return false;
 }
 
 void Switches::Trip(std::string_view aSystem, std::string_view aReason)
@@ -82,6 +143,10 @@ void Switches::Trip(std::string_view aSystem, std::string_view aReason)
         }
     }
     m_tripped.emplace_back(std::string(aSystem), std::string(aReason));
+    if (Slot* slot = SlotLocked(aSystem, true))
+    {
+        slot->tripped.store(true, std::memory_order_release);
+    }
     CONVAI_ERROR("System '%.*s' turned itself off: %.*s", static_cast<int>(aSystem.size()), aSystem.data(),
                  static_cast<int>(aReason.size()), aReason.data());
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <cstddef>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -24,6 +26,12 @@ public:
 
     bool Enabled(std::string_view aSystem) const;
 
+    // The lock-free form of !Enabled() for the hot path (rtti::Guard asks it on every native call):
+    // two atomic flags per system, set by ParseFile and Trip, so a switch that flips takes effect on
+    // the very next call instead of after Lua's next 0.5 s read. "core" is never off: its natives
+    // (CheckVersion, SystemEnabled, Status) are how Lua and the reports learn what the switches say.
+    bool Off(const char* aSystem) const noexcept;
+
     // True when aSystem tripped (the file switches do not count). The reason is in DescribeJson().
     bool Tripped(std::string_view aSystem) const;
 
@@ -31,7 +39,21 @@ public:
     std::string DescribeJson() const;
 
 private:
+    // A fixed table so the flags can be read without the mutex. Slots are only ever added (under the
+    // mutex, name written before the count is published) and never removed.
+    static constexpr size_t kSlots = 32;
+    struct Slot
+    {
+        char name[32] = {};
+        std::atomic<bool> fileOff{false};
+        std::atomic<bool> tripped{false};
+    };
+    Slot* SlotLocked(std::string_view aSystem, bool aCreate);
+
     mutable std::mutex m_mutex;
+    Slot m_slots[kSlots];
+    std::atomic<size_t> m_slotCount{0};
+    std::atomic<bool> m_allOffFlag{false};
     bool m_allOff = false;
     std::vector<std::string> m_off;
     std::vector<std::pair<std::string, std::string>> m_tripped;

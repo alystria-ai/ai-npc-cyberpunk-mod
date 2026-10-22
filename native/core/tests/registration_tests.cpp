@@ -118,3 +118,25 @@ TEST(registration_failure_trips_the_system_and_keeps_the_others)
     CHECK(!switches.Enabled("fake"));
     CHECK(switches.DescribeJson().find("array:Double") != std::string::npos);
 }
+
+TEST(off_flags_follow_the_file_and_trips_at_once_and_never_cover_core)
+{
+    Switches switches;
+    CHECK(!switches.Off("faces"));
+    switches.ParseFile("faces\n");
+    CHECK(switches.Off("faces"));
+    CHECK(!switches.Off("vehicles"));
+    switches.ParseFile("");
+    CHECK(!switches.Off("faces"));
+    switches.Trip("vehicles", "structured exception 0xC0000005 at x in y");
+    CHECK(switches.Off("vehicles"));
+    CHECK(!switches.Off("faces"));
+    // "all" turns every system off but never core: its natives report what the switches say.
+    switches.ParseFile("all");
+    CHECK(switches.Off("faces"));
+    CHECK(switches.Off("anything"));
+    CHECK(!switches.Off("core"));
+    switches.ParseFile("");
+    CHECK(!switches.Off("faces"));
+    CHECK(switches.Off("vehicles")); // a file with nothing in it does not clear a trip
+}

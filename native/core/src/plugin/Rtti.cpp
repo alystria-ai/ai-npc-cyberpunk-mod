@@ -7,8 +7,107 @@
 #include <string>
 #include <unordered_map>
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <malloc.h>
+
+#include <cstdio>
+
 namespace convai::rtti
 {
+namespace
+{
+// Only the NTSTATUS error codes (0xC...) are handled: access violations, stack overflows, divide by
+// zero and illegal instructions live there. C++ exceptions (0xE06D7363), other libraries' own 0xE...
+// codes, breakpoints and the debugger's print messages go on to whoever expects them.
+int SehFilter(EXCEPTION_POINTERS* aPointers, SehInfo* aInfo) noexcept
+{
+    const EXCEPTION_RECORD* record = aPointers ? aPointers->ExceptionRecord : nullptr;
+    if (!record || (record->ExceptionCode >> 28) != 0xCu)
+    {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    aInfo->code = record->ExceptionCode;
+    aInfo->address = record->ExceptionAddress;
+    if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && record->NumberParameters >= 2)
+    {
+        aInfo->accessKind = record->ExceptionInformation[0];
+        aInfo->target = record->ExceptionInformation[1];
+    }
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+} // namespace
+
+// No C++ object lives in this frame (MSVC refuses __try next to objects that need unwinding).
+bool RunProtected(void (*aFunction)(void*), void* aContext, SehInfo& aInfo) noexcept
+{
+    __try
+    {
+        aFunction(aContext);
+        return true;
+    }
+    __except (SehFilter(GetExceptionInformation(), &aInfo))
+    {
+        if (aInfo.code == EXCEPTION_STACK_OVERFLOW)
+        {
+            _resetstkoflw(); // put the guard page back, or the next overflow ends the process
+        }
+        return false;
+    }
+}
+
+void NoteStructuredFault(const char* aSystem, const char* aNative, const SehInfo& aInfo) noexcept
+{
+    try
+    {
+        // module+offset of the faulting instruction, so a report names the DLL (ours or the game's).
+        char where[160] = "unknown location";
+        HMODULE module = nullptr;
+        if (aInfo.address &&
+            GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               static_cast<LPCWSTR>(aInfo.address), &module) &&
+            module)
+        {
+            wchar_t path[MAX_PATH] = {};
+            const DWORD length = GetModuleFileNameW(module, path, MAX_PATH);
+            const wchar_t* base = path;
+            for (DWORD i = 0; i < length; ++i)
+            {
+                if (path[i] == L'\\' || path[i] == L'/')
+                {
+                    base = path + i + 1;
+                }
+            }
+            char name[96] = {};
+            for (size_t n = 0; base[n] && n + 1 < sizeof(name); ++n)
+            {
+                name[n] = base[n] < 0x80 ? static_cast<char>(base[n]) : '?';
+            }
+            std::snprintf(where, sizeof(where), "%s+0x%llx", name,
+                          static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(aInfo.address) -
+                                                          reinterpret_cast<uintptr_t>(module)));
+        }
+        char what[384];
+        if (aInfo.code == EXCEPTION_ACCESS_VIOLATION)
+        {
+            std::snprintf(what, sizeof(what),
+                          "structured exception 0x%08lX (access violation, %s of 0x%llx) at %s in %s", aInfo.code,
+                          aInfo.accessKind == 0 ? "read" : (aInfo.accessKind == 1 ? "write" : "execute"),
+                          aInfo.target, where, aNative ? aNative : "?");
+        }
+        else
+        {
+            std::snprintf(what, sizeof(what), "structured exception 0x%08lX at %s in %s", aInfo.code, where,
+                          aNative ? aNative : "?");
+        }
+        CONVAI_ERROR("Native fault in %s: %s", aSystem ? aSystem : "?", what);
+        GlobalSwitches().Trip(aSystem ? aSystem : "?", what);
+    }
+    catch (...)
+    {
+    }
+}
+
 void NoteFault(const char* aSystem, const char* aWhat) noexcept
 {
     try
