@@ -23,7 +23,9 @@ test('the voice engine still to load counts OmniVoice only, only while it is wan
   assert.ok(!/pocket/i.test(text), 'Pocket runs on the CPU and counts nothing');
 });
 
-test('the Local AI server is given the game room with the voice size and the service age', () => {
-  assert.match(source, /gameRoom: \{voiceMiB: omniStillToLoadMiB, uptimeSeconds: \(\) => process\.uptime\(\)\}/);
+test('the Local AI server is given the game room with the voice sizes, not the service age', () => {
+  assert.match(source, /gameRoom: \{voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB\}/);
+  assert.ok(!/gameRoom:[^\n]*uptime/.test(source), 'the reservation does not depend on how long the service has run');
+  assert.match(source, /const omniResidentMiB = \(\) => localVoice\.provider === 'omni' \? SMALL_CARD_ROOM\.omniVoiceMiB : 0;/);
   assert.match(source, /import \{SMALL_CARD_ROOM\} from '\.\/local-vram-fit\.mjs'/);
 });

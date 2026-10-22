@@ -429,6 +429,8 @@ const omniSettled = () => voiceSettingsRead && (localVoice.requestedProvider !==
 // memory that Omni is about to take. Pocket runs on the CPU and counts nothing; V's OmniVoice engine is a job on the same worker and adds nothing.
 const omniStillToLoadMiB = () => localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
   && (localVoice.fallback == null || localVoice.omniRetry != null) ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
+// The graphics memory OmniVoice holds while it is loaded: part of the card's used memory that is not the game's (the small-card room measures the game's footprint without it).
+const omniResidentMiB = () => localVoice.provider === 'omni' ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
@@ -440,7 +442,7 @@ const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: l
 const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
-  gameRoom: {voiceMiB: omniStillToLoadMiB, uptimeSeconds: () => process.uptime()},
+  gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {
