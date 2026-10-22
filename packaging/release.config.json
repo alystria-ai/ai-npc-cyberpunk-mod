@@ -113,7 +113,7 @@
     }
   },
   "localAi": {
-    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks true: the packs also carry a copy in llama/ for one release, 0.2.7, so a pack used with an older Runtime still works; set it false and the packs carry models only and their manifests name no server). Each pack carries the embedding model and its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
+    "notes": "The two optional Local AI downloads (docs/LOCAL_AI.md, docs/LOCAL_MODEL_CHOICE.md), hosted on Hugging Face, in its local-ai/ folder, as one zip each. The llama.cpp engine (server, llama-fit-params, libraries) ships in the RUNTIME, in app/<server.runtimeFolder>/ (server.inPacks is false since 0.2.9: the packs carry models only and their manifests name no server, so they need the Runtime of 0.2.7 or newer; set it true and each pack carries a copy in llama/ again, for a pack used with an older Runtime). Each pack carries the embedding model and its own chat model whole (no parts), plus a manifest fragment that bridge/local-ai-pack.mjs merges. Every file is the unmodified upstream file, checked against the SHA-256 recorded here. With --models local, a developer folder (--local-ai-source, or CYBERPUNK_CONVAI_LOCAL_AI_DEV) is used instead of downloading, and each file in it is checked against the same hash.",
     "server": {
       "name": "llama.cpp llama-server (Vulkan build)",
       "version": "b11782",
@@ -122,7 +122,7 @@
       "sha256": "4defe0cf1ad6fb9d5e07eff26041c24fd46e14ef46a8971243a24b9b358a0525",
       "local": "dl-llama-vulkan/vulkan.zip",
       "runtimeFolder": "llama-cpp",
-      "inPacks": true,
+      "inPacks": false,
       "license": "MIT",
       "keep": ["llama-server.exe", "llama-fit-params.exe", "*.dll", "LICENSE*"],
       "drop": ["llama-batched-bench-impl.dll", "llama-bench-impl.dll", "llama-cli-impl.dll", "llama-completion-impl.dll",

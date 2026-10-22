@@ -857,6 +857,7 @@ async function localAiPackage(source, config, tierKey) {
       + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
       + ` - https://huggingface.co/${lite.repository}`,
     embedNotice,
+    ...(spec.server.inPacks === false ? ['This pack carries models only and needs the Runtime of version 0.2.7 or newer: the llama.cpp engine that runs the models is part of the Runtime, not of this pack.'] : []),
     'The model files are the unmodified converted files of the publishers named above.',
     'AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.',
   ];
@@ -913,7 +914,7 @@ async function maturePackage(source, config, tierKey) {
     `- The model is a community fine-tune of the Apache-2.0 base model named above.${tierKey === 'good' ? ' Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy' : ''}`,
     `- ${llamaNotice}`, `- ${embedNotice}`,
     config.localAi.server.inPacks === false
-      ? '- The pack includes the embedding model and uses the llama-server engine that is part of the Runtime. The same files are in the Local AI packs; installing one pack over another only overwrites identical files.'
+      ? '- The pack includes the embedding model and uses the llama-server engine that is part of the Runtime, so it needs the Runtime of version 0.2.7 or newer. The same embedding model is in the Local AI packs; installing one pack over another only overwrites identical files.'
       : '- The pack includes the llama-server build and the embedding model, so it works without a Local AI pack. The same files are in the Local AI packs; installing one pack over another only overwrites identical files.',
     '- The licence paths above (licenses/...) are in the Local AI folder, one level up from this folder; the Apache-2.0 text is also in mature/licenses/.',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see ../LICENSE.txt.', ''].join('\r\n'));

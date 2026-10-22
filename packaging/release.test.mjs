@@ -780,9 +780,12 @@ test('the Mature packs carry the Local AI engine: the same shared files as the L
   for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
     const text = await readFile(resolve(project, rel), 'utf8');
     assert.match(text, /no Local AI pack is needed|you do not need a Local AI pack|works without a Local AI pack/i, `${rel}: works on its own`);
-    assert.match(text, /about 2\.9 GB/, rel); assert.match(text, /about 5\.5 GB/, rel);
-    assert.doesNotMatch(text, /about 2\.7 GB|about 5\.3 GB|needs a Local AI pack|Local AI must be working/i, `${rel}: the old sizes and the old requirement are gone`);
+    assert.match(text, /about 2\.8 GB/, rel); assert.match(text, /about 5\.5 GB/, rel);
+    assert.doesNotMatch(text, /about 2\.7 GB|about 2\.9 GB|about 5\.3 GB|needs a Local AI pack|Local AI must be working/i, `${rel}: the old sizes and the old requirement are gone`);
     assert.match(text, /llama\.cpp/, rel); assert.match(text, /Granite/, rel);
+    // Since 0.2.9 the packs carry models only (localAi.server.inPacks false): the text says the engine is the Runtime's and which Runtime it needs.
+    assert.match(text, /Runtime of version 0\.2\.7 or newer/, `${rel}: the pack needs the 0.2.7 Runtime`);
+    assert.doesNotMatch(text, /The engine is included|carries the Local AI engine|includes the Local AI engine|the `llama` folder/, `${rel}: no pack carries the engine any more`);
   }
 });
 
