@@ -24,7 +24,7 @@ export const SETUP_CHECK_FILE = 'setup-check.json';
 export const SETUP_REQUEST_FILE = 'setup-check-request.json';
 
 const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS = 5000;
-// The language packs one folder too deep are found by their manifests (the same as packaging/runtime/place-packs.mjs LANGUAGE_PACKS).
+// The language packs one folder too deep are found by their manifests (the same as LANGUAGE_PACKS in the launcher's place-packs.mjs).
 const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Voice language pack'], ['multilingual-pocket', 'pocket-model.json', 'Pocket language model']];
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;

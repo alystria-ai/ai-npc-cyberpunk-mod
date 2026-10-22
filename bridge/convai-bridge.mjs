@@ -2564,8 +2564,6 @@ async function tick() {
     lastAcceptedIdentity = identity;
     void companionActions.revoke();
     active?.controller.abort();
-    // The provider the player has just chosen answers this turn (see syncProviderForNewTurn).
-    await syncProviderForNewTurn();
     const owner = new RequestFileOwner(inputPath, raw, stamp);
     // The exact turn may already be generated and held back (group look-ahead):
     // adopt it instead of starting another provider request.
@@ -2599,6 +2597,8 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
+  // The provider the player has just chosen answers this turn, even if the settings poll has not read the change yet (see syncProviderForNewTurn).
+  await syncProviderForNewTurn();
   return withTurnClock(request, clock => runInput(request, prepared, clock));
 }
 async function withTurnClock(request, run) {

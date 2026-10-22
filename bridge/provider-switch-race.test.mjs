@@ -33,9 +33,9 @@ ${log}`);
 });
 
 const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-test('the wiring: a submitted turn syncs the provider before it is started, and the switch for that turn skips the idle test only', () => {
+test('the wiring: a turn syncs the provider before it is started (processInput), and the switch for that turn skips the idle test only', () => {
   assert.match(source, /async function applyProviderChoice\(\{newTurn = false\} = \{\}\) \{\n  if \(providerSwitching \|\| stopped \|\| !mistral\.pending \|\| \(!newTurn && voiceBoundaryBusy\(\)\) \|\| voiceRouteReservation\) return;/);
-  assert.match(source, /active\?\.controller\.abort\(\);\n(?:\s*\/\/[^\n]*\n)?\s*await syncProviderForNewTurn\(\);\n\s*const owner = new RequestFileOwner/);
+  assert.match(source, /async function processInput\(request, prepared\) \{\n(?:\s*\/\/[^\n]*\n)?\s*await syncProviderForNewTurn\(\);\n\s*return withTurnClock/);
   assert.match(source, /if \(mistral\.pending\) await applyProviderChoice\(\{newTurn: true\}\);/);
   // the settings poll adopts the setting through the same function
   assert.match(source, /await adoptProviderSetting\(settings\);\n\s*await mistralControl\.poll\(\)/);
