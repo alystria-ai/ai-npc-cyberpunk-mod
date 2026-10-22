@@ -664,6 +664,24 @@ local function retryFace(delta)
     end
 end
 
+-- Who is speaking, and whether the voice is still allowed, cannot change faster than this: the player/actor identity test and the
+-- voice-setting read run at 10 Hz (and at once for a new reply or speaker), not on every frame of a reply.
+local IDENTITY_PERIOD = .1
+local function identityDue(delta)
+    local clock = os.clock()
+    if M.identityFor ~= M.requestId or M.identityActor ~= M.actor or M.identityClock == nil or clock < M.identityClock then
+        M.identityFor, M.identityActor, M.identityWait, M.identityClock = M.requestId, M.actor, 0, clock
+        return true
+    end
+    -- A paused menu reports no simulation time, so the wall clock counts as well.
+    M.identityWait = M.identityWait + delta
+    if M.identityWait >= IDENTITY_PERIOD or clock - M.identityClock >= IDENTITY_PERIOD then
+        M.identityWait, M.identityClock = 0, clock
+        return true
+    end
+    return false
+end
+
 local function updateSpeech(delta, framePlayer)
     -- V is taken only on a frame that needs V: the 2 s heartbeat, or a reply in progress. init.lua passes the V it fetched for
     -- this frame (the session check), so those frames ask the game for nobody; a caller without it (a test) asks once. A quiet
@@ -688,13 +706,17 @@ local function updateSpeech(delta, framePlayer)
     end
     if not M.requestId then return end
     player = player or Game.GetPlayer()
-    if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
-    if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
+    if not player then M.abandon(); return end
+    local identity = identityDue(delta)
+    if identity then
+        if tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
+        if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
+    end
     -- The same test while a named character's reply is heard (about twice a second, held inside the guard): a scene, a fight or
     -- a ride that starts ends the reply and releases the face. True when it did.
     local storyGuard = M.storyGuard
     if storyGuard and storyGuard(M.actor, M.context) == true then return end
-    if not voiceEnabled(player) then
+    if identity and not voiceEnabled(player) then
         fallback('muted', M.text); return
     end
     -- UI_System.IsInMenu: init.lua's reader keeps the blackboard definition and its id (three native calls a frame, not seven);

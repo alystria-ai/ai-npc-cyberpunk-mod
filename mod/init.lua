@@ -2201,7 +2201,11 @@ convaiInMenu = function()
         local definition = Game.GetAllBlackboardDefs().UI_System
         cache.menuFlag, cache.menuDefinition = definition.IsInMenu, definition
     end
-    return Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
+    -- One read per frame: the world-ready check, the reply's pause test and the other readers of a frame share it.
+    if cache.menuFrame == cache.frame then return cache.menuValue end
+    local value = Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
+    cache.menuFrame, cache.menuValue = cache.frame, value
+    return value
 end
 
 local function gameplayCanAcquire(player)
