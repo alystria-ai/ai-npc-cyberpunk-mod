@@ -2111,6 +2111,35 @@ test('choosing a character and cancelling a Forget confirmation say nothing was 
   `);
 });
 
+test('the Forget all row names what it does and carries the count in its name ("Forget all memories (6 characters)"); its button says only Forget', () => run(`${nsuiFixture}${memoryFixture}
+  publishMemory(6, {})
+  openMemory()
+  local forget = row('memory:forget-all')
+  assert(forget.type == 'action', 'a button row')
+  assert(forget.label == 'Forget all memories (6 characters)', forget.label)
+  assert(forget.value == 'Forget', 'the button text is one word, not "Forget (6 characters)": ' .. tostring(forget.value))
+  assert(core.optionUnits(forget.label) <= core.BUTTON_LABEL_UNITS, 'the name fits a button row: ' .. core.optionUnits(forget.label))
+  assert(managerUi.LAYOUT.buttonLabelUnits == core.BUTTON_LABEL_UNITS, 'the host and the page cut to the same figure')
+  -- Two digits do not fit with the word, so the name carries the bare count; it never goes past the budget.
+  publishMemory(12, {}); reloadMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (12)' and core.optionUnits(row('memory:forget-all').label) <= core.BUTTON_LABEL_UNITS, row('memory:forget-all').label)
+  publishMemory(0, {}); reloadMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (0 characters)')
+`));
+
+test('a translation that is too wide for a button row falls back to the bare count and is never cut', () => run(`${nsuiFixture}${memoryFixture}
+  convaiUiLocale.configure('en')
+  local original = convaiUiLocale.t
+  convaiUiLocale.t = function(text, values)
+    if text == 'Forget all memories ({count} characters)' then return 'Forget every memory of every character you have talked to ({count} characters)' end
+    return original(text, values)
+  end
+  publishMemory(6, {})
+  openMemory()
+  assert(row('memory:forget-all').label == 'Forget all memories (6)', 'a translation that does not fit keeps only the number: ' .. row('memory:forget-all').label)
+  convaiUiLocale.t = original
+`));
+
 test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${nsuiFixture}${memoryFixture}
   publishMemory(0,{})
   openMemory()

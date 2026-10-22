@@ -269,11 +269,20 @@ end
 -- is coming or the journal changed. A global, so callers deep in onUpdate add no upvalue.
 convaiDemandKnowledge = function(lanes)
     pcall(worldKnowledge.demand, worldKnowledge, 0)
+    if not convaiHistoryWanted() then return end
     -- A history scan already under way (the first one after a load takes minutes when paced) finishes at full speed now.
     if not lanes and type(journalHistory.scanning) == 'function' and journalHistory:scanning('history') then
         lanes = {'active', 'history'}
     end
     pcall(journalHistory.demand, journalHistory, lanes or {'active'}, 0)
+end
+-- Whether the journal history is scanned and sent: Settings > Dynamic info > Quest and journal, or Johnny's remarks about a finished job (they
+-- need the scan to see one). Off, the scan is not stepped and not asked for, and a request carries it as unavailable. The switches are the table
+-- manager.lua publishes (convaiDynamicInfo; nil before the settings load: on). A global, like the callers below.
+function convaiHistoryWanted()
+    local flags = convaiDynamicInfo
+    if flags == nil or flags.quest ~= false then return true end
+    return manager.johnnyRemarks() ~= 'off' and manager.johnnyInHead()
 end
 local function updateKnowledge(delta)
     -- A journal change (JournalNotificationQueue.OnJournalUpdate, onInit) rescans everything once the burst settles;
@@ -281,7 +290,8 @@ local function updateKnowledge(delta)
     local dirty = worldKnowledge.journalChangedAt
     if dirty and os.clock() - dirty >= 1 then
         worldKnowledge.journalChangedAt = nil
-        pcall(worldKnowledge.demand, worldKnowledge, 0); pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0)
+        pcall(worldKnowledge.demand, worldKnowledge, 0)
+        if convaiHistoryWanted() then pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0) end
     end
     local phone = convaiPhoneChat and convaiPhoneChat.contact or nil
     if phone ~= worldKnowledge.phoneContact then
@@ -299,7 +309,17 @@ local function updateKnowledge(delta)
     local context = {generation = before.generation, worldToken = before.worldToken}
     -- Each collector enforces its own per-frame work and age limits. A second
     -- inspection rejects any native transition that occurred during its reads.
-    worldKnowledge:update(context); journalHistory:update(context)
+    worldKnowledge:update(context)
+    -- Quest and journal off: the journal scan is not stepped. Turned on again, it is asked for once at the first frame (a turn would otherwise
+    -- find nothing until the scan's own next rest was over). With the switch on (the default) this is one table read and one comparison.
+    local flags = convaiDynamicInfo
+    if flags == nil or flags.quest ~= false or convaiHistoryWanted() then
+        if convaiHistoryWas ~= nil then
+            convaiHistoryWas = nil
+            pcall(journalHistory.demand, journalHistory, {'active', 'history'}, 0)
+        end
+        journalHistory:update(context)
+    else convaiHistoryWas = false end
     refreshKnowledgeFrame()
 end
 
@@ -321,10 +341,13 @@ local function captureKnowledge(context, channel, byRevision)
         -- byRevision: the bridge rebuilds the snapshots from runtime/knowledge-*.json (bridge/knowledge-parts.mjs), so the
         -- request carries headers and row ids, not ~800 KB of copies. Any failure falls back to the full snapshots.
         local published = false
+        local historyOn = convaiHistoryWanted()
         if byRevision and knowledgeParts then
             local parts = {}
             local worldOk, worldHeader, worldPart = pcall(worldKnowledge.capturePart, worldKnowledge, binding)
-            local historyOk, historyHeader, historyParts = pcall(journalHistory.capturePart, journalHistory, binding)
+            local historyOk, historyHeader, historyParts
+            if historyOn then historyOk, historyHeader, historyParts = pcall(journalHistory.capturePart, journalHistory, binding)
+            else historyOk, historyHeader, historyParts = true, knowledgeUnavailable('switched-off'), {} end
             if worldOk and historyOk and type(worldHeader) == 'table' and type(historyHeader) == 'table' then
                 if worldPart then parts[#parts + 1] = worldPart end
                 for _, part in ipairs(historyParts or {}) do parts[#parts + 1] = part end
@@ -332,7 +355,10 @@ local function captureKnowledge(context, channel, byRevision)
                 if ok and done then world, history, published = worldHeader, historyHeader, true end
             end
         end
-        if not published then world, history = worldKnowledge:capture(binding), journalHistory:capture(binding) end
+        if not published then
+            world = worldKnowledge:capture(binding)
+            history = historyOn and journalHistory:capture(binding) or knowledgeUnavailable('switched-off')
+        end
     end
     local after = refreshKnowledgeFrame()
     if not knowledgeAllowed or not sameKnowledgeOwner(owner, knowledgeOwner(after)) then return nil end
@@ -452,6 +478,21 @@ microphone.currentKnowledgeOwner = function()
     if not knowledgeAllowed then return nil end
     return knowledgeOwner(refreshKnowledgeFrame())
 end
+-- Settings > Dynamic info: a kind that is off is not read from the game for a turn. The capture functions of the collectors are wrapped once, here,
+-- so every caller (private text, voice, group, phone) is covered and a switch that is off costs one table lookup at send time, nothing per frame.
+-- Quest and journal: the tracked quest. Health, heat and fights: the last fight. (V's gear and clothes and the recent game dialogue are wrapped
+-- where those modules are made, below.) Called with or without self, so it fits a function and a method alike. A manager without the setting is on.
+function convaiGateCapture(owner, name, kind)
+    local original = type(owner) == 'table' and owner[name] or nil
+    if type(original) ~= 'function' then return end
+    owner[name] = function(...)
+        local ask = manager.dynamicInfo
+        if ask ~= nil and not ask(kind) then return nil end
+        return original(...)
+    end
+end
+convaiGateCapture(questContext, 'capture', 'quest')
+convaiGateCapture(battles, 'capture', 'condition')
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
@@ -1021,6 +1062,8 @@ do
         convaiJohnnyRelicEnsure()
         module = convaiJohnnyRemarksModule
         if not convaiJohnnyFight then convaiJohnnyFight = module.fightTracker() end
+        -- Settings > Dynamic info > Location off: V's district is not read for him either (no arrival remarks).
+        if manager.dynamicInfo ~= nil and not manager.dynamicInfo('location') then lastId, chain, tracker = nil, nil, nil; return end
         local ok, key, id = pcall(function()
             local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
             local district = system and system:GetCurrentDistrict()
@@ -1350,6 +1393,9 @@ do
         worldKnowledge.onEdges = function(edges) convaiWitnessReceipts:record(edges) end
     end
 end
+-- Recent game dialogue (Settings > Dynamic info): off, nothing is captured for a turn. The recorder itself stays on: Johnny's remarks and the
+-- add-ons hear the game's lines through it, and it works only when the game shows a line, never per frame.
+convaiGateCapture(gameDialogue, 'capture', 'dialogue')
 local function captureGameDialogue() return gameDialogue and gameDialogue:capture() or nil end
 groupChat.captureGameDialogue = captureGameDialogue
 phoneChat.captureGameDialogue = captureGameDialogue
@@ -1362,6 +1408,8 @@ local playerGearLoaded, playerGearModule = pcall(dofile, 'player-gear.lua')
 local playerGear = playerGearLoaded and type(playerGearModule) == 'table'
     and type(playerGearModule.new) == 'function' and playerGearModule.new({}) or nil
 convaiPlayerGear = playerGear
+-- V's gear and clothes (Settings > Dynamic info): off, the equipment is not read.
+convaiGateCapture(playerGear, 'capture', 'gear')
 local function capturePlayerGear() return playerGear and playerGear:capture() or nil end
 groupChat.capturePlayerGear = capturePlayerGear
 microphone.capturePlayerGear = capturePlayerGear
@@ -1373,6 +1421,8 @@ do
     local loaded, module = pcall(dofile, 'turn-context.lua')
     convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
         place = function() return currentDistrict() end,
+        -- Settings > Dynamic info: a kind that is off is not read from the game (mod/turn-context.lua).
+        enabled = function(kind) return manager.dynamicInfo == nil or manager.dynamicInfo(kind) end,
         party = function(player, radius)
             local rows = companions.conversationCandidates(player, radius)
             -- The spawned characters of the group round this turn belongs to are with V too (they were chosen within 8 m).
@@ -2501,7 +2551,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     if archetype or key == 'resident-male' or key == 'resident-female' then
         primary.generic = true
         primary.archetype = archetype or {category = 'resident'}
-        local place = currentDistrict()
+        -- Settings > Dynamic info > Location: off, an ordinary NPC is not told where it stands either.
+        local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
         if place then primary.archetype.district, primary.archetype.area = place.district, place.area end
         -- A nameless ordinary NPC gets its Night City name (the same one the scanner shows); the caption, the composer and the
         -- bridge's "Your name is ..." line use it. Nil with the setting off or for anyone the gate refuses.
@@ -2515,7 +2566,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     for _, person in ipairs(participants or {}) do
         if person ~= primary and person.spawned and person.generic then
             person.archetype = person.archetype or {category = 'resident'}
-            local place = currentDistrict()
+            local place = (manager.dynamicInfo == nil or manager.dynamicInfo('location')) and currentDistrict() or nil
             if place then person.archetype.district, person.archetype.area = place.district, place.area end
             local generated = convaiNpcNames and convaiNpcNames.nameFor(person.npc, 'talk') or nil
             if generated then person.name, person.archetype.npcName = generated, generated end

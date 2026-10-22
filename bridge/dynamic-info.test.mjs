@@ -1,0 +1,367 @@
+// Settings > Dynamic info (docs/DYNAMIC_INFO.md): one switch per kind of live game info a turn's context carries. An off kind is absent from the prompt of
+// every provider (Convai's dynamic info, and the Mistral, Local AI and Custom prompts), is no longer read from the game, is saved and applied like the
+// other settings, and is part of the support report. Also pinned here: the location wording a player reported (2026-10-22: "standing in the middle of
+// Little China" while V was in the H10 apartment).
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import fengari from 'fengari';
+import {DynamicInfo, KINDS, NO_KINDS, dynamicInfo, offKinds, stripSnapshot} from './dynamic-info.mjs';
+import {parseInput, archetypeContext} from './protocol.mjs';
+import {conversationContext, conversationContextBlocks, voiceConversationBlocks} from './quest-context.mjs';
+import {describeTurnContext, parseTurnContext, turnContext} from './turn-context.mjs';
+import {describePlace} from './place-names.mjs';
+import {PersonaBook, buildMessages, joinBlocks, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
+import {TextProviderHost, mistralRoute, localRoute, customRoute} from './text-provider-host.mjs';
+import {MistralMemory} from './mistral-memory.mjs';
+import {MistralProvider} from './mistral-key.mjs';
+import {CustomEndpoint, parseEndpointUrl} from './custom-endpoint.mjs';
+import {vGenderOf} from './v-voice.mjs';
+
+const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';   // the safe constant the other provider tests use
+const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
+  ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
+const book = new PersonaBook(roster);
+
+// ---- a turn that carries every kind of live info ----------------------------------------------------------------------------------------------
+const MARKERS = {
+  location: /Embers|Heywood/, time: /late night|2 AM|raining/, company: /Also with V|Panam|in a vehicle/,
+  condition: /badly hurt|police chase|Maelstrom/, money: /nearly broke/, gear: /Samurai Jacket|Kyubi/, about: /Street Kid|woman \(she\/her\)/,
+  quest: /The Heist|Reach the vault door|broader current-save journal history/, dialogue: /Meet me at the Afterlife tonight/};
+let serial = 100;
+function rawTurn(extra = {}, entity = `${++serial}ULL`) {
+  return {requestId: `${serial}-1-${entity}`, generation: 1, entity, profileKey: 'judy-alvarez', name: 'Judy', bodyType: 'WomanAverage', text: 'So what now?',
+    journal: {version: 1, status: 'active', quest: {id: '123', title: 'The Heist', objectives: [{id: '1', text: 'Reach the vault door', tracked: true}]}},
+    journalHistory: {version: 1, status: 'unavailable'}, worldKnowledge: {version: 1, status: 'unavailable'},
+    gear: {version: 1, status: 'ready', clothing: [{slot: 'outerTorso', name: 'Samurai Jacket'}], weapons: [{slot: 'hand', name: 'Kyubi'}]},
+    gameDialogue: {version: 1, status: 'ready', lines: [{id: 'g-1', age: 20, kind: 'line', channel: 'scene', speaker: 'npc', entity, profileKey: 'judy-alvarez',
+      name: 'Judy', text: 'Meet me at the Afterlife tonight.'}]},
+    battle: {version: 1, status: 'fighting', encounter: 'battle-12', ageSeconds: 5, durationSeconds: 20, opponents: [{name: 'Maelstrom Thug', count: 2}], witnesses: ['judy-alvarez']},
+    turnContext: {version: 1, status: 'ready', hour: 2, minute: 10, district: 'Heywood', area: 'Glen_Embers', indoors: true, gender: 'female', voice: 'female',
+      lifepath: 'streetkid', weather: 'rain', health: 'badly-hurt', heat: 3, money: 'broke', vehicle: true, driving: false,
+      party: [{key: 'judy-alvarez', name: 'Judy', activity: 'passenger'}, {key: 'panam-palmer', name: 'Panam'}]},
+    ...extra};
+}
+const parsed = (extra, entity) => parseInput(JSON.stringify(rawTurn(extra, entity)));
+const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: Object.fromEntries(kinds.map(kind => [kind, false]))}); return info; };
+
+// What the bridge hands a text provider for one turn (bridge/convai-bridge.mjs contextPartsOf): the same blocks, laid out by how often they change.
+function partsOf(blocks) {
+  const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
+  return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+    world: joinBlocks(world.map(item => item.text)), worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text}))};
+}
+const flat = messages => messages.map(message => typeof message.content === 'string' ? message.content : JSON.stringify(message.content)).join('\n\n');
+
+// ---- the four provider paths ------------------------------------------------------------------------------------------------------------------
+async function route(name) {
+  const seen = [];
+  const chat = async options => { seen.push(flat(options.messages)); return {text: 'Sure, V.', model: 'm', finishReason: 'stop', usage: {}}; };
+  const memory = await MistralMemory.open({path: null});
+  let provider, routes;
+  if (name === 'mistral') {
+    provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${KEY}\n`, writeText: async () => {}});
+    await provider.load(); provider.setPreference('mistral'); provider.apply();
+    routes = {mistral: mistralRoute({provider, chat, gapMs: 0})};
+  } else if (name === 'local') {
+    provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+    await provider.load(); provider.setPreference('local'); provider.apply();
+    const server = {status: () => ({state: 'ready'}), touch() {}, prewarm: async () => {},
+      ensure: async () => ({endpoint: 'http://127.0.0.1:9/v1/chat/completions', apiKey: 'session-key-abcdef123456', model: 'qwen-test', tier: 'standard'})};
+    routes = {local: localRoute({server, provider, chat})};
+  } else {
+    const custom = new CustomEndpoint({path: null});
+    await custom.setUrl(parseEndpointUrl('http://127.0.0.1:11434')); await custom.setModel('local-model');
+    provider = new MistralProvider({keyPath: 'k.txt', readText: async () => { throw Error('none'); }, writeText: async () => {}, custom});
+    await provider.load(); provider.setPreference('custom'); provider.apply();
+    routes = {custom: customRoute({provider, custom, chat})};
+  }
+  const host = new TextProviderHost({provider, memory, personas: book, routes});
+  return {seen, close: () => host.close(),
+    // The prompt this route sent for one turn.
+    async prompt(input, info) {
+      const blocks = withInfo(info, () => conversationContextBlocks(input));
+      const config = {text: input.text, context: joinBlocks(blocks.map(item => item.text)), contextParts: partsOf(blocks), sessionId: `s-${input.requestId}`,
+        local: {profileKey: input.profileKey, name: 'Judy Alvarez', channel: 'private'}};
+      await host.reply(config);
+      return seen.at(-1);
+    }};
+}
+// The context builders ask the shared instance; a test sets it for the length of one build and puts it back.
+function withInfo(info, build) {
+  const before = dynamicInfo.off;
+  dynamicInfo.off = info ? info.off : NO_KINDS;
+  try { return build(); } finally { dynamicInfo.off = before; }
+}
+
+test('the kinds are the nine of the page, in page order, and every kind has a marker in this test turn', () => {
+  assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue']);
+  assert.deepEqual(Object.keys(MARKERS), [...KINDS]);
+  const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([a-z]+)'/g).map(text => text.slice(1, -1));
+  assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
+});
+
+test('the setting follows settings.json: all on by default, only a saved false turns a kind off, anything unreadable changes nothing', () => {
+  const info = new DynamicInfo();
+  assert.equal(info.describe(), 'all on');
+  assert.equal(info.update(undefined), false); assert.equal(info.update(null), false); assert.equal(info.update('x'), false);
+  assert.equal(info.update({}), false); assert.equal(info.update({dynamicInfo: 'off'}), false); assert.equal(info.update({dynamicInfo: ['location']}), false);
+  assert.equal(info.update({dynamicInfo: {location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
+  assert.equal(info.update({dynamicInfo: {location: false, gear: false, quest: true}}), true);
+  assert.deepEqual([...info.off], ['location', 'gear']);
+  assert.equal(info.on('location'), false); assert.equal(info.on('time'), true); assert.equal(info.describe(), 'off: location, gear');
+  assert.equal(info.update({dynamicInfo: {location: false, gear: false}}), false, 'the same set is no change');
+  assert.equal(info.update({version: 2}), true, 'a file without the key counts as everything on');
+  assert.equal(info.off.size, 0);
+  assert.deepEqual(offKinds({dynamicInfo: {money: false}}), ['money']);
+});
+
+test('stripSnapshot removes only what the off kinds own, and always keeps V\'s voice gender and the dialogue volume', () => {
+  const snapshot = parseTurnContext({...rawTurn().turnContext, dialogueVolume: 0.7});
+  assert.equal(stripSnapshot(snapshot), snapshot, 'nothing off: the same object');
+  const bare = stripSnapshot(snapshot, withOff(...KINDS).off);
+  assert.deepEqual(bare, {version: 1, status: 'ready', voice: 'female', dialogueVolume: 0.7});
+  assert.equal(vGenderOf(bare), 'female');
+  assert.deepEqual(Object.keys(stripSnapshot(snapshot, withOff('location').off)).filter(key => ['district', 'area', 'indoors'].includes(key)), []);
+  assert.equal(stripSnapshot({version: 1, status: 'unavailable'}, withOff('time').off).status, 'unavailable');
+  // The volume alone is kept when nothing else was read (every kind off).
+  assert.deepEqual(parseTurnContext({version: 1, status: 'ready', dialogueVolume: 0.4}), {version: 1, status: 'unavailable', dialogueVolume: 0.4});
+  assert.deepEqual(parseTurnContext({version: 1, status: 'ready'}), {version: 1, status: 'unavailable'});
+});
+
+// ---- an off kind is absent from every provider's prompt ----------------------------------------------------------------------------------------
+test('with every kind on, each marker is in the Convai context and in the prompt of Mistral, Local AI and Custom (the control)', async () => {
+  const input = parsed();
+  const convai = withInfo(null, () => conversationContext(input));
+  for (const [kind, marker] of Object.entries(MARKERS)) assert.match(convai, marker, `${kind} is in the Convai context`);
+  for (const name of ['mistral', 'local', 'custom']) {
+    const provider = await route(name);
+    try {
+      const prompt = await provider.prompt(parsed(), null);
+      for (const [kind, marker] of Object.entries(MARKERS)) assert.match(prompt, marker, `${kind} is in the ${name} prompt`);
+    } finally { provider.close(); }
+  }
+});
+
+for (const kind of KINDS) {
+  test(`${kind} off: it is absent from Convai, Mistral, Local AI and Custom, and every other kind is still there`, async () => {
+    const info = withOff(kind);
+    const convai = withInfo(info, () => conversationContext(parsed()));
+    const checks = [['convai', convai]];
+    for (const name of ['mistral', 'local', 'custom']) {
+      const provider = await route(name);
+      try { checks.push([name, await provider.prompt(parsed(), info)]); } finally { provider.close(); }
+    }
+    for (const [name, prompt] of checks) {
+      assert.doesNotMatch(prompt, MARKERS[kind], `${kind} left the ${name} prompt`);
+      for (const [other, marker] of Object.entries(MARKERS)) if (other !== kind) assert.match(prompt, marker, `${other} stays in the ${name} prompt`);
+    }
+  });
+}
+
+test('every kind off at once: the character is still told it is with V, and none of the nine is anywhere in the prompt', async () => {
+  const info = withOff(...KINDS);
+  const convai = withInfo(info, () => conversationContext(parsed()));
+  assert.match(convai, /You are with V in person/);
+  for (const [kind, marker] of Object.entries(MARKERS)) assert.doesNotMatch(convai, marker, kind);
+  const provider = await route('mistral');
+  try {
+    const prompt = await provider.prompt(parsed(), info);
+    for (const [kind, marker] of Object.entries(MARKERS)) assert.doesNotMatch(prompt, marker, kind);
+  } finally { provider.close(); }
+});
+
+test('Quest and journal off drops the journal, the jobs and the history, not even the line that says the history is unavailable; the story knowledge stays', () => {
+  const on = withInfo(null, () => conversationContext(parsed()));
+  assert.match(on, /broader current-save journal history is unavailable/);
+  const off = withInfo(withOff('quest'), () => conversationContext(parsed()));
+  assert.doesNotMatch(off, /journal history|verified current-save journal|The Heist/);
+  assert.match(off, /Current-save world knowledge is unavailable/, 'what the character knows about the story is not a Dynamic info kind');
+});
+
+test('a fight reaction keeps its own subject: Health, heat and fights off drops the battle of a manual turn only', () => {
+  const reaction = parsed({reaction: {kind: 'battle', encounter: 'battle-12', phase: 'start', expiresAt: Date.now() + 60_000}, turnContext: undefined});
+  const manual = parsed();
+  assert.ok(reaction.reaction, 'the reaction parsed');
+  assert.match(withInfo(withOff('condition'), () => conversationContext(reaction)), /Verified combat observations/);
+  assert.doesNotMatch(withInfo(withOff('condition'), () => conversationContext(manual)), /Verified combat observations|Maelstrom/);
+});
+
+test('an ordinary NPC: Location off removes where it stands (its own block and the right-now block), Time off the clock', () => {
+  const stranger = extra => parsed({profileKey: 'resident-male', name: 'Pedestrian', bodyType: 'MaleAverage', archetype: {category: 'resident', district: 'Heywood', area: 'Glen_Embers'}, ...extra});
+  const archetype = (input, info) => archetypeContext(input, {place: info ? info.on('location') : true});
+  assert.match(archetype(stranger(), null), /Where you are now: .*Heywood/);
+  assert.doesNotMatch(archetype(stranger(), withOff('location')), /Where you are now|Heywood|Embers/);
+  assert.match(archetype(stranger(), null), /only when it matters to what V says/);
+  assert.doesNotMatch(archetype(stranger(), null), /flavor/);
+  // Without its own district block the right-now block says where it stands.
+  const bare = () => parsed({profileKey: 'resident-male', name: 'Pedestrian', bodyType: 'MaleAverage'});
+  const on = withInfo(null, () => conversationContext(bare()));
+  assert.match(on, /Embers|Heywood/); assert.match(on, /late night|2 AM/);
+  const off = withInfo(withOff('location', 'time'), () => conversationContext(bare()));
+  assert.doesNotMatch(off, /Embers|Heywood|late night|2 AM|raining/);
+});
+
+test('a phone chat and an add-on voice honour the switches too', () => {
+  const phone = {...parsed(), channel: 'phone'};
+  assert.match(withInfo(null, () => conversationContext(phone)), /V is inside Embers|Heywood/);
+  assert.doesNotMatch(withInfo(withOff('location', 'time', 'dialogue'), () => conversationContext(phone)), /Embers|Heywood|Meet me at the Afterlife|late night|2 AM/);
+  const voice = {...parsed(), group: {index: 1, total: 2, audience: ['judy-alvarez', 'panam-palmer'], heard: []}};
+  const voiceText = info => withInfo(info, () => voiceConversationBlocks(voice).map(block => block.text).join('\n'));
+  assert.match(voiceText(null), /Also with V: Panam/); assert.match(voiceText(null), /Meet me at the Afterlife tonight/);
+  assert.doesNotMatch(voiceText(withOff('company', 'dialogue')), /Panam|Meet me at the Afterlife/);
+});
+
+// ---- where V is: modest and precise -------------------------------------------------------------------------------------------------------------
+const place = (district, area, indoors) => ({version: 1, status: 'ready', hour: 14, minute: 5, district, area, ...(indoors === undefined ? {} : {indoors})});
+const companion = turnContextValue => describeTurnContext(parsed({turnContext: turnContextValue}), {split: true}).text;
+const HERE_FIRST = /^Right now \(from the game, this turn only\): (You are with V in person[^.]*\.)/;
+
+test('V in the H10 apartment: "inside V\'s apartment in Megabuilding H10", never "standing in the middle of" the district', () => {
+  const text = companion(place('Watson', 'LittleChina_VApartment', true));
+  assert.match(text, /You are inside V's apartment in Megabuilding H10\./);
+  assert.doesNotMatch(text, /middle of|standing in|in Little China/);
+  assert.equal(describePlace({district: 'Watson', area: 'LittleChina_VApartment'}).kind, 'home');
+});
+
+test('the first sentence, which a text provider repeats right before V\'s words, never carries the place', () => {
+  for (const [state, indoors] of [['standing', true], ['following', false], ['seated', undefined]]) {
+    const input = parsed({turnContext: {...place('Watson', 'LittleChina', indoors), party: [{key: 'judy-alvarez', name: 'Judy', activity: state}], vehicle: false}});
+    const text = describeTurnContext(input, {split: true}).text;
+    assert.doesNotMatch(HERE_FIRST.exec(text)[1], /Little China|Watson/, state);
+    const messages = buildMessages({persona: book.persona('judy-alvarez'), contextParts: {now: text, notes: '', world: '', volatile: ''}, text: 'hey'});
+    const here = /\[YOU, RIGHT NOW: ([^\]]*)\]/.exec(messages.at(-1).content)[1];
+    assert.doesNotMatch(here, /Little China|Watson|district/, `${state}: the line before V's words has no place`);
+  }
+});
+
+test('a plain district says what the game says and no more: indoors, outdoors, or only that it is somewhere in the area', () => {
+  assert.match(companion(place('Watson', 'LittleChina', true)), /You are indoors, in a building in Little China, Watson; which building is not given\./);
+  assert.match(companion(place('Watson', 'LittleChina', false)), /You are outdoors in Little China, Watson, in the open air, not inside a building\./);
+  assert.match(companion(place('Watson', 'LittleChina')), /You are somewhere in Little China, Watson; exactly where is not given\./);
+  assert.match(companion(place('Badlands', 'Badlands_Hills')), /You are outdoors in .*, out in open country\./);
+  assert.match(companion(place('Watson', 'Kabuki_LizziesBar')), /You are inside Lizzie's Bar, Watson\./);
+  for (const text of [place('Watson', 'LittleChina', true), place('Watson', 'LittleChina'), place('LittleChina', 'LittleChina_VApartment')].map(companion)) {
+    assert.doesNotMatch(text, /standing in|in the middle|right in/);
+  }
+});
+
+test('the guidance tells every form to mention a place or the time only when it matters, in one short sentence', () => {
+  const GUIDANCE = 'Do not recite it, and mention a place or the time only if it matters to what V says.';
+  const form = (extra, channel) => describeTurnContext({...parsed({turnContext: place('Watson', 'LittleChina', true), ...extra}), ...(channel ? {channel} : {})}, {split: true}).text;
+  assert.ok(form({}).includes(GUIDANCE), 'in person');
+  assert.ok(form({}, 'phone').includes(GUIDANCE), 'phone');
+  assert.ok(form({holocall: {version: 1, contact: 'Judy', mode: 'audio'}}).includes(GUIDANCE), 'a call');
+  assert.match(describeTurnContext(parsed({profileKey: 'resident-male', turnContext: place('Watson', 'LittleChina', true)}), {ambient: true, split: true}).text,
+    /bring it up only when it matters to what V says\.$/);
+  assert.ok(GUIDANCE.length < 90, 'prompts stay short');
+  assert.match(archetypeContext({profileKey: 'resident-male', archetype: {district: 'Kabuki'}}), /Mention it only when it matters to what V says/);
+});
+
+// ---- the game side: nothing is read for an off kind ---------------------------------------------------------------------------------------------
+function runLua(code) {
+  const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
+  try {
+    const status = lauxlib.luaL_dostring(vm, to_luastring(code));
+    const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
+    assert.equal(status, lua.LUA_OK, error);
+  } finally { lua.lua_close(vm); }
+}
+const turnContextSource = readFileSync(new URL('../mod/turn-context.lua', import.meta.url), 'utf8');
+const adapter = `
+local api = (function() ${turnContextSource} end)()
+local now, reads, off = 100, {}, {}
+local player = {id = 'v'}
+local function tick(name) reads[name] = (reads[name] or 0) + 1 end
+local N = {
+  player = function() return player end, ready = function() return true end,
+  clock = function() tick('clock'); return 2, 10, 'native' end,
+  gender = function() tick('gender'); return 'Female' end, voice = function() tick('voice'); return 'Female' end,
+  lifepath = function() tick('lifepath'); return 'streetkid' end, vehicle = function() tick('vehicle'); return true end,
+  driving = function() tick('driving'); return false end,
+  weather = function() tick('weather'); return '24h_weather_light_rain', nil, 'test' end,
+  health = function() tick('health'); return 20, 'test' end, heat = function() tick('heat'); return 3, 'test' end,
+  money = function() tick('money'); return 50, 'test' end, interior = function() tick('interior'); return true, 'test' end}
+local function make(extra) local o = {native = N, now = function() return now end,
+  place = function() tick('place'); return {district = 'Watson', area = 'Kabuki'} end,
+  party = function() tick('party'); return {{profileKey = 'panam-palmer', name = 'Panam'}} end,
+  activity = function() tick('activity'); return {rows = {}, motion = 'walking'} end,
+  enabled = function(kind) return not off[kind] end}
+  for key, value in pairs(extra or {}) do o[key] = value end
+  return api.new(o) end
+local function fresh() reads = {}; now = now + 100 end
+`;
+test('the game side reads nothing for an off kind: its native calls, its place lookup and its party read are never made', () => runLua(`${adapter}
+  local ctx = make()
+  local snap = ctx:capture()
+  for _, name in ipairs({'clock', 'gender', 'lifepath', 'vehicle', 'weather', 'health', 'heat', 'money', 'interior', 'place', 'party'}) do assert(reads[name] == 1, name .. ' is read when it is on') end
+  assert(snap.hour == 2 and snap.district == 'Watson' and snap.gender == 'female' and snap.weather == 'rain' and snap.health and snap.heat == 3 and snap.money and snap.vehicle == true and snap.party)
+  local groups = {location = {'place', 'interior'}, time = {'clock', 'weather'}, company = {'vehicle', 'party', 'activity'}, condition = {'health', 'heat'},
+    money = {'money'}, about = {'gender', 'lifepath'}}
+  for kind, names in pairs(groups) do
+    ctx = make(); off = {[kind] = true}; fresh()
+    ctx:capture()
+    for _, name in ipairs(names) do assert(reads[name] == nil, kind .. ' off, but ' .. name .. ' was still read') end
+    for other, others in pairs(groups) do if other ~= kind then for _, name in ipairs(others) do
+      if name ~= 'activity' and name ~= 'interior' then assert(reads[name] == 1, kind .. ' off must not stop ' .. name) end end end end
+  end
+  -- Every kind off: V's voice for typed lines still gets its gender, and nothing else is read.
+  off = {location = true, time = true, company = true, condition = true, money = true, about = true}
+  fresh(); ctx = make(); snap = ctx:capture()
+  assert(snap ~= nil and snap.voice == 'female' and snap.hour == nil and snap.district == nil and snap.party == nil and snap.gender == nil and snap.health == nil and snap.money == nil)
+  for name, count in pairs(reads) do assert(name == 'voice', name .. ' was read with every kind off') end
+`));
+
+test('a snapshot read under other switches is not reused: a kind turned off a moment ago does not ride along for the cache window', () => runLua(`${adapter}
+  local ctx = make()
+  local first = ctx:capture()
+  assert(first.district == 'Watson')
+  off = {location = true}
+  local second = ctx:capture()
+  assert(second.district == nil and second.hour == 2, 'read again at once, without the place')
+  off = {}
+  assert(ctx:capture().district == 'Watson', 'and again when it is turned back on')
+  local calls = reads.place
+  ctx:capture(); ctx:capture()
+  assert(reads.place == calls, 'unchanged switches reuse the cache')
+`));
+
+test('a lone dialogue volume is a snapshot only while a switch is off (so V\'s voice keeps its level), never with everything on', () => runLua(`${adapter}
+  local function lone(offKinds)
+    off = offKinds
+    local ctx = make({native = setmetatable({clock = function() error('x') end, gender = function() error('x') end, lifepath = function() error('x') end,
+      vehicle = function() error('x') end, weather = function() error('x') end, health = function() error('x') end, heat = function() error('x') end,
+      money = function() error('x') end, interior = function() error('x') end, voice = function() return nil end, volume = function() return 0.5 end}, {__index = N}),
+      place = function() error('x') end, party = function() error('x') end, wantVolume = function() return true end})
+    return ctx:capture()
+  end
+  assert(lone({}) == nil)
+  local snap = lone({location = true})
+  assert(snap and snap.dialogueVolume == 0.5)
+`));
+
+test('the init module gates each capture where the collector is made, and a manager that has no such setting counts as everything on', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  for (const gate of [`convaiGateCapture(questContext, 'capture', 'quest')`, `convaiGateCapture(battles, 'capture', 'condition')`,
+    `convaiGateCapture(gameDialogue, 'capture', 'dialogue')`, `convaiGateCapture(playerGear, 'capture', 'gear')`, `enabled = function(kind) return manager.dynamicInfo == nil or manager.dynamicInfo(kind) end`,
+    `manager.dynamicInfo('location')`]) assert.ok(init.includes(gate), gate);
+  // The journal scan is not stepped, asked for or sent while Quest and journal is off (unless Johnny's remarks need it): nothing per frame beyond one table read.
+  assert.match(init, /function convaiHistoryWanted\(\)\s+local flags = convaiDynamicInfo\s+if flags == nil or flags\.quest ~= false then return true end/);
+  assert.match(init, /local flags = convaiDynamicInfo\s+if flags == nil or flags\.quest ~= false or convaiHistoryWanted\(\) then[\s\S]{0,260}journalHistory:update\(context\)/);
+  const gate = (/function convaiGateCapture[\s\S]*?\r?\nend\r?\n/.exec(init) ?? [''])[0];
+  runLua(`
+    local manager = {}
+    ${gate}
+    local calls = 0
+    local owner = {capture = function(self, a) calls = calls + 1; return a or self end}
+    convaiGateCapture(owner, 'capture', 'gear')
+    assert(owner:capture() == owner and calls == 1, 'a manager without the setting is on, and the method keeps its self')
+    manager.dynamicInfo = function(kind) return kind ~= 'gear' end
+    assert(owner:capture() == nil and calls == 1, 'off: the collector is not called')
+    manager.dynamicInfo = function(kind) return true end
+    assert(owner:capture(7) == 7 and calls == 2)
+    convaiGateCapture(nil, 'capture', 'gear'); convaiGateCapture({}, 'capture', 'gear')
+  `);
+});

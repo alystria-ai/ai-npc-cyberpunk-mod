@@ -29,7 +29,7 @@ local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer, or install Na
 -- cut with an ellipsis (the full text is in the description), a button's text is kept short.
 local LAYOUT = {
     labelUnits = 36,         -- the longest label of a row that has no button text
-    buttonLabelUnits = 29,   -- ... of a row that ends in a button text
+    buttonLabelUnits = core.BUTTON_LABEL_UNITS or 29,   -- ... of a row that ends in a button text (the same figure manager-ui.lua uses for the Forget row)
     stripUnits = 70,         -- the longest section name
     buttonUnits = 18,        -- the longest button text
     shortText = 9,           -- a button text up to this long is drawn at textSize, a longer one at longTextSize
@@ -459,7 +459,7 @@ end
 local function onRestoreDefaults()
     -- Everything waiting is dropped: the defaults replace it.
     pending, flushAt, flushFirst = {}, nil, nil
-    if core.view() ~= 'settings' and core.view() ~= 'relationships' then
+    if core.view() ~= 'settings' and core.view() ~= 'relationships' and core.view() ~= 'dynamic-info' then
         core.setFeedback(ui.t('Open Settings to restore its defaults.'))
         rebuildAt = os.clock()
         return

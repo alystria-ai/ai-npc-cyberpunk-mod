@@ -71,7 +71,7 @@ export async function plantedInstall() {
   await f.put(join(f.modRoot, 'AiNpcCyberpunkMod.log'), `[2026-10-05 10:00:00] token=${PLANTED.base64}\n`);
   await f.put(join(f.runtime, 'settings.json'), JSON.stringify({version: 2, voiceProvider: 'omni', omniSteps: 32,
     apiKey: PLANTED.shortKey, convaiUserId: PLANTED.userId, note: `uses ${PLANTED.shortKey} and ${PLANTED.hfToken}`,
-    enabledByKey: {'bob-sagan': true, 'judy-alvarez': false}, relationshipModes: {'judy-alvarez': 'auto'}, developerMode: true}));
+    enabledByKey: {'bob-sagan': true, 'judy-alvarez': false}, relationshipModes: {'judy-alvarez': 'auto'}, dynamicInfo: {location: false, quest: true}, developerMode: true}));
   await f.put(join(f.runtime, 'knowledge-status.json'), JSON.stringify({version: 1, updated: Date.now(), currentWorld: true}));
   await f.put(join(f.runtime, 'bridge-status.json'), JSON.stringify({state: 'ready', detail: PLANTED.userId, updated: Date.now()}));
   await f.put(join(f.runtime, 'local-voice-state.json'), JSON.stringify({version: 1, state: 'ready', provider: 'omni', omniSteps: 32,
