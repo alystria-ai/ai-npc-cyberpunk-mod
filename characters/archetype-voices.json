@@ -2939,8 +2939,192 @@
         "pocket": 17.93
       },
       "variantOf": "resident-female"
+    },
+    "npc-maxtac-male": {
+      "status": "ready",
+      "voiceset": "ncpd_mid_m_03_afam_25",
+      "clips": [
+        "3525945675379740672",
+        "3307504126170685444",
+        "3111475693332402176",
+        "3236147803484262400"
+      ],
+      "seconds": {
+        "omniShort": 9.02,
+        "omniLong": 17.57,
+        "pocket": 17.57
+      }
+    },
+    "npc-maxtac-female": {
+      "status": "ready",
+      "voiceset": "ncpd_mid_f_01_enus_30",
+      "clips": [
+        "2182321335500791808",
+        "2182614415428894720",
+        "2182323254445203456",
+        "2182337722277421056",
+        "2177949875373326336"
+      ],
+      "seconds": {
+        "omniShort": 9.7,
+        "omniLong": 17.92,
+        "pocket": 19.52
+      }
+    },
+    "npc-nusa-male": {
+      "status": "ready",
+      "voiceset": "sec_low_m_01_enus_30",
+      "clips": [
+        "1905477286129836036",
+        "1905477286196944900",
+        "2177976209378570240",
+        "2182457743878348800"
+      ],
+      "seconds": {
+        "omniShort": 4.21,
+        "omniLong": 17.5,
+        "pocket": 19.88
+      }
+    },
+    "npc-nusa-female": {
+      "status": "ready",
+      "voiceset": "sec_low_f_02_afam_30",
+      "clips": [
+        "1905554834230616064",
+        "1905554833693745156",
+        "1905561017943334912",
+        "1905561274735403008"
+      ],
+      "seconds": {
+        "omniShort": 4.56,
+        "omniLong": 16.9,
+        "pocket": 19.34
+      }
+    },
+    "npc-joytoy-male": {
+      "status": "ready",
+      "voiceset": "civ_cbz_m_08_rus_30",
+      "clips": [
+        "3262104849312227328",
+        "3285338197470818304",
+        "3123339694479360000",
+        "3498603149557481472",
+        "3236114533474881536"
+      ],
+      "seconds": {
+        "omniShort": 4.33,
+        "omniLong": 15.72,
+        "pocket": 18.58
+      }
+    },
+    "npc-joytoy-female": {
+      "status": "ready",
+      "voiceset": "civ_mid_f_55_jap_25",
+      "clips": [
+        "1954542411710504964",
+        "1624484620201058304",
+        "1935675942504935436",
+        "1924383912166707200",
+        "1624482211630374912"
+      ],
+      "seconds": {
+        "omniShort": 9.93,
+        "omniLong": 17.76,
+        "pocket": 19.28
+      }
+    },
+    "npc-maxtac-male-v2": {
+      "status": "ready",
+      "voiceset": "ncpd_low_m_04_afam_30",
+      "clips": [
+        "2260489231938011136",
+        "1802395107801554944",
+        "2182335203178438656",
+        "1963524845559595008",
+        "2182336063312748544"
+      ],
+      "seconds": {
+        "omniShort": 9.75,
+        "omniLong": 17.78,
+        "pocket": 19.9
+      },
+      "variantOf": "npc-maxtac-male"
+    },
+    "npc-nusa-male-v2": {
+      "status": "ready",
+      "voiceset": "sec_high_m_10_mex_30",
+      "clips": [
+        "1898009577536364544",
+        "3150851637050585088",
+        "1837360181526007808",
+        "3466750238006616064",
+        "3256227282584510464"
+      ],
+      "seconds": {
+        "omniShort": 9.92,
+        "omniLong": 17.86,
+        "pocket": 19.44
+      },
+      "variantOf": "npc-nusa-male"
+    },
+    "npc-nusa-female-v2": {
+      "status": "ready",
+      "voiceset": "sec_low_f_03_bra_40",
+      "clips": [
+        "1905562400151052292",
+        "1905562398808875012",
+        "1905562400469819392",
+        "1905562398708211716",
+        "1905562398993424388"
+      ],
+      "seconds": {
+        "omniShort": 9.93,
+        "omniLong": 16.06,
+        "pocket": 19.26
+      },
+      "variantOf": "npc-nusa-female"
+    },
+    "npc-joytoy-male-v2": {
+      "status": "ready",
+      "voiceset": "civ_low_m_99_jap_30",
+      "clips": [
+        "1963250706860253184",
+        "1865123874008223756",
+        "3336218763599368192",
+        "3241887215021441024",
+        "1895150164738719764"
+      ],
+      "seconds": {
+        "omniShort": 3.9,
+        "omniLong": 16.79,
+        "pocket": 19.4
+      },
+      "variantOf": "npc-joytoy-male"
+    },
+    "npc-joytoy-female-v2": {
+      "status": "ready",
+      "voiceset": "civ_low_f_109_bra_40",
+      "clips": [
+        "3236001822896279552",
+        "3242141653447458816",
+        "3235989956757278720",
+        "1974846791853854720",
+        "3253555070046216192",
+        "3266605050545741824"
+      ],
+      "seconds": {
+        "omniShort": 4.62,
+        "omniLong": 16.0,
+        "pocket": 19.56
+      },
+      "variantOf": "npc-joytoy-female"
     }
   },
-  "updatedAt": "2026-10-08T05:53:53Z",
-  "shortfalls": {}
+  "updatedAt": "2026-10-22T10:19:07Z",
+  "shortfalls": {
+    "npc-maxtac-female": {
+      "wanted": 2,
+      "built": 1
+    }
+  }
 }
