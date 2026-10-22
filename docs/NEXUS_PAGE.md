@@ -31,7 +31,7 @@
 [*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
 [*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a free Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
-[*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket or, when your companions use it, OmniVoice. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
+[*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket. OmniVoice for V is offered only while your companions use OmniVoice (Settings > Voices), so it never loads just for V. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
