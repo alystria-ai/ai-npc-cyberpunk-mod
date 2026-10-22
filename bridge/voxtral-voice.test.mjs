@@ -1843,3 +1843,63 @@ test('Voxtral speaks the language of the text: the request carries no language f
   assert.equal(modelRefused({status: 404, kind: 'request'}), true); assert.equal(modelRefused({status: 403, kind: 'key'}), false); assert.equal(modelRefused({status: 403, kind: 'key'}, 1), true);
   assert.equal(modelRefused({status: 403, kind: 'content'}, 1), false); assert.equal(modelRefused({status: 429, kind: 'limit'}, 1), false);
 });
+
+// 2026-10-22 review (R1): V's echo starts at the top of the turn on the same key as the companion's reply. A 429 that V's request earned set the
+// engine-wide cool-down (20 to 60 s) and held every Mistral request, so the companion's first sentence failed `ready` and went to text.
+test('a 429 on V\'s lane pauses V only: the companion\'s reply on the same key is asked at once, and the scheduler is held for a moment, not for the Retry-After', async () => {
+  let limited = true;
+  const server = await serve((request, response) => {
+    if (limited) { response.writeHead(429, {'retry-after': '30'}); response.end('{"message":"rate limited"}'); return; }
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+  });
+  try {
+    let time = 1_000_000;
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {clock: () => time, scheduler});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello.', {...collect(), lane: 'v'}), {kind: 'limit', status: 429});
+    assert.deepEqual(paused, [VOXTRAL_LIMITS.vPauseCapMs], 'the shared scheduler is held for a moment only');
+    assert.equal(voice.ready, true, 'the companion\'s lane is open'); assert.equal(voice.readyForV, false, 'V waits out the limit');
+    assert.equal(voice.degraded, null, 'V\'s limit does not mark the companion\'s voice as degraded');
+    // V's own next line waits without a request, the companion's reply is asked.
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Again.', {...collect(), lane: 'v'}), {kind: 'limit'});
+    assert.equal(server.requests.length, 1);
+    limited = false;
+    const spoken = await voice.synthesizeStream('judy-alvarez', 'Reply.', collect());
+    assert.equal(spoken.provider, 'voxtral'); assert.equal(server.requests.length, 2);
+    time += 30_001; assert.equal(voice.readyForV, true, 'V is back after the Retry-After');
+  } finally { await server.close(); }
+});
+
+test('a 429 on the companion\'s lane still pauses both lanes, and a refused key is the key\'s whoever asked', async () => {
+  const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '12'}); response.end(); });
+  try {
+    let time = 2_000_000;
+    const paused = [], scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause: ms => paused.push(ms)};
+    const {voice} = voiceFor(server, {clock: () => time, scheduler});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Reply.', collect()), {kind: 'limit'});
+    assert.deepEqual(paused, [12000]); assert.equal(voice.ready, false); assert.equal(voice.readyForV, false); assert.equal(voice.cooldownMs, 12000);
+    time += 12_001; assert.equal(voice.ready, true); assert.equal(voice.cooldownMs, 0);
+  } finally { await server.close(); }
+  const refused = await serve((request, response) => { response.writeHead(401); response.end(); });
+  try {
+    const {voice} = voiceFor(refused);
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', {...collect(), lane: 'v'}), {kind: 'key'});
+    assert.equal(voice.ready, false, 'a refused key stops the companion too'); assert.equal(voice.degraded.reason, 'key');
+  } finally { await refused.close(); }
+});
+
+test('a reply that finds the cloud voice cooling down for a moment waits it out and is spoken; a long cool-down still writes the reply', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    let time = 4_000_000; const slept = [];
+    const h = selection(server, {voxtral: {...quick, clock: () => time}, extra: {sleep: async ms => { slept.push(ms); time += ms; }}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    h.cloud.until = time + 900;
+    const spoken = await h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}});
+    assert.equal(spoken.provider, 'voxtral'); assert.equal(slept.length, 1); assert.ok(slept[0] >= 900 && slept[0] <= 1000);
+    h.cloud.until = time + 20_000; slept.length = 0;
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello again.', {onPcm() {}}), /cannot be asked now/);
+    assert.equal(slept.length, 0, 'a long cool-down is not waited for');
+    await h.voice.close();
+  } finally { await server.close(); }
+});

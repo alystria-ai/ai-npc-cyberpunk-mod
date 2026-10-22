@@ -1274,12 +1274,13 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       // already reads a saved Voxtral engine as Pocket while it is on (vSettings); this is the net for a line that is asked before that poll.
       if (!matureAllowsCloudVoice(matureContent.enabled)) return 'Mature content is on';
       if (!voxtralVoice.hasKey) return 'no Mistral key';
-      if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
+      if (!voxtralVoice.readyForV) return 'a Mistral limit is cooling down';
       if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;
       const load = mistralScheduler.stats();
       return load.spacingMs > 0 || load.pausedForMs > 0 ? 'Mistral is pacing requests' : null;
     },
-    stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, options),
+    // V's lane: a limit that V's request earns pauses V only, never the companion's reply on the same key (VoxtralVoice lane 'v').
+    stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, {...options, lane: 'v'}),
     speaks: language => voxtralVoice.speaks(language),
     languageSet: (key, language) => voxtralVoice.languageSet(key, language),
     warm: key => { void voxtralVoice.reference(key); }},

@@ -45,6 +45,7 @@ const PACK_RECHECK_MS = 30_000;
 // A cloud voice request that gave no audio in time (or lost its connection) is asked again once, with this longer wait for the first audio.
 export const CLOUD_RETRY_AUDIO_MS = Object.freeze({voxtral: 10_000});
 const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
+export const CLOUD_WAIT_OUT_MS = 1500;
 // A chosen OmniVoice that fails or times out is not given up on. Routing falls to the next voice at once, then Omni
 // is loaded again in the background after each of these waits (a first failure after 45 s, then 3 min, then 10 min);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
@@ -101,6 +102,13 @@ export class VoiceSelection {
     this.pocketLanguages=options.pocketLanguages||null;
     this.clock = options.clock || Date.now;
     this.cloudRetryAudioMs = {...CLOUD_RETRY_AUDIO_MS, ...options.cloudRetryAudioMs};
+    // A cloud voice that is cooling down for no longer than this is waited for, not skipped (synthesizeHead).
+    this.cloudWaitOutMs = Number.isFinite(options.cloudWaitOutMs) ? options.cloudWaitOutMs : CLOUD_WAIT_OUT_MS;
+    this.sleep = options.sleep || ((ms, signal) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, ms);
+      const onAbort = () => { clearTimeout(timer); reject(signal.reason ?? cancelled()); };
+      if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, {once: true});
+    }));
     this.packCheckedAt=0;this.refreshOmniPack();
     this.omniReference=this.requestedOmniReference=DEFAULT_OMNI_REFERENCE;
     this.activateOmni();
@@ -1027,6 +1035,9 @@ export class VoiceSelection {
     const ask = extra => engine.synthesizeStream(profile, spoken, {...options, onPcm, ...extra});
     try {
       if (this.cloudBarred()) throw Error(`The ${name} voice is not used while Mature content is on`);
+      // A cool-down of a moment (a 429 on a one-request-a-second key) is waited out: the reply is spoken a second late rather than written.
+      const cooling = engine.cooldownMs;
+      if (!engine.ready && engine.hasKey && cooling > 0 && cooling <= this.cloudWaitOutMs) { await this.sleep(cooling + 20, options.signal); throwIfCancelled(options.signal); }
       if (!engine.ready) throw Error(`The ${name} voice cannot be asked now (${engine.hasKey ? 'waiting out a limit' : 'no key'})`);
       try { return await ask(); }
       catch (error) {
