@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {CUSTOM_FILE, COMMANDS, CustomControl, CustomEndpoint, OPENROUTER_HEADERS, describeFailure, formatCustomFile, parseCustomCommand, parseCustomFile,
+import {CUSTOM_FILE, COMMANDS, CustomControl, CustomEndpoint, OPENROUTER_HEADERS, describeFailure, formatCustomFile, openRouterFix, parseCustomCommand, parseCustomFile,
   parseCustomKey, parseEndpointUrl, parseModelId, testConnection} from './custom-endpoint.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {MistralError} from './mistral-client.mjs';
@@ -48,6 +48,48 @@ test('an address: the base URL of any OpenAI-style endpoint, checked before it i
   assert.equal(parseEndpointUrl('https://exa mple.com').reason, 'not-a-url');
   assert.equal(parseEndpointUrl('https://example.com/' + 'a'.repeat(400)).reason, 'long');
   assert.equal(parseEndpointUrl('http://127.0.0.1.example.com/v1').reason, 'insecure', 'a name that only contains an address is a remote host');
+});
+
+test('an openrouter.ai page (a models web page, the home page) is saved as the API address, and a model page names the model (Discord 2026-10-23)', () => {
+  const api = 'https://openrouter.ai/api/v1';
+  // The case from the report: the model's web page pasted as the endpoint.
+  const page = parseEndpointUrl('https://openrouter.ai/recursive/flint-v1.0:free');
+  assert.deepEqual([page.endpoint, page.origin, page.host, page.kind, page.secure, page.corrected, page.modelId], [api, 'https://openrouter.ai', 'openrouter.ai', 'remote', true, true, 'recursive/flint-v1.0:free']);
+  assert.equal(parseEndpointUrl('https://openrouter.ai/meta-llama/llama-3.1-8b-instruct').modelId, 'meta-llama/llama-3.1-8b-instruct');
+  assert.equal(parseEndpointUrl('https://openrouter.ai/meta-llama/llama-3.3-70b-instruct:free/').modelId, 'meta-llama/llama-3.3-70b-instruct:free', 'a trailing slash');
+  assert.equal(parseEndpointUrl('https://openrouter.ai/models/qwen/qwen3-32b').modelId, 'qwen/qwen3-32b', 'the /models/ form');
+  assert.equal(parseEndpointUrl('https://openrouter.ai/qwen/qwen3-32b/api').modelId, 'qwen/qwen3-32b', 'a tab after the model');
+  assert.equal(parseEndpointUrl('https://openrouter.ai/qwen/qwen3-32b?tab=providers#x').endpoint, api, 'the query of a page address is dropped');
+  assert.equal(parseEndpointUrl('https://www.openrouter.ai/qwen/qwen3-32b').endpoint, api);
+  assert.equal(parseEndpointUrl('http://openrouter.ai/qwen/qwen3-32b').endpoint, api, 'an http:// page is corrected to the https API address');
+  // Pages that are not a model's: the API address, no model.
+  for (const text of ['https://openrouter.ai', 'https://openrouter.ai/', 'https://openrouter.ai/models', 'https://openrouter.ai/docs/quickstart', 'https://openrouter.ai/settings/keys',
+    'https://openrouter.ai/api', 'https://openrouter.ai/v1', 'https://openrouter.ai/qwen']) {
+    const parsed = parseEndpointUrl(text);
+    assert.equal(parsed.endpoint, api, text);
+    assert.equal(parsed.modelId, undefined, text);
+  }
+  // Already the API: left exactly as it was (no correction mark), with its old checks.
+  assert.equal(parseEndpointUrl(api).corrected, undefined);
+  assert.equal(parseEndpointUrl(api + '/chat/completions').corrected, undefined);
+  assert.equal(parseEndpointUrl('http://openrouter.ai/api/v1').reason, 'insecure');
+  assert.equal(parseEndpointUrl('https://openrouter.ai/api/v1?key=abc').reason, 'extras');
+  assert.equal(parseEndpointUrl('https://user:pw@openrouter.ai/qwen/qwen3-32b').reason, 'extras', 'a user name still refuses');
+  // Other hosts are never guessed at.
+  assert.equal(parseEndpointUrl('https://nano-gpt.com/some/page').endpoint, 'https://nano-gpt.com/some/page');
+  assert.equal(parseEndpointUrl('https://openrouter.ai.example.com/qwen/qwen3-32b').endpoint, 'https://openrouter.ai.example.com/qwen/qwen3-32b');
+  assert.equal(openRouterFix('https://example.com/a/b'), null);
+  assert.equal(openRouterFix('http://localhost:11434/v1'), null);
+  // A model segment that is not a model id (or looks like a key) gives no model.
+  assert.equal(parseEndpointUrl('https://openrouter.ai/sk-abcdefghijkl/abcdefghijklmnop').modelId, undefined);
+});
+
+test('a model page in the files endpoint line also names the model, unless the file has its own model line', () => {
+  const page = 'https://openrouter.ai/recursive/flint-v1.0:free';
+  const bare = parseCustomFile(`endpoint=${page}\n`);
+  assert.deepEqual([bare.endpoint.endpoint, bare.model, bare.problems], ['https://openrouter.ai/api/v1', 'recursive/flint-v1.0:free', []]);
+  assert.equal(parseCustomFile(`endpoint=${page}\nmodel=other/model\n`).model, 'other/model');
+  assert.equal(parseCustomFile(`model=other/model\nendpoint=${page}\n`).model, 'other/model', 'order does not matter');
 });
 
 test('a key: one run of printable characters; a sentence, an address or a short word is not one', () => {
@@ -107,7 +149,7 @@ test('the file: three lines in any order, comments allowed, a bad line is left o
   assert.deepEqual(parsed.problems, []);
   assert.equal(parseCustomFile('url: http://localhost:11434/v1\nmodel: llama3.2\n').key, null, 'the key line is optional');
   assert.equal(parseCustomFile('BASE_URL=http://localhost:11434/v1').endpoint.host, 'localhost:11434');
-  const bad = parseCustomFile(`endpoint=http://openrouter.ai/v1\nmodel=has space\napi-key=short\n`);
+  const bad = parseCustomFile(`endpoint=http://example.com/v1\nmodel=has space\napi-key=short\n`);
   assert.deepEqual([bad.endpoint, bad.model, bad.key], [null, null, null]);
   assert.deepEqual(bad.problems, ['endpoint (insecure)', 'model', 'api-key']);
   assert.ok(!JSON.stringify(bad).includes('has space'), 'a refused value is never repeated');
@@ -321,6 +363,24 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.ok(!JSON.stringify(c.published).includes(KEY));
 });
 
+test('the settings page: pasting a models openrouter.ai page saves the API address and, when none is saved, the model; a saved model stays', async () => {
+  const c = await control();
+  c.clipboard(async () => 'https://openrouter.ai/recursive/flint-v1.0:free');
+  let status = await c.send('paste-url');
+  assert.deepEqual([status.result.state, status.host, status.model, status.ready], ['saved', 'openrouter.ai', 'recursive/flint-v1.0:free', true]);
+  assert.match(c.s.text, /endpoint=https:\/\/openrouter\.ai\/api\/v1\n/);
+  assert.match(c.s.text, /model=recursive\/flint-v1\.0:free\n/);
+  // A model the player already set is not replaced by the page's.
+  c.clipboard(async () => 'my/own-model'); await c.send('paste-model');
+  c.clipboard(async () => 'https://openrouter.ai/meta-llama/llama-3.1-8b-instruct');
+  status = await c.send('paste-url');
+  assert.equal(status.model, 'my/own-model');
+  // After the model is cleared, the next page pasted fills it again.
+  await c.send('clear-model');
+  status = await c.send('paste-url');
+  assert.equal(status.model, 'meta-llama/llama-3.1-8b-instruct');
+});
+
 test('the settings page: an empty placeholder, garbage, an old command and a repeated one start nothing; a command left from the last session is ignored', async () => {
   const c = await control({raw: command('old:cust:1', 'paste-key', 1_999_999)});
   const count = c.published.length;
@@ -396,6 +456,19 @@ test('the connection test: one request, OK or the failure in the words the page 
     await fails({status: 502, body: '<html><body><h1>502 Bad Gateway</h1></body></html>'}, {code: 'server', detail: '502 Bad Gateway'});
     await fails({status: 400, body: {error: {message: 'messages: too long'}}}, {code: 'request', status: 400, detail: 'messages: too long'});
     await fails({redirect: 'http://example.invalid/v1/chat/completions'}, {code: 'redirect'});
+    // An HTML page answered where the API should: a web page, not the API (a 200, a 404 or a 405), told apart from a proxy's 5xx page above.
+    const html = '<!doctype html><html><head><title>Flint</title></head><body><h1>A model page</h1></body></html>';
+    await fails({status: 200, headers: {'content-type': 'text/html; charset=utf-8'}, body: html}, {code: 'webpage', status: 200});
+    await fails({status: 404, headers: {'content-type': 'text/html'}, body: html}, {code: 'webpage', status: 404});
+    await fails({status: 405, headers: {'content-type': 'text/html'}, body: html}, {code: 'webpage', status: 405});
+    // The same page from the OpenRouter host says which address to use.
+    mock.behave(() => ({status: 404, headers: {'content-type': 'text/html'}, body: html}));
+    mock.requests.length = 0;
+    outcome = await testConnection({...config(KEY), address: {hostname: 'openrouter.ai'}});
+    assert.deepEqual([outcome.state, outcome.code], ['failed', 'webpage-openrouter']);
+    // A proxy's or a firewall's HTML page is not called a web page.
+    await fails({status: 403, headers: {'content-type': 'text/html'}, body: html}, {code: 'key', status: 403});
+    await fails({status: 503, headers: {'content-type': 'text/html'}, body: html}, {code: 'server', status: 503});
     await fails({sse: ['']}, {code: 'empty'});
     // The server echoing the key back in its error text does not put it into the result.
     await fails({status: 401, body: {error: {message: `Incorrect API key provided: ${KEY}`}}}, {code: 'key'});
@@ -430,9 +503,9 @@ test('a new address on another host forgets the saved key, and says so for a rem
   await s.endpoint.setUrl(OPENROUTER); await s.endpoint.setModel('a/b:free'); await s.endpoint.setKey(KEY);
   assert.match(lastWrite(s), /^key-origin=https:\/\/openrouter\.ai$/m, 'the key is saved with the address it belongs to');
   assert.equal(s.endpoint.keyOrigin, 'https://openrouter.ai');
-  // Another path on the same origin (/v1 instead of /api/v1, a trailing path): the key stays.
-  await s.endpoint.setUrl(parseEndpointUrl('https://openrouter.ai/v1'));
-  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten, s.endpoint.endpoint ?? s.endpoint.address.endpoint], [KEY, false, 'https://openrouter.ai/v1']);
+  // Another path on the same origin (a longer path under /api/v1): the key stays.
+  await s.endpoint.setUrl(parseEndpointUrl('https://openrouter.ai/api/v1/x'));
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten, s.endpoint.endpoint ?? s.endpoint.address.endpoint], [KEY, false, 'https://openrouter.ai/api/v1/x']);
   await s.endpoint.setUrl(parseEndpointUrl('https://openrouter.ai'));
   assert.equal(s.endpoint.key, KEY);
   // Another host: the key is forgotten, in memory and in the file, and the settings page is told to ask for it again.

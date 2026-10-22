@@ -27,7 +27,8 @@ local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable 
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
 local TEST_CODES = {['no-setup'] = true, key = true, credits = true, model = true, limit = true, unreachable = true,
-    timeout = true, server = true, empty = true, request = true, redirect = true, daily = true, reasoning = true}
+    timeout = true, server = true, empty = true, request = true, redirect = true, daily = true, reasoning = true,
+    webpage = true, ['webpage-openrouter'] = true}
 local LIMITS = {rate = true, daily = true, invalid = true, model = true, credits = true}
 
 -- The ids of the notices this provider adds (mod/notices.lua, docs/NOTIFICATIONS.md): seven failures of a turn V asked for and two
@@ -240,6 +241,8 @@ function M.new(options)
         if code == 'empty' then return ui.t('The endpoint answered with no text. Check the model ID.') end
         if code == 'request' then return ui.t('The endpoint refused the request. Check the model ID and the address.') end
         if code == 'redirect' then return ui.t('The address sends you somewhere else. Use the final address from your provider.') end
+        if code == 'webpage-openrouter' then return ui.t('That address is a web page, not the API. For OpenRouter use https://openrouter.ai/api/v1.') end
+        if code == 'webpage' then return ui.t('That address is a web page, not the API. Use the API address from your provider.') end
         return ui.t('The connection test failed.')
     end
 
@@ -300,6 +303,7 @@ function M.new(options)
                     .. ui.t('Deletes the saved model ID. The custom provider needs one to answer.')
             else
                 help = ui.t('Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer.')
+                help = help .. '\n\n' .. ui.t('A model ID is a short name like that, not a web address.')
             end
             if message then help = message .. '\n\n' .. help end
             rows[#rows + 1] = {id = 'custom-model', field = 'model', label = ui.t('Custom model ID') .. (info and (' (' .. info .. ')') or ''),
