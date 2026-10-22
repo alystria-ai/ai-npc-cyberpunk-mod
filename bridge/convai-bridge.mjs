@@ -64,7 +64,7 @@ import {detectOmniPack} from './omni-pack.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
-import {PhoneWarm} from './phone-warm.mjs';
+import {PhoneWarm, PHONE_HOST_IDLE_MS} from './phone-warm.mjs';
 import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
@@ -3259,6 +3259,9 @@ async function applyProviderChoice() {
 //   - The hidden browser closes when nothing uses it for BROWSER_IDLE_MS: no Convai page in the pool or kept for the party, no
 //     recording, no renderer turn, and (text provider with playback on) no wish to keep the local voice's renderer warm.
 const BROWSER_IDLE_MS = 300_000;
+// The phone Chat host (a second hidden Edge, Convai only) keeps a conversation page for every contact V wrote to. A page nobody used for this long is closed, and the
+// host's browser with the last one (the close is confirmed before the next look); the next message to that contact opens a page again (a Chat that is open keeps its
+// page alive, bridge/phone-warm.mjs keepAlive, so the cold start is hidden while V types).
 let releasingUnused = false;
 async function releaseUnused() {
   if (releasingUnused || stopped) return;
@@ -3271,6 +3274,8 @@ async function releaseUnused() {
     const keepRenderer = mistral.active && localVoice.playbackEnabled !== false;
     await realtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS, keepRenderer});
     await phoneRealtime.releaseIfIdle({idleMs: BROWSER_IDLE_MS});
+    const phoneReleased = await phoneRealtime.releaseIdlePages({idleMs: PHONE_HOST_IDLE_MS});
+    if (phoneReleased.pages || phoneReleased.browser) console.error(`[Resource] phone chat host: ${phoneReleased.pages} idle page(s) closed after ${PHONE_HOST_IDLE_MS / 1000} s${phoneReleased.browser ? ', the hidden browser closed' : ''}`);
   } finally { releasingUnused = false; }
 }
 // The Local AI model choice (bridge/local-model-choice.mjs), looked at on the settings poll: the pin from settings.json, Mature content and

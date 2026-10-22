@@ -141,6 +141,7 @@ export class RealtimeHost {
     // the plan (the other resident of a profile the plan holds one route for, a turn started while the audio service was not ready) is swept when
     // its turn is over, not out from under the call it is running.
     this.pinned = new Map();
+    this.running = 0;   // calls that are starting or running (runOnce): the browser is not released under them
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
     this.onCompanionAction = onCompanionAction;
@@ -456,7 +457,12 @@ export class RealtimeHost {
     };
     return this.observe(attempt(), method !== 'warm');
   }
-  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech, textStream} = {}) {
+  async runOnce(config, method, options = {}) {
+    // A call that is starting or running keeps the browser open (releaseIfIdle / releaseIdlePages look at this).
+    this.running = (this.running ?? 0) + 1;
+    try { return await this.runOnceCounted(config, method, options); } finally { this.running--; }
+  }
+  async runOnceCounted(config, method, {signal, discard = false, onAudioChunk, liveSpeech, textStream} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
     // Retire the old per-file chunk capability. Only an explicit liveSpeech
@@ -580,7 +586,7 @@ export class RealtimeHost {
   // use starts it again (about 0.8 s for the browser and about 1 s for the page; a composer warm-up does it before the first reply).
   // Resolves true when the browser was closed.
   async releaseIfIdle({idleMs = 300_000, keepRenderer = false, now = Date.now()} = {}) {
-    if (keepRenderer || this.closing || this.starting || !this.browser) return false;
+    if (keepRenderer || this.closing || this.starting || !this.browser || this.running > 0) return false;
     if (this.pool?.entries.size || this.voiceLease) return false;
     for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
     if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
@@ -611,7 +617,22 @@ export class RealtimeHost {
     const entry = this.pool?.entries.get(pageKey(config));
     if (!entry?.value || entry.value.isClosed()) return {present: false, ready: false};
     if (entry.busy) return {present: true, busy: true};
+    // A page kept alive on purpose (a phone Chat that is open) is in use: the idle release (releaseIdlePages) does not count its quiet time.
+    if (keepAlive) this.pool.touch(pageKey(config));
     return {present: true, ...await entry.value.evaluate(keepAlive => window.convaiRealtime.readiness(keepAlive), keepAlive)};
+  }
+  /**
+   * Closes the conversation pages nothing has used for `idleMs` and, when that leaves the host with nothing to serve, the hidden browser itself (a process tree of
+   * several hundred MB), with the close confirmed before this resolves. The next use opens it again on demand. Resolves {pages, browser}: how many pages and
+   * whether the browser were closed. Never throws.
+   */
+  async releaseIdlePages({idleMs = 180_000, now = Date.now()} = {}) {
+    try {
+      if (this.closing || this.starting || !this.browser || this.running > 0) return {pages: 0, browser: false};
+      const pages = await (this.pool?.evictIdle({idleMs}) ?? 0);
+      const browser = await this.releaseIfIdle({idleMs, now});
+      return {pages, browser};
+    } catch { return {pages: 0, browser: false}; }
   }
   // Convai's emotion for a finished text-only reply (`lateEmotionToken` in that reply), which arrives about half a
   // second after its text. Reads the reply's own page only; never connects, waits or retains anything.
