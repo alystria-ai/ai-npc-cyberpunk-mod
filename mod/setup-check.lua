@@ -358,6 +358,17 @@ local function names(list, field, limit)
     return out
 end
 
+-- The names the setup check sends for the language packs ("Voice language pack (fr)", bridge/setup-check.mjs) in the menu language; every other pack name is a
+-- product name and stays as it is.
+local function packName(value)
+    if type(value) ~= 'string' then return value end
+    local code = value:match('^Voice language pack %(([%w-]+)%)$')
+    if code then return ui.t('Voice language pack ({code})', {code = code}) end
+    code = value:match('^Pocket language model %(([%w-]+)%)$')
+    if code then return ui.t('Pocket language model ({code})', {code = code}) end
+    return value
+end
+
 ------------------------------------------------------------------ lines
 
 -- Literal ui.t calls, so the catalogue (scripts/Extract-UiCatalog.mjs) lists every state word.
@@ -500,7 +511,7 @@ local function bridgeLines(out)
         -- The versions agree, but an update step in between was never applied (bridge/runtime-steps.mjs): the files are a mix of releases.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', versions.code == 'chain-gap'
             and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
-            or ui.t('A Runtime update zip was applied after a newer one, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.'))
+            or ui.t('Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.'))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.'))
@@ -514,10 +525,11 @@ local function bridgeLines(out)
         local label = ui.t('Optional packs')
         local found = names(packs.found)
         local moved = names(packs.moved, 'pack')
+        for index, name in ipairs(moved) do moved[index] = packName(name) end
         if packs.code == 'nested' and type(packs.nested) == 'table' and type(packs.nested[1]) == 'table' then
             local first = packs.nested[1]
             out[#out + 1] = line('packs', label, 'problem', ui.t('{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.',
-                {packs = text(first.pack, 40) or '?', folder = text(first.folder, 120) or '?'}))
+                {packs = packName(text(first.pack, 40)) or '?', folder = text(first.folder, 120) or '?'}))
         elseif packs.code == 'conflict' then
             out[#out + 1] = line('packs', label, 'problem', ui.t('Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.'))
         else
