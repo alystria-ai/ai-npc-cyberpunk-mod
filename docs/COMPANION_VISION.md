@@ -1,6 +1,6 @@
 # Companions can see
 
-Status 2026-10-15: built on branch `companion-vision`, merged with main, unit-tested, capture cost measured against the running game. **Not seen working with Convai yet:** no live Convai turn was made. Whether Convai accepts the picture for our characters is the open question (see "Live check").
+Status 2026-10-23: **works with Convai.** A live check with a test picture (a red car and the word PINEAPPLE) had Judy describe it; without a picture she said she could not see. The server needs the picture on the session about 3 s before the line (see "What the turn waits for"). Built on branch `companion-vision`, merged with main, unit-tested, capture cost measured against the running game.
 
 With Convai, every conversation turn (typed or talk key) carries one recent picture of V's surroundings: V's view from a few seconds before the turn, never older than 15 s (see "Freshness" in section 3). Before a conversation it is taken from a few seconds **before** it started, so it shows the place rather than the companion's face; during one a new picture is taken as each turn starts, and the companion may be in it. There is no player setting: it is always on with Convai, never with Mistral or Local AI.
 
@@ -52,6 +52,14 @@ Sources:
 
 **No-code chat rooms** turn an uploaded image into a text description (png, jpg, jpeg, 25 MB). That feature is unrelated to our realtime path.
 
+**What the turn waits for (live checks 2026-10-23, Judy, fresh Convai sessions, `@convai/web-sdk` 1.7.0).**
+- The vision-status reply is `{event_type: 'vision-status', status: 'success', message: 'Vision status', extras: {vision_status_outcome, update_id, vision_buffer: {enabled, status, retained_frames, source_active, ...}}}`. `readAck` now reads those fields (before, it read neither `vision_status_outcome` nor `vision_buffer.status`, so a turn always waited the full 350 ms for an acknowledgement that never came).
+- **The status is not a gate.** About 20 replies said `vision_not_enabled`, `enabled: false`, `source_active: false`, 0 retained frames, and the model still described the picture. So nothing waits for a status reply, nothing polls for one, and `vision_not_enabled` no longer switches vision off for the session. The values are kept in the diagnostics (`serverEnabled`, `serverSourceActive`, `serverRetained`, `lastOutcome`).
+- **Lead time is what matters.** Asking "what do you see" with a new word on each picture, one fresh session per try: a picture published 3 s or more before the line was described 8 of 8 times (2.5 s: 2 of 3); one published 0.5 to 1.5 s before it 2 of 8; one published a moment before it about 1 in 3, whether the turn waited for the publish to finish (100 to 480 ms) or not. The failures answer "I can't see anything right now" (some with a stray `<channel>thought` line). So no short wait buys a picture; it only delays the line. The turn therefore waits for nothing, and the picture is published as early as possible (composer open, talk key down). `MIN_LEAD_MS` (3000) in `bridge/convai-vision.mjs` is that lead.
+- **Cost with a picture on the session 3 s ahead** (10 ordinary questions with it, 10 without, alternating, text only): first reply text median 1319 ms against 1152 ms (p90 1394 against 1617), whole reply median 2098 ms against 1727 ms (p90 2162 against 1853). The line itself left 5 ms after the call in both. So the picture costs about 170 ms to the first text and about 370 ms to the end of the reply on the server side.
+- Ordinary questions ("How's your day going?", "Want to grab some food later?") got ordinary answers: none of the 10 replies with a picture mentioned the picture.
+- Not measured: time to first audio (the harness's non-live Convai audio path never completes, so each turn timed out).
+
 ## 2. Mistral and Local AI (postponed)
 
 - **Mistral** ([vision docs](https://docs.mistral.ai/capabilities/vision), [models](https://docs.mistral.ai/getting-started/models/models_overview/)):
@@ -97,10 +105,10 @@ Capture methods (unchanged from the first build): Windows Graphics Capture of th
 - With vision on, pages connect with video enabled but publish nothing until there is a picture (`startWithVideoOn: false`; `sampleIntervalSecs 0.25, framesPerTurn 1, bufferFrames 2, stalenessSeconds 6, maxResolution 1024, replacePreviousVisionContext true`).
 - **Typed line:** when the composer (or phone-free chat composer) opens, the bridge already opens or keeps the target's conversation page. At that moment the chosen frame is published on that page (each speaker's page for a group), retried every 250 ms for up to 6 s while a page is still connecting. Convai buffers it while V types. When the line is sent, the page sees the same picture already on the session, publishes nothing new, and waits for nothing. If V closes the composer without sending, the picture is withdrawn (and every page withdraws an unclaimed one after 60 s).
 - **Talk key:** at the press, the frame is chosen and published on the voice page as soon as the recording runs (retried for up to 6 s while the microphone starts), so Convai buffers it while V talks. The finish sends nothing more.
-- **Fallback:** if the picture was not staged ahead (a turn with no composer, such as a group's next speaker, or a page that connected late), it is published when the turn starts and the page waits for Convai's acknowledgement at most **350 ms** (`visionWaitMs`), polling every 100 ms beside the context update. Out of time, the line goes anyway and the picture stays published for the turn, so the server may still take it before the model answers.
+- **Fallback:** if the picture was not staged ahead (a turn with no composer, such as a group's next speaker, or a page that connected late), it is published when the turn starts and the line is sent **at once** (no wait, `visionWaitMs` default 0). The picture stays published for the turn, so the server may still take it before the model answers, but live it did so only about 1 time in 3 (see "What the turn waits for").
 - 1 to 4 pictures (the frame plus any queued by `attachToNextTurn`) are composed into one 1024 px canvas: one fills it, two sit side by side, three or four form a 2×2 grid. So exactly one frame goes per turn.
 - The context update gains one sentence: an image of the surroundings from a few seconds before the conversation may be attached; it can show the HUD, V's vehicle or the companion; mention it when it fits or when asked, never describe the interface, and do not guess when there is no image.
-- After the turn the track is unpublished, so a picture never rides into a later turn. A `vision_not_enabled` answer stops further attempts on that page.
+- After the turn the track is unpublished, so a picture never rides into a later turn. The server's vision-status replies are recorded in the diagnostics only; a `vision_not_enabled` reply stops nothing (see below).
 - The phone's own chat and holocalls do not get pictures: the character is somewhere else.
 
 **What a failure does.** A failed, slow or refused picture never fails the turn; the line goes without it.
@@ -182,8 +190,8 @@ Most of the time is the compositor delivering its next frame, not work. Helper s
 
 **Turn latency added** (estimates; Convai's acceptance cannot be measured without live turns):
 - **Talk key:** about 0. The frame is in memory at the press and is published while V talks; Convai buffers it long before the key is released.
-- **Typed line with the composer open first** (the usual case): about 0. The frame is published when the composer opens and buffered while V types. At send, the page recognises the same picture (no new publish) and checks its acknowledgement (no network wait).
-- **Typed turn without a composer** (a group's next speaker, a line sent within about half a second of opening the composer): at most 350 ms, overlapping the context update (estimate 0 to 350 ms).
+- **Typed line with the composer open first** (the usual case): about 0. The frame is published when the composer opens and buffered while V types. At send, the page recognises the same picture (no new publish) and sends the line (no wait).
+- **Typed turn without a composer** (a group's next speaker, a line sent within about half a second of opening the composer): 0 ms of waiting (was 350 ms), but the picture is mostly too late for that line (about 1 time in 3 it is used).
 - **Mistral, Local AI, or vision off (developer switch):** 0.
 
 ## 5. Use from other features: `attachToNextTurn`
@@ -209,7 +217,7 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 - No player setting. The `companionVision` setting (Settings > Conversation provider) was removed on 2026-10-16: vision is always on with Convai. `mod/manager.lua` drops an old saved `companionVision` key on load and the bridge ignores it, so a saved `false` cannot keep vision off.
 - `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off (no helper, no buffer, pages audio-only).
 - `visionTransport` in `runtime/settings.json` (developer only, not in the menu): `"video"` (default, dynamic vision context) or `"upload"` (`uploadFile` of the JPEG, for the live comparison).
-- `visionWaitMs` in `runtime/settings.json` (developer only): the fallback wait cap, 0 to 900 ms (default 350). `0` sends the line at once and relies on the server sampling the published picture before the model answers.
+- `visionWaitMs` in `runtime/settings.json` (developer only): how long a turn may wait for its picture to finish publishing, 0 to 900 ms (default 0: the line is sent at once). It never waits for a server reply.
 - `CYBERPUNK_CONVAI_VISION_HELPER`: absolute path to a helper build. Default search: `<app>/vision/`, then `dist/vision/`.
 - `CYBERPUNK_CONVAI_VISION_DEBUG_DIR`: absolute folder; keeps one JPEG per picture (development only).
 - `CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1`, or `"visionDebugLastSent": true` in `runtime/settings.json` (developer only): keeps the last picture handed to Convai in `runtime/vision-last-sent.jpg`, plus `runtime/vision-last-sent.json` (taken at, age, how it was sent, size). It is the bridge's copy, before the page lifts a dim picture.

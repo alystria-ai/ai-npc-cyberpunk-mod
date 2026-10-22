@@ -9,7 +9,7 @@ import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
-import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -19,7 +19,7 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
-  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';", '');
+  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 // Waits for a state to hold. The ceiling is reached only by a hung test (a fixed count of short polls is a wall-clock limit in disguise).
 async function until(predicate, label) {
@@ -115,7 +115,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
-    ConvaiVision: visionClass, visionConnectOptions, visionIdentity, VISION_NOTE,
+    ConvaiVision: visionClass, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -1832,6 +1832,22 @@ test('vision: the session connects with video on the silent lane, and a picture 
   assert.deepEqual(events.filter(event => event[0] === 'message'), [['message', 'Hello']]);
   assert.equal(api.diagnostics().vision.skipped, 1);
   assert.equal(api.diagnostics().vision.lastReason, 'no-video-session');
+});
+
+test('vision: a picture that is still being published, with a server that never answers or says vision_not_enabled, does not delay the line', async () => {
+  class PendingVision extends ConvaiVision {
+    async stage() { this.staged = {started: performance.now(), ready: new Promise(() => {}), published: false, attached: false}; return {staged: true}; }
+    async retire() { this.staged = null; }
+  }
+  const {api, clients, events} = fixture({visionClass: PendingVision});
+  const request = {...config, ttsEnabled: false, vision: true, visionImages: [{mime: 'image/jpeg', base64: '/9j/2Q=='}]};
+  const pending = api.reply(request);
+  await until(() => events.some(event => event[0] === 'message'), 'the text message to be sent without waiting for the picture');
+  const ready = api.diagnostics().wire.visionReady;
+  assert.deepEqual([ready.published, ready.waitedMs], [false, 0], 'the default wait is none');
+  assert.match(events.find(event => event[0] === 'context')[1].text, /An image of your surroundings may be attached/);
+  finalText(clients[0]);
+  assert.equal((await pending).text, 'Hello V.');
 });
 
 // 0.2.5 report: "Cannot read properties of null (reading 'updateContext')". reply() waits for the connection and for the picture; close() during either wait leaves no connection.

@@ -5,13 +5,11 @@ import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
-import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';
+import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 // "Companions can see" (docs/COMPANION_VISION.md): the current connection's picture handler, null without vision.
 let vision = null;
-// How long a turn waits for its picture to be buffered by Convai before it is sent anyway (bridge/convai-vision.mjs).
-const VISION_READY_MS = 350;
 const PRESTAGE_TTL_MS = 60000;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
@@ -777,18 +775,17 @@ async function stageTurnVision(config) {
   if (!own) return false;
   if (Array.isArray(config?.visionImages) && config.visionImages.length) await own.stage(config.visionImages);
   else own.claim();
-  return own === vision && !!own.staged && !own.notEnabled;
+  return own === vision && !!own.staged;
 }
-// Waits until Convai has buffered the staged picture, at most visionWaitMs (default VISION_READY_MS). A picture staged ahead is
-// usually buffered already, so this returns at once. Out of time, the line goes anyway and the picture stays published for the
-// turn, so the server may still take it before the model answers.
+// Waits until the staged picture is published on the session, at most visionWaitMs (default none, visionWaitCap). A picture staged
+// ahead is published already, so this returns at once. It never waits for a Convai status reply: those say 'vision_not_enabled'
+// while the model still sees the picture. Out of time, the line goes anyway and the picture stays published for the turn.
 async function awaitTurnVision(config) {
   const own = vision;
   if (!own?.staged) return false;
-  const cap = Number.isFinite(config?.visionWaitMs) ? Math.max(0, Math.min(900, config.visionWaitMs)) : VISION_READY_MS;
-  const result = await own.ready(performance.now() + cap);
-  observed.visionReady = {attached: result.attached, outcome: result.outcome, ms: Math.round(result.ms), waitedMs: Math.round(result.waitedMs ?? 0)};
-  return result.attached;
+  const result = await own.ready(performance.now() + visionWaitCap(config));
+  observed.visionReady = {published: result.published, attached: result.attached, outcome: result.outcome, ms: Math.round(result.ms), waitedMs: Math.round(result.waitedMs ?? 0)};
+  return result.published;
 }
 
 // After a turn, its picture is withdrawn (track unpublished), so it can never ride along into a later turn.
