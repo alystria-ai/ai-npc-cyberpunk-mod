@@ -18,6 +18,10 @@
 
 namespace convai
 {
+// The text of a control file as UTF-8: a UTF-8 byte order mark is dropped, UTF-16 (with a byte order mark of
+// either order, or recognised by its zero bytes) is converted. Anything else is returned as it is.
+std::string DecodeControlText(std::string_view aContent);
+
 class Switches
 {
 public:

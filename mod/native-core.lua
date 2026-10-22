@@ -54,6 +54,37 @@ M.routed = ROUTED
 
 local SWITCH_RECHECK = 0.5 -- seconds between SystemEnabled checks
 
+-- The text of a control file (native-off.txt, native-verify.txt) the way the plugin's Switches reads it:
+-- Notepad and Windows PowerShell save a UTF-8 byte order mark or UTF-16, and either used to make the first
+-- name never match, so the switch was silently ignored. A UTF-8 mark is dropped; UTF-16 (marked in either
+-- byte order, or recognised by its zero bytes) becomes ASCII, with anything else turned into '?'.
+local function controlText(text)
+    text = tostring(text or '')
+    if text:sub(1, 3) == '\239\187\191' then return text:sub(4) end
+    local first, second = text:byte(1, 2)
+    local start, big
+    if first == 255 and second == 254 then start = 3
+    elseif first == 254 and second == 255 then start, big = 3, true
+    elseif #text >= 4 then
+        local pairsSeen, zeroEven, zeroOdd = math.min(math.floor(#text / 2), 64), 0, 0
+        for index = 0, pairsSeen - 1 do
+            if text:byte(2 * index + 1) == 0 then zeroEven = zeroEven + 1 end
+            if text:byte(2 * index + 2) == 0 then zeroOdd = zeroOdd + 1 end
+        end
+        if zeroOdd * 2 > pairsSeen and zeroEven == 0 then start = 1
+        elseif zeroEven * 2 > pairsSeen and zeroOdd == 0 then start, big = 1, true end
+    end
+    if not start then return text end
+    local out = {}
+    for index = start, #text - 1, 2 do
+        local low, high = text:byte(index), text:byte(index + 1)
+        if big then low, high = high, low end
+        out[#out + 1] = (high == 0 and low < 128) and string.char(low) or '?'
+    end
+    return table.concat(out)
+end
+M.controlText = controlText
+
 -- runtime/<name>, runtime/<name>.tmp and runtime/<name>.previous for a routed name.
 local function channelOf(path)
     if type(path) ~= 'string' then return nil end
@@ -300,7 +331,7 @@ function M.install(options)
                     verify.revision = revision
                     local names, listed = {}, {}
                     if type(revision) == 'number' and revision > 0 then
-                        for line in tostring(Io.Read('native-verify.txt')):gmatch('[^\r\n]+') do
+                        for line in controlText(Io.Read('native-verify.txt')):gmatch('[^\r\n]+') do
                             local name = (line:gsub('#.*', '')):match('^%s*(.-)%s*$'):lower()
                             if name ~= '' then names[name] = true; listed[#listed + 1] = name end
                         end
@@ -342,7 +373,7 @@ function M.install(options)
         local names, seen = {}, false
         local file = realOpen('runtime/native-off.txt', 'rb')
         if file then
-            for line in (file:read('*a') or ''):gmatch('[^\r\n]+') do
+            for line in controlText(file:read('*a')):gmatch('[^\r\n]+') do
                 local name = line:match('^%s*(.-)%s*$')
                 -- The plugin reads a name the way Switches::ParseFile does: comment cut off, trimmed, lower-cased.
                 local listed = (name:gsub('#.*', '')):match('^%s*(.-)%s*$'):lower()

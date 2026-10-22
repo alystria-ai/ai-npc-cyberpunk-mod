@@ -1,6 +1,7 @@
 #include "Switches.hpp"
 
 #include "Log.hpp"
+#include "Paths.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -30,8 +31,70 @@ std::string Trim(std::string_view aText)
 }
 } // namespace
 
-void Switches::ParseFile(std::string_view aContent)
+std::string DecodeControlText(std::string_view aContent)
 {
+    // Windows PowerShell 5.1 writes UTF-16 with a byte order mark for ">" and Out-File, and a UTF-8 byte
+    // order mark for "Set-Content -Encoding utf8"; Notepad offers both. Either one used to turn the first
+    // name into three stray bytes plus "all" (or every character into two bytes), and the switch was silently ignored.
+    const auto byteAt = [&](size_t i) { return static_cast<unsigned char>(aContent[i]); };
+    if (aContent.size() >= 3 && byteAt(0) == 0xEF && byteAt(1) == 0xBB && byteAt(2) == 0xBF)
+    {
+        return std::string(aContent.substr(3));
+    }
+    bool utf16 = false;
+    bool bigEndian = false;
+    size_t start = 0;
+    if (aContent.size() >= 2 && byteAt(0) == 0xFF && byteAt(1) == 0xFE)
+    {
+        utf16 = true;
+        start = 2;
+    }
+    else if (aContent.size() >= 2 && byteAt(0) == 0xFE && byteAt(1) == 0xFF)
+    {
+        utf16 = true;
+        bigEndian = true;
+        start = 2;
+    }
+    else if (aContent.size() >= 4)
+    {
+        // No byte order mark: names are ASCII, so UTF-16 shows as a zero byte after (or before) every character.
+        size_t zeroEven = 0;
+        size_t zeroOdd = 0;
+        const size_t pairs = std::min<size_t>(aContent.size() / 2, 64);
+        for (size_t i = 0; i < pairs; ++i)
+        {
+            zeroEven += byteAt(2 * i) == 0 ? 1 : 0;
+            zeroOdd += byteAt(2 * i + 1) == 0 ? 1 : 0;
+        }
+        if (zeroOdd * 2 > pairs && zeroEven == 0)
+        {
+            utf16 = true;
+        }
+        else if (zeroEven * 2 > pairs && zeroOdd == 0)
+        {
+            utf16 = true;
+            bigEndian = true;
+        }
+    }
+    if (!utf16)
+    {
+        return std::string(aContent);
+    }
+    std::wstring wide;
+    wide.reserve((aContent.size() - start) / 2);
+    for (size_t i = start; i + 1 < aContent.size(); i += 2)
+    {
+        const unsigned lo = byteAt(bigEndian ? i + 1 : i);
+        const unsigned hi = byteAt(bigEndian ? i : i + 1);
+        wide.push_back(static_cast<wchar_t>(lo | (hi << 8)));
+    }
+    return paths::WideToUtf8(wide);
+}
+
+void Switches::ParseFile(std::string_view aRawContent)
+{
+    const std::string decoded = DecodeControlText(aRawContent);
+    const std::string_view aContent = decoded;
     bool allOff = false;
     std::vector<std::string> off;
     size_t position = 0;

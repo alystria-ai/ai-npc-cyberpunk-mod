@@ -140,3 +140,41 @@ TEST(off_flags_follow_the_file_and_trips_at_once_and_never_cover_core)
     CHECK(!switches.Off("faces"));
     CHECK(switches.Off("vehicles")); // a file with nothing in it does not clear a trip
 }
+
+TEST(control_files_parse_with_a_byte_order_mark_and_as_utf16)
+{
+    const auto utf16 = [](const std::string& aText, bool aBigEndian, bool aBom) {
+        std::string out;
+        if (aBom)
+        {
+            out += aBigEndian ? std::string("\xFE\xFF", 2) : std::string("\xFF\xFE", 2);
+        }
+        for (const char c : aText)
+        {
+            out += aBigEndian ? std::string(1, '\0') + c : c + std::string(1, '\0');
+        }
+        return out;
+    };
+    const std::string text = "# off for now\r\nFaces\r\nvehicles\r\n";
+    const std::string utf8Bom = std::string("\xEF\xBB\xBF") + text;
+    for (const std::string& content :
+         {text, utf8Bom, utf16(text, false, true), utf16(text, true, true), utf16(text, false, false),
+          utf16(text, true, false)})
+    {
+        Switches switches;
+        switches.ParseFile(content);
+        CHECK(switches.Off("faces"));
+        CHECK(switches.Off("vehicles"));
+        CHECK(!switches.Off("gaze"));
+        CHECK(!switches.Enabled("faces"));
+        CHECK(switches.Enabled("io"));
+    }
+    // "all" as the first line of a file with a byte order mark is the case that used to be ignored.
+    Switches all;
+    all.ParseFile(std::string("\xEF\xBB\xBF") + "all\r\n");
+    CHECK(all.Off("faces"));
+    CHECK_EQ(DecodeControlText(std::string("\xEF\xBB\xBF") + "all"), std::string("all"));
+    // Plain text and an empty file pass through.
+    CHECK_EQ(DecodeControlText("io\n"), std::string("io\n"));
+    CHECK(DecodeControlText("").empty());
+}
