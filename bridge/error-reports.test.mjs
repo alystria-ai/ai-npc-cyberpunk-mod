@@ -275,6 +275,10 @@ test('no planted secret, conversation text or account name gets out, and the pay
       gameInfo: {game: '2.31', cet: 'v1.35.0', codeware: '1.20.5', setup: ['codeware: ok found']}});
     for (const [name, value] of Object.entries(PLANTED)) assert.ok(!body.includes(value), `planted ${name} got out`);
     assert.ok(!body.includes(INSTALL), 'the raw install id never leaves');
+    // The detail of a voice failure (engine, the worker's graphics memory) and of an empty custom answer is kept; a field the recorders do not write is not.
+    const voice = await buildErrorPayload({record: {...record, kind: 'voice-failed', detail: {engine: 'omni', gpuDedicatedMiB: 2036, gpuSharedMiB: 518, emptyFinish: 'stop', emptyTokens: 0, note: PLANTED.chat}},
+      game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project, installId: INSTALL, environment: {}, names: [PLANTED.windowsUser], now: () => START, graphics: () => []});
+    assert.deepEqual(voice.payload.report.detail, {engine: 'omni', gpuDedicatedMiB: 2036, gpuSharedMiB: 518, emptyFinish: 'stop', emptyTokens: 0});
     assert.equal(payload.install, hashInstall(INSTALL));
     assert.match(payload.install, /^[0-9a-f]{32}$/);
     assert.ok(Buffer.byteLength(body) <= MAX_BODY_BYTES);
