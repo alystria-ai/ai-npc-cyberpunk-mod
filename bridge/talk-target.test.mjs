@@ -7,7 +7,7 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const moduleSource = read('../mod/talk-target.lua');
 const init = read('../mod/init.lua');
-const targeting = init.slice(init.indexOf('local function targetAtCrosshair()'), init.indexOf('local function resetGaze()'));
+const targeting = init.slice(init.indexOf('convaiEntityKey = function'), init.indexOf('local function resetGaze()'));
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -187,3 +187,51 @@ test('the chooser is packaged and deployed next to init.lua', () => {
     assert.match(read(path), /"source": "mod\/talk-target\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/talk-target\.lua"/, path);
   }
 });
+
+// The 5 Hz gaze scan (docs/PERFORMANCE_NATIVE_PLAN.md, review 2026-10-22): one candidate per entity, no Head slot reads for an NPC
+// that cannot pass the cone, and the native query separable from the measuring so the gaze can run them on two ticks.
+test('gaze scan: an entity reached through several parts is measured once, and the choice is the one it always was', () => run(`${world}
+  local isNpc, slotReads = 0, 0
+  for _, n in ipairs({judy, walker}) do
+    local inner = n.IsNPC; n.IsNPC = function(self) isNpc = isNpc + 1; return inner(self) end
+    local slot = n.GetSlotComponent; n.GetSlotComponent = function(self) slotReads = slotReads + 1; return slot(self) end
+  end
+  parts = {{entity = judy}, {entity = judy}, {entity = judy}, {entity = walker}, {entity = walker}}
+  local module = (function() ${moduleSource} end)()
+  convaiTalkTarget = module.new()
+  local chosen, reason, decision = targetAtCrosshair()
+  assert(chosen == judy and decision.reason == 'party-centred' and #decision.rows == 2)
+  assert(isNpc == 2, 'one NPC read per entity, got ' .. isNpc)
+  assert(#convaiTalkNative == 2, 'the key press list holds each entity once')
+`));
+
+test('gaze scan: an NPC well outside the cone costs no Head slot read, one near the edge or looked at still does', () => run(`${world}
+  local slotReads = {}
+  local function count(n)
+    local slot = n.GetSlotComponent; n.GetSlotComponent = function(self) slotReads[n.id] = (slotReads[n.id] or 0) + 1; return slot(self) end
+  end
+  local behind, side, edge = npc('behind', -3, 2), npc('side', 0.5, 6), npc('edge', 3, 2.2)
+  for _, n in ipairs({judy, walker, behind, side, edge}) do count(n) end
+  parts = {{entity = judy}, {entity = walker}, {entity = behind}, {entity = side}, {entity = edge}}
+  convaiTalkTarget = nil
+  local chosen = targetAtCrosshair()
+  assert(slotReads.behind == nil, 'an NPC behind V needs no head read')
+  assert(slotReads.side == nil, 'an NPC 85 degrees off needs none')
+  assert(slotReads.judy == 1 and slotReads.walker == 1, 'candidates in the cone still read the head')
+  assert(slotReads.edge == 1, 'an NPC near the cone edge is not skipped')
+  assert(chosen == walker)
+  -- The skip is geometry only: the result equals the one with every head read made.
+  convaiHeadOutOfCone = function() return false end
+  assert(targetAtCrosshair() == chosen)
+`));
+
+test('gaze scan: gathering and measuring are two phases, and a measuring phase with a gathered list queries nothing new', () => run(`${world}
+  local queries = 0
+  TargetSearchQuery = {new = function() queries = queries + 1; return {} end}
+  local gathered = gatherTargets(Game.GetPlayer())
+  assert(queries == 1 and #gathered.candidates == 2 and convaiTalkNative == gathered.candidates)
+  local chosen, _, decision = targetAtCrosshair(gathered)
+  assert(queries == 1, 'the measuring phase asked the game for no new query')
+  local direct, _, directDecision = targetAtCrosshair()
+  assert(queries == 2 and chosen == direct and decision.reason == directDecision.reason and #decision.rows == #directDecision.rows)
+`));

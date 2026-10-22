@@ -2005,9 +2005,35 @@ do
     convaiGestureOptions = options
 end
 
-local function targetAtCrosshair()
-    local player = Game.GetPlayer()
-    if not player then return nil, 'Player unavailable' end
+-- The entity id of an NPC as a string (a global function: no closure per candidate).
+convaiEntityKey = function(npc) return tostring(npc:GetEntityID().hash) end
+-- The Head slot point of an NPC, or nil (a global function: no closure per candidate).
+convaiHeadPoint = function(npc)
+    local slot = npc:GetSlotComponent()
+    if not slot then return nil end
+    local found, transform = slot:GetSlotTransform(CName.new('Head'))
+    if not found or not transform then return nil end
+    local point = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
+    if not point or type(point.x) ~= 'number' or type(point.y) ~= 'number'
+        or type(point.z) ~= 'number' then return nil end
+    return point
+end
+-- True when the Head slot of an NPC standing at `pos` cannot pass the 32 degree cone either, so its two slot reads are skipped.
+-- The chest aim point (pos + 1.3 m up) and the head are at most 1.5 m apart, which moves the angle by at most asin(1.5 / distance):
+-- an NPC farther out than the cone plus that is outside whichever point is measured. Unknown geometry says false (read the head).
+convaiHeadOutOfCone = function(pos, playerPos, forward, forwardLength)
+    if forwardLength < 0.1 then return false end
+    local dx, dy, dz = pos.x - playerPos.x, pos.y - playerPos.y, pos.z + 1.3 - playerPos.z
+    local distance = math.sqrt(dx^2 + dy^2 + dz^2)
+    if distance < 0.1 then return false end
+    if distance > 9.5 then return true end
+    local cosine = math.max(-1.0, math.min(1.0, (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)))
+    return math.deg(math.acos(cosine)) > 32.0 + math.deg(math.asin(math.min(1.0, 1.5 / distance)))
+end
+
+-- Phase 1 of the target search: the native query and the candidate lists (nothing here depends on where the crosshair is now).
+-- The 5 Hz gaze runs it one tick before the measuring phase so no single frame carries the whole scan (updateGaze).
+local function gatherTargets(player)
     local query = TargetSearchQuery.new()
     query.searchFilter = Game['TSF_NPC;']()
     query.maxDistance = 8.0
@@ -2017,9 +2043,14 @@ local function targetAtCrosshair()
     query.ignoreInstigator = true
     local candidates, seated, onFoot, nativeIds = {}, {}, {}, {}
     local function nativeCandidate(npc)
+        -- One entity, one candidate: its other parts (and the nearest and looked-at objects) were each measured, and dropped as a
+        -- repeat, after their NPC, attached and dead reads. The first copy stays the one measured.
+        local ok, id = pcall(convaiEntityKey, npc)
+        if ok then
+            if nativeIds[id] then return end
+            nativeIds[id] = true
+        end
         candidates[#candidates + 1] = npc
-        local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
-        if ok then nativeIds[id] = true end
     end
     local _, parts = targeting:GetTargetParts(player, query)
     for _, part in ipairs(parts or {}) do
@@ -2049,6 +2080,16 @@ local function targetAtCrosshair()
     end
     -- The native candidates of this key press, for a group round to count spawned characters among (selectConversation).
     convaiTalkNative = candidates
+    return {candidates = candidates, seated = seated, onFoot = onFoot, lookedOk = lookedOk, looked = looked}
+end
+
+-- Phase 2: measure the candidates against the crosshair now and choose. `gathered` is a gatherTargets result from the tick before.
+local function targetAtCrosshair(gathered)
+    local player = Game.GetPlayer()
+    if not player then return nil, 'Player unavailable' end
+    local targeting = Game.GetTargetingSystem()
+    local gather = gathered or gatherTargets(player)
+    local candidates, seated, onFoot, lookedOk, looked = gather.candidates, gather.seated, gather.onFoot, gather.lookedOk, gather.looked
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
     -- Measure every candidate once: its best aim point (torso, or the actual
@@ -2065,6 +2106,7 @@ local function targetAtCrosshair()
             measured[id] = true
             local pos = npc:GetWorldPosition()
             local points = {{x = pos.x, y = pos.y, z = pos.z + 1.3}}
+            local isLooked = not onFoot[id] and lookedOk and looked and npc == looked or false
             if seated[id] then
                 -- Installed NPCPuppet.HasHeadUnderwater uses the Head slot and
                 -- this world conversion. CET returns its out transform; the
@@ -2078,19 +2120,13 @@ local function targetAtCrosshair()
             else
                 -- Keep torso aim usable. The actual Head slot is a second aim
                 -- point for close face-to-face conversations, when available.
-                local headOk, head = pcall(function()
-                    local slot = npc:GetSlotComponent()
-                    if not slot then return nil end
-                    local found, transform = slot:GetSlotTransform(CName.new('Head'))
-                    if not found or not transform then return nil end
-                    local point = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
-                    if not point or type(point.x) ~= 'number' or type(point.y) ~= 'number'
-                        or type(point.z) ~= 'number' then return nil end
-                    return point
-                end)
+                -- Skipped for an NPC well outside the cone, whose head could not pass it either.
+                local headOk, head = false, nil
+                if isLooked or not convaiHeadOutOfCone(pos, playerPos, forward, forwardLength) then
+                    headOk, head = pcall(convaiHeadPoint, npc)
+                end
                 if headOk and head then points[#points + 1] = head end
             end
-            local isLooked = not onFoot[id] and lookedOk and looked and npc == looked or false
             local measures = {}
             for _, point in ipairs(points) do
                 local dx, dy, dz = point.x - playerPos.x, point.y - playerPos.y, point.z - playerPos.z
@@ -2230,14 +2266,25 @@ local function updateGaze(player, elapsed)
     end
     if focusMode == 'chat' then return end
     gazePoll = gazePoll + elapsed
-    if gazePoll < 0.2 then return end
+    if gazePoll < 0.2 then
+        -- Half way to a scan: its native candidate query runs now, on a tick of its own, so the measuring tick below carries only
+        -- the per-candidate reads (no single frame holds the whole scan). Nothing is gathered when the scan could not run anyway.
+        if gazePoll >= 0.1 and convaiGazeGather == nil and gameplayCanAcquire(player) then
+            local gathered, result = pcall(gatherTargets, player)
+            if gathered and type(result) == 'table' then result.at = os.clock(); convaiGazeGather = result end
+        end
+        return
+    end
     local step = gazePoll
     gazePoll = 0
+    local gather = convaiGazeGather
+    convaiGazeGather = nil
+    if gather and os.clock() - gather.at > 0.35 then gather = nil end
     local canFocus = gameplayCanAcquire(player)
     local npc, identity
     local lookKey, lookEntity, lookName, lookSpawned
     if canFocus then
-        local found, result = pcall(targetAtCrosshair)
+        local found, result = pcall(targetAtCrosshair, gather)
         if found and result then
             local key, canonical = profileIdentity(result)
             if key and supportedProfiles[key] and manager.profileEnabled(key) and not companions.owns(result) then
@@ -4056,7 +4103,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     -- The last crosshair search's NPC handles (targetAtCrosshair, refreshed by the gaze every 0.2 s): the whole on-foot party
     -- and every NPC near V. Kept until the next search, so without this every one of them outlived the unload (18 Oct 09:10
     -- detach: Jackie's and Johnny's handles were still held after the collect).
-    convaiTalkNative = nil
+    convaiTalkNative, convaiGazeGather = nil, nil
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
