@@ -9,6 +9,7 @@
     "dino-dinovic",
     "muamar-reyes",
     "padre-ibarra",
+    "pedro-aimar",
     "wakako-okada"
   ],
   "sources": [
@@ -6030,7 +6031,8 @@
       ],
       "audience": {
         "speakers": [
-          "muamar-reyes"
+          "muamar-reyes",
+          "pedro-aimar"
         ],
         "perspective": "participant",
         "channels": [
@@ -6039,7 +6041,8 @@
         ],
         "recipients": [
           "v",
-          "muamar-reyes"
+          "muamar-reyes",
+          "pedro-aimar"
         ]
       },
       "condition": {

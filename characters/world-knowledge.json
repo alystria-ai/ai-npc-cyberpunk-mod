@@ -54,6 +54,7 @@
     "garry-the-prophet",
     "grayson",
     "hanako-arasaka",
+    "hasan-demir",
     "henry",
     "iris-tanner",
     "jackie-welles",
@@ -84,6 +85,7 @@
     "meredith-stout",
     "misty-olszewski",
     "mitch-anderson",
+    "mr-blue-eyes",
     "mr-hands",
     "muamar-reyes",
     "nancy-hartley",
@@ -95,6 +97,7 @@
     "padre-ibarra",
     "panam-palmer",
     "patricia",
+    "pedro-aimar",
     "pepe-najarro",
     "placide",
     "r3n0",
@@ -180820,7 +180823,8 @@
       ],
       "audience": {
         "speakers": [
-          "muamar-reyes"
+          "muamar-reyes",
+          "pedro-aimar"
         ],
         "perspective": "participant",
         "channels": [
@@ -180829,7 +180833,8 @@
         ],
         "recipients": [
           "v",
-          "muamar-reyes"
+          "muamar-reyes",
+          "pedro-aimar"
         ]
       },
       "condition": {
@@ -203260,7 +203265,8 @@
       ],
       "audience": {
         "speakers": [
-          "mr-hands"
+          "mr-hands",
+          "hasan-demir"
         ],
         "perspective": "participant",
         "channels": [
@@ -203269,7 +203275,8 @@
         ],
         "recipients": [
           "v",
-          "mr-hands"
+          "mr-hands",
+          "hasan-demir"
         ]
       },
       "condition": {

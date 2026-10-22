@@ -9,6 +9,7 @@
     "alan-noel",
     "ana-friedman",
     "bill-mitchell",
+    "hasan-demir",
     "lina-malina",
     "mr-hands",
     "nele-springer",
@@ -3018,7 +3019,8 @@
       ],
       "audience": {
         "speakers": [
-          "mr-hands"
+          "mr-hands",
+          "hasan-demir"
         ],
         "perspective": "participant",
         "channels": [
@@ -3027,7 +3029,8 @@
         ],
         "recipients": [
           "v",
-          "mr-hands"
+          "mr-hands",
+          "hasan-demir"
         ]
       },
       "condition": {
