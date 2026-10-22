@@ -50,7 +50,7 @@ Output rules: write ONLY a JSON array, one object per item, in the order given: 
 
 // A second, blunter pass: yes/no fault flags per reply. A 1 to 5 score from a small judge piles up near 4 (every run lands within 0.15 of the others), so differences between prompts show
 // better as the share of replies with a named fault. FLAGS is the list the aggregate reads.
-export const FLAGS = ['echo', 'recites_context', 'invents', 'dodges', 'off_voice', 'wrong_situation', 'stock_question', 'wrong_language', 'stage_or_meta', 'weak_action'];
+export const FLAGS = ['echo', 'recites_context', 'invents', 'dodges', 'misreads', 'off_voice', 'wrong_situation', 'stock_question', 'wrong_language', 'stage_or_meta', 'weak_action', 'lectures'];
 
 export const FLAG_RUBRIC = `You are a strict judge of short spoken replies of a role-played video game character (Cyberpunk 2077, Night City) to V, the player. Each reply will be read aloud by a voice.
 For each item you get the character, the situation the game reported, the earlier talk (if any), what V said, a note on what a good reply does, and the reply. You do not know which model wrote it.
@@ -62,6 +62,9 @@ recites_context  States the time of day or the hour, the weather, the district o
                  situation says ("it is early, the Badlands do not forgive", "to beat the rain", "this is Heywood, citizen"). Letting the place colour a remark in the person's own way is fine; announcing it is the fault.
 invents          States a specific fact that is not in the item and is not well-known Cyberpunk 2077 lore for this character: a relative, a past event, a named person or place, a number, a menu or price list, a recent
                  incident, an object (a key already in the ignition), a shared past the situation does not support.
+misreads         COMPREHENSION. Look at what V actually said and ask: did the reply answer THAT? true when it takes the line for something else: an insult as praise or praise as an insult ("useless" answered
+                 as "useful"), a statement as a question, a "yeah" or "never mind" as a request, a greeting as a quest, a threat as a joke, a request for an action as small talk, the wrong moment of the
+                 earlier talk, or an answer to a question V did not ask. false when the reply answers V's actual words, even badly or vaguely.
 dodges           Does not answer V's line: changes the subject, answers a different question, misreads the line (a "yeah" or "never mind" taken as something else), gives a vague non-answer to a plain question, or
                  refuses to give an opinion V asked for.
 off_voice        Sounds generic or wrong for THIS character: a polite assistant or helpline tone, flat filler, the voice of another character, or a catchphrase that belongs to someone else ("choom" from a person who is not
@@ -71,10 +74,12 @@ wrong_situation  Contradicts or ignores the situation: claims to be somewhere el
 stock_question   Ends with, or contains, a generic stock question that fits any conversation ("What's on your mind?", "What about you?", "What brings you here?", "Anything else?") instead of something specific.
 wrong_language   Not entirely in the language V wrote in (English for an English line), apart from names and in-world slang.
 stage_or_meta    Stage directions, narration, *actions*, a speaker label, third-person self-description, or any AI, bot, prompt, rules or game talk.
+lectures         Only for items whose note says the talk is adult or crude: true when the reply refuses, moralises, gives a speech about respect or consent, goes prudish, or turns the talk to safety or
+                 feelings in place of answering in the character's own crude or warm voice. false for any reply that plays along in character, and for every item whose talk is not adult.
 weak_action      Only for items that carry an ACTION REQUEST: true when the reply does not understand or answer the request (does not agree, refuse or ask for what is missing), claims it has already happened, or answers
                  a different request. false when it handles the request or when the item has no action request.
 
 Also give "note": at most 12 words, the main fault, or "fine".
 
-Output: write ONLY a JSON array, one object per item, in order: {"item": "<id>", "echo": b, "recites_context": b, "invents": b, "dodges": b, "off_voice": b, "wrong_situation": b, "stock_question": b, "wrong_language": b, "stage_or_meta": b, "weak_action": b, "note": "..."}.
+Output: write ONLY a JSON array, one object per item, in order: {"item": "<id>", "echo": b, "recites_context": b, "invents": b, "dodges": b, "misreads": b, "off_voice": b, "wrong_situation": b, "stock_question": b, "wrong_language": b, "stage_or_meta": b, "weak_action": b, "lectures": b, "note": "..."}.
 `;

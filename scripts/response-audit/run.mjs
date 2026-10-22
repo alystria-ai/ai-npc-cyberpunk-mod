@@ -8,8 +8,13 @@
 // Results: <main checkout>/deliverables/response-audit-data/<label>.json (gitignored). See README.md.
 import {writeFile, mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {TextProviderHost} from '../../bridge/text-provider-host.mjs';
+import {PromptProfiles} from '../../bridge/prompt-profile-store.mjs';
+import {MatureContent} from '../../bridge/mature-content.mjs';
+import {customProfileId} from '../../bridge/prompt-profiles.mjs';
+import {readFile} from 'node:fs/promises';
 import {buildMessages, LIMITS, joinBlocks} from '../../bridge/mistral-prompt.mjs';
 import {ReplyStream} from '../../bridge/reply-stream.mjs';
 import {hasEmotionTag} from '../../bridge/emotion-tags.mjs';
@@ -26,7 +31,23 @@ const providerName = option('provider', 'mistral'), label = option('label', `${p
 const model = option('model', 'ministral-8b-latest'), n = Number(option('n', 1)), concurrency = Number(option('concurrency', providerName === 'mistral' ? 3 : 1));
 const only = option('only', '').split(',').filter(Boolean), groups = option('group', '').split(',').filter(Boolean);
 const voice = option('voice', providerName === 'convai' ? 'none' : 'pocket');
-const scenarios = SCENARIOS.filter(s => (!only.length || only.includes(s.id)) && (!groups.length || groups.includes(s.group)));
+// Prompt profiles (bridge/prompt-profiles.mjs): --profiles base builds the one shared prompt every text provider had before profiles (no profile layer at all); the default is the shipped profiles.
+// --candidate <file.json> lays {profileId: patch} over the shipped profiles through the same API a player's override uses (an in-memory store, nothing written). --mature turns the Mature setting on (Local AI and Custom).
+const profilesMode = option('profiles', 'default'), candidateFile = option('candidate', '');
+const matureOn = flag('mature');
+let promptProfiles = null;
+const makeProfiles = async describe => {
+  if (profilesMode === 'base' || providerName === 'convai') return;
+  promptProfiles = new PromptProfiles({active: () => (describe ? {route: 'custom', custom: describe} : null)});
+  if (!candidateFile) return;
+  // A candidate is a .json file or a .mjs module whose default export is {profileId: patch} (the module may build its patch from the shipped profiles).
+  const candidate = candidateFile.endsWith('.mjs') ? (await import(pathToFileURL(resolve(candidateFile)).href)).default : JSON.parse(await readFile(candidateFile, 'utf8'));
+  // The key @custom stands for the Custom profile of this run's endpoint and model.
+  for (const [key, patch] of Object.entries(candidate)) { const id = key === '@custom' ? customProfileId(describe.origin, describe.model) : key; const done = await promptProfiles.set(id, patch); if (!done.ok) throw Error(`candidate ${id}: ${JSON.stringify(done.errors)}`); }
+};
+const matureContent = matureOn && (providerName === 'local' || providerName === 'custom') ? (() => { const setting = new MatureContent(); setting.update({matureContent: true}); return setting; })() : null;
+// The adult-talk scenarios (group `mature`) run only with --mature or when the group is named.
+const scenarios = SCENARIOS.filter(s => (!only.length || only.includes(s.id)) && (!groups.length || groups.includes(s.group)) && (s.group !== 'mature' || flag('mature') || groups.includes('mature') || only.includes(s.id)));
 const personas = await loadPersonas({lean: option('lean', '1') !== '0'});   // --lean 0: the roster text as it was before the response audit's prompt pass
 // --compact: every character with the compact text a machine measured to read slowly is given (bridge/compact-persona.mjs), to see what a small card's player gets.
 if (flag('compact')) {
@@ -53,8 +74,9 @@ async function runTextTurn(setup, scn, sample) {
   const turn = await buildTurn(scn, personas, {voice});
   const {chat, requests} = recorder();
   const delivered = [];
-  const host = new TextProviderHost({provider: setup.provider, memory: stubMemory(turn.memory), personas, limits: LIMITS, log: () => {},
-    routes: setup.routeFor(model, chat), ...(scn.offer ? {deliverAction: async message => { delivered.push(message); return true; }} : {})});
+  const logs = [];
+  const host = new TextProviderHost({provider: setup.provider, memory: stubMemory(turn.memory), personas, limits: LIMITS, log: line => logs.push(line),
+    routes: setup.routeFor(model, chat), ...(promptProfiles ? {promptProfiles} : {}), ...(matureContent ? {matureContent} : {}), ...(scn.offer ? {deliverAction: async message => { delivered.push(message); return true; }} : {})});
   const stream = new ReplyStream({name: turn.persona.name, isTag: hasEmotionTag, speak: false});
   let headMs = null;
   const at = Date.now();
@@ -74,7 +96,7 @@ async function runTextTurn(setup, scn, sample) {
     prompt: main?.messages ?? null, requests: requests.map(r => ({maxTokens: r.maxTokens, ms: r.ms, usage: r.usage, finishReason: r.finishReason, error: r.error, chars: r.messages?.reduce((a, m) => a + m.content.length, 0), reply: r === main ? undefined : r.text})),
     modelText: main?.text ?? null, raw, spoken, ms, headMs: headMs ?? (error ? null : ms), model: reply?.timing?.model ?? main?.answeredBy, attempts: reply?.timing?.attempts, usage: main?.usage ?? null,
     promptTokens: main?.usage?.prompt_tokens ?? main?.timings?.promptTokens ?? null, completionTokens: main?.usage?.completion_tokens ?? null, firstTokenMs: main?.firstTokenMs ?? null,
-    requestCount: requests.length, ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
+    profile: logs.map(line => new RegExp('^' + String.fromCharCode(92) + '[PromptProfile' + String.fromCharCode(92) + '] turn uses (' + String.fromCharCode(92) + 'S+)').exec(line)?.[1]).find(Boolean) ?? (promptProfiles ? null : 'base'), requestCount: requests.length, ...(error ? {error} : {}), ...checks(spoken, {name: turn.persona.name, playerText: scn.text, raw})};
 }
 
 // ---- Convai ---------------------------------------------------------------------------------------------------------------
@@ -110,12 +132,13 @@ async function runConvaiTurn(setup, scn, sample) {
 // ---- main ---------------------------------------------------------------------------------------------------------------
 let setup, localHandle = null, started = Date.now(), run;
 try {
-  if (providerName === 'mistral') setup = await mistralProvider();
+  if (providerName === 'mistral') { setup = await mistralProvider(); await makeProfiles(null); }
   else if (providerName === 'local' || providerName === 'custom') {
-    const local = await startLocal({pin: option('pin', 'lite'), log: m => { if (flag('verbose')) console.error(m); }});
+    const local = await startLocal({pin: option('pin', 'lite'), mature: matureOn, log: m => { if (flag('verbose')) console.error(m); }});
     localHandle = local.status;
     console.log(`local model ready: ${local.status.model} (tier ${local.status.tier}, context ${local.handle.contextSize})`);
     setup = providerName === 'local' ? localProvider(local.server) : await customProvider(local.server);
+    await makeProfiles(setup.describe ?? null);
     setup.server = local.server;
   } else if (providerName === 'convai') { setup = await convaiSetup(); setup.endUsers = []; }
   else throw Error(`unknown provider ${providerName}`);
@@ -137,7 +160,7 @@ try {
   await Promise.all(Array.from({length: concurrency}, worker));
   results.sort((a, b) => a.id.localeCompare(b.id) || a.sample - b.sample);
   const times = results.filter(r => !r.error && Number.isFinite(r.ms)).map(r => r.ms);
-  run = {label, provider: providerName, model: providerName === 'mistral' ? model : (localHandle?.model ?? providerName), voice, at: new Date().toISOString(), n,
+  run = {label, provider: providerName, profiles: profilesMode, candidate: candidateFile || undefined, mature: matureOn || undefined, model: providerName === 'mistral' ? model : (localHandle?.model ?? providerName), voice, at: new Date().toISOString(), n,
     summary: {replies: results.filter(r => !r.error).length, failed: failures.length, msP50: quant(times, 0.5), msP90: quant(times, 0.9),
       meanWords: +(results.reduce((a, r) => a + (r.words ?? 0), 0) / Math.max(1, results.length)).toFixed(1),
       promptTokensMean: Math.round(results.reduce((a, r) => a + (r.promptTokens ?? 0), 0) / Math.max(1, results.filter(r => r.promptTokens).length)),
