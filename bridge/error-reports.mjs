@@ -32,7 +32,7 @@ import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
-import {GAME_EVENTS_FILE, QUEUE_FOLDER, cleanSlow, clearQueue, errorReportsEnabled, parseGameEvents, readQueue, recordErrorEvent,
+import {GAME_EVENTS_FILE, QUEUE_FOLDER, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
   removeQueued, sentPath} from './error-events.mjs';
 
 export const REPORT_PATH = '/api/errors/report';
@@ -558,11 +558,16 @@ export class ErrorReporter {
 
   async #flush() {
     if (this.stopped || this.now() < this.retryAt) return;
-    if (!await errorReportsEnabled(this.runtime)) {
+    const setting = await errorReportsSetting(this.runtime);
+    if (setting.state === 'off') {
       const removed = await clearQueue(this.stateDirectory);
       if (removed) this.#note('off', 'the setting is off; queued errors were deleted');
       return;
     }
+    // An unreadable settings file is an unknown state: nothing is sent and nothing is deleted. Nothing is sent either before the
+    // game has shown the notice that says reports are sent (what is queued waits, up to a week).
+    if (setting.state !== 'on') { this.#note('unknown', 'the settings file cannot be read; nothing is sent until it can'); return; }
+    if (!setting.noticed) { this.#note('notice-pending', 'the in-game notice has not been shown yet; nothing is sent until it has'); return; }
     const queue = await readQueue(this.stateDirectory, {now: this.now()});
     if (!queue.length) return;
     const target = await this.#target();

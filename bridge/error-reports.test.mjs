@@ -10,7 +10,7 @@ import {gzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
 import {MistralError, newTrace} from './mistral-client.mjs';
-import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
+import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
 import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
   withoutConversation} from './error-reports.mjs';
@@ -30,6 +30,8 @@ async function folders() {
   const runtime = join(modRoot, 'runtime'), state = join(base, 'state'), project = join(base, 'app');
   for (const folder of [runtime, state, project]) await mkdir(folder, {recursive: true});
   await writeFile(join(state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  // The in-game notice was shown (the game sets this flag in settings.json): nothing is sent before it. The tests of that gate change the file.
+  await writeFile(join(runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
   return {base, game, modRoot, runtime, state, project, cleanup: () => rm(base, {recursive: true, force: true})};
 }
 
@@ -419,6 +421,72 @@ test('a clock that is off is corrected once from the backend\'s time', async () 
   } finally { reporter.close(); await f.cleanup(); }
 });
 
+test('nothing is sent before the in-game notice was shown: the queue waits, and goes out once the game has marked the notice', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    for (const text of [null, JSON.stringify({errorReports: true}), JSON.stringify({errorReportsNoticed: false})]) {
+      if (text === null) await rm(join(f.runtime, 'settings.json'), {force: true});
+      else await writeFile(join(f.runtime, 'settings.json'), text);
+      await recordErrorEvent(f.state, event('fault', 'service-failed'), {now: clock.now});
+      const reporter = reporterFor(f, backend, clock);
+      await reporter.flush();
+      await reporter.look({flush: true});
+      reporter.close();
+      assert.equal(backend.calls.length, 0, `nothing sent with settings ${text}`);
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and nothing is dropped: it waits');
+      assert.equal(await errorReportsMaySend(f.runtime), false);
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).noticed, false);
+    }
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), true);
+    const after = reporterFor(f, backend, clock);
+    await after.flush();
+    after.close();
+    assert.equal(backend.calls.length, 1, 'sent once the notice was shown');
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 0);
+    // The setting off wins over a shown notice.
+    await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.equal(await errorReportsMaySend(f.runtime), false);
+  } finally { await f.cleanup(); }
+});
+
+test('an unreadable settings file is an unknown state, never on: nothing is recorded or sent, and the queue is not deleted', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  try {
+    await recordErrorEvent(f.state, event('queued before the damage', 'service-failed'), {now: clock.now});
+    for (const damaged of ['{"errorReports": fal', '{"errorReports": "false"}', '', '[]', 'null', String.fromCharCode(0, 0)]) {
+      await writeFile(join(f.runtime, 'settings.json'), damaged);
+      await rm(join(f.runtime, 'settings.json.previous'), {force: true});
+      assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'unknown', noticed: false}, JSON.stringify(damaged));
+      assert.equal(await errorReportsEnabled(f.runtime), false);
+      assert.equal(errorReportsEnabledSync(f.runtime), false);
+      const reporter = reporterFor(f, backend, clock);
+      assert.equal(await reporter.record(event('new fault', 'service-failed')), null, 'not recorded');
+      await reporter.flush();
+      reporter.close();
+      assert.equal(backend.calls.length, 0, 'not sent');
+      assert.equal((await readQueue(f.state, {now: clock.now})).length, 1, 'and the queue is neither sent nor deleted');
+      assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state})).setting, 'unknown');
+    }
+    // A bridge crash is not recorded either.
+    const script = `import {installCrashCapture} from ${JSON.stringify(new URL('./error-events.mjs', import.meta.url).href)};
+installCrashCapture({stateDirectory: ${JSON.stringify(f.state)}, runtime: ${JSON.stringify(f.runtime)}});
+throw new Error('not recorded');`;
+    await writeFile(join(f.runtime, 'settings.json'), '{broken');
+    spawnSync(process.execPath, ['--input-type=module', '-e', script], {encoding: 'utf8', timeout: 20000});
+    assert.equal((await readQueue(f.state)).length, 1);
+    // The previous copy stands in for a file being replaced: it still decides (here: an opt-out stays an opt-out).
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReports: false, errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'off', noticed: true});
+    await writeFile(join(f.runtime, 'settings.json.previous'), JSON.stringify({errorReportsNoticed: true}));
+    assert.deepEqual(await errorReportsSetting(f.runtime), {state: 'on', noticed: true});
+  } finally { await f.cleanup(); }
+});
+
 test('with the setting off nothing is sent and the queue is deleted; with no backend address nothing is sent and it waits', async () => {
   const f = await folders();
   const clock = {now: START};
@@ -558,6 +626,8 @@ test('end to end with the real backend handler: stored once, listed and fetched 
   const world = createErrorWorld();
   const f = await plantedInstall();
   await writeFile(join(f.state, 'convai-install.json'), JSON.stringify({version: 1, installId: INSTALL}));
+  const planted = JSON.parse(await readFile(join(f.runtime, 'settings.json'), 'utf8'));
+  await writeFile(join(f.runtime, 'settings.json'), JSON.stringify({...planted, errorReportsNoticed: true}));
   const clock = world.clock;
   // The bridge's request goes straight into the backend's handler, as Vercel would hand it over.
   const fetchImpl = async (url, init) => {

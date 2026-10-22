@@ -88,30 +88,63 @@ export function eventFromError(error, kind, source = 'bridge') {
 
 // ------------------------------------------------------------------- the setting
 
-const settingsOn = text => {
+/**
+ * What one settings file says: {on, noticed}, or null when it is not readable JSON (so the next copy is tried).
+ * A missing "errorReports" means on (the default); "errorReportsNoticed" is written by the game once the in-game notice was shown.
+ */
+const settingsState = text => {
   try {
     const value = JSON.parse(String(text).replace(/^﻿/, ''));
-    return value?.errorReports !== false;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    // Only a missing key or a real boolean says anything: another value (a string, a number) is not read as "on".
+    if (value.errorReports !== undefined && typeof value.errorReports !== 'boolean') return null;
+    return {on: value.errorReports !== false, noticed: value.errorReportsNoticed === true};
   } catch { return null; }
 };
 
-/** True unless settings.json says "errorReports": false (the previous copy stands in for a file being replaced). */
-export async function errorReportsEnabled(runtime) {
+/**
+ * The state of the setting from the first readable of settings.json and settings.json.previous (the previous copy stands in for a
+ * file being replaced): {state: 'on' | 'off' | 'unknown', noticed}. Neither file existing is a fresh install: on, not noticed yet.
+ * A file that exists but cannot be read or parsed, with no readable copy, is 'unknown': an unknown state is never treated as on,
+ * so a damaged settings file cannot turn a player's opt-out back on. `readText(name)` returns the text or throws.
+ */
+function readSettingsState(readText) {
+  let present = false;
   for (const name of ['settings.json', 'settings.json.previous']) {
-    const on = settingsOn(await readFile(join(runtime, name), 'utf8').catch(() => ''));
-    if (on !== null) return on;
+    let text;
+    try { text = readText(name); } catch (error) {
+      if (error?.code !== 'ENOENT') present = true;
+      continue;
+    }
+    const state = settingsState(text);
+    if (state) return {state: state.on ? 'on' : 'off', noticed: state.noticed};
+    present = true;
   }
-  return true;
+  return present ? {state: 'unknown', noticed: false} : {state: 'on', noticed: false};
+}
+
+/** {state, noticed} of the error-report setting (see readSettingsState). */
+export async function errorReportsSetting(runtime) {
+  const texts = {};
+  for (const name of ['settings.json', 'settings.json.previous']) {
+    try { texts[name] = await readFile(join(runtime, name), 'utf8'); } catch (error) { texts[name] = error; }
+  }
+  return readSettingsState(name => { if (texts[name] instanceof Error) throw texts[name]; return texts[name]; });
+}
+
+/** True only when the setting is known to be on: an unreadable settings file is not on. */
+export async function errorReportsEnabled(runtime) {
+  return (await errorReportsSetting(runtime)).state === 'on';
+}
+
+/** True when reports may leave the machine: the setting is on and the in-game notice that says so was shown. */
+export async function errorReportsMaySend(runtime) {
+  const {state, noticed} = await errorReportsSetting(runtime);
+  return state === 'on' && noticed;
 }
 
 export function errorReportsEnabledSync(runtime) {
-  for (const name of ['settings.json', 'settings.json.previous']) {
-    let text = '';
-    try { text = readFileSync(join(runtime, name), 'utf8'); } catch {}
-    const on = settingsOn(text);
-    if (on !== null) return on;
-  }
-  return true;
+  return readSettingsState(name => readFileSync(join(runtime, name), 'utf8')).state === 'on';
 }
 
 // ------------------------------------------------------------------- the queue
@@ -298,13 +331,14 @@ export async function clearQueue(stateDirectory) {
  * how many wait in the queue. Counts and times only.
  */
 export async function errorReportStatus({runtime, stateDirectory, now = Date.now()} = {}) {
-  const enabled = runtime ? await errorReportsEnabled(runtime) : true;
+  const setting = runtime ? await errorReportsSetting(runtime) : {state: 'on', noticed: true};
   let sent = null;
   try { sent = JSON.parse(await readFile(sentPath(stateDirectory), 'utf8')); } catch {}
   let queued = 0;
   try { queued = (await readdir(queueDirectory(stateDirectory))).filter(name => /^[0-9a-f]{16}\.json$/.test(name)).length; } catch {}
   const today = new Date(now).toISOString().slice(0, 10);
-  return {setting: enabled ? 'on' : 'off', sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
+  // 'unknown': settings.json cannot be read (nothing is sent). noticed: the in-game notice was shown (nothing is sent before it was).
+  return {setting: setting.state, noticed: setting.noticed, sentToday: sent?.day === today && Number.isInteger(sent.count) ? sent.count : 0,
     lastSentAt: Number.isFinite(sent?.lastSentAt) ? new Date(sent.lastSentAt).toISOString() : null, queued,
     stoppedLastSession: typeof sent?.stopped === 'string' ? clip(sent.stopped, 30) : null};
 }

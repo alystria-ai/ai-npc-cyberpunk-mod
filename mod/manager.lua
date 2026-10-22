@@ -652,6 +652,12 @@ local function loadSettings()
     end
     settingsLoaded = true
     settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous')
+    -- A settings file that is there but cannot be read, with no readable copy, is an unknown state for the error-report setting: not on.
+    local unreadable = false
+    if settings == nil then
+        local damaged = io.open('runtime/settings.json', 'rb')
+        if damaged then damaged:close(); unreadable = true end
+    end
     settingsDeferred = settings == nil and restorePending()
     settings = settings or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'
@@ -662,8 +668,8 @@ local function loadSettings()
     ui.configure(settings.uiLanguage)
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
-    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
-    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
+    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off (or the settings file could not be read, see above). The service reads a missing key as on too.
+    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = not unreadable end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end

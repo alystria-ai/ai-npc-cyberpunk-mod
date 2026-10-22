@@ -4975,6 +4975,17 @@ test('error reports are on by default, apply as on or off only, and the one-time
   assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
 `));
 
+test('a settings file that is there but cannot be read is an unknown state for error reports: off, never on; a missing file is on', () => run(`${managerFixture}
+  files['runtime/settings.json'], saved = 'not json at all', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == false, 'unreadable: not on')
+  assert(manager.errorReportsNoticeDue() == false, 'and no notice that reports are sent')
+  assert(manager.snapshot(player).settings.errorReports == false)
+  files['runtime/settings.json'], saved = nil, nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == true, 'a fresh install has no file: on by default')
+`));
+
 // ---- The owner's settings decisions of 2026-10-20 (the notes: scratchpad/decisions.md, the code: mod/manager.lua, mod/manager-ui.lua).
 
 // What the bridge publishes (runtime/mistral-state.json) as the page reads it, and the way Mature content tests set the Local AI models up.
