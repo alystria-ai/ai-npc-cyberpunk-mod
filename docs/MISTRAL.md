@@ -253,6 +253,7 @@ The `-latest` aliases did NOT move: `voxtral-mini-tts-latest` is still `voxtral-
 transcription also a 429 with an allowance of 0) the same request goes at once to the alias, and when the alias answers it is the model for ten minutes (one log line says so), then v3 is
 tried again. A limit, a server fault, a guardrail refusal and a 401 are never treated as a refused model. One test call with the developer's key on 2026-10-21 got audio from the v3 TTS id
 (HTTP 200, the usual event stream, 24 kHz float32 PCM). Whether the free "Experiment" plan includes the v3 models is NOT stated anywhere in the docs; the transcription ids were not called.
+**Player-facing wording (2026-10-22):** because of that, the README and the Nexus page say "with a Mistral key" for the Voxtral voice and never that the free plan covers it (they say replies show as text when the plan does not include it). To settle it, make a fresh free-plan key, choose the Voxtral voice and read the log: a refusal (402, 403) is retried on the older model by `modelRefused` in `bridge/voxtral-languages.mjs`, and then replies show as text with the voice notice.
 
 Voxtral TTS 3 languages (Mistral's announcement names 21: English, French, Spanish, Catalan, Dutch, German, Hungarian, Italian, Norwegian, Polish, Romanian, Russian, Turkish, Ukrainian, Portuguese,
 Arabic, Chinese, Hindi, Japanese, Korean, Vietnamese; the voice presets add Greek; "35+" is claimed). The mod speaks only those 22 and shows a reply in any other language (Czech, Swedish, Hebrew,

@@ -352,6 +352,17 @@ small and always full.
 **What is in it.** Every file the new Runtime has and the previous one did not, or has with other bytes (path, size and CRC-32 are compared, so it does
 not matter how either full zip was made); the new `app/release.json`; and `app/defaults/runtime-removals.json`, the removal list.
 
+**Step markers (added 2026-10-22).** An update zip is a difference, so a player who applies only the last one has a `release.json` that looks right and files that are not.
+Every Runtime therefore carries small markers in `app/defaults/runtime-steps/` (`bridge/runtime-steps.mjs`): the full Runtime writes `base.json` (`{"base": "0.2.8"}`, written by
+`build-release.mjs`), and every update zip adds its own `step-<from>-to-<to>.json` (`{"from": "0.2.7", "to": "0.2.8"}`, written by `build-runtime-update.mjs`, which never copies
+the markers of the two full Runtimes it compares). The files differ per step so applied zips never overwrite one another: the folder lists the steps applied so far. The setup
+check (`bridge/setup-check.mjs`, row `versions`) walks base, step, step and compares where the chain ends with `release.json`: a break gives `chain-gap` with the missing
+step named (the next marker's `from`, or the Runtime version), a marker newer than `release.json` gives `chain-order`. The in-game text tells the player to apply the update zips
+from the Hugging Face updates folder one by one, starting from their version (no version number in the instruction). A Runtime from before the markers (0.2.8 and older) has no
+`base.json`: its first step's `from` starts the chain, so only a gap after that is seen. **Any other tool that builds update zips** (the scratch patch builder outside the repository)
+must add `app/defaults/runtime-steps/step-<from>-to-<to>.json` with `{"from", "to"}` (the Runtime versions of the two full Runtimes) to every zip, and must not copy `base.json` from either full Runtime.
+Two cases the markers cannot see: a player on 0.2.8 or older who skips the FIRST marked zip (the chain then starts at the next one; the code-file list `runtime-code-files.json` of the error reports partly covers it), and a rollback (an older full Runtime extracted over a newer one leaves the newer step files, so the row reads `chain-order`; its text says some files come from a newer update and to apply the zips in order or extract the full Runtime again, which is right for both causes).
+
 **Removing what a version no longer ships.** Extracting adds and replaces but never deletes, so a file the new version dropped (a renamed voice clip, a retired
 model) would stay in the player's folder. The player never deletes anything: the service does, at its next start, from the list.
 
@@ -543,6 +554,17 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **Update zips and language packs as separate mods (investigated 2026-10-22, from the code; not run in MO2).** The service runs from the REAL folder of
+  the `launcher/start-service.mjs` the virtual file system serves (`appDirectory` in `start-service.mjs`), and it imports its own files from there, because the bundled
+  Node's `stat` cannot see a file that exists only in a mod folder. So: (a) a Runtime update installed as its own mod whose zip does not hold `start-service.mjs` (the
+  usual case) leaves the base Runtime's `bridge/` and `launcher/` in use and the update's changed files are never read: the Scripts and Runtime versions then disagree
+  (`release.json` is read from the base Runtime) and the setup check shows the mismatch; (b) an update that does hold `start-service.mjs` makes the service run from the
+  update mod's folder, where the unchanged siblings do not exist: `install-incomplete`; (c) the voice language packs and Pocket language models are read from the Runtime
+  mod's own `voices/` folder (`referenceDirectory`, the real folder), so a pack in a mod of its own is not found and that language silently stays English. The Local AI, Mature,
+  OmniVoice and microphone packs ARE looked up at their virtual place and used from their real one, so they can be separate mods. What is done about it: the setup
+  check's Mod manager note and the versions row tell a Mod Organizer 2 player to extract update zips (and language packs) into the Runtime's own mod folder (`mo2Hint` in
+  `mod/setup-check.lua`), and the README says the same. Not done: layering several Runtime mods (a loader that resolves every import through the virtual path) needs a live
+  MO2 test, and the MO2 test instance was not run in this pass. A live check owed: install an update zip as its own mod, start the game, read the setup check.
 - **A file that exists twice (2026-10-22, `packaging/usvfs-shadow.test.mjs`).** When a path is a real file in the game folder and MO2 holds a
   copy in front of it (a mod with the same path, or Overwrite, where the game and the service put every file they created before an install
   shipped its placeholders), open, read, write and rename reach the copy in front while Node's plain `stat` answers for the real file: its

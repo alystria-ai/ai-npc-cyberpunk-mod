@@ -154,6 +154,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/runtime-files.mjs',
   'bridge/runtime-integrity.mjs',
   'bridge/runtime-paths.mjs',
+  'bridge/runtime-steps.mjs',
   'bridge/scenery-memory.mjs',
   'bridge/setup-check.mjs',
   'bridge/shared-key-guard.mjs',

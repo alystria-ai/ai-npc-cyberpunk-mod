@@ -59,6 +59,8 @@ function reporterFor(f, backend, clock, extra = {}) {
     setRepeat: () => null, clearRepeat: () => {}, ...extra});
 }
 
+// A distinct label for the n-th fault: the signature ignores digits, so letters (two of them past 26).
+const faultLabel = index => `${'abcdefghijklmnopqrstuvwxyz'[index % 26]}${'abcdefghijklmnopqrstuvwxyz'[Math.floor(index / 26)]}`;
 const event = (message, kind = 'turn-failed') => ({kind, message, frame: 'realtime-client.mjs:120 connect'});
 
 // ------------------------------------------------------------------ signatures
@@ -98,7 +100,7 @@ test('a record per signature: repeats raise its count, the queue holds at most t
     assert.equal(queue.length, 1);
     assert.equal(queue[0].count, 3);
     assert.equal(queue[0].firstAt, START);
-    for (let index = 0; index < QUEUE_MAX + 5; index++) await recordErrorEvent(f.state, event(`distinct fault ${'abcdefghijklmnopqrstuvwxyz'[index]}`), {now: START});
+    for (let index = 0; index < QUEUE_MAX + 5; index++) await recordErrorEvent(f.state, event(`distinct fault ${faultLabel(index)}`), {now: START});
     assert.equal((await readQueue(f.state, {now: START})).length, QUEUE_MAX);
     recordErrorEventSync(f.state, event('one more after the cap'), {now: START});
     assert.equal((await readQueue(f.state, {now: START})).length, QUEUE_MAX);
@@ -336,7 +338,7 @@ test('a large log is cut to fit: the body never passes 60 KB', async () => {
 
 // ------------------------------------------------------------------ sending and throttles
 
-test('one report per signature per day and five a day: the rest wait, signed like the token endpoint', async () => {
+test('one report per signature per day and twenty a day: the rest wait, signed like the token endpoint', async () => {
   const f = await folders();
   const clock = {now: START};
   const backend = fakeBackend({clock});
@@ -349,11 +351,12 @@ test('one report per signature per day and five a day: the rest wait, signed lik
     assert.equal(backend.calls.length, 1, 'one per signature per day');
     assert.equal(backend.calls[0].verdict, 'ok', 'signed with the backend secret');
     assert.equal(backend.calls[0].url, 'https://backend.invalid/api/errors/report');
-    for (const letter of 'abcdefg') await recordErrorEvent(f.state, event(`fault ${letter}`), {now: clock.now});
+    assert.equal(DAILY_LIMIT, 20);
+    for (let index = 0; index < DAILY_LIMIT + 2; index++) await recordErrorEvent(f.state, event(`fault ${faultLabel(index)}`), {now: clock.now});
     await reporter.flush();
-    assert.equal(backend.calls.length, DAILY_LIMIT, 'five a day');
+    assert.equal(backend.calls.length, DAILY_LIMIT, 'twenty a day in all (the first went out above)');
     assert.equal((await readQueue(f.state, {now: clock.now})).length, 3, 'the rest wait');
-    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, 5);
+    assert.equal((await errorReportStatus({runtime: f.runtime, stateDirectory: f.state, now: clock.now})).sentToday, DAILY_LIMIT);
     clock.now += DAY;
     await recordErrorEvent(f.state, event('the same fault'), {now: clock.now});
     await reporter.flush();
@@ -769,4 +772,114 @@ test('every report says whether the Runtime\'s code files match the release: cou
       environment: {}, names: [], graphics: () => [], secrets: [], now: () => START, integrity: () => { throw new Error('nope'); }});
     assert.deepEqual(broken.payload.report.runtimeFiles, {state: 'unavailable'});
   } finally { await f.cleanup(); }
+});
+
+// ---------------------------------------------- a report that waits keeps the log lines of the moment
+
+test('a report over the daily limit keeps its scrubbed log excerpt from when the event was seen, not the later session\'s lines', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock);
+  const logPath = join(f.state, 'bridge.stderr.log');
+  const secret = 'PlantedSecretValue0123456789abcdef';
+  try {
+    // today's limit is used up by other faults
+    for (let index = 0; index < DAILY_LIMIT; index++) await recordErrorEvent(f.state, event(`early fault ${faultLabel(index)}`), {now: clock.now});
+    await reporter.flush();
+    assert.equal(backend.calls.length, DAILY_LIMIT);
+    await writeFile(join(f.state, 'player-mistral-key.txt'), secret);
+    // the fault that has to wait, with the lines around it in the log (a planted key and the player's account name among them)
+    await writeFile(logPath, ['before the fault', `the key is ${secret}`, 'Error: the waiting fault happened here', `at C:/Users/PlantedPlayerName/x.mjs:3:1`, 'after the fault'].join('\n'));
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the waiting fault happened here', frame: 'realtime-client.mjs:120 connect'}, {now: clock.now});
+    await reporter.look({flush: true});
+    assert.equal(backend.calls.length, DAILY_LIMIT, 'it waits: the limit is reached');
+    const [waiting] = await readQueue(f.state, {now: clock.now});
+    assert.ok(Array.isArray(waiting.logs), 'the excerpt was taken at the look, while the event was fresh');
+    const kept = JSON.stringify(waiting.logs);
+    assert.ok(kept.includes('the waiting fault happened here') && kept.includes('before the fault'));
+    assert.ok(!kept.includes(secret) && !kept.includes('PlantedPlayerName'), 'scrubbed before it is stored, with the same redactor as a sent report');
+    // the next session: the log is another one entirely
+    await writeFile(logPath, 'a completely different session\nnothing about the fault\n');
+    clock.now += DAY;
+    await reporter.flush();
+    assert.equal(backend.calls.length, DAILY_LIMIT + 1);
+    const sent = backend.calls.at(-1).body.report;
+    const lines = sent.logs.flatMap(item => item.lines).join('\n');
+    assert.ok(lines.includes('the waiting fault happened here') && lines.includes('before the fault'), 'the excerpt of the moment is what is sent');
+    assert.ok(!lines.includes('a completely different session'), 'not the next session\'s log');
+    // the same fields as a report sent at once: source ids with their lines
+    assert.deepEqual(sent.logs.map(item => Object.keys(item)), sent.logs.map(() => ['source', 'lines']));
+    assert.equal(sent.logs[0].source, 'bridge-stderr');
+    assert.ok(!backend.calls.at(-1).raw.includes(secret) && !backend.calls.at(-1).raw.includes('PlantedPlayerName'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the excerpt belongs to the first time the error was seen: a repeat bumps the count and keeps it; an older queue file with none reads the log when sent', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock);
+  const logPath = join(f.state, 'bridge.stderr.log');
+  try {
+    await writeFile(logPath, 'first sight: Error: a repeating fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'a repeating fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    await writeFile(logPath, 'second sight: Error: a repeating fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'a repeating fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.equal(record.count, 2);
+    assert.ok(JSON.stringify(record.logs).includes('first sight') && !JSON.stringify(record.logs).includes('second sight'));
+    // a record written before this change (no excerpt): the log is read when it is sent, as before
+    await rm(record.path);
+    await writeFile(logPath, 'read at send time: Error: an old queue fault happened\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'an old queue fault happened', frame: 'x.mjs:2 b'}, {now: clock.now});
+    await reporter.flush();
+    assert.ok(backend.calls.at(-1).body.report.logs.flatMap(item => item.lines).join('\n').includes('read at send time'));
+    // a kept excerpt that was edited is checked again: an unknown source or a non-text line is dropped
+    const edited = {...record, logs: [{source: 'not-a-source', lines: ['x']}, {source: 'service', lines: ['fine line', 42, {a: 1}]}]};
+    const {payload} = await buildErrorPayload({record: edited, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], secrets: [], now: () => START});
+    assert.deepEqual(payload.report.logs, [{source: 'service', lines: ['fine line']}]);
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('a supervisor event is captured at once with its log lines (no wait for the five-minute look)', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock);
+  try {
+    await writeFile(join(f.state, 'bridge-service.log'), 'service log line of the moment\n');
+    await reporter.record({kind: 'service-failed', message: 'The service failed to start', frame: 'supervisor'});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.ok(Array.isArray(record.logs));
+    assert.ok(JSON.stringify(record.logs).includes('service log line of the moment'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('an e-mail address in a log line never reaches a report or the queue file; package versions and handles are not mistaken for one', async () => {
+  const {createRedactor} = await import('./support-report.mjs');
+  const redact = createRedactor({secrets: []});
+  assert.equal(redact.text('Mistral said: contact jane.doe+cp@example.co.uk for access'), 'Mistral said: contact [email-redacted] for access');
+  assert.equal(redact.text('rate limited for a.b@mail.example.com.'), 'rate limited for [email-redacted].');
+  for (const kept of ['pocket-tts@1.2.3 loaded', 'at (file:///x/y.mjs:3:1)', 'user@localhost', '@scope/pkg 2.0', 'ratio 1@2']) assert.equal(redact.text(kept), kept);
+  // the kept excerpt of a waiting report is scrubbed at capture
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock);
+  try {
+    await writeFile(join(f.state, 'bridge.stderr.log'), 'Error: the mail fault happened: provider says write to someone@example.org please\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the mail fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.ok(!JSON.stringify(record).includes('someone@example.org'));
+    assert.ok(JSON.stringify(record.logs).includes('[email-redacted]'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the client\'s daily limit stays below what the backend allows per install, in the code defaults (the figure is in no doc)', async () => {
+  const {DEFAULTS} = await import('../auth-backend/api/_lib/config.js');
+  assert.ok(DEFAULTS.errorInstallPerDay > DAILY_LIMIT, `backend ${DEFAULTS.errorInstallPerDay} must be above the client's ${DAILY_LIMIT}`);
+  assert.ok(QUEUE_MAX > DAILY_LIMIT, 'the queue holds more than a day\'s reports');
 });

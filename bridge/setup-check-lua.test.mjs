@@ -249,6 +249,14 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
+  -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
+  answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
+  local gap = lineOf('versions').description
+  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', gap)
+  assert(not gap:sub(gap:find('never applied')):find('%d%.%d'), 'no version number after the naming')
+  assert(table.concat(check.problems(), ',') == 'versions')
+  answer({versions = {id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.8', runtime = '0.2.8'}}); check.run()
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('one by one, in order, starting from your version', 1, true))
   -- a version check that could not be made shows no line
   answer({versions = {id = 'versions', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('versions') == nil)
@@ -320,7 +328,19 @@ test('mod managers are a note with the one thing that matters for each', () => r
   installFiles(); serviceRunning()
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
   assert(lineOf('mod-manager').state == 'note' and lineOf('mod-manager').value == 'Note')
-  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Mention Mod Organizer 2 when you send a report.')
+  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
+  -- Mod Organizer 2 runs the service from the Runtime's own mod: a version or update-step problem there says where update zips go; elsewhere it does not
+  local mo2 = {['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}
+  local hint = 'Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.'
+  for _, versions in ipairs({{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'},
+      {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}) do
+    answer({versions = versions, ['mod-manager'] = mo2['mod-manager']}); check.run()
+    assert(lineOf('versions').description:sub(-#hint - 1) == "\n" .. hint, 'MO2 hint on ' .. versions.code)
+    answer({versions = versions}); check.run()
+    assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'no hint without MO2')
+  end
+  answer({versions = {id = 'versions', state = 'ok', code = 'match', scripts = '0.2.9', runtime = '0.2.9'}, ['mod-manager'] = mo2['mod-manager']}); check.run()
+  assert(not lineOf('versions').description:find('Mod Organizer 2', 1, true), 'an agreeing version has nothing to say about it')
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'vortex', managers = {'vortex'}}}); check.run()
   assert(lineOf('mod-manager').description == 'Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.')
   assert(check.problemCount() == 0 and #check.problems() == 0, 'a mod manager is never a problem')
@@ -488,6 +508,10 @@ test('the first load names Scripts and Runtime of different versions, a pack one
       'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}`,
       'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}`,
+      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.9', runtime = '0.2.9'}`,
+      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
     ['packs', `{id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'OmniVoice', folder = 'x'}}, moved = {}}`,
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,

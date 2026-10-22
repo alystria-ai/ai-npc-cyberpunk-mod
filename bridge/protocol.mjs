@@ -20,6 +20,7 @@ export function profileFor(input, roster) {
 }
 
 // A game request, plus the optional archetype facts of an unnamed NPC (docs/NPC_ARCHETYPES.md).
+const PROVIDER_NAMES = Object.freeze(['convai', 'mistral', 'local', 'custom']);
 export function parseInput(raw) {
   const input = parseRequest(raw);
   if (!input) return input;
@@ -80,7 +81,10 @@ function parseRequest(raw) {
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);
+  // The Conversation provider the player had chosen when the game wrote this request (mod/init.lua sendRequest); the bridge follows it for the turn.
+  const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
+    ...(provider ? {provider} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),

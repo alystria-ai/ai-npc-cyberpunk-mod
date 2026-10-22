@@ -126,3 +126,39 @@ test('the Mature content rules and the note on who answers survive the cut in ev
     `);
   }
 });
+
+// No help text of the page loses a paragraph in Native Settings UI (the limit is 420 characters, mod/nsui.lua): the long ones were shortened so the whole
+// help shows, in English and in every language. A text that grows past the limit again fails here (shorten it, or move its detail to a second row).
+function uncutIn(texts, label) {
+  run(`${nsuiFixture}
+    local texts = ${luaList(texts)}
+    for index, text in ipairs(texts) do
+      local fitted = managerUi.fitDescription(text)
+      assert(fitted == text, '${label}: a description loses text in Native Settings UI: ' .. text:sub(1, 50))
+    end
+  `);
+}
+
+test('en: no description of the page is cut in Native Settings UI', () => uncutIn(singles, 'en'));
+
+for (const code of codes) {
+  test(`${code}: no description of the page is cut in Native Settings UI`, () => {
+    const rows = localeTable(code);
+    uncutIn(singles.map(text => rows[text] ?? assert.fail(`${code} has no translation of ${text.slice(0, 50)}`)), code);
+  });
+}
+
+test('the error-report help keeps its privacy paragraph, right after the first, in Native Settings UI in every language', () => {
+  const key = Object.keys(catalog.strings).find(text => text.startsWith('When something in the mod goes wrong, a short report goes to the developer'));
+  assert(key, 'the error-report help is in the catalogue');
+  assert(key.split('\n\n')[1].startsWith('It never holds keys'), 'the privacy paragraph comes second');
+  for (const code of ['en', ...codes]) {
+    const text = code === 'en' ? key : localeTable(code)[key] ?? assert.fail(`${code}: no translation`);
+    const paragraphs = text.split('\n\n');
+    assert.equal(paragraphs.length, 3, `${code}: three paragraphs`);
+    run(`${nsuiFixture}
+      local fitted = managerUi.fitDescription(${JSON.stringify(text)})
+      assert(fitted:find(${JSON.stringify(paragraphs[1])}, 1, true), '${code}: the privacy paragraph was cut')
+    `);
+  }
+});

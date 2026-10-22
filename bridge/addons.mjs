@@ -753,7 +753,8 @@ export class AddonHost {
   /**
    * The text provider of an add-on speaker's turn: the player's Custom provider when it is the one in use and its endpoint is ready (every
    * speaker follows it, like the companions; the manifest's `providers` list names only Mistral and the local AI), else the player's own
-   * provider when the speaker allows it, else Mistral when a key is saved, else the local AI when its pack is installed and working; null
+   * provider when the speaker allows it, else Mistral when a key is saved, else the local AI when its pack is installed and working (these
+   * fallbacks never apply to a player on Local AI: they get Local AI or no route, never Mistral); null
    * when none can serve it (the game then tells the player once that the add-on needs a free Mistral key or the Local AI pack). With Local AI
    * the player's provider and the speaker allowing it, the route is 'local' even when Local AI is failing right now: the turn then fails with
    * Local AI's own notice and is tried again, and is never moved to Mistral behind the player's back (owner rule 2026-10-21).
@@ -768,6 +769,10 @@ export class AddonHost {
     if (applied === 'custom' && customReady) return 'custom';
     const allowed = owner.speaker.providers;
     if (applied === 'local' && allowed.includes('local')) return 'local';
+    // A player on Local AI never has a line, or the speaker's context, sent to Mistral, whatever the add-on's providers list says (owner rule: Local AI
+    // never reaches the cloud). A speaker that does not allow Local AI has no route for this player: the game tells the player once. (A Custom provider
+    // that is not set up still falls through below, as decided 2026-10-20.)
+    if (applied === 'local') return null;
     const usable = route => allowed.includes(route) && (route === 'mistral' ? mistralKey : localReady);
     if (usable(applied)) return applied;
     for (const route of ['mistral', 'local']) if (usable(route)) return route;

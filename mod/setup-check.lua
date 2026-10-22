@@ -358,6 +358,17 @@ local function names(list, field, limit)
     return out
 end
 
+-- The names the setup check sends for the language packs ("Voice language pack (fr)", bridge/setup-check.mjs) in the menu language; every other pack name is a
+-- product name and stays as it is.
+local function packName(value)
+    if type(value) ~= 'string' then return value end
+    local code = value:match('^Voice language pack %(([%w-]+)%)$')
+    if code then return ui.t('Voice language pack ({code})', {code = code}) end
+    code = value:match('^Pocket language model %(([%w-]+)%)$')
+    if code then return ui.t('Pocket language model ({code})', {code = code}) end
+    return value
+end
+
 ------------------------------------------------------------------ lines
 
 -- Literal ui.t calls, so the catalogue (scripts/Extract-UiCatalog.mjs) lists every state word.
@@ -478,6 +489,14 @@ local function runtimeIsOlder(versions)
     return nil
 end
 
+-- Mod Organizer 2 runs the service from the real folder of the Runtime's own mod, so a Runtime update zip (or a voice language pack) installed as a
+-- separate mod is never read: the lines about versions and update steps then say where the files go (docs/PACKAGING.md, "Mod Organizer 2").
+local function mo2Hint()
+    local manager = bridgeCheck('mod-manager')
+    if manager and manager.code == 'mo2' then return '\n' .. ui.t('Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.') end
+    return ''
+end
+
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
     if versions and (versions.code == 'match' or versions.code == 'mismatch') then
@@ -488,19 +507,29 @@ local function bridgeLines(out)
                 and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.', values)
                 or ui.t('Scripts {scripts} and Runtime {runtime} do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
             or line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} and Runtime {runtime}.', values))
+    elseif versions and (versions.code == 'chain-gap' or versions.code == 'chain-order') then
+        -- The versions agree, but an update step in between was never applied (bridge/runtime-steps.mjs): the files are a mix of releases.
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', versions.code == 'chain-gap'
+            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
+            or ui.t('Some Runtime files are from a newer update than this Runtime says. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version, or extract the full Runtime again. Then restart the game.'))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.'))
     end
+    -- Under Mod Organizer 2 a problem with the versions or the update steps says where update zips go.
+    local hint = mo2Hint()
+    local last = out[#out]
+    if hint ~= '' and last and last.id == 'versions' and last.state == 'problem' then last.description = last.description .. hint end
     local packs = bridgeCheck('packs')
     if packs then
         local label = ui.t('Optional packs')
         local found = names(packs.found)
         local moved = names(packs.moved, 'pack')
+        for index, name in ipairs(moved) do moved[index] = packName(name) end
         if packs.code == 'nested' and type(packs.nested) == 'table' and type(packs.nested[1]) == 'table' then
             local first = packs.nested[1]
             out[#out + 1] = line('packs', label, 'problem', ui.t('{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.',
-                {packs = text(first.pack, 40) or '?', folder = text(first.folder, 120) or '?'}))
+                {packs = packName(text(first.pack, 40)) or '?', folder = text(first.folder, 120) or '?'}))
         elseif packs.code == 'conflict' then
             out[#out + 1] = line('packs', label, 'problem', ui.t('Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.'))
         else
@@ -567,7 +596,7 @@ local function bridgeLines(out)
     local manager = bridgeCheck('mod-manager')
     if manager and type(manager.code) == 'string' then
         local label = ui.t('Mod manager')
-        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Mention Mod Organizer 2 when you send a report.'))
+        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.'))
         elseif manager.code == 'vortex' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.'))
         else out[#out + 1] = line('mod-manager', label, 'ok', ui.t('None found: installed by hand.')) end
     end
@@ -665,6 +694,7 @@ local function shortText(id, names, old)
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions-old' then return ui.t('The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.') end
+    if id == 'versions-steps' then return ui.t('A Runtime update step is missing. Apply its update zips one by one from the updates folder.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
     if id == 'internet' then return ui.t('The conversation service cannot reach the internet. See Help in Settings.') end
@@ -744,6 +774,8 @@ local function firstLoad()
     -- answered (0.2.1 and older: no update zips exist for it) has no versions to compare: it gets the generic notice, and the Help line tells it to get the full Runtime.
     local versions = bridgeCheck('versions')
     if first == 'versions' and versions ~= nil and runtimeIsOlder(versions) == true then return shortText('versions-old') end
+    -- The versions agree but an update step was skipped (bridge/runtime-steps.mjs).
+    if first == 'versions' and versions ~= nil and (versions.code == 'chain-gap' or versions.code == 'chain-order') then return shortText('versions-steps') end
     return shortText(first)
 end
 

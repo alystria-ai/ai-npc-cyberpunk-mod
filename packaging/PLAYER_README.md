@@ -167,7 +167,7 @@ Each paste reads the clipboard once, checks it and saves it on your computer; **
 
 Every voice sounds like the character, Pocket and Voxtral included, so pick by what matters to you:
 
-- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (Convai with the Pocket voice) is nearly as light.
+- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC for the companions (set V's voice for typed lines to Off or Voxtral to keep V's line off your processor too). The default (Convai with the Pocket voice) is nearly as light.
 - **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in a fraction of a second.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card).
 - **Fully local, lightweight:** Local AI lite with Pocket.
@@ -222,7 +222,7 @@ When something in the mod goes wrong, it sends a short error report to the devel
 
 A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices and a few other settings (on or off); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with access codes, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
 
-A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day and five a day in all are sent, in the background, never while a character is answering. Reports are kept for 30 days.
+A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day is sent, in the background, never while a character is answering. Reports are kept for 30 days.
 
 ## Licence
 

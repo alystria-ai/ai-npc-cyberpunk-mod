@@ -20,7 +20,8 @@ import {basename, join} from 'node:path';
 
 export const QUEUE_FOLDER = 'error-reports';
 export const GAME_EVENTS_FILE = 'error-events.json';
-export const QUEUE_MAX = 20;
+// More than the daily limit of reports (bridge/error-reports.mjs DAILY_LIMIT), so errors over the limit can wait for the next day.
+export const QUEUE_MAX = 40;
 export const EVENT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const TEMPORARY_MAX_AGE_MS = 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
@@ -249,8 +250,10 @@ export function queueRecord(event, now = Date.now()) {
     source: clip(String(event.source ?? 'bridge'), 20), count: 1, firstAt: at, lastAt: at};
 }
 
+// A record that already holds its log excerpt (attachLogs) keeps it: the excerpt belongs to the first time the error happened.
 const merge = (old, record) => old && old.signature === record.signature
-  ? {...record, count: Math.min(100000, (Number(old.count) || 1) + 1), firstAt: Number.isFinite(old.firstAt) ? old.firstAt : record.firstAt}
+  ? {...record, count: Math.min(100000, (Number(old.count) || 1) + 1), firstAt: Number.isFinite(old.firstAt) ? old.firstAt : record.firstAt,
+    ...(Array.isArray(old.logs) ? {logs: old.logs, logsAt: old.logsAt} : {})}
   : record;
 
 /** Writes (or bumps the count of) the queue file for this event. Never throws; resolves with the record or null. */
@@ -312,6 +315,25 @@ export async function readQueue(stateDirectory, {now = Date.now()} = {}) {
     records.push({...record, path});
   }
   return records.sort((a, b) => a.lastAt - b.lastAt);
+}
+
+/**
+ * Keeps the log excerpt of a queued error in its queue file: `logs` is [{source, lines}] already put through the report's redactor
+ * (bridge/error-reports.mjs captureLogs), taken when the event was seen, so a report that has to wait (the daily limit, an unreachable backend)
+ * still sends the lines of the moment and not those of a later session. Never replaces an excerpt that is already there. Never throws; true when
+ * the file holds an excerpt afterwards.
+ */
+export async function attachLogs(record, logs, {now = Date.now()} = {}) {
+  if (!record?.path || !Array.isArray(logs)) return false;
+  try {
+    const old = JSON.parse(await readFile(record.path, 'utf8'));
+    if (!old || old.signature !== record.signature) return false;
+    if (Array.isArray(old.logs)) return true;
+    const temporary = `${record.path}.${process.pid}.${now}.tmp`;
+    await writeFile(temporary, JSON.stringify({...old, logs, logsAt: now}));
+    await rename(temporary, record.path).catch(async error => { await rm(temporary, {force: true}).catch(() => {}); throw error; });
+    return true;
+  } catch { return false; }
 }
 
 export const removeQueued = record => rm(record.path, {force: true}).catch(() => {});

@@ -919,7 +919,7 @@ local function ownKeyRows(snapshot)
         matureRow,
         modelRow,
         keyRow('Mistral free API key',
-            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day. It sets its own monthly cap, estimated at about 150,000 turns.',
+            'Copy your free key from Mistral first (signing up there needs phone verification). It is read from the clipboard once, checked with Mistral and saved on this computer.\n\nYou can also save it in player-mistral-key.txt in the conversation service folder. Mistral allows about one message a second and about 5,000 turns a day.',
             'Deletes the saved key.',
             'mistral-key', {saved = mistral.saved == true, tail = mistral.tail, message = mistralMessage, removeMore = mistralRemoval(snapshot)},
             function() return manager.pasteMistralKey() end, function() return manager.removeMistralKey() end, limitHelp),
@@ -1454,12 +1454,12 @@ local function schema()
             setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
-                'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.'),
+                'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
             -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 4
                     or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
+                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, at most twice an hour. Often: at most six an hour, five minutes apart at least.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
@@ -1512,7 +1512,7 @@ local function schema()
         local voicesCategory = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.'),
             setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
-                'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, in English and many other languages. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
+                'Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.',
                 voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true), {elements = true, label = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
@@ -1523,7 +1523,7 @@ local function schema()
                 'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it.',
                 nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
             setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
-                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice while Convai answers: choosing it turns this off, and turning this on switches the voice to Pocket. With Mistral, Local AI or Custom it works.'),
+                'Companions now and then pause, hesitate, laugh or sigh, as their personality would. It stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             -- One list for both stored settings (vVoice, vVoiceEngine): 1 Off, 2 Pocket, 3 Voxtral (greyed out until a Mistral key is saved),
@@ -1533,7 +1533,7 @@ local function schema()
             setting('vVoice', 'V’s voice for typed lines', 'select',
                 snapshot.settings.vVoice ~= true and 1 or (snapshot.settings.vVoiceEngine == 'voxtral' and snapshot.settings.matureContent ~= true) and 3
                     or (snapshot.settings.vVoiceEngine == 'omni' and not vOmniBlock) and 4 or 2, 2,
-                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. V’s line is always waited for, and is given up only if it is stuck with no audio after about 30 s. The line always shows as a subtitle.\n\nPocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second, in English and many other languages.\n\nOmniVoice: uses the same GPU voice as your companions (only while they use OmniVoice); no extra model loads. It adds a short wait before replies to typed lines (about a second more than Pocket, before V starts), because V speaks first and the companion answers after.',
+                'Your typed lines are spoken out loud too, in the V voice that matches yours, then the companion answers. V’s line is always waited for, up to about 30 s without audio.\n\nPocket: on your processor, about 0.2 s (its own small model if the companions use another voice). Voxtral: cloud, with your Mistral key. OmniVoice: the companions’ GPU voice, a second more wait.',
                 {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
                     or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
                     vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
@@ -1596,11 +1596,11 @@ local function schema()
         -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
         categories[#categories + 1] = category('privacy', 'Privacy', {
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
-                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.\n\nIt holds the error, versions, your provider, voice and Mature settings, graphics card, setup check, recent reply timings and the log lines around it.'),
         })
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
-                'For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.'),
+                'For testing and bug reports; leave it off for normal play.\n\nShows routine popups, writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nFailures, preparation progress and joined notices stay visible when it is off.'),
         }
         categories[#categories + 1] = category('development', 'Development', development)
         if support then

@@ -283,3 +283,77 @@ test('a head that fails still settles the decision so a tail waiting on it is no
   await deliverPocketSpeech({input,profile,result:{...result,text:head},current:async()=>true,voice,host,speech,stream}).catch(()=>{});
   assert.equal(decision.engine,'pocket');
 });
+
+// A voice that breaks AFTER the reply was admitted (game stall, output device change, worker or renderer death): the turn does not fail, the
+// complete written reply stays, and the stream ends in the game's text fallback (state "error" carrying the whole text).
+function publishedSpeech({retire=false}={}){
+  const documents=[],replies=[],generated=[];let sequence=0;
+  const current=async()=>true;current.sync=()=>true;
+  const speech=new ConvaiContinuousSpeech({input,profile,current,token:'broken-token',faceBuilder:ownedPocketFace,
+    writeState:async value=>{documents.push(value);return true;},writeReply:async value=>{replies.push(value);return true;},
+    readControl:async()=>JSON.stringify({version:1,id:'broken-token',requestId:input.requestId,entity:input.entity,
+      generation:input.generation,sequence:++sequence,updated:Date.now(),allow:!retire,paused:false,volume:1,pan:0}),
+    onGenerated:async text=>generated.push(text)});
+  return {speech,documents,replies,current};
+}
+const breakingHost=(speech,text,{afterFrames=1,error='the output device changed'}={})=>({async playLocalPcm(config,produce,options){
+  let receivedFrames=0,count=0;
+  await produce(async value=>{
+    receivedFrames+=value.frames;count++;
+    await options.onFrame({version:1,token:config.token,sampleRate:24000,channels:1,receivedFrames,positionSeconds:0,text:config.text,
+      textComplete:false,sourceComplete:false,ended:false,underruns:0,state:'playing',face:options.getFace({receivedFrames,sourceComplete:false,positionSeconds:0})});
+    if(count>=afterFrames)throw Error(error);
+  },{signal:new AbortController().signal});
+}});
+
+test('a voice that breaks after the reply started keeps the complete written reply and does not fail the turn',async()=>{
+  const {speech,documents,replies,current}=publishedSpeech();
+  const voice={async synthesizeStream(key,text,{onPcm}){await onPcm(packet(1,0));await onPcm(packet(2,9600));return {frames:19200};}};
+  const logged=[];const original=console.error;console.error=(...args)=>logged.push(args.join(' '));
+  let reply;
+  try{reply=await deliverPocketSpeech({input,profile,result,current,voice,host:breakingHost(speech,result.text),speech});}finally{console.error=original;}
+  assert.equal(replies.length,1,'the reply had been admitted');
+  assert.equal(reply.text,result.text,'the written reply is kept');
+  assert.equal(reply.continuous,true);assert.equal(reply.liveDelivery.published,true);assert.equal(reply.liveDelivery.ended,true);
+  assert.equal(reply.sessionID,result.sessionID);assert.equal(reply.audioError,undefined);
+  const last=documents.at(-1);
+  assert.equal(last.state,'error');assert.equal(last.text,result.text);assert.equal(last.textComplete,true);assert.equal(last.ended,false);
+  assert.ok(logged.some(line=>/the voice stopped after the reply had started/.test(line)));
+});
+
+test('a streamed reply that breaks while its tail is still being written ends with the whole text the model wrote',async()=>{
+  const {speech,documents,current}=publishedSpeech();
+  const stream={text:'First sentence.',head:'First sentence.',tail:'',complete:false,finished:null,meta:{}};
+  stream.finished=new Promise(done=>setTimeout(()=>{stream.text='First sentence. And the rest of it.';stream.tail=' And the rest of it.';stream.complete=true;done();},30));
+  const voice={async synthesizeStream(key,text,{onPcm}){await onPcm(packet(1,0));await onPcm(packet(2,9600));return {frames:19200};}};
+  const reply=await deliverPocketSpeech({input,profile,result:{...result,text:'First sentence.'},current,voice,host:breakingHost(speech),speech,stream});
+  assert.equal(reply.text,'First sentence. And the rest of it.');
+  assert.equal(documents.at(-1).text,'First sentence. And the rest of it.');assert.equal(documents.at(-1).state,'error');
+});
+
+test('a stream the game stopped itself, or a turn that is no longer current, still ends the turn: no text kept for a retired speaker',async()=>{
+  const retired=publishedSpeech({retire:true});
+  const voice={async synthesizeStream(key,text,{onPcm}){await onPcm(packet(1,0));return {frames:9600};}};
+  // the game's explicit stop is read on the first poll: the stream is retired
+  const stopping={async playLocalPcm(config,produce,options){
+    await produce(async value=>{await options.onFrame({version:1,token:config.token,sampleRate:24000,channels:1,receivedFrames:value.frames,positionSeconds:0,text:config.text,
+      textComplete:true,sourceComplete:false,ended:false,underruns:0,state:'playing',face:options.getFace({receivedFrames:value.frames,sourceComplete:false,positionSeconds:0})});},{signal:new AbortController().signal});
+  }};
+  await assert.rejects(deliverPocketSpeech({input,profile,result,current:retired.current,voice,host:stopping,speech:retired.speech}),/stopped by the game|retired|lease/);
+  // a turn that is no longer current
+  const stale=publishedSpeech();let isCurrent=true;const current=async()=>isCurrent;current.sync=()=>isCurrent;
+  stale.speech.current=current;
+  const dropping={async playLocalPcm(config,produce,options){
+    await produce(async value=>{await options.onFrame({version:1,token:config.token,sampleRate:24000,channels:1,receivedFrames:value.frames,positionSeconds:0,text:config.text,
+      textComplete:true,sourceComplete:false,ended:false,underruns:0,state:'playing',face:options.getFace({receivedFrames:value.frames,sourceComplete:false,positionSeconds:0})});
+      isCurrent=false;throw Error('the turn moved on');},{signal:new AbortController().signal});
+  }};
+  await assert.rejects(deliverPocketSpeech({input,profile,result,current,voice,host:dropping,speech:stale.speech}),/the turn moved on/);
+  assert.equal(stale.documents.at(-1).state!=='error',true,'no error state is written for a turn that is gone');
+});
+
+test('a speaker with no written-text fallback (a published stream that cannot say it) still ends the turn as before',async()=>{
+  const speech={token:'t',published:true,fail:async()=>{}};
+  const host={playLocalPcm:async()=>{throw Error('renderer died');}};
+  await assert.rejects(deliverPocketSpeech({input,profile,result,current:async()=>true,voice:{},host,speech}),/renderer died/);
+});

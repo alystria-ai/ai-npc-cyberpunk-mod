@@ -54,6 +54,8 @@ const RULES = [
   [/\b([a-z][a-z0-9+.-]{1,20}:\/\/)[^\s\/?#@"'<>\\]+@/gi, '$1[redacted]@'],
   [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig|pass|passwd|password|pwd|code|secret|client_secret|refresh_token)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
+  // An e-mail address (a provider's error text can carry one): the whole address goes.
+  [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}\b/g, '[email-redacted]'],
 ];
 // An email address: name@domain with a dot and an alphabetic top-level part. A file name such as kokoro@v1.0.onnx (a model and its version, or a
 // versioned file) ends in a file extension, not a domain, so it is left alone (emailLike).
@@ -360,6 +362,8 @@ export function setupLine(row) {
   if (!id || !code) return null;
   const detail = [];
   if (id === 'versions' && row.code === 'mismatch') detail.push(`Scripts ${clip(row.scripts, 40)}, Runtime ${clip(row.runtime, 40)}`);
+  else if (id === 'versions' && row.code === 'chain-gap') detail.push(`update step ${clip(row.from, 40)} to ${clip(row.to, 40)} not applied (Runtime ${clip(row.runtime, 40)})`);
+  else if (id === 'versions' && row.code === 'chain-order') detail.push(`an older update zip went on after a newer one (Runtime ${clip(row.runtime, 40)})`);
   else if (id === 'packs' && row.code === 'nested') {
     detail.push((Array.isArray(row.nested) ? row.nested : []).slice(0, 8).map(item => `${clip(item?.pack, 60)} in ${clip(item?.folder, 200)}`).join(', '));
   } else if (id === 'packs' && row.code === 'conflict') detail.push('the launcher could not finish moving pack files into place');
