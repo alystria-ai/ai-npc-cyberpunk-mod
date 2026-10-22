@@ -17,19 +17,15 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 
 **Mod page:** [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436), with the full description, requirements and support.
 
-Every file sits here at the top of the repository with its `SHA256SUMS-*.txt` checksum. **Current version: 0.2.7.** The version of each file is shown beside it (its upload message); the file names stay the same from version to version, so links to them never change.
+Every file sits here at the top of the repository with its `SHA256SUMS-*.txt` checksum, except the Runtime updates, which are in the [`updates` folder](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) (one `SHA256SUMS.txt` there covers them all). **Current version: 0.2.8.** The version of each file is shown beside it (its upload message); the file names stay the same from version to version, so links to them never change.
 
 ## Which files do I need?
 
 | File | Size | What it is | Need it? |
 |---|---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime.zip` | 1.1 GB | The background service: voices, lip sync, speech recognition, memory, and (new in 0.2.7) the Local AI engine, which adds about 30 MB to the Runtime. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.6-to-0.2.7.zip` | 32 MB | The Runtime update: only the files that changed between 0.2.6 and 0.2.7 (this one includes the Local AI engine, which now lives in the Runtime). Extract it over your existing 0.2.6 Runtime instead of downloading the full Runtime; choose Replace if Windows asks. Files 0.2.7 no longer needs are removed by the mod at the next start. | Optional: only if you have the 0.2.6 Runtime installed |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.5-to-0.2.6.zip` | 0.9 MB | An earlier step, kept for players on 0.2.5: extract it first, then the 0.2.6-to-0.2.7 update. | Optional: only if you have the 0.2.5 Runtime installed |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.4-to-0.2.5.zip` | 0.8 MB | An earlier step, kept for players on 0.2.4: extract it first, then 0.2.5-to-0.2.6, then 0.2.6-to-0.2.7. | Optional: only if you have the 0.2.4 Runtime installed |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.3-to-0.2.4.zip` | 0.3 MB | An earlier step, kept for players on 0.2.3: extract it first, then 0.2.4-to-0.2.5, 0.2.5-to-0.2.6 and 0.2.6-to-0.2.7. | Optional: only if you have the 0.2.3 Runtime installed |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip` | 23 MB | The oldest step kept, for players on 0.2.2: extract it first, then 0.2.3-to-0.2.4, 0.2.4-to-0.2.5, 0.2.5-to-0.2.6 and 0.2.6-to-0.2.7. | Optional: only if you have the 0.2.2 Runtime installed |
+| `AI-NPC-Cyberpunk-Mod-Runtime.zip` | 1.1 GB | The background service: voices, lip sync, speech recognition, memory, the Local AI engine, and (new in 0.2.8) the decoder that lets V's voice follow a V voice-over mod. | **Yes** |
+| `updates/` (folder) | 4 MB for the newest | The Runtime updates: small zips that bring a Runtime you already have up to date, instead of downloading the full Runtime. Every step is kept, one zip per release, named `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from version>-to-<to version>.zip`. Apply the update zips from the [updates folder](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) one by one, starting from your version, each extracted over your Runtime (choose Replace if Windows asks). Files a version no longer needs are removed by the mod at the next start. | Optional: only if you have a Runtime installed |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
 | `AI-NPC-Cyberpunk-Mod-OmniPack.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
@@ -37,6 +33,7 @@ Every file sits here at the top of the repository with its `SHA256SUMS-*.txt` ch
 | `AI-NPC-Cyberpunk-Mod-Mature-Standard.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
 | `AI-NPC-Cyberpunk-Mod-MicPack-European.zip` | about 0.67 GB | Microphone in Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, for Local AI and Custom endpoints (NVIDIA Parakeet TDT 0.6B v3, int8). Runs on the processor. | Optional |
 | `AI-NPC-Cyberpunk-Mod-MicPack-Asian.zip` | about 0.24 GB | Microphone in Mandarin Chinese, Japanese and Korean for Local AI and Custom endpoints (SenseVoice Small, int8). Runs on the processor. | Optional |
+| `multilingual/` (folder) | about 150-220 MB per file | Voice language packs (10 languages: the characters speak in the game's own dub voice when they reply in that language, with OmniVoice or the Mistral voice) and Pocket language models (French, Italian, German, Spanish, Portuguese, for the Pocket voice). Get only your language; see the folder's README. | Optional |
 
 **You can skip every optional pack.** The mod works without them with Mistral (cloud, your own free key) or the Convai free tier (cloud, the default, nothing to set up), both at no cost to your frame rate. Local AI can also use a model server you already run (KoboldCpp, LM Studio, Ollama or any OpenAI-compatible one) with no pack; the steps are on the Nexus Mods page. The packs only add local options that run on your own graphics card.
 

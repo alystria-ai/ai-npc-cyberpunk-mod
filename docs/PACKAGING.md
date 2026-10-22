@@ -8,7 +8,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | Package | Where players get it | Contents |
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, beside the full Runtime | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
 | `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
@@ -344,9 +344,9 @@ node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<ver
 ### Runtime update zip
 
 The Runtime is about 1 GB and most of it (Python, torch, Node, the voice and lip-sync models) does not change between releases. From 0.2.3 on, every
-release ships a **Runtime update zip** on Hugging Face next to the full Runtime, named `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` (the first:
-`...-Update-0.2.2-to-0.2.3.zip`). A player who has the previous Runtime extracts it over that Runtime (Replace is safe: it holds only paths whose bytes
-differ, and the packs rule above still holds); a new install, or a player on an older version, uses the full Runtime, which stays. The Scripts are
+release ships a **Runtime update zip** on Hugging Face, in the `updates/` folder of the repository (from 0.2.8; every step is kept and `updates/README.md` and `updates/SHA256SUMS.txt` list them), named `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` (the first:
+`...-Update-0.2.2-to-0.2.3.zip`). A player applies the update zips of the folder one by one, starting from their version, each extracted over their Runtime (Replace is safe: a zip holds only paths whose bytes
+differ, and the packs rule above still holds); a new install, or a player who is not sure of the version, uses the full Runtime, which stays. The Scripts are
 small and always full.
 
 **What is in it.** Every file the new Runtime has and the previous one did not, or has with other bytes (path, size and CRC-32 are compared, so it does

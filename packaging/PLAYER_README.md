@@ -2,6 +2,19 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.2.8
+
+- **Characters in the voice of your language**: optional voice language packs for Chinese, Japanese, Korean, French, German, Italian, Spanish, Polish, Brazilian Portuguese and Russian. When a character replies in that language, OmniVoice and the Mistral voice copy the game's own dubbed voice for them instead of the English actor's. One zip per language in the multilingual folder on Hugging Face; get only the languages you play in.
+- **Pocket speaks five more languages**: with the Pocket model for French, Italian, German, Spanish or Portuguese installed next to that language's voice pack, the Pocket voice answers in that language on your processor, in the character's dubbed voice.
+- **OmniVoice for V**: when your companions use OmniVoice, V can use it too (Settings > Voices). V's line always plays, so a typed line takes a moment longer.
+- **V voice mods**: if you use a mod that replaces V's voice, V's AI lines now sound like it. The mod is found once when the game starts. You can also give V your own voice clip in the character editor.
+- **Talk to anyone**: every person you can aim at can be talked to now. People without a character of their own answer as a resident or worker of their kind, receptionists and quest extras included, and quest characters standing at their post get lip sync.
+- **Clearer messages**: a story character tells you when Talk to story characters is off and where to turn it on.
+- **Johnny**: he no longer says he is busy while he is just standing around or riding with you.
+- **Mod Organizer 2**: fixed "The conversation service did not get that message" when Mod Organizer 2 showed the game two copies of the mod's files.
+- **Smaller graphics cards**: Local AI leaves room for the game on cards with 12 GB or less, and a model that runs on your processor gets the time its first reply needs. OmniVoice that does not fit next to the game switches to Pocket with one notice instead of retrying, and the voice menu says when OmniVoice needs an NVIDIA card or 12 GB.
+- **Fixes from error reports**: the Pocket voice starts reliably while the game is loading, the memory lock works under Wine and Proton, and crash reports carry what is needed to fix them.
+
 ## What's new in 0.2.7
 
 - **Native plugin fully on**: the native plugin now runs all five of its systems (actions, vehicles, chauffeur, passage and faces) instead of the script path. If one ever misbehaves, put its name on a line of runtime\native-off.txt in the mod folder to switch it off.
@@ -188,7 +201,7 @@ With Mistral or Local AI as the Conversation provider, you can give a person who
 
 Close the game and extract the new Scripts and Runtime over the old ones (the same version for both), then any optional packs you use, in that order: the OmniVoice pack goes after the Runtime. Your conversations, memories and settings are kept. The first start after updating moves your memories, conversation history and logs out of the game folder into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
 
-**A smaller download for the Runtime.** If you have the previous version of the Runtime installed, you can skip the full Runtime and download the small **Runtime update** instead, from the updates folder on the Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates): `AI-NPC-Cyberpunk-Mod-Runtime-Update-<your version>-to-<new version>.zip` (for example `...-Update-0.2.6-to-0.2.7.zip`). It holds only the files that changed. The folder keeps every update: if you are more than one version behind, extract them one after the other, oldest first (for example 0.2.5-to-0.2.6, then 0.2.6-to-0.2.7). Extract it into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have the previous version, or are not sure which one you have, use the full Runtime; it works for new installs and for any update.
+**A smaller download for the Runtime.** If you already have a Runtime installed, you can skip the full Runtime and download the small **Runtime update** zips instead, from the updates folder on the Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates): `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from version>-to-<to version>.zip`. Each one holds only the files that changed. The folder keeps every update: apply the update zips one by one, starting from your version. Extract each into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have a Runtime yet, or are not sure which version you have, use the full Runtime; it works for new installs and for any update.
 
 ## Uninstall
 

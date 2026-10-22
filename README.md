@@ -4,7 +4,7 @@
 Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
 <p align="center">
-  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.2.7" src="https://img.shields.io/badge/VERSION-0.2.7-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.2.8" src="https://img.shields.io/badge/VERSION-0.2.8-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
   <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
@@ -60,7 +60,7 @@ Scripts come from Nexus Mods (the same file is on Hugging Face too). The Runtime
 
 The first start after installing takes a little longer while the service prepares itself.
 
-**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay. Never delete the mod's folders to update: the optional packs live inside them. If you have the previous version of the Runtime, you can download the small **Runtime update** (`AI-NPC-Cyberpunk-Mod-Runtime-Update-<your version>-to-<new version>.zip`, from the same Hugging Face page) instead of the full Runtime and extract it over your existing Runtime; choose Replace if Windows asks, which is always safe. Files the new version no longer needs are removed by the mod itself at the next start, so you never delete anything. With any other version, or if you are unsure, use the full Runtime. If an older version kept the service's data inside the mod's folder, the first start moves it to the place below.
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay. Never delete the mod's folders to update: the optional packs live inside them. If you already have a Runtime, you can download the small **Runtime update** zips from the [updates folder](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) on the Hugging Face page (`AI-NPC-Cyberpunk-Mod-Runtime-Update-<from version>-to-<to version>.zip`) instead of the full Runtime, and extract them over your existing Runtime one by one, starting from your version; choose Replace if Windows asks, which is always safe. Files the new version no longer needs are removed by the mod itself at the next start, so you never delete anything. If you are not sure which version you have, use the full Runtime. If an older version kept the service's data inside the mod's folder, the first start moves it to the place below.
 
 **Where your data is.** The background service keeps the memories stored on your computer, your saved keys, its logs and your reports in `%LOCALAPPDATA%\AiNpcCyberpunkMod`, outside the game folder. Your settings and Phone Chat history stay in the mod's own folder.
 
