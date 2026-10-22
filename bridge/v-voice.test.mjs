@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, V_GRACE_MS, V_RESCUE_BUDGET_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets, vSettingsFor} from './v-voice.mjs';
+import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, V_GRACE_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets, vSettingsFor} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -300,13 +300,14 @@ test('the reply ready before V is audible drops V: the reply never waits for syn
   assert.equal(made.holds(), false);
 });
 
-test('the companion\'s own voice request stops a local V line that is not audible yet, but never one that is playing', async () => {
+test('the companion\'s own voice request no longer stops a local V line that is not audible yet: the line is the player\'s, it plays and the reply follows', async () => {
   let release;
   const gate = new Promise(done => { release = done; });
   const slow = line({stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
   slow.line.companionVoiceStarted();
-  assert.equal(slow.line.state, 'dropped'); assert.equal(slow.line.reason, 'reply-voice-started');
-  release(); await slow.line.finished;
+  assert.equal(slow.line.state, 'synth', 'not dropped for the reply\'s voice request'); assert.equal(slow.line.reason, null);
+  release(); await until(() => slow.line.state === 'playing', 'V to become audible after all');
+  slow.line.drop('test over'); await slow.line.finished;
 
   const playing = line();
   await until(() => playing.line.state === 'playing', 'audible');
@@ -382,7 +383,7 @@ test('a second line waits for the first to be released, so two V lines never sha
   assert.notEqual(calls.play[0], calls.play[2]);
 });
 
-test('on the turn\'s clock: V\'s audible and end marks are recorded and the companion\'s ttsSent stops an unfinished local line', async () => {
+test('on the turn\'s clock: V\'s audible and end marks are recorded and the companion\'s ttsSent leaves an unfinished local line going', async () => {
   let release;
   const gate = new Promise(done => { release = done; });
   const {voice} = feature({stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; },
@@ -390,9 +391,9 @@ test('on the turn\'s clock: V\'s audible and end marks are recorded and the comp
   const clock = new TurnClock();
   const made = voice.start(typed(), {clock});
   withClock(clock, () => clock.mark('ttsSent'));
-  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'reply-voice-started');
+  assert.equal(made.state, 'synth'); assert.equal(made.reason, null);
   release(); await made.finished;
-  assert.ok(clock.has('vDropped'));
+  assert.notEqual(made.reason, 'reply-voice-started', 'it ended on its own (this stub renderer never reports audio), not for the reply');
   const second = feature();
   const clock2 = new TurnClock();
   const spoken = second.voice.start(typed(), {clock: clock2});
@@ -537,7 +538,7 @@ test('the engine is the player\'s choice: Pocket unless Voxtral is stored, and a
   assert.equal(new VVoice({voices: {}}).wantsPocket, false);
 });
 
-test('Pocket with the companions on Pocket: the shared worker speaks V, one job at a time, so the companion\'s own request stops an unfinished V line', async () => {
+test('Pocket with the companions on Pocket: the shared worker speaks V, one job at a time, so the companion\'s own request waits behind an unfinished V line', async () => {
   const {voice, seen} = engineFeature({main: true});
   const clock = new TurnClock();
   const quick = voice.start(typed(), {clock});
@@ -550,8 +551,8 @@ test('Pocket with the companions on Pocket: the shared worker speaks V, one job 
   const slowClock = new TurnClock();
   const made = slow.voice.start(typed(), {clock: slowClock});
   withClock(slowClock, () => slowClock.mark('ttsSent'));
-  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'reply-voice-started');
-  release(); await made.finished;
+  assert.equal(made.state, 'synth'); assert.equal(made.reason, null, 'V is not stopped for the reply voice request');
+  release(); await made.finished; assert.equal(made.state, 'done');
 });
 
 test('Pocket with a worker of its own (companions on OmniVoice, a cloud voice or the Convai voice): audible in a few ms, never stopped by the companion\'s request, and the reply waits for its end', async () => {
@@ -1296,8 +1297,8 @@ test('the live case on the stage clock: V\'s first audio 40 ms after the reply\'
   release(); await cold.line.finished;
 });
 
-test('the default grace is 600 ms, and VVoice passes its own to every line', async () => {
-  assert.equal(V_GRACE_MS, 600);
+test('the default wait for the first audio of V is 30 s (a line is stuck, not slow, after that), and VVoice passes its own to every line', async () => {
+  assert.equal(V_GRACE_MS, 30_000);
   const {voice} = feature({graceMs: 250});
   const made = voice.start(typed());
   assert.equal(made.graceMs, 250);
@@ -1392,25 +1393,25 @@ test('V\'s own worker finishing its load prepares V\'s voice on it at once, in t
   assert.match(bridge, /v-voice-gender\.json/);
 });
 
-test('the rescue budget: a late line is waited for only while the wait plus the line itself stays within V_RESCUE_BUDGET_MS; a long line is dropped at once', async () => {
-  assert.equal(V_RESCUE_BUDGET_MS, 4000);
+// 2026-10-22 review (R4): a line of ten words or more was dropped the moment the reply was ready (no room in a 4 s rescue budget), while the same line audible
+// a millisecond earlier held the reply for its whole length. Length is no reason to drop a line the player typed.
+test('a long line is waited for like a short one: there is no rescue budget, and only a stuck line (no audio within the wait) is given up', async () => {
   const never = async (key, text, options) => { await new Promise(done => options.signal.addEventListener('abort', done, {once: true})); };
-  // Two words (about 0.7 s and the 0.48 s of lead-in and tail): the whole grace fits.
-  const short = line({graceMs: 600, text: 'Hello Judy.', stream: never});
-  assert.equal(short.line.holds(), true); assert.equal(short.line.waiting, true);
-  short.line.drop('test over'); await short.line.finished;
-  // Nine words: 3.2 s + 0.48 s leaves about 300 ms of the 4 s.
-  const mid = line({graceMs: 600, text: 'one two three four five six seven eight nine', stream: never});
-  const started = performance.now();
-  assert.equal(mid.line.holds(), true);
-  await replyMayStart(mid.line);
-  assert.ok(performance.now() - started < 450, 'the wait is what the budget leaves, not the whole grace');
-  assert.equal(mid.line.reason, 'slower-than-reply');
-  await mid.line.finished;
-  // A long line (V_MAX_CHARS is about 40 words, 14 s): no room at all, dropped on the first ask like before.
-  const long = line({graceMs: 600, text: 'word '.repeat(40).trim(), stream: never});
-  assert.equal(long.line.holds(), false); assert.equal(long.line.reason, 'slower-than-reply'); assert.ok(!('graceStart' in long.clock.snapshot().marks));
-  await long.line.finished;
+  for (const text of ['Hello Judy.', 'one two three four five six seven eight nine', 'word '.repeat(40).trim()]) {
+    const waiting = line({graceMs: 600, text, stream: never});
+    assert.equal(waiting.line.holds(), true, `${text.split(' ').length} words: the reply waits for the line`); assert.equal(waiting.line.waiting, true);
+    assert.ok('graceStart' in waiting.clock.snapshot().marks);
+    waiting.line.drop('test over'); await waiting.line.finished;
+  }
+  // A line that gives its first audio inside the wait is heard, whatever its length.
+  const long = line({graceMs: 600, text: 'word '.repeat(40).trim(), stream: late(40)}, {endAfter: 20});
+  assert.equal(long.line.holds(), true);
+  await until(() => long.line.state === 'playing', 'the long line to become audible inside the wait');
+  await long.line.finished; assert.equal(long.line.state, 'done');
+  // A stuck line is given up when the wait is over.
+  const stuck = line({graceMs: 80, text: 'word '.repeat(40).trim(), stream: never});
+  assert.equal(stuck.line.holds(), true); await replyMayStart(stuck.line);
+  assert.equal(stuck.line.reason, 'slower-than-reply'); await stuck.line.finished;
 });
 
 test('each V line says which reference it speaks from: the bridge\'s label (manual, mod:<archive file name>), else the voice\'s source, else shipped', async () => {

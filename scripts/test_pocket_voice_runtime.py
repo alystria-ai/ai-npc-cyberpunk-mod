@@ -977,6 +977,29 @@ class Producer(unittest.TestCase):
             self.assertIn('faulthandler.enable(file=sys.stderr, all_threads=True)',source,name)
             self.assertLess(source.index('faulthandler.enable('),source.index('args = parser.parse_args()'),name)
 
+    def test_the_request_time_limit_is_for_standing_still_not_for_length(self):
+        # MAX_AUDIO_SECONDS was one wall-clock timer for the whole request: a long reply on a slow computer was cut in the middle of a line.
+        now=[0.0];stalled=threading.Event()
+        timer=worker.ProgressTimer(120,stalled.set,clock=lambda:now[0],poll=.005)
+        timer.start()
+        try:
+            for step in range(6):                      # 300 s of wall time, a touch every 50 s
+                now[0]+=50;timer.touch();self.assertFalse(stalled.wait(.05),'moving requests are never cut')
+            now[0]+=119;self.assertFalse(stalled.wait(.05))
+            now[0]+=2;self.assertTrue(stalled.wait(2),'a request that stood still for the limit is stopped')
+        finally:
+            timer.cancel()
+        # The hook on Commands is what the stream loop touches: a chunk produced and a packet acknowledged.
+        commands=worker.Commands(io.StringIO(''),'a'*32);touches=[];commands.on_progress=lambda:touches.append(1);commands.begin(1)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+                yield [.2]*2
+        def send(frame):
+            commands.ack.set()
+        worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<%df'%len(values),*values),len(values)))
+        self.assertGreaterEqual(len(touches),4,'two chunks and two acknowledged packets')
+
     def test_a_cancelled_reply_stops_decoding_its_backlog(self):
         # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
         class Latent:

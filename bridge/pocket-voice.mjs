@@ -34,7 +34,10 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 // one that applies, and neither ends the worker. closeGraceMs: how long a closing worker gets to leave by itself (its input closed) before
 // it is stopped; exitMs: how long the stop gets to be confirmed (the process tree is stopped again at killRetryMs).
 export const POCKET_LIMITS = Object.freeze({startupMs: 240_000, prepareMs: 60_000,
-  renderMs: 120_000, sinkMs: 10_000, sinkFirstMs: 30_000, cancelMs: 15_000, cancelHardMs: 15_000, prepareCancelMs: 30_000,
+  // renderMs: how long a request may take to its first sound (preparing the voice, reading the text); renderIdleMs: then, how long it may go without a new
+  // chunk of audio. A reply is cut when it stops making progress, never for its length: a slow computer that is still producing finishes the line (the old
+  // limit was 120 s of wall time for the whole reply).
+  renderMs: 120_000, renderIdleMs: 60_000, sinkMs: 10_000, sinkFirstMs: 30_000, cancelMs: 15_000, cancelHardMs: 15_000, prepareCancelMs: 30_000,
   closeGraceMs: 2000, exitMs: 15_000, killRetryMs: 6000, recoverMs: 120_000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'importing-dependencies': 60_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
   stallGraceMs: Object.freeze({default: 60_000, 'importing-dependencies': 120_000}), restartMinMs: 200_000,
@@ -428,6 +431,9 @@ export class PocketVoice {
       request.firstYieldMs ??= frame.yieldMs; request.firstReadyMs ??= frame.copiedReadyMs;
       request.firstReceivedMs ??= this.now() - request.started;
       if (request.cancelReason) return;
+      // Progress: the time limit starts over with every chunk (a reply is cut for standing still, not for being long).
+      this.clearTimer(request.timer);
+      request.timer = this.timer(() => this.cancelRequest(request, Error('Pocket speech timed out')), POCKET_LIMITS.renderIdleMs);
       const packet = {version: 1, engine: 'pocket-tts', profile: request.profile, owner: this.owner,
         id: request.id, index: frame.index, sampleRate: 24000, channels: 1, pcm, format: 'f32le',
         offsetFrames: frame.offsetFrames, frames: frame.frames, timebase: 'audio-seconds',

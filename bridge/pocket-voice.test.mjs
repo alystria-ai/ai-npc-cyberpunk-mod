@@ -511,3 +511,24 @@ test('a Pocket worker that dies says why: its exit code in words and the last er
   const plain = harness({autoReady: false}), plainFailed = assert.rejects(plain.client.start(), error => error.message === 'Pocket worker exited (1)'); await tick();
   plain.finish(1); await plainFailed;
 });
+
+// 2026-10-22 review (W12): a reply was cut at 120 s of wall time even while the worker kept producing audio (a long reply on a slow computer).
+test('a reply is cut for standing still, not for its length: every chunk starts the time limit over', async () => {
+  const timers = clock(), h = harness({timers}), packets = [];
+  const synthesis = h.client.synthesizeStream(profile, 'A long reply on a slow computer.', {onPcm: packet => { packets.push(packet); }});
+  await tick(); h.prepared(); await tick(); const request = h.requests[1];
+  let offset = 0;
+  for (let index = 1; index <= 5; index++) {            // five chunks, each 40 s after the last: 200 s of wall time, more than the 120 s the old limit allowed
+    timers.advance(40_000); await tick(); h.pcm(request, index, offset); offset += 4; await tick();
+  }
+  assert.equal(h.client.failure, undefined); assert.equal(packets.length, 5);
+  h.done(request, 20, 5, {generationMs: 300}); const result = await synthesis; assert.equal(result.frames, 20);
+  // The same worker that then stands still for the idle limit is cut.
+  const stalled = h.client.synthesizeStream(profile, 'Another.', {onPcm: () => {}}), rejected = assert.rejects(stalled, /Pocket speech timed out/);
+  await tick(); h.prepared(h.requests.length - 1); await tick(); const next = h.requests.at(-1); assert.equal(next.op, 'stream');
+  h.pcm(next, 1, 0); await tick();
+  timers.advance(POCKET_LIMITS.renderIdleMs - 1); await tick(); assert.equal(h.client.pending.size, 1, 'still within the limit');
+  timers.advance(1); await tick(); assert.equal(h.requests.at(-1).op, 'cancel', 'the worker is told to stop it');
+  h.send({op: 'cancelled', id: next.id, profile, ...h.profiles()}); await tick(); await rejected;
+  await h.close();
+});

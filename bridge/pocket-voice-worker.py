@@ -185,6 +185,8 @@ class Commands:
         # Called from the reader thread when the active (or the queued) request is cancelled: the worker goes to normal priority at once so a
         # cancelled warm-up that was running below normal under a busy game stops in time (main sets it).
         self.on_cancel = None
+        # The request in hand reports its progress here (ProgressTimer.touch): a chunk of audio produced, a packet acknowledged.
+        self.on_progress = None
         self.thread = threading.Thread(target=self.read, name="pocket-command-reader", daemon=True)
 
     def finish_input(self, error=None):
@@ -263,6 +265,11 @@ class Commands:
             self.expected_ack = None
             self.ack.clear()
 
+    def touch(self):
+        hook = self.on_progress
+        if callable(hook):
+            hook()
+
     def check(self):
         if self.error:
             raise self.error
@@ -285,6 +292,33 @@ class Commands:
         self.check()
         with self.lock:
             self.expected_ack = None
+
+
+class ProgressTimer:
+    """Stops a request (calls `on_stall`) that has made no progress for `seconds`. The old limit was one wall-clock timer of MAX_AUDIO_SECONDS for the
+    whole request, which cut a long reply on a slow computer in the middle of a line even though audio was still being produced; now every chunk of
+    audio and every acknowledged packet (`touch`) starts the time over, so only a request that stands still is stopped."""
+
+    def __init__(self, seconds, on_stall, clock=time.monotonic, poll=1.0):
+        self.seconds, self.on_stall, self.clock, self.poll = seconds, on_stall, clock, poll
+        self.last = clock()
+        self.done = threading.Event()
+        self.thread = threading.Thread(target=self.run, name="pocket-request-progress", daemon=True)
+
+    def start(self):
+        self.thread.start()
+
+    def touch(self):
+        self.last = self.clock()
+
+    def cancel(self):
+        self.done.set()
+
+    def run(self):
+        while not self.done.wait(self.poll):
+            if self.clock() - self.last >= self.seconds:
+                self.on_stall()
+                return
 
 
 def acquire_lock(work):
@@ -344,6 +378,7 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
     try:
         for chunk in generator:
             yielded_ms = (now() - started) * 1000
+            commands.touch()
             commands.check()
             payload, frames = encode_pcm(chunk)
             # The decoder turns every latent frame that is queued by the time it runs into ONE chunk. On a busy computer it falls
@@ -369,6 +404,7 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
                       "yieldMs": yielded_ms, "copiedReadyMs": copied_ms})
                 total += piece
                 commands.await_ack()
+                commands.touch()
     except BaseException:
         # Closing the upstream generator at a yield skips its decoder.join().
         # Set the native stop event and drain to its real EOF first. The owned
@@ -761,8 +797,8 @@ def main():
             if urgent:
                 gate.request()
             synthesis_started = False
-            timer = threading.Timer(MAX_AUDIO_SECONDS, commands.stop.set)
-            timer.daemon = True
+            timer = ProgressTimer(MAX_AUDIO_SECONDS, commands.stop.set)
+            commands.on_progress = timer.touch
             timer.start()
             try:
                 commands.check()
@@ -819,6 +855,7 @@ def main():
                     return 1
             finally:
                 timer.cancel()
+                commands.on_progress = None
                 commands.finish(request_id)
                 if urgent:
                     gate.request()
