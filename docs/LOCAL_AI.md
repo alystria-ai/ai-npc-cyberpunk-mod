@@ -10,7 +10,7 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 Choose **Local AI** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your computer. It is free and needs no internet. Replies are spoken by the local voices (Pocket or OmniVoice; Voxtral also works if you saved a Mistral key, but it needs the internet) and the characters keep a memory of your talks, stored on your computer. The voice key works too: your speech is recognised on this computer, in English. Convai free tier gives better quality responses; Local AI is for playing offline, with no account and no daily limit.
 
-The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in its `local-ai` folder). There are two, and you can install neither, one or both. Each pack includes the engine and the memory model it needs, so one alone is enough:
+The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in its `local-ai` folder). There are two, and you can install neither, one or both. Each pack includes the memory model it needs and runs on the engine that comes with the Runtime (the Runtime of version 0.2.7 or newer), so one alone is enough:
 
 | Pack | Model | Download | Video memory | Best for |
 |---|---|---|---|---|
@@ -89,7 +89,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   Turning Mature content off in the settings page also moves a row still on a Mature model to the standard (else the lite) model in the same change
   (after the earlier model is put back, if one was recorded). With Mature content on you may pin the standard model; it is kept. A model you added yourself
   is not covered by this: it runs when you pick it (the default rule still prefers ordinary models while Mature content is off).
-- **A Mature pack alone (no standard, lite or custom model installed).** The Mature packs include the engine, so they work without a Local AI pack
+- **A Mature pack alone (no standard, lite or custom model installed).** The Mature packs include the memory model and use the Runtime's engine, so they work without a Local AI pack
   (see "Mature content"). Then every installed model is an uncensored one, and the rule is: they run only while Mature content is on. With it on, the
   default and the fallbacks are the Mature models as above (the good one if it fits, else the lite one, with layers on the CPU if even that does not fit).
   With it off, nothing is chosen, a pin makes no difference, Local AI is unavailable (the start fails with the reason `mature-off`, so the row shows the
@@ -131,7 +131,7 @@ chosen provider, and the next turn asks it again.
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
 list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
 There are two folders you can use; the first survives reinstalls and mod managers.
-Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack carries the same engine) is needed; without one the model is listed but cannot start.
+Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack counts as well) is needed; without one the model is listed but cannot start.
 
 **1. Open your models folder** (it survives reinstalls and mod managers): `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. Paste that into the Explorer
 address bar; if Windows says the folder does not exist, make it (`AiNpcCyberpunkMod` is the folder that already holds your memories and logs; make `local-ai`
@@ -397,7 +397,7 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
 runs both as a matrix job (`localai`) that uploads each zip to the `local-ai/` folder of the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs`, without a version in the file name (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
-`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782, which ships in the Runtime (`app/llama-cpp/`, see "The engine is in the Runtime" below; a pack built now still carries a copy while `localAi.server.inPacks` is true) (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
+`localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11782, which ships in the Runtime (`app/llama-cpp/`, see "The engine is in the Runtime" below; since 0.2.9 the packs carry models only, `localAi.server.inPacks` is false, and need the Runtime of 0.2.7 or newer) (MIT; `llama-server.exe`, `llama-fit-params.exe` (the free-memory fit looks for it beside the server) and their
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
 Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11782 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
@@ -410,6 +410,13 @@ pinned hash. See `docs/PACKAGING.md`.
 The llama.cpp engine used to ship inside every Local AI and Mature pack (`app/local-ai/llama/`), so an engine fix needed a 1.4 to 5.3 GB pack to be built and downloaded again. It is
 now part of the **Runtime**: `app/llama-cpp/` holds `llama-server.exe`, `llama-fit-params.exe` and the 24 libraries they load (b11782: 26 files, 82.5 MiB, 29.8 MiB zipped). A Runtime
 update zip carries a new build like any other changed files, and the packs can shrink to models.
+
+**Models-only packs (0.2.9, 2026-10-22).** The four packs were rebuilt with `localAi.server.inPacks` false: no `app/local-ai/llama/` folder, no `licenses/llama.cpp-MIT.txt`, 25 files and 85.7 MB less on
+disk, 30.9 MB less to download each (LocalAI-Lite 1,364.0 to 1,333.1 MB, LocalAI-Standard 5,306.8 to 5,276.0, Mature-Lite 2,859.4 to 2,828.6, Mature-Standard 5,487.2 to 5,456.3). Their manifests and
+markers name no `server` (`{version: 1, standard|lite: {...}, embed: {...}}`; the Mature ones `{version: 1, pack: 'mature', lite|good: {...}, embed: {...}}`), so every pack needs the Runtime's engine:
+the notices in the packs, the Mature README, the Hugging Face card and the Nexus requirements say "the Runtime of version 0.2.7 or newer". Checked on the real packs: `detectLocalAiPack` with the
+installed Runtime's `app/llama-cpp` finds the pack installed with `engine.source: 'runtime'`, and without any engine folder reports `missing: ['server']` (a Mature pack alone: `server`, `model`, `embed`),
+so on a Runtime older than 0.2.7 the pack reads as not installed, as in combination (3) below.
 
 - **Lookup.** `detectLocalAiPack` (`bridge/local-ai-pack.mjs`, the one place the server path is made; `LocalLlmServer`, `LlamaEmbedder` and `fitToolPath` take it from there) looks for the Runtime's
   engine first, in `CYBERPUNK_CONVAI_LOCAL_ENGINE` (the service sets it to the Runtime's real `app/llama-cpp`) or `<project>/llama-cpp`. It counts when `ENGINE_FILES` (the server and the libraries it
@@ -1361,7 +1368,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale
   strings) are in the Runtime and Scripts packages.
-- The Mature packs carry the engine (2026-10-18): so that a player who installs only a Mature pack has a working Local AI (before, they saw "No model
+- The Mature packs carried the engine (2026-10-18 to 0.2.8; since 0.2.9 they carry models only and run on the Runtime's engine, see "The engine is in the Runtime"): so that a player who installs only a Mature pack has a working Local AI (before, they saw "No model
   installed"), each pack ships the same engine files as the Local AI packs, byte for byte and at the same paths: `app/local-ai/llama/` (llama-server and its
   libraries, with the LLVM OpenMP licence), `models/granite-embedding-107m-multilingual-Q8_0.gguf`, `licenses/Apache-2.0.txt`, `licenses/llama.cpp-MIT.txt` and
   `LICENSE.txt`. They come from the same pinned `localAi` inputs through one helper (`addEngine` in `packaging/build-release.mjs`), so installing a Local AI pack over a Mature pack, or
@@ -1383,7 +1390,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   and it refuses a non-Apache-2.0 model or a third entry.
 - Texts: `packaging/MATURE_PACK_README.md` (ships in the pack) and `packaging/MATURE_PACK_RELEASE_NOTES.md` (the text for the GitHub
   release: what it adds, that the setting is part of the main mod, that the hard limits stay on every model, that it needs the main mod and
-  that a Local AI pack is not needed (each pack carries the engine), the install steps; it replaced the Nexus page text and its adult-flag and tag instructions).
+  that a Local AI pack is not needed (each pack runs on the Runtime's engine), the install steps; it replaced the Nexus page text and its adult-flag and tag instructions).
 
 #### The setting
 
