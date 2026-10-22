@@ -456,7 +456,7 @@ const numbered = (count, first = 0) => Array.from({length: count}, (_, index) =>
 const kept = fit => fit.messages.slice(1, -1);   // the exchanges of the history that were sent
 
 test('older exchanges: a conversation at the limit keeps the same first exchange for several turns, so the history is not read again every turn', async () => {
-  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const budget = () => ({contextTokens: 6250, meter: new TokenMeter()});
   const fits = [];
   for (const size of [9, 10, 11]) {   // the memory store keeps the start of its window for a few turns while it grows by one exchange a turn
     fits.push(await fitMessages({args: turn({history: numbered(size), text: 'What next? ' + size}), budget: budget()}));
@@ -474,7 +474,7 @@ test('older exchanges: a conversation at the limit keeps the same first exchange
 });
 
 test('older exchanges: they go in whole blocks of BUDGET.trimBlock (never below keepExchanges), the prompt only gets shorter, and a prompt that fits is not cut', async () => {
-  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const budget = () => ({contextTokens: 6250, meter: new TokenMeter()});
   const base = await fitMessages({args: turn({history: numbered(8)}), budget: budget()});
   const dropped = 8 - kept(base).length / 2;
   assert.equal(dropped % BUDGET.trimBlock, 0, 'a whole block was dropped (' + dropped + ')');
