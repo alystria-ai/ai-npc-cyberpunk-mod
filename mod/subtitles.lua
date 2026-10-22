@@ -513,9 +513,12 @@ local function showPage()
     return true
 end
 
+-- Set for the duration of showAnyway: a reply that could not be voiced is shown whatever the Subtitles setting says.
+local forceShow = nil
+
 local function prepare(speaker, text, actor, expected)
     M.clear()
-    if not M.enabled() then return false end
+    if not forceShow and not M.enabled() then return false end
     M.requestedStyle, M.fallback = M.style(), nil
     M.entity = type(expected) == 'string' and expected or nil
     if validActor(actor, expected) then M.actor = actor end
@@ -566,6 +569,14 @@ end
 function M.show(speaker, text, actor, expected)
     if prepare(speaker, text, actor, expected) then return showPage() end
     return false
+end
+-- The text of a reply that could not be voiced (the chosen voice failed or is unavailable, a language it does not speak): shown even with Subtitles off,
+-- because the voice notice says replies show as text and nothing else would carry them. One call per reply, never per frame.
+function M.showAnyway(speaker, text, actor, expected)
+    forceShow = true
+    local ok, shown = pcall(M.show, speaker, text, actor, expected)
+    forceShow = nil
+    return ok and shown or false
 end
 -- V's own words while V speaks by voice, shown as one dialogue-HUD line that is replaced as the recognised words grow.
 -- Each update is the same page swap a paginated reply uses (the old line is hidden once the new one has rendered, so

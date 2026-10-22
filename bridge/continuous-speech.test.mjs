@@ -603,3 +603,31 @@ assert(begin());snapshot({position=.4,bufferedDuration=1,text='Known so far.',te
 snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Known so far.',textComplete=false});tick()
 assert(captions.line=='Known so far.')
 `));
+
+test('a reply the voice could not speak shows its text even with Subtitles off; a reaction and a voice the player turned off keep the setting',()=>run(`
+local anyway,plain={},{}
+function captions.showAnyway(name,text)anyway[#anyway+1]=text;return true end
+local show=captions.show
+function captions.show(name,text,...)plain[#plain+1]=text;return show(name,text,...)end
+-- the stream breaks after it started: the unvoiced text is shown regardless of the Subtitles setting
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Started.',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Started. And the rest.',textComplete=true});tick()
+assert(#anyway==1 and anyway[1]=='Started. And the rest.' and #plain==0,'forced: '..tostring(anyway[1]))
+-- an automatic reaction keeps the Subtitles setting
+anyway,plain={},{}
+context.reaction={kind='battle'}
+assert(begin());snapshot({position=.4,bufferedDuration=1,text='Hit!',textComplete=false});tick()
+snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,text='Hit! Cover!',textComplete=true});tick()
+assert(#anyway==0 and plain[1]=='Hit! Cover!','a reaction is not forced')
+context.reaction=nil
+-- no voice engine to play it (a text-only route): the reply is not voiced and shows anyway
+anyway,plain={},{}
+speech.target=judy
+assert(speech.start(context,{text='Text only reply.'})==false)
+assert(#anyway==1 and anyway[1]=='Text only reply.')
+-- the player turned Voice playback off: not a failure, the Subtitles setting decides
+anyway,plain={},{}
+voice=false
+assert(speech.start(context,{text='Voice is off.'})==false)
+assert(#anyway==0 and plain[1]=='Voice is off.','voice off by choice keeps the setting')
+`));

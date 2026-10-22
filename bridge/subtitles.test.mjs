@@ -1524,3 +1524,21 @@ assert(m.projectionGuardError and m.projectionGuardError:find('refused'),tostrin
 local attempts=overrideRegistrations
 m.clear();assert(m.show('Judy','No second attempt.',judy,'201ULL') and overrideRegistrations==attempts)
 `));
+
+test('with Subtitles off a reply is not shown, but a reply that could not be voiced is (showAnyway), and the setting is not touched', () => run(setup + `
+enabled=false
+assert(m.show('Judy','Hidden by the setting.',judy,'201ULL')==false and #shown()==0,'Subtitles off hides an ordinary caption')
+assert(m.showAnyway('Judy','Nobody heard this reply.',judy,'201ULL')==true,'an unvoiced reply shows anyway')
+assert(shown()[1] and shown()[1].speaker==judy)
+-- the next ordinary caption is hidden again: the override lasts one call
+m.clear()
+assert(m.show('Judy','Hidden again.',judy,'201ULL')==false)
+assert(settingsWrites==0)
+-- with Subtitles on it is the same call as show
+enabled=true;m.clear()
+assert(m.showAnyway('Judy','Shown either way.',judy,'201ULL')==true)
+-- an error inside the show does not leave the override on
+enabled=false;m.clear()
+assert(m.showAnyway('Judy',42,judy,'201ULL')~=true)
+assert(m.show('Judy','Still hidden.',judy,'201ULL')==false,'a failed forced show does not leave the override set')
+`));
