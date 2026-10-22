@@ -1869,12 +1869,15 @@ async function status(state, detail = '', turn = null) {
   return job;
 }
 
-// What the cloud voice's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound.
-const cloudPace = new SpeechPace();
+// What a voice engine's recent lines taught: after one that broke, the next ones buffer a longer lead before their first sound, sized from how
+// slowly the broken line was produced. One per engine (the Mistral cloud voice, the Pocket voice, the Convai voice): the speed is the engine's.
+const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace();
+const paceOf = (local, cloud) => local ? (cloud ? cloudPace : pocketPace) : convaiPace;
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
   {player = input.text, late} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
+  const pace = paceOf(local, localVoice.cloudActive);
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
     planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
     onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
@@ -1888,12 +1891,13 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
     holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
-    pace: local && localVoice.cloudActive ? cloudPace : null,
+    pace,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
     onEnded: info => {
       void measure(input, {playback: info}).catch(() => {});
       if (info.underruns > 0) console.error(`[Speech] profile=${input.profileKey} the voice broke ${info.underruns} time(s): ${info.seconds.toFixed(1)} s of audio`
-        + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '') + `; the next lines buffer ${cloudPace.leadSeconds} s first`);
+        + (info.playedMs ? ` played over ${(info.playedMs / 1000).toFixed(1)} s` : '')
+        + `; the next lines buffer ${pace.lead.toFixed(1)} s first (this one refilled ${Number.isFinite(info.refillSeconds) ? info.refillSeconds.toFixed(1) : '?'} s after a break)`);
     },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
