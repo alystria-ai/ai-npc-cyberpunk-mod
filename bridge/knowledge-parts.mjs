@@ -8,7 +8,7 @@
 // and mod/journal-history.lua capture() produce, so every parser and rule downstream is unchanged. A part that cannot
 // be read, or whose revision or world binding differs, makes that snapshot unavailable for the turn (never a guess).
 import {readFileSync} from 'node:fs';
-import {readFile as readFileAsync} from 'node:fs/promises';
+import {readFile as readFileAsync, stat as statAsync} from 'node:fs/promises';
 import {join} from 'node:path';
 import {freezeDeep} from './parsed-snapshot.mjs';
 
@@ -19,16 +19,19 @@ const KEEP = 3;
 let runtimeDir = null;
 let read = path => readFileSync(path, 'utf8');
 let readLater = path => readFileAsync(path, 'utf8');
+let statLater = path => statAsync(path);
 // part name -> Map(key -> data), newest last. A part is published once per revision and never changes, so what is read from disk
 // stays here, frozen, until three newer revisions of that part have been read: a turn names {part, revision}, finds the data in
 // memory, and shares it (the parsers remember their work on it by object, bridge/parsed-snapshot.mjs) instead of reading the file,
 // parsing 150 KB to 600 KB of JSON and cloning the result for every turn.
 const store = new Map();
 
-export function configureKnowledgeParts({runtimeDir: dir, readFile, readFileLater} = {}) {
+export function configureKnowledgeParts({runtimeDir: dir, readFile, readFileLater, statFileLater} = {}) {
   runtimeDir = typeof dir === 'string' && dir ? dir : null;
   if (typeof readFile === 'function') read = readFile;
   if (typeof readFileLater === 'function') readLater = readFileLater;
+  if (typeof statFileLater === 'function') statLater = statFileLater;
+  inflight.clear();
   store.clear();
 }
 
@@ -67,27 +70,48 @@ function load(name, revision, generation, worldToken) {
   return value.data;
 }
 
-/**
- * Reads, parses and freezes a part the moment the game has published it, so the first turn after a new revision finds it in memory instead of doing that work itself
- * (3 ms for a 75 KB part, about 9 ms for 300 KB, about 17 ms for the 600 KB history part, on the bridge's event loop in front of the turn: perf review 2026-10-22).
- * The file is read without blocking; only the parse is on the loop, at the time the game wrote the file and not at the turn. A part is immutable per revision, so what is
- * kept here is exactly what the turn would have read. A file that is half written, of another part, or too large is left for the turn's own read, which says so as before.
- * Resolves true when the part is in memory. Never rejects.
- */
-export async function preloadKnowledgePart(name) {
-  try {
-    if (!PARTS.has(name) || !runtimeDir) return false;
-    const value = parsePart(name, await readLater(join(runtimeDir, `knowledge-${name}.json`)));
-    if (!value) return false;
-    const key = keyOf(name, value.revision, value.generation, value.worldToken);
-    if (store.get(name)?.has(key)) return true;
-    keep(name, key, value);
-    return true;
-  } catch { return false; }
+const inflight = new Map();
+// The key a part file's own header gives (revision, generation, world token), read from its first bytes without parsing the file: the game writes the header first and the
+// data last. null when the head has no such header (the file is then parsed once, as a whole).
+function headKey(name, head) {
+  const revision = /"revision"\s*:\s*(\d+)/.exec(head)?.[1], generation = /"generation"\s*:\s*(-?\d+)/.exec(head)?.[1];
+  if (revision === undefined || generation === undefined) return null;
+  const token = /"worldToken"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(head)?.[1] ?? '';
+  return keyOf(name, Number(revision), Number(generation), token);
 }
 
-/** The files of the parts, for the bridge's file watcher: name -> handler that preloads that part. */
-export const knowledgePartWatchers = () => Object.fromEntries([...PARTS].map(name => [`knowledge-${name}.json`, () => preloadKnowledgePart(name)]));
+/**
+ * Reads, parses and freezes a part in advance, for a bridge that starts while a game session is running (the supervisor restarted it): the first turn then finds the part in
+ * memory instead of reading and parsing it itself (about 1 ms for a 75 KB part, 6.5 ms for 330 KB, 20 ms for the 840 KB history part, on the bridge's event loop in front of the turn).
+ * It is NOT used per revision: the game publishes a part inside the turn's own capture (mod/init.lua captureKnowledge), in the same frame as the request, so a preload at that
+ * moment is the turn's work done in another callback, and a second read of a file that the turn has just parsed. The file is read without blocking and its header looked at before
+ * anything is parsed: a revision already in memory is never parsed again, and calls for the same part share one read. A file older than \`maxAgeMs\` is not read (it is from an earlier
+ * session and could not be this one's). A part is immutable per revision, so what is kept is exactly what the turn would have read. A half-written, foreign or oversized file is left
+ * for the turn's own read. Resolves true when the part is in memory. Never rejects.
+ */
+export function preloadKnowledgePart(name, {maxAgeMs = Infinity} = {}) {
+  if (!PARTS.has(name) || !runtimeDir) return Promise.resolve(false);
+  if (inflight.has(name)) return inflight.get(name);
+  const path = join(runtimeDir, `knowledge-${name}.json`);
+  const run = (async () => {
+    try {
+      if (Number.isFinite(maxAgeMs)) {
+        const {mtimeMs} = await statLater(path);
+        if (!(Date.now() - mtimeMs <= maxAgeMs)) return false;
+      }
+      const raw = await readLater(path);
+      const key = typeof raw === 'string' ? headKey(name, raw.slice(0, 600)) : null;
+      if (key !== null && store.get(name)?.has(key)) return true;
+      const value = parsePart(name, raw);
+      if (!value) return false;
+      const known = keyOf(name, value.revision, value.generation, value.worldToken);
+      if (!store.get(name)?.has(known)) keep(name, known, value);
+      return true;
+    } catch { return false; }
+  })().finally(() => inflight.delete(name));
+  inflight.set(name, run);
+  return run;
+}
 
 const unavailable = reason => ({version: 1, status: 'unavailable', reason});
 
