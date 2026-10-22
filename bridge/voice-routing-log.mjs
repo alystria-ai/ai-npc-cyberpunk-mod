@@ -89,6 +89,7 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
   const requested = voice.requestedProvider;
   const multilingualWhy = plan?.reason === 'english-only-voice'
     ? 'Multilingual non-English reply: Pocket speaks English only'
+    : plan?.reason === 'pocket-language-pack-missing' ? 'Multilingual non-English reply: the Pocket model for this language is installed but its voice language pack is not'
     : plan?.reason === 'voice-language-unsupported' ? 'Multilingual non-English reply: the Voxtral voice does not speak this language' : null;
   // A written reply because the chosen local voice cannot run (or has no clip for this character) is explained by the checks below; any other
   // written reply is a language the chosen voice does not speak.
@@ -133,9 +134,10 @@ const quote = value => `"${text(value)}"`;
  *   sources: raw voice configurations (for reference seconds); lipText: true/false when known, else undefined;
  *   reason: a fallback reason the caller knows better than the routing state (a worker error mid-reply);
  *   languageSet: the set of the voice language pack clip that speaks this reply (multilingual/<lang>/picked/<voice>, docs/VOICE_LANGUAGE_PACKS.md), for
- *   OmniVoice and the Mistral voice; the English reference's set when absent.
+ *   OmniVoice and the Mistral voice (and the local Pocket voice when it speaks the language: pocketModel); the English reference's set when absent.
+ *   pocketModel: the Pocket language model that speaks this reply ({language: 'fr'}, bridge/pocket-language-models.mjs), or undefined for the English student.
  */
-export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character, languageSet,
+export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey, sources, lipText, reason, character, languageSet, pocketModel,
   now = Date.now}) {
   const engine = reply?.engine ?? plan?.engine ?? 'convai';
   const key = input?.profileKey ?? profile?.key ?? '?';
@@ -153,16 +155,18 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
     requested: cloud ? CLOUD_LABEL : requestedLabel(voice.requestedProvider, voice.requestedOmniSteps, voice.requestedOmniReference),
     engine, voiceKey: local ? (voiceKey ?? key) : undefined,
     // The cloud voice clones from its own pick of the reference sets, not from the Pocket one whose route it uses.
-    reference: !local ? null : typeof languageSet === 'string' && languageSet && (engine === 'omni' || (cloud && !cloudWhy)) ? {set: languageSet}
+    reference: !local ? null : typeof languageSet === 'string' && languageSet && (engine === 'omni' || (cloud && !cloudWhy) || (engine === 'pocket' && pocketModel)) ? {set: languageSet}
       : cloud && engine === 'pocket' ? (cloudWhy ? null : cloudReferenceOf(voice, voiceKey ?? key, sources))
       : referenceOf(voice, engine, voiceKey ?? key, sources),
     fallback: reason ?? (cloudWhy ? `${CLOUD_NAMES[cloudKind]} ${cloudWhy.reason === 'no-key' ? 'has no key' : 'fell back (' + cloudWhy.reason + ')'}` : null)
       ?? fallbackReason(voice, key, {plan, engine})};
   if (cloudLast) record.cloudLast = cloudLast;
   if (engine === 'omni') record.used = `OmniVoice ${voice.omniSteps} ${voice.omniReference}`;
-  else if (engine === 'pocket') record.used = cloud ? (cloudWhy ? 'none (written reply only)' : CLOUD_LABEL) : 'Pocket';
+  else if (engine === 'pocket') record.used = cloud ? (cloudWhy ? 'none (written reply only)' : CLOUD_LABEL) : pocketModel ? 'Pocket (language model)' : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
   else record.used = `Convai cloud (${profile?.voiceName ?? 'character voice'})`;
+  // The Pocket language model that spoke (its folder under voices/multilingual-pocket): the reference above is the voice pack clip it cloned from.
+  if (engine === 'pocket' && !cloud && pocketModel?.language) record.model = `multilingual-pocket/${pocketModel.language}`;
   // The language of a reply that is not English (an English turn adds nothing to the line).
   const language = reply?.language ?? plan?.language;
   if (language && language !== 'en') record.language = language;
@@ -196,6 +200,7 @@ export function formatVoiceRoute(record) {
     ? `${record.reference.set}${record.reference.seconds === undefined ? '' : ` ${record.reference.seconds}s`}` : '-';
   const parts = [stamp(record.time), `profile=${record.profile}${voiceKey}`, `name=${quote(record.name)}`,
     `requested=${quote(record.requested)}`, `used=${quote(record.used)}`, `ref=${record.reference ? quote(reference) : '-'}`];
+  if (record.model) parts.push(`model=${text(record.model)}`);
   if (record.character) parts.push(`character=${text(record.character.key) || '-'}`, `characterId=${text(record.character.id)}`);
   if (record.language !== undefined) parts.push(`lang=${text(record.language) || '-'}`);
   if (record.lipText !== undefined) parts.push(`lipText=${record.lipText ? 'yes' : 'no'}`);

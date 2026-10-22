@@ -45,6 +45,7 @@ import {VoxtralVoice} from './voxtral-voice.mjs';
 import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute, describeVLine, referenceOf, cloudReferenceOf} from './voice-routing-log.mjs';
 import {VoiceLanguagePacks} from './voice-language-packs.mjs';
+import {PocketLanguageModels, PocketLanguageNotice} from './pocket-language-models.mjs';
 import {LastReplyCapture, CAPTURE_FOLDER} from './last-reply-capture.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
@@ -250,6 +251,10 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
+// The Pocket language models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
+// found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
+const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});
+await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] scan failed:', error?.message ?? error));
 liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
   voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
   shipped: shippedVoicesReader(originalVoiceConfigPaths), log: message => console.error('[PlayerVoices] ' + message),
@@ -339,7 +344,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,languagePacks,
+  voxtral:voxtralVoice,languagePacks,pocketLanguages,
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
@@ -559,10 +564,14 @@ const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.single
 // A text provider answered in a language the chosen voice cannot speak (Pocket speaks English only, Voxtral the languages its model lists): the reply is shown as text, and
 // the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
 const voiceLanguageNotice = new VoiceLanguageNotice();
+// The Pocket model of a language is installed but the voice language pack it clones from is not: that language's replies are text, said once per language per game session.
+const pocketLanguageNotice = new PocketLanguageNotice();
+let pocketNotice;
 const keyNotice = () => {
-  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take();
+  pocketNotice = undefined;
+  const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'}) ?? voiceLanguageNotice.take() ?? (pocketNotice = pocketLanguageNotice.take())?.keyNotice;
   // The fallback notice names the model that was used instead.
-  return keyNotice ? {keyNotice, ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
+  return keyNotice ? {keyNotice, ...(keyNotice === 'pocket-language-pack' ? {keyNoticeLanguage: pocketNotice.keyNoticeLanguage} : {}), ...((keyNotice === 'local-model-fallback' || keyNotice === 'local-stepdown') && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {}),
     // The few words the game shows after the 'local-cpu' sentence (as data, so the sentence is the only string to translate); never a cloud provider.
     ...(keyNotice === 'local-cpu' ? {keyNoticeDetail: LOCAL_CPU_DETAIL} : {})} : {};
 };
@@ -1078,7 +1087,8 @@ const turnVoices = new Map();
 // written, and Convai gets ttsEnabled false (convaiSpeaks below).
 // `cloud` and `speaks`: the Voxtral voice (it runs on Pocket's route) and the languages the model in use speaks (bridge/multilingual.mjs cloudSpeaks).
 const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider, convai: localVoice.convaiVoiceAllowed,
-  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language)});
+  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language),
+  pocket: {speaks: language => pocketLanguages.speaks(language), packMissing: language => pocketLanguages.packMissing(language)}});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
@@ -1087,6 +1097,8 @@ function turnVoice(input) {
     local: localChoice(profile)});
   if (cacheKey) {
     turnVoices.set(cacheKey, plan);
+    // A reply expected in a language Pocket has a model for: the model is swapped in while the reply is being written (the worker only; nothing else waits on it).
+    if (plan.reason === 'pocket-language' && plan.language && plan.engine === 'pocket' && !input.reaction) void localVoice.warmPocketLanguage(voiceKeyFor(input), plan.language);
     while (turnVoices.size > 64) turnVoices.delete(turnVoices.keys().next().value);
   }
   return plan;
@@ -1101,6 +1113,9 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
   try {
     // The local voice that speaks (a variant of an ambient profile, decided once per turn); the profile key otherwise.
     const voiceKey = ['pocket', 'omni'].includes(reply?.engine) && typeof voiceKeyFor === 'function' ? voiceKeyFor(input) : undefined;
+    // The Pocket language model that speaks this reply (the local voice, a language that has a model and a pack).
+    const pocketModel = reply?.engine === 'pocket' && !localVoice.cloudActive && reply.language && reply.language !== 'en' && pocketLanguages.speaks(reply.language)
+      ? {language: pocketLanguages.model(reply.language).language} : undefined;
     // The Convai character the turn went to (the original or its multilingual twin).
     let character;
     try {
@@ -1108,7 +1123,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       if (characterId) character = {key: route.route?.providerProfileKey ?? input.profileKey, id: characterId};
     } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
-      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, ...extra}));
+      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, ...extra}));
   } catch {}
 }
 // The voice language pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
@@ -1117,6 +1132,8 @@ function languagePackFor(engine, language, voiceKey) {
   if (!language || language === 'en' || !voiceKey || !languagePacks.installed) return null;
   if (engine === 'omni') return localVoice.hasPlayerClip(voiceKey) ? null : languagePacks.entry(language, voiceKey);
   if (engine === 'pocket' && localVoice.cloudActive) return voxtralVoice.languageEntry(voiceKey, language);
+  // The local Pocket voice speaks the language from the pack's clip when it has the model for it (a player's own clip for the character stays the reference).
+  if (engine === 'pocket') return localVoice.hasPlayerClip(voiceKey) ? null : pocketLanguages.entry(language, voiceKey);
   return null;
 }
 // The set a reply's reference is logged as (the routing line's ref): the pack's, else the English one. Only asked while Developer mode keeps the reply (replyCapture).
@@ -1645,15 +1662,24 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   if (voice.engine === 'none') {
     // The chosen local voice cannot run right now (the game says so once, from the voice state's fallback): the reply is written, never given to a cloud voice.
     const unavailable = voice.reason === 'local-voice-unavailable';
-    if (!unavailable && !input.reaction) voiceLanguageNotice.note();
+    // The Pocket model of the language is installed but its voice pack is not: its own notice, per language (the generic one says OmniVoice speaks every language).
+    if (voice.reason === 'pocket-language-pack-missing') { if (!input.reaction) pocketLanguageNotice.note(voice.language); }
+    else if (!unavailable && !input.reaction) voiceLanguageNotice.note();
     logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: unavailable ? 'The selected voice is unavailable right now; showing the written reply.'
         : voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
+        : voice.reason === 'pocket-language-pack-missing' ? 'The voice language pack for this language is missing; showing the written reply.'
         : 'The selected voice speaks English only; showing the written reply.'};
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   const voiceKey = voiceKeyFor(input);
+  // Pocket in another language needs a clip of this character in the language's voice pack (or the player's own clip): without one the reply is written.
+  if (voice.engine === 'pocket' && language && !localVoice.cloudActive && !localVoice.hasPlayerClip(voiceKey) && !pocketLanguages.entry(language, voiceKey)) {
+    logVoiceRoute(input, profile, {engine: 'none', language}, {reason: 'the voice language pack has no clip of this character'});
+    return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
+      audioError: 'The voice language pack has no clip of this character; showing the written reply.'};
+  }
   markStage('voiceStart');
   throwIfCancelled(signal);
   // The face's plan (bridge/emotion-selector.mjs): the player's message and the reply, the character's manner and the
@@ -3371,6 +3397,7 @@ async function pollSettings(checkShutdown = true) {
     if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
     // Voice language packs installed (or removed) while the game runs are noticed within 30 s: one folder listing and a stat per manifest, never awaited by a reply.
     void languagePacks.refresh().catch(() => {});
+    void pocketLanguages.refresh().catch(() => {});
     // Developer mode: the last reply's audio and reference are kept (bridge/last-reply-capture.mjs).
     if (replyCapture.update(settings)) console.error(`[Debug] keeping the last spoken reply is now ${replyCapture.enabled ? 'on' : 'off'}`);
     // A prepared reply was written under the previous Natural speech instructions.
@@ -3451,7 +3478,7 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 // The key and provider IDs are passed only so they can be scrubbed from it.
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
-  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report(),
+  bridge: () => ({busy: !!active, microphoneActive: !!mic.current, voiceLanguagePacks: languagePacks.report(), pocketLanguageModels: pocketLanguages.report(),
     vVoiceMods: {...vVoiceModReport, references: Object.fromEntries(Object.keys(V_VOICE_KEYS).map(gender => [gender, vVoiceReferences.voices[gender] || playerVoices.has(V_VOICE_KEYS[gender]) ? vReferenceLabel(gender) : null]))}})});
 // Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
 // process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.

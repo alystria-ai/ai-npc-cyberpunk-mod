@@ -457,6 +457,11 @@ def inspect_student_export(directory, expected, *, yaml_load=None):
             or receipt.get("input_identity") != expected["inputIdentity"]
             or receipt.get("model_sha256") != expected["sha256"]):
         raise ValueError("Pocket receipt does not identify the selected student export")
+    return checked_config(assets, yaml_load)
+
+
+def checked_config(assets, yaml_load=None):
+    """The YAML of a six-layer CPU export, checked and relocated to the export's own files (a private copy: the downloaded file is never changed)."""
     config_path = assets["inference.yaml"]
     if config_path.stat().st_size > 65_536:
         raise ValueError("Pocket inference config is oversized")
@@ -480,6 +485,76 @@ def inspect_student_export(directory, expected, *, yaml_load=None):
     config["mimi"]["weights_path"] = None
     config["flow_lm"]["lookup_table"]["tokenizer_path"] = str(assets["tokenizer.json"])
     return config
+
+
+# ---- language models (docs/POCKET_LANGUAGE_MODELS.md) ----------------------------------------------------------------------------
+# A Pocket language model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json, inference.yaml) the bridge has
+# checked; the worker checks the files against the hashes the bridge sends before it loads them, and a language's voices are clips of the voice language pack of
+# the same language (<referenceDirectory>/multilingual/<language>/), named like every other reference.
+LANGUAGE_FOLDER = "multilingual-pocket"
+LANGUAGES = ("fr", "it", "de", "es-es", "pt-br")
+LANGUAGE_ASSETS = {"model.safetensors": "sha256", "inference.yaml": "configSha256", "tokenizer.json": "tokenizerSha256"}
+
+
+def language_valid(value):
+    return isinstance(value, str) and value in LANGUAGES
+
+
+def language_prefix(language):
+    return f"{REFERENCE_PREFIX}multilingual/{language}/"
+
+
+def inspect_language_export(paths, language, expected, *, yaml_load=None):
+    """Verify one language model before any of it is loaded. Returns the relocated config. `expected` has the three SHA-256 values."""
+    if not language_valid(language):
+        raise ValueError("Pocket has no model for this language")
+    if not isinstance(expected, dict) or any(not sha(expected.get(field)) for field in LANGUAGE_ASSETS.values()):
+        raise ValueError("Pocket needs hashes for every language model asset")
+    root = plain_absolute(str(Path(paths["referenceDirectory"]) / LANGUAGE_FOLDER / language), "language model directory")
+    if not root.is_dir() or not root.is_relative_to(paths["referenceDirectory"]):
+        raise ValueError("Pocket language model is missing")
+    assets = {name: local_asset(root, name) for name in LANGUAGE_ASSETS}
+    for name, field in LANGUAGE_ASSETS.items():
+        if digest_file(assets[name]) != expected[field]:
+            raise ValueError("Pocket language model asset differs from its identity")
+    return checked_config(assets, yaml_load)
+
+
+def new_language_registry(registry, language, model_sha256):
+    """The registry of a language: the same folders and limits as the English one, and only the voices that were asked for."""
+    return {"raw": {"model": {"sha256": model_sha256}, "language": language}, "paths": registry["paths"], "refs": {}, "descriptors": {},
+            "unavailable": {}, "threads": registry["threads"], "temperature": registry["temperature"], "startup": [],
+            "cacheLimit": registry["cacheLimit"], "language": language}
+
+
+def add_language_voices(registry, voices):
+    """Adds voices (descriptors) to a language registry. A descriptor names a clip of this language's voice pack, or the player's own clip. All checked before any is added."""
+    if not isinstance(voices, dict) or len(voices) > MAX_VOICE_CHANGES or len(registry["descriptors"]) + len(voices) > MAX_PROFILES:
+        raise ValueError("Invalid Pocket language voices")
+    prefix = language_prefix(registry["language"])
+    checked = {}
+    for key, descriptor in voices.items():
+        if not profile_key_valid(key) or not descriptor_valid(descriptor):
+            raise ValueError("Invalid Pocket reference descriptor")
+        if not (descriptor["reference"].startswith(prefix) or player_reference(descriptor["reference"])):
+            raise ValueError("Pocket language voices come from the voice pack of their language")
+        try:
+            checked[key] = (dict(descriptor), resolve_reference(registry["paths"], descriptor))
+        except ValueError:
+            checked[key] = (dict(descriptor), None)
+    changed = []
+    for key, (descriptor, path) in checked.items():
+        old = registry["descriptors"].get(key)
+        registry["descriptors"][key] = descriptor
+        registry["refs"].pop(key, None)
+        registry["unavailable"].pop(key, None)
+        if path is not None:
+            registry["refs"][key] = path
+        else:
+            registry["unavailable"][key] = "unavailable"
+        if old is None or old["sha256"] != descriptor["sha256"]:
+            changed.append(key)
+    return changed
 
 
 def checked_player_directory(value, paths):

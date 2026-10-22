@@ -65,7 +65,7 @@ Now there is no setting and no twin: while a text provider answers, the reply-la
   from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
 - the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Voxtral (Mistral cloud, Voxtral TTS 3,
   2026-10-21) speaks it for the languages its model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
-  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only, and Voxtral for an
+  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their Pocket model and voice language pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
   unlisted language keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`, reason `english-only-voice` or
   `voice-language-unsupported`), with one `voice-language` notice per game session ("Replies in some languages show as text: this voice does not speak
   them. OmniVoice speaks them all, and Voxtral most of them."). No voice model is loaded for it. An English conversation keeps the chosen voice untouched.
@@ -440,8 +440,8 @@ message and checked against the finished reply (`planTurnVoice`, `replyVoice`; t
 
 - English: the chosen voice, untouched (the characters' Spanish slang is never muted).
 - OmniVoice speaks any language and is told the reply's language. The Voxtral voice speaks the languages Voxtral TTS 3 lists (22), the language of the text.
-- Pocket TTS (English only) and Voxtral for a language it does not list keep the plan; a reply in another language is shown as text, with one
-  `voice-language` notice per game session. The Convai cloud voice is only the voice when the player chose it (the twins have Azure multilingual voices).
+- Pocket TTS (English only, plus the languages with an installed Pocket model and voice pack) and Voxtral for a language it does not list keep the plan; a reply in another language is shown as text, with one
+  `voice-language` notice per game session (and one `pocket-pack-<language>` notice per language when the Pocket model is installed but its voice pack is not). The Convai cloud voice is only the voice when the player chose it (the twins have Azure multilingual voices).
   No voice ever hands a reply to a cloud voice it was not chosen for.
 - An OmniVoice choice that cannot run shows the replies as text, never Pocket in its place and never a cloud voice (`VoiceSelection.resolve`, route `text`;
   changed 2026-10-21, before it fell to the cloud voice). A chosen Voxtral voice that cannot be asked (no key, a limit, a refused key) or a language it does not speak is shown as text as well, never given to the Convai voice (changed 2026-10-21, before it fell to the Convai voice, cloud to cloud).

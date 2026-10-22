@@ -42,6 +42,8 @@ export const PROTECTED = Object.freeze([
   `${PLUGIN}/app/omni/`, `${PLUGIN}/app/local-ai/`, `${PLUGIN}/data/`, `${PLUGIN}/state/`,
   // The voice language packs (docs/VOICE_LANGUAGE_PACKS.md): their own zips write this folder, and no Runtime's list ever deletes in it.
   `${PLUGIN}/voices/multilingual/`,
+  // The Pocket language models (docs/POCKET_LANGUAGE_MODELS.md): the same, one optional zip per language.
+  `${PLUGIN}/voices/multilingual-pocket/`,
 ]);
 
 const MAX_LIST_BYTES = 8 * 1024 * 1024;

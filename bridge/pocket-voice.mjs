@@ -6,6 +6,7 @@ import {realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
 import {createVoiceProfileRegistry, registryFromTable, voiceChangeBatches, voiceTable} from './voice-profile-registry.mjs';
+import {pocketSpokenText} from './pocket-language-models.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
@@ -22,7 +23,9 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 export const POCKET_LIMITS = Object.freeze({startupMs: 240_000, prepareMs: 60_000,
   renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 30_000, exitMs: 5000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'importing-dependencies': 60_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
-  progressCpuMs: 100, progressLogMs: 30_000, startAttempts: 2, voicesMs: 30_000});
+  progressCpuMs: 100, progressLogMs: 30_000, startAttempts: 2, voicesMs: 30_000,
+  // A language model swap: verify three files (about 240 MB), release the resident model, read the new one (0.7 to 1.6 s measured on a loaded laptop).
+  languageMs: 90_000});
 const HEARTBEAT_STEPS = Object.freeze(['numpy', 'torch', 'yaml', 'pocket_tts']);
 // Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
 // a plain kill reaches only the launcher: the real worker would go on holding the runtime lock. Only the real spawn is killed by
@@ -100,6 +103,11 @@ export class PocketVoice {
     // "Keep prepared voices": the worker saves each voice's prepared state to disk and reloads it later.
     this.keepPrepared = keepPreparedVoices === true;
     this.tail = Promise.resolve(); this.receiving = Promise.resolve(); this.state = 'stopped'; this.loaded = false;
+    // The language model resident in the worker (docs/POCKET_LANGUAGE_MODELS.md): null is the English student. The last language used stays resident (no idle timer); the model
+    // is swapped only when a reply comes in a different language, English included, and the process exits when Pocket is not needed at all. `languageView` is what the worker holds for it:
+    // {tag, table (the voices it was given), registry, available, prepared, model}. The English `registry`, `available` and `prepared` stay as they are meanwhile
+    // (the worker keeps the English voices it prepared), so nothing about the English path changes while a language is resident.
+    this.language = null; this.languageView = null;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
   /**
@@ -164,7 +172,7 @@ export class PocketVoice {
       resident: this.loaded, bridgePid: process.pid, workerPid: this.child?.pid,
       profiles: this.profileKeys, preparedProfiles: [...this.prepared],
       modelSha256: this.config.model.sha256, inputIdentity: this.config.model.inputIdentity,
-      updated: Date.now(), ...extra})).catch(() => {}); } catch {}
+      language: this.language, updated: Date.now(), ...extra})).catch(() => {}); } catch {}
   }
   timer(task, ms) { const handle = this.setTimer(task, ms); handle?.unref?.(); return handle; }
   send(value) {
@@ -266,7 +274,7 @@ export class PocketVoice {
         this.clearTimer(this.startTimer); this.clearTimer(this.exitTimer); this.clearTimer(this.confirmTimer);
         this.clearTimer(this.stallTimer); this.clearTimer(this.restartTimer);
         this.startTimer = this.exitTimer = this.confirmTimer = this.stallTimer = this.restartTimer = null;
-        this.child = null; this.loaded = false; this.prepared.clear();
+        this.child = null; this.loaded = false; this.prepared.clear(); this.dropLanguage();
         // A worker stopped by the stall watchdog: the same start goes on with a new worker (`ready` stays pending).
         if (this.restarting && !this.closing && !this.failure) {
           this.restarting = false; done();
@@ -286,13 +294,16 @@ export class PocketVoice {
       Math.max(1000, POCKET_LIMITS.startupMs - Math.max(0, this.now() - (this.startedAt ?? this.now()))));
     this.armStall(undefined);
   }
-  validateProfiles(frame) {
+  // `view`: the language model's view (this.languageView, or the one a language command is about to install) when the frame answers a request made in it; null is the English student.
+  validateProfiles(frame, view = null) {
+    const registry = view ? view.registry : this.registry;
     const profiles = frame.profiles, prepared = frame.preparedProfiles;
     const valid = (value, maximum) => Array.isArray(value) && value.length <= maximum && new Set(value).size === value.length
-      && value.every(key => this.registry.has(key));
-    if (!valid(profiles, this.registry.keys.length) || !valid(prepared, this.config.preparation.maxCachedProfiles)
+      && value.every(key => registry.has(key));
+    if (!valid(profiles, registry.keys.length) || !valid(prepared, this.config.preparation.maxCachedProfiles)
         || prepared.some(key => !profiles.includes(key))) throw Error('Invalid Pocket acoustic profile readiness');
-    this.available = new Set(profiles); this.prepared = new Set(prepared);
+    if (view) { view.available = new Set(profiles); view.prepared = new Set(prepared); }
+    else { this.available = new Set(profiles); this.prepared = new Set(prepared); }
   }
   // The worker's answer to a voice change: the voices it now holds, checked against the descriptors that were sent (hashes included).
   receiveVoices(frame, request) {
@@ -362,6 +373,7 @@ export class PocketVoice {
     }
     const request = this.pending.get(frame.id);
     if (request?.kind === 'voices') { this.receiveVoices(frame, request); return; }
+    if (request?.kind === 'language') { this.receiveLanguage(frame, request); return; }
     if (!request || !['prepared', 'pcm', 'done', 'cancelled', 'error'].includes(frame.op) || frame.profile !== request.profile)
       throw Error('Unexpected Pocket speech response');
     if (frame.op === 'pcm') {
@@ -387,7 +399,7 @@ export class PocketVoice {
       const packet = {version: 1, engine: 'pocket-tts', profile: request.profile, owner: this.owner,
         id: request.id, index: frame.index, sampleRate: 24000, channels: 1, pcm, format: 'f32le',
         offsetFrames: frame.offsetFrames, frames: frame.frames, timebase: 'audio-seconds',
-        startSeconds: frame.offsetFrames / 24000, modelSha256: this.config.model.sha256,
+        startSeconds: frame.offsetFrames / 24000, modelSha256: request.view?.model.sha256 ?? this.config.model.sha256,
         timing: {voicePcmYieldMs: frame.yieldMs, voicePcmCopiedReadyMs: frame.copiedReadyMs,
           voicePcmReceivedMs: this.now() - request.started}};
       let sinkTimer;
@@ -401,7 +413,7 @@ export class PocketVoice {
       finally { this.clearTimer(sinkTimer); }
       return;
     }
-    this.validateProfiles(frame);
+    this.validateProfiles(frame, request.view ?? null);
     if (frame.op === 'error') {
       if (frame.terminal !== undefined && typeof frame.terminal !== 'boolean') throw Error('Invalid Pocket failure lifetime');
       if (frame.terminal) this.fail(Error('Pocket generation stopped; restart the local voice service'));
@@ -412,19 +424,20 @@ export class PocketVoice {
       this.finishRequest(request, request.cancelReason || cancelled('Pocket speech cancelled')); return;
     }
     if (frame.op === 'prepared') {
-      if (request.kind !== 'prepare' || !this.prepared.has(request.profile) || !finite(frame.preparationMs) || frame.preparationMs < 0)
+      if (request.kind !== 'prepare' || !(request.view ? request.view.prepared : this.prepared).has(request.profile) || !finite(frame.preparationMs) || frame.preparationMs < 0)
         throw Error('Invalid Pocket reference preparation');
-      this.finishRequest(request, null, {provider: 'pocket', ready: this.profileReady(request.profile), profile: request.profile,
+      this.finishRequest(request, null, {provider: 'pocket', ready: request.view ? request.view.prepared.has(request.profile) : this.profileReady(request.profile), profile: request.profile,
         preparationMs: frame.preparationMs, preparationSource: preparationSource(frame)}); return;
     }
     if (request.kind !== 'stream' || frame.frames !== request.frames || frame.chunks !== request.chunks || request.frames < 1
-        || frame.sampleRate !== 24000 || frame.channels !== 1 || !this.prepared.has(request.profile)
+        || frame.sampleRate !== 24000 || frame.channels !== 1 || !(request.view ? request.view.prepared : this.prepared).has(request.profile)
         || frame.firstPcmYieldMs !== request.firstYieldMs || frame.firstPcmCopiedReadyMs !== request.firstReadyMs
         || !finite(frame.preparationMs) || frame.preparationMs < 0 || !finite(frame.generationMs) || frame.generationMs < request.lastReadyMs)
       throw Error('Pocket completion does not match its streamed PCM');
     this.finishRequest(request, null, {provider: 'pocket', engine: 'pocket-tts', sampleRate: 24000, channels: 1,
       frames: request.frames, chunks: request.chunks, duration: request.frames / 24000,
-      modelSha256: this.config.model.sha256, timing: {voiceProvider: 'pocket', voiceEngine: 'pocket-tts',
+      modelSha256: request.view?.model.sha256 ?? this.config.model.sha256, ...(request.view ? {language: request.view.tag} : {}),
+      timing: {voiceProvider: 'pocket', voiceEngine: 'pocket-tts',
         voiceWarm: true, voiceDtype: 'torch.float32', voiceRuntime: 'pytorch', voiceDevice: 'cpu',
         voiceQueueMs: request.started - request.queued, voicePreparationMs: frame.preparationMs,
         voicePreparationSource: preparationSource(frame),
@@ -432,12 +445,12 @@ export class PocketVoice {
         voiceFirstPcmReceivedMs: request.firstReceivedMs, voiceGenerationMs: frame.generationMs,
         voiceRoundTripMs: this.now() - request.started}});
   }
-  command(kind, profile, {signal, onPcm, text, queued = this.now(), urgent = false} = {}) {
+  command(kind, profile, {signal, onPcm, text, queued = this.now(), urgent = false, view = null} = {}) {
     throwIfCancelled(signal);
     if (this.closing || this.failure) return Promise.reject(this.failure || cancelled());
     const id = ++this.sequence, started = this.now();
     return new Promise((resolveFrame, reject) => {
-      const request = {id, kind, profile, onPcm, queued, started, frames: 0, chunks: 0, lastReadyMs: 0,
+      const request = {id, kind, profile, onPcm, queued, started, frames: 0, chunks: 0, lastReadyMs: 0, view,
         controller: new AbortController(), resolve: resolveFrame, reject};
       this.pending.set(id, request);
       request.cancel = () => this.cancelRequest(request, cancelled());
@@ -470,30 +483,113 @@ export class PocketVoice {
     if (!this.closing && !this.failure) this.publish('ready');
     if (error) request.reject(error); else request.resolve(result);
   }
-  async ensurePrepared(profile, signal, {urgent = false} = {}) {
+  // `pocketLanguage`: {tag, folder, expected, voices: {key: descriptor}} to make that language model the resident one first, or null for the English student. `folder` is the
+  // model's (and the voice pack's) folder name, 'es-es', which is how the worker and this client know the language; `tag` ('es') is the reply language the text respelling follows.
+  // Returns the view the request is made in (null: English). The English path pays one comparison when no language is resident.
+  async ensureLanguage(pocketLanguage, signal, {urgent = false} = {}) {
+    const tag = pocketLanguage?.folder ?? null;
+    if (tag === null && this.language === null) return null;
+    if (tag !== null) {
+      const held = this.language === tag ? this.languageView.table : null;
+      const wanted = Object.entries(pocketLanguage.voices ?? {});
+      if (held && wanted.every(([key, descriptor]) => held[key]?.sha256 === descriptor.sha256 && held[key]?.reference === descriptor.reference)) return this.languageView;
+    }
+    throwIfCancelled(signal);
+    if (this.closing || this.failure) throw this.failure || cancelled();
+    const table = tag !== null && this.language === tag ? {...this.languageView.table, ...pocketLanguage.voices} : {...(pocketLanguage?.voices ?? {})};
+    await this.languageCommand(tag === null ? {language: null} : {language: tag, expected: pocketLanguage.expected, voices: pocketLanguage.voices ?? {}, ...(urgent ? {urgent: true} : {})},
+      tag === null ? null : {tag, table, model: {sha256: pocketLanguage.expected.sha256}});
+    return this.languageView;
+  }
+  languageCommand(payload, next) {
+    if (this.closing || this.failure) return Promise.reject(this.failure || cancelled());
+    const id = ++this.sequence, started = this.now();
+    return new Promise((resolveFrame, reject) => {
+      const request = {id, kind: 'language', profile: undefined, next, payload, queued: started, started, frames: 0, chunks: 0, lastReadyMs: 0,
+        controller: new AbortController(), resolve: resolveFrame, reject};
+      this.pending.set(id, request);
+      request.timer = this.timer(() => this.fail(Error('Pocket language change timed out')), POCKET_LIMITS.languageMs);
+      this.publish('loading-language', {language: payload.language});
+      try { this.send({op: 'language', id, ...payload}); } catch (error) { this.fail(error); }
+    });
+  }
+  // The worker's answer to a language command: the language it now holds and its voices, checked against what was asked (hashes included).
+  receiveLanguage(frame, request) {
+    if (!['language', 'error'].includes(frame.op)) throw Error('Unexpected Pocket speech response');
+    const target = request.payload.language;
+    if (frame.op === 'error') {
+      // A refused language leaves the worker with the English student (or the language it had, when the files were refused before anything was dropped).
+      if (!['string', 'object'].includes(typeof frame.language) && frame.language !== undefined) throw Error('Invalid Pocket language answer');
+      const held = frame.language ?? null;
+      if (held !== this.language) {
+        if (held === null) this.dropLanguage(); else throw Error('Pocket worker holds a language the bridge did not ask for');
+      }
+      if (held === null) this.validateProfiles(frame); else this.validateProfiles(frame, this.languageView);
+      const reason = typeof frame.reason === 'string' ? frame.reason.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) : '';
+      this.finishRequest(request, Object.assign(Error(`Pocket language model could not be loaded${reason ? ` (${reason})` : ''}`), {pocketLanguage: target, refused: true}));
+      return;
+    }
+    if ((frame.language ?? null) !== target) throw Error('Pocket worker did not confirm the language');
+    if (target === null) {
+      this.dropLanguage();
+      this.validateProfiles(frame);
+      this.finishRequest(request, null, {language: null, loadMs: frame.loadMs});
+      return;
+    }
+    const view = {...request.next, registry: registryFromTable(request.next.table, this.config), available: new Set(), prepared: new Set()};
+    this.validateProfiles(frame, view);
+    if (!object(frame.referenceHashes) || Object.keys(frame.referenceHashes).length !== view.available.size
+        || [...view.available].some(key => frame.referenceHashes[key] !== view.registry.profiles[key].sha256))
+      throw Error('Pocket worker did not confirm the language voice identities');
+    this.language = target; this.languageView = view;
+    this.startLog(`language ${target} resident (${Math.round(Number(frame.loadMs) || 0)} ms)`);
+    this.finishRequest(request, null, {language: target, loadMs: frame.loadMs});
+  }
+  dropLanguage() { this.language = null; this.languageView = null; }
+  async ensurePrepared(profile, signal, {urgent = false, pocketLanguage = null} = {}) {
     throwIfCancelled(signal); await abortable(this.start(), signal); throwIfCancelled(signal);
     if (this.closing || this.failure) throw this.failure || cancelled();
-    if (!this.hasProfile(profile)) throw Error('This character has no available Pocket voice');
+    const view = await this.ensureLanguage(pocketLanguage, signal, {urgent}); throwIfCancelled(signal);
+    if (this.closing || this.failure) throw this.failure || cancelled();
+    if (!(view ? view.registry.has(profile) && view.available.has(profile) : this.hasProfile(profile))) throw Error('This character has no available Pocket voice');
     // The worker revalidates the exact source file before a cache hit as well.
-    const prepared = await this.command('prepare', profile, {signal, urgent}); throwIfCancelled(signal);
+    const prepared = await this.command('prepare', profile, {signal, urgent, view}); throwIfCancelled(signal);
     return prepared;
   }
   prepareProfile(profile, {signal} = {}) {
     if (!this.usesProfile(profile)) return Promise.resolve({provider: 'text', ready: true,
       reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
+    // A language is resident and this voice is already prepared in the English student's cache: it stays prepared (the worker keeps it), and warming it
+    // must not swap the English model back in just before a reply in the language.
+    if (this.language && this.prepared.has(profile)) return Promise.resolve({provider: 'pocket', ready: this.profileReady(profile), profile});
     const operation = this.tail.then(async () => { const prepared = await this.ensurePrepared(profile, signal);
       return {provider: 'pocket', ready: this.profileReady(profile), profile,
         ...(prepared?.preparationSource ? {preparationMs: prepared.preparationMs, preparationSource: prepared.preparationSource} : {})}; });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);
   }
-  synthesizeStream(profile, text, {signal, onPcm} = {}) {
-    if (!this.usesProfile(profile)) return Promise.reject(Error('This character has no available Pocket voice'));
+  /**
+   * `pocketLanguage`: {tag, folder, expected, voices: {voiceKey: descriptor}} for a reply in a language the Pocket model of which is installed (bridge/pocket-language-models.mjs):
+   * the worker makes that model the resident one (once; a reply in the same language finds it there), the voice is the language pack's clip, and the text gets the
+   * respellings the model needs ("Night City"). Without it this is the English student, exactly as before.
+   */
+  synthesizeStream(profile, text, {signal, onPcm, pocketLanguage} = {}) {
+    if (pocketLanguage ? !this.enabled : !this.usesProfile(profile)) return Promise.reject(Error('This character has no available Pocket voice'));
     if (typeof text !== 'string' || !text.trim() || text.length > 12_000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)
         || typeof onPcm !== 'function') return Promise.reject(Error('Pocket streaming requires valid reply text and a PCM consumer'));
+    const spoken = pocketLanguage ? pocketSpokenText(pocketLanguage.tag, text) : text;
     const queued = this.now();
     const operation = this.tail.then(async () => {
-      await this.ensurePrepared(profile, signal, {urgent: true}); throwIfCancelled(signal);
-      return this.command('stream', profile, {text, signal, onPcm, queued});
+      await this.ensurePrepared(profile, signal, {urgent: true, pocketLanguage: pocketLanguage ?? null}); throwIfCancelled(signal);
+      return this.command('stream', profile, {text: spoken, signal, onPcm, queued, view: pocketLanguage ? this.languageView : null});
+    });
+    this.tail = operation.catch(() => {}); return abortable(operation, signal);
+  }
+  /** Swaps a language model in and prepares one voice of it, ahead of the reply (the turn's language is known before its reply is written). Never urgent. */
+  prepareLanguage(profile, pocketLanguage, {signal} = {}) {
+    if (!pocketLanguage || !this.enabled) return Promise.resolve({provider: 'text', ready: false, reason: 'no-language'});
+    const operation = this.tail.then(async () => {
+      await this.ensurePrepared(profile, signal, {pocketLanguage});
+      return {provider: 'pocket', ready: this.languageView?.prepared.has(profile) === true, profile, language: pocketLanguage.tag};
     });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);
   }
@@ -522,7 +618,7 @@ export class PocketVoice {
   }
   close() {
     if (this.closing) return this.closing;
-    this.closing = Promise.resolve(); this.rejectReady?.(cancelled('Pocket speech stopped'));
+    this.closing = Promise.resolve(); this.rejectReady?.(cancelled('Pocket speech stopped')); this.dropLanguage();
     for (const request of this.pending.values()) this.finishRequest(request, cancelled('Pocket speech stopped'));
     if (!this.child) { this.loaded = false; this.publish('stopped'); return this.closing; }
     this.publish('stopping'); this.child.stdin.end(); this.confirmExit();

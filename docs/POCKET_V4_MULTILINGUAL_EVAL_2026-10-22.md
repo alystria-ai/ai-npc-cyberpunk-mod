@@ -105,7 +105,9 @@ Open items that do not change the verdict but must be closed before shipping:
 3. The "Night City" respelling table (it, es, pt) in the Pocket text path, and a check of the other English names.
 4. Nobody listened to any of this: long replies (more than 50 tokens are chunked), expressive lines and the quality of the 24-layer models (higher quality, 672 MB each) are untested.
 
-## Integration sketch (not implemented)
+## Integration sketch (written before the build)
+
+Built as `docs/POCKET_LANGUAGE_MODELS.md` (2026-10-22). Where the build differs from this sketch: the zips hold Kyutai's real gated cloning weights unchanged (the owner accepted the terms, and the gated French file's 42 Mimi encoder tensors are byte-identical to the shipped student's, so the numbers above hold; no splicing), 219 MB each; the unload rule is the owner's (the last language stays loaded); the memory was re-measured in the real worker and stays flat.
 
 **Shipping (owner decisions of 2026-10-22).** Each Pocket language model is its own optional zip on Hugging Face only, in the `multilingual/` folder next to the voice language packs, never on Nexus. Sizes measured by zipping the real files (deflate level 9):
 
@@ -140,7 +142,7 @@ A sibling folder (not a subfolder of the pack) keeps the pack's all-or-none mani
 
 **One model at a time, loaded on demand.** The first Pocket reply in a language with an installed model and pack swaps the language model in; replies in English swap the student back (a load of about 1 s, once per language change, not per reply; the previous reply must finish first, which the existing gate already enforces). Memory stays near 0.9 GB because the swap reuses the freed memory (measured). Keeping both models resident would cost another 445 MB and is not recommended.
 
-**Unload rule.** (1) A language model idle for 10 minutes (no reply in that language) is replaced by the English student again. (2) When Pocket is not needed any more (voice setting changed, game closed) the worker exits as it does today and the exit is confirmed, because only a process exit returns the memory (deleting the model in-process frees about 40 MB of 445). (3) A model whose pack disappears at the live re-scan is dropped at the next idle point and the notice above is shown. Every loader gets its unload path in the same change.
+**Unload rule (changed by the owner on 2026-10-22; implemented in `docs/POCKET_LANGUAGE_MODELS.md`).** The last language used stays loaded; Pocket swaps only when a reply comes in a different language, English included (no idle timer). When Pocket is not needed any more (voice setting changed, game closed) the worker exits as it does today and the exit is confirmed, because only a process exit returns the memory (deleting the model in-process frees about 40 MB of 445). A model whose pack disappears at the live re-scan stops being used and the notice above is shown.
 
 **Pack files reused.** `multilingual/<lang>/manifest.json` (the voice entries, their clip paths and SHA-256) and the clips `picked/<key>.wav`, `archetypes/<key>.wav` and `v-voice/v-male.wav`, which are 24 kHz mono, 6 to 20 s, the right format for `get_state_for_audio_prompt(path, truncate=False)` without conversion. Not used: the transcripts (Pocket does not need them) and `prepared/` (Voxtral only). A player's own clip for a character is still never replaced by a pack's, as for OmniVoice. A voice missing from the pack falls back to text for that turn, not to the English clip, because the English clip with a foreign model clones badly (0.21 to 0.31 against the dub; the control above).
 
