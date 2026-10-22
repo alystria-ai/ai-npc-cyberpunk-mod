@@ -21,6 +21,7 @@ import { parseVersion } from './version.js';
 //       10 version field 'v:<modVersion>'  11 now (ms)   12 report id           13 base64 gzip of the body
 //       14 oldest id time still kept (13 digits, zero padded)                  15 zset cut-off ('(' + ms)
 //       16 most signatures listed          17 most fields in an index hash
+//       18 how many of the earliest bodies are pinned (never evicted by newer ones; the rest of the list is newest first)
 //
 // Order: the address counter, then the install's duplicate check (a signature is taken once per install per UTC day, and a
 // duplicate counts nowhere else), then the install's daily count, then the index, and only then the body (kept when the day's
@@ -42,8 +43,21 @@ if today > tonumber(ARGV[2]) then return {'rate_install', 0} end
 redis.call('HSET', KEYS[2], 's:' .. sig, '1')
 local keep = bump(KEYS[3], 172800) <= tonumber(ARGV[3])
 
-if redis.call('HSETNX', KEYS[4], 'first', ARGV[11]) == 1 then
-  redis.call('HSET', KEYS[4], 'kind', ARGV[7], 'message', ARGV[8], 'frame', ARGV[9])
+redis.call('HSETNX', KEYS[4], 'first', ARGV[11])
+-- What the signature is (kind, message, frame) is the value most reports agree on, not the first writer's: a running majority vote
+-- (one candidate and a counter), so one early forged report cannot fix the text for good.
+local candidate = redis.call('HGET', KEYS[4], 'kind')
+if not candidate then
+  redis.call('HSET', KEYS[4], 'kind', ARGV[7], 'message', ARGV[8], 'frame', ARGV[9], 'votes', '1')
+elseif candidate == ARGV[7] and redis.call('HGET', KEYS[4], 'message') == ARGV[8] and (redis.call('HGET', KEYS[4], 'frame') or '') == ARGV[9] then
+  redis.call('HINCRBY', KEYS[4], 'votes', 1)
+else
+  local votes = tonumber(redis.call('HGET', KEYS[4], 'votes') or '1') - 1
+  if votes <= 0 then
+    redis.call('HSET', KEYS[4], 'kind', ARGV[7], 'message', ARGV[8], 'frame', ARGV[9], 'votes', '1')
+  else
+    redis.call('HSET', KEYS[4], 'votes', votes)
+  end
 end
 redis.call('HSET', KEYS[4], 'last', ARGV[11])
 local count = redis.call('HINCRBY', KEYS[4], 'count', 1)
@@ -58,8 +72,12 @@ if keep then
   redis.call('EXPIRE', KEYS[5], ttl)
   redis.call('LPUSH', KEYS[6], ARGV[12])
   local samples = tonumber(ARGV[4])
+  local pinned = tonumber(ARGV[18])
+  -- Over the limit: drop the oldest body that is not one of the pinned earliest (the pinned ones sit at the tail).
   while redis.call('LLEN', KEYS[6]) > samples do
-    redis.call('HDEL', KEYS[5], redis.call('RPOP', KEYS[6]))
+    local victim = redis.call('LINDEX', KEYS[6], -1 - pinned)
+    redis.call('LREM', KEYS[6], -1, victim)
+    redis.call('HDEL', KEYS[5], victim)
   end
   while true do
     local oldest = redis.call('LINDEX', KEYS[6], -1)
@@ -84,6 +102,8 @@ return {'counted', count}
 export const MAX_BODY_BYTES = 65536;
 export const MAX_SIGNATURES = 5000;
 export const MAX_INDEX_FIELDS = 48;
+// The earliest bodies of a signature that newer ones never evict (at most half of the samples), so a flood cannot push out the first real reports.
+export const PINNED_SAMPLES = 3;
 export const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
 export const REPORT_ID_PATTERN = /^\d{13}-[0-9a-f]{6}$/;
 const INSTALL_PATTERN = /^[0-9a-f]{32}$/;
@@ -212,7 +232,7 @@ export function createErrorReportHandler(options = {}) {
       return;
     }
 
-    const ipKey = pseudonym(config.signingSecret, 'error-ip', clientAddress(request));
+    const ipKey = pseudonym(config.signingSecret, 'error-ip', clientAddress(request, { prefixGroups: 3 }));
     if (flooded(ipKey)) {
       sendJson(response, 429, { error: 'rate', retryAfterSeconds: 60 }, { 'Retry-After': '60' });
       return;
@@ -229,7 +249,7 @@ export function createErrorReportHandler(options = {}) {
     const args = [config.errorIpPerHour, config.errorInstallPerDay, config.errorStorePerDay, config.errorSamples, ttlSeconds,
       body.signature, body.kind, cut(body.message, 200), cut(body.frame ?? '', 160), `v:${body.modVersion}`, nowMs, id, kept,
       String(Math.max(0, nowMs - ttlSeconds * 1000)).padStart(13, '0'), `(${Math.max(0, nowMs - ttlSeconds * 1000)}`,
-      maxSignatures, MAX_INDEX_FIELDS];
+      maxSignatures, MAX_INDEX_FIELDS, Math.min(PINNED_SAMPLES, Math.floor(config.errorSamples / 2))];
 
     let verdict;
     try {
