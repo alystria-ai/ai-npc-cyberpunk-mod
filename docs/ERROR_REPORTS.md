@@ -109,7 +109,7 @@ Redaction, in order: the support report's `createRedactor` with every key file's
 node scripts/Fetch-ErrorReports.mjs
 ```
 
-It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen, a line of totals by kind, and, for `slow-turn` reports, a table of first sound for the first turns against the slow ones. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
+It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen (only fixed-shape fields; the message and frame go in fenced, escaped blocks under an untrusted-data header, and each saved report starts with an `_untrusted` notice), a line of totals by kind, and, for `slow-turn` reports, a table of first sound for the first turns against the slow ones. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
 
 ## Files
 
