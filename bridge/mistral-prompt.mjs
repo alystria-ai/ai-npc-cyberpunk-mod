@@ -67,18 +67,16 @@ export const withPromptSource = (messages, args) => { Object.defineProperty(mess
 // that only repeat the output rules or the context blocks are said in one line, and the reviewer notes are left out (response audit 2026-10-22):
 //   - the "Scope:" line after each claim of the public topic material (632 lines over the roster) is a note for the reviewer, not for the character;
 //   - the KNOWLEDGE AND CURRENT SAVE block (601 characters in every named profile) and the intro of the PUBLIC INTRINSIC TOPIC MATERIAL (about 430) say what the output rules and the world block say;
-//   - an archetype is told to take where it is from the per-turn context (district, neighborhood), which baited the place into every reply;
+//   (the roster text now says it itself, since fix/character-data-1022: an archetype is told to mention the place or the hour only if V asks)
 //   - the closing "Speak naturally to V ..." paragraph of the speaking style is rules 1 to 3 again.
 const SAVE_LINE = 'Verified current-save context overrides memory. Summoning you establishes no quest outcome, survival, romance or prior meeting. Admit what you do not know. Keep private motives and confidences private unless verified context says they were disclosed to this audience; a group invitation or a direct question alone does not.';
 const TOPIC_LINE = 'Background and personal views, not proof that V met you or saw the source; use one detail, in your own words, in a sentence or two; verified game facts override.';
-const ARCHETYPE_PLACE = /Use the per-turn context for where you are \(district, neighborhood\), what V can see about you and anything that has just happened\. If the location is not given, do not invent a specific address\./;
 // A "Scope:" line that is a rule (do not, never, avoid, invent, give no) or a "No ..." limit stays: it keeps the character from inventing or overclaiming. The rest are provenance notes for the reviewer.
 const SCOPE_RULE = /\b(?:do not|don't|never|avoid|invent(?:ed)?|give no)\b|^Scope:\s*No\b/i;
 export const leanBackstory = text => String(text ?? '')
   .replace(/^Scope:[^\n]*(?:\n|$)/gm, line => SCOPE_RULE.test(line) ? line : '')
   .replace(/^(KNOWLEDGE AND CURRENT SAVE)\n[^\n]+/m, `$1\n${SAVE_LINE}`)
   .replace(/^(PUBLIC INTRINSIC TOPIC MATERIAL)\nThese are background and personal perspectives[^\n]+/m, `$1\n${TOPIC_LINE}`)
-  .replace(ARCHETYPE_PLACE, 'Use the per-turn context for what V can see about you and anything that has just happened. Invent no address.')
   .replace(/\n{3,}/g, '\n\n').trim();
 // The closing paragraph of the speaking style is rules 1 to 3 again, except for three sentences that say more: the group-talk pair and "Use slang sparingly" (the archetypes overuse "choom").
 const STYLE_KEEP = [/Use slang sparingly[^.]*\./, /In a group, speak for yourself[^.]*\./, /Never reveal private conversation history to a group\./];
