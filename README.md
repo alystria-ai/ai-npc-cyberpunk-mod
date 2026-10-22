@@ -4,7 +4,7 @@
 Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
 <p align="center">
-  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.2.8" src="https://img.shields.io/badge/VERSION-0.2.8-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.2.9" src="https://img.shields.io/badge/VERSION-0.2.9-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
   <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>

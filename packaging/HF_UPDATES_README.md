@@ -22,3 +22,4 @@ Each file is named `Runtime-Update-<from version>-to-<to version>.zip`. The step
 | `Runtime-Update-0.2.5-to-0.2.6.zip` | 878 KiB |
 | `Runtime-Update-0.2.6-to-0.2.7.zip` | 30.8 MiB |
 | `Runtime-Update-0.2.7-to-0.2.8.zip` | 3.9 MiB |
+| `Runtime-Update-0.2.8-to-0.2.9.zip` | 15.4 MiB |
