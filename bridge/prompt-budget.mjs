@@ -291,7 +291,7 @@ function headTokens(args, charsPerToken = BUDGET.charsPerToken) {
   try {
     if (!args?.persona) return 0;
     // The world rules follow the head in every turn and are read once like it: they are part of what the server holds.
-    const head = [systemHead({persona: args.persona, limits: args.limits, mature: args.mature ?? null, guard: args.guard ?? false}), worldRulesBlock(args.persona.worldRules)].filter(Boolean).join('\n\n');
+    const head = [systemHead({persona: args.persona, limits: args.limits, mature: args.mature ?? null, guard: args.guard ?? false, profile: args.profile}), worldRulesBlock(args.persona.worldRules)].filter(Boolean).join('\n\n');
     return Math.ceil(textTokens(head, charsPerToken)) + templateTokens(1);
   } catch { return 0; }
 }

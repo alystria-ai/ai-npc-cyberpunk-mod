@@ -78,6 +78,7 @@ import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtim
 import {gpuVendors, nvidiaCardMiB} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
+import {PromptProfiles} from './prompt-profile-store.mjs';
 import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
@@ -958,7 +959,12 @@ function maturePackInstalled(force = false) {
   return matureContent.pack;
 }
 maturePackInstalled(true);
-const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent,
+// Prompt profiles (bridge/prompt-profiles.mjs, docs/LOCAL_AI.md "Prompt profiles"): the wording of the output rules and the sampling per model, with the player's own changes
+// (<state>/prompt-overrides/<profile>.json) read once here; a turn picks its profile with a plain lookup and a saved change is in effect on the next turn. The Convai prompt is not touched.
+const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, 'prompt-overrides'), log: message => console.error('[PromptProfiles] ' + message),
+  active: () => ({route: mistral.route, tier: localServer.status?.().tier ?? null, mature: matureContent.enabled === true,
+    custom: customEndpoint.ready ? {origin: customEndpoint.origin, model: customEndpoint.model} : null})});
+const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
   // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
   deliverAction: message => companionActions.deliver(message),

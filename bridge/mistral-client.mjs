@@ -128,7 +128,7 @@ function customRetryAfter(headers, now = Date.now()) {
 // The optional request fields the custom provider sends, and the ones a server may refuse. A server's refusal names the field, or at least
 // says "unsupported parameter"; the request is then sent once more without it (or, for max_tokens that a newer OpenAI model replaced by
 // max_completion_tokens, with the new name) and the choice is remembered for the session (`adapt`, see streamChat).
-const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'max_completion_tokens']);
+const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'repeat_penalty', 'max_completion_tokens']);
 // "must be": LM Studio refuses the fact extraction's json_object with "'response_format.type' must be 'json_schema'" (a field it names is dropped;
 // a sentence that names no optional field, such as "messages must be non-empty", is still not a refusal of one).
 const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|must be|invalid_request_error.*param/;
@@ -695,7 +695,7 @@ const MAX_ADAPTATIONS = 4;
 // `thinks`: a request to this endpoint came back with only thinking, so the fields that ask for no thinking go with every request (bridge/reasoning.mjs noThinkingFields);
 // `noThinkDropped`: which of those fields the server refused by name.
 export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false, thinks: false, noThinkDropped: new Set()}; }
-const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p']);
+const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'repeat_penalty', 'stop']);
 /**
  * Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). `steps`: how many
  * steps of the reasoning field the request has (bridge/reasoning.mjs): a refusal that is about them moves to the next, after the last nothing is sent.
