@@ -4984,6 +4984,20 @@ test('a settings file that cannot be read acts as a fresh install for error repo
   assert(manager.snapshot(player).settings.errorReportsNoticed == nil)
 `));
 
+test('a hand-edited error-report value that is not true or false is not read as an opt-in: the notice is due again before anything is sent', () => run(`${managerFixture}
+  for _, odd in ipairs({'false', 0, 'no'}) do
+    seed = {version = 2, errorReports = odd, errorReportsNoticed = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles)
+    assert(manager.errorReports() == true)
+    assert(manager.errorReportsNoticeDue() == true, 'the notice flag went with the value, so the notice shows (and is marked) again')
+  end
+  seed = {version = 2, errorReports = false, errorReportsNoticed = true, enabledByKey = {}}
+  files['runtime/settings.json'], saved = 'seed', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == false and manager.errorReportsNoticeDue() == false, 'a real opt-out is untouched')
+`));
+
 // ---- The owner's settings decisions of 2026-10-20 (the notes: scratchpad/decisions.md, the code: mod/manager.lua, mod/manager-ui.lua).
 
 // What the bridge publishes (runtime/mistral-state.json) as the page reads it, and the way Mature content tests set the Local AI models up.

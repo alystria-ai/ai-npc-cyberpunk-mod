@@ -132,7 +132,7 @@ const confirmPage = (state, from) => page('Confirm sign-in', (from
 const SIGNED_IN = page('Signed in', 'Your Convai API key is saved in the mod. You can close this tab and go back to the game.');
 const NOT_SIGNED_IN = page('Sign-in did not finish', 'Go back to the game and choose Sign in with Convai again, or copy your key from convai.com and choose Paste.');
 const PAGE_HEADERS = {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'X-Content-Type-Options': 'nosniff'};
+  'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'", 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff'};
 
 /**
  * Convai's page hands the key back by sending the browser itself to the loopback address: a top-level navigation. A browser marks every

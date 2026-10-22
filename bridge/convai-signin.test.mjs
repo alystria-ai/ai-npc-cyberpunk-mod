@@ -301,3 +301,15 @@ test('rawQuery keeps values exactly as sent', () => {
     {api_key: 'a+b/c==', user_info: 'x%2By'});
   assert.deepEqual(rawQuery('/control', ['api_key']), {});
 });
+
+test('the pages of the listener cannot be framed', async () => {
+  const {session, port} = begin();
+  try {
+    const value = await port(), host = `localhost:${value}`;
+    const held = await get(value, '/confirm-page?state=' + '0'.repeat(32), host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document'});
+    assert.equal(held.status, 404);
+    const refused = await get(value, '/confirm?state=' + '0'.repeat(32), host, {'Sec-Fetch-Site': 'same-origin'});
+    assert.match(refused.headers['content-security-policy'], /frame-ancestors 'none'/);
+    assert.equal(refused.headers['x-frame-options'], 'DENY');
+  } finally { session.cancel(); }
+});

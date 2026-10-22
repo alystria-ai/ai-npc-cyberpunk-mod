@@ -131,7 +131,11 @@ function M.redactLine(line, secrets)
         -- 40 and more with a digit and a letter, like the service; and a Mistral key: exactly 32 letters and digits (no - or _, so a 32-character
         -- name with hyphens such as a model name stays readable), with a digit and a letter or both cases.
         if #run >= 40 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
-        if #run == 32 and run:match('^%w+$') and ((run:find('%d') and run:find('%a')) or (run:find('%l') and run:find('%u'))) then return '[token-redacted]' end
+        local function random(text) return (text:find('%d') and text:find('%a')) or (text:find('%l') and text:find('%u')) end
+        if #run == 32 and run:match('^%w+$') and random(run) then return '[token-redacted]' end
+        -- A key right after a short name= (key=<32 characters>): the tail after the last = is the key.
+        local head, tail = run:match('^(.-=)(%w+)$')
+        if tail and #tail == 32 and random(tail) then return head .. '[token-redacted]' end
     end)
     -- A name with spaces ("John Smith") is taken whole up to the next separator (at most 64 characters); with no separator after it, only its first word.
     line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)([^\\/"\'<>|:*?,;=%+%[%]]+)([\\/])', function(prefix, name, separator)

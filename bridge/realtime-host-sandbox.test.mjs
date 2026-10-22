@@ -196,3 +196,38 @@ test('a real Edge or Chrome passes the probe with the sandbox on (skipped where 
   } finally { await browser.close(); }
   assert.ok(logs.some(line => /runs with its sandbox/.test(line)), `the sandbox stayed on: ${logs.join(' | ')}`);
 });
+
+test('a renderer that never opens its first page does not hang the start, and a timeout is not written to disk as a 30-day verdict', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const folder = await mkdtemp(join(tmpdir(), 'host-sandbox-state-'));
+  t.after(() => rm(folder, {recursive: true, force: true}));
+  const statePath = join(folder, SANDBOX_STATE_FILE);
+  const launched = [];
+  const {host, logs} = await hostWith(async options => {
+    const browser = fakeBrowser();
+    if (options.chromiumSandbox) browser.newPage = async () => new Promise(() => {}); // the renderer never comes up
+    launched.push(options.chromiumSandbox);
+    return browser;
+  }, {probeSandbox: true, sandboxStatePath: statePath, sandboxTimeouts: {probeMs: 50, closeMs: 50}});
+  const began = Date.now();
+  await host.start();
+  assert.ok(Date.now() - began < 5000, 'seconds, not minutes');
+  assert.deepEqual(launched, [true, false]);
+  assert.match(logs.at(-1), /took longer than/);
+  await assert.rejects(readFile(statePath, 'utf8'), /ENOENT/, 'a slow start is remembered for this process only');
+  // This process still goes straight to the browser without the sandbox.
+  host.browser = null;
+  await host.start();
+  assert.deepEqual(launched, [true, false, false]);
+});
+
+test('a sandbox that passed the probe is not probed again by a later launch of the same browser in this process', async t => {
+  resetSandboxMemory(); t.after(cleanUp);
+  const browsers = [];
+  const launch = async () => { const browser = fakeBrowser(); browsers.push(browser); return browser; };
+  const {host} = await hostWith(launch, {probeSandbox: true});
+  await host.start();
+  host.browser = null;
+  await host.start();
+  assert.deepEqual(browsers.map(browser => browser.pages), [1, 0], 'the second launch costs no probe page');
+});

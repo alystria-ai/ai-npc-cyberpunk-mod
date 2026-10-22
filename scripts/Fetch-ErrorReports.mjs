@@ -113,11 +113,11 @@ const formatVersions = versions => Object.entries(versions ?? {}).filter(([versi
 // isolates, the Unicode Tag characters U+E0000 to E007F that spell out hidden text, BOM), control characters, line and paragraph separators, variation
 // selectors, the combining grapheme joiner and the blank Hangul fillers. They are removed, from the text of the index and from the saved files.
 const span = (from, to) => `${String.fromCodePoint(from)}-${String.fromCodePoint(to)}`;
-const HIDDEN = new RegExp(`[\\p{Cf}\\p{Cc}\\p{Zl}\\p{Zp}${span(0xE0000, 0xE007F)}${span(0xFE00, 0xFE0F)}${span(0xE0100, 0xE01EF)}${span(0x180B, 0x180F)}`
+const HIDDEN = new RegExp(`[\\p{Cf}\\p{Cc}\\p{Zl}\\p{Zp}\\p{Default_Ignorable_Code_Point}${span(0xE0000, 0xE007F)}${span(0xFE00, 0xFE0F)}${span(0xE0100, 0xE01EF)}${span(0x180B, 0x180F)}`
   + `${String.fromCodePoint(0x34F, 0x115F, 0x1160, 0x3164, 0xFFA0)}]`, 'gu');
 /** `value` with every invisible character removed from each string in it (and each key), however deeply nested. */
 export function withoutHidden(value, depth = 0) {
-  if (typeof value === 'string') return value.replace(HIDDEN, '');
+  if (typeof value === 'string') return value.replace(HIDDEN, character => (character === '\n' || character === '\r' || character === '\t' ? character : ''));
   if (depth > 40 || value === null || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(item => withoutHidden(item, depth + 1));
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key.replace(HIDDEN, ''), withoutHidden(item, depth + 1)]));

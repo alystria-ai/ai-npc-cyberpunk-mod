@@ -65,7 +65,7 @@ const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
 // that length is matched on its own (KEY32, with a digit and a letter, or both cases): a 32-character name with hyphens, such as the Local AI model
 // Gemma4-E4B-MiniFantasy-V1-Q4_K_M, or a record name with underscores, stays readable. The Lua redactor (mod/support-report.lua) uses the same rules.
 const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
-const KEY32 = /(?<![A-Za-z0-9+_=-])[A-Za-z0-9]{32}(?![A-Za-z0-9+_=-])/g;
+const KEY32 = /(?<![A-Za-z0-9+_-])[A-Za-z0-9]{32}(?![A-Za-z0-9+_=-])/g; // after an = is fine (key=<32 characters>); before one is base64 padding
 const looksRandom = text => (/\d/.test(text) && /[A-Za-z]/.test(text)) || (/[a-z]/.test(text) && /[A-Z]/.test(text));
 // The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
 // JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
@@ -112,6 +112,11 @@ export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
     for (const [pattern, replacement] of RULES) {
       value = value.replace(pattern, (...match) => { stats.patterns++; return replacement.replace(/\$(\d)/g, (_, n) => match[Number(n)] ?? ''); });
     }
+    // An e-mail address first, so a key before an @ is part of the address, as in the Lua redactor.
+    value = value.replace(EMAIL, match => {
+      if (!emailLike(match)) return match;
+      stats.patterns++; return '[email-redacted]';
+    });
     value = value.replace(UUID, id => { stats.ids++; return `[id:${shortHash(id.toLowerCase())}]`; });
     value = value.replace(LONG_HEX, () => { stats.patterns++; return '[hex-redacted]'; });
     value = value.replace(LONG_RUN, run => {
@@ -121,10 +126,6 @@ export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
     value = value.replace(KEY32, run => {
       if (!looksRandom(run)) return run;
       stats.patterns++; return '[token-redacted]';
-    });
-    value = value.replace(EMAIL, match => {
-      if (!emailLike(match)) return match;
-      stats.patterns++; return '[email-redacted]';
     });
     value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
     if (account) value = value.replace(account, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });

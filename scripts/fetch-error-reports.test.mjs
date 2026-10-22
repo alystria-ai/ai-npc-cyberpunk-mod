@@ -444,3 +444,18 @@ test('invisible characters (Unicode Tag characters that spell hidden text, soft 
     assert.equal(escapeText(hidden), '"visible text"');
   });
 });
+
+test('every default-ignorable character is removed (Khmer vowel inherent, unassigned format points, interlinear annotation), while newline and tab stay in saved text', async () => {
+  const odd = [0x17B4, 0x17B5, 0x2065, 0xFFF0, 0xFFF8, 0xE0080, 0xE0FFF, 0x1D173].map(code => String.fromCodePoint(code)).join('');
+  await withFolder(async out => {
+    const server = fakeServer();
+    server.state.signatures = [{signature: SIG_A, kind: 'lua-error', message: `a${odd}b`, reports: 1, stored: 1, firstSeen: new Date(NOW).toISOString(), lastSeen: new Date(NOW).toISOString(), versions: {'0.2.2': 1}, ids: [A1]}];
+    server.state.reports.set(`${SIG_A}/${A1}`, {...reportBody(SIG_A, A1, '0.2.1'), report: {detail: `line one\nline${odd}\ttwo`}});
+    await fetchErrorReports(options(server, {out}));
+    const index = await readFile(join(out, 'INDEX.md'), 'utf8');
+    const file = JSON.parse(await readFile(join(out, SIG_A, `${A1}.json`), 'utf8'));
+    assert.ok(index.includes('"message":"ab"'), 'removed from the index');
+    assert.equal(file.report.report.detail, 'line one\nline\ttwo', 'removed from the saved report, the newline and the tab kept');
+    assert.equal(escapeText(`x${odd}y`), '"xy"');
+  });
+});

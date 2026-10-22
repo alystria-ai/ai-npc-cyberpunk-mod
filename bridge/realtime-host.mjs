@@ -25,10 +25,11 @@ export const SANDBOX_STATE_FILE = 'browser-sandbox.json';
 export const SANDBOX_TIMEOUTS = Object.freeze({launchMs: 20_000, probeMs: 8_000, closeMs: 3_000, rememberMs: 30 * 86_400_000});
 const sandboxRefusals = new Map();      // browser key -> when it was found not to work (ms), for this process
 const sandboxFilesRead = new Set();     // state files already read in this process
+const sandboxPassed = new Set();        // browsers whose sandbox passed the probe in this process (a later launch of the same one is not probed again)
 let sandboxLogged = false;
 const sandboxKey = options => String(options?.executablePath ?? options?.channel ?? 'default');
 /** Forgets what this process learned about the sandbox (the tests). */
-export function resetSandboxMemory() { sandboxRefusals.clear(); sandboxFilesRead.clear(); sandboxLogged = false; }
+export function resetSandboxMemory() { sandboxRefusals.clear(); sandboxFilesRead.clear(); sandboxPassed.clear(); sandboxLogged = false; }
 function sandboxRefused(key, statePath, now) {
   if (statePath && !sandboxFilesRead.has(statePath)) {
     sandboxFilesRead.add(statePath);
@@ -44,9 +45,10 @@ function sandboxRefused(key, statePath, now) {
   if (now - at > SANDBOX_TIMEOUTS.rememberMs) { sandboxRefusals.delete(key); return false; }
   return true;
 }
-function rememberSandboxRefusal(key, statePath, now, reason) {
+// `persist` false: found out in this process only (a timeout says the PC was slow, not that the sandbox cannot work: it is not written for 30 days).
+function rememberSandboxRefusal(key, statePath, now, reason, persist = true) {
   sandboxRefusals.set(key, now);
-  if (!statePath) return;
+  if (!statePath || !persist) return;
   try { writeFileSync(statePath, JSON.stringify({version: 1, refused: Object.fromEntries(sandboxRefusals), reason: String(reason).slice(0, 160)})); } catch { /* read-only: remembered for this process only */ }
 }
 const sandboxStatePathDefault = () => (process.env.NODE_TEST_CONTEXT ? null
@@ -57,10 +59,17 @@ const withTimeout = (promise, ms, what) => new Promise((resolveIt, rejectIt) => 
 });
 /** One blank page that must open and run a line: the sandbox's renderer works. Closes its page. */
 export async function probeBrowser(browser, ms = SANDBOX_TIMEOUTS.probeMs) {
-  const page = await browser.newPage();
+  let page = null;
   try {
-    await withTimeout((async () => { await page.goto('about:blank'); if (await page.evaluate(() => 1 + 1) !== 2) throw Error('the page ran nothing'); })(), ms, 'the first page');
-  } finally { await page.close({runBeforeUnload: false}).catch(() => {}); }
+    // Opening the page is inside the limit too: a renderer that never comes up must not hang the start.
+    await withTimeout((async () => {
+      page = await browser.newPage();
+      await page.goto('about:blank');
+      if (await page.evaluate(() => 1 + 1) !== 2) throw Error('the page ran nothing');
+    })(), ms, 'the first page');
+  } finally {
+    if (page) await Promise.race([page.close({runBeforeUnload: false}).catch(() => {}), new Promise(done => setTimeout(done, 1000).unref?.())]);
+  }
 }
 
 export const PCM_MODULES = Object.freeze([
@@ -405,7 +414,7 @@ export class RealtimeHost {
     let browser = null;
     try {
       browser = await this.launchBrowser({...options, chromiumSandbox: true, ...(this.probeSandbox ? {timeout: this.sandboxTimeouts.launchMs} : {})});
-      if (this.probeSandbox) await probeBrowser(browser, this.sandboxTimeouts.probeMs);
+      if (this.probeSandbox && !sandboxPassed.has(key)) { await probeBrowser(browser, this.sandboxTimeouts.probeMs); sandboxPassed.add(key); }
       if (!sandboxLogged) { sandboxLogged = true; log('The hidden browser runs with its sandbox (if replies are silent, audio-enhancement software may be silencing it: CYBERPUNK_CONVAI_NO_BROWSER_SANDBOX=1 starts it without)'); }
       return browser;
     } catch (error) {
@@ -413,7 +422,7 @@ export class RealtimeHost {
       if (browserMissing(error)) throw error;
       const reason = String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
       const plain = await this.launchBrowser({...options, chromiumSandbox: false});
-      rememberSandboxRefusal(key, this.sandboxStatePath, now, reason);
+      rememberSandboxRefusal(key, this.sandboxStatePath, now, reason, !/took longer than|\btimeout\b|timed out/i.test(String(error?.message ?? error)));
       sandboxLogged = true;
       log(`The hidden browser would not work with its sandbox (${reason}); it runs without it`);
       return plain;
