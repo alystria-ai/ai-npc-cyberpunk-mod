@@ -472,7 +472,9 @@ test('the reply is fitted to the server\'s context: the entry\'s size is the bud
     await host.reply(long());
     return {sent: JSON.stringify(api.chats()[0].body.messages), logs};
   };
-  const small = await sentWith(6144), large = await sentWith(32768);
+  // The shipped personas became much shorter (fix/character-data-1022): the whole prompt with the 16000-character world block is about 22,000
+  // characters, which a 6144 context now holds. 4096 is the small size that still cuts it; 32768 sends it whole.
+  const small = await sentWith(4096), large = await sentWith(32768);
   assert(small.sent.length < large.sent.length, `${small.sent.length} against ${large.sent.length} characters`);
   assert(!small.sent.includes('fact 299') && large.sent.includes('fact 299'), 'the small context lost the lowest-priority knowledge, the large one kept it');
   assert(small.logs.some(line => /local AI/i.test(line)), 'the cut is logged');

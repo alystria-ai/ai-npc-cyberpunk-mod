@@ -43,6 +43,7 @@ export const VECTORS = [
   {input: 'token Abc-def_ghi-123_Abc-def_ghi-123_Abc-def_xyz-7 end', gone: ['Abc-def_ghi-123_Abc-def_ghi-123_Abc-def_xyz-7'], keep: ['end']},
   // A file name with an @ and a version is not an e-mail address; a real one is.
   {input: 'model kokoro@v1.0.onnx and voices@2.1.json loaded; write to player.one@mail.example.com', gone: ['player.one@mail.example.com'], keep: ['kokoro@v1.0.onnx', 'voices@2.1.json', 'loaded']},
+  {input: 'icon name@2x.png next to a.b@mail.example.com.', gone: ['a.b@mail.example.com'], keep: ['name@2x.png', 'icon']},
   // A key right after a short name= (not a keyword the rules know), and before an @.
   {input: 'cfg k=Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc and mk=a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6 end', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc', 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6'], keep: ['cfg k=', 'end']},
   {input: 'mail Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc@gmail.com sent', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc', 'gmail.com'], keep: ['mail', 'sent']},
