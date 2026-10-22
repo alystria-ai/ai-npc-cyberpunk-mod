@@ -959,14 +959,16 @@ end
 -- report) counts as installed: Settings never locks a choice because the service has not answered yet.
 -- `noNvidia`: the bridge knows this PC has no NVIDIA graphics card (its card list, or a worker that found no CUDA): the entries stay choosable,
 -- the menu only says OmniVoice needs one. Unknown (no fresh report, or no card list yet) is false.
+-- `smallCard`: the NVIDIA card is known to have under 12 GB (the card list), or OmniVoice already failed for want of graphics memory: the menu says it needs 12 GB.
 function M.omniPack()
     local pack = type(localVoiceState) == 'table' and localVoiceState.omniPack or nil
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
     local noNvidia = fresh and localVoiceState.omniNoNvidia == true
+    local smallCard = fresh and localVoiceState.omniSmallCard == true
     if fresh and type(pack) == 'table' and pack.installed == false then
-        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia}
+        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard}
     end
-    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia}
+    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia, smallCard = smallCard}
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
@@ -979,6 +981,10 @@ function M.takeVoiceFallbackNotice()
     voiceFallbackNotice = nil
     if not pending then return nil end
     -- OmniVoice cannot run on this PC at all (it needs an NVIDIA graphics card): said once, and not as a retry or a plain "unavailable".
+    -- OmniVoice did not get the graphics memory it needs next to the game (timed out on a small card or with memory spilled into shared memory): Pocket speaks, said once.
+    if pending.reason == 'omni-memory' and pending.to == 'pocket' then
+        return ui.t('OmniVoice needs more graphics memory than is free next to the game. Pocket is used.')
+    end
     if pending.reason == 'omni-no-nvidia' then
         if pending.to == 'text' then
             return ui.t('OmniVoice needs an NVIDIA graphics card, and this PC has none that works. Replies show as text. Choose Pocket in Settings to hear voices.')
@@ -1249,7 +1255,8 @@ local function updateLocalVoice()
         -- A temporary fallback and the permanent one it can turn into are announced separately, once each.
         local temporary = fallback.temporary == true
         -- 'omni-no-nvidia' (OmniVoice needs an NVIDIA card) is its own notice, whatever the lower voice is.
-        local reason = fallback.from == 'omni' and fallback.reason == 'omni-no-nvidia' and fallback.reason or nil
+        -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
+        local reason = fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true

@@ -1207,6 +1207,64 @@ test('OmniVoice that needs an NVIDIA card is announced once as its own notice, w
   `);
 });
 
+test('a card the bridge knows has under 12 GB gets "OmniVoice needs 12 GB" on the voice row and a note; the NVIDIA hint comes first; stale or unknown claims nothing', () => {
+  run(`${nsuiFixture}
+    local clock = 1000
+    os.time = function() return clock end
+    local function show(tag, state)
+      clock = clock + 20
+      state.state, state.provider, state.updated = 'ready', 'pocket', clock * 1000
+      jsonFixtures['voice-' .. tag] = state
+      files['runtime/local-voice-state.json'] = 'voice-' .. tag
+      manager.snapshot(player)
+      loaded = registered.loadMod('manager')
+    end
+    assert(invoke('tab:settings').ok)
+    show('big', {omniPack = {installed = true, missing = {}}, omniNoNvidia = false, omniSmallCard = false})
+    assert(row('voiceProvider').label == 'Companion voices' and manager.omniPack().smallCard == false)
+    assert(not row('voiceProvider').description:find('12 GB', 1, true))
+    show('small', {omniPack = {installed = true, missing = {}}, omniNoNvidia = false, omniSmallCard = true})
+    assert(manager.omniPack().smallCard == true)
+    assert(row('voiceProvider').label == 'Companion voices (OmniVoice needs 12 GB)', row('voiceProvider').label)
+    local description = row('voiceProvider').description
+    assert(description:find('^The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game.'), description)
+    assert(description:find('Pocket: the lightest', 1, true), 'the usual help follows the note')
+    local elements = row('voiceProvider').elements
+    assert(#elements == 7 and elements[3] == 'OmniVoice · Balanced', 'the entries are not renamed')
+    assert(row('voiceProvider').disabledElements == nil, 'no entry is greyed out')
+    show('both', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniSmallCard = true})
+    assert(row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)', row('voiceProvider').label)
+    show('nopack', {omniPack = {installed = false, missing = {'model'}}, omniSmallCard = true})
+    assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
+    show('again', {omniPack = {installed = true, missing = {}}, omniSmallCard = true})
+    clock = clock + 60
+    assert(manager.omniPack().smallCard == false, 'a stale report claims nothing')
+  `);
+});
+
+test('OmniVoice that cannot get the graphics memory is announced once as its own notice when Pocket takes over, and not as a retry or a plain "unavailable"', () => {
+  run(`${nsuiFixture}${managerPopupFixture}
+    popupStep = 1
+    local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
+      requestedOmniReference = 'short', routedProfiles = {},
+      fallback = {from = 'omni', to = 'pocket', reason = 'omni-memory'}, updated = popupClock * 1000}
+    jsonFixtures['voice-runtime'] = state
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    popupTick(false); popupTick(false)
+    assert(#popups == 0, 'a paused menu consumed the one notice')
+    popupTick(true)
+    local expected = 'OmniVoice needs more graphics memory than is free next to the game. Pocket is used.'
+    assert(#popups == 1 and popups[1] == expected, popups[1])
+    for _ = 1, 8 do popupTick(true) end
+    assert(#popups == 1, 'the same fallback was announced again')
+    -- The reason without Pocket (replies written) keeps the usual wording, as a different fallback.
+    popupClock = popupClock + 700
+    state.fallback, state.provider, state.updated = {from = 'omni', to = 'text', reason = 'omni-memory'}, 'text', popupClock * 1000
+    for _ = 1, 3 do popupTick(true) end
+    assert(popups[#popups] == 'OmniVoice · Balanced is unavailable right now. Replies show as text until it is back.', popups[#popups])
+  `);
+});
+
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end

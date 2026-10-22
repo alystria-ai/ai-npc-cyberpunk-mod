@@ -33,6 +33,9 @@ export const pathAttestationFailed = reason => String(reason ?? '').includes(PAT
 export const NO_CUDA_EXIT_CODE = 78;
 export const NO_CUDA_FAILURE = 'Local voice worker needs CUDA (no NVIDIA graphics card that works)';
 export const noCudaFailed = reason => String(reason ?? '').includes(NO_CUDA_FAILURE);
+// A worker that ran out of its time ("Local voice startup timed out", "... preparation timed out") or out of graphics memory (a CUDA out-of-memory error).
+export const timedOutFailed = reason => /^Local voice .*timed out/.test(String(reason ?? ''));
+export const outOfMemoryFailed = reason => /out of memory|OutOfMemory/i.test(String(reason ?? ''));
 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},

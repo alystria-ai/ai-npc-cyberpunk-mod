@@ -1078,4 +1078,8 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice에 NVIDIA 필요",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "이 PC에는 OmniVoice에 필요한 NVIDIA 그래픽 카드가 없습니다. OmniVoice는 여기서 시작되지 않습니다. 음성을 들으려면 Pocket을 선택하세요.",
     ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA 카드 필요",
+    ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "OmniVoice에는 게임과 함께 쓸 여유 이상의 그래픽 메모리가 필요합니다. Pocket을 사용합니다.",
+    ["OmniVoice needs 12 GB"] = "OmniVoice에 12 GB 필요",
+    ["{voice} · needs 12 GB card"] = "{voice} · 12 GB 카드 필요",
+    ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "이 PC의 그래픽 카드는 게임과 함께 쓸 때 OmniVoice에 필요한 12 GB보다 적습니다. 시작할 수 없으면 Pocket을 사용합니다. 기다리지 않으려면 Pocket을 선택하세요.",
 }

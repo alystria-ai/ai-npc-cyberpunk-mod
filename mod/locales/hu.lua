@@ -1078,4 +1078,8 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice NVIDIA-t igényel",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Ezen a gépen nincs NVIDIA videokártya, pedig az OmniVoice-nak szüksége van rá. Az OmniVoice itt nem indul el. A hangokhoz válaszd a Pocketet.",
     ["{voice} · needs NVIDIA card"] = "{voice} · NVIDIA-kártya kell",
+    ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "Az OmniVoice-hoz a játék mellett kevés a videomemória. Helyette Pocket fut.",
+    ["OmniVoice needs 12 GB"] = "OmniVoice 12 GB-ot igényel",
+    ["{voice} · needs 12 GB card"] = "{voice} · 12 GB-os kártya kell",
+    ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "Ezen a gépen a videokártya a játék mellett kevesebb, mint az OmniVoice-hoz szükséges 12 GB. Ha nem tud elindulni, Pocket lesz használva. A várakozás elkerüléséhez válaszd a Pocketet.",
 }

@@ -291,6 +291,13 @@ session ("A failed worker stays out of routing until the player chooses that pro
   background retry: after **45 s**, then **3 min**, then **10 min**. A fourth failure gives up: the plain fallback stays until
   the player chooses OmniVoice again (as before). Choosing another voice, changing the reference set, the pack going missing or
   closing the service drops a pending retry or a loading background worker.
+- **Not enough graphics memory next to the game (2026-10-22).** A timeout (or an out-of-memory error) together with graphics memory that spilled into shared system memory
+  (the worker's own reading when a preparation or render ran out of time, `bridge/gpu-memory.mjs` `spillVerdict`), or on an NVIDIA card of 8 GB or less (the same lazy card list as
+  `gpu-vendors.mjs`, read only once OmniVoice is wanted), is not retried: reports of an RTX 4060 Ti 8 GB showed `Local voice startup timed out` / `preparation timed out` with 2,036 MiB on the
+  card and 518 MiB shared, every 45 s. `VoiceSelection.omniNoMemory` is set for the life of the service (like `omniNoCuda`), `[OmniRetry] not trying again: not enough graphics memory ...` is
+  logged once, and Pocket is loaded in OmniVoice's place (`resolve`): `fallback: {from: 'omni', to: 'pocket', reason: 'omni-memory'}`, announced once by `mod/manager.lua`
+  ("OmniVoice needs more graphics memory than is free next to the game. Pocket is used."). A plain timeout on a bigger card with nothing spilled gets ONE retry; a second one gives up
+  (replies as text). The voice row says "(OmniVoice needs 12 GB)" when the NVIDIA card is known to be under 11 GB (`omniSmallCard`).
 - **How the retry runs.** `omniRetry: {failures, loading, nextInMs}` is published. No timer and no loop: `VoiceSelection.update`
   (the existing 500 ms settings poll) checks whether a retry is due. A due retry waits for a moment with no reply in flight and
   for the failed worker's confirmed exit, then loads OmniVoice in a second, **below-normal-priority** worker

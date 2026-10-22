@@ -1,6 +1,7 @@
 import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
-import {ResidentVoice, pathAttestationFailed, noCudaFailed} from './resident-voice.mjs';
-import {lacksNvidia} from './gpu-vendors.mjs';
+import {ResidentVoice, pathAttestationFailed, noCudaFailed, timedOutFailed, outOfMemoryFailed} from './resident-voice.mjs';
+import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
+import {spillVerdict} from './gpu-memory.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -133,6 +134,10 @@ export class VoiceSelection {
     // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
     // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
     this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.omniNoCuda=false;
+    // The memory of the NVIDIA card (MiB, or null until the same lazy card list is read) and omniNoMemory: Omni ran out of its time with its graphics memory spilled into shared
+    // memory, or on a card of 8 GB or less (not enough graphics memory next to the game). Like omniNoCuda, it is for the life of the service: Omni is not tried again,
+    // and Pocket speaks in its place (resolve), told once (fallback.reason 'omni-memory').
+    this.gpuMemorySource=typeof options.gpuMemoryMiB==='function'?options.gpuMemoryMiB:()=>null;this.omniNoMemory=false;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     this.failureReasons={};
@@ -294,6 +299,8 @@ export class VoiceSelection {
   // written too: it never falls to the Convai voice, and it never loads a local model.
   resolve(provider){
     if(provider==='convai')return 'convai';
+    // Omni that does not get the graphics memory it needs beside the game is replaced by Pocket, which is loaded for it (a local voice, never a cloud one).
+    if(provider==='omni'&&this.omniNoMemory&&!this.cloudWanted)provider='pocket';
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     const found=VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
       .find(backend=>(backend===provider||this.loadedBackend(backend))&&this.backendUsable(backend));
@@ -345,7 +352,9 @@ export class VoiceSelection {
     const want=this.resolvedProvider;
     if(want===this.requestedProvider||this.provider!==want)return null;
     // `reason: 'omni-no-nvidia'`: OmniVoice cannot run on this PC at all (no CUDA), so the game says that instead of a generic "unavailable".
-    const value={from:this.requestedCloud??this.requestedProvider,to:want,...(this.omniNoCuda&&this.requestedProvider==='omni'&&!this.requestedCloud?{reason:'omni-no-nvidia'}:{})};
+    // `reason: 'omni-memory'`: it ran out of its time without enough graphics memory beside the game; Pocket speaks (the game says so once).
+    const reason=this.requestedProvider!=='omni'||this.requestedCloud?null:this.omniNoCuda?'omni-no-nvidia':this.omniNoMemory?'omni-memory':null;
+    const value={from:this.requestedCloud??this.requestedProvider,to:want,...(reason?{reason}:{})};
     return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
   // Why a character has no local voice: the Convai voice was chosen, or the local voice cannot serve it (its reply is then written).
@@ -398,7 +407,7 @@ export class VoiceSelection {
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
-        if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
+        if(!(chosen==='omni'&&(this.omniNoCuda||this.omniNoMemory)))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
         if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;
@@ -531,7 +540,7 @@ export class VoiceSelection {
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
-      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,
+      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniSmallCard:this.omniSmallCard,
       keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
@@ -633,7 +642,7 @@ export class VoiceSelection {
     this.failedBackends.add(backend);
     this.failureReasons[backend]=String(client.failure?.message??'unknown').slice(0,200);
     this.noteFailure(backend,client.failure?.message,client.failure?.gpu);
-    if(backend==='omni')this.scheduleOmniRetry(client.failure?.message);
+    if(backend==='omni')this.scheduleOmniRetry(client.failure?.message,client.failure?.gpu);
     if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
     this.reconcile();
     this.publish();
@@ -657,7 +666,7 @@ export class VoiceSelection {
   withCause(problem){return blockedByWindows(problem.reason)?{...problem,cause:'blocked'}:problem;}
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
-  scheduleOmniRetry(reason){
+  scheduleOmniRetry(reason,gpu){
     const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
     // A worker that loaded both models and then could not confirm its paths fails the same way on every try, and each try loads the models again (a
     // minute or more of CPU and graphics memory, beside Local AI and the game): the paths are fixed for the life of the service, so it is not tried again.
@@ -666,6 +675,19 @@ export class VoiceSelection {
     if(noCudaFailed(reason)){
       this.omniNoCuda=true;
       this.log(`not trying again: OmniVoice needs an NVIDIA graphics card and this PC has none that works (${this.graphicsNote})`);
+      this.omniRetry=null;return;
+    }
+    // A worker that ran out of its time (or of graphics memory) while the card was too small or spilled into shared memory fails the same way on every try, and each try loads
+    // both models again beside Local AI and the game: not tried again, Pocket speaks in its place.
+    const short=this.omniMemoryShort(reason,gpu);
+    if(short&&this.requestedProvider==='omni'&&!this.cloudWanted){
+      this.omniNoMemory=true;
+      this.log(`not trying again: not enough graphics memory for OmniVoice next to the game (${short}); Pocket is used instead`);
+      this.omniRetry=null;return;
+    }
+    // A plain timeout (a big card, nothing spilled) is tried once more: a second one is not a load that was merely slow.
+    if(timedOutFailed(reason)&&failures>1){
+      this.log(`giving up after a second timeout${reason?` (${reason})`:''}`);
       this.omniRetry=null;return;
     }
     if(pathAttestationFailed(reason)){
@@ -681,6 +703,20 @@ export class VoiceSelection {
   }
   // Omni is the chosen voice or a worker for it is starting or running: the only time the card list is asked for (the source reads the PC when first asked, never at start-up).
   get omniWanted(){return this.requestedProvider==='omni'||this.clientBackend==='omni'||this.targetBackend==='omni';}
+  // The memory of the NVIDIA card in MiB (the same lazy card list), or null while unknown.
+  get graphicsMiB(){try{const found=Number(this.gpuMemorySource(this.omniWanted));return found>0?found:null;}catch{return null;}}
+  /**
+   * Why an Omni failure is too little graphics memory next to the game, in words for the log, or null: a timeout (or an out-of-memory error) together with graphics memory that
+   * spilled into shared system memory (the worker's reading when its preparation ran out of time) or a card of 8 GB or less. A plain timeout on a big card is not.
+   */
+  omniMemoryShort(reason,gpu){
+    if(!timedOutFailed(reason)&&!outOfMemoryFailed(reason))return null;
+    if(gpu&&spillVerdict(gpu).spilled)return `spilled into shared memory: ${gpu.dedicatedMiB} MiB on the card, ${gpu.sharedMiB} MiB shared`;
+    const card=this.graphicsMiB;
+    return isSmallCard(card)?`the card has ${card} MiB`:null;
+  }
+  // The menu hint "OmniVoice needs 12 GB": the NVIDIA card is known to be under 11 GB, or Omni already failed for want of memory. Unknown claims nothing.
+  get omniSmallCard(){return this.omniNoMemory||underNeeded(this.graphicsMiB);}
   // The card vendors for the Omni start and failure lines: names only.
   get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
   get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
@@ -691,7 +727,8 @@ export class VoiceSelection {
   // place. A cloud voice and the Convai voice want no Pocket worker.
   get pocketWanted(){
     if(this.cloudWanted)return false;
-    return this.requestedProvider==='pocket';
+    // Pocket is also the voice of a player who chose Omni when Omni cannot get the graphics memory (omniNoMemory).
+    return this.requestedProvider==='pocket'||(this.requestedProvider==='omni'&&this.omniNoMemory);
   }
   // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
   schedulePocketRetry(reason){
@@ -781,7 +818,7 @@ export class VoiceSelection {
     this.failedBackends.add('omni');
     this.noteFailure('omni',entry.client.failure?.message,entry.client.failure?.gpu);
     void this.retireCandidate(entry).catch(()=>{this.omniRetry=null;});
-    this.scheduleOmniRetry(entry.client.failure?.message);
+    this.scheduleOmniRetry(entry.client.failure?.message,entry.client.failure?.gpu);
     this.publish();
   }
   retireCandidate(entry){

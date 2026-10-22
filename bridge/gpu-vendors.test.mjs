@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {gpuVendors, lacksNvidia} from './gpu-vendors.mjs';
+import {gpuVendors, isSmallCard, lacksNvidia, nvidiaCardMiB, underNeeded} from './gpu-vendors.mjs';
 
 const card = name => ({name, memoryMiB: 8192});
 
@@ -38,4 +38,22 @@ test('lacksNvidia claims it only for a known list of AMD or Intel cards', () => 
   assert.equal(lacksNvidia([]), false, 'an empty or unread list claims nothing');
   assert.equal(lacksNvidia(null), false);
   assert.equal(lacksNvidia(undefined), false);
+});
+
+test('nvidiaCardMiB: the memory of the largest NVIDIA card, no other vendor, no virtual display, null when unknown', () => {
+  assert.equal(nvidiaCardMiB([{name: 'NVIDIA GeForce RTX 4060 Ti', memoryMiB: 8188}]), 8188);
+  assert.equal(nvidiaCardMiB([{name: 'Intel(R) UHD Graphics', memoryMiB: 128}, {name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188}]), 8188, 'a hybrid laptop: the NVIDIA card');
+  assert.equal(nvidiaCardMiB([{name: 'NVIDIA GeForce RTX 3060', memoryMiB: 12288}, {name: 'NVIDIA GeForce GTX 1050', memoryMiB: 4096}]), 12288);
+  assert.equal(nvidiaCardMiB([{name: 'AMD Radeon RX 7800 XT', memoryMiB: 16368}]), null, 'not NVIDIA: OmniVoice does not use it');
+  assert.equal(nvidiaCardMiB([{name: 'NVIDIA GeForce RTX 4060 Ti', memoryMiB: null}]), null, 'a size that was not read');
+  assert.equal(nvidiaCardMiB([{name: 'Virtual Display NVIDIA', memoryMiB: 16000}]), null);
+  assert.equal(nvidiaCardMiB(null), null); assert.equal(nvidiaCardMiB([]), null);
+});
+
+test('isSmallCard (8 GB or less) and underNeeded (under 12 GB) read only a known size; the usual reported sizes fall on the right side', () => {
+  for (const size of [4096, 6144, 8188, 8192]) assert.equal(isSmallCard(size), true, String(size));
+  for (const size of [10240, 11264, 12282, 12288, 16384, 24576]) assert.equal(isSmallCard(size), false, String(size));
+  for (const size of [8188, 10240]) assert.equal(underNeeded(size), true, String(size));
+  for (const size of [11264, 12282, 12288, 16384]) assert.equal(underNeeded(size), false, String(size));
+  for (const unknown of [null, undefined, 0, NaN]) assert.deepEqual([isSmallCard(unknown), underNeeded(unknown)], [false, false]);
 });

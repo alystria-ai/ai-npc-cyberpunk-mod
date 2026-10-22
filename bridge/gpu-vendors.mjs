@@ -24,3 +24,24 @@ export function gpuVendors(cards) {
  * list (not read yet, or nothing found) and a card of an unrecognised name claim nothing.
  */
 export const lacksNvidia = vendors => Array.isArray(vendors) && vendors.length > 0 && vendors.every(vendor => vendor === 'amd' || vendor === 'intel');
+
+// OmniVoice beside the game and Local AI needs about 12 GB of graphics memory (docs: an 8 GB card times out, 2026-10-22 reports of an RTX 4060 Ti 8 GB: the voice worker held
+// 2,036 MiB on the card and 518 MiB in shared system memory when its preparation ran out of time). Cards report a little under their nominal size (8,188 MiB for 8 GB, 12,282 for 12 GB).
+export const OMNI_CARD_MIB = Object.freeze({
+  small: 9_000,    // a card under this ("8 GB or less") cannot hold OmniVoice beside the game: a timeout is read as too little graphics memory
+  needed: 11_000,  // a card under this is shown the "needs 12 GB" hint
+});
+/** The memory (MiB) of the largest NVIDIA card in the list (the one OmniVoice's CUDA uses), or null when there is none or its size is not known. Pure. */
+export function nvidiaCardMiB(cards) {
+  let best = null;
+  for (const card of Array.isArray(cards) ? cards : []) {
+    const memory = Number(card?.memoryMiB);
+    if (!Number.isFinite(memory) || memory <= 0 || !gpuVendors([card]).includes('nvidia')) continue;
+    if (best === null || memory > best) best = Math.round(memory);
+  }
+  return best;
+}
+/** True only for a known card size under what OmniVoice needs. Unknown (null) claims nothing. */
+export const underNeeded = miB => Number.isFinite(miB) && miB > 0 && miB < OMNI_CARD_MIB.needed;
+/** True only for a known card of 8 GB or less. */
+export const isSmallCard = miB => Number.isFinite(miB) && miB > 0 && miB < OMNI_CARD_MIB.small;

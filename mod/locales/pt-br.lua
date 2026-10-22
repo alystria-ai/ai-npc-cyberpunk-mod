@@ -1078,4 +1078,8 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice precisa de NVIDIA",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Este PC não tem uma placa de vídeo NVIDIA, que o OmniVoice precisa. O OmniVoice não será iniciado aqui. Escolha Pocket para ouvir as vozes.",
     ["{voice} · needs NVIDIA card"] = "{voice} · requer placa NVIDIA",
+    ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "O OmniVoice precisa de mais memória de vídeo do que a livre ao lado do jogo. Será usado o Pocket.",
+    ["OmniVoice needs 12 GB"] = "OmniVoice precisa de 12 GB",
+    ["{voice} · needs 12 GB card"] = "{voice} · requer placa de 12 GB",
+    ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "A placa de vídeo deste PC tem menos que os 12 GB que o OmniVoice precisa junto com o jogo. Se não conseguir iniciar, o Pocket é usado. Escolha Pocket para pular a espera.",
 }
