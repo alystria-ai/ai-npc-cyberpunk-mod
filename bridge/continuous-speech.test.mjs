@@ -587,3 +587,32 @@ assert(lingered and lingered>0 and captions.timed==nil,'the page is held briefly
 -- Nothing playing: abandon touches no caption.
 lingered=nil;speech.abandon();assert(lingered==nil)
 `));
+
+test('with the native change counter the speech file is neither opened nor decoded again until its revision changes, and still read once a second', () => run(`
+local open,reads,decodes,decode=io.open,0,0,json.decode
+io.open=function(path,mode)if path=='runtime/continuous-speech.json'then reads=reads+1 end;return open(path,mode)end
+json.decode=function(k)decodes=decodes+1;return decode(k)end
+local revision=7
+convaiNative={revision=function(name)assert(name=='continuous-speech.json');return revision end}
+assert(begin())
+local first=snapshot({position=.2});tick(.05)
+assert(reads==1 and decodes>=1 and speech.diagnosticCadence().position==.2)
+local before=decodes
+-- Same revision: no open, no decode, and the same state is still accepted.
+tick(.05);tick(.05);tick(.05)
+assert(reads==1,'An unchanged revision opened the file again: '..reads)
+assert(speech.diagnosticCadence().acceptedReads>=4 and speech.diagnosticCadence().position==.2)
+-- A new revision is read at once, with its new content.
+revision=8;snapshot({position=.5,updated=(wall+.05)*1000});tick(.05)
+assert(reads==2 and speech.diagnosticCadence().position==.5,'A changed revision was not read')
+-- A safety read at least once a second even if the counter never moves.
+for _=1,24 do tick(.05) end
+assert(reads>=3,'The file was never re-read while the revision stayed put')
+-- A foreign owner written under a NEW revision is refused; the cached owner never lets it through.
+revision=9;put('runtime/continuous-speech.json',{version=1,id='abcdefab-1234-1234-1234-123456789abc',requestId='other',entity=context.entity,generation=7,
+ updated=wall*1000,state='playing',position=.9,bufferedDuration=2,text='x y',textComplete=false,complete=false,ended=false,underruns=0})
+tick(.05);assert(speech.diagnosticCadence().position~=.9)
+-- Without a counter every tick reads, as before.
+convaiNative=nil;local n=reads;snapshot({position=.6,updated=(wall+.05)*1000});tick(.05);tick(.05)
+assert(reads==n+2,'Without the plugin each tick must read the file')
+`));
