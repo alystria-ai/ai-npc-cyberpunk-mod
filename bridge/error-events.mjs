@@ -125,10 +125,9 @@ function readSettingsState(readText) {
 
 /** {state, noticed} of the error-report setting (see readSettingsState). */
 export async function errorReportsSetting(runtime) {
-  const texts = {};
-  for (const name of ['settings.json', 'settings.json.previous']) {
-    try { texts[name] = await readFile(join(runtime, name), 'utf8'); } catch (error) { texts[name] = error; }
-  }
+  const names = ['settings.json', 'settings.json.previous'], texts = {};
+  // Both files at once: a record or a flush waits for one read, not two.
+  (await Promise.all(names.map(name => readFile(join(runtime, name), 'utf8').catch(error => error)))).forEach((text, index) => { texts[names[index]] = text; });
   return readSettingsState(name => { if (texts[name] instanceof Error) throw texts[name]; return texts[name]; });
 }
 
