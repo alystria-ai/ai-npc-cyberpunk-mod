@@ -51,6 +51,8 @@ const RULES = [
   [/\b(Bearer)\s+[A-Za-z0-9._~+\/=-]{8,}/gi, '$1 [redacted]'],
   [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
+  // An e-mail address (a provider's error text can carry one): the whole address goes.
+  [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}\b/g, '[email-redacted]'],
 ];
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;

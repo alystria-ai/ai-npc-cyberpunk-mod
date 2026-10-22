@@ -752,3 +752,29 @@ test('a supervisor event is captured at once with its log lines (no wait for the
     assert.ok(JSON.stringify(record.logs).includes('service log line of the moment'));
   } finally { reporter.close(); await f.cleanup(); }
 });
+
+test('an e-mail address in a log line never reaches a report or the queue file; package versions and handles are not mistaken for one', async () => {
+  const {createRedactor} = await import('./support-report.mjs');
+  const redact = createRedactor({secrets: []});
+  assert.equal(redact.text('Mistral said: contact jane.doe+cp@example.co.uk for access'), 'Mistral said: contact [email-redacted] for access');
+  assert.equal(redact.text('rate limited for a.b@mail.example.com.'), 'rate limited for [email-redacted].');
+  for (const kept of ['pocket-tts@1.2.3 loaded', 'at (file:///x/y.mjs:3:1)', 'user@localhost', '@scope/pkg 2.0', 'ratio 1@2']) assert.equal(redact.text(kept), kept);
+  // the kept excerpt of a waiting report is scrubbed at capture
+  const f = await folders();
+  const clock = {now: START};
+  const reporter = reporterFor(f, fakeBackend({clock}), clock);
+  try {
+    await writeFile(join(f.state, 'bridge.stderr.log'), 'Error: the mail fault happened: provider says write to someone@example.org please\n');
+    await recordErrorEvent(f.state, {kind: 'turn-failed', message: 'the mail fault happened', frame: 'x.mjs:1 a'}, {now: clock.now});
+    await reporter.look({flush: false});
+    const [record] = await readQueue(f.state, {now: clock.now});
+    assert.ok(!JSON.stringify(record).includes('someone@example.org'));
+    assert.ok(JSON.stringify(record.logs).includes('[email-redacted]'));
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the client\'s daily limit stays below what the backend allows per install, in the code defaults (the figure is in no doc)', async () => {
+  const {DEFAULTS} = await import('../auth-backend/api/_lib/config.js');
+  assert.ok(DEFAULTS.errorInstallPerDay > DAILY_LIMIT, `backend ${DEFAULTS.errorInstallPerDay} must be above the client's ${DAILY_LIMIT}`);
+  assert.ok(QUEUE_MAX > DAILY_LIMIT, 'the queue holds more than a day\'s reports');
+});

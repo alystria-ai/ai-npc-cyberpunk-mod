@@ -147,12 +147,28 @@ async function copyVerified(fs, source, target, size) {
   await fs.unlink(source);
 }
 
+// Whether two files of the same size hold the same bytes (read in chunks, nothing kept). False when either cannot be read.
+async function sameBytes(fs, first, second) {
+  let a, b;
+  try {
+    a = await fs.open(first, 'r'); b = await fs.open(second, 'r');
+    const x = Buffer.alloc(1 << 20), y = Buffer.alloc(1 << 20);
+    for (;;) {
+      const [one, two] = [await a.read(x, 0, x.length, null), await b.read(y, 0, y.length, null)];
+      if (one.bytesRead !== two.bytesRead || !x.subarray(0, one.bytesRead).equals(y.subarray(0, two.bytesRead))) return false;
+      if (one.bytesRead === 0) return true;
+    }
+  } catch { return false; } finally { await a?.close().catch(() => {}); await b?.close().catch(() => {}); }
+}
+
 async function moveFile(ctx, source, target, rel) {
   const {fs} = ctx;
   const state = await kindOf(fs, target);
   if (state === 'file') {
     const [a, b] = [await fs.stat(source), await fs.stat(target)];
-    if (a.size === b.size) { await fs.unlink(source); ctx.dropped += 1; } else ctx.conflicts.push(rel);
+    // A language pack or Pocket model that is extracted again may be a NEWER build with files of the same size (weights change, sizes do not): its bytes are
+    // compared before a stray copy is dropped, and a copy that differs is left where it is, never deleted.
+    if (a.size === b.size && (!ctx.verifyContent || await sameBytes(fs, source, target))) { await fs.unlink(source); ctx.dropped += 1; } else ctx.conflicts.push(rel);
     return;
   }
   if (state !== 'none') { ctx.conflicts.push(rel); return; }
@@ -182,7 +198,7 @@ async function moveInto(ctx, source, target, rel, marker) {
       } else if (state === 'dir') await moveInto(ctx, from, to, name, null);
       else ctx.conflicts.push(name);
     } else if (entry.isFile()) {
-      if (marker?.(entry.name)) ctx.deferred.push({from, to, name}); else await moveFile(ctx, from, to, name);
+      if (marker?.(entry.name)) ctx.deferred.push({from, to, name, verifyContent: ctx.verifyContent === true}); else await moveFile(ctx, from, to, name);
     } else throw new Stop(`${from} is a link or another kind of entry`);
   }
 }
@@ -230,15 +246,16 @@ export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} 
       // A language pack moves its own folder (the whole voices/ tree is moved with an OmniVoice pack above); its manifest moves last.
       for (const pack of packs.filter(item => item.voiceTree)) {
         jobs.push({rel: `voices/${pack.voiceTree}`, source: join(candidate.voices, ...pack.voiceTree.split('/')),
-          target: join(layout.voices, ...pack.voiceTree.split('/')), marker: name => name === pack.marker});
+          target: join(layout.voices, ...pack.voiceTree.split('/')), marker: name => name === pack.marker, verifyContent: true});
       }
     }
     try {
       for (const job of jobs) {
         await fs.mkdir(job.target, {recursive: true});
+        ctx.verifyContent = job.verifyContent === true;
         await moveInto(ctx, job.source, job.target, job.rel, job.marker);
       }
-      for (const item of ctx.deferred) await moveFile(ctx, item.from, item.to, item.name);
+      for (const item of ctx.deferred) { ctx.verifyContent = item.verifyContent === true; await moveFile(ctx, item.from, item.to, item.name); }
     } catch (error) {
       const message = `Could not finish moving the ${packs.map(pack => pack.name).join(', ')} files into place from ${label}: ${error?.message || error}. The remaining files were left where they are.`;
       log(message);

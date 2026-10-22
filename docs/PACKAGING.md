@@ -361,6 +361,7 @@ step named (the next marker's `from`, or the Runtime version), a marker newer th
 from the Hugging Face updates folder one by one, starting from their version (no version number in the instruction). A Runtime from before the markers (0.2.8 and older) has no
 `base.json`: its first step's `from` starts the chain, so only a gap after that is seen. **Any other tool that builds update zips** (the scratch patch builder outside the repository)
 must add `app/defaults/runtime-steps/step-<from>-to-<to>.json` with `{"from", "to"}` (the Runtime versions of the two full Runtimes) to every zip, and must not copy `base.json` from either full Runtime.
+Two cases the markers cannot see: a player on 0.2.8 or older who skips the FIRST marked zip (the chain then starts at the next one; the code-file list `runtime-code-files.json` of the error reports partly covers it), and a rollback (an older full Runtime extracted over a newer one leaves the newer step files, so the row reads `chain-order`; its text says some files come from a newer update and to apply the zips in order or extract the full Runtime again, which is right for both causes).
 
 **Removing what a version no longer ships.** Extracting adds and replaces but never deletes, so a file the new version dropped (a renamed voice clip, a retired
 model) would stay in the player's folder. The player never deletes anything: the service does, at its next start, from the list.

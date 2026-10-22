@@ -690,3 +690,27 @@ test('the setup check names a language pack one folder too deep, like the other 
     assert.deepEqual(found.sort((a, b) => a.pack.localeCompare(b.pack)), [{pack: 'Pocket language model (de)', folder: 'Pocket-German'}, {pack: 'Voice language pack (fr)', folder: 'Voices-French'}]);
   } finally { await f.cleanup(); }
 });
+
+test('a language pack extracted again: a same-size file with other bytes (a newer build) is never deleted, an identical one is dropped; the marker too', async () => {
+  const f = await fakeGame();
+  try {
+    // installed build A
+    await languagePack(f.game, 'fr', {bytes: 'AAAA'});
+    await pocketModel(f.game, 'fr', {bytes: 'AAAA'});
+    // downloaded again, one folder too deep: the Pocket model is a newer build with the same sizes, the voice pack is the same build
+    await pocketModel(join(f.game, 'Pocket-French'), 'fr', {bytes: 'BBBB'});
+    await put(join(f.game, 'Pocket-French', PLUGIN, 'voices/multilingual-pocket/fr/pocket-model.json'), '{"language":"fr","build":2}');
+    await put(join(f.game, PLUGIN, 'voices/multilingual-pocket/fr/pocket-model.json'), '{"language":"fr","build":1}');
+    await languagePack(join(f.game, 'Voices-French'), 'fr', {bytes: 'AAAA'});
+    const report = await placeMisplacedPacks({layout: f.layout, log: lines().log});
+    const stray = join(f.game, 'Pocket-French', PLUGIN, 'voices/multilingual-pocket/fr');
+    assert.equal(await read(join(stray, 'model.safetensors')), 'BBBB', 'the newer download is still there');
+    assert.equal(await read(join(f.game, PLUGIN, 'voices/multilingual-pocket/fr/model.safetensors')), 'AAAA', 'the installed file is untouched');
+    assert.equal(await read(join(stray, 'pocket-model.json')), '{"language":"fr","build":2}', 'a manifest that differs (same size) stays too');
+    assert.ok(report.conflicts.some(name => name.endsWith('model.safetensors')), JSON.stringify(report.conflicts));
+    // the identical voice pack was a duplicate: nothing is left of it
+    assert.equal(await exists(join(f.game, 'Voices-French')), false);
+    assert.equal(await read(join(f.game, PLUGIN, 'voices/multilingual/fr/references/judy.wav')), 'AAAA');
+    // other packs keep their rule: a same-size file in place wins (Local AI is not a language pack)
+  } finally { await f.cleanup(); }
+});
