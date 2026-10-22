@@ -214,8 +214,12 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
   // A speaker that does not allow the local AI is another matter: it keeps using Mistral when a key is saved.
   const mistralOnly = new AddonHost({addons: [validateManifest(manifest({id: 'ms', name: 'Mist', providers: ['mistral'],
     speakers: [{id: 'mist', name: 'Mist', persona: {backstory: 'A voice.'}}]}), tmpdir())]});
-  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: true, localReady: false}), 'mistral');
+  // ... but never for a Local AI player: their line must not reach Mistral whatever the add-on lists (owner rule: Local AI never reaches Mistral).
+  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: true, localReady: false}), null);
+  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: true, localReady: true}), null);
   assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'local', mistralKey: false, localReady: false}), null);
+  // a Convai player with a key still gets Mistral
+  assert.equal(mistralOnly.routeFor('addon-ms-mist', {applied: 'convai', mistralKey: true, localReady: false}), 'mistral');
   // A speaker that allows only the local AI never uses a Mistral key.
   assert.equal(route('addon-cab-delamain', {applied: 'mistral', mistralKey: true, localReady: false}), null);
   assert.equal(route('addon-cab-delamain', {applied: 'convai', mistralKey: true, localReady: true}), 'local');

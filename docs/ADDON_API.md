@@ -537,7 +537,7 @@ The bridge chooses the route for each add-on turn (`AddonHost.routeFor`), from w
    set up (address and model; decision 2026-10-20). Every speaker follows it, like the companions, so no add-on needs an edit: the
    manifest's `providers` list names only `mistral` and `local` and does not need a `custom` entry (it is refused there).
 2. Otherwise the player's own conversation provider, when it is Mistral or the local AI, the speaker allows it and it is working.
-3. Otherwise **Mistral**, when the speaker allows it and the player has saved a Mistral key that was not refused.
+3. Otherwise **Mistral**, when the speaker allows it and the player has saved a Mistral key that was not refused. Never for a player on Local AI (2026-10-22): a Local AI player whose speaker does not allow `local` has no route (step 5), whatever Mistral key is saved.
 4. Otherwise the **local AI**, when the speaker allows it and the Local AI pack is installed and has not failed.
 5. Otherwise nothing.
 
