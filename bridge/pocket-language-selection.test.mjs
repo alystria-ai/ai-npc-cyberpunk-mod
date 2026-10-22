@@ -168,7 +168,7 @@ test('the bridge finds the models in the folder the Pocket worker reads, looks a
 
 test('a reply written because the voice pack is missing says so once per language, with the language in the reply\'s notice fields; the generic notice is not used for it', () => {
   assert.match(bridgeSource, /const pocketLanguageNotice = new PocketLanguageNotice\(\);/);
-  assert.match(bridgeSource, /\?\? \(pocketNotice = pocketLanguageNotice\.take\(\)\)\?\.keyNotice;/);
+  assert.match(bridgeSource, /\?\? \(pocketNotice = pocketLanguageNotice\.take\(\)\)\?\.keyNotice(?:;|\s)/);
   assert.match(bridgeSource, /keyNotice === 'pocket-language-pack' \? \{keyNoticeLanguage: pocketNotice\.keyNoticeLanguage\}/);
   assert.match(bridgeSource, /if \(voice\.reason === 'pocket-language-pack-missing'\) \{ if \(!input\.reaction\) pocketLanguageNotice\.note\(voice\.language\); \}\s+else if \(!unavailable && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
 });
