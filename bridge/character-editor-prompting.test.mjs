@@ -10,8 +10,8 @@ import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {parseEditorCommand} from './character-editor-control.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
-import {PROFILE_LIMITS, PROFILE_FIELDS, customProfileId, defaultProfile} from './prompt-profiles.mjs';
-import {PersonaBook, LIMITS} from './mistral-prompt.mjs';
+import {PROFILE_LIMITS, PROFILE_FIELDS, customProfileId, defaultProfile, renderRules, renderExamples, renderClosing} from './prompt-profiles.mjs';
+import {PersonaBook} from './mistral-prompt.mjs';
 import {TextProviderHost, mistralRoute} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -22,6 +22,9 @@ const rows = [...JSON.parse(await readFile(new URL('../characters/roster.json', 
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 const CUSTOM = {origin: 'https://openrouter.ai', model: 'qwen3-8b'};
 const CUSTOM_ID = customProfileId(CUSTOM.origin, CUSTOM.model);
+// The shipped defaults are read from the profile module, so tuning them later cannot break these tests. `differs` picks a value that is not the shipped one.
+const shippedOf = (id, family) => defaultProfile(id, family ? {family} : undefined);
+const differs = (shipped, ...options) => options.find(option => option !== shipped);
 
 async function workbench({prompting = true, onChanged = () => {}, active} = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'editor-prompting-'));
@@ -122,11 +125,12 @@ test('one option in full: the shipped default, the effective profile and the sto
   assert.equal(plain.provider, 'mistral');
   assert.equal(plain.active, false);
   assert.equal((await call(b.server, 'GET', '/api/prompting/convai')).status, 404);
-  assert.equal((await call(b.server, 'GET', '/api/prompting/' + CUSTOM_ID)).json.default.sampling.temperature, 0.65);
-  const saved = (await call(b.server, 'PUT', '/api/prompting/mistral', {body: {sampling: {temperature: 0.3}}})).json;
-  assert.deepEqual(saved.override, {sampling: {temperature: 0.3}});
-  assert.equal(saved.effective.sampling.temperature, 0.3);
-  assert.equal(saved.default.sampling.temperature, 0.65, 'the default is untouched');
+  assert.equal((await call(b.server, 'GET', '/api/prompting/' + CUSTOM_ID)).json.default.sampling.temperature, shippedOf(CUSTOM_ID, 'qwen').sampling.temperature);
+  const shippedTemperature = shippedOf('mistral').sampling.temperature, mine = differs(shippedTemperature, 0.3, 0.35);
+  const saved = (await call(b.server, 'PUT', '/api/prompting/mistral', {body: {sampling: {temperature: mine}}})).json;
+  assert.deepEqual(saved.override, {sampling: {temperature: mine}});
+  assert.equal(saved.effective.sampling.temperature, mine);
+  assert.equal(saved.default.sampling.temperature, shippedTemperature, 'the default is untouched');
 });
 
 test('validate stores nothing and answers with the codes; save refuses what validate refuses (422), and every limit is enforced', async t => {
@@ -184,7 +188,7 @@ test('save, then reset one field, then reset all: the file holds only what diffe
   const changes = [];
   const b = await workbench({onChanged: () => changes.push(1)}); t.after(b.done);
   const put = body => call(b.server, 'PUT', '/api/prompting/local-lite', {body});
-  const first = await put({rules: [{id: 'short', text: 'Be short, {name}.', talk: 'Be shorter, {name}: {words} words.'}], closing: {text: 'Now answer.'}, sampling: {temperature: 0.4, topP: 0.9}, stop: ['\nV:']});
+  const first = await put({rules: [{id: 'short', text: 'Be short, {name}.', talk: 'Be shorter, {name}: {words} words.'}], closing: {text: 'Now answer.'}, sampling: {temperature: differs(shippedOf('local-lite').sampling.temperature, 0.4, 0.45), topP: differs(shippedOf('local-lite').sampling.topP, 0.9, 0.85)}, stop: ['\nV:']});
   assert.equal(first.status, 200);
   assert.equal(first.json.changed, true);
   assert.deepEqual(await b.files(), ['local-lite.json']);
@@ -192,9 +196,9 @@ test('save, then reset one field, then reset all: the file holds only what diffe
   assert.deepEqual(Object.keys(file).filter(key => PROFILE_FIELDS.includes(key)).sort(), ['closing', 'rules', 'sampling', 'stop']);
   assert.equal(changes.length, 1, 'the bridge was told once');
   // A value equal to the shipped one is not a change.
-  const same = await put({sampling: {temperature: 0.65}});
+  const same = await put({sampling: {temperature: shippedOf('local-lite').sampling.temperature}});
   assert.equal(same.json.override.sampling.temperature, undefined);
-  assert.equal(same.json.override.sampling.topP, 0.9, 'the other sub-fields are kept');
+  assert.equal(same.json.override.sampling.topP, first.json.override.sampling.topP, 'the other sub-fields are kept');
   // One field.
   const oneField = await call(b.server, 'POST', '/api/prompting/local-lite/reset', {body: {field: 'rules'}});
   assert.equal(oneField.status, 200);
@@ -231,20 +235,24 @@ test('the preview shows the stored profile, or the unsaved change laid over it, 
   const b = await workbench(); t.after(b.done);
   const preview = body => call(b.server, 'POST', '/api/prompting/mistral/preview', {body});
   const plain = (await preview({})).json;
+  const shipped = shippedOf('mistral');
+  const shows = (sample = {}) => ({rules: renderRules(shipped, {name: 'Judy', ...sample}), examples: renderExamples(shipped), closing: renderClosing(shipped, {name: 'Judy', talkWords: sample.talkWords ?? 0})});
   assert.equal(plain.ok, true);
-  assert.match(plain.rules, /^OUTPUT RULES \(they outrank everything above about format\)\n1\. You speak out loud, as Judy, to V\./);
-  assert.equal(plain.examples, '');
-  assert.match(plain.closing, /^\(Reply as Judy, out loud/);
-  assert.match((await preview({name: 'Rogue'})).json.rules, /as Rogue, to V/);
-  assert.match((await preview({talkWords: 25})).json.rules, /at most 25 words/);
-  assert.match((await preview({talkWords: 25})).json.closing, /at most 25 words/);
-  const mature = (await preview({mature: true})).json.rules;
-  assert.match(mature, /Four in an adult moment/);
-  assert.equal((await preview({mature: false})).json.rules.includes('Four in an adult moment'), false);
+  assert.deepEqual({rules: plain.rules, examples: plain.examples, closing: plain.closing}, shows(), 'the shipped profile, as the prompt module renders it');
+  assert(plain.rules.startsWith(shipped.labels.rules + '\n1. '));
+  const rogue = (await preview({name: 'Rogue'})).json;
+  assert.equal(rogue.rules, shows({name: 'Rogue'}).rules);
+  assert.notEqual(rogue.rules, plain.rules);
+  const talking = (await preview({talkWords: 25})).json;
+  assert.deepEqual({rules: talking.rules, closing: talking.closing}, {rules: shows({talkWords: 25}).rules, closing: shows({talkWords: 25}).closing});
+  assert.notEqual(talking.rules, plain.rules, 'a speaker with a reply length reads the talk versions');
+  assert.equal((await preview({mature: true})).json.rules, shows({mature: true}).rules);
+  assert.notEqual((await preview({mature: true})).json.rules, plain.rules, 'Mature content reads the Mature versions');
+  assert.equal((await preview({mature: false})).json.rules, plain.rules);
   // An unsaved change.
   const draft = (await preview({patch: {rules: [{id: 'one', text: 'Be short, {name}.'}], examples: ['Fine, V.'], closing: {text: 'Go, {name}.'}}})).json;
-  assert.equal(draft.rules, 'OUTPUT RULES (they outrank everything above about format)\n1. Be short, Judy.');
-  assert.equal(draft.examples, 'EXAMPLES OF A GOOD REPLY (the shape only: never copy their words)\n- Fine, V.');
+  assert.equal(draft.rules, `${shipped.labels.rules}\n1. Be short, Judy.`);
+  assert.equal(draft.examples, `${shipped.labels.examples}\n- Fine, V.`);
   assert.equal(draft.closing, '(Go, Judy.)');
   assert.equal(b.profiles.getOverride('mistral'), null, 'a preview stores nothing');
   assert.deepEqual(await b.files(), []);
@@ -260,9 +268,9 @@ test('the preview shows the stored profile, or the unsaved change laid over it, 
   assert.equal((await preview({talkWords: 0.5})).status, 400);
   assert.equal((await preview({talkWords: 9999})).status, 400);
   assert.equal((await preview(null)).status, 400);
-  assert.match((await preview({name: 'x'.repeat(500)})).json.rules, /as x{60}, to V/);
-  assert.match((await preview({name: 'A\nB\u0000C'})).json.rules, /as A B C, to V/);
-  assert.match((await preview({name: 7})).json.rules, /as Judy, to V/);
+  assert.equal((await preview({name: 'x'.repeat(500)})).json.rules, shows({name: 'x'.repeat(60)}).rules);
+  assert.equal((await preview({name: 'A\nB\u0000C'})).json.rules, shows({name: 'A B C'}).rules);
+  assert.equal((await preview({name: 7})).json.rules, plain.rules);
 });
 
 test('a editor with no profile store has no Prompting: the state says so and every route is 404', async t => {
@@ -319,27 +327,28 @@ test('an override saved through the editor is in the next turn\'s prompt and req
   const system = body => body.messages[0].content, last = body => body.messages.at(-1).content;
 
   await host.reply(turn('first'));
-  const shipped = llama.requests[0];
-  assert.equal(shipped.temperature, LIMITS.temperature);
-  assert(system(shipped).includes('OUTPUT RULES (they outrank everything above about format)\n1. You speak out loud, as Judy Alvarez, to V.'));
+  const shipped = llama.requests[0], def = shippedOf('mistral');
+  assert.equal(shipped.temperature, def.sampling.temperature);
+  assert(system(shipped).includes(renderRules(def, {name: 'Judy Alvarez'})), 'the shipped rules, as the prompt module renders them');
 
   // Saved through the editor's own route, as the page does.
   const saved = await call(b.server, 'PUT', '/api/prompting/mistral', {body: {rules: [{id: 'short', text: 'Be short, {name}.'}], examples: ['Fine, V.'], closing: {text: 'Now answer.'},
-    labels: {rules: 'MY RULES'}, sampling: {temperature: 0.2, topP: 0.8, maxTokens: 123}, stop: ['\nV says:']}});
+    labels: {rules: 'MY RULES'}, sampling: {temperature: differs(def.sampling.temperature, 0.2, 0.25), topP: differs(def.sampling.topP, 0.8, 0.85), maxTokens: differs(def.sampling.maxTokens, 123, 124)}, stop: ['\nV says:']}});
   assert.equal(saved.status, 200);
   await host.reply(turn('second'));
   const tuned = llama.requests[1];
   assert(system(tuned).includes('MY RULES\n1. Be short, Judy Alvarez.'), 'the new wording is in the very next prompt');
   assert(system(tuned).includes('- Fine, V.'));
   assert(last(tuned).endsWith('(Now answer.)'));
-  assert.equal(tuned.temperature, 0.2); assert.equal(tuned.top_p, 0.8); assert.equal(tuned.max_tokens, 123); assert.deepEqual(tuned.stop, ['\nV says:']);
+  const mineSampling = saved.json.override.sampling;
+  assert.equal(tuned.temperature, mineSampling.temperature); assert.equal(tuned.top_p, mineSampling.topP); assert.equal(tuned.max_tokens, mineSampling.maxTokens); assert.deepEqual(tuned.stop, ['\nV says:']);
   assert.notEqual(system(tuned), system(shipped));
 
   // One field back: only that part returns.
   await call(b.server, 'POST', '/api/prompting/mistral/reset', {body: {field: 'sampling'}});
   await host.reply(turn('third'));
   const partly = llama.requests[2];
-  assert.equal(partly.temperature, LIMITS.temperature); assert.equal('top_p' in partly, false); assert.equal('stop' in partly, true, 'the stop strings are another field');
+  assert.equal(partly.temperature, def.sampling.temperature); assert.equal('top_p' in partly, def.sampling.topP !== null); assert.equal('stop' in partly, true, 'the stop strings are another field');
   assert(system(partly).includes('MY RULES\n1. Be short'));
 
   // Everything back: the shipped prompt, byte for byte, and the shipped request.
