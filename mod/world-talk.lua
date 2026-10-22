@@ -110,8 +110,15 @@ function M.read(npc, player, sample, idle)
         facts.hubWhy = 'dialogue=' .. tostring(seen.dialogue) .. ' choices=' .. tostring(seen.choices) .. ' call=' .. tostring(seen.call)
             .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true
-        -- Staged or limited gameplay (tier 2 or more) or an unknown tier: a workspot is then no proof of an idle post (idle persons only).
+        -- Staged or limited gameplay (tier 2 or more) or an unknown tier: a workspot is then no proof of an idle post (quest-marked idle persons only, as Face.reds).
         if idle == true then facts.staged = tier == nil or tier >= 2 end
+    elseif idle == true then
+        facts.staged = true   -- no player-side sample: fail closed, as Face.reds does when it cannot read the tier
+    end
+    -- An idle person the game does not mark as a quest person keeps the workspot as before (the bouncer at his door).
+    if idle == true and facts.staged == true then
+        local ok, marked = pcall(function() return npc:IsQuest() end)
+        if ok and marked == false then facts.staged = false end
     end
     return facts
 end

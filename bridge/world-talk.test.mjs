@@ -674,3 +674,20 @@ test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk
     assert.match(init, /ui\.t\('\{name\} is a story character\. Turn on Talk to story characters in Esc > Mods\.'/);
   });
 }
+
+test('staged belongs to the quest-marked person only, and an unreadable player side fails closed (review follow-up to A7)', () => withModule(`
+  ${fakeGame}
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function() return true end} end
+  state.autonomous = false
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  playerSample.tier = 2
+  function npc:IsQuest() return false end
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == false, 'a person the game does not mark as a quest person keeps the workspot')
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == nil, 'the bouncer at his door, V at tier 2')
+  function npc:IsQuest() return true end
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == true)
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'a quest-marked scene actor, V at tier 2')
+  -- No player-side sample at all: nothing says V is in open gameplay, so a quest-marked person is not let through
+  assert(W.read(npc, 'V', nil, true).staged == true)
+  assert(W.read(npc, 'V', function() return {available = false} end, true).staged == true)
+`));
