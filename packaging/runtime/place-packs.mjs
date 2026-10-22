@@ -13,10 +13,13 @@
 //   - the plugin folder (red4ext/plugins/AiNpcCyberpunkMod): red4ext/... extracted into it, also one wrapper folder deep.
 // A candidate counts only when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/app/ holds a pack marker:
 //   local-ai/manifest.*.json (Local AI and Mature packs), local-ai/mature/, omni/omni-pack.json (OmniVoice), or
-//   models/stt/<id>/mic-pack.json for one of the two voice-input pack ids (MIC_PACKS below).
+//   models/stt/<id>/mic-pack.json for one of the two voice-input pack ids (MIC_PACKS below);
+// or when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holds a language pack: multilingual/<code>/manifest.json (a voice language
+// pack) or multilingual-pocket/<code>/pocket-model.json (a Pocket language model). Those zips hold only voices/, no app/.
 //
-// What it moves: only the pack folders of that misplaced app/ (local-ai/, omni/, models/stt/<id>/ of a voice-input pack), and for the OmniVoice pack its
-// voices/ folder (the pack's reference clips, a sibling of app/). Never the launcher, bridge or anything else a Runtime package holds, and never the
+// What it moves: only the pack folders of that misplaced app/ (local-ai/, omni/, models/stt/<id>/ of a voice-input pack), for the OmniVoice pack its
+// voices/ folder (the pack's reference clips, a sibling of app/), and for a language pack its own voices/multilingual/<code>/ or
+// voices/multilingual-pocket/<code>/ folder. Never the launcher, bridge or anything else a Runtime package holds, and never the
 // Runtime's own models/stt/moonshine-tiny-en-int8/ (only the two ids below are looked at).
 //   - rename (same volume), or a whole folder at once when it does not exist yet; on EXDEV copy, verify the size, then delete;
 //   - a file already in place with the same size: the stray copy is dropped; with a different size: both are left as they are;
@@ -39,6 +42,14 @@ const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
 // The ids are repeated here because this file imports nothing from the bridge (packaging/mic-packs.test.mjs checks them against release.config.json).
 export const MIC_PACKS = Object.freeze({'parakeet-tdt-0.6b-v3-int8': 'MicPack-European', 'sense-voice-int8': 'MicPack-Asian'});
 const MIC_MARKER = 'mic-pack.json';
+// The language packs: voices/multilingual/<code>/manifest.json (voice language pack, scripts/voice-packs/package_pack.mjs) and
+// voices/multilingual-pocket/<code>/pocket-model.json (Pocket language model, packaging/build-pocket-models.mjs). The folder names are the language codes
+// (fr, it, de, es-es, pt-br ...).
+export const LANGUAGE_PACKS = Object.freeze([
+  {folder: 'multilingual', marker: 'manifest.json', label: 'Voice language pack'},
+  {folder: 'multilingual-pocket', marker: 'pocket-model.json', label: 'Pocket language model'},
+]);
+const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const micTree = id => `models/stt/${id}`;
 const PACK_NAMES = Object.freeze({
   'manifest.standard.json': 'Local AI standard', 'manifest.lite.json': 'Local AI lite',
@@ -56,6 +67,20 @@ const kindOf = async (fs, path) => {
 };
 const entriesOf = async (fs, path) => { try { return await fs.readdir(path, {withFileTypes: true}); } catch { return []; } };
 const treeOf = base => join(base, 'red4ext', 'plugins', NAME, 'app');
+
+// The language packs a misplaced voices folder holds: [{name, voiceTree: 'multilingual/fr', marker}].
+async function languagePacksIn(fs, voices) {
+  const packs = [];
+  if (!voices) return packs;
+  for (const {folder, marker, label} of LANGUAGE_PACKS) {
+    for (const entry of await entriesOf(fs, join(voices, folder))) {
+      if (entry.isDirectory() && LANGUAGE_CODE.test(entry.name) && await kindOf(fs, join(voices, folder, entry.name, marker)) === 'file') {
+        packs.push({name: `${label} (${entry.name})`, tree: null, voiceTree: `${folder}/${entry.name}`, marker});
+      }
+    }
+  }
+  return packs;
+}
 
 // Which packs the misplaced app folder holds (empty when it holds none).
 async function packsIn(fs, tree) {
@@ -80,10 +105,11 @@ export async function findCandidates(layout, fs = realFs) {
   const found = [];
   // `removable`: wrapper folders (deepest first) that go once empty, after app, <plugin>, plugins and red4ext of the misplaced tree.
   const addStandard = async (base, removable = []) => {
-    const tree = treeOf(base);
-    if (resolve(tree) === resolve(layout.app) || await kindOf(fs, tree) !== 'dir') return false;
-    found.push({base, tree, voices: join(dirname(tree), 'voices'),
-      chain: [tree, dirname(tree), dirname(dirname(tree)), join(base, 'red4ext'), ...removable]});
+    const tree = treeOf(base), voices = join(dirname(tree), 'voices');
+    if (resolve(tree) === resolve(layout.app) || resolve(voices) === resolve(layout.voices)) return false;
+    // A language pack has no app/ folder, only voices/: either one makes this a candidate.
+    if (await kindOf(fs, tree) !== 'dir' && await kindOf(fs, voices) !== 'dir') return false;
+    found.push({base, tree, voices, chain: [tree, voices, dirname(tree), dirname(dirname(tree)), join(base, 'red4ext'), ...removable]});
     return true;
   };
 
@@ -163,7 +189,7 @@ async function moveInto(ctx, source, target, rel, marker) {
 
 // rmdir never removes a folder that still holds anything; a chain stops at the first folder that does.
 async function removeChain(fs, folders) {
-  for (const folder of folders) { try { await fs.rmdir(folder); } catch { return; } }
+  for (const folder of folders) { try { await fs.rmdir(folder); } catch (error) { if (error?.code !== 'ENOENT') return; } }
 }
 
 // Folders of a moved tree that are now empty, deepest first, so a pack folder vanishes when nothing was left behind in it.
@@ -191,15 +217,21 @@ export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} 
   if (await kindOf(fs, layout.app) !== 'dir') return report;
   const candidates = await findCandidates(layout, fs);
   for (const candidate of candidates) {
-    const packs = await packsIn(fs, candidate.tree);
+    const packs = [...await packsIn(fs, candidate.tree), ...await languagePacksIn(fs, candidate.voices)];
     if (!packs.length) continue;
     const label = relative(layout.gameRoot, candidate.base) || '.';
     const ctx = {fs, moved: 0, dropped: 0, conflicts: [], deferred: []};
-    const trees = [...new Set(packs.map(pack => pack.tree))];
+    const trees = [...new Set(packs.map(pack => pack.tree).filter(Boolean))];
     const markerOf = tree => tree === 'local-ai' ? name => LOCAL_MARKER.test(name) : tree === 'omni' ? name => name === 'omni-pack.json' : name => name === MIC_MARKER;
     const jobs = trees.map(tree => ({rel: tree, source: join(candidate.tree, tree), target: join(layout.app, tree), marker: markerOf(tree)}));
     if (trees.includes('omni') && candidate.voices && await kindOf(fs, candidate.voices) === 'dir') {
       jobs.push({rel: 'voices', source: candidate.voices, target: layout.voices, marker: null});
+    } else {
+      // A language pack moves its own folder (the whole voices/ tree is moved with an OmniVoice pack above); its manifest moves last.
+      for (const pack of packs.filter(item => item.voiceTree)) {
+        jobs.push({rel: `voices/${pack.voiceTree}`, source: join(candidate.voices, ...pack.voiceTree.split('/')),
+          target: join(layout.voices, ...pack.voiceTree.split('/')), marker: name => name === pack.marker});
+      }
     }
     try {
       for (const job of jobs) {
@@ -214,6 +246,8 @@ export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} 
       return report; // stop: nothing else is touched
     }
     for (const job of jobs) await removeEmptyFolders(fs, job.source);
+    // A language pack leaves voices/multilingual (or multilingual-pocket) behind once its last language moved.
+    for (const pack of packs.filter(item => item.voiceTree)) await removeChain(fs, [join(candidate.voices, pack.voiceTree.split('/')[0])]);
     // A voice-input pack sat two folders down (models/stt/<id>): those two go too once empty (only inside the misplaced tree), so app/ can follow.
     if (trees.some(tree => tree.startsWith('models/stt/'))) await removeChain(fs, [join(candidate.tree, 'models', 'stt'), join(candidate.tree, 'models')]);
     await removeChain(fs, candidate.chain);

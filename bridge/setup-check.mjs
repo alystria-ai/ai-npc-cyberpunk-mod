@@ -24,6 +24,9 @@ export const SETUP_CHECK_FILE = 'setup-check.json';
 export const SETUP_REQUEST_FILE = 'setup-check-request.json';
 
 const REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000, REQUEST_FUTURE_MS = 5000;
+// The language packs one folder too deep are found by their manifests (the same as packaging/runtime/place-packs.mjs LANGUAGE_PACKS).
+const LANGUAGE_PACK_FOLDERS = [['multilingual', 'manifest.json', 'Voice language pack'], ['multilingual-pocket', 'pocket-model.json', 'Pocket language model']];
+const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
 const REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/;
 const MOD_NAME = 'AiNpcCyberpunkMod';
 
@@ -177,7 +180,8 @@ const PACK_NAMES = Object.freeze({
  *   - the game folder's child folders, and one level further;  - the mod folder (red4ext/... or app/... extracted into it);
  *   - the plugin folder (red4ext/... inside it, or inside one wrapper folder of it).
  * A candidate is <base>/red4ext/plugins/AiNpcCyberpunkMod/app holding local-ai/manifest.*.json, a non-empty local-ai/mature/ or
- * omni/omni-pack.json. The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
+ * omni/omni-pack.json, or <base>/red4ext/plugins/AiNpcCyberpunkMod/voices/ holding a language pack (multilingual/<code>/manifest.json, a voice
+ * language pack, or multilingual-pocket/<code>/pocket-model.json, a Pocket language model). The real installation (<plugin>/app) is never a candidate. Returns [{pack, folder}] with `folder` relative to the
  * game folder. Only directory listings and a few dozen stats; never throws.
  */
 export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}) {
@@ -194,9 +198,10 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
   const skip = name => GAME_FOLDERS.has(String(name).toLowerCase());
   const found = [];
   const addStandard = async base => {
-    const tree = treeOf(base);
-    if (resolve(tree).toLowerCase() === realApp || await kindOf(tree) !== 'dir') return false;
-    found.push({base, tree});
+    const tree = treeOf(base), voices = join(base, 'red4ext', 'plugins', MOD_NAME, 'voices');
+    if (resolve(tree).toLowerCase() === realApp || resolve(voices).toLowerCase() === resolve(realApp, '..', 'voices').toLowerCase()) return false;
+    if (await kindOf(tree) !== 'dir' && await kindOf(voices) !== 'dir') return false;
+    found.push({base, tree, voices});
     return true;
   };
   const top = (await entriesOf(game)).filter(entry => entry.isDirectory() && !skip(entry.name));
@@ -211,6 +216,16 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
   await addStandard(pluginRoot);
   for (const entry of (await entriesOf(pluginRoot)).filter(item => item.isDirectory() && !skip(item.name))) await addStandard(join(pluginRoot, entry.name));
 
+  const languagePacksIn = async voices => {
+    const names = [];
+    if (!voices) return names;
+    for (const [folder, marker, label] of LANGUAGE_PACK_FOLDERS) {
+      for (const entry of await entriesOf(join(voices, folder))) {
+        if (entry.isDirectory() && LANGUAGE_CODE.test(entry.name) && await kindOf(join(voices, folder, entry.name, marker)) === 'file') names.push(`${label} (${entry.name})`);
+      }
+    }
+    return names;
+  };
   const packsIn = async tree => {
     const names = [];
     const local = await entriesOf(join(tree, 'local-ai'));
@@ -229,7 +244,7 @@ export async function findNestedPacks({game, modRoot, plugin, app, fs = {}} = {}
     if (seen.has(key)) continue;
     seen.add(key);
     const folder = relative(game, candidate.base) || '.';
-    for (const pack of await packsIn(candidate.tree)) result.push({pack, folder});
+    for (const pack of [...await packsIn(candidate.tree), ...await languagePacksIn(candidate.voices)]) result.push({pack, folder});
   }
   return result;
 }
