@@ -4668,10 +4668,25 @@ registerForEvent('onUpdate', function(delta)
         focusUntil = os.time() + 1
     end
     if pending then
-        local replyFile = io.open('runtime/reply.json', 'rb')
-        if replyFile then
-            local raw = replyFile:read('*a')
-            replyFile:close()
+        -- With the native plugin an unchanged reply.json (its revision, one number) is not opened again: the text of the last read is
+        -- checked against this turn, so a reply that could not be delivered yet (reactionCanDeliver) is still picked up on a later tick.
+        -- The file is read again at least once a second; without the plugin (no revision) every tick reads as before. The fields live
+        -- on the global heartbeat table, so onUpdate gains no upvalue.
+        local raw = nil
+        local revision = convaiNative and convaiNative.revision and convaiNative.revision('reply.json') or nil
+        local clock = os.clock()
+        if revision and revision > 0 and revision == convaiHeartbeat.replyReadRevision and replyRaw
+            and clock >= convaiHeartbeat.replyReadAt and clock - convaiHeartbeat.replyReadAt < 1 then
+            raw = replyRaw
+        else
+            local replyFile = io.open('runtime/reply.json', 'rb')
+            if replyFile then
+                raw = replyFile:read('*a')
+                replyFile:close()
+                convaiHeartbeat.replyReadRevision, convaiHeartbeat.replyReadAt = revision, clock
+            end
+        end
+        if raw then
             -- The same text (a waiting turn reads the previous reply on every tick) is decoded once.
             if raw ~= replyRaw then replyRaw = raw; replyDecodeOk, replyDecoded = pcall(json.decode, raw) end
             local valid, reply = replyDecodeOk, replyDecoded
