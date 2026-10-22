@@ -236,7 +236,7 @@ local function knownGlobals()
         {'convaiSeatingOptions', convaiSeatingOptions}, {'convaiServiceStatus', convaiServiceStatus},
         {'convaiSetupCheck', convaiSetupCheck}, {'convaiSpawnedCharacters', convaiSpawnedCharacters},
         {'convaiSpawnedPeople', convaiSpawnedPeople}, {'convaiSpeech', convaiSpeech},
-        {'convaiSpeechReplayProbe', convaiSpeechReplayProbe}, {'convaiStory', convaiStory},
+        {'convaiStory', convaiStory},
         {'convaiSubtitles', convaiSubtitles}, {'convaiTalkGate', convaiTalkGate}, {'convaiTalkNative', convaiTalkNative},
         {'convaiTalkTarget', convaiTalkTarget}, {'convaiTargetMarking', convaiTargetMarking},
         {'convaiTeleportLog', convaiTeleportLog}, {'convaiTurnContext', convaiTurnContext}, {'convaiUiFonts', convaiUiFonts},

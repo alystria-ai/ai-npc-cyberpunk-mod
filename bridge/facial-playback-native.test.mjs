@@ -128,10 +128,6 @@ local function actor(id,graph)
 end
 local a,b,player=actor('copy-a','woman_average'),actor('copy-b','woman_average'),actor('V')
 function player:ConvaiManagerVoice() return true end
-function player:ConvaiSpeechStart() return true end
-function player:ConvaiSpeechStop() end
-function player:ConvaiSpeechPause() end
-function player:ConvaiSpeechPosition() return cursor end
 Game={GetPlayer=function() return player end,GetAllBlackboardDefs=function() return {UI_System={}} end,
  GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return paused end} end} end,
  GetSceneSystem=function() counts.method=counts.method+1;return {GetScriptInterface=function() counts.method=counts.method+1;return {
@@ -201,9 +197,34 @@ dofile=function(path) if path=='facial-playback.lua' then return face end;return
 speech=(function() ${speechSource} end)();speech.available=true
 do local seed=20261012.0;face.blinkRandom=function() seed=(seed*16807.0)%2147483647.0;return seed/2147483647.0 end end
 local rows={{entity=a.id,npc=a,profileKey='default-woman'},{entity=b.id,npc=b,profileKey='judy-alvarez'}}
+-- A reply's mouth, driven on the facial player directly the way a heard voice drives it: face.start with the reply's timeline,
+-- then face.sync at the heard position every frame (here the test's cursor), and the one stop at its end. The frame's expression
+-- work around it is what speech.update does (face.beginExpressionFrame, the speaking step, face.updateExpressions).
+local V
+local function vstop(reason)
+ face.endExpression(V and V.ctx,reason=='finished')
+ face.stop(V and V.actor,reason)
+ V=nil
+end
+local function vstart(ctx,who,line,duration)
+ vstop(nil)
+ V={ctx={requestId=ctx.requestId,generation=ctx.generation,entity=ctx.entity,name=ctx.name},actor=who,id=ctx.requestId,
+  duration=duration,playing=false}
+ face.beginExpression(V.ctx,nil)
+ assert(face.start(ctx,line,who,duration,nil),face.error)
+end
+local function vstep()
+ if not V then return end
+ local at=cursor
+ if not V.playing and at>.001 then V.playing=true end
+ if V.playing then face.sync(V.actor,at,V.id) end
+ if at>=V.duration-.005 then vstop('finished') end
+end
 local function tick(dt,options)
  options=options or {};options.actors=options.actors or rows;options.paused=paused
- speech.update(dt,options)
+ face.beginExpressionFrame(dt,options)
+ vstep()
+ face.updateExpressions(options)
 end
 local function statusOf(slot)
  local code=1
@@ -308,8 +329,7 @@ const reply = ({id, entity, who, source, duration, emotion, scale, mix, provider
 const play = (spec, extra = '') => `
  do
   local ctx={requestId=${JSON.stringify(spec.id)},entity=${JSON.stringify(spec.entity)},generation=4}
-  speech.target=${spec.who}
-  assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=${spec.line.duration}},face=${literal(spec.line)}}),face.error)
+  vstart(ctx,${spec.who},${literal(spec.line)},${spec.line.duration})
   local t,total=0,${spec.line.duration}
   local STEP=1/30
   while t<total+.1 do
@@ -317,7 +337,7 @@ const play = (spec, extra = '') => `
    ${extra}
    step(STEP)
   end
-  speech.stop('finished')
+  vstop('finished')
  end`;
 
 const mainScenario = () => {
@@ -356,10 +376,9 @@ const mainScenario = () => {
  checkpoint('surprise flick')
  do -- cancelled mid-reply: the plain reset path and the idle hand-over
   local ctx={requestId='r6',entity='copy-a',generation=4}
-  speech.target=a
-  assert(speech.start(ctx,{text='Hello.',audio={slot=0,event='convai_reply_0',duration=2},face=${literal(reply({id: 'r6', entity: 'copy-a', who: 'a', source: 'local-jali', duration: 2, emotion: 'Joy', scale: 1, upper: true, phase: 5.5}).line)}}),face.error)
+  vstart(ctx,a,${literal(reply({id: 'r6', entity: 'copy-a', who: 'a', source: 'local-jali', duration: 2, emotion: 'Joy', scale: 1, upper: true, phase: 5.5}).line)},2)
   for i=1,30 do cursor=i/30;step(1/30) end
-  speech.stop('cancelled')
+  vstop('cancelled')
   for _=1,10 do step(.1) end
  end
  ${play(r5)}

@@ -235,10 +235,15 @@ test('a copy whose actor is deleted asynchronously stops answering immediately b
 // The real playback owner, wired to the roster the way init.lua wires it.
 const speechHarness = `
   local starts,stops={},0
-  player.ConvaiSpeechStart=function(_,actor,event) starts[#starts+1]=tostring(actor:GetEntityID().hash); return true end
-  player.ConvaiSpeechStop=function() stops=stops+1 end
-  player.ConvaiSpeechPause=function() end
-  player.ConvaiSpeechPosition=function() return 0 end
+  -- The voice is the continuous renderer; this fake takes its place like the real adapter (mod/continuous-speech.lua): it refuses
+  -- a reply whose speaker is not the entity of the context (no actor, or another copy), and counts starts and stops.
+  local controller={version=1,available=true,
+    start=function(context,_,_,actor)
+      if not actor or tostring(actor:GetEntityID().hash)~=context.entity then return false,'target unavailable' end
+      starts[#starts+1]=context.entity; return true
+    end,
+    stop=function() stops=stops+1 end,pause=function() return true end,status=function() return {} end,
+    update=function() return nil end}
   player.ConvaiManagerVoice=function() return true end
   Game.GetAllBlackboardDefs=function() return {UI_System={}} end
   Game.GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return false end} end} end
@@ -257,13 +262,17 @@ const speechHarness = `
     return engineDofile(path)
   end
   local speech=(function() ${speechSource} end)()
-  dofile=engineDofile
+  -- speech.lua loads the adapter lazily, at the first reply: the stub stays for that call.
+  dofile=function(path)
+    if path=='continuous-speech.lua' then return controller end
+    return engineDofile(path)
+  end
   speech.available=true
   companions.onBeforeRemove=speech.clearEntity
   local function say(npc,id)
     speech.target=npc
     local context={entity=tostring(npc:GetEntityID().hash),requestId=id,generation=1,name='Judy'}
-    return speech.start(context,{text='Hello V',audio={slot=0,event='convai_reply_0',duration=2}})
+    return speech.start(context,{text='Hello V',continuous={version=1,id=id..'-voice'}})
   end
 `;
 
@@ -286,7 +295,7 @@ test('dismissing a copy whose private reply has not arrived cannot speak through
   assert(companions.dismiss(1))
   assert(speech.target==nil,'the dismissed copy remained the speech target')
   local context={entity=tostring(first.id.hash),requestId='late',generation=2,name='Judy'}
-  assert(not speech.start(context,{text='Late',audio={slot=0,event='convai_reply_0',duration=2}}))
+  assert(not speech.start(context,{text='Late',continuous={version=1,id='late-voice'}}))
   assert(speech.requestId==nil and #starts==0,'a late reply played through another copy of the same character')
   assert(companions.identity(second)=='judy-alvarez')
 `));

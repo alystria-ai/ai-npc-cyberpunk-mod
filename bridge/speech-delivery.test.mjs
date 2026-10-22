@@ -2,19 +2,247 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {ConvaiAudioStream, encodePcmWav} from './convai-audio-stream.mjs';
+import {runSpeech} from './speech-harness.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
-const speechSource = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
 const phoneSource = readFileSync(new URL('../mod/phone-chat.lua', import.meta.url), 'utf8');
-const facialSource = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
-const groupSource = readFileSync(new URL('../mod/group-chat.lua', import.meta.url), 'utf8');
 function run(setup, body) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
   const result = lauxlib.luaL_dostring(vm, to_luastring(setup + body));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }
+
+// Delivery receipts of the continuous voice (mod/speech.lua with the real mod/continuous-speech.lua, bridge/speech-harness.mjs): the
+// renderer's heard end is the only completion, and every other way a reply ends leaves no receipt behind.
+
+test('only the renderer\'s drained end creates a persistent plain receipt retaining the finished owner', () => runSpeech(`
+ assert(begin());assert(not state().lastDelivery)
+ snapshot({position=.2});tick();snapshot({position=1.5});tick();assert(not state().lastDelivery)
+ wall=1500
+ finishPlayback()
+ local receipt=state().lastDelivery
+ assert(receipt and receipt.requestId==context.requestId and receipt.entity=='Judy-2')
+ assert(receipt.generation==7 and receipt.conversationGeneration==7 and receipt.completedAt==1500000)
+ assert(receipt.source=='continuous-playback' and receipt.backend=='browser-pcm' and receipt.state=='completed')
+ assert(not receipt.partial and not receipt.cancelled)
+ assert(receipt.totalChunks==1 and receipt.completedChunks==1 and receipt.sequence==1)
+ assert(not speech.requestId and not speech.actor and not speech.context and state().state=='finished')
+ assert(not receipt.actor and not receipt.player and not receipt.text)
+ -- Polling the receipt, stopping again and later heartbeats never count another delivery.
+ tick(2.1);speech.stop('cancelled');tick(2.1);tick(2.1)
+ assert(state().lastDelivery.id==receipt.id and state().lastDelivery.sequence==1)
+ assert(nativeStarts==0 and nativeStops==0)
+`));
+
+test('early loss of the speaker, an end the renderer never confirmed and an explicit finished stop do not claim full delivery', () => runSpeech(`
+ -- Nearly all of it heard, the text complete, but the renderer never reported its drained end: the speaker is lost first.
+ assert(begin());snapshot({complete=true,textComplete=true,position=1.96,bufferedDuration=2});tick()
+ judy.attached=false;tick(.1)
+ assert(not speech.requestId and state().state=='target-lost' and not state().lastDelivery)
+ -- The provider's end of text without the device cursor at the end (position short of the buffered audio) is no end at all.
+ judy.attached=true;assert(begin());snapshot({complete=true,textComplete=true,position=1.5,ended=false});tick()
+ assert(speech.requestId and not state().lastDelivery)
+ snapshot({complete=true,textComplete=true,position=1.5,ended=true,state='ended'});tick()
+ assert(speech.requestId and not state().lastDelivery,'an ended state short of its audio was accepted')
+ -- Stopping with reason finished is not a delivery either: only the renderer's end is.
+ speech.stop('finished')
+ assert(not speech.requestId and not state().lastDelivery)
+ local t=speech.transcript(context.requestId,7,judy.id)
+ assert(t.finished and not t.failed and not t.delivered)
+`));
+
+test('paused time, mute, target loss, startup failure and text fallback never fabricate completion', () => runSpeech(`
+ -- A menu pauses: the renderer keeps reporting paused states for as long as it lasts, and none of that is delivery.
+ assert(begin());snapshot();tick()
+ paused=true
+ for _=1,40 do snapshot({state='paused',position=.2});tick(.5) end
+ assert(speech.requestId and speech.paused and not state().lastDelivery)
+ paused=false;voice=false;snapshot();tick(.1);assert(not speech.requestId and speech.state=='muted' and not state().lastDelivery)
+ -- No voice by the player's choice: the call is refused, nothing was ever playing.
+ assert(not begin());assert(not state().lastDelivery and #captions.shows>=1)
+ -- A reply with no continuous voice shows its text and returns false.
+ voice=true;speech.target=judy
+ assert(speech.start(context,{text='Written only.'})==false and captions.line=='Written only.' and not state().lastDelivery)
+ -- The adapter refuses the start (the target is not the one the reply was for).
+ local wrong=context.entity;context.entity='Wrong-copy'
+ assert(not begin());assert(speech.state=='playback-failed' and speech.error and not state().lastDelivery and not control().allow)
+ context.entity=wrong
+ -- Target lost, and a target that died.
+ assert(begin());snapshot();tick();judy.attached=false;tick(.1)
+ assert(state().state=='target-lost' and not state().lastDelivery)
+ judy.attached=true;assert(begin());snapshot();tick();judy.alive=false;tick(.1)
+ assert(state().state=='target-lost' and not state().lastDelivery)
+ judy.alive=true
+ -- The voice breaks after it started: the text shows, no delivery.
+ assert(begin());snapshot({position=.4,bufferedDuration=1});tick()
+ snapshot({state='error',error='The voice stream stopped.',position=.4,bufferedDuration=1,textComplete=true});tick()
+ assert(not speech.requestId and not state().lastDelivery)
+ assert(nativeStarts==0 and nativeStops==0)
+`));
+
+test('replacement and unload retain only the last real receipt without touching old native handles', () => runSpeech(`
+ assert(begin());snapshot({position=.2});tick();finishPlayback();local first=state().lastDelivery
+ assert(first and first.sequence==1)
+ -- A reply replaced by another one is cancelled, not delivered; the replacement is the one that delivers.
+ context.requestId='cancelled-turn';assert(begin());snapshot();tick()
+ context.requestId='replacement-turn';assert(begin());snapshot();tick();finishPlayback()
+ local second=state().lastDelivery
+ assert(second.sequence==2 and second.id~=first.id and second.requestId=='replacement-turn')
+ -- A save unload makes no native call and keeps the receipt that was already earned.
+ context.requestId='unloaded-turn';assert(begin());snapshot();tick()
+ local before=nativeCalls;world=false;speech.abandon()
+ assert(nativeCalls==before and not speech.player and not speech.actor and not speech.context and not speech.target)
+ assert(state().lastDelivery.id==second.id and state().lastDelivery.sequence==2)
+ -- A late finished state of the unloaded turn cannot make a receipt.
+ world=true;snapshot({complete=true,textComplete=true,position=2,ended=true,state='ended'});tick(2.1)
+ assert(not speech.requestId and state().lastDelivery.id==second.id)
+`));
+
+test('missing or malformed conversation ownership never becomes a durable delivery receipt', () => runSpeech(`
+ for _,value in ipairs({-1,1.5,'7',2147483648})do
+  context.generation=value
+  assert(not begin(),'a reply for generation '..tostring(value)..' was accepted')
+  assert(speech.state=='playback-failed' and not speech.requestId and not state().lastDelivery and #controls==0)
+ end
+ context.generation=nil;assert(not begin());assert(not state().lastDelivery and not speech.requestId)
+ context.generation=7;context.requestId=string.rep('x',161)
+ assert(not begin());assert(not state().lastDelivery and not speech.requestId)
+ context.requestId=nil;assert(not begin());assert(not state().lastDelivery)
+ context.requestId='conversation-1';context.entity=string.rep('y',121)
+ assert(not begin());assert(not state().lastDelivery)
+ -- The same owner, written right, is delivered.
+ context.entity=judy.id;assert(begin());snapshot();tick();finishPlayback()
+ assert(state().lastDelivery and state().lastDelivery.generation==7 and state().lastDelivery.sequence==1)
+`));
+
+test('a reply with an Audioware audio descriptor but no continuous voice is shown as text and starts nothing', () => runSpeech(`
+ local reply={text='Heard the old way.',audio={slot=0,event='convai_reply_0',duration=2},
+  stream={version=1,id='stream-1',total=2,firstText='Heard'}}
+ speech.target=judy
+ assert(speech.start(context,reply)==false)
+ assert(captions.line=='Heard the old way.' and captions.bindings[#captions.bindings].owner==judy)
+ assert(not speech.requestId and not speech.continuous and #controls==0)
+ assert(nativeStarts==0 and nativeStops==0 and not state().lastDelivery)
+ tick(2.1)
+ assert(state().available==true and state().continuousAvailable==true,'the heartbeat publishes that the continuous voice is available')
+ for _,key in ipairs({'slot','completedChunk','stream','streamId','nativeCompleted','phrases'})do
+  assert(state()[key]==nil,'a removed field is still published: '..key)
+ end
+`));
+
+test('final transcript updates group history without replaying subtitles or borrowing another request', () => runSpeech(`
+ local panam={entity='Panam-1',profileKey='panam',name='Panam',bodyType='test',npc={}}
+ local live={['Judy-2']=true,['Panam-1']=true}
+ group.start('group-live',{{entity='Judy-2',profileKey='judy',name='Judy',bodyType='test',npc=judy},panam},'Hello')
+ context=group.next(7,100,live)
+ assert(begin());snapshot({text='Only the beginning.',position=.2,bufferedDuration=1});tick()
+ group.received(context.requestId,'Only the beginning.',false,{'judy','panam'},{version=2,id=id})
+ assert(not group.preview(8,101,live))
+ local full='Only the beginning. The complete answer arrives while the audio continues playing.'
+ snapshot({text=full,textComplete=true,complete=true,position=.5,bufferedDuration=2});tick()
+ local prepared=group.preview(8,101,live)
+ assert(prepared.group.heard[1].text==full)
+ assert(not group.completed(context.requestId,true))
+ snapshot({text=full,textComplete=true,complete=true,position=1.5,bufferedDuration=2});tick()
+ snapshot({text=full,textComplete=true,complete=true,position=2,bufferedDuration=2,ended=true,state='ended'});tick()
+ local count=captions.starts+captions.revisions
+ local transcript=speech.transcript(context.requestId,7,'Judy-2')
+ assert(transcript.text==full and transcript.delivered and transcript.finished and not transcript.failed)
+ transcript.text='caller changed a copy'
+ assert(speech.transcript(context.requestId,7,'Judy-2').text==full)
+ assert(not speech.transcript(context.requestId,7,'Judy-1') and not speech.transcript(context.requestId,8,'Judy-2'))
+ assert(group.completed(context.requestId,true))
+ local following=group.next(9,103,live)
+ assert(following.requestId==prepared.requestId and following.group.heard[1].text==full)
+ assert(captions.starts+captions.revisions==count and captions.starts==1,'the final transcript replayed the subtitle')
+ speech.abandon();assert(not speech.transcript(context.requestId,7,'Judy-2'))
+`));
+
+test('an add-on remark whose speaker shows the text itself plays without a subtitle; a failed voice still shows it, and no other reply is asked', () => runSpeech(`
+ local asked,hide=0,true
+ speech.hideCaption=function(key,requestId)asked=asked+1;assert(key=='addon-x-gun' and requestId==context.requestId);return hide end
+ local addon={entity=judy.id,requestId=context.requestId,generation=context.generation,name='Gun',voiceOnly=true,profileKey='addon-x-gun'}
+ local reply={text='A reply',continuous={version=1,id=id}}
+ -- Hidden: the voice plays and ends, and no caption call follows it.
+ assert(speech.start(addon,reply))
+ assert(speech.captionHidden==true and asked==1)
+ snapshotFor(addon,{position=.2});tick();snapshotFor(addon,{position=1});tick()
+ assert(speech.state=='playing' and speech.position==1)
+ snapshotFor(addon,{complete=true,textComplete=true,position=2,ended=true,state='ended'});tick()
+ assert(captions.starts==0 and #captions.positions==0 and #captions.shows==0,'no subtitle at any point of a hidden remark')
+ assert(not speech.requestId and speech.captionHidden==nil and state().lastDelivery,'the flag ends with the reply')
+ -- The voice cannot start: the text is shown as a subtitle so the line is not lost.
+ local wrong=addon.entity;addon.entity='Wrong-copy'
+ assert(not speech.start(addon,reply))
+ assert(#captions.shows==1 and captions.shows[1]=='A reply','a failed voice falls back to the subtitle')
+ addon.entity=wrong
+ -- The speaker did not agree (no hologram): the subtitle follows the voice as always.
+ hide=false
+ assert(speech.start(addon,reply))
+ assert(speech.captionHidden==nil)
+ snapshotFor(addon,{position=.2});tick();snapshotFor(addon,{position=1});tick()
+ assert(captions.starts>=1 and #captions.positions>=1)
+ speech.stop('cancelled')
+ -- An ordinary reply (not voiceOnly) is never asked.
+ asked=0
+ assert(begin())
+ assert(asked==0 and speech.captionHidden==nil)
+`));
+
+test('an add-on voice with its own object passes it to the adapter as the source; an ordinary reply, a head voice and a failing lookup do not', () => runSpeech(`
+ local gun=actor('Gun',1,1)
+ local sources,asked={},{}
+ local start=controller.start
+ controller.start=function(ctx,descriptor,p,a,pausedNow,source)sources[#sources+1]=source or false;return start(ctx,descriptor,p,a,pausedNow,source)end
+ local source=gun
+ speech.voiceSource=function(key,p)asked[#asked+1]=key;assert(p==player);if source=='error' then error('no weapon') end;return source end
+ local addon={requestId='addon-1',entity=judy.id,generation=8,name='Skippy',voiceOnly=true,profileKey='addon-skippy-gun'}
+ local reply={text='Hi.',continuous={version=1,id=id}}
+ speech.target=judy
+ assert(speech.start(addon,reply))
+ assert(#asked==1 and asked[1]=='addon-skippy-gun' and sources[1]==gun)
+ assert(controller.status().voiceFrom=='source')
+ speech.stop('cancelled')
+ -- An ordinary reply never asks and passes no source, even when a source function exists.
+ assert(begin());assert(#asked==1 and sources[2]==false and controller.status().voiceFrom==nil)
+ speech.stop('cancelled')
+ -- Johnny in V's head has no place in the world: no source is asked for.
+ local head={requestId='head-1',entity=judy.id,generation=9,name='Johnny',voiceOnly=true,head={},profileKey='johnny-head'}
+ assert(speech.start(head,reply));assert(#asked==1 and sources[3]==false)
+ speech.stop('cancelled')
+ -- No object to come from, or a lookup that fails: the voice plays from its anchor.
+ source=nil;addon.requestId='addon-2'
+ assert(speech.start(addon,reply));assert(#asked==2 and sources[4]==false and controller.status().voiceFrom==nil and control().allow)
+ speech.stop('cancelled')
+ source='error';addon.requestId='addon-3'
+ assert(speech.start(addon,reply));assert(#asked==3 and sources[5]==false and control().allow)
+ speech.stop('cancelled')
+`));
+
+test('a holocall reply and Johnny\'s head voice reach the lease as a voice with no place in the world; an ordinary reply keeps its pan and distance', () => runSpeech(`
+ local logs={}
+ speech.log=function(line)logs[#logs+1]=line end
+ -- In person: Judy stands 2 m to the side, so the voice is panned and has a distance.
+ assert(begin());assert(control().pan==.7 and control().distance>0 and #logs==0)
+ speech.stop('cancelled')
+ -- A holocall (mod/holocall.lua): full level, centred, no distance, and one probe line for the reply.
+ speech.target=judy
+ local call={requestId='call-1',entity=judy.id,generation=5,name='Judy',holocall={contact='judy'}}
+ assert(speech.start(call,{text='Hello V',continuous={version=1,id=id}}))
+ assert(speech.holocall==true and captions.holocall==true)
+ assert(control().allow and control().pan==0 and control().distance==0 and math.abs(control().volume-.4)<.00001)
+ assert(#logs==1 and logs[1]:find('Holocall voice: path=browser',1,true) and logs[1]:find('level=0.40',1,true),tostring(logs[1]))
+ snapshotFor(call,{position=.2});tick(.16);assert(control().pan==0 and #logs==1)
+ speech.stop('cancelled');assert(speech.holocall==false)
+ -- Johnny in V's head: heard the same way, with no probe line (only a holocall has one).
+ local head={requestId='head-1',entity=judy.id,generation=6,name='Johnny',voiceOnly=true,head={},profileKey='johnny-head'}
+ assert(speech.start(head,{text='Listen, V.',continuous={version=1,id=id}}))
+ assert(speech.head==true and control().allow and control().pan==0 and control().distance==0 and #logs==1)
+ speech.stop('cancelled');assert(speech.head==false)
+ -- The next ordinary reply is spatial again.
+ assert(begin());assert(control().pan==.7 and control().distance>0)
+`));
 
 const filesSetup = `
 local files, values, serial, clock, writes = {}, {}, 0, 100, {}
@@ -37,351 +265,6 @@ os.rename=function(a,b)if not files[a]then return nil end;files[b]=files[a];file
 local function put(path,value)files[path]=json.encode(value)end
 local function read(path)return files[path]and json.decode(files[path])end
 `;
-
-const speechSetup = filesSetup + `
-local cursor, paused, voice, world, attached, alive, canStart = 0,false,true,true,true,true,true
-local starts,stops,nativeCalls=0,0,0
-local function native()nativeCalls=nativeCalls+1;assert(world,'native access after unload')end
-local player={
- ConvaiManagerVoice=function()native();return voice end,
- GetEntityID=function()native();return {hash='V'}end,
- ConvaiSpeechStart=function()native();starts=starts+1;cursor=0;return canStart end,
- ConvaiSpeechStop=function()native();stops=stops+1 end,
- ConvaiSpeechPause=function()native()end,
- ConvaiSpeechPosition=function()native();return cursor end}
-local actor={GetEntityID=function()native();return {hash='Judy-2'}end,
- IsAttached=function()native();return attached end,IsDeadNoStatPool=function()native();return not alive end}
-Game={GetPlayer=function()return player end,GetAllBlackboardDefs=function()return {UI_System={}}end,
- GetBlackboardSystem=function()return {Get=function()return {GetBool=function()return paused end}end}end}
-CName={new=function(value)return value end}
-local captions={clear=function()end,show=function()end,clearEntity=function()end,
- enabled=function()return true end,beginTimed=function()end,syncTimed=function()end}
-local face={status=function()return {}end,stop=function()end,start=function()end,pause=function()end,
- sync=function()end,abandon=function()end}
-dofile=function(path)return path=='facial-playback.lua'and face or captions end
-local function loadSpeech()return(function()${speechSource}end)()end
-local speech=loadSpeech();speech.available=true;speech.target=actor
-local context={entity='Judy-2',requestId='native-request-1',generation=7,name='Judy'}
-local function chunk(index)
- return {index=index,text='Phrase '..index,audio={slot=index-1,event='convai_reply_'..(index-1),duration=2}}
-end
-local function begin(stream)
- local first=chunk(1)
- local reply={text='A reply',audio=first.audio}
- if stream then
-  reply.stream={version=1,id='stream-1',total=2,firstText=first.text}
-  put('runtime/speech-stream.json',{version=1,streamId='stream-1',requestId=context.requestId,
-   entity=context.entity,generation=context.generation,total=2,complete=false,chunks={first}})
- end
- return speech.start(context,reply)
-end
-local function advance(value,delta)cursor=value;speech.update(delta or .1)end
-local function state()return read('runtime/speech-state.json')end
-local function manifest(changes)
- local value=read('runtime/speech-stream.json');for key,item in pairs(changes)do value[key]=item end
- put('runtime/speech-stream.json',value)
-end
-`;
-
-test('only native completion creates a persistent plain receipt retaining the finished owner', () => run(speechSetup, `
- assert(begin());assert(not state().lastDelivery)
- advance(.1);advance(1.5);assert(not state().lastDelivery)
- clock=101;advance(2)
- local receipt=state().lastDelivery
- assert(receipt and receipt.requestId==context.requestId and receipt.entity=='Judy-2')
- assert(receipt.generation==7 and receipt.conversationGeneration==7 and receipt.completedAt==101000)
- assert(receipt.source=='native-playback'and receipt.state=='completed'and not receipt.partial and not receipt.cancelled)
- assert(receipt.totalChunks==1 and receipt.completedChunks==1 and receipt.sequence==1)
- assert(not speech.requestId and not speech.actor and not speech.context and state().state=='finished')
- assert(not receipt.actor and not receipt.player and not receipt.text)
- speech.update(1);speech.stop('cancelled');speech=loadSpeech();speech.update(1)
- assert(state().lastDelivery.id==receipt.id and state().lastDelivery.sequence==1)
-`));
-
-test('near-end cleanup, early emitter loss, and an explicit finished stop do not claim full delivery', () => run(speechSetup, `
- assert(begin());advance(.1);advance(1.96);advance(1.96,.3)
- assert(not speech.requestId and state().state=='finished'and not state().lastDelivery)
- assert(begin());advance(1.93);advance(-1)
- assert(not speech.requestId and not state().lastDelivery)
- assert(begin());advance(.5);speech.stop('finished')
- assert(not speech.requestId and not state().lastDelivery)
-`));
-
-test('stream acknowledgement waits for all played chunks and the matching final producer manifest', () => run(speechSetup, `
- assert(begin(true));advance(.1);advance(2)
- assert(speech.state=='buffering'and state().completedChunk==1 and not state().lastDelivery)
- manifest({chunks={chunk(1),chunk(2)}});speech.update(.1)
- assert(starts==2);advance(.1);advance(2)
- assert(speech.state=='buffering'and state().completedChunk==2 and not state().lastDelivery)
- manifest({complete=true});speech.update(.1)
- local receipt=state().lastDelivery
- assert(receipt and receipt.totalChunks==2 and receipt.completedChunks==2)
- assert(receipt.requestId==context.requestId and receipt.generation==7 and not speech.requestId)
- speech.update(2);assert(state().lastDelivery.id==receipt.id)
-`));
-
-test('a short chunk or producer failure prevents whole-stream delivery even after later audio plays', () => run(speechSetup, `
- assert(begin(true));manifest({chunks={chunk(1),chunk(2)},complete=true})
- advance(.1);advance(1.96);advance(1.96,.3)
- assert(starts==2);advance(.1);advance(2)
- assert(state().state=='finished'and state().completedChunk==2 and not state().lastDelivery)
- assert(begin(true));advance(.2)
- manifest({complete=true,error='generation stopped'});advance(2)
- assert(state().state=='stream-incomplete'and not state().lastDelivery)
- assert(begin(true));advance(.2);advance(2);speech.update(46)
- assert(state().state=='stream-incomplete'and not state().lastDelivery)
-`));
-
-test('foreign or stale stream manifests cannot confirm the current utterance', () => run(speechSetup, `
- assert(begin(true));advance(.2);advance(2)
- manifest({chunks={chunk(1),chunk(2)},complete=true,entity='Judy-1'});speech.update(.1)
- assert(starts==1 and not state().lastDelivery)
- manifest({entity='Judy-2',generation=8});speech.update(.1)
- assert(starts==1 and not state().lastDelivery)
- manifest({generation=7,requestId='another-turn'});speech.update(.1)
- assert(starts==1 and not state().lastDelivery)
- manifest({requestId=context.requestId});speech.update(.1);advance(.1);advance(2)
- assert(starts==2 and state().lastDelivery.requestId==context.requestId)
-`));
-
-test('paused time, mute, target loss, startup failure and text fallback never fabricate completion', () => run(speechSetup, `
- assert(begin());advance(.1);paused=true;advance(2,120)
- assert(speech.requestId and not state().lastDelivery)
- paused=false;voice=false;speech.update(.1);assert(not state().lastDelivery)
- assert(not begin());assert(not state().lastDelivery)
- voice=true;canStart=false;assert(not begin());assert(not state().lastDelivery)
- canStart=true;assert(begin());advance(.1);attached=false;advance(2)
- assert(state().state=='target-lost'and not state().lastDelivery)
- attached=true;assert(begin());advance(.1);alive=false;advance(2)
- assert(state().state=='target-lost'and not state().lastDelivery)
-`));
-
-test('replacement and unload retain only the last real receipt without touching old native handles', () => run(speechSetup, `
- assert(begin());advance(.2);advance(2);local first=state().lastDelivery
- context.requestId='cancelled-turn';assert(begin());advance(.1)
- context.requestId='replacement-turn';assert(begin());advance(.2);advance(2)
- local second=state().lastDelivery
- assert(second.sequence==2 and second.id~=first.id and second.requestId=='replacement-turn')
- context.requestId='unloaded-turn';assert(begin());advance(.2)
- local before=nativeCalls;world=false;speech.abandon()
- assert(nativeCalls==before and not speech.player and not speech.actor and not speech.context and not speech.target)
- assert(state().lastDelivery.id==second.id and state().lastDelivery.sequence==2)
-`));
-
-test('missing or malformed conversation ownership never becomes a durable delivery receipt', () => run(speechSetup, `
- for _,value in ipairs({-1,1.5,'7',2147483648})do
-  context.generation=value;assert(begin());advance(.1);advance(2);assert(not state().lastDelivery)
- end
- context.generation=nil;assert(begin());advance(.1);advance(2);assert(not state().lastDelivery)
- context.generation=7;context.requestId=string.rep('x',161)
- assert(begin());advance(.1);advance(2);assert(not state().lastDelivery)
-`));
-
-const dynamicSetup = speechSetup + `
-local captionStarts,captionUpdates,captionPositions,captionClears={},{},{},0
-captions.beginTimed=function(name,text,duration,owner,entity)
- assert(owner==actor and entity=='Judy-2')
- captionStarts[#captionStarts+1]={text=text,duration=duration};captions.timed={duration=duration}
-end
-captions.reviseTimed=function(text,duration,position)
- assert(captions.timed);captionUpdates[#captionUpdates+1]={text=text,duration=duration,position=position}
- captions.timed.duration=duration;return true
-end
-captions.syncTimed=function(position)captionPositions[#captionPositions+1]=position end
-captions.clear=function()captionClears=captionClears+1;captions.timed=nil end
-local function pcmChunk(index,duration,start,text)
- return {index=index,startSeconds=start,text=text or 'This is one continuous sentence.',
-  audio={slot=(index-1)%8,event='convai_reply_'..((index-1)%8),duration=duration}}
-end
-local function beginDynamic(duration,text)
- local first=pcmChunk(1,duration or 1,0,text)
- local doc={version=2,streamId='pcm-live',requestId=context.requestId,generation=context.generation,
-  entity=context.entity,captionMode='utterance',text=first.text,textComplete=false,complete=false,
-  bufferedDuration=first.audio.duration,chunks={first}}
- put('runtime/speech-stream.json',doc)
- assert(speech.start(context,{text=first.text,audio=first.audio,stream={version=2,id='pcm-live',
-  captionMode='utterance',firstText=first.text,textComplete=false,bufferedDuration=first.audio.duration}}))
- return first
-end
-local function grow(chunks,text,complete,err)
- local duration=0;for _,item in ipairs(chunks)do duration=duration+item.audio.duration end
- local value=read('runtime/speech-stream.json')
- value.chunks,value.text,value.complete,value.error=chunks,text,complete==true,err
- value.textComplete,value.bufferedDuration=complete==true,duration
- value.total=complete and #chunks or nil
- put('runtime/speech-stream.json',value)
-end
-`;
-
-test('dynamic PCM starts before the final total and retains one utterance caption across segment boundaries', () => run(dynamicSetup, `
- local first=beginDynamic();advance(.2)
- assert(speech.state=='playing'and speech.stream.total==nil and #captionStarts==1 and captionClears==0)
- advance(1);assert(speech.state=='buffering'and captionClears==0 and not state().lastDelivery)
- grow({first,pcmChunk(2,2,1)},first.text,false);speech.update(.1)
- assert(starts==2);advance(.2)
- assert(#captionStarts==1 and #captionUpdates==0 and math.abs(captionPositions[#captionPositions]-1.2)<.001)
- advance(2);assert(speech.state=='buffering'and not state().lastDelivery and captionClears==0)
- grow({first,pcmChunk(2,2,1)},first.text,true);speech.update(.1)
- local receipt=state().lastDelivery
- assert(receipt and receipt.totalChunks==2 and receipt.completedChunks==2 and state().utterancePosition==3)
- assert(captionClears==1 and #captionStarts==1 and #captionUpdates==1)
- assert(captionUpdates[1].duration==3 and captionUpdates[1].position==3)
-`));
-
-test('growing realtime text updates the current caption at its global audio cursor without restarting on every file', () => run(dynamicSetup, `
- local first=beginDynamic(1,'Night City looks different.');advance(.3)
- local full='Night City looks different from up here, with all those lights stretching beyond the skyline.'
- grow({first,pcmChunk(2,2,1,full)},full,false);advance(.5)
- assert(#captionStarts==1 and #captionUpdates==1 and captionUpdates[1].text==full)
- assert(captionUpdates[1].position==.5 and captionClears==0)
- advance(1);advance(.2);assert(#captionStarts==1 and #captionUpdates==1)
- grow({first,pcmChunk(2,2,1,full)},full,true);advance(.5)
- assert(#captionUpdates==2 and captionUpdates[2].duration==3 and captionUpdates[2].position==1.5)
- advance(2);assert(state().lastDelivery and #captionStarts==1)
-`));
-
-test('dynamic streams support a single short final segment and never acknowledge an error-completed stream', () => run(dynamicSetup, `
- local first=beginDynamic(.35);advance(.1)
- grow({first},first.text,true);advance(.35)
- assert(state().lastDelivery.totalChunks==1 and state().lastDelivery.completedChunks==1)
- local prior=state().lastDelivery.id
- context.requestId='failed-pcm';first=beginDynamic();advance(.1)
- grow({first},first.text,true,'Provider stopped');advance(1)
- assert(speech.state=='stream-incomplete'and state().lastDelivery.id==prior)
-`));
-
-test('dynamic buffer underrun waits without advancing captions; pause, cancellation and timeout remain bounded', () => run(dynamicSetup, `
- local first=beginDynamic();advance(.2);advance(1)
- local position=captionPositions[#captionPositions]
- speech.update(2);assert(speech.state=='buffering'and starts==1 and captionPositions[#captionPositions]==position)
- paused=true;grow({first,pcmChunk(2,2,1)},first.text,true);speech.update(60)
- assert(starts==1 and not state().lastDelivery)
- paused=false;speech.update(.1);assert(starts==2)
- speech.stop('cancelled');speech.update(.1);assert(not state().lastDelivery and not speech.requestId)
- context.requestId='underrun-timeout';first=beginDynamic();advance(.1);advance(1);speech.update(46)
- assert(speech.state=='stream-incomplete'and not state().lastDelivery)
-`));
-
-test('dynamic manifests reject discontinuities, changed admitted audio, unbounded totals and wrong owners', () => run(dynamicSetup, `
- local first=beginDynamic();advance(.2);advance(1)
- local second=pcmChunk(2,2,1)
- grow({first,second},first.text,false);local good=read('runtime/speech-stream.json')
- local bad=clone(good);bad.chunks[2].startSeconds=1.5;put('runtime/speech-stream.json',bad);speech.update(.1)
- assert(starts==1)
- bad=clone(good);bad.bufferedDuration=6;put('runtime/speech-stream.json',bad);speech.update(.1);assert(starts==1)
- bad=clone(good);bad.chunks[1].audio.slot=7;bad.chunks[1].audio.event='convai_reply_7'
- put('runtime/speech-stream.json',bad);speech.update(.1);assert(starts==1)
- bad=clone(good);bad.complete=true;bad.textComplete=true;bad.total=129
- put('runtime/speech-stream.json',bad);speech.update(.1);assert(starts==1)
- bad=clone(good);bad.generation=8;put('runtime/speech-stream.json',bad);speech.update(.1);assert(starts==1)
- bad=clone(good);bad.entity='Judy-1';put('runtime/speech-stream.json',bad);speech.update(.1);assert(starts==1)
- put('runtime/speech-stream.json',good);speech.update(.1);assert(starts==2)
- advance(.2);advance(2);grow({first,second},first.text,true);speech.update(.1)
- assert(state().lastDelivery and state().lastDelivery.totalChunks==2)
-`));
-
-test('real facial playback hands contiguous native segments over without reset and releases long buffer holds', () => run(dynamicSetup, `
- local poses,resets={},0
- convaiCompanions={owns=function(value)return value==actor end}
- NewObject=function()return {}end
- actor.ConvaiFaceReady=function()native();return true end
- actor.ConvaiFaceApply=function(_,feature)native();poses[#poses+1]=feature.jaw_mid_open;return true end
- actor.ConvaiFaceReset=function()native();resets=resets+1;return true end
- face=(function()${facialSource}end)();speech=loadSpeech();speech.available=true;speech.target=actor
- local function timeline(index,last,a,b)
-  return {version=1,requestId=context.requestId,entity=context.entity,duration=1,source='convai-arkit61',
-   segment={version=1,index=index,startSeconds=index-1,first=index==1,last=last},
-   tracks={'jaw_mid_open'},frames={{0,a},{1,b}}}
- end
- local function startFace()
-  local first=pcmChunk(1,1,0);first.face=timeline(1,false,.1,.2)
-  put('runtime/speech-stream.json',{version=2,streamId='pcm-live',requestId=context.requestId,generation=context.generation,
-   entity=context.entity,captionMode='utterance',text=first.text,textComplete=false,complete=false,bufferedDuration=1,chunks={first}})
-  assert(speech.start(context,{text=first.text,audio=first.audio,face=first.face,
-   stream={version=2,id='pcm-live',captionMode='utterance',firstText=first.text,textComplete=false,bufferedDuration=1}}))
-  return first
- end
- local first=startFace();local second=pcmChunk(2,1,1);second.face=timeline(2,true,.2,0)
- grow({first,second},first.text,true);advance(.4);advance(.996)
- assert(starts==2 and resets==0 and math.abs(poses[#poses]-.2)<.0001)
- advance(.05,.3);assert(resets==0 and math.abs(poses[#poses]-.19)<.0001)
- advance(1);assert(resets==1 and state().lastDelivery.totalChunks==2)
- context.requestId='buffered-face';first=startFace();advance(.5);advance(1)
- assert(face.active and resets==1)
- speech.update(.25);assert(not face.active and resets==2 and speech.state=='buffering')
- speech.stop('cancelled');assert(resets==2)
-`));
-
-test('final native transcript updates group history without replaying subtitles or borrowing another request', () => run(dynamicSetup, `
- local group=(function()${groupSource}end)()
- group.captureReply=speech.transcript
- local judy={entity='Judy-2',profileKey='judy',name='Judy',bodyType='test',npc=actor}
- local panam={entity='Panam-1',profileKey='panam',name='Panam',bodyType='test',npc={}}
- local live={['Judy-2']=true,['Panam-1']=true}
- group.start('group-live',{judy,panam},'Hello');context=group.next(7,100,live)
- local first=beginDynamic(1,'Only the beginning.');advance(.2)
- group.received(context.requestId,first.text,false,{'judy','panam'},{version=2,id='pcm-live'})
- assert(not group.preview(8,101,live))
- local full='Only the beginning. The complete answer arrives while these audio files continue playing.'
- grow({first,pcmChunk(2,1,1,full)},full,true);advance(.5)
- local prepared=group.preview(8,101,live)
- assert(prepared.group.heard[1].text==full)
- assert(not group.completed(context.requestId,true))
- advance(1);advance(.5);advance(1)
- local count=#captionStarts+#captionUpdates
- local transcript=speech.transcript(context.requestId,7,'Judy-2')
- assert(transcript.text==full and transcript.delivered and transcript.finished)
- transcript.text='caller changed a copy'
- assert(speech.transcript(context.requestId,7,'Judy-2').text==full)
- assert(not speech.transcript(context.requestId,7,'Judy-1')and not speech.transcript(context.requestId,8,'Judy-2'))
- assert(group.completed(context.requestId,true))
- local next=group.next(9,103,live)
- assert(next.requestId==prepared.requestId and next.group.heard[1].text==full)
- assert(#captionStarts+#captionUpdates==count and #captionStarts==1)
- speech.abandon();assert(not speech.transcript(context.requestId,7,'Judy-2'))
-`));
-
-function toLua(value) {
-  if (value === undefined || value === null) return 'nil';
-  if (typeof value === 'string') return JSON.stringify(value);
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  if (Array.isArray(value)) return `{${value.map(toLua).join(',')}}`;
-  return `{${Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => `[${toLua(key)}]=${toLua(item)}`).join(',')}}`;
-}
-
-test('real PCM WAV segments published by the realtime adapter follow the dynamic native receipt contract', async () => {
-  const manifests = [], pcmDurations = [];
-  const input = {requestId: 'native-request-1', generation: 7, entity: 'Judy-2'};
-  const stream = new ConvaiAudioStream({input, streamId: 'actual-pcm', now: () => 100000,
-    current: async () => true, writeManifest: async doc => manifests.push(structuredClone(doc)),
-    readState: async () => ({streamId: 'actual-pcm', requestId: input.requestId, state: 'playing', updated: 100000, completedChunk: 0}),
-    slots: {begin: async () => {}, write: async (_, index, audio) => {
-      const wav = Buffer.from(audio, 'base64');
-      assert.equal(wav.toString('ascii', 0, 4), 'RIFF');
-      const duration = wav.readUInt32LE(40) / wav.readUInt32LE(28); pcmDurations.push(duration);
-      return {slot: index - 1, event: `convai_reply_${index - 1}`, duration};
-    }}});
-  const text = 'These two native files contain one continuous spoken reply.';
-  for (const [offset, duration] of [[0, 1], [1, 1.1]]) {
-    const pcm = Float32Array.from({length: Math.round(8000 * duration)}, (_, n) => .15 * Math.sin(n / 15));
-    await stream.append({version: 1, index: manifests.length + 1, startSeconds: offset, duration,
-      audio: encodePcmWav(pcm, 8000), text, textComplete: true});
-  }
-  const descriptor = stream.descriptor();
-  await stream.finish({streamed: true, text, stream: {chunks: 2, duration: 2.1}});
-  assert.deepEqual(pcmDurations, [1, 1.1]);
-  run(dynamicSetup, `
- local initial=${toLua(manifests[0])};local final=${toLua(manifests.at(-1))}
- put('runtime/speech-stream.json',initial)
- assert(speech.start(context,{text=initial.text,audio=initial.chunks[1].audio,stream=${toLua(descriptor)}}))
- advance(.25);advance(1);assert(speech.state=='buffering'and not state().lastDelivery)
- put('runtime/speech-stream.json',${toLua(manifests[1])});speech.update(.1)
- advance(.2);advance(1.1);assert(speech.state=='buffering'and not state().lastDelivery)
- put('runtime/speech-stream.json',final);speech.update(.1)
- assert(state().lastDelivery.totalChunks==2 and state().lastDelivery.completedChunks==2)
- assert(starts==2 and #captionStarts==1 and math.abs(state().utterancePosition-2.1)<.0001)
- `);
-});
 
 const phoneSetup = filesSetup + `
 NewObject=function()return {}end
@@ -465,150 +348,4 @@ test('phone journal history is captured beside world knowledge under the origina
  assert(pending.journalHistory.worldToken=='original-world-token')
  phone.catalog.judy='a-different-profile';reply(pending);update()
  assert(callbacks[1].profileKey=='judy-alvarez')
-`));
-
-test('an add-on remark whose speaker shows the text itself plays without a subtitle; a failed voice still shows it, and no other reply is asked', () => run(speechSetup, `
- local calls = {show = 0, begin = 0, sync = 0, clear = 0, asked = 0}
- captions.show = function() calls.show = calls.show + 1 end
- captions.beginTimed = function() calls.begin = calls.begin + 1 end
- captions.syncTimed = function() calls.sync = calls.sync + 1 end
- captions.clear = function() calls.clear = calls.clear + 1 end
- local hide = true
- speech.hideCaption = function(key, requestId) calls.asked = calls.asked + 1; assert(key == 'addon-x-gun' and requestId == context.requestId); return hide end
- local addon = {entity = context.entity, requestId = context.requestId, generation = context.generation, name = 'Gun', voiceOnly = true, profileKey = 'addon-x-gun'}
- local reply = {text = 'A reply', audio = chunk(1).audio}
- -- Hidden: the voice plays and ends, and no caption call follows it.
- assert(speech.start(addon, reply))
- assert(speech.captionHidden == true and calls.asked == 1)
- advance(.1); advance(1); advance(.5)
- assert(speech.state == 'playing')
- advance(2)
- assert(calls.begin == 0 and calls.sync == 0 and calls.show == 0, 'no subtitle at any point of a hidden remark')
- assert(not speech.requestId and speech.captionHidden == nil, 'the flag ends with the reply')
- -- The voice cannot start: the text is shown as a subtitle so the line is not lost.
- canStart = false
- assert(not speech.start(addon, reply))
- assert(calls.show == 1, 'a failed voice falls back to the subtitle')
- canStart = true
- -- The speaker did not agree (no hologram): the subtitle follows the voice as always.
- hide = false
- assert(speech.start(addon, reply))
- assert(speech.captionHidden == nil)
- advance(.1); advance(1)
- assert(calls.begin >= 1 and calls.sync >= 1)
- speech.stop('cancelled')
- -- An ordinary reply (not voiceOnly) is never asked.
- calls.asked = 0
- assert(speech.start(context, reply))
- assert(calls.asked == 0 and speech.captionHidden == nil)
-`));
-
-test('an add-on voice anchored to V is heard from its own object (Audioware refuses V as an emitter); without one it fails with a reason and shows the text', () => run(speechSetup, `
- local emitters, shown = {}, 0
- player.ConvaiSpeechStart = function(_, object, event) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
- captions.show = function() shown = shown + 1 end
- local gun = {GetEntityID = function() native(); return {hash = 'GUN'} end}
- local source, asked = gun, 0
- speech.voiceSource = function(key, p) asked = asked + 1; assert(key == 'addon-x-gun' and p == player); return source end
- speech.target = player
- local addon = {entity = 'V', requestId = 'req-v', generation = 3, name = 'Gun', voiceOnly = true, profileKey = 'addon-x-gun'}
- local reply = {text = 'A reply', audio = chunk(1).audio}
- -- The gun in V's hand is the emitter, not V.
- assert(speech.start(addon, reply))
- assert(#emitters == 1 and emitters[1] == 'GUN' and asked == 1, 'the voice comes from the gun: ' .. table.concat(emitters, ','))
- assert(speech.state == 'starting' or speech.state == 'playing')
- speech.stop('cancelled')
- assert(speech.emitter == nil)
- -- No object to come from: V would be the emitter, which Audioware refuses, so the call is not made and the text is shown.
- source = nil
- emitters, shown = {}, 0
- assert(not speech.start(addon, reply))
- assert(#emitters == 0, 'V is never registered as an emitter')
- assert(speech.state == 'playback-failed' and tostring(speech.error):find('Audioware cannot play on V'), tostring(speech.error))
- assert(shown == 1, 'the subtitle shows the text of a voice that cannot play')
- -- An ordinary speaker (and an add-on with a body) plays on itself and never asks for a source.
- asked = 0
- speech.target = actor
- assert(speech.start(context, reply))
- assert(asked == 0, 'only a voice without a body asks')
- speech.stop('cancelled')
-`));
-
-test('a holocall reply (and a V-anchored voice with no object of its own) plays on something of V\'s, never on V; with nothing to play on it fails with the reason', () => run(speechSetup, `
- local emitters, shown = {}, 0
- player.ConvaiSpeechStart = function(_, object, event) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
- captions.show = function() shown = shown + 1 end
- local function thing(hash, attachedNow) return {GetEntityID = function() native(); return {hash = hash} end, IsAttached = function() return attachedNow end} end
- local weapon, chest = thing('WEAPON', true), thing('CHEST', true)
- local held = weapon
- ScriptedPuppet = {GetActiveWeapon = function(p) assert(p == player); return held end}
- TweakDBID = {new = function(name) return name end}
- local worn = chest
- Game.GetTransactionSystem = function() return {GetItemInSlot = function(_, p, slot) assert(p == player and slot == 'AttachmentSlots.Chest'); return worn end} end
- speech.target = player
- local call = {entity = 'V', requestId = 'req-h', generation = 4, name = 'Judy', holocall = {contact = 'judy'}}
- local reply = {text = 'Hello V', audio = chunk(1).audio}
- -- A holocall: through the phone, from the weapon in V's hands (not from V, which Audioware refuses).
- assert(speech.start(call, reply))
- assert(#emitters == 1 and emitters[1] == 'WEAPON', table.concat(emitters, ','))
- speech.stop('cancelled')
- -- No weapon in hand: the chest item V wears.
- held = nil
- emitters = {}
- assert(speech.start(call, reply))
- assert(#emitters == 1 and emitters[1] == 'CHEST', table.concat(emitters, ','))
- speech.stop('cancelled')
- -- A weapon that is not attached is no emitter either.
- held = thing('WEAPON', false)
- emitters = {}
- assert(speech.start(call, reply))
- assert(emitters[1] == 'CHEST')
- speech.stop('cancelled')
- -- Nothing of V's to play on: no call with V, the reason is kept, and the call's text is shown.
- held, worn = nil, nil
- emitters, shown = {}, 0
- assert(not speech.start(call, reply))
- assert(#emitters == 0 and shown == 1)
- assert(speech.state == 'playback-failed' and tostring(speech.error):find('nothing of V'), tostring(speech.error))
- -- The object is found once for the reply: the next phrase of a long reply plays from the same one.
- held = weapon
- emitters = {}
- assert(speech.start(call, reply))
- assert(emitters[1] == 'WEAPON' and speech.emitter == weapon)
- speech.stop('cancelled')
- assert(speech.emitter == nil)
-`));
-
-test('with a Speech.reds that has it, a holocall reply plays as V\'s own sound (ConvaiSpeechStartOnV), never on an emitter; an ordinary reply is unchanged', () => run(speechSetup, `
- local onV, emitters, logs = {}, {}, {}
- player.ConvaiSpeechStartOnV = function(_, event) native(); onV[#onV + 1] = event; cursor = 0; return true end
- player.ConvaiSpeechStart = function(_, object) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
- speech.log = function(line) logs[#logs + 1] = line end
- player.IsAttached = function() return true end
- player.IsDeadNoStatPool = function() return false end
- ScriptedPuppet = {GetActiveWeapon = function() error('no object of V is looked for on a call') end}
- speech.target = player
- local call = {entity = 'V', requestId = 'req-v', generation = 5, name = 'Judy', holocall = {contact = 'judy'}}
- local reply = {text = 'Hello V', audio = chunk(1).audio}
- assert(speech.start(call, reply))
- assert(#onV == 1 and #emitters == 0 and speech.emitter == nil, table.concat(emitters, ','))
- assert(speech.state == 'starting' and speech.slot == reply.audio.slot)
- assert(logs[1] == 'Holocall voice: path=audioware-v', tostring(logs[1]))
- -- Its clock is read as before (ConvaiSpeechPosition serves either kind) and it stops as before.
- cursor = 0.4; speech.update(0.1)
- assert(speech.state == 'playing', speech.state)
- speech.stop('cancelled')
- -- Speech.reds refuses (or an older one has no such method): the emitter path is kept.
- player.ConvaiSpeechStartOnV = function() native(); return false end
- ScriptedPuppet = {GetActiveWeapon = function() return {GetEntityID = function() return {hash = 'WEAPON'} end, IsAttached = function() return true end} end}
- assert(speech.start(call, reply))
- assert(emitters[1] == 'WEAPON')
- speech.stop('cancelled')
- -- A reply in person never plays on V.
- onV, emitters = {}, {}
- player.ConvaiSpeechStartOnV = function(_, event) native(); onV[#onV + 1] = event; return true end
- speech.target = actor
- assert(speech.start(context, reply))
- assert(#onV == 0 and #emitters == 1)
- speech.stop('cancelled')
 `));

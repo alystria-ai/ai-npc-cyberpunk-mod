@@ -74,10 +74,6 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-preview.lua"
     },
     {
-      "source": "mod/speech-replay-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-replay-probe.lua"
-    },
-    {
       "source": "mod/speech-cadence-probe.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-cadence-probe.lua"
     },

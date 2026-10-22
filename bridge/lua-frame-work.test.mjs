@@ -20,18 +20,15 @@ function run(code) {
   assert.equal(status, lua.LUA_OK, error);
 }
 
-// speech.lua with the real subtitles and facial players (as bridge/playback-settings.test.mjs loads them), a counted
-// Game.GetPlayer and a recorded speech-state.json.
+// speech.lua with the real subtitles and facial players (as bridge/playback-settings.test.mjs loads them), a fake continuous
+// controller (the voice: the test sets the state it reports and reads the pause flag it was given), a counted Game.GetPlayer and
+// a recorded speech-state.json.
 const speechFixture = `
-  local playerReads, published, cursor, playerHash = 0, 0, 0, 'player'
+  local playerReads, published, playerHash = 0, 0, 'player'
   local player = {
     ConvaiManagerVoice=function() return true end,
     ConvaiManagerSubtitles=function() return false end,
-    GetEntityID=function() return {hash=playerHash} end,
-    ConvaiSpeechStart=function() return true end,
-    ConvaiSpeechStop=function() end,
-    ConvaiSpeechPosition=function() return cursor end,
-    ConvaiSpeechPause=function() end
+    GetEntityID=function() return {hash=playerHash} end
   }
   local board={SetVariant=function() end, GetBool=function() return false end}
   Game={GetPlayer=function() playerReads=playerReads+1; return player end,
@@ -50,19 +47,35 @@ const speechFixture = `
   end
   local captions=(function() ${subtitlesSource} end)()
   local face=(function() ${facialSource} end)()
-  dofile=function(path) return path=='facial-playback.lua' and face or captions end
+  local voice={state=nil, paused=nil}
+  local controller={version=1, available=true,
+    start=function() return true end,
+    update=function(_, _, _, paused) voice.paused = paused; return voice.state end,
+    stop=function() end, pause=function() return true end, status=function() return {} end}
+  dofile=function(path)
+    if path == 'facial-playback.lua' then return face end
+    if path == 'continuous-speech.lua' then return controller end
+    return captions
+  end
   local speech=(function() ${speechSource} end)()
+  -- What the continuous voice reports: heard up to a position (2 s of audio buffered), ended or not.
+  local function heard(position, ended)
+    voice.state = {position=position, bufferedDuration=2, text='Hello V', textComplete=true, state='playing',
+      complete=true, ended=ended == true}
+  end
+  local reply = {text='Hello V', continuous={version=1, id='voice-one'}}
 `;
 
-test('speech: a quiet frame asks the game for nobody; the 2 s heartbeat asks once and still publishes the lease', () => run(`${speechFixture}
+test('speech: a quiet frame asks the game for nobody; the 2 s heartbeat asks nobody and still publishes the lease', () => run(`${speechFixture}
   for _ = 1, 7 do speech.update(0.25) end
   assert(playerReads == 0, 'a quiet frame read the player ' .. playerReads .. ' times')
   assert(published == 0)
   speech.update(0.25)
-  assert(playerReads == 1, 'the heartbeat frame read the player ' .. playerReads .. ' times')
+  -- The lease no longer needs V (it only loads the continuous adapter and publishes): fewer calls than the one read it took before.
+  assert(playerReads == 0, 'the heartbeat frame read the player ' .. playerReads .. ' times')
   assert(published == 1 and speech.available == true and speech.heartbeat == 0)
   for _ = 1, 7 do speech.update(0.25) end
-  assert(playerReads == 1 and published == 1, 'the frames after the heartbeat were not quiet again')
+  assert(playerReads == 0 and published == 1, 'the frames after the heartbeat were not quiet again')
 `));
 
 test('speech: a reply in progress still reads V every frame, plays to its end, and is abandoned when V changes', () => run(`${speechFixture}
@@ -70,15 +83,14 @@ test('speech: a reply in progress still reads V every frame, plays to its end, a
   speech.target={GetEntityID=function() return {hash='npc'} end,
     IsAttached=function() return true end, IsDeadNoStatPool=function() return false end}
   local context={entity='npc', requestId='one', name='Judy'}
-  local reply={text='Hello V', audio={slot=0,event='convai_reply_0',duration=2}}
   assert(speech.start(context, reply))
   local before = playerReads
-  cursor = 0.5; speech.update(0.1)
+  heard(0.5); speech.update(0.1)
   assert(playerReads > before, 'a speaking frame did not read V')
   assert(speech.requestId == 'one' and speech.state == 'playing')
-  cursor = 2; speech.update(0.1)
+  heard(2, true); speech.update(0.1)
   assert(not speech.requestId and speech.state == 'finished', tostring(speech.state))
-  cursor = 0
+  heard(0)
   assert(speech.start({entity='npc', requestId='two', name='Judy'}, reply))
   playerHash = 'someone-else'
   speech.update(0.1)
@@ -197,29 +209,27 @@ const speakingFixture = `${speechFixture}
   speech.available=true
   speech.target={GetEntityID=function() return {hash='npc'} end,
     IsAttached=function() return true end, IsDeadNoStatPool=function() return false end}
-  local reply={text='Hello V', audio={slot=0,event='convai_reply_0',duration=2}}
   assert(speech.start({entity='npc', requestId='one', name='Judy'}, reply))
-  local reads, boards, definitions, paused = 0, 0, 0, nil
+  local reads, boards, definitions = 0, 0, 0
   local getPlayer, getBoard, getDefinitions = Game.GetPlayer, Game.GetBlackboardSystem, Game.GetAllBlackboardDefs
   Game.GetPlayer = function() reads = reads + 1; return getPlayer() end
   Game.GetBlackboardSystem = function() boards = boards + 1; return getBoard() end
   Game.GetAllBlackboardDefs = function() definitions = definitions + 1; return getDefinitions() end
-  player.ConvaiSpeechPause = function(_, value) paused = value end
 `;
 
 test('speech: a speaking frame takes V from init.lua and the menu flag from its cached reader, and pauses with the menu as before', () => run(`${speakingFixture}
   local menu = false
   convaiInMenu = function() return menu end
   -- The first heard frame starts the caption and the lease (once per reply); count the frames after it.
-  cursor = 0.4; speech.update(0.1, nil, player)
+  heard(0.4); speech.update(0.1, nil, player)
   reads, boards, definitions = 0, 0, 0
-  cursor = 0.5; speech.update(0.1, nil, player)
+  heard(0.5); speech.update(0.1, nil, player)
   assert(reads == 0 and boards == 0 and definitions == 0, 'a speaking frame asked the game for V ' .. reads .. ' and the blackboard ' .. boards .. ' times')
-  assert(speech.state == 'playing' and speech.paused == false)
-  menu = true; cursor = 0.6; speech.update(0.1, nil, player)
-  assert(speech.paused == true and paused == true, 'the menu did not pause the reply')
+  assert(speech.state == 'playing' and speech.paused == false and voice.paused == false)
+  menu = true; heard(0.6); speech.update(0.1, nil, player)
+  assert(speech.paused == true and voice.paused == true, 'the menu did not pause the reply')
   menu = false; speech.update(0.1, nil, player)
-  assert(speech.paused == false and paused == false, 'closing the menu did not resume it')
+  assert(speech.paused == false and voice.paused == false, 'closing the menu did not resume it')
   assert(reads == 0 and boards == 0 and definitions == 0)
   -- A change of V is still caught (the player passed in is the one compared with the reply's owner).
   playerHash = 'someone-else'
@@ -229,9 +239,9 @@ test('speech: a speaking frame takes V from init.lua and the menu flag from its 
 
 test('speech: without the frame\'s V or the cached reader (a test, an older init) the same frame asks the game as before', () => run(`${speakingFixture}
   convaiInMenu = nil
-  cursor = 0.4; speech.update(0.1)
+  heard(0.4); speech.update(0.1)
   reads, boards, definitions = 0, 0, 0
-  cursor = 0.5; speech.update(0.1)
+  heard(0.5); speech.update(0.1)
   assert(reads == 1, 'V was read ' .. reads .. ' times')
   assert(boards == 1 and definitions == 1, 'the blackboard was read through the definitions')
   assert(speech.state == 'playing' and speech.paused == false)

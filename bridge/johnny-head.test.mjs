@@ -330,7 +330,6 @@ test('talk keys: his turn has no face, gaze, actions or add-on blocks, and the r
   assert.match(init, /convaiHeadTalk = nil\s+if convaiJohnnyHead then convaiJohnnyHead:reset\(\) end/);
   // Speech: V's own sound like a holocall, no face, no add-on hooks.
   const speech = read('../mod/speech.lua');
-  assert.match(speech, /if not M\.holocall and not M\.head then return false end/);
   assert.match(speech, /M\.head = type\(context\.head\) == 'table'/);
   assert.match(speech, /if M\.voiceOnly and not M\.head and type\(M\.voiceSource\) == 'function' then/);
   assert.match(speech, /if M\.voiceOnly and not M\.head and type\(M\.hideCaption\) == 'function' then/);

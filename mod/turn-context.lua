@@ -220,7 +220,7 @@ local function nativeAdapter()
         return state:IsBrainGenderMale() and 'male' or 'female'
     end
     -- The game's Master volume times its Dialogue volume, 0 to 1 (the same two settings mod/continuous-speech.lua reads for a
-    -- companion's voice, verified against Audioware). Read only while V's voice for typed lines is on (options.wantVolume).
+    -- companion's voice, from the game's own /audio/volume settings group). Read only while V's voice for typed lines is on (options.wantVolume).
     function N.volume()
         local group = Game.GetSettingsSystem():GetGroup(CName.new('/audio/volume'))
         local master = group:GetVar(CName.new('MasterVolume')):GetValue()

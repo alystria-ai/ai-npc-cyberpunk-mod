@@ -279,8 +279,7 @@
   },
   "devOnlyLua": [
     "diagnostics.lua", "face-probe.lua", "face-test.lua", "fact-identity-probe.lua", "gesture-probe.lua",
-    "knowledge-probe.lua", "loot-probe.lua", "lua-heap-probe.lua", "save-identity-probe.lua", "speech-cadence-probe.lua",
-    "speech-replay-probe.lua"
+    "knowledge-probe.lua", "loot-probe.lua", "lua-heap-probe.lua", "save-identity-probe.lua", "speech-cadence-probe.lua"
   ],
   "retiredRedscript": ["KnowledgeState.reds"],
   "catalogs": [
