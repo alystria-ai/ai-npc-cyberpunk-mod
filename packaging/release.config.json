@@ -59,6 +59,10 @@
       "revision": "c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
       "urlTemplate": "https://huggingface.co/k2-fsa/OmniVoice/resolve/{revision}/{path}",
       "localSnapshot": "vendor/voice-models/hub/models--k2-fsa--OmniVoice/snapshots/c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
+      "notes": "`files` are the upstream files at the pinned revision, each checked against its size and SHA-256. The pack ships every one of them unmodified except model.safetensors: that file is rounded from float32 to float16 by packaging/convert-omni-fp16.py (the precision the voice engine loads it in: the VoiceStudio adapter's model_manager passes dtype=torch.float16 and bridge/resident-voice-worker.py refuses any other), 1,225,189,208 bytes instead of 2,450,344,112. `converted` pins the result; the conversion is deterministic, so the build checks the converted file against it. The audio tokenizer is NOT converted: OmniVoice loads it without a dtype (it runs as float32; its config.json says float32) and a float16 file would change the audio.",
+      "converted": {
+        "model.safetensors": {"size": 1225189208, "sha256": "f251010c06cec254667d8841b91c2672187d633ab373d219b1998c1bd18bd5b4", "from": "float32", "to": "float16", "script": "packaging/convert-omni-fp16.py"}
+      },
       "files": {
         "README.md": {"size": 9424, "sha256": "b5d645a1874baa96a460a0e3a7d5a262811d682d04ce235878a16d5fed287fd3"},
         "chat_template.jinja": {"size": 4168, "sha256": "a55ee1b1660128b7098723e0abcd92caa0788061051c62d51cbe87d9cf1974d8"},
@@ -163,6 +167,10 @@
         "publisher": "PrismML"
       }
     }
+  },
+  "omniPack": {
+    "notes": "The OmniVoice pack (docs/PACKAGING.md, 'The OmniVoice pack'). `runtimeClips`: the reference clips the RUNTIME carries for the 60 voices added after the pack was frozen (path, size, CRC-32 of each). The Mistral voice (Voxtral) reads them for players without this pack, so they stay in the Runtime; the pack leaves them out, so the Runtime and the pack never ship the same file (packaging/check-pack-overlap.mjs). A build from scratch skips those paths and stops when the clip it would skip differs from the listed bytes.",
+    "runtimeClips": "packaging/pack-listings/runtime-omni-clips-0.2.9.json"
   },
   "maturePack": {
         "notes": "The optional Mature packs (docs/LOCAL_AI.md, 'Mature content'; packaging/MATURE_PACK_README.md): two optional downloads, Mature lite and Mature standard, each ONE zip holding one uncensored model file (lite and good like the Local AI packs) and its own marker (manifest.mature-lite.json, manifest.mature-standard.json) that the main mod reads to say in the setting's help whether a Mature model is installed and to offer it in the Local AI model row (turning Mature content on selects the good one if it fits, else the lite one); each works alone, and the Mature content setting itself is part of the main mod and works without the packs. They are distributed ONLY as files on the project's Hugging Face repository (alystria-ai/ai-npc-cyberpunk-mod-packs, in its mature/ folder; packaging/upload-packs.py), never on Nexus Mods and not on the GitHub release (packaging/MATURE_PACK_RELEASE_NOTES.md has the text for the Hugging Face page). The release workflow builds and uploads them only when its opt-in 'mature' input is set (never on a tag push), one matrix job per pack; by hand they are built with --packages mature-lite or mature-standard. They are never part of the default set, and nothing of them is in the Runtime package. Both models are pinned by revision, size and SHA-256 from the Hugging Face file listing (2026-10-14; both downloaded, SHA-256 checked and run in docs/MATURE_SAMPLES_V3_2026-10-14.md); 'remote' is the file's path inside the repository when it is in a folder. They were chosen from the community data in docs/MATURE_MODELS_V2_2026-10-14.md and confirmed with scripts/Eval-MatureSamples.mjs (third round: docs/MATURE_SAMPLES_V3_2026-10-14.md).",
