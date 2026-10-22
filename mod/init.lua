@@ -149,6 +149,8 @@ local worldKnowledge = worldKnowledgeModule.new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 local journalHistory = dofile('journal-history.lua').new({
+    -- True only inside updateKnowledge, after this frame's session check: the scan then re-checks the journal only.
+    sessionProven = function() return convaiHeartbeat ~= nil and convaiHeartbeat.sessionProven == true end,
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 convaiWorldKnowledge = worldKnowledge
@@ -4369,7 +4371,9 @@ registerForEvent('onUpdate', function(delta)
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
     mark('init:knowledge')
+    convaiHeartbeat.sessionProven = true
     local knowledgeOk = pcall(updateKnowledge, delta)
+    convaiHeartbeat.sessionProven = false
     if not knowledgeOk then invalidateKnowledge('knowledge-update-failed') end
     mark('init:worldReady')
     -- Autosave freezes the native cursor briefly. Keep the exact owner and
