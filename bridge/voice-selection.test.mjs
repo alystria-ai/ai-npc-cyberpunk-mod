@@ -987,15 +987,56 @@ test('no CUDA is a fact about the PC: choosing OmniVoice again does not retry it
   await h.voice.close();
 });
 
-test('an Omni timeout on a card of 8 GB or less (no reading needed, a startup timeout has none) is the same: Pocket, once, no retry loop', async () => {
-  const h = retryFixture({omni: ['timeout'], options: {gpuMemoryMiB: () => 8188}});
+test('OmniVoice is not started at all on a card of 8 GB or less: Pocket speaks at once, told once as omni-memory, the saved choice stays OmniVoice', async () => {
+  const h = retryFixture({omni: ['timeout', 'ok'], options: {gpuMemoryMiB: () => 8188}});
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
   h.voice.update({}, null, false); await h.voice.start(); await h.settle();
-  assert.equal(h.voice.omniRetry, null); assert.ok(h.logs.some(line => /not trying again: not enough graphics memory .*the card has 8188 MiB/.test(line)));
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback?.reason, 'omni-memory'); assert.equal(h.pocketWorkers().length, 1);
-  assert.equal(h.omniWorkers().length, 1);
+  assert.equal(h.omniWorkers().length, 0, 'no OmniVoice worker is ever started: nothing waits for a timeout');
+  assert.equal(h.voice.requestedProvider, 'omni', 'the setting stays OmniVoice');
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.resolvedProvider, 'pocket');
+  assert.equal(h.pocketWorkers().length, 1, 'Pocket is loaded in its place');
+  assert.deepEqual(h.voice.fallback, {from: 'omni', to: 'pocket', reason: 'omni-memory'}, 'the one notice a failed OmniVoice start gives');
+  assert.equal(h.voice.omniRetry, null); assert.equal(h.failures.length, 0, 'nothing failed, so no error report');
+  assert.equal(h.logs.filter(line => /not starting OmniVoice: the card has 8188 MiB/.test(line)).length, 1, 'said once in the log');
+  assert.equal(h.states.at(-1).omniSmallCard, true); assert.equal(h.states.at(-1).requestedProvider, 'omni');
+  // Long after, still nothing: no retry, no background load.
+  for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 0);
   await h.voice.close();
+});
+
+test('OmniVoice on an 8 GB card: the preview of the voice menu does not start it either; a bigger card later just works with the same saved setting', async () => {
+  const h = retryFixture({options: {gpuMemoryMiB: () => 8188}});
+  h.voice.update({voiceProvider: 'pocket'}, {provider: 'omni', omniSteps: 16}, false); await h.settle();
+  h.voice.update({voiceProvider: 'pocket'}, {provider: 'omni', omniSteps: 16}, false); await h.settle();
+  assert.equal(h.omniWorkers().length, 0, 'trying OmniVoice in the menu loads nothing on a card that cannot hold it');
+  await h.voice.close();
+  const big = retryFixture({options: {gpuMemoryMiB: () => 12282}});
+  big.voice.update({voiceProvider: 'omni'}, null, false); await big.settle();
+  big.voice.update({}, null, false); await big.voice.start(); await big.settle();
+  assert.equal(big.omniWorkers().length, 1); assert.equal(big.voice.provider, 'omni'); assert.equal(big.voice.fallback, null);
+  assert.equal(big.logs.filter(line => /not starting OmniVoice/.test(line)).length, 0);
+  await big.voice.close();
+});
+
+test('the card list is read before OmniVoice starts: no worker while it is being read, none on an 8 GB card, one on a big or unknown card; a cloud voice loads nothing', async () => {
+  for (const [memory, workers] of [[8188, 0], [12282, 1], [null, 1]]) {
+    let reading = true;
+    const h = retryFixture({options: {gpuMemoryMiB: () => (reading ? undefined : memory)}});
+    h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+    h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, 0, 'still reading the card list: no start yet');
+    reading = false; h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.omniWorkers().length, workers, String(memory));
+    await h.voice.close();
+  }
+  // A cloud voice chosen: the card is not even asked about, and nothing local loads for OmniVoice.
+  const asked = [];
+  const cloud = retryFixture({options: {gpuMemoryMiB: wanted => { asked.push(wanted); return 8188; }, voxtral: {hasKey: true, onChange: null, setReferences() {}}}});
+  cloud.voice.update({voiceProvider: 'voxtral'}, null, false); await cloud.settle();
+  assert.equal(cloud.voice.cloudWanted, true); assert.equal(cloud.omniWorkers().length, 0); assert.ok(!asked.includes(true), 'the card list is not read for a cloud voice'); assert.equal(cloud.logs.filter(line => /not starting OmniVoice/.test(line)).length, 0);
+  await cloud.voice.close();
 });
 
 test('a plain timeout on a big card is tried once more, and a second one gives up (text, no Pocket); an unknown card list claims nothing', async () => {
@@ -1172,11 +1213,13 @@ test('an Omni worker that died on a memory fault is tried once at once with the 
 });
 
 // The worker's last stderr line now says why it died, so the out-of-memory rule applies to a load that ran out of graphics memory (it used to be "exited (1)").
-test('an Omni load that ran out of CUDA memory on a card of 8 GB or less is not tried again: Pocket speaks', async () => {
-  const h = retryFixture({omni: ['oom', 'ok'], options: {gpuMemoryMiB: () => 8188}});
-  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+test('an Omni load that ran out of CUDA memory, with the card read as 8 GB or less only afterwards, is not tried again: Pocket speaks', async () => {
+  // The card list answers "unknown" until the worker has failed (a read that came too late to keep the worker from starting).
+  let h = null;
+  h = retryFixture({omni: ['oom', 'ok'], options: {gpuMemoryMiB: () => (h?.workers.some(worker => worker.failure) ? 8188 : null)}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.omniNoMemory, true); assert.equal(h.voice.omniRetry, null);
-  assert.ok(h.logs.some(line => /not trying again: not enough graphics memory for OmniVoice next to the game \(the card has 8188 MiB\)/.test(line)));
+  assert.ok(h.logs.some(line => /not trying again: not enough graphics memory for OmniVoice next to the game .the card has 8188 MiB./.test(line)));
 });
 
 test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {

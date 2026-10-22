@@ -339,15 +339,16 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
 // The same list gives the NVIDIA card's memory (nvidiaCardMiB: a number, no name): OmniVoice's "needs 12 GB" hint, and a timeout on a card of 8 GB or less read as too little graphics memory.
 let graphicsVendors = null;
 let graphicsCardMiB = null;
-let graphicsLookup = false;
+let graphicsLookup = false, graphicsKnown = false;
 const lookUpGraphics = wanted => {
   if (wanted && !graphicsLookup) {
     graphicsLookup = true;
-    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); graphicsCardMiB = nvidiaCardMiB(cards); try { if (!localVoice.closed) localVoice.publish(); } catch {} }, () => {});
+    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); graphicsCardMiB = nvidiaCardMiB(cards); }, () => {}).finally(() => { graphicsKnown = true; try { if (!localVoice.closed) localVoice.publish(); } catch {} });
   }
 };
 const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphicsVendors; };
-const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return graphicsCardMiB; };
+// undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
+const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   gpuVendors: graphicsVendorsSource, gpuMemoryMiB: graphicsMemorySource,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
