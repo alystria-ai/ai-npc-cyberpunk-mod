@@ -60,7 +60,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
-    pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
+    pocket-tts/              Kyutai pocket-tts: the pocket_tts/ package and LICENSE of the pinned revision (the build verifies the whole upstream tree's hash; 53 of its 140 files ship)
     llama-cpp/               the llama.cpp engine of Local AI: llama-server, llama-fit-params and the libraries they load (26 files; the Runtime update zip delivers a new build)
     vgmstream/               vgmstream-cli.exe and the ten libraries it loads (the decoder of a player's V voice mod; 11 files, unmodified official release)
     bridge/                  production import closure + worker scripts + the supervisor
@@ -339,7 +339,21 @@ node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<ver
 
 **Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names) or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
 
-**Removed in 0.2.3:** the double-click `Make support report.bat` (with its bridge entry and offline report code) is no longer built or shipped, because players are not comfortable running a batch file; the in-game report and the automatic error reports are the report paths (`packaging/support-report-packaging.test.mjs` keeps it out).
+**Removed in 0.2.3:** the double-click `Make support report.bat` (with its bridge entry and offline report code) is no longer built or shipped, because players are not comfortable running a batch file; the in-game report and the automatic error reports are the report paths (`packaging/support-report-packaging.test.mjs` keeps it out). Players use Generate report in the game (Settings > Help). The three paths (`Make support report.bat`, `app/bridge/make-support-report.mjs`, `app/bridge/offline-support-report.mjs`) are in `packaging/runtime-removals.json` since 0.2.9, so a full Runtime extracted over a 0.2.2 install deletes them at the next start too (the 0.2.2 to 0.2.3 update step had them in its comparison list already). No Runtime or Scripts zip carries a `.bat`, `.cmd` or `.vbs` file (`packaging/runtime-contents.test.mjs`).
+
+**What the Runtime leaves out (0.2.9).** Files nothing loads, found by reading the code that runs and by looking at what the voice and microphone workers load. The rules are in `packaging/lib/runtime-prune.mjs`, used by `build-release.mjs` and pinned by `packaging/runtime-prune.test.mjs`:
+
+| Left out | Size and files in the 0.2.8 Runtime | Why nothing loads it |
+|---|---|---|
+| `app/python/Lib/site-packages/Scripts/` (the sherpa-onnx-core wheel's data folder: `onnxruntime.dll`, the sherpa-onnx C and C++ API DLLs and import libraries) | 8.4 MB zipped, 22.5 MB, 5 files | Byte for byte what `sherpa_onnx/lib/` holds, and `sherpa_onnx` loads that folder. Nothing in the repository or in the packages names `Scripts/` (pip's `RECORD` lists it, which only an uninstall reads). |
+| `app/python/Lib/site-packages/torch/bin/` (`fbgemm.dll`, `asmjit.dll`) | 1.3 MB zipped, 6.1 MB, 2 files | Identical to the two in `torch/lib/`. `torch/__init__.py` puts `torch/lib` (never `torch/bin`) on the DLL search path and pre-loads every DLL in it. |
+| `tests/` folders inside the Python packages (numpy, scipy, sympy, networkx, mpmath, setuptools, torch's fx passes and others) | 10.6 MB zipped, 38.5 MB, 2,348 files | A scan of the other 5,541 Python files finds no import of a tests package (only `mpmath.runtests()`, which nothing calls, and a scipy development script). `torch/testing`, `numpy/testing` and `sympy/testing` are real packages other code imports and stay. |
+| `app/pocket-tts/` except `pocket_tts/` and `LICENSE` (upstream tests, training code, docs, Docker and CI files, lock file, contributor notes) | 0.8 MB zipped, 1.5 MB, 87 files | The Pocket worker puts the folder on `sys.path` and imports `pocket_tts` only. The build still checks the whole upstream tree against the pinned digest and the list in `bridge/pocket_voice_runtime.py`; the worker's own source check (`source_shipped()` there) looks at the 53 files that ship and ignores the rest. |
+| `app/node_modules/playwright-core/bin/` (17 `.ps1` and `.sh` scripts that `playwright install` runs) and the TypeScript declarations (`*.d.ts`) of `playwright` and `playwright-core` | 0.4 MB zipped, 2.1 MB, 25 files | The bridge never installs a browser (it starts the system Edge or Chrome) and Node never reads `.d.ts` files. |
+
+The OmniPack is not changed by this: its Python (3.11, CUDA torch) is built by the same installer but nobody has run OmniVoice without these files, so it takes the same rules at its next rebuild, after a run on a CUDA machine (`torch/bin` and the tests folders are there too: 15.2 MB and 4,096 files).
+
+How it reaches a player who has the files: the update zip's removal list holds every path the old Runtime had and the new one has not (about 2,400 paths for this change), the start step deletes them one by one under the folders a Runtime installs into (`app/python/`, `app/pocket-tts/` and `app/node_modules/` are all under `app/`) and removes the folders it empties. A list this long is applied within one start (the budget is eight seconds and the rest waits for the next start; `packaging/runtime-prune.test.mjs` runs the chain on fixture zips, and `packaging/test-release-install.mjs --update-from` runs it on the real ones). A player on an older Runtime who extracts the full Runtime keeps the old files (extracting adds, never deletes) and they are harmless. What is not removed from an existing install: the Lua files the Scripts zip no longer carries (`devOnlyLua`, below), because the start step only deletes under the Runtime's folders.
 
 ### Runtime update zip
 
@@ -745,7 +759,8 @@ into a release. Inputs:
   VoiceStudio revisions, every OmniVoice model file), package layout and limits.
 - `packaging/python/*.lock.txt`: every wheel by URL and SHA-256, installed with `--no-deps
   --require-hashes --only-binary=:all:` for the target platform. pip's generated console-script
-  launchers, `__pycache__`, torch headers, link libraries and CMake files are left out.
+  launchers, `__pycache__`, torch headers, link libraries and CMake files are left out, and so
+  is what "What the Runtime leaves out" (below) lists.
 - `packaging/release-data/`: the default character-ID mappings and the three game archives
   (built from game files with WolvenKit, so CI cannot make them).
 - Trained models from the private HF bucket `alystria-ai/cyberpunk-pocket-rolling-checkpoints`,
@@ -842,7 +857,7 @@ permission can stay read-only.
 
 Tests, fixtures, research scripts and caches, training data and notebooks, benchmark audio,
 `misc/` (developer launchers and benchmark runs), `vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files
-(`diagnostics.lua` and the probes it loads, `face-test.lua`, `gesture-probe.lua`), the retired
+(`diagnostics.lua` and the probes it loads, `face-test.lua`, `gesture-probe.lua`, and since 0.2.9 `johnny-probe.lua` with its two feature files `johnny-relic-probe.lua` and `combat-feats-probe.lua`, `fact-identity.lua` and `knowledge-state.lua`), the retired
 `KnowledgeState.reds` and the resident phone analyser (not started when the lip-sync model is present).
 There is no Rhubarb Lip Sync fallback (owner decision 2026-10-21; shipping it would add 62 MB): the bridge no longer looks for it, the
 Runtime does not carry it, and a line the lip-sync model gives no cues for plays on its audio envelope on the developer's machine exactly as on a player's.
