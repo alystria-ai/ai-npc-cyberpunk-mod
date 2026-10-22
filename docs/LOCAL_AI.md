@@ -1271,6 +1271,43 @@ Deviation from the brief: the brief asked for ONNX. The embedding model runs as 
 already ships that executable (no second runtime, no Python on the hot path) and it measured about 14 ms on one CPU core. Another backend
 can replace `LlamaEmbedder` as long as it keeps `available()`, `id`, `dim`, `embed()` and `close()`.
 
+### Prompt profiles (2026-10-22: "different models fail differently")
+
+The response audit (`deliverables/response-audit-2026-10-22.md`) found that each text model fails in its own way (ministral-8b echoes V's words, ministral-14b invents most, Bonsai 2 4B
+misreads the line it was given), while all of them got one shared prompt. A **prompt profile** is the part of the prompt that may differ per model, kept as plain data in
+`bridge/prompt-profiles.mjs`, and chosen for every turn from the route, the loaded model's tier (`status().tier`, `lite` or `standard`, which for the Mature pack is `mature:lite` and
+`mature:good`) and the Mature setting (`profileIdFor`):
+
+| Profile | Used for |
+|---|---|
+| `mistral` | the Mistral route (ministral-8b by default; the 14b and 3b fallbacks use it too) |
+| `local-lite`, `local-standard` | Local AI, the Lite model (Bonsai 2 4B) and the Standard model (Gemma 4 E4B), Mature off |
+| `mature-lite`, `mature-standard` | Local AI with Mature content on, the Lite and Standard models of the Mature pack (a Mature turn on a normal model gets the same two) |
+| `custom-<host>-<model>` | one per Custom endpoint and model, starting from the family default of the model id: `qwen`, `gemma`, `mistral`, `llama`, `generic` (docs/CUSTOM_PROVIDER.md) |
+
+Convai has no profile: its prompt lives in the provisioned character data. An add-on's text host (`guardOnly`) has none either and builds the shipped base prompt.
+
+**What a profile holds**: the output rules (wording, order, how many; a rule may have a `talk` variant for a speaker with a reply length of its own and a `mature` variant), the opening
+line, the closing line, the headings of the prompt's sections, example replies (none by default for the small models: they copy), where the turn's volatile notes sit (before or after V's line),
+the sampling of a reply (`temperature`, `top_p`, `repeat_penalty`, `max_tokens`; a field left null is not sent), a shorter character text (`limits.persona`) and fewer turns of history
+(`limits.turns`) than the shipped limits, and extra stop strings. **What it never holds**: the facts the character gets (the world block, the right-now block, the memory, the
+quest text), the hard-limit guard and the Mature layer with its closing clause (`bridge/mature-content.mjs`: Local AI and Custom only, never Mistral), an add-on speaker's own rules and
+identity line, the player's world rules, and the length caps of a reply. The profile is the only part of the system message that changes between models; the persona, world and
+right-now text are byte for byte what they were, and the prefix of the system message is the same on every turn of a profile, so llama.cpp's prompt cache and Mistral's keep working.
+With no change by the player the prompt is exactly what the shipped default builds: `bridge/prompt-profiles-pinned.test.mjs` pins the prompt hash of every profile (Judy's fixture
+turn, a reaction, the Mature turn), and `bridge/prompt-pinned.test.mjs` pins the base prompt a caller without a profile gets.
+
+**Player changes** (the character editor, `bridge/prompt-profile-store.mjs` `PromptProfiles`): kept apart from the shipped defaults in `<state>/prompt-overrides/<profileId>.json`,
+only the fields that differ, written atomically, "reset" deletes the file; validated against `PROFILE_LIMITS` (the editor's field limits) before anything is stored, and a damaged file keeps its valid
+parts and is moved to `.corrupt` before the next save. A change applies on the next turn without a restart (the host looks the profile up in memory; nothing touches the disk per turn). The editor
+server calls `list`, `getDefault`, `getEffective`, `getOverride`, `validate`, `set`, `reset` and `preview`.
+
+**How a profile was chosen**: `scripts/response-audit/` runs the 42 audit scenarios (and six adult-talk ones with `--mature`) through the real route of each model, three or more samples each, with the
+base (`--profiles base`) and with a candidate (`--candidate scripts/response-audit/candidates/<name>.mjs`, laid over the shipped profile through the same API a player's change uses), and a
+blind Haiku swarm scores every reply with the fault list plus a comprehension check ("did it answer what V said", flag `misreads`). The share of replies with a fault, prompt tokens and latency are
+compared (`compare.mjs`, `quick.mjs`); a difference under about ten points on 100 replies is noise. The table is in `deliverables/prompt-profiles-2026-10-22.md`. Latency is only compared against a baseline measured in
+the same power mode, back to back.
+
 ### Prompt order
 
 See "Prompt order (layout v2)" in `docs/MISTRAL.md`: persona and rules, then world and quest context, then the right-now block, then
