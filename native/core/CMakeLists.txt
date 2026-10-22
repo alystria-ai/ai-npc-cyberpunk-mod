@@ -69,6 +69,7 @@ file(GLOB CONVAI_SYSTEM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/s
 add_library(CyberpunkConvaiNative SHARED
   src/plugin/Main.cpp
   src/plugin/Rtti.cpp
+  src/plugin/CheckedCall.cpp
   src/plugin/GameAccess.cpp
   ${CONVAI_SYSTEM_SOURCES}
 )
