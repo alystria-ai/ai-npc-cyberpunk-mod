@@ -49,8 +49,9 @@ RED4ext::CBaseFunction* Method(RED4ext::CClass* aClass, const char* aName);
 bool FunctionIs(const RED4ext::CBaseFunction* aFunction, const char* aName);
 
 // A static function of the class or of the nearest base class that declares one named aName with
-// exactly aParamCount parameters (FunctionIs naming), resolved once and cached when found. Null when
-// there is none; a miss logs once what the class does have under that name.
+// exactly aParamCount parameters (FunctionIs naming), resolved once and cached when found. Null when there is
+// none. A miss searches the class chain and the game's lists of every function once, logs what the class does
+// have under that name, and is remembered as missing for the session (no rescan on later calls).
 // aClassName is the game's native class name (script-defined classes have no other name).
 RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName, uint32_t aParamCount);
 
@@ -105,7 +106,8 @@ enum class CombatRoute
 };
 
 // True and aOut set when the flag was read. False when it is unknown: no route resolved, the puppet is not a
-// ScriptedPuppet, or the game call failed. A miss is looked up again on every 256th call.
+// ScriptedPuppet, or the game call failed. The routes are searched once, lists included; when none exists that
+// answer stands for the session.
 bool PuppetInCombat(const Object& aPuppet, bool& aOut);
 // A route exists (resolving it if it has not been tried yet).
 bool CombatAvailable();
