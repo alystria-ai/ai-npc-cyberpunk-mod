@@ -6,6 +6,7 @@ import {join, relative, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
+import {checkRuntimeSteps} from './runtime-steps.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
 // translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; both are shipped
@@ -406,7 +407,12 @@ export async function collectSetupCheck(options = {}) {
       runtime = typeof pack?.version === 'string' && pack.version.trim() ? clip(pack.version, 40) : null;
     }
     if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime};
-    return scripts === runtime ? {state: 'ok', code: 'match', scripts, runtime} : {state: 'problem', code: 'mismatch', scripts, runtime};
+    if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime};
+    // The versions agree; the update steps on disk (bridge/runtime-steps.mjs) say whether a step in between was skipped.
+    const chain = project ? await checkRuntimeSteps({project, current: runtime}) : {code: 'none'};
+    if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, from: clip(chain.from, 40), to: clip(chain.to, 40)};
+    if (chain.code === 'order') return {state: 'problem', code: 'chain-order', scripts, runtime};
+    return {state: 'ok', code: 'match', scripts, runtime};
   });
 
   const packs = () => guarded('packs', async () => {

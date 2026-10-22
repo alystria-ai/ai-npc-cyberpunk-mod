@@ -328,6 +328,8 @@ export function setupLine(row) {
   if (!id || !code) return null;
   const detail = [];
   if (id === 'versions' && row.code === 'mismatch') detail.push(`Scripts ${clip(row.scripts, 40)}, Runtime ${clip(row.runtime, 40)}`);
+  else if (id === 'versions' && row.code === 'chain-gap') detail.push(`update step ${clip(row.from, 40)} to ${clip(row.to, 40)} not applied (Runtime ${clip(row.runtime, 40)})`);
+  else if (id === 'versions' && row.code === 'chain-order') detail.push(`an older update zip went on after a newer one (Runtime ${clip(row.runtime, 40)})`);
   else if (id === 'packs' && row.code === 'nested') {
     detail.push((Array.isArray(row.nested) ? row.nested : []).slice(0, 8).map(item => `${clip(item?.pack, 60)} in ${clip(item?.folder, 200)}`).join(', '));
   } else if (id === 'packs' && row.code === 'conflict') detail.push('the launcher could not finish moving pack files into place');

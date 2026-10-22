@@ -9,7 +9,8 @@
 // It writes, into the folder:
 //   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
-//                                                                  app/defaults/runtime-removals.json
+//                                                                  app/defaults/runtime-removals.json, and app/defaults/runtime-steps/step-<from>-to-<to>.json
+//                                                                  (the step marker: a later setup check names an update step a player skipped)
 //   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.files.json  path, size and SHA-256 of every file in the zip (the same shape as the full builds')
 //   AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.sha256      the zip's SHA-256
 //
@@ -30,11 +31,15 @@ import {sha256File} from './lib/files.mjs';
 import {PLUGIN} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {validateListing} from './lib/pack-overlap.mjs';
+import {STEPS_DIR, stepFileName, stepText} from '../bridge/runtime-steps.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
 export const RELEASE_ENTRY = `${PLUGIN}/app/release.json`;
 export const PRODUCT = 'AI-NPC-Cyberpunk-Mod';
+// The step marker this zip adds (bridge/runtime-steps.mjs): its own file, so zips applied one after the other leave one marker each. The
+// marker files of the two Runtimes compared (base.json, earlier steps) are never copied: they describe those Runtimes, not this step.
+export const STEPS_PREFIX = `${PLUGIN}/app/${STEPS_DIR}/`.toLowerCase();
 
 const sameBytes = (a, b) => a.uncompressed === b.uncompressed && (a.crc >>> 0) === (b.crc >>> 0);
 const byPath = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -110,9 +115,11 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     // The version stamp always goes (it is what the next start and the next update read); the removal list is the one made above.
     const release = after.get(RELEASE_ENTRY.toLowerCase());
     const copy = [...diff.added, ...diff.changed, ...(release && !diff.changed.includes(release) && !diff.added.includes(release) ? [release] : [])]
-      .filter(item => item.name.toLowerCase() !== REMOVALS_ENTRY.toLowerCase());
+      .filter(item => item.name.toLowerCase() !== REMOVALS_ENTRY.toLowerCase() && !item.name.toLowerCase().startsWith(STEPS_PREFIX));
+    const stepEntry = `${PLUGIN}/app/${STEPS_DIR}/${stepFileName(from, to)}`;
     const listText = Buffer.from(removalListText(to, checked.ok), 'utf8');
-    const entries = [...copy.map(item => ({name: item.name, item})), {name: REMOVALS_ENTRY, buffer: listText}].sort((a, b) => byPath(a.name, b.name));
+    const entries = [...copy.map(item => ({name: item.name, item})), {name: REMOVALS_ENTRY, buffer: listText},
+      {name: stepEntry, buffer: Buffer.from(stepText(from, to), 'utf8')}].sort((a, b) => byPath(a.name, b.name));
     for (const [index, entry] of entries.entries()) {
       let added;
       if (entry.buffer) added = await writer.add(entry.name, {buffer: entry.buffer});

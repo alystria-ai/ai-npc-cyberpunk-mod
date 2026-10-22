@@ -249,6 +249,14 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
+  -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
+  answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
+  local gap = lineOf('versions').description
+  assert(lineOf('versions').state == 'problem' and gap == 'The Runtime update from 0.2.7 to 0.2.8 was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', gap)
+  assert(not gap:sub(gap:find('never applied')):find('%d%.%d'), 'no version number after the naming')
+  assert(table.concat(check.problems(), ',') == 'versions')
+  answer({versions = {id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.8', runtime = '0.2.8'}}); check.run()
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description:find('one by one, in order, starting from your version', 1, true))
   -- a version check that could not be made shows no line
   answer({versions = {id = 'versions', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('versions') == nil)
@@ -488,6 +496,10 @@ test('the first load names Scripts and Runtime of different versions, a pack one
       'The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.'],
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2.8', runtime = '0.2.4'}`,
       'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}`,
+      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
+    ['versions', `{id = 'versions', state = 'problem', code = 'chain-order', scripts = '0.2.9', runtime = '0.2.9'}`,
+      'A Runtime update step is missing. Apply its update zips one by one from the updates folder.'],
     ['packs', `{id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'OmniVoice', folder = 'x'}}, moved = {}}`,
       'A pack is one folder too deep. See Help in Settings.'],
     ['internet', `{id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}`,

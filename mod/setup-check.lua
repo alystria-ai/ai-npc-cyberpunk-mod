@@ -488,6 +488,11 @@ local function bridgeLines(out)
                 and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.', values)
                 or ui.t('Scripts {scripts} and Runtime {runtime} do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
             or line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} and Runtime {runtime}.', values))
+    elseif versions and (versions.code == 'chain-gap' or versions.code == 'chain-order') then
+        -- The versions agree, but an update step in between was never applied (bridge/runtime-steps.mjs): the files are a mix of releases.
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', versions.code == 'chain-gap'
+            and ui.t('The Runtime update from {from} to {to} was never applied, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.', {from = text(versions.from, 30) or '?', to = text(versions.to, 30) or '?'})
+            or ui.t('A Runtime update zip was applied after a newer one, so some Runtime files are old. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, in order, starting from your version. Extract each into the Cyberpunk 2077 folder, then restart the game.'))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
         out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.'))
@@ -665,6 +670,7 @@ local function shortText(id, names, old)
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions-old' then return ui.t('The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.') end
+    if id == 'versions-steps' then return ui.t('A Runtime update step is missing. Apply its update zips one by one from the updates folder.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
     if id == 'internet' then return ui.t('The conversation service cannot reach the internet. See Help in Settings.') end
@@ -742,6 +748,10 @@ local function firstLoad()
     if first == 'nsui' and game.checks.nsui.code == 'mcm-old' then return shortText('mcm-old') end
     -- Scripts and Runtime of different versions: a Runtime that is the older one (nearly every report) is told to apply its update zips or take the full Runtime.
     if first == 'versions' and runtimeIsOlder(bridgeCheck('versions')) == true then return shortText('versions-old') end
+    if first == 'versions' then
+        local answer = bridgeCheck('versions')
+        if answer and (answer.code == 'chain-gap' or answer.code == 'chain-order') then return shortText('versions-steps') end
+    end
     return shortText(first)
 end
 

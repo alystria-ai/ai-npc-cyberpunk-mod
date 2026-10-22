@@ -60,6 +60,7 @@ import {launcherIni} from './lib/launcher-ini.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
+import {BASE_FILE, STEPS_DIR, baseText} from '../bridge/runtime-steps.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = Date.now();
@@ -496,6 +497,9 @@ async function runtimePackage(source, config, models, key) {
   const checked = checkRemovals(declared, new Set(pkg.entries.keys()));
   if (checked.refused.length) throw Error(`${DECLARED_REMOVALS}: ${checked.refused.map(item => `${item.path} (${item.why})`).join('; ')}`);
   pkg.text(REMOVALS_ENTRY, removalListText(version, checked.ok));
+  // The step marker of a full Runtime: the version the chain of update zips starts from (bridge/runtime-steps.mjs). Update zips add their own step
+  // files beside it; the setup check names a step that was skipped.
+  pkg.text(`${app}/${STEPS_DIR}/${BASE_FILE}`, baseText(version));
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
   for (const item of config.releaseData.archives) pkg.file(item.target, resolve(source.root, item.source));
