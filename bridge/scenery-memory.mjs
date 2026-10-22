@@ -1,7 +1,7 @@
 // What each conversation has already been told about the scenery: the weather and the part of the day (bridge/turn-context.mjs).
 // A model given "It is raining." on every turn treats it as something to react to ("the rain is a minor inconvenience" in seven talk answers
 // of ten, 2026-10-14; a player report of 2026-10-21: "the NPCs always mention the weather"). So a conversation hears each of them when it is
-// new to it: the first turn, a change since the turn before, the first turn after a long silence, or when V's own words ask about it.
+// new to it: the weather when it changes during the talk or V's own words ask about it (not on the first turn), the part of the day on the first turn, a change, the first turn after a long silence, or when V's words ask.
 // Nothing is written to disk and nothing leaves the bridge: a restart simply tells every conversation once more.
 //
 // The context of one turn is built several times (the prepared reply, the look-ahead, the turn itself, the log line), so a decision is
@@ -38,7 +38,9 @@ export class SceneryMemory {
     // What the conversation was last told (a turn on which the game could not read one keeps the earlier value).
     const before = entry && at - entry.at <= this.idleMs ? entry.known : null;
     const decision = {
-      weather: weather !== undefined && (!before || before.weather !== weather || WEATHER_ASK.test(asked)),
+      // The first turn of a conversation does not announce the weather (response audit 2026-10-22: told "It is raining." on a first turn, a vendor or a bartender
+      // mentioned the rain in 11 replies of 12, against 1 of 12 in dry weather); it comes when V asks, and when it changes later in the talk.
+      weather: weather !== undefined && (before ? before.weather !== weather || WEATHER_ASK.test(asked) : WEATHER_ASK.test(asked)),
       time: part !== undefined && (!before || before.part !== part || TIME_ASK.test(asked))};
     this.conversations.delete(key);
     this.conversations.set(key, {id, weather, part, text: asked, at, decision, known: {weather: weather ?? before?.weather, part: part ?? before?.part}});
