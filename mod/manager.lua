@@ -47,6 +47,8 @@ local function matureProvider(provider) return provider == 'local' or provider =
 local MATURE_VOXTRAL = 'Voxtral is not used with Mature content.'
 -- Settings the page no longer has (2026-10-20, Multilingual conversations 2026-10-21): their behaviour is fixed (always on, or the language is detected per message) or the feature is gone. An old saved value is dropped at
 -- load (once, from the file) and an Apply that still carries one ignores it; nothing reads them.
+-- Bumped when a default is switched on for existing installs too: loadSettings moves a file saved before it to the new default, once.
+local DEFAULTS_REVISION = 1
 local RETIRED_SETTINGS = {'autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
     'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations'}
 local RETIRED_SET = {}
@@ -750,10 +752,15 @@ local function loadSettings()
     for _, key in ipairs(RETIRED_SETTINGS) do
         if settings[key] ~= nil then settings[key], settingsNeedSave = nil, true end
     end
-    -- Off by default: the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue options. Not proven in game; no menu entry.
-    if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = false, true end
-    -- Off by default: witness receipts (section 4.3) let a companion who stood beside V hear `witnessed` rules. No menu entry.
-    if type(settings.witnessReceipts) ~= 'boolean' then settings.witnessReceipts, settingsNeedSave = false, true end
+    -- Quest memory, on by default (owner, 2026-10-23): the decision ledger (docs/QUEST_DECISIONS.md section 4.4) records V's picked dialogue
+    -- options, and witness receipts (section 4.3) let a companion who stood beside V hear `witnessed` rules. Both are event-driven (a pick, a
+    -- world scan that found a new quest edge), never per frame; no menu entry. Older files saved false only because that used to be the
+    -- default, so a file from before DEFAULTS_REVISION 1 is moved to the new default once; after that a saved false (a hand edit) stands.
+    if (tonumber(settings.defaultsRevision) or 0) < DEFAULTS_REVISION then
+        settings.decisionLedger, settings.witnessReceipts, settings.defaultsRevision, settingsNeedSave = true, true, DEFAULTS_REVISION, true
+    end
+    if type(settings.decisionLedger) ~= 'boolean' then settings.decisionLedger, settingsNeedSave = true, true end
+    if type(settings.witnessReceipts) ~= 'boolean' then settings.witnessReceipts, settingsNeedSave = true, true end
     if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
         settings.eyeContactHeight, settingsNeedSave = 0, true
     end
@@ -982,6 +989,57 @@ function M.voiceLabel(provider, steps, reference)
     return ui.t(OMNI_LABELS[(steps == 32 and '32' or '16') .. ':' .. (reference == 'short' and 'short' or 'long')])
 end
 
+-- The voice that speaks one character's replies, as the Characters sidebar and the detail view name it. `view` is {settings, localVoice,
+-- mistralSaved} (the manager snapshot's parts), `pack` is M.omniPack(). The bridge's own report decides while it runs (its route, the characters
+-- it voices locally, whether playback is on, a cloud voice that cannot be asked); before it answers, the settings predict the same route.
+-- The Convai voice (profile.voiceName) is named only when it really speaks: it speaks when the player chose it and a Convai provider writes the
+-- replies, never because a local voice or the Mistral voice could not run. A character no voice speaks for (playback off, a local voice that
+-- cannot run or has no clip of this character, a cloud voice that cannot be asked) reads "Text only (no voice)". Reads the tables it is given.
+function M.characterVoiceLabel(profile, view, pack)
+    local settings, state = view.settings or {}, view.localVoice or {}
+    local function written() return ui.t('Text only (no voice)') end
+    if settings.voice == false or state.playbackEnabled == false then return written() end
+    local known = state.state ~= nil and state.state ~= 'waiting' and state.provider ~= nil
+    local active, chosen = known and state.provider or nil, settings.voiceProvider
+    local cloud = chosen == 'voxtral' or (known and state.cloudVoice == 'voxtral')
+    if known then
+        if active == 'text' then return written() end
+        if active == 'convai' then return profile.voiceName or ui.t('Convai voice') end
+    end
+    -- The Mistral cloud voice: without a Mistral key it cannot speak (say so); with a key that is refused or cooling down it falls to written text.
+    if cloud then
+        if not view.mistralSaved then return ui.t('{voice} · needs Mistral key', {voice = M.voiceLabel('voxtral')}) end
+        if known and type(state.fallback) == 'table' and state.fallback.from == 'voxtral' and state.fallback.to == 'text' then return written() end
+    end
+    if known and (active == 'pocket' or active == 'omni') then
+        for _, key in ipairs(state.routedProfiles or {}) do
+            if key == profile.key then
+                return cloud and M.voiceLabel('voxtral') or M.voiceLabel(active, state.omniSteps, state.omniReference)
+            end
+        end
+    end
+    -- An OmniVoice choice that cannot run without its pack, an NVIDIA card or 12 GB: say why instead of naming a voice that will not be heard.
+    if chosen == 'omni' and type(pack) == 'table' then
+        local omni = M.voiceLabel('omni', settings.omniSteps, settings.omniReference)
+        if pack.known and not pack.installed then return ui.t('{voice} · needs Omni pack', {voice = omni}) end
+        if pack.noNvidia then return ui.t('{voice} · needs NVIDIA card', {voice = omni}) end
+        if pack.smallCard then return ui.t('{voice} · needs 12 GB card', {voice = omni}) end
+    end
+    if known then
+        -- The bridge is running and does not voice this character: it has no clip here or the chosen voice cannot run. The reply is written.
+        -- While the voice list is still being checked the chosen voice is named instead of flashing "Text only".
+        if state.availabilityPending == true then
+            return cloud and M.voiceLabel('voxtral') or M.voiceLabel(chosen == 'omni' and 'omni' or 'pocket', settings.omniSteps, settings.omniReference)
+        end
+        return written()
+    end
+    -- The bridge has not answered: what the settings say. The Convai voice choice plays Pocket beside Mistral, Local AI and Custom.
+    if cloud then return M.voiceLabel('voxtral') end
+    if chosen == 'omni' then return M.voiceLabel('omni', settings.omniSteps, settings.omniReference) end
+    if chosen == 'convai' and (settings.conversationProvider or 'convai') == 'convai' then return profile.voiceName or ui.t('Convai voice') end
+    return M.voiceLabel('pocket')
+end
+
 -- The optional OmniVoice pack, as the bridge reports it (worker Python, model weights, adapter). Unknown (no fresh
 -- report) counts as installed: Settings never locks a choice because the service has not answered yet.
 -- `noNvidia`: the bridge knows this PC has no NVIDIA graphics card (its card list, or a worker that found no CUDA): the entries stay choosable,
@@ -1165,13 +1223,13 @@ function M.lootReactions()
     return settings.lootReactions == true
 end
 
--- Off by default (settings.json `decisionLedger`): V's picked dialogue options are kept and written to runtime/decision-ledger.json.
+-- On by default since 2026-10-23 (settings.json `decisionLedger`): V's picked dialogue options are kept and written to runtime/decision-ledger.json.
 function M.decisionLedger()
     loadSettings()
     return settings.decisionLedger == true
 end
 
--- Off by default (settings.json `witnessReceipts`): the quest edges a world scan sees are stamped with who stood beside V and written to
+-- On by default since 2026-10-23 (settings.json `witnessReceipts`): the quest edges a world scan sees are stamped with who stood beside V and written to
 -- runtime/witness-receipts.json (mod/witness-receipts.lua).
 function M.witnessReceipts()
     loadSettings()
@@ -1568,11 +1626,8 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and localVoiceState.cloudVoice == 'voxtral' then
-            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.cloudVoice)
-        elseif localVoices[profile.key] and (localVoiceState.provider == 'pocket' or localVoiceState.provider == 'omni') then
-            body = body .. '\nVoice: ' .. M.voiceLabel(localVoiceState.provider, localVoiceState.omniSteps, localVoiceState.omniReference)
-        elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
+        body = body .. '\nVoice: ' .. clean(M.characterVoiceLabel(profile,
+            {settings = settings, localVoice = localVoiceState, mistralSaved = mistralState.saved == true}, M.omniPack()), 140)
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil
         secondary, secondaryLabel, secondaryEnabled = 'toggle-profile:' .. profile.key,

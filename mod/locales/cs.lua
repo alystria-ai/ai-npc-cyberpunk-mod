@@ -89,6 +89,7 @@ return {
     ["Confirm memory clear"] = "Potvrdit vymazání paměti",
     ["Connecting microphone - wait for Listening"] = "Připojování mikrofonu - počkej na stav Poslouchání",
     ["Convai voice"] = "Hlas Convai",
+    ["Text only (no voice)"] = "Jen text (bez hlasu)",
     ["Convai · Cloud voice"] = "Convai · Cloudový hlas",
     ["Conversation interrupted. Your message is in the draft."] = "Konverzace přerušena. Tvoje zpráva je v konceptu.",
     ["Conversation is unavailable for this contact."] = "Konverzace s tímto kontaktem není dostupná.",

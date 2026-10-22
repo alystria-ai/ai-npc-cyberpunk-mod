@@ -76,6 +76,7 @@ return {
     ["Confirm memory clear"] = "Confirmer l’effacement",
     ["Connecting microphone - wait for Listening"] = "Connexion du microphone — attendez Écoute",
     ["Convai voice"] = "Voix Convai",
+    ["Text only (no voice)"] = "Texte seul (pas de voix)",
     ["Conversation interrupted. Your message is in the draft."] = "Conversation interrompue. Votre message est conservé en brouillon.",
     ["Conversation is unavailable for this contact."] = "La conversation est indisponible pour ce contact.",
     ["Conversation profile cleared."] = "Profil de conversation effacé.",

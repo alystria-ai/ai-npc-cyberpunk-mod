@@ -1382,7 +1382,7 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end,
     resolveName = function(name) return (characterCatalog.resolve(catalog, {name = name, crowd = false})) end,
     contactKey = function(contact) return (companions.phoneContactKey(contact)) end,
-    -- The decision ledger (docs/QUEST_DECISIONS.md 4.4): off unless settings.decisionLedger; read once per picked dialogue option.
+    -- The decision ledger (docs/QUEST_DECISIONS.md 4.4): on unless settings.decisionLedger is turned off; read once per picked dialogue option.
     ledgerEnabled = function() return type(manager.decisionLedger) == 'function' and manager.decisionLedger() == true end,
     worldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end,
     gameTime = function() return worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime() end,
@@ -1394,7 +1394,7 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     end}) or nil
 convaiGameDialogue = gameDialogue
 
--- Witness receipts (docs/QUEST_DECISIONS.md 4.3): off unless settings.witnessReceipts. When a world scan sees a quest fact or journal entry
+-- Witness receipts (docs/QUEST_DECISIONS.md 4.3): on unless settings.witnessReceipts is turned off. When a world scan sees a quest fact or journal entry
 -- change, who stood within 15 m is written to runtime/witness-receipts.json. One boolean check per scan; optional like the modules above.
 do
     local loaded, module = pcall(dofile, 'witness-receipts.lua')

@@ -189,11 +189,11 @@ export function gameDialogueContext(input) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// The decision ledger (docs/QUEST_DECISIONS.md section 4.4). OFF unless the game's settings.decisionLedger is on: only then does
+// The decision ledger (docs/QUEST_DECISIONS.md section 4.4). ON by default (the game's settings.decisionLedger, true since 2026-10-23): only while it is on does
 // mod/game-dialogue.lua write runtime/decision-ledger.json (V's picked dialogue options, last 40, bound to the world token, with the
 // game clock). Nothing here runs without that file: no file, a stale file (another world token) or a malformed one all mean "no ledger".
 // A pick is a quote of an option V chose, never an outcome ("V picked the option '...'"); the knowledge rules say what followed.
-export const LEDGER_LIMIT = 5, LEDGER_CHARS = 1100;
+export const LEDGER_LIMIT = 3, LEDGER_CHARS = 700;
 const LEDGER_ROWS = 40, LEDGER_TEXT = 200, LEDGER_LABEL = 100, TOKEN = /^[A-Za-z0-9_:-][A-Za-z0-9._:/@+#-]{0,159}$/;
 
 /** A ledger document, validated and bounded; undefined when it is not a well-formed version 1 ledger. */

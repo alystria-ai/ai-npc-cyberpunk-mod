@@ -640,3 +640,37 @@ test('a fresh file has the 2026-10-20 defaults: reactions off, Johnny Off, V’s
   [false, false, false, 'off', true, 'pocket', false, true, false, 'convai']);
   for (const key of RETIRED) assert.equal(saved[key], undefined, key);
 });
+
+// Quest memory (decision ledger, witness receipts) is on by default since 2026-10-23. Older files saved false only because that was the
+// default, so a file from before defaultsRevision 1 moves to true once; after that a saved false stands.
+test('quest memory: an older file with both saved false moves to on once, and a later saved false is kept', () => {
+  const out = run(`${managerLua}
+    files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, decisionLedger: false, witnessReceipts: false, voice: false}))}
+    local first = newManager()
+    first.update(newPlayer(), 0.1)
+    report('ledger', first.decisionLedger()); report('receipts', first.witnessReceipts())
+    report('saved', settingsTable())
+    -- A hand edit to false after the move stands, through a restart.
+    local edited = settingsTable(); edited.decisionLedger = false
+    files['runtime/settings.json'] = json.encode(edited)
+    local second = newManager()
+    second.update(newPlayer(), 0.1)
+    report('ledger2', second.decisionLedger()); report('receipts2', second.witnessReceipts())
+    report('revision2', settingsTable().defaultsRevision)
+    -- Apply can still turn one off, and it stays off after a restart.
+    assert(second.applySettings(newPlayer(), {witnessReceipts = false}))
+    local third = newManager()
+    report('ledger3', third.decisionLedger()); report('receipts3', third.witnessReceipts())
+  `);
+  assert.equal(out.ledger, true);
+  assert.equal(out.receipts, true);
+  assert.equal(out.saved.defaultsRevision, 1);
+  assert.equal(out.saved.decisionLedger, true);
+  assert.equal(out.saved.witnessReceipts, true);
+  assert.equal(out.saved.voice, false, 'other saved values are untouched');
+  assert.equal(out.ledger2, false);
+  assert.equal(out.receipts2, true);
+  assert.equal(out.revision2, 1);
+  assert.equal(out.ledger3, false);
+  assert.equal(out.receipts3, false);
+});

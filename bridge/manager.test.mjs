@@ -2230,7 +2230,8 @@ test('the Characters sidebar shows the settings in effect for each character, no
   -- and nobody is in the party: the description, the voice and the conversation, and no advice text.
   assert(manager.applySettings(player, {followUpInterest = false, vVoice = false, battleReactions = false, lootReactions = false})); reload()
   local plain = description('viktor-vektor')
-  assert(plain == 'A ripperdoc.\\n\\nVoice: Convai voice\\nConversation: On', plain)
+  -- The default voice is Pocket and the bridge has not answered: the settings predict it (the Convai voice is named only when it speaks).
+  assert(plain == 'A ripperdoc.\\n\\nVoice: Pocket · Performance\\nConversation: On', plain)
   assert(not plain:find('Invitations create', 1, true) and not plain:find('phone contacts', 1, true) and not plain:find('Memory and connection', 1, true))
   assert(description('judy-alvarez'):find('Relationship: Auto', 1, true), 'Judy has a relationship line')
   -- Judy in the party on OmniVoice, with the speech settings and a memory of the player.
@@ -2281,6 +2282,78 @@ test('the Characters sidebar shows the settings in effect for each character, no
   manager.configure(api, {list[1], list[2]}); reload(); reads = 0; reload()
   assert(withMany == reads, 'sidebar text read files per character: ' .. withMany .. ' vs ' .. reads)
   io.open = rawOpen
+`));
+
+// The "Voice:" line names the voice that really speaks (feat/features-on): the Convai voice only when it speaks, "Text only" when none does.
+test('the Characters sidebar names the voice actually used, or text when there is none, never a Convai voice that is not speaking', () => run(`${nsuiFixture}${memoryFixture}
+  local list = {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}, summary = 'A braindance editor.', voiceName = 'Julia'},
+    {key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}, summary = 'A ripperdoc.', voiceName = 'Viktor Voice'}}
+  manager.configure(api, list)
+  local function voiceOf(key)
+    local found
+    core.setUi('ui:page', 1); loaded = registered.loadMod('manager')
+    found = assert(row('invite:' .. key), key).description
+    return found:match('Voice: ([^\\n]*)')
+  end
+  local function bridge(state)
+    state.updated = memoryClock * 1000.0
+    labelSequence = (labelSequence or 0) + 1 -- a new token each time: the same text is the same (cached) state
+    local token = 'voice-label-' .. labelSequence
+    jsonFixtures[token] = state
+    files['runtime/local-voice-state.json'] = token
+  end
+  assert(invoke('tab:characters').ok)
+  -- No answer from the bridge yet: the settings predict the route.
+  assert(manager.applySettings(player, {voiceProvider = 'convai'}))
+  assert(voiceOf('judy-alvarez') == 'Julia', 'the Convai voice, on a Convai provider')
+  assert(manager.applySettings(player, {conversationProvider = 'local'}))
+  assert(voiceOf('judy-alvarez') == 'Pocket · Performance', 'beside a text provider the Convai voice choice plays Pocket: ' .. tostring(voiceOf('judy-alvarez')))
+  assert(manager.applySettings(player, {conversationProvider = 'convai', voiceProvider = 'pocket'}))
+  assert(voiceOf('judy-alvarez') == 'Pocket · Performance')
+  -- The bridge answers: Pocket speaks Judy, not Viktor (no clip of him), so his replies are written, not given the Convai voice.
+  bridge({state = 'ready', provider = 'pocket', requestedProvider = 'pocket', routedProfiles = {'judy-alvarez'}, playbackEnabled = true})
+  assert(voiceOf('judy-alvarez') == 'Pocket · Performance')
+  assert(voiceOf('viktor-vektor') == 'Text only (no voice)', 'an unrouted character is written: ' .. tostring(voiceOf('viktor-vektor')))
+  -- The voice list still being checked: the chosen voice is named, not a flash of text.
+  bridge({state = 'loading', provider = 'pocket', requestedProvider = 'pocket', routedProfiles = {}, availabilityPending = true, playbackEnabled = true})
+  assert(voiceOf('viktor-vektor') == 'Pocket · Performance')
+  -- The chosen local voice cannot run and nothing stands in for it (the route is text), whatever the settings say.
+  assert(manager.applySettings(player, {voiceProvider = 'convai'}))
+  bridge({state = 'disabled', provider = 'text', requestedProvider = 'omni', routedProfiles = {}, playbackEnabled = true,
+    fallback = {from = 'omni', to = 'text'}})
+  assert(voiceOf('judy-alvarez') == 'Text only (no voice)', tostring(voiceOf('judy-alvarez')))
+  -- The player chose the Convai voice and the bridge routes it: the character's Convai voice name.
+  bridge({state = 'remote', provider = 'convai', requestedProvider = 'convai', routedProfiles = {}, playbackEnabled = true})
+  assert(voiceOf('judy-alvarez') == 'Julia' and voiceOf('viktor-vektor') == 'Viktor Voice')
+  -- Local AI or another text provider writes the replies and the bridge plays Pocket for the Convai voice choice.
+  bridge({state = 'ready', provider = 'pocket', requestedProvider = 'convai', routedProfiles = {'judy-alvarez'}, playbackEnabled = true})
+  assert(voiceOf('judy-alvarez') == 'Pocket · Performance' and voiceOf('viktor-vektor') == 'Text only (no voice)')
+  -- The Mistral voice that cannot be asked (a refused key, a limit cooling down) falls to written text; without a key it says so.
+  local clock = 1000; os.clock = function() return clock end
+  local function mistralKey(saved)
+    mistralSequence = (mistralSequence or 0) + 1
+    jsonFixtures['mistral-label-' .. mistralSequence] = {provider = 'convai', effective = 'convai', saved = saved}
+    files['runtime/mistral-state.json'] = 'mistral-label-' .. mistralSequence
+    clock = clock + 2
+  end
+  mistralKey(true)
+  assert(manager.applySettings(player, {voiceProvider = 'voxtral'}))
+  bridge({state = 'remote', provider = 'pocket', requestedProvider = 'voxtral', cloudVoice = 'voxtral', routedProfiles = {'judy-alvarez'},
+    playbackEnabled = true})
+  assert(voiceOf('judy-alvarez') == 'Mistral cloud voice (Voxtral)', tostring(voiceOf('judy-alvarez')))
+  bridge({state = 'remote', provider = 'pocket', requestedProvider = 'voxtral', cloudVoice = 'voxtral', routedProfiles = {'judy-alvarez'},
+    playbackEnabled = true, fallback = {from = 'voxtral', to = 'text', reason = 'quota'}})
+  assert(voiceOf('judy-alvarez') == 'Text only (no voice)', 'a cloud voice that cannot be asked is written: ' .. tostring(voiceOf('judy-alvarez')))
+  mistralKey(false)
+  assert(voiceOf('judy-alvarez'):find('needs Mistral key', 1, true), tostring(voiceOf('judy-alvarez')))
+  mistralKey(true)
+  -- Voice playback off: nothing is spoken, whatever the voice choice is.
+  assert(manager.applySettings(player, {voiceProvider = 'pocket', voice = false}))
+  bridge({state = 'stopped', provider = 'pocket', requestedProvider = 'pocket', routedProfiles = {'judy-alvarez'}, playbackEnabled = false})
+  assert(voiceOf('judy-alvarez') == 'Text only (no voice)')
+  assert(manager.applySettings(player, {voice = true}))
+  bridge({state = 'ready', provider = 'pocket', requestedProvider = 'pocket', routedProfiles = {'judy-alvarez'}, playbackEnabled = false})
+  assert(voiceOf('judy-alvarez') == 'Text only (no voice)', 'the bridge says playback is off')
 `));
 
 test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {

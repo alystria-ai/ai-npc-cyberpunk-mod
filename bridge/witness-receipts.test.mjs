@@ -372,8 +372,8 @@ test('the proof lines: the first three recorded calls and each skip reason once,
   assert.doesNotMatch(raw, /secret|other_fact/);
 });
 
-test('the module is optional: the setting defaults to off, is a boolean, and init.lua wires it without any other hook', () => {
-  assert.match(managerSource, /settings\.witnessReceipts, settingsNeedSave = false, true/);
+test('the module is optional: the setting defaults to on, is a boolean, and init.lua wires it without any other hook', () => {
+  assert.match(managerSource, /settings\.witnessReceipts, settingsNeedSave = true, true/);
   assert.match(managerSource, /function M\.witnessReceipts\(\)/);
   assert.match(managerSource, /witnessReceipts = settings\.witnessReceipts/);
   assert.match(managerSource, /key == 'decisionLedger' or key == 'witnessReceipts'/);

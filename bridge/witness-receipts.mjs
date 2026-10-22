@@ -1,4 +1,4 @@
-// Witness receipts (docs/QUEST_DECISIONS.md section 4.3, step C2). OFF unless the game's settings.witnessReceipts is on: only then does
+// Witness receipts (docs/QUEST_DECISIONS.md section 4.3, step C2). ON by default (the game's settings.witnessReceipts, true since 2026-10-23): only while it is on does
 // mod/witness-receipts.lua write runtime/witness-receipts.json. Each row says "this quest fact or journal entry newly changed at game second
 // t, and these spawned companions stood within 15 m of V when the world scan noticed". resolveKnowledge (bridge/world-knowledge.mjs) uses
 // the rows to let a companion who stood beside V hear a rule whose perspective is `witnessed`, which it is not a declared speaker of.

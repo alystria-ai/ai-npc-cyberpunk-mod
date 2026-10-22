@@ -76,6 +76,7 @@ return {
     ["Confirm memory clear"] = "确认清除记忆",
     ["Connecting microphone - wait for Listening"] = "正在连接麦克风，请等待“正在聆听”",
     ["Convai voice"] = "Convai 语音",
+    ["Text only (no voice)"] = "仅文字（无语音）",
     ["Conversation interrupted. Your message is in the draft."] = "对话已中断。你的消息已保留在草稿中。",
     ["Conversation is unavailable for this contact."] = "无法与此联系人对话。",
     ["Conversation profile cleared."] = "已清除对话设定。",

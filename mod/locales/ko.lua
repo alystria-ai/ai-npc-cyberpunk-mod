@@ -76,6 +76,7 @@ return {
   ["Confirm memory clear"] = "기억 삭제 확인",
   ["Connecting microphone - wait for Listening"] = "마이크 연결 중 - '듣는 중'이 될 때까지 기다리세요",
   ["Convai voice"] = "Convai 음성",
+  ["Text only (no voice)"] = "텍스트만 (음성 없음)",
   ["Conversation interrupted. Your message is in the draft."] = "대화가 중단되었습니다. 메시지는 임시 저장되어 있습니다.",
   ["Conversation is unavailable for this contact."] = "이 연락처와는 대화할 수 없습니다.",
   ["Conversation profile cleared."] = "대화 프로필을 해제했습니다.",
