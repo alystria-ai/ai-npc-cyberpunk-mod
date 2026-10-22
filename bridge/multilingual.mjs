@@ -105,7 +105,7 @@ export function wantsTwin({text, reaction = false, lastLanguage = null} = {}) {
  *   local: {uses, provider, convai, cloud, speaks, pocket} — does the chosen local voice speak this character, and which one ('pocket' | 'omni');
  *          `convai`: the Convai voice may speak this installation's turns (the player chose it, and only then);
  *          `cloud`/`speaks`: the Voxtral voice and the languages its model speaks;
- *          `pocket`: {speaks(language), packMissing(language)} — the Pocket language models (a model and the voice pack of its language are installed; the model is
+ *          `pocket`: {speaks(language), packMissing(language)} — the PocketTTS models (a model and the voice pack of its language are installed; the model is
  *          there but the pack is not).
  * Returns {engine: 'pocket' | 'omni' | 'convai' | 'none', language, reason}. 'none' is a written reply: no voice speaks the turn. Off, it is exactly
  * the voice used before. A character the chosen voice does not speak (it failed, it has no key, or this character has no clip) is 'none' unless the

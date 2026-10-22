@@ -193,10 +193,10 @@ test('a language the worker refuses leaves the English student, rejects the repl
   const h = harness();
   await h.client.start();
   const spoken = h.client.synthesizeStream(french, 'Salut.', {onPcm: () => {}, pocketLanguage: pocketLanguage()});
-  const failure = assert.rejects(spoken, error => error.refused === true && error.pocketLanguage === 'fr' && /could not be loaded \(ValueError: Pocket language model asset differs/.test(error.message));
+  const failure = assert.rejects(spoken, error => error.refused === true && error.pocketLanguage === 'fr' && /could not be loaded \(ValueError: PocketTTS model asset differs/.test(error.message));
   await tick(); await tick();
   const request = h.lastOf('language');
-  h.send({op: 'error', id: request.id, message: 'Pocket language model could not be loaded.', terminal: false, reason: 'ValueError: Pocket language model asset differs from its identity',
+  h.send({op: 'error', id: request.id, message: 'PocketTTS model could not be loaded.', terminal: false, reason: 'ValueError: PocketTTS model asset differs from its identity',
     ...h.frames()});
   await failure;
   assert.equal(h.client.language, null);

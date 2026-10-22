@@ -1075,7 +1075,7 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice 需要 NVIDIA",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "这台电脑没有 OmniVoice 所需的 NVIDIA 显卡，OmniVoice 无法在此启动。要听到语音，请选择 Pocket。",
     ["{voice} · needs NVIDIA card"] = "{voice} · 需要 NVIDIA 显卡",
-    ["The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "Pocket 的{language}语音已安装，但缺少{language}语音语言包。安装之前，{language}回复会以文字显示。",
+    ["The PocketTTS model for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "PocketTTS 的{language}模型已安装，但缺少{language}语音语言包。安装之前，{language}回复会以文字显示。",
     ["French"] = "法语",
     ["Italian"] = "意大利语",
     ["German"] = "德语",

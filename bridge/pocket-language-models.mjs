@@ -1,4 +1,4 @@
-// Pocket language models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
+// PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
 // Portuguese, cloned from the game's own dub of a character in that language (the voice language pack of the same language, bridge/voice-language-packs.mjs).
 //
 // A model is a folder <references>/multilingual-pocket/<lang>/ (a sibling of <references>/multilingual/<lang>/, the voice pack) with pocket-model.json,
@@ -60,7 +60,7 @@ const reasonOf = error => String(error?.code === 'ENOENT' ? 'file missing' : err
 /** Reads and checks the model in `directory` (<root>/multilingual-pocket/<language>). Returns {model} or {problem: 'reason'}. */
 export async function loadPocketModel({directory, language, files = defaultFiles}) {
   const info = POCKET_LANGUAGES[language];
-  if (!info) return {problem: 'not a language a Pocket model exists for'};
+  if (!info) return {problem: 'not a language a PocketTTS model exists for'};
   let manifest;
   try {
     const size = (await files.stat(resolve(directory, POCKET_MODEL_MANIFEST))).size;

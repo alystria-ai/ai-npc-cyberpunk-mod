@@ -95,7 +95,7 @@ test('the player\'s own clip for the character is the voice, in any language', a
 }, {player: true}));
 
 test('a model the worker refuses is not asked for again until its files change', async () => setup(async ({voice, calls, models, refuse}) => {
-  refuse('Pocket language model could not be loaded (ValueError: asset differs)');
+  refuse('PocketTTS model could not be loaded (ValueError: asset differs)');
   await assert.rejects(voice.synthesizeStream('panam-palmer', 'Salut.', {onPcm() {}, language: 'fr'}), /could not be loaded/);
   assert.equal(models.speaks('fr'), false);
   assert.equal(models.report().models[0].usable, false);
@@ -115,7 +115,7 @@ test('warming: the language model is swapped in ahead of the reply, only with a 
   assert.equal(warmed.length, 1);
 }));
 
-test('the routing line names the Pocket language model and the pack clip it cloned from', () => {
+test('the routing line names the PocketTTS model and the pack clip it cloned from', () => {
   const registry = {profiles: {'panam-palmer': {reference: 'runtime/voice-references/panam-palmer.wav'}}};
   const voice = {requestedProvider: 'pocket', provider: 'pocket', resolvedProvider: 'pocket', registries: {pocket: registry}, configuredByBackend: {pocket: true}, cloudActive: false};
   const record = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer', name: 'Panam'}, plan: {engine: 'pocket', language: 'fr'},
@@ -160,7 +160,7 @@ test('a reply written because the voice pack is missing says so once per languag
 test('the game maps the notice to a sentence in the menu language, with the language name translated, for each of the five languages', () => {
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8'), notices = readFileSync(new URL('../mod/notices.lua', import.meta.url), 'utf8');
   assert.match(lua, /reply\.keyNotice == 'pocket-language-pack'/);
-  assert.match(lua, /ui\.t\('The Pocket voice for \{language\} is installed, but it needs the \{language\} voice language pack, which is missing\. Replies in \{language\} show as text until you install it\.', \{language = language\}\)/);
+  assert.match(lua, /ui\.t\('The PocketTTS model for \{language\} is installed, but it needs the \{language\} voice language pack, which is missing\. Replies in \{language\} show as text until you install it\.', \{language = language\}\)/);
   for (const tag of ['fr', 'it', 'de', 'es', 'pt']) {
     assert.ok(lua.includes(`keyId == 'pocket-pack-${tag}' then convaiNotices.send(player, 'pocket-pack-${tag}', keyText)`), tag);
     assert.ok(notices.includes(`['pocket-pack-${tag}'] = {class = PLAYER, repeatS = 86400}`), tag);

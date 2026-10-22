@@ -647,7 +647,7 @@ def main():
                     if model is None:
                         raise
                     reason = f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}"[:200]
-                    send({"op": "error", "id": request_id, "message": "Pocket language model could not be loaded.",
+                    send({"op": "error", "id": request_id, "message": "PocketTTS model could not be loaded.",
                           "terminal": False, "reason": reason, **profiles()})
                 finally:
                     commands.finish(request_id)

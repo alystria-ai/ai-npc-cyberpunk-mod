@@ -251,7 +251,7 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
-// The Pocket language models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
+// The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md, bridge/pocket-language-models.mjs): <Pocket references>/multilingual-pocket/<lang>, the folder the Pocket worker reads;
 // found and checked once here (file sizes only), looked at again by the settings poll, and asked for from memory per reply.
 const pocketLanguages = new PocketLanguageModels({roots: [voiceConfig.runtime?.referenceDirectory], packs: languagePacks, log: line => console.error('[PocketLanguages] ' + line)});
 await pocketLanguages.scan().catch(error => console.error('[PocketLanguages] scan failed:', error?.message ?? error));
@@ -1116,7 +1116,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
   try {
     // The local voice that speaks (a variant of an ambient profile, decided once per turn); the profile key otherwise.
     const voiceKey = ['pocket', 'omni'].includes(reply?.engine) && typeof voiceKeyFor === 'function' ? voiceKeyFor(input) : undefined;
-    // The Pocket language model that speaks this reply (the local voice, a language that has a model and a pack).
+    // The PocketTTS model that speaks this reply (the local voice, a language that has a model and a pack).
     const pocketModel = reply?.engine === 'pocket' && !localVoice.cloudActive && reply.language && reply.language !== 'en' && pocketLanguages.speaks(reply.language)
       ? {language: pocketLanguages.model(reply.language).language} : undefined;
     // The Convai character the turn went to (the original or its multilingual twin).

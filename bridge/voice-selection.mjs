@@ -95,7 +95,7 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
-    // The Pocket language models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
+    // The PocketTTS models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
     // cloned from the pack's clip; without them Pocket speaks English only.
     this.pocketLanguages=options.pocketLanguages||null;
     this.clock = options.clock || Date.now;
