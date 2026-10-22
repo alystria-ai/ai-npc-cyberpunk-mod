@@ -596,12 +596,20 @@ export class PlayerMemory {
     this.#reconnectPending.delete(guard.characterId);
     return required;
   }
-  async prepareCharacter({profileKey, guard, signal} = {}) {
+  // localOnly: the text provider in use is not Convai (Local AI, Mistral, Custom), so there is no Convai long-term memory to verify or enable and
+  // no Convai call is made; only the local registry is checked, like beginSessionConversation. Nothing is marked verified, so a later switch to
+  // Convai still verifies and enables on its first player send.
+  async prepareCharacter({profileKey, guard, signal, localOnly = false} = {}) {
     this.#ready();
     const characterId = this.#id(profileKey), admitted = guard ?? this.route(profileKey).guard;
     const verifiedAtAdmission = this.#verified.has(characterId);
     if (admitted.characterId !== characterId || !this.isCurrent(admitted)) fail('STALE_TURN');
     if (signal?.aborted) fail('CANCELLED');
+    if (localOnly === true) {
+      await this.#checkStorage();
+      if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
+      return Object.freeze({...this.route(profileKey), memoryEnabled: true, memoryEnabledNow: false, changed: false, reconnectRequired: false});
+    }
     if (typeof this.#provider?.enableMemory !== 'function') fail('MEMORY_UNAVAILABLE');
     // Every invitation checks the exact durable identity/registry, including
     // cached and never-contacted profiles. Preparation performs no disk writes.

@@ -1577,7 +1577,7 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     return receipt;
   }
 }
-const invitations = new CompanionInvitations({memory: relationshipRoutes.invitationMemory(playerMemory, currentBoundary), connections,
+const invitations = new CompanionInvitations({memory: relationshipRoutes.invitationMemory(playerMemory, currentBoundary, () => mistral.active), connections,
   prepareVoice: prepareInvitedVoice,
   voiceCurrent: invitedVoiceCurrent,
   routeCurrent: (profile, guard) => !relationshipRouteReservation && !relationshipRoutePending.size

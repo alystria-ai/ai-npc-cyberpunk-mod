@@ -851,3 +851,18 @@ test('a registry or identity change stays a sticky fault even after the file rea
   await assert.rejects(talk(memory, 'judy'), {code: 'REGISTRY_CHANGED'});
   assert.equal(memory.status().available, false);
 });
+
+test('a local-only preparation (a non-Convai text provider) makes no provider call and leaves the Convai enable for a later switch', async t => {
+  const {memory, calls} = await fixture(t);
+  const prepared = await memory.prepareCharacter({profileKey: 'judy', guard: memory.route('judy').guard, localOnly: true});
+  assert.equal(prepared.memoryEnabled, true); assert.equal(prepared.reconnectRequired, false);
+  assert.equal(calls.length, 0);
+  assert.equal(memory.status().talkedToCount, 0);
+  // The player switches to Convai: the first real send still verifies and enables the character.
+  await talk(memory, 'judy');
+  assert.ok(calls.some(call => call.kind === 'enable'));
+  // Without localOnly an invitation still verifies provider memory.
+  const before = calls.length;
+  await memory.prepareCharacter({profileKey: 'panam', guard: memory.route('panam').guard});
+  assert.ok(calls.length > before);
+});
