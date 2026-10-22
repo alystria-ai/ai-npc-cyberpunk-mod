@@ -422,6 +422,34 @@ local function partialPart(self,job)
     job.partial=held
     return held
 end
+-- The composer is open and V is about to send: the history rows of a scan under way are encoded now, a few per frame within a
+-- small time budget, instead of all at once on the send frame (partialPart). Asked for by init.lua with preEncode(seconds); the
+-- window ends by itself. Rows a later page changes are encoded again, as everywhere else.
+local PRE_ENCODE_ROWS,PRE_ENCODE_SECONDS=12,.0015
+function Collector:preEncode(seconds)
+    local ok,clock=pcall(self.cpuNow)
+    if ok and type(clock)=='number' then self.preEncodeUntil=clock+(type(seconds)=='number' and seconds or 30) end
+end
+function Collector:pumpEncode()
+    local job=self.lanes.history.job
+    if not job or type(self.encodeRow)~='function' or job.partialFailed then return end
+    local ok,started=pcall(self.cpuNow)
+    if not ok or type(started)~='number' then return end
+    if started>self.preEncodeUntil then self.preEncodeUntil=nil; return end
+    local cache=self.lanes.history.cache
+    if cache and self.lastNow and self.lastNow-cache.started<=self.historyAge then return end -- the cache travels instead
+    rowTables(job)
+    local done=0
+    for id,quest in pairs(job.quests) do
+        if not rowFresh(job,id,quest) then
+            if not encodeRow(self,job,id,quest) then return end
+            done=done+1
+            if done>=PRE_ENCODE_ROWS then return end
+            local okNow,now=pcall(self.cpuNow)
+            if not okNow or type(now)~='number' or now-started>PRE_ENCODE_SECONDS then return end
+        end
+    end
+end
 -- Encodes the finished history rows a few per frame (see step).
 function Collector:pump()
     local job=self.encoding; if not job then self:pumpPartial(); return end
@@ -436,6 +464,7 @@ function Collector:paced(lane)
     return ok and type(clock)=='number' and clock<self.restUntil
 end
 function Collector:update(context)
+    if self.preEncodeUntil then self:pumpEncode() end
     -- Resting, or paced between background pages: no native call at all (capture() re-checks the world itself).
     if plain(context) and self.generation~=nil and self.generation==context.generation and self.worldToken==context.worldToken then
         local ok,now=pcall(self.now)

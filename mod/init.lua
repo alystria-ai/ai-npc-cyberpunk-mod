@@ -2725,6 +2725,8 @@ local function beginTextNow(groupMode, waited)
             holocall = primary.holocall, head = primary.head}
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
+        -- V types for seconds: the history rows of a scan under way are encoded now, a few per frame, not on the send frame.
+        if type(journalHistory.preEncode) == 'function' then pcall(journalHistory.preEncode, journalHistory, 30) end
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
         pending = nil
         convaiComposerWatch.opened(generation)

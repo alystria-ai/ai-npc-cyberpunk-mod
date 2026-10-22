@@ -571,3 +571,27 @@ local before=total(); m:update(context)
 assert(total()>before,'no page after demand: restUntil='..tostring(m.restUntil))
 `);
 });
+
+test('with the composer open the rows of a history scan under way are encoded a few per frame, so the send frame encodes none', () => {
+  const out = run(partialFixture + `
+stepHistory(3) -- quest 3's task is still queued: it can add objectives
+local before=rowEncodes
+m:update(context)
+assert(rowEncodes==before,'not asked for: nothing is encoded ahead while objectives may still be added')
+m:preEncode(30)
+m:update(context)
+assert(rowEncodes>before,'asked for: the rows are encoded on a frame of their own')
+local ahead=rowEncodes
+local first=capture()
+assert(rowEncodes==ahead,'the send frame encodes no row, got '..(rowEncodes-ahead))
+-- the window ends by itself: later frames encode nothing new
+local clock=os.clock()
+local late=build({pace=true,cpuNow=function() return clock end,encodeRow=function(value) rowEncodes=rowEncodes+1; return jsonEncode(value) end})
+late:update(context); for _=1,3 do late:step('history',now) end
+late:preEncode(1); clock=clock+2
+local count=rowEncodes; late:update(context)
+assert(rowEncodes==count and late.preEncodeUntil==nil,'an expired window encodes nothing')
+return {ids=first.header.lanes.history.ids}
+`);
+  assert.deepEqual(out.ids, ['2', '3']);
+});
