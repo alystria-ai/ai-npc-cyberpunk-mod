@@ -675,11 +675,18 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
 - **Player-owned, never touched:** memories, sessions, phone history, settings, logs, and an own
   `convai-key.txt`.
 
-The Convai key is built into the Runtime package at `app/defaults/service.txt` from the
-`CONVAI_API_KEY` secret. A valid `data/convai-key.txt` (format `api-key = ...`) always wins, so
-anyone can use their own account (with their own `characters.json`). Do not describe the built-in
-key in player-facing text. The key is stored scrambled (`convai-key-v1 ...`, not an `api-key = ...` line;
-`bridge/key-codec.mjs`) and the bridge limits turns on that key per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
+**No Convai key is built into the Runtime** (from 0.2.9; up to 0.2.8 it was `app/defaults/service.txt`). The Runtime carries the token
+backend's address and client request secret instead, as `app/defaults/convai-auth.json`
+(`{"version": 1, "enabled": true, "url": "https://<backend>/api/convai/token", "secret": "...", "fallback": false}`), and the bridge
+signs in to the shared Convai account with short-lived tokens from that backend (docs/CONVAI_AUTH_BACKEND.md, "Build status (2026-10-22)").
+The build reads them from `CONVAI_AUTH_URL` (a repository variable in CI) and `CONVAI_AUTH_CLIENT_SECRET` (a secret), or from
+`--auth-url` and `--auth-secret-env NAME`; a non-dry-run build of the Runtime without both fails, and `--key-env` / `--key-file` are
+refused. The secret is never printed. It is not the error reports' secret: `app/defaults/error-reports.json` is a separate file that the
+owner adds by hand. The bridge limits turns on the shared account per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
+A plain `data/convai-key.txt` (format `api-key = ...`) is a developer's or a player's own key: it is used directly, with no backend and no
+daily cap, unless the data folder's `convai-auth.json` (or the environment) switches the backend on. A player's own key set in the settings
+is unaffected. A `convai-key.txt` that holds the packed key of a release up to 0.2.8 is removed at the next start, and the old
+`defaults/service.txt` is deleted through `packaging/runtime-removals.json`. Do not describe the shared account's sign-in in player-facing text.
 
 ### Carry-over from the old name (CyberpunkConvai)
 
@@ -751,14 +758,15 @@ node packaging/test-release-install.mjs --version 0.2 --packages dist/release/pa
 node --test packaging/release.test.mjs
 ```
 
-The dry run uses the developer `runtime/` models and embeds no key. The install test builds a
+The dry run uses the developer `runtime/` models and may leave out the token backend's address and secret (a real build of the Runtime may not; nothing ever embeds a key). The install test builds a
 stand-in game folder under `%TEMP%` (spaces and non-ASCII in the path), extracts with
 `Expand-Archive`, checks every file, then with a PATH of Windows folders only: speaks with the
 Pocket voice from the packaged Python, recognises that speech again with the local speech-to-text
 worker (packaged Python and `models/stt`), runs the lip-sync model on that audio (and OmniVoice on the
 GPU with `--omni`), and loads the real launcher DLL through `native/autostart/test-host.c`, which
-must start the packaged service and stop it when the "game" exits. With `--key-file` the key is
-copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
+must start the packaged service and stop it when the "game" exits. A Runtime built with the backend settings carries no key and no
+`defaults/service.txt` (checked), has `convai-auth.json` on without a fallback, and the bridge must report Ready from it; a dry-run build without
+them asks for setup instead. With `--key-file` the key is copied as the player's own key (never printed) and the bridge must report Ready. Never point it at
 the real game folder; it always makes its own.
 
 To try a build in the real game, remove the development launcher first
@@ -789,7 +797,8 @@ The two optional voice-input packs are built by the `micpacks` job, a matrix of 
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read, and write access to the pack repository) and
-`CONVAI_API_KEY`. GitHub masks secrets in logs; the builder also masks the parsed key and never
+`CONVAI_AUTH_CLIENT_SECRET` (the token backend's client request secret); repository variable: `CONVAI_AUTH_URL` (the backend's
+address). There is no Convai key secret any more. GitHub masks secrets in logs; the builder also masks the client secret (`::add-mask::`) and never
 prints it. The workflow requests `contents: write` itself, so the repository's default workflow
 permission can stay read-only.
 
