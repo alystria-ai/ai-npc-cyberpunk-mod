@@ -51,7 +51,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
-import {loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
+import {installVVoiceReference, loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
@@ -224,12 +224,14 @@ const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line =
 await languagePacks.scan().catch(error => console.error('[VoiceLanguagePacks] scan failed:', error?.message ?? error));
 // Developer mode: the last spoken reply's audio and its reference, in <state>/debug (bridge/last-reply-capture.mjs). Off otherwise, and then it costs nothing.
 const replyCapture = new LastReplyCapture({directory: resolve(stateDirectory, CAPTURE_FOLDER), log: line => console.error('[Debug] ' + line)});
-// A player's V voice mod (docs/V_VOICE.md, "V voice mods"): once, here, the archives of archive/pc/mod and REDmod are looked at (cached by name, size and
-// time) and the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip for V (the editor) wins over both.
-// Nothing here runs again during a session, and the decoder process it may start exits when its line is done. `source` on each voice names the reference.
-const {report: vVoiceModReport, ...vVoiceReferences} = await loadVVoiceReferencesWithMods({
-  shippedDirectories: [...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')], game, stateDirectory, project,
-  log: line => console.error('[VVoice] ' + line)});
+// A player's V voice mod (docs/V_VOICE.md, "V voice mods"): the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip
+// for V (the editor) wins over both. Here, at start, only the references an earlier scan built are read (two small files per gender: no archive is listed, no process is
+// started, so the ready signal waits for nothing); the scan itself (startVVoiceModScan, below) runs once, in the background, only while V's voice is on. `source` on each
+// voice names the reference.
+const vVoiceLoadOptions = {shippedDirectories: [...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')], game, stateDirectory, project,
+  log: line => console.error('[VVoice] ' + line)};
+const {report: initialVVoiceModReport, ...vVoiceReferences} = await loadVVoiceReferencesWithMods({...vVoiceLoadOptions, scan: false});
+let vVoiceModReport = initialVVoiceModReport;
 // The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
 // they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
 // of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
@@ -1241,6 +1243,30 @@ const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
 const vGenderMemory = {
   gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
   save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
+// The V voice mod scan (bridge/v-voice-mod-service.mjs, bridge/v-voice-mods.mjs): archive indexes and, only when a reference has to be built, the decoder, at most once per session,
+// in the background a little after start-up and only once V's voice is on (never at start, never per reply). A reference that changed (a mod installed, swapped or removed) is
+// installed where the workers read it and the running voices follow it (LiveVoices), with no restart; the player's own clip for V still wins.
+const V_MOD_SCAN_DELAY_MS = 20_000;
+let vModScanStarted = false;
+const scanVVoiceMods = async () => {
+  try {
+    const found = await loadVVoiceReferencesWithMods({...vVoiceLoadOptions, scan: true, current: vVoiceReferences.voices});
+    vVoiceModReport = found.report;
+    for (const gender of found.changed) {
+      const voice = found.voices[gender];
+      if (voice) {
+        await installVVoiceReference(voice, [...referenceRoots, voiceConfig.runtime?.referenceDirectory], {log: line => console.error('[VVoice] ' + line)});
+        vVoiceReferences.voices[gender] = voice;
+      } else delete vVoiceReferences.voices[gender];
+      await liveVoices?.refresh(V_VOICE_KEYS[gender]);
+    }
+  } catch (error) { console.error('[VVoice] the V voice mod scan failed: ' + String(error?.message ?? error).slice(0, 120)); }
+};
+const startVVoiceModScan = () => {
+  if (vModScanStarted) return;
+  vModScanStarted = true;
+  setTimeout(() => { void scanVVoiceMods(); }, V_MOD_SCAN_DELAY_MS).unref?.();
+};
 // Which reference V speaks from, for the log and the support report: the player's own clip, a V voice mod's ('mod:<archive file name>') or the shipped one.
 const vReferenceLabel = gender => playerVoices.has(V_VOICE_KEYS[gender]) ? 'manual' : vVoiceReferences.voices[gender]?.source ?? 'shipped';
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory, referenceLabel: vReferenceLabel,
@@ -3418,6 +3444,7 @@ async function pollSettings(checkShutdown = true) {
     const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false;
     const vSettings = vSettingsFor(settings, {cloudUsable: voxtralVoice.hasKey && matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
+    if (vVoice.enabled) startVVoiceModScan();
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
