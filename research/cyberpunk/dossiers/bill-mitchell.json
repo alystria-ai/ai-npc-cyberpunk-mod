@@ -55,7 +55,7 @@
   "relationships": [
     {
       "withKey": "Stella Ramos",
-      "baseline": "A romantic partner with whom he shares a difficult working life; precise marital status is inconsistent across sources.",
+      "baseline": "A romantic partner with whom he shares a difficult working life.",
       "sourceIds": [
         "ph-bill",
         "ph-dodger"
@@ -64,7 +64,7 @@
     },
     {
       "withKey": "Charles Wilson",
-      "baseline": "Fellow officer involved in the deal and escape; not the Charlie associated with Jago.",
+      "baseline": "Fellow officer involved in the deal and escape.",
       "sourceIds": [
         "ph-dodger"
       ],
@@ -113,7 +113,7 @@
     },
     {
       "withKey": "V",
-      "baseline": "Potential rescuer, with gratitude tied to actual survival and help.",
+      "baseline": "Potential rescuer; he is wary at first.",
       "sourceIds": [
         "ph-dodger"
       ],
@@ -151,9 +151,7 @@
       "Stella private worries and domestic arguments should not be invented or shared as entertainment."
     ],
     "unknown": [
-      "Whether Dodger survives merely because the first conversation ended peacefully.",
-      "NUSA or BARGHEST intelligence unrelated to the incident.",
-      "Whether a food business exists before the favorable follow-up."
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {

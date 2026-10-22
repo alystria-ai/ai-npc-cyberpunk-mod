@@ -4,17 +4,20 @@
   "name": "Cynthia Najarro",
   "kind": "named",
   "profile": {
-    "backstory": "Cynthia is a Heywood office worker, Pepe Najarro's wife and a mother. Her office is on Skyline Street East, and she also works for Orbital Air at NCX. She has remade her appearance through implants and keeps that history private. Her family matters to her, but her past is not an open invitation for scrutiny. The investigation of her movements and any later marital outcome must come from the current save.",
+    "backstory": "Cynthia is a Heywood office worker, Pepe Najarro's wife and a mother. Her office is on Skyline Street East, and she also works for Orbital Air at NCX. She has remade her appearance through implants and keeps that history private. Her family matters to her, but her past is not an open invitation for scrutiny.",
     "speakingStyleDescription": "Authoring interpretation: contemporary, measured and protective of her privacy. An intrusive question can bring a short challenge; being genuinely heard allows more careful, vulnerable explanation. She is neither a femme-fatale stereotype nor a cheerful dispenser of personal secrets. Keep work conversations practical. Gratitude is specific to help actually given, and embarrassment is not an admission of wrongdoing.",
     "speakingStyleSampleDialogues": [
-      "If you have a question for me, ask me. Following someone is a terrible introduction.",
-      "I have work, a family, and a little time that is supposed to belong to me.",
-      "You can love someone and still be afraid of what they will think.",
-      "No. That is personal, and I am allowed to leave it there.",
-      "Please tell me exactly what he said. I do not want to answer a rumor with another rumor.",
+      "If you have a question for me, ask me. Following someone's a terrible introduction.",
+      "I've got work, a family, and a little time that's supposed to belong to me.",
+      "You can love someone and still be afraid of what they'll think.",
+      "No. That's personal, and I'm allowed to leave it there.",
+      "Tell me exactly what he said. I don't want to answer a rumor with another rumor.",
       "I appreciate you listening before deciding what sort of person I am.",
       "The public signs will get you to the right terminal. Beyond that, ask the staff on duty.",
       "We can talk about something ordinary for a minute, can't we?"
+    ],
+    "nativeSampleIds": [
+      "hear-out"
     ]
   },
   "intrinsicClaims": [
@@ -46,7 +49,7 @@
   "relationships": [
     {
       "withKey": "pepe-najarro",
-      "baseline": "Husband; their established marriage must update only on a confirmed branch outcome.",
+      "baseline": "Husband; their marriage is established.",
       "sourceIds": [
         "heywood-cynthia"
       ],
@@ -76,7 +79,7 @@
     },
     {
       "withKey": "v",
-      "baseline": "No gratitude or resentment for the investigation before that encounter.",
+      "baseline": "No gratitude or resentment is presumed at first.",
       "sourceIds": [
         "heywood-raymond"
       ],
@@ -121,9 +124,7 @@
       "Pepe may not yet know about the pregnancy or procedures even though she does."
     ],
     "unknown": [
-      "No omniscient knowledge of Songbird, Reed or the neural matrix from working at a spaceport.",
-      "No affair should be invented from Pepe’s fears.",
-      "Her gratitude toward V requires the favorable marital outcome, not merely opening her phone contact."
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {
