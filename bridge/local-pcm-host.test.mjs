@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runInNewContext} from 'node:vm';
 import {LocalPcmClient} from './local-pcm-client.mjs';
-import {LocalPcmHost, ownedLocalPcmPacket, localSnapshotForHost} from './local-pcm-host.mjs';
+import {LocalPcmHost, ownedLocalPcmPacket, ownedFaceCopy, localSnapshotForHost} from './local-pcm-host.mjs';
 import {encodePcmWav} from './convai-audio-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
@@ -50,9 +50,9 @@ class OfflinePlayer {
   async stop() { this.stopped = true; this.pending?.reject(Error('Offline renderer retired')); }
 }
 
-function fixture(t, {manualAck = false} = {}) {
+function fixture(t, {manualAck = false, timeoutMs = 120_000} = {}) {
   const pages = [], players = [], tasks = [];
-  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 120_000, cleanupTimeoutMs: 30_000,
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs, cleanupTimeoutMs: 30_000,
     createPage: async () => {
       const client = new LocalPcmClient({createPlayer: () => {
         const player = new OfflinePlayer({manualAck}); players.push(player); return player;
@@ -588,4 +588,47 @@ test('LocalPcmHost.standby opens the page and a spare device; the next turn uses
   // A page that cannot be evaluated is reported as no spare, never thrown.
   pages[0].evaluate = async () => { throw Error('renderer gone'); };
   assert.equal(await host.standby(), false);
+});
+
+// 2026-10-22 review (W12): the page's 150 s limit was wall time for the whole reply, so a long reply on a slow computer was cut in the middle of a line while audio
+// was still being produced. The limit is for standing still now: a packet accepted or the heard position advancing starts it over.
+test('the page time limit is for standing still: a reply whose packets keep coming runs past it, and one that stops producing is cut', {timeout: 30_000}, async t => {
+  const {host, players, track} = fixture(t, {timeoutMs: 400});
+  const started = performance.now();
+  const pending = track(host.play({token: 'slow-but-moving', text: 'A long reply on a slow computer'}, async emit => {
+    for (let index = 0; index < 8; index++) { await sleep(150); await emit(packet({index: index + 1, offsetFrames: index * 9600})); }
+  }, {onFrame: () => control}));
+  await until(() => players[0]?.sealed);
+  assert.ok(performance.now() - started > 800, 'it ran for twice the limit');
+  players[0].finish(); const result = await pending; assert.equal(result.frames, 8 * 9600);
+  const stuckAt = performance.now();
+  const stuck = track(host.play({token: 'stuck', text: 'A producer that stops'}, async emit => {
+    await emit(packet()); await new Promise(() => {});
+  }, {onFrame: () => control}));
+  await assert.rejects(stuck, {name: 'AbortError'});
+  assert.ok(performance.now() - stuckAt >= 380, 'cut only after standing still for the whole limit');
+});
+
+test('ownedFaceCopy: rows the producer attests as unchanged are copied once and reused, the rest of the face is copied every poll, and a face without the note is copied whole', () => {
+  const rows = Array.from({length: 40}, (_, index) => [index / 60, .1, .2]);
+  const upper = [[0, 1], [1 / 60, 2]];
+  const make = cursor => ({version: 1, requestId: 'r', duration: .7, frames: rows, modelExpressions: {version: 1, format: 'jali-upper-v1', frames: upper},
+    coverage: {version: 1, audiblePositionSeconds: cursor, phoneticIntervals: []}, rows: 'geometry-1', revision: 4});
+  const cache = {};
+  const first = ownedFaceCopy(make(0), cache), second = ownedFaceCopy(make(.08), cache);
+  assert.deepEqual(first.frames, rows); assert.notEqual(first.frames, rows, 'an owned copy, not the producer\'s array');
+  assert.equal(second.frames, first.frames, 'the same copied rows on the next poll');
+  assert.equal(second.modelExpressions.frames, first.modelExpressions.frames);
+  assert.deepEqual(second.modelExpressions, {version: 1, format: 'jali-upper-v1', frames: upper});
+  assert.equal(first.coverage.audiblePositionSeconds, 0); assert.equal(second.coverage.audiblePositionSeconds, .08, 'the small part is fresh');
+  assert.equal('rows' in first, false); assert.equal('rows' in second, false); assert.equal(second.revision, 4);
+  // New rows (another key) are copied again; a face without the note never shares anything.
+  const grown = ownedFaceCopy({...make(.1), rows: 'geometry-2', frames: [...rows, [40 / 60, 0, 0]]}, cache);
+  assert.equal(grown.frames.length, 41); assert.notEqual(grown.frames, first.frames);
+  const plain = {version: 1, frames: rows, coverage: {audiblePositionSeconds: 0}};
+  const one = ownedFaceCopy(plain, {}), two = ownedFaceCopy(plain, cache);
+  assert.notEqual(one.frames, two.frames); assert.notEqual(one.frames, rows);
+  const loose = {};
+  const a = ownedFaceCopy(plain, loose), b = ownedFaceCopy(plain, loose);
+  assert.notEqual(a.frames, b.frames, 'no note, no reuse, even with the same array');
 });

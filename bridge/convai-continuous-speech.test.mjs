@@ -551,3 +551,28 @@ test('onLease reports the first valid game lease once (the turn record), and a t
   await f.stream.frame(f.snapshot({receivedFrames: 36000, positionSeconds: .1}));
   assert.equal(leases, 1, 'a refreshed lease is not reported again');
 });
+
+test('a real Pocket facial stream polled every 40 ms writes the face file when the timeline changes, not on every poll of a line that is already complete', async () => {
+  const {PocketFacialStream, ownedPocketFace} = await import('./pocket-facial-stream.mjs');
+  const {ownedFaceCopy} = await import('./local-pcm-host.mjs');
+  const faces = [];
+  const f = fixture(owner, {faceFile: async () => true, faceBuilder: ownedPocketFace, writeFace: async value => { faces.push(value.revision); return true; }});
+  f.control();
+  const facial = new PocketFacialStream({input: owner});
+  const copies = {};
+  const poll = (received, complete, position) => {
+    const face = ownedFaceCopy(facial.snapshot(received, complete, position), copies);
+    return f.stream.frame(f.snapshot({receivedFrames: received, sourceComplete: complete, positionSeconds: position, face, duration: received / 24000, textComplete: true}));
+  };
+  // Four packets arrive (0.4 s), each polled twice while it plays; then the line is complete and plays for four more seconds.
+  for (let index = 0; index < 4; index++) {
+    facial.push({index: index + 1, offsetFrames: index * 2400, frames: 2400, sampleRate: 24000, channels: 1, pcm: Float32Array.from({length: 2400}, (_, at) => .2 * Math.sin((index * 2400 + at) * .041))});
+    await poll((index + 1) * 2400, false, index * .1); await poll((index + 1) * 2400, false, index * .1 + .04);
+  }
+  facial.finish();
+  const before = faces.length;
+  for (let step = 0; step < 100; step++) await poll(9600, true, Math.min(.4, .34 + step * .04));
+  assert.ok(before <= 8 && before >= 4, `during the arrival ${before} writes for 8 polls`);
+  assert.ok(faces.length - before <= 1, `the finished line made ${faces.length - before} more writes for 100 polls`);
+  facial.close();
+});

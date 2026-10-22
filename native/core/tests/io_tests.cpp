@@ -539,3 +539,34 @@ TEST(io_game_thread_never_waits_for_the_workers_json_check)
     CHECK(slow <= 8); // before the fix every publish stalled it (about 60 calls over 1 ms, worst 3.5 ms)
     io.Stop();
 }
+
+TEST(io_writes_to_different_files_keep_their_order)
+{
+    // A write is merged only into the last queued operation. While the worker is stuck on x.json (held open without
+    // sharing, so the replace retries for a while), queue payload, marker, payload again: the second payload must not
+    // slide ahead of the marker.
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    HANDLE held = CreateFileW(P(dir, "x.json").c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL, nullptr);
+    CHECK(held != INVALID_HANDLE_VALUE);
+    CHECK(io.Write("x.json", "blocked"));
+    SleepMs(5); // the worker takes x.json and starts retrying
+    CHECK(io.Write("a.json", "{\"v\":1}"));
+    CHECK(io.Write("b.json", "{\"marker\":1}"));
+    CHECK(io.Write("a.json", "{\"v\":2}"));
+    CHECK(io.Write("a.json", "{\"v\":3}")); // next to the previous a.json write: these two do merge
+    CloseHandle(held);
+    CHECK(io.Flush(3000));
+    CHECK_EQ(ReadRaw(P(dir, "a.json")), std::string("{\"v\":3}"));
+    CHECK_EQ(ReadRaw(P(dir, "b.json")), std::string("{\"marker\":1}"));
+    CHECK_EQ(io.Stats().writesCoalesced, static_cast<uint64_t>(1));
+    io.Stop();
+}
+
+TEST(io_module_pin_succeeds_and_can_be_repeated)
+{
+    CHECK(PinThisModule());
+    CHECK(PinThisModule());
+}

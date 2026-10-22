@@ -54,8 +54,8 @@ function api.player() return world.mounts.player and car or nil end
 function api.inspect(vehicle) return vehicle.info end
 function api.mounting(value) return world.mounts[value.serial or 'player'] end
 function api.canBoard() return world.calm end
-function api.mount(value,vehicle,seat,exit)
-  local command={entry=value,car=vehicle,seat=seat,state='Executing',exit=exit}
+function api.mount(value,vehicle,seat,exit,failsafe)
+  local command={entry=value,car=vehicle,seat=seat,state='Executing',exit=exit,failsafe=failsafe}
   world.commands[#world.commands+1]=command
   if exit then world.unmounts=world.unmounts+1 else world.mountsRequested=world.mountsRequested+1 end
   if not world.delayDriver then actual(value,not exit and seat or nil,vehicle); command.state='Success' end
@@ -828,4 +828,53 @@ actual(entry,'seat_front_left'); actual('player','seat_front_right')
 assert(queue()); tick(12); assert(phase()=='driving')
 actual('player',nil); tick(10)
 assert(world.disables==1 and world.playerMounts==0)
+`));
+
+test('an exit that keeps failing is escalated, the driver becomes dismissible, and the trip ends once the copy is removed',()=>run(`
+driving(); world.delayDriver=true
+local discards=0
+hooks.discard=function() discards=discards+1; return true end
+local recovers=0
+function api.recover() recovers=recovers+1; return true end
+transport.cancelChauffeur(fleet,'Stop here'); tick(4); actual('player',nil); tick(2)
+assert(phase()=='exiting-driver',phase())
+-- no drive command of ours is live any more: the driver may be dismissed although the exit is failing
+assert(transport.canDismissChauffeurDriver(fleet,1))
+assert(transport.chauffeurSnapshot(fleet).dismissible==true)
+tick(400,1)
+assert(recovers==1,'moved out once: '..recovers)
+assert(discards==1,'removal asked once: '..discards)
+assert(phase()=='exiting-driver' and fleet.people[1].removing)
+local failsafe=0
+for _,c in ipairs(world.commands) do if c.exit and c.failsafe then failsafe=failsafe+1 end end
+assert(failsafe==3,'failsafe round: '..failsafe)
+transport.remove(fleet,1); entries[1]=nil; tick(4)
+assert(not fleet.chauffeur and fleet.phase=='on-foot',tostring(fleet.phase))
+assert(transport.chauffeurSnapshot(fleet).phase~='exiting-driver')
+`));
+test('the driver cannot be dismissed while the drive command is live, and a stopping that never ends gives up after sixty seconds',()=>run(`
+driving(); world.disableBlocked=true; car.info.speed=5
+transport.cancelChauffeur(fleet); tick(40,1)
+assert(phase()=='stopping')
+assert(not transport.canDismissChauffeurDriver(fleet,1),'command still live')
+assert(transport.chauffeurSnapshot(fleet).dismissible==false)
+tick(30,1)
+-- V still sits in the car: the trip waits for V, never for ever on the command
+assert(phase()=='waiting-for-player-exit',phase())
+assert(transport.chauffeurSnapshot(fleet).error)
+actual('player',nil); tick(1)
+assert(phase()=='exiting-driver',phase())
+assert(transport.canDismissChauffeurDriver(fleet,1),'no live command after the hard timeout')
+-- the car finally stops: the driver leaves and the trip ends
+car.info.speed=0; tick(12,1)
+assert(not fleet.chauffeur and not transport.owns(fleet,1),tostring(phase()))
+`));
+test('a stopping whose command lost its exact owner still gets to the exit',()=>run(`
+driving(); transport.cancelChauffeur(fleet)
+world.driveCommand=nil -- ownedActive false from now on: the native stop answers "no longer current" for ever
+function native.stop() return false,'The exact driving command is no longer current.' end
+car.info.speed=0; tick(30,1)
+assert(phase()=='stopping' or phase()=='waiting-for-player-exit')
+actual('player',nil); tick(70,1)
+assert(not fleet.chauffeur,'ended: '..tostring(phase()))
 `));

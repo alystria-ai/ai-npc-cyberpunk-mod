@@ -3572,11 +3572,11 @@ test('V’s voice is one row (Off, Pocket, Voxtral, OmniVoice): Voxtral needs th
     -- Back to Pocket, always allowed.
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 2)
-    -- A file that says Voxtral while no key is saved shows Pocket (2) in the row.
+    -- A file that says Voxtral while no key is saved shows Voxtral (3) in the row (V's voice follows its own setting; the entry is greyed out and says it needs the key).
     assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
     key('b', {provider = 'convai', effective = 'convai', saved = false})
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').value == 2 and row('vVoice').disabledElements[3] == true, 'Voxtral without a key reads as Pocket')
+    assert(row('vVoice').value == 3 and row('vVoice').disabledElements[3] == true and row('vVoice').elements[3] == 'Voxtral · needs Mistral key', 'Voxtral without a key still reads as Voxtral, with its note')
     key('c', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 3)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket')
@@ -3911,7 +3911,7 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
       ['Character.maelstrom_grunt1_ranged1_lexington_ma'] = 'npc-maelstrom-male',
       ['Character.tyger_claws_gang3_katana_wa'] = 'npc-tyger-claws-female',
       ['Character.wat_kab_ripperdoc_01'] = 'npc-ripperdoc-male', ['Character.CorpoWomanBag'] = 'npc-corpo-resident-female',
-      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = false, ['Character.q105_valentino_ma'] = false,
+      ['Character.Waitress'] = false, ['Character.maxtac_rifle_ma'] = 'npc-maxtac-male', ['Character.q105_valentino_ma'] = false,
       ['Character.valentinos_grunt_ma'] = false, ['Character.maelstrom_base_android'] = false, ['Character.ChildPoor_ma'] = false}
     for id, key in pairs(expected) do
       assert(byRecord[id], id)
@@ -3927,8 +3927,8 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
     assert(description('Character.maelstrom_grunt1_ranged1_lexington_ma'):find('Conversation: Maelstrom ganger (archetype)', 1, true))
     assert(description('Character.Silverhand'):find('Conversation: Johnny Silverhand', 1, true))
     assert(not description('Character.Silverhand'):find('archetype', 1, true))
-    assert(description('Character.maxtac_rifle_ma'):find('No conversation profile', 1, true))
-    assert(row('model-status').description:find('5 of them can talk.', 1, true))
+    assert(description('Character.maxtac_rifle_ma'):find('Conversation: MaxTac officer (archetype)', 1, true))
+    assert(row('model-status').description:find('6 of them can talk.', 1, true))
     -- A Waitress has no gender in its name and no resident kind: it stays a silent follower.
     assert(description('Character.Waitress'):find('No conversation profile', 1, true))
     -- Invited, the copy joins as a model (nothing to prepare) and talks as the archetype once spawned.
@@ -4973,6 +4973,29 @@ test('error reports are on by default, apply as on or off only, and the one-time
   assert(manager.errorReports() == false and manager.snapshot(player).settings.errorReports == false)
   assert(manager.errorReportsNoticeDue() == false, 'never due while off')
   assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
+`));
+
+test('a settings file that cannot be read acts as a fresh install for error reports: the setting is never saved off for it, and the notice is due again before anything is sent', () => run(`${managerFixture}
+  files['runtime/settings.json'], saved = 'not json at all', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == true, 'the default, not an opt-out the player never made')
+  assert(manager.errorReportsNoticeDue() == true, 'the flag is gone, so the notice is shown and marked again; the service sends nothing before that')
+  assert(manager.snapshot(player).settings.errorReports == true)
+  assert(manager.snapshot(player).settings.errorReportsNoticed == nil)
+`));
+
+test('a hand-edited error-report value that is not true or false is not read as an opt-in: the notice is due again before anything is sent', () => run(`${managerFixture}
+  for _, odd in ipairs({'false', 0, 'no'}) do
+    seed = {version = 2, errorReports = odd, errorReportsNoticed = true, enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles)
+    assert(manager.errorReports() == true)
+    assert(manager.errorReportsNoticeDue() == true, 'the notice flag went with the value, so the notice shows (and is marked) again')
+  end
+  seed = {version = 2, errorReports = false, errorReportsNoticed = true, enabledByKey = {}}
+  files['runtime/settings.json'], saved = 'seed', nil
+  manager.configure(api, profiles)
+  assert(manager.errorReports() == false and manager.errorReportsNoticeDue() == false, 'a real opt-out is untouched')
 `));
 
 // ---- The owner's settings decisions of 2026-10-20 (the notes: scratchpad/decisions.md, the code: mod/manager.lua, mod/manager-ui.lua).

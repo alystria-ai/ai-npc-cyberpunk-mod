@@ -311,7 +311,7 @@ test('a store budget of 0 keeps nothing and still counts', async () => {
   assert.equal(entry.stored, 0);
 });
 
-test('a signature keeps only the newest few bodies; older ones are evicted', async () => {
+test('a signature keeps its earliest bodies pinned and the newest few; the ones in between are evicted', async () => {
   const world = createErrorWorld({ ...WIDE, ERROR_REPORTS_SAMPLES: '3' });
   const ids = [];
   for (let number = 1; number <= 5; number++) {
@@ -321,12 +321,54 @@ test('a signature keeps only the newest few bodies; older ones are evicted', asy
   const [entry] = (await listing(world)).signatures;
   assert.equal(entry.reports, 5);
   assert.equal(entry.stored, 5, 'five bodies were kept at the time');
-  assert.deepEqual(entry.ids, [ids[4], ids[3], ids[2]], 'the newest three, newest first');
-  for (const gone of [ids[0], ids[1]]) {
+  assert.deepEqual(entry.ids, [ids[4], ids[3], ids[0]], 'the newest two and the first one (one of three is pinned), newest first');
+  for (const gone of [ids[1], ids[2]]) {
     assert.equal((await world.ask(`/api/admin/errors?signature=${signatureOf(1)}&id=${gone}`)).statusCode, 404);
   }
-  assert.equal((await world.ask(`/api/admin/errors?signature=${signatureOf(1)}&id=${ids[2]}`)).statusCode, 200);
+  assert.equal((await world.ask(`/api/admin/errors?signature=${signatureOf(1)}&id=${ids[0]}`)).statusCode, 200);
   assert.equal(world.store.data.get(`er:r:${signatureOf(1)}`).value.size, 3);
+});
+
+test('a flood of reports on one signature never evicts its first real samples (up to 3 are pinned)', async () => {
+  const world = createErrorWorld({ ...WIDE });
+  const real = [];
+  for (let number = 1; number <= 3; number++) {
+    real.push((await world.send({ install: installHash(number) })).json.id);
+    world.advance(1000);
+  }
+  for (let number = 10; number < 60; number++) {
+    await world.send({ install: installHash(number) });
+    world.advance(1000);
+  }
+  const [entry] = (await listing(world)).signatures;
+  assert.equal(entry.ids.length, 10, 'the list is still at its limit');
+  assert.deepEqual(entry.ids.slice(-3), [real[2], real[1], real[0]], 'the earliest three are still the oldest three kept');
+  assert.equal((await world.ask(`/api/admin/errors?signature=${signatureOf(1)}&id=${real[0]}`)).statusCode, 200);
+});
+
+test('the kind, message and frame in the index are what most reports say, not what the first writer said', async () => {
+  const world = createErrorWorld(WIDE);
+  await world.send({ install: installHash(1), kind: 'lua-error', message: 'forged first message', frame: 'forged frame' });
+  let [entry] = (await listing(world)).signatures;
+  assert.equal(entry.message, 'forged first message', 'the first report is the candidate until others disagree');
+  for (let number = 2; number <= 4; number++) await world.send({ install: installHash(number), message: 'the real message' });
+  [entry] = (await listing(world)).signatures;
+  assert.equal(entry.message, 'the real message');
+  assert.notEqual(entry.frame, 'forged frame');
+  await world.send({ install: installHash(5), message: 'one more forgery', kind: 'turn-failed' });
+  [entry] = (await listing(world)).signatures;
+  assert.equal(entry.message, 'the real message', 'one odd report does not change it');
+  assert.equal(entry.kind, 'lua-error');
+});
+
+test('an IPv6 caller counts as its /48 for the error reports: another /64 of the same site is the same caller', async () => {
+  assert.equal(addressBucket('2001:db8:1:2::1', { prefixGroups: 3 }), '2001:db8:1::/48');
+  assert.equal(addressBucket('2001:db8:1:2::1'), '2001:db8:1:2::/64', 'the token handler keeps its /64');
+  const world = createErrorWorld({ ...WIDE, ERROR_REPORTS_IP_PER_HOUR: '2' });
+  assert.equal((await world.send({ install: installHash(1), signature: signatureOf(1) }, { ip: '2001:db8:1:1::1' })).statusCode, 200);
+  assert.equal((await world.send({ install: installHash(2), signature: signatureOf(2) }, { ip: '2001:db8:1:2::1' })).statusCode, 200);
+  assert.equal((await world.send({ install: installHash(3), signature: signatureOf(3) }, { ip: '2001:db8:1:3::1' })).statusCode, 429);
+  assert.equal((await world.send({ install: installHash(4), signature: signatureOf(4) }, { ip: '2001:db8:2:1::1' })).statusCode, 200, 'the next /48 is another caller');
 });
 
 test('every key expires: after the lifetime (30 days) the index is empty', async () => {
@@ -411,7 +453,7 @@ test('versions are counted per version, newest version first, and the index hash
   assert.equal(hash.size, 48, 'the index hash stops growing at 48 fields');
   const capped = (await listing(wide)).signatures[0];
   assert.equal(capped.reports, 80, 'every report is still counted');
-  assert.equal(Object.keys(capped.versions).length, 41);
+  assert.equal(Object.keys(capped.versions).length, 40, 'the 48 fields hold 8 fixed ones (including the vote count) and 40 versions');
   // A version already in the hash keeps counting after the cap is reached.
   await wide.send({ modVersion: '0.1.1', install: installHash(200) });
   assert.equal((await listing(wide)).signatures[0].versions['0.1.1'], 2);
@@ -529,8 +571,8 @@ test('no install id, hash the client sent, or address is in any key or value, an
   }
   for (const address of addresses) {
     assert.ok(!everything.includes(address), 'no address');
-    // The rate limits count an IPv6 address as its /64 network (http.js addressBucket); that bucket is what is hashed.
-    assert.ok(everything.includes(pseudonym(SIGNING_SECRET, 'error-ip', addressBucket(address))));
+    // The rate limits count an IPv6 address as its /48 network (http.js addressBucket); that bucket is what is hashed.
+    assert.ok(everything.includes(pseudonym(SIGNING_SECRET, 'error-ip', addressBucket(address, { prefixGroups: 3 }))));
   }
   // The kept bodies hold the second hash too.
   let bodies = 0;

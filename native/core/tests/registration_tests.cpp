@@ -118,3 +118,78 @@ TEST(registration_failure_trips_the_system_and_keeps_the_others)
     CHECK(!switches.Enabled("fake"));
     CHECK(switches.DescribeJson().find("array:Double") != std::string::npos);
 }
+
+TEST(off_flags_follow_the_file_and_trips_at_once_and_never_cover_core)
+{
+    Switches switches;
+    CHECK(!switches.Off("faces"));
+    switches.ParseFile("faces\n");
+    CHECK(switches.Off("faces"));
+    CHECK(!switches.Off("vehicles"));
+    switches.ParseFile("");
+    CHECK(!switches.Off("faces"));
+    switches.Trip("vehicles", "structured exception 0xC0000005 at x in y");
+    CHECK(switches.Off("vehicles"));
+    CHECK(!switches.Off("faces"));
+    // "all" turns every system off but never core: its natives report what the switches say.
+    switches.ParseFile("all");
+    CHECK(switches.Off("faces"));
+    CHECK(switches.Off("anything"));
+    CHECK(!switches.Off("core"));
+    switches.ParseFile("");
+    CHECK(!switches.Off("faces"));
+    CHECK(switches.Off("vehicles")); // a file with nothing in it does not clear a trip
+}
+
+TEST(control_files_parse_with_a_byte_order_mark_and_as_utf16)
+{
+    const auto utf16 = [](const std::string& aText, bool aBigEndian, bool aBom) {
+        std::string out;
+        if (aBom)
+        {
+            out += aBigEndian ? std::string("\xFE\xFF", 2) : std::string("\xFF\xFE", 2);
+        }
+        for (const char c : aText)
+        {
+            out += aBigEndian ? std::string(1, '\0') + c : c + std::string(1, '\0');
+        }
+        return out;
+    };
+    const std::string text = "# off for now\r\nFaces\r\nvehicles\r\n";
+    const std::string utf8Bom = std::string("\xEF\xBB\xBF") + text;
+    for (const std::string& content :
+         {text, utf8Bom, utf16(text, false, true), utf16(text, true, true), utf16(text, false, false),
+          utf16(text, true, false)})
+    {
+        Switches switches;
+        switches.ParseFile(content);
+        CHECK(switches.Off("faces"));
+        CHECK(switches.Off("vehicles"));
+        CHECK(!switches.Off("gaze"));
+        CHECK(!switches.Enabled("faces"));
+        CHECK(switches.Enabled("io"));
+    }
+    // "all" as the first line of a file with a byte order mark is the case that used to be ignored.
+    Switches all;
+    all.ParseFile(std::string("\xEF\xBB\xBF") + "all\r\n");
+    CHECK(all.Off("faces"));
+    CHECK_EQ(DecodeControlText(std::string("\xEF\xBB\xBF") + "all"), std::string("all"));
+    // Plain text and an empty file pass through.
+    CHECK_EQ(DecodeControlText("io\n"), std::string("io\n"));
+    CHECK(DecodeControlText("").empty());
+}
+
+TEST(a_file_of_made_up_names_does_not_use_up_the_slots_a_trip_needs)
+{
+    Switches switches;
+    std::string text;
+    for (int i = 0; i < 60; ++i)
+    {
+        text += "made_up_" + std::to_string(i) + "\n";
+    }
+    switches.ParseFile(text);
+    CHECK(!switches.Enabled("made_up_59")); // the mutex-guarded list still holds every name
+    switches.Trip("faces", "structured exception");
+    CHECK(switches.Off("faces"));
+    CHECK(switches.Off("made_up_0"));
+}

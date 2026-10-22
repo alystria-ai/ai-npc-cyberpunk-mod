@@ -8,6 +8,8 @@
 #include "core/FileIo.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <source_location>
 
 namespace
 {
@@ -21,13 +23,27 @@ std::string ToString(const RED4ext::CString& aText)
     return std::string(aText.c_str(), aText.Length());
 }
 
+// The handshake file proves where file IO writes (mod/native-core.lua writes, flushes and removes it before it knows
+// whether "io" is on), so it works while the switch is off: switched off at startup, "io" would otherwise stay on Lua
+// until the game restarts, whatever the file later says.
+constexpr const char* kHandshakeChannel = "native-handshake.txt";
+
+template<typename F, typename R>
+R IoGuard(const RED4ext::CString& aChannel, F&& aBody, R aFallback,
+          std::source_location aNative = std::source_location::current()) noexcept
+{
+    return std::strcmp(aChannel.c_str(), kHandshakeChannel) == 0 ? rtti::GuardAlways(kSystem, std::forward<F>(aBody), std::move(aFallback), aNative)
+                                         : rtti::Guard(kSystem, std::forward<F>(aBody), std::move(aFallback), aNative);
+}
+
 void Write(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int64_t)
 {
     RED4ext::CString channel;
     RED4ext::CString text;
     rtti::ReadArgs(aFrame, &channel, &text);
-    rtti::Return(aOut, rtti::Guard(
-                           kSystem, [&] { return GlobalFileIo().Write(ToString(channel), ToString(text)); }, false));
+    rtti::Return(aOut, IoGuard(
+                           channel, [&] { return GlobalFileIo().Write(ToString(channel), ToString(text)); },
+                           false));
 }
 
 void Append(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int64_t)
@@ -43,7 +59,7 @@ void Remove(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int
 {
     RED4ext::CString channel;
     rtti::ReadArgs(aFrame, &channel);
-    rtti::Return(aOut, rtti::Guard(kSystem, [&] { return GlobalFileIo().Remove(ToString(channel)); }, false));
+    rtti::Return(aOut, IoGuard(channel, [&] { return GlobalFileIo().Remove(ToString(channel)); }, false));
 }
 
 void Rename(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int64_t)
@@ -85,11 +101,13 @@ void Revision(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, int32_t* aOut
     rtti::Return(aOut, rtti::Guard(kSystem, [&] { return GlobalFileIo().Revision(ToString(channel)); }, 0));
 }
 
+// Flush also runs while "io" is off: Lua flushes the native queue when the switch turns off, before it writes the files
+// itself, so an older queued write cannot land after a newer one.
 void Flush(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOut, int64_t)
 {
     int32_t timeoutMs = 0;
     rtti::ReadArgs(aFrame, &timeoutMs);
-    rtti::Return(aOut, rtti::Guard(
+    rtti::Return(aOut, rtti::GuardAlways(
                            kSystem,
                            [&] { return GlobalFileIo().Flush(static_cast<uint32_t>(std::clamp(timeoutMs, 0, 2000))); },
                            false));

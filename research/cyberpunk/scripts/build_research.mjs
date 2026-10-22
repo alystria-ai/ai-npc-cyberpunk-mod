@@ -13,6 +13,9 @@ const folder = resolve(here, '..');
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const array = value => Array.isArray(value) ? value : [];
 const fingerprint = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// A character's example lines in the profile: the dossier's own plus the adopted native claim pack's. More than this many
+// is too much prompt for what the lines teach, so a dossier that has more must pick (see nativeSampleIds below).
+export const MAX_SAMPLES = 10;
 
 export function validateResearch({roster, dossiers, maps}) {
   const errors = [], warnings = [];
@@ -85,6 +88,7 @@ export function validateResearch({roster, dossiers, maps}) {
     if (new Set(array(profile.speakingStyleSampleDialogues)).size !== array(profile.speakingStyleSampleDialogues).length) error(where, 'Duplicate dialogue examples');
     try { serializeCharacterSamples(profile.speakingStyleSampleDialogues, expected.get(dossier.key) || dossier); }
     catch (exception) { error(where, exception.message); }
+    if (profile.nativeSampleIds !== undefined && (!Array.isArray(profile.nativeSampleIds) || !profile.nativeSampleIds.every(text))) error(where, 'nativeSampleIds must be a list of native sample IDs');
     if (!array(dossier.intrinsicClaims).length) error(where, 'No individual supported identity claims');
     for (const claim of array(dossier.intrinsicClaims)) {
       references(claim, ids, `${where}/${claim.id}`);
@@ -131,7 +135,7 @@ function appearanceSection(appearance, key) {
 // `firstPerson` is the `characters` map of characters/first-person-profiles.json: a first-person copy of
 // the composed backstory (everything but the appearance and the ownership marker) and of the dossier's
 // speaking style paragraphs, valid only for the exact third-person text it was written from.
-export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicRoot = root, loadIntrinsicArtifact, appearance = {}, firstPerson = {}} = {}) {
+export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicRoot = root, loadIntrinsicArtifact, appearance = {}, firstPerson = {}, maxSamples = MAX_SAMPLES} = {}) {
   const byKey = new Map(dossiers.map(dossier => [dossier.key, dossier]));
   for (const key of Object.keys(firstPerson)) {
     if (!roster.some(old => old.key === key)) throw Error(`First-person text for an unknown character: ${key}`);
@@ -169,10 +173,22 @@ export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicR
     const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships,
       nativeIntrinsic: retiredNative, nativeIntrinsicRevision: retiredNativeRevision, ...preserved} = old;
     const samples = serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old).split(/\n\s*\n/u);
+    // The native pack's example lines are hash-bound and cannot be edited here; `profile.nativeSampleIds` lists the ones to
+    // keep (in order). Without it all of them are used.
+    const nativeIds = native?.receipt?.sampleIds || [];
+    const nativeSamples = native && Array.isArray(dossier.profile.nativeSampleIds)
+      ? dossier.profile.nativeSampleIds.map(id => {
+        const at = nativeIds.indexOf(id);
+        if (at < 0) throw Error(`${old.key}: nativeSampleIds names ${id}, which the native pack does not have`);
+        return native.samples[at];
+      })
+      : native?.samples || [];
+    const allSamples = [...new Set([...samples, ...nativeSamples])];
+    if (allSamples.length > maxSamples) throw Error(`${old.key}: ${allSamples.length} example lines; at most ${maxSamples} (pick native ones with profile.nativeSampleIds)`);
     return {...preserved, kind: dossier.kind, summary: (dossier.profile.publicSummary || dossier.profile.backstory).trim(), backstory, speakingStyleDescription,
       // Keep the research transcript in its dossier; the API field is examples
       // of this character's speech only, with no V prompt or speaker prefix.
-      speakingStyleSampleDialogues: serializeCharacterSamples([...new Set([...samples, ...(native?.samples || [])])], old),
+      speakingStyleSampleDialogues: serializeCharacterSamples(allSamples, old),
       profileRevision: 5, backstoryWords: backstory.split(/\s+/).length,
       researchRevision: native?.backstory ? fingerprint({dossier, nativeIntrinsicRevision: native.revision}) : fingerprint(dossier),
       ...(native?.backstory ? {nativeIntrinsicRevision: native.revision, nativeIntrinsic: native.receipt} : {}),

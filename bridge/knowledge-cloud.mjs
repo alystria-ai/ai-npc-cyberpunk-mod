@@ -90,7 +90,7 @@ export class KnowledgeCloud {
       if(this.requestOverride) {
         data=await bounded(Promise.resolve().then(()=>{check(combined);return this.requestOverride(endpoint,copy(body),{signal:combined});}),combined);
       } else {
-        const fetching=Promise.resolve().then(()=>{check(combined);return this.fetchImpl(API+endpoint,{method:'POST',
+        const fetching=Promise.resolve().then(()=>{check(combined);return this.fetchImpl(API+endpoint,{method:'POST',redirect:'error',
           headers:{'Content-Type':'application/json','CONVAI-API-KEY':this._key},body:JSON.stringify(body),signal:combined});});
         fetching.then(response=>{if(combined.aborted)cancelBody(response?.body);},()=>{});
         const response=await bounded(fetching,combined);

@@ -88,7 +88,8 @@ export class ConvaiMemoryAdapter {
     let dispatched = false;
     try {
       dispatched = true;
-      const fetching = Promise.resolve(this.fetchImpl(API + endpoint, {method: 'POST',
+      // redirect 'error': fetch would forward the CONVAI-API-KEY header (only Authorization is stripped) to another host.
+      const fetching = Promise.resolve(this.fetchImpl(API + endpoint, {method: 'POST', redirect: 'error',
         headers: {'Content-Type': 'application/json', 'CONVAI-API-KEY': this._key},
         body: JSON.stringify(body), signal: combined}));
       // Bound even an injected transport that ignores AbortSignal. A late

@@ -95,7 +95,11 @@ a prefix cache keeps working on Mistral and the local model:
    journal, gear) and the world facts come after them (`worldBlocksInCacheOrder`, `bridge/mistral-prompt.mjs`): the facts are ranked by
    the words V just said, so their text changes with every turn, and placed first they made the first changed token sit right after the
    persona (first player reports, 2026-10-19: 2,350 cached and about 3,000 new tokens on every turn). The Convai context keeps its own
-   order;
+   order. Since 2026-10-22 (perf/bridge-1022) the facts are not in the world context at all when the blocks are known (`knowledgeApart`): they follow the
+   remembered summary in a section of their own, "WORLD KNOWLEDGE FOR THIS TURN", so a turn no longer re-reads the summary (up to 1,400 characters, about 350
+   tokens, measured in `bridge/prompt-budget.test.mjs`: 5,184 to 5,503 shared tokens of a 6,900-token example). The world context is cut at the same place with
+   or without them (a cut that moved with the facts' length would move the cached text), and the facts have a cap of half the world's. Moving the facts into the
+   last user message, behind the history, would keep the history too; it changes how the model weighs them and needs `scripts/Eval-MistralPrompt.mjs` first;
 3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
    system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
 4. the recent exchanges, verbatim, as alternating messages;

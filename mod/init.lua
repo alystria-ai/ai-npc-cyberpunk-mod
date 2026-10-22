@@ -859,11 +859,14 @@ do
                 protected = function(npc) return convaiWorldPolicy.protected(npc) end,
                 story = function(npc) return convaiWorldPolicy.story(npc) end,
             },
-            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity).
+            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity), or the game's
+            -- runtime quest flag (IsQuest, read fresh: a quest can mark a person on a generic record, a side job's witness or rescue
+            -- target). Asked only when the offer is made or the reaction runs.
             storyFlag = function(npc, entity)
                 local facts = archetypeFacts(npc, entity, tostring(npc:GetBodyType() or ''))
                 local quest = facts.quest
-                return quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest'
+                if quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest' then return true end
+                return convaiWorldTalk ~= nil and convaiWorldTalk.runtimeQuest(npc) == true
             end,
             refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
             awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
@@ -882,6 +885,7 @@ function convaiJohnnyHeadService()
         local loaded, module = pcall(dofile, 'johnny-head.lua')
         convaiJohnnyHead = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
             sample = function(player) return battleObserver.sample(player) end,
+            workspot = function(player) return Game.GetWorkspotSystem():IsActorInWorkspot(player) == true end,
             lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end}) or false
         if not convaiJohnnyHead then print('[CyberpunkConvai] johnny-head.lua unavailable: ' .. tostring(module)) end
     end
@@ -2528,7 +2532,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- not a scene: `idle` (the fifth argument) lets a commanded AI through while the person is in a workspot. Read fresh on this key
     -- press, cached per entity (protected), and the same test then guards the recording and the reply (convaiStory).
     if not primary.story and not primary.spawned and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
-        and not companions.owns(npc) and convaiWorldPolicy.protected(npc) == true then
+        and not companions.owns(npc) and (convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true) then
         local why = convaiWorldTalk:refusal(npc, player, nil, key, true)
         if why then
             log('World conversation refused: profile=' .. key .. ' reason=' .. why .. ' (quest-bound)'
@@ -2756,7 +2760,7 @@ local function beginTextNow(groupMode, waited)
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
             convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
-            if focusEntity ~= identity and not primary.holocall and not primary.story then
+            if focusEntity ~= identity and not primary.holocall and not (primary.story or primary.guarded) then
                 local focused, reason = beginFocus(player, npc)
                 if not focused then
                     log('NPC focus unavailable: ' .. tostring(reason))
@@ -2915,7 +2919,7 @@ local function toggleVoice(groupMode, source)
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
-            if not primary.voiceOnly and not primary.holocall and not primary.story then beginFocus(player, npc) end
+            if not primary.voiceOnly and not primary.holocall and not (primary.story or primary.guarded) then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -3623,7 +3627,7 @@ local function keyReplyNotice(reply)
         local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
         local language = names[reply.keyNoticeLanguage]
         if language then
-            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.', {language = language})
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} voice language pack is missing.', {language = language})
         end
     end
     if reply.keyNotice == 'mistral-no-key' then
@@ -4333,6 +4337,21 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- The 120 s timeout of a fast travel whose loading screen never reported its end (called from onUpdate, once, when it expires): with V in
+-- the world it finishes the travel the way the loading screen's end does, so the party recovers and the mod resumes; with V still gone it
+-- drops the receipts and the attach hooks resume the mod. A global, so the onUpdate closure gains no upvalue and builds no closure.
+convaiFastTravelExpired = function()
+    local attached = false
+    pcall(function() local player = Game.GetPlayer(); attached = player ~= nil and player:IsAttached() == true end)
+    if attached then
+        log('Fast travel completion did not arrive within 120 s: recovering the party and resuming')
+        fastTravelActive.finished = true
+        pcall(companions.fastTravel)
+        worldSuspended = false
+    else
+        fastTravelActive=nil; abandonSession('fast travel timed out')
+    end
+end
 -- onUpdate's native checks as plain functions that take what they read: a pcall(function() ... end) inside onUpdate built a
 -- new closure (and boxed the locals it captured) on every frame. Globals, so the onUpdate closure gains no upvalue.
 -- V attached, alive and past the main menu: true and the requests handler (the pause check reuses it), or false.
@@ -4412,11 +4431,11 @@ registerForEvent('onUpdate', function(delta)
     convaiHeartbeat.frame = convaiHeartbeat.frame + 1
     -- Waiting probe.log lines go out within a second of the first (see log()); an empty buffer costs one field read.
     if convaiLog.n > 0 then convaiLogTick() end
-    -- A missing completion must not keep a stale travel intent armed for a
-    -- later unrelated load. Expiration only drops receipts; it never restores.
-    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
-        fastTravelActive=nil; abandonSession('fast travel timed out')
-    end
+    -- A completion that never arrived must neither keep a stale travel intent armed for a later unrelated load nor leave the mod
+    -- suspended with the party's copies alive and uncontrolled. With V in the world the timeout finishes the travel the way the
+    -- loading screen's end does (the party recovers on the next tick and the mod resumes); with V still gone the receipts are dropped
+    -- and the attach hooks resume the mod.
+    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then convaiFastTravelExpired() end
     -- A detach that no save restore followed (a new game started from the menu): two minutes after the new V attached, the mod resumes.
     local restoreAttached = convaiHeartbeat.restoreAttached
     if restoreAttached and os.clock() - restoreAttached > 120 then
@@ -4481,7 +4500,15 @@ registerForEvent('onUpdate', function(delta)
     end
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
-    if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end
+    -- Only a recording that is still opening or running ends here; a spoken turn whose reply is pending (microphone state 'reply', or a group
+    -- voice round past its recording) completes like a typed one and the reply plays when V is back.
+    if not worldReady then
+        gameplayActions.revoke('menu')
+        local round = groupChat.round
+        if (microphone.context ~= nil and microphone.state ~= 'reply') or (round and round.mode == 'voice' and round.stage == 'recording') then
+            cancelVoice('menu')
+        end
+    end
     -- A companion riding a lift car with V moves with V every frame, only
     -- while the car moves (companions.lua M.carry); otherwise one field check.
     if worldReady and companions.riders then pcall(companions.carry, menuPlayer) end
@@ -4739,10 +4766,25 @@ registerForEvent('onUpdate', function(delta)
         focusUntil = os.time() + 1
     end
     if pending then
-        local replyFile = io.open('runtime/reply.json', 'rb')
-        if replyFile then
-            local raw = replyFile:read('*a')
-            replyFile:close()
+        -- With the native plugin an unchanged reply.json (its revision, one number) is not opened again: the text of the last read is
+        -- checked against this turn, so a reply that could not be delivered yet (reactionCanDeliver) is still picked up on a later tick.
+        -- The file is read again at least once a second; without the plugin (no revision) every tick reads as before. The fields live
+        -- on the global heartbeat table, so onUpdate gains no upvalue.
+        local raw = nil
+        local revision = convaiNative and convaiNative.revision and convaiNative.revision('reply.json') or nil
+        local clock = os.clock()
+        if revision and revision > 0 and revision == convaiHeartbeat.replyReadRevision and replyRaw
+            and clock >= convaiHeartbeat.replyReadAt and clock - convaiHeartbeat.replyReadAt < 1 then
+            raw = replyRaw
+        else
+            local replyFile = io.open('runtime/reply.json', 'rb')
+            if replyFile then
+                raw = replyFile:read('*a')
+                replyFile:close()
+                convaiHeartbeat.replyReadRevision, convaiHeartbeat.replyReadAt = revision, clock
+            end
+        end
+        if raw then
             -- The same text (a waiting turn reads the previous reply on every tick) is decoded once.
             if raw ~= replyRaw then replyRaw = raw; replyDecodeOk, replyDecoded = pcall(json.decode, raw) end
             local valid, reply = replyDecodeOk, replyDecoded
@@ -4937,6 +4979,7 @@ registerForEvent('onShutdown', function()
     else speech.abandon(); subtitles.abandon() end
     active = nil
     if liveWorld then companions.dismissAll() else companions.abandon() end
+    if liveWorld then pcall(companions.destroyPartyCars) end -- overflow party cars: no update runs again to remove them
     local player = liveWorld and Game.GetPlayer() or nil
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()

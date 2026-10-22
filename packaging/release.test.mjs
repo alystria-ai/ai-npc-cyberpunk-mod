@@ -616,7 +616,7 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
     assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/, `${name} uploads with the pack repository's own token`);
     assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w/, `${name} never uploads to the GitHub release`);
     assert.match(job, /upload-packs\.py --check/, `${name} checks the write access before it builds`);
-    assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/, `${name} installs huggingface_hub`);
+    assert.match(job, /pip install [^\n]*--require-hashes --no-deps [^\n]*-r packaging\/ci-tools\.requirements\.txt/, `${name} installs its Python tools from the hash-locked file`);
   }
   assert.match(jobs.omni, /--pack omni --packages "\$env:OUT\\packages"/);
   assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/ai-npc-cyberpunk-mod-packs/);
@@ -954,7 +954,9 @@ test('the build pre-encodes the Mistral voice references with the bridge code an
   assert.equal(builder.split('await voxtralCache(').length - 1, 3);
   assert.match(builder, /was not compressed/);
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
-  assert.equal(workflow.split('choco install ffmpeg').length - 1, 2, 'the Runtime and OmniVoice jobs install ffmpeg');
+  assert.doesNotMatch(workflow, /choco install/, 'ffmpeg comes from a pinned download, never an unpinned package manager install');
+  assert.equal(workflow.split('FFMPEG_SHA256: ').length - 1, 2, 'the Runtime and OmniVoice jobs download ffmpeg and check its SHA-256');
+  assert.equal(workflow.split('if ($actual -ne $env:FFMPEG_SHA256) { throw').length - 1, 2, 'both ffmpeg downloads stop on a checksum mismatch');
 });
 
 test('the release notes open with where the download files are, and a rebuild refreshes them', async () => {
@@ -1060,7 +1062,7 @@ test('the release workflow builds the voice-input packs only in an opt-in job: o
   assert.match(job, /python packaging\/upload-packs\.py --version "\$\{\{ needs\.runtime\.outputs\.version \}\}" --pack /);
   assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/);
   assert.match(job, /upload-packs\.py --check/);
-  assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/);
+  assert.match(job, /pip install [^\n]*--require-hashes --no-deps [^\n]*-r packaging\/ci-tools\.requirements\.txt/);
   assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w|nexus/i);
   const trigger = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
   assert(!/micpacks/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
@@ -1093,4 +1095,23 @@ test('--auth-secret-env must name a variable meant for the Convai client secret'
   assert.throws(() => readAuthInputs({url, secret, required: true, secretName: 'GITHUB_TOKEN'}), /meant for the Convai/);
   assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'CONVAI_AUTH_CLIENT_SECRET'}), {url, secret});
   assert.deepEqual(readAuthInputs({url, secret, required: true, secretName: 'MY_CONVAI_SECRET'}), {url, secret});
+});
+
+test('the release workflow is hardened: actions pinned by commit SHA, no persisted checkout token, write permission only on the Runtime job, hash-locked Python tools, no install scripts', async () => {
+  const workflow = await workflowText();
+  const refs = [...workflow.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)].map(match => match[1]);
+  assert(refs.length >= 15);
+  for (const ref of refs) assert.match(ref, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `${ref} is pinned by a full commit SHA`);
+  const checkouts = workflow.split('uses: actions/checkout@').length - 1;
+  assert(checkouts >= 5);
+  assert.equal(workflow.split('persist-credentials: false').length - 1, checkouts, 'every checkout drops its token');
+  assert.match(workflow, /\npermissions:\n  contents: read\n/, 'the workflow default is read-only');
+  assert.equal([...workflow.matchAll(/^ +contents: write$/gm)].length, 1, 'one job writes to the repository');
+  assert.match(jobOf(workflow, 'runtime'), /permissions:\n {6}contents: write/, 'the Runtime job, which creates the release, is the one that writes');
+  assert.doesNotMatch(workflow, /npm ci(?! --ignore-scripts)/, 'npm ci never runs install scripts');
+  const lock = await readFile(resolve(project, 'packaging/ci-tools.requirements.txt'), 'utf8');
+  const pins = lock.split(/\r?\n/).filter(line => line && !line.startsWith('#'));
+  assert(pins.length >= 10);
+  for (const line of pins) assert.match(line, /^[a-z0-9-]+==[\w.]+ --hash=sha256:[0-9a-f]{64}$/, `${line} is pinned and hashed`);
+  assert(pins.some(line => line.startsWith('huggingface-hub==')) && pins.some(line => line.startsWith('pip==')));
 });

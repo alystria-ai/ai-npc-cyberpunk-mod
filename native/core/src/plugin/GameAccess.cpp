@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstring>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace convai::game
 {
@@ -170,7 +171,7 @@ RED4ext::CBaseFunction* ListFunction(RED4ext::DynArray<RED4ext::CBaseFunction*>&
 RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName, uint32_t aParamCount)
 {
     static std::unordered_map<std::string, RED4ext::CBaseFunction*> functions;
-    static std::unordered_map<std::string, uint32_t> misses;
+    static std::unordered_set<std::string> listed; // names whose function lists were read (once each)
     const std::string key = std::string(aClassName) + "." + aName + "/" + std::to_string(aParamCount);
     auto found = functions.find(key);
     if (found != functions.end())
@@ -205,13 +206,15 @@ RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName
     // Live 2026-10-16 to 21 the chain of NPCPuppet held no function named IsInCombat although the game defines a static
     // of that name there, so a static of a script-defined class may be reachable only through the game's lists of
     // every class function and every global function (full name "Class::Name;signature"). They are large, so they are
-    // read at the first miss of a name and then at every 256th (the hot callers ask on every sample or tick).
+    // read once, at the first miss of a name, and a name that is still missing after that is remembered as missing
+    // (the hot callers ask on every sample or tick, and a rescan is a hitch on the game thread each time).
     const char* route = "class chain";
-    if (!function && type && ((misses[key]++ & 0xFF) == 0))
+    if (!function && type && !listed.count(key))
     {
         auto* rtti = RED4ext::CRTTISystem::Get();
         if (rtti)
         {
+            listed.insert(key);
             RED4ext::DynArray<RED4ext::CBaseFunction*> list;
             rtti->GetClassFunctions(list);
             function = ListFunction(list, aClassName, aName, aParamCount, 1);
@@ -231,7 +234,12 @@ RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName
                     route);
         functions.emplace(key, function);
     }
-    else if (FirstMiss("static " + key))
+    else if (type && listed.count(key))
+    {
+        // The chain and both lists were searched: it stays missing for the session.
+        functions.emplace(key, nullptr);
+    }
+    if (!function && FirstMiss("static " + key))
     {
         CONVAI_WARN("Game access: no static function %s.%s with %u parameters (%s; also not in the class-function or "
                     "global-function lists)",
@@ -243,9 +251,18 @@ RED4ext::CBaseFunction* StaticFunction(const char* aClassName, const char* aName
 
 Object Player()
 {
-    Object player;
+    auto* rtti = RED4ext::CRTTISystem::Get();
+    RED4ext::CBaseFunction* function = rtti ? rtti->GetFunction(RED4ext::CName("GetPlayer;GameInstance")) : nullptr;
+    // GetPlayer(GameInstance) -> a handle (strong or weak: ExecuteForObject converts either).
+    if (!function || !Verified(function, {ArgOf<RED4ext::ScriptGameInstance>()}, Returns::Unchecked()))
+    {
+        return {};
+    }
     RED4ext::ScriptGameInstance gameInstance;
-    if (!RED4ext::ExecuteGlobalFunction("GetPlayer;GameInstance", &player, gameInstance))
+    RED4ext::StackArgs_t args;
+    args.emplace_back(nullptr, &gameInstance);
+    Object player;
+    if (!ExecuteForObject(nullptr, function, args, player))
     {
         return {};
     }
@@ -420,7 +437,8 @@ Object GameSystem(const char* aShortName)
         Object system;
         RED4ext::StackArgs_t args;
         args.emplace_back(nullptr, &gameInstance);
-        if (RED4ext::ExecuteFunction(static_cast<void*>(nullptr), entry.function, &system, args))
+        if (Verified(entry.function, {ArgOf<RED4ext::ScriptGameInstance>()}, Returns::Unchecked()) &&
+            ExecuteForObject(nullptr, entry.function, args, system))
         {
             return system;
         }
@@ -476,6 +494,7 @@ struct CombatState
     uint32_t stateSize = 1;           // bytes of that enum
     uint32_t calls = 0;               // asks while no route was known
     uint32_t attempts = 0;            // resolutions made
+    bool settled = false;             // every route was tried, lists included, and none exists: never searched again
     std::string tried;                // the last unresolved attempt, for the probe
 };
 
@@ -652,14 +671,26 @@ std::string ListCombatNames(RED4ext::DynArray<RED4ext::CBaseFunction*>& aList)
     return out.empty() ? std::string("none") : out;
 }
 
-void SetCombat(CombatState& aState, CombatRoute aRoute, RED4ext::CBaseFunction* aFunction, RED4ext::CClass* aOwner)
+// Takes a route only when the function matches the way PuppetInCombat calls it: no parameters for a member, the
+// puppet (one handle) for a static, and a value that fits the 8-byte buffer (a Bool, or the 1 to 8 byte enum of the
+// high-level state). A function of another shape is skipped and the next route is tried.
+bool SetCombat(CombatState& aState, CombatRoute aRoute, RED4ext::CBaseFunction* aFunction, RED4ext::CClass* aOwner)
 {
+    const bool member = aRoute == CombatRoute::MemberIsPuppetInCombat || aRoute == CombatRoute::HighLevelState;
+    const Returns returns = aRoute == CombatRoute::HighLevelState ? Returns::Fits(nullptr, 8) : Returns::Fits("Bool", 1);
+    const bool matches = member ? Verified(aFunction, {}, returns)
+                                : Verified(aFunction, {Arg{"handle", static_cast<uint32_t>(sizeof(Object))}}, returns);
+    if (!matches)
+    {
+        return false;
+    }
     aState.route = aRoute;
     aState.function = aFunction;
     aState.owner = aOwner;
     aState.tried.clear();
     CONVAI_INFO("Game access: combat flag read through %s: %s (owner class %s)", RouteName(aRoute),
                 Describe(aFunction).c_str(), aOwner ? aOwner->GetName().ToString() : "?");
+    return true;
 }
 
 void ResolveCombat(CombatState& aState)
@@ -669,24 +700,27 @@ void ResolveCombat(CombatState& aState)
     {
         return;
     }
-    ++aState.attempts;
-    // The lists of every function are large: they are read on the first attempt and once more on the fourth.
-    const bool deep = aState.attempts == 1 || aState.attempts == 4;
     RED4ext::CClass* npc = Class("NPCPuppet");
     RED4ext::CClass* scripted = Class("ScriptedPuppet");
     if (!npc || !scripted)
     {
         aState.tried = "the class NPCPuppet or ScriptedPuppet is not known yet";
-        return;
+        return; // not an attempt: the one full scan is kept for when the classes exist
     }
+    ++aState.attempts;
+    // The lists of every function are large (tens of thousands of entries, two name lookups each): they are read
+    // once, on the first attempt, and the answer then stands for the session (see EnsureCombat).
+    const bool deep = aState.attempts == 1;
     std::string tried;
     auto add = [&](const std::string& aText) { tried += (tried.empty() ? "" : "; ") + aText; };
 
     // 1. The static on the class chain.
     if (RED4ext::CBaseFunction* function = ChainFunction(npc, "IsInCombat", 1, true))
     {
-        SetCombat(aState, CombatRoute::StaticChain, function, scripted);
-        return;
+        if (SetCombat(aState, CombatRoute::StaticChain, function, scripted))
+        {
+            return;
+        }
     }
     add("1 static IsInCombat(1 parameter) on the NPCPuppet class chain: none");
 
@@ -708,8 +742,10 @@ void ResolveCombat(CombatState& aState)
         loadLists();
         if (RED4ext::CBaseFunction* function = ListFunction(classList, "NPCPuppet", "IsInCombat", 1, 1))
         {
-            SetCombat(aState, CombatRoute::StaticClassList, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticClassList, function, scripted))
+            {
+                return;
+            }
         }
         add("2 static NPCPuppet::IsInCombat in the class-function list (" + std::to_string(classList.Size()) +
             " entries): none");
@@ -721,16 +757,20 @@ void ResolveCombat(CombatState& aState)
         RED4ext::CBaseFunction* function = rtti->GetFunction(RED4ext::CName(name));
         if (function && TakesPuppet(function))
         {
-            SetCombat(aState, CombatRoute::StaticGlobal, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticGlobal, function, scripted))
+            {
+                return;
+            }
         }
     }
     if (deep)
     {
         if (RED4ext::CBaseFunction* function = ListFunction(globalList, "NPCPuppet", "IsInCombat", 1, -1))
         {
-            SetCombat(aState, CombatRoute::StaticGlobal, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::StaticGlobal, function, scripted))
+            {
+                return;
+            }
         }
     }
     add("3 global function NPCPuppet::IsInCombat (RTTI table, 3 names" +
@@ -751,8 +791,10 @@ void ResolveCombat(CombatState& aState)
         }
         if (function)
         {
-            SetCombat(aState, CombatRoute::MemberIsPuppetInCombat, function, npc);
-            return;
+            if (SetCombat(aState, CombatRoute::MemberIsPuppetInCombat, function, npc))
+            {
+                return;
+            }
         }
         add("4 member NPCPuppet.IsPuppetInCombat(): none");
     }
@@ -785,16 +827,20 @@ void ResolveCombat(CombatState& aState)
         {
             aState.combatValue = combat;
             aState.stateSize = state->actualSize > 0 && state->actualSize <= 8 ? static_cast<uint32_t>(state->actualSize) : 1;
-            SetCombat(aState, CombatRoute::HighLevelState, function, scripted);
-            return;
+            if (SetCombat(aState, CombatRoute::HighLevelState, function, scripted))
+            {
+                return;
+            }
         }
         add(std::string("5 member ScriptedPuppet.GetHighLevelStateFromBlackboard() with the enum value: ") +
             (function ? "found" : "function missing") + (returnsState ? "" : ", return type not the state enum") +
             (combat >= 0 ? "" : ", enum member Combat missing"));
     }
 
-    // Nothing resolved: say what the game does have, once per deep attempt.
+    // Nothing resolved: say what the game does have, once. The deep attempt has looked everywhere, so the scripts
+    // do not have the function and a later look would only repeat the same scan on the game thread.
     aState.route = CombatRoute::None;
+    aState.settled = deep;
     aState.tried = tried;
     CONVAI_WARN("Game access: combat flag: no route resolved (attempt %u); the Lua keeps reading it. Tried: %s",
                 aState.attempts, tried.c_str());
@@ -811,12 +857,17 @@ void ResolveCombat(CombatState& aState)
     }
 }
 
-// Resolves when no route is known: the first ask, then every 256th.
+// Resolves when no route is known: the first ask. A failed first ask (the classes are not known yet) is retried
+// every 256th call, which costs only the class lookups; once the full scan has found nothing it is not repeated.
 bool EnsureCombat(CombatState& aState)
 {
     if (aState.function)
     {
         return true;
+    }
+    if (aState.settled)
+    {
+        return false;
     }
     if ((aState.calls++ & 0xFF) == 0)
     {
@@ -864,8 +915,7 @@ bool PuppetInCombat(const Object& aPuppet, bool& aOut)
     {
         return false;
     }
-    static RED4ext::StackArgs_t args;
-    args.clear();
+    RED4ext::StackArgs_t args; // a local: another script mod's observer of IsInCombat can re-enter during the call
     uint64_t buffer = 0;
     bool executed = false;
     if (state.route == CombatRoute::MemberIsPuppetInCombat || state.route == CombatRoute::HighLevelState)

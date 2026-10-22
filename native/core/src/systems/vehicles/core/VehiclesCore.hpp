@@ -28,6 +28,15 @@ namespace convai::vehicles
 inline constexpr const char* kMackinawRecord = "Vehicle.v_standard3_thorton_mackinaw_ncu_player";
 inline constexpr const char* kMackinawHiddenSeat = "seat_back_right";
 
+// A TweakDBID is a 32-bit CRC and an 8-bit name length in its low 40 bits and a 24-bit database offset above them.
+// GetRecordID() can answer an ID with the offset filled in, which names the same record, so only the name part
+// (hash and length) is compared.
+inline constexpr std::uint64_t kTweakNameBits = 0xFFFFFFFFFFull;
+inline constexpr bool SameTweakName(std::uint64_t aLeft, std::uint64_t aRight) noexcept
+{
+    return (aLeft & kTweakNameBits) == (aRight & kTweakNameBits);
+}
+
 // Lua: entity:HasOccupantSlot(seatName) and not (mackinaw and name(seatName) == 'seat_back_right').
 bool KeepSeat(const std::string& aName, bool aHasSlot, bool aMackinaw);
 

@@ -9,6 +9,8 @@ import {realpathSync} from 'node:fs';
 import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
 import {readGpuProcessMemory} from './gpu-memory.mjs';
 import {markBridgeStage} from './stage-marker.mjs';
+import {killProcessTree, pidAlive, recoverExit} from './worker-process.mjs';
+import {describeExitCode, stderrReason} from './voice-failures.mjs';
 
 // Historical accepted-reference fixture/packaging list. Eligibility is always
 // read from the validated registry, never from this compatibility export.
@@ -21,7 +23,7 @@ export const voiceSteps = value => value === 16 ? 16 : 32;
 // Only silence for `startupStallMs`, or the absolute `startupMaxMs`, ends a start. `startupCloseMs` bounds the wait
 // for a worker that is still loading when its owner has already asked it to stop (nothing to preserve there).
 export const VOICE_WORKER_LIMITS = Object.freeze({startupStallMs: 300_000, startupMaxMs: 900_000,
-  startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000, voicesMs: 30_000});
+  startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000, voicesMs: 30_000, recoverMs: 120_000});
 
 // What a worker that did not confirm its paths fails with. The paths are fixed for the life of the service, so another try fails the same way
 // (bridge/voice-selection.mjs does not schedule one).
@@ -45,7 +47,7 @@ export class ResidentVoice {
     adapterDirectory = process.env.CYBERPUNK_CONVAI_OMNI_ADAPTER,
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
     cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
-    lowPriority = false, setPriority = osSetPriority,
+    lowPriority = false, setPriority = osSetPriority, isAlive, extraEnvironment = null,
     // gpuMemory(pid) -> {dedicatedMiB, sharedMiB} | null: one reading of the worker's graphics-memory counters when a generation or a preparation runs out of time
     // (diagnostics only). A test that supplies its own spawn gets none unless it passes this.
     gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null} = {}) {
@@ -67,6 +69,10 @@ export class ResidentVoice {
     // raised to normal once ready, because rendering replies is latency-sensitive.
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
     this.gpuMemory = typeof gpuMemory === 'function' ? gpuMemory : null;
+    // Extra variables for this worker's environment (the voice service turns the CUDA graph off for the retry after a memory fault).
+    this.extraEnvironment = extraEnvironment && typeof extraEnvironment === 'object' ? {...extraEnvironment} : null;
+    // Is a process still running (exit recovery)? A test's stand-in child has no process: it is alive until it says it closed.
+    this.isAlive = typeof isAlive === 'function' ? isAlive : spawnImpl === spawn ? pidAlive : () => true;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
   /**
@@ -193,7 +199,7 @@ export class ResidentVoice {
       if (this.child !== child) return;
       // A hung owned worker must not retain CUDA forever. No process-pattern
       // termination: this handle belongs only to the child we spawned.
-      try { child.kill(); } catch { /* Exit confirmation below remains required. */ }
+      this.killWorker(child);
       if (this.child !== child) return;
       this.exitConfirmation = this.schedule(() => {
         this.exitConfirmation = null;
@@ -204,6 +210,20 @@ export class ResidentVoice {
         this.rejectExited?.(error);
       }, VOICE_WORKER_LIMITS.exitConfirmationMs);
     }, VOICE_WORKER_LIMITS.exitGraceMs);
+  }
+  // "Local voice worker exited (1)", then the exit code in words when it is a Windows fault, then the last error line of its stderr.
+  exitedMessage(code) {
+    const words = describeExitCode(code), reason = stderrReason(this.stderrTail);
+    return `Local voice worker exited (${words === String(code) ? code : words})${reason ? `: ${reason}` : ''}`;
+  }
+  // Stops the worker we spawned and what it started (bridge/worker-process.mjs: the process tree on Windows, the handle as the fallback).
+  killWorker(child) { void killProcessTree(child, {real: this.spawnImpl === spawn, setTimer: this.setTimer, clearTimer: this.clearTimer}); }
+  /** A close whose exit was not confirmed: asks again whether the process is gone, stopping it again every few seconds (true: it is gone). */
+  recoverExit({timeoutMs = VOICE_WORKER_LIMITS.recoverMs, pollMs = 1000, killMs = 10_000} = {}) {
+    const child = this.child;
+    return recoverExit({child, isAlive: this.isAlive, kill: () => this.killWorker(child), timeoutMs, pollMs, killMs,
+      schedule: (task, ms) => this.schedule(task, ms),
+      onGone: () => { if (this.child === child) { this.child = null; this.loaded = false; } }});
   }
   get enabled() { return this.config.provider === 'hybrid' && this.registry.keys.length > 0; }
   get profileKeys() { return this.registry.keys.filter(key => this.available.has(key)); }
@@ -245,7 +265,7 @@ export class ResidentVoice {
       // Use the values captured with this owner, even if the parent environment
       // changes before warm-up. An absent layout keeps the development defaults.
       for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];
-      Object.assign(environment, this.workerEnvironment);
+      Object.assign(environment, this.workerEnvironment, this.extraEnvironment);
       if (this.workerEnvironment) environment.PYTHONDONTWRITEBYTECODE = '1';
       markBridgeStage('voice.worker-start');   // the supervisor's last-stage note (bridge/stage-marker.mjs)
       child = this.child = this.spawnImpl(this.pythonExecutable
@@ -266,7 +286,10 @@ export class ResidentVoice {
         catch (error) { this.fail(error); child.stdin.end(); return; }
       }
     });
-    child.stderr.on('data', part => { this.startupProgress(); try { this.onLog(part.toString('utf8')); } catch {} });
+    // The last of what the worker wrote to stderr: when it dies, the last error line is the reason (an opaque "exited (1)" hid a CUDA out-of-memory
+    // error and a fault with no stack, and every one was retried the same way).
+    child.stderr.setEncoding('utf8'); this.stderrTail = '';
+    child.stderr.on('data', part => { this.startupProgress(); this.stderrTail = (this.stderrTail + part).slice(-2000); try { this.onLog(part); } catch {} });
     child.stdin.on('error', error => this.fail(error));
     child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
@@ -276,7 +299,7 @@ export class ResidentVoice {
         this.exitTimer = this.exitConfirmation = null;
         this.child = null; this.loaded = false; this.prepared.clear();
         this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
-        const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(code === NO_CUDA_EXIT_CODE ? NO_CUDA_FAILURE : `Local voice worker exited (${code})`));
+        const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(code === NO_CUDA_EXIT_CODE ? NO_CUDA_FAILURE : this.exitedMessage(code)));
         this.rejectReady?.(error);
         for (const item of this.pending.values()) item.reject(error);
         this.pending.clear();

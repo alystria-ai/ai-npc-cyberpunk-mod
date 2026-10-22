@@ -19,6 +19,11 @@ local CONTROL_PERIOD, FACE_PERIOD = .15, .2
 local VALID_PERIOD = .1
 local validAt = nil
 local written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
+-- The last decoded continuous-speech.json (before validation) and the native revision it was read at: while that revision is unchanged
+-- the file is neither opened nor decoded again and the validation runs on a copy of it, as on a fresh decode. A revision read just
+-- before the file changed is harmless (the next tick sees another number); the file is read again at least once a second anyway.
+local CACHE_PERIOD = 1
+local cachedRevision, cachedValue, cachedAt = nil, nil, nil
 -- Segment lines of the face file, decoded once: kind -> index -> {text = the line, rows = its decoded value}.
 local segmentCache = {}
 -- Wall clock for the write and face timers (menus report zero delta). Tests replace it.
@@ -149,6 +154,7 @@ function M.stop()
     written, faceTimeline, faceRevision, faceReadAt = nil, nil, nil, nil
     segmentCache = {}
     readSequence, acceptedSequence = 0, 0
+    cachedRevision, cachedValue, cachedAt = nil, nil, nil
 end
 
 function M.pause()
@@ -328,14 +334,40 @@ local function readFace()
     return value.face
 end
 
+-- The native plugin's revision of a file this mod reads (mod/native-core.lua: a number that changes when the bytes change, no disk
+-- access), or nil without the plugin, before its first read of the file, or while the file is missing. Then every read stays as it was.
+local function revisionOf(name)
+    local core = convaiNative
+    if type(core) ~= 'table' or type(core.revision) ~= 'function' then return nil end
+    local ok, value = pcall(core.revision, name)
+    return ok and type(value) == 'number' and value > 0 and value or nil
+end
+local function copyOf(value)
+    local copy = {}
+    for key, item in pairs(value) do copy[key] = item end
+    return copy
+end
+
 local function read()
     readSequence = readSequence + 1
-    local file = io.open('runtime/continuous-speech.json', 'rb')
-    if not file then return nil end
-    local raw = file:read(4000001); file:close()
-    if type(raw) ~= 'string' or #raw > 4000000 then return nil end
-    local ok, value = pcall(json.decode, raw)
-    if not ok or type(value) ~= 'table' or value.version ~= 1 or not same(value) then return nil end
+    local value
+    local revision = revisionOf('continuous-speech.json')
+    local now = M.now()
+    if revision and revision == cachedRevision and cachedValue and cachedAt and now >= cachedAt and now - cachedAt < CACHE_PERIOD then
+        value = copyOf(cachedValue)
+    else
+        cachedRevision, cachedValue, cachedAt = nil, nil, nil
+        local file = io.open('runtime/continuous-speech.json', 'rb')
+        if not file then return nil end
+        local raw = file:read(4000001); file:close()
+        if type(raw) ~= 'string' or #raw > 4000000 then return nil end
+        local ok
+        ok, value = pcall(json.decode, raw)
+        if not ok or type(value) ~= 'table' then return nil end
+        -- An inline face would be shared with the caller on every read: such a document is always decoded afresh.
+        if revision and value.face == nil then cachedRevision, cachedValue, cachedAt = revision, copyOf(value), now end
+    end
+    if value.version ~= 1 or not same(value) then return nil end
     if not finite(value.updated) or value.updated < (os.time()-2)*1000 or value.updated > (os.time()+2)*1000
         or (lastUpdated and value.updated < lastUpdated) or not states[value.state]
         or not finite(value.position) or value.position < 0 or not finite(value.bufferedDuration)

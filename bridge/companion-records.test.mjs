@@ -129,6 +129,67 @@ test('Johnny recreation after fast travel keeps his initial solid appearance',()
   assert(row.serial==serial and row.state=='ready')
 `));
 
+test('a second fast travel during the first recovery takes over: the pending copy keeps its receipt and still returns',()=>run(`
+  local johnny=spawn('johnny-silverhand')
+  local serial=companions.list()[1].serial
+  assert(companions.beginFastTravel())
+  entities[tonumber(johnny.id.hash)]=nil
+  assert(companions.fastTravel())
+  tick(1)
+  local mid=companions.list()[1]
+  assert(mid.state=='transit' or mid.state=='spawning', 'the copy is still on its way back: '..tostring(mid.state))
+  assert(companions.beginFastTravel(), 'the second travel is not refused while the first recovery runs')
+  local again=companions.list()
+  assert(#again==1 and again[1].serial==serial, 'the pending copy was dropped')
+  assert(companions.fastTravel())
+  tick(10)
+  local row=companions.list()[1]
+  assert(row and row.serial==serial and row.state=='ready', 'the copy never returned: '..tostring(row and row.state))
+  assert(companions.beginFastTravel() and companions.fastTravel(), 'an ordinary travel afterwards still works')
+`));
+
+test('a copy that failed to come back after fast travel is deleted, not left standing with its follower role',()=>run(`
+  local judy=spawn('judy-alvarez')
+  local id=tonumber(judy.id.hash)
+  assert(companions.beginFastTravel())
+  judy.IsA=function() return false end
+  assert(companions.fastTravel())
+  for _=1,4 do companions.update(player,0.5) end
+  assert(entities[id]==nil, 'the failed copy is still in the world')
+  local row=companions.list()[1]
+  assert(row and row.state=='failed' and row.error and not row.error:find('could not be removed',1,true), 'the failure stays listed with its reason')
+`));
+
+test('a failed spawn whose delete the game accepted but has not finished is pending, not an error, and the removal is confirmed later',()=>run(`
+  local deletes=0
+  system.IsSpawned=function() return false end
+  system.DeleteEntity=function() deletes=deletes+1; return true end
+  companions.spawn('judy-alvarez')
+  local id=sequence
+  for _=1,30 do companions.update(player,0.5) end
+  local row=companions.list()[1]
+  assert(row and row.state=='failed' and row.error=='Spawn timed out', tostring(row and row.error))
+  assert(deletes==1, 'one delete request, not one per tick: '..deletes)
+  entities[id]=nil
+  for _=1,12 do companions.update(player,0.5) end
+  assert(deletes==1 and companions.list()[1].state=='failed')
+  assert(companions.dismiss(companions.list()[1].serial) and #companions.list()==0, 'the failed row can be dismissed')
+`));
+
+test('a failed copy that the game refuses to delete is retried a bounded number of times and Dismiss still works',()=>run(`
+  local judy=spawn('judy-alvarez')
+  local id=tonumber(judy.id.hash)
+  assert(companions.beginFastTravel())
+  judy.IsA=function() return false end
+  local deletes=0
+  system.DeleteEntity=function() deletes=deletes+1; return false end
+  assert(companions.fastTravel())
+  for _=1,80 do companions.update(player,0.5) end
+  assert(entities[id]~=nil and deletes<=6 and deletes>=5, 'bounded retries: '..deletes)
+  system.DeleteEntity=function(_,eid) entities[tonumber(eid.hash)]=nil; return true end
+  assert(companions.dismiss(companions.list()[1].serial) and entities[id]==nil)
+`));
+
 test('Kerry is created in his native clothed appearance without rewriting the quest record or rebuilding his face',()=>run(`
   companions.spawn('kerry-eurodyne')
   local kerry=entities[sequence]

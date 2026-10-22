@@ -198,7 +198,7 @@ test('voice map describes every voice it assigns, with the right gender, and cov
 });
 
 test('every archetype has a gender-matched Azure voice that is not a main-cast voice, with a one-line reason', () => {
-  assert.equal(archetypeRows.length, 74);
+  assert.equal(archetypeRows.length, 80);
   const mainVoices = new Set(MAIN_CAST.map(key => voiceMap.assignments[key].voice));
   const used = new Set();
   for (const row of archetypeRows) {
@@ -224,13 +224,13 @@ test('rosters: named, archetypes or both; every archetype with an ID becomes one
   const ids = Object.fromEntries([...rosterRows, ...archetypeRows].map(row => [row.key, 'id-' + row.key]));
   const common = {ids, genderOfVoice: new Map(), voiceMap};
   const archetypes = buildRows({...common, rosters: [archetypeRows]});
-  assert.equal(archetypes.rows.length, 74);
+  assert.equal(archetypes.rows.length, 80);
   assert.ok(archetypes.rows.every(row => row.key.startsWith('npc-') && row.originalId === 'id-' + row.key));
   assert.deepEqual(archetypes.voiceFallbacks, [], 'every archetype has a mapped voice');
-  assert.equal(archetypes.genderFallbacks.length, 74, 'with no Kokoro table the roster gender is used');
+  assert.equal(archetypes.genderFallbacks.length, 80, 'with no Kokoro table the roster gender is used');
   assert.equal(archetypes.rows.find(row => row.key === 'npc-ncpd-female').gender, 'FEMALE');
   const all = buildRows({...common, rosters: [rosterRows, archetypeRows]});
-  assert.equal(all.rows.length, rosterRows.length + 74);
+  assert.equal(all.rows.length, rosterRows.length + 80);
   assert.deepEqual(all.rows.filter(row => row.key.endsWith('-romantic') || 'baseKey' in row), [], 'no romantic row exists any more');
   // A retired romantic key is rejected with a clear message, even when its base character is in the roster.
   assert.throws(() => buildRows({...common, rosters: [rosterRows], only: new Set(['judy-alvarez-romantic'])}), /retired/);
@@ -241,7 +241,7 @@ test('rosters: named, archetypes or both; every archetype with an ID becomes one
   assert.throws(() => buildRows({...common, rosters: [archetypeRows, archetypeRows]}), /two rosters/);
   // An archetype without an ID in runtime/characters.json is not twinned.
   const missing = {...ids}; delete missing['npc-homeless-male'];
-  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows]}).rows.length, 73);
+  assert.equal(buildRows({...common, ids: missing, rosters: [archetypeRows]}).rows.length, 79);
 });
 
 test('an archetype twin is a faithful clone with memory off, en-US only and its own marker; readback is verified and a re-run adopts it', async () => {

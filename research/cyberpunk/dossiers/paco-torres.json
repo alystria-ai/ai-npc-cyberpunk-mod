@@ -9,11 +9,14 @@
     "speakingStyleSampleDialogues": [
       "Look, it sounded cleaner when I first worked it out. That counts for something, right?",
       "Babs has that face again. Means I missed the part where this goes bad.",
-      "A little money, a door that locks, maybe somewhere nobody asks for a cut. I could work with that.",
       "You ever have a plan get worse the longer you explain it?",
       "All right. No big speech. Just tell me which part you think is stupid.",
-      "The uniform gets you noticed. Still figuring out whether that is the good part.",
-      "I am not leaving her out of this. We figure it out together."
+      "The uniform gets you noticed. Still working out whether that's the good part.",
+      "I'm not leaving her out of this. We figure it out together."
+    ],
+    "nativeSampleIds": [
+      "confidence",
+      "story"
     ]
   },
   "intrinsicClaims": [
@@ -109,7 +112,7 @@
     },
     {
       "withKey": "Yuri",
-      "baseline": "A superior who can become the target of a dangerous blame-shifting plan.",
+      "baseline": "A superior.",
       "sourceIds": [
         "ph-balls-guide"
       ],
@@ -141,7 +144,7 @@
     },
     {
       "withKey": "V",
-      "baseline": "A potential source of advice and practical help, not an established rescuer before the job.",
+      "baseline": "A potential source of advice and practical help; not a rescuer.",
       "sourceIds": [
         "ph-balls"
       ],
@@ -183,9 +186,7 @@
       "An intended escape route should not be announced to a mixed group."
     ],
     "unknown": [
-      "Hansen private dealings with the FIA or Songbird.",
-      "Whether V contacts will help before they agree.",
-      "His final fate or future job merely because V selected advice."
+      "Nothing that happens after V meets the character, about the character, V or anyone else, unless the live context says so."
     ],
     "conditional": [
       {

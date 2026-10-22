@@ -46,6 +46,10 @@ export const STAGE_RETRY_MS = 6000;
 const STAGE_RETRY_EVERY_MS = 250;
 const STAGE_ATTEMPTS = Math.ceil(STAGE_RETRY_MS / STAGE_RETRY_EVERY_MS);
 const TURN_MEMORY = 32;
+// How long the pictures of a turn stay in memory for a retry of that turn (the game gives up on a request 90 s after writing it), and how long a recording's staged
+// frame stays (a recording is bounded well under this). The turn's id stays in its map afterwards, with no picture.
+export const ANSWER_KEEP_MS = 90_000;
+export const VOICE_KEEP_MS = 10 * 60_000;
 
 export const visionDisabledByEnv = (env = process.env) => /^(0|off|false|no)$/i.test(String(env.CYBERPUNK_CONVAI_VISION ?? '').trim());
 
@@ -69,7 +73,7 @@ export class CompanionVision {
     this.enabled = !this.envOff; this.transport = 'video'; this.waitMs = null;
     this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
     this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
-    this.queue = []; this.voice = new Map(); this.answered = new Map(); this.staged = new Map(); this.stageRound = 0;
+    this.queue = []; this.voice = new Map(); this.answered = new Map(); this.answeredAt = new Map(); this.staged = new Map(); this.stageRound = 0;
     this.counters = {captures: 0, failed: 0, minimised: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
       prestaged: 0, helperStarts: 0, helperReleases: 0};
   }
@@ -101,13 +105,18 @@ export class CompanionVision {
     this.tick();
     return changed;
   }
-  forget() { this.frames = []; this.stagedFrame = null; this.queue = []; this.voice.clear(); this.answered.clear(); this.closeComposer(); }
+  forget() { this.frames = []; this.stagedFrame = null; this.queue = []; this.voice.clear(); this.answered.clear(); this.answeredAt.clear(); this.closeComposer(); }
   tick() {
     let conversing = false;
     try { conversing = this.isConversing() === true; } catch {}
     if (conversing) this.markConversation(); else this.conversing = false;
-    if (!this.active) this.frames = [];
-    else if (this.frames.length) { const now = this.now(); this.frames = this.frames.filter(frame => now - frame.at <= MAX_FRAME_AGE_MS); }
+    // Pictures are base64 JPEGs (about 0.2 to 0.3 MB each as a string): while vision is not used (the setting is off, another provider answers) none is held, and while it is
+    // the pictures of turns that are over are let go once a retry of them can no longer happen (the ids stay).
+    if (!this.active) { this.frames = []; this.releasePictures(); }
+    else {
+      if (this.frames.length) { const now = this.now(); this.frames = this.frames.filter(frame => now - frame.at <= MAX_FRAME_AGE_MS); }
+      this.expirePictures();
+    }
     const running = this.capture?.running === true;
     if (!this.capturing) {
       if (running && this.busy === 0) {
@@ -118,6 +127,21 @@ export class CompanionVision {
       return;
     }
     if (this.busy === 0 && this.now() - this.lastCaptureAt >= FRAME_INTERVAL_MS) void this.collect();
+  }
+  // Every picture this object holds, bar the frame buffer (tick empties that): the staged frame, queued pictures, the recordings' and the answered turns' pictures. The
+  // turns' ids stay, so a retried turn is still told it was answered. Cheap when there is nothing to release.
+  releasePictures() {
+    this.stagedFrame = null;
+    if (this.queue.length) this.queue = [];
+    for (const entry of this.voice.values()) { entry.images = null; entry.frame = null; }
+    for (const id of this.answered.keys()) this.answered.set(id, null);
+    this.answeredAt.clear();
+  }
+  expirePictures() {
+    if (!this.answeredAt.size && !this.voice.size) return;
+    const now = this.now();
+    for (const [id, at] of this.answeredAt) if (now - at > ANSWER_KEEP_MS) { this.answeredAt.delete(id); if (this.answered.has(id)) this.answered.set(id, null); }
+    for (const entry of this.voice.values()) if (entry.at !== undefined && (entry.images || entry.frame) && now - entry.at > VOICE_KEEP_MS) { entry.images = null; entry.frame = null; }
   }
   // A conversation is running now (composer, typed turn, talk key, reply). The first mark after a quiet spell starts a new one.
   markConversation() {
@@ -274,7 +298,7 @@ export class CompanionVision {
   beginVoice(requestId) {
     if (!this.active || typeof requestId !== 'string' || this.voice.has(requestId)) return false;
     this.markConversation();
-    const entry = {images: null, frame: null, staged: false};
+    const entry = {images: null, frame: null, staged: false, at: this.now()};
     this.remember(this.voice, requestId, entry);
     entry.done = (async () => {
       // No young frame: one is taken now, while V starts to talk (the helper starts; about 0.3 to 0.5 s).
@@ -330,7 +354,7 @@ export class CompanionVision {
       images.length ? `${images.length} image(s)${usable ? `, frame ${Math.round((this.now() - usable.at) / 1000)} s old` : ''}` : this.noPictureReason());
   }
   settle(id, images, what) {
-    if (id) this.remember(this.answered, id, images);
+    if (id) { this.remember(this.answered, id, images); this.answeredAt.delete(id); if (images) this.answeredAt.set(id, this.now()); while (this.answeredAt.size > TURN_MEMORY) this.answeredAt.delete(this.answeredAt.keys().next().value); }
     if (images) this.counters.turnsWithPicture++;
     if (id) this.log(`turn ${id.slice(-8)}: ${what}`);
     return images;

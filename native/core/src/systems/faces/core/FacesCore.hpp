@@ -185,6 +185,11 @@ struct FrameInput
 bool DecodeControl(const double* aControl, std::size_t aControlCount, const double* aSpeech, std::size_t aSpeechCount,
                    FrameInput& aOut) noexcept;
 
+// Bad numbers from Lua (a NaN or an infinity in the control or speech array, which a bad measurement upstream can
+// produce) are input to clean, not a fault of the plugin: each non-finite value is replaced by 0 and the count of
+// replaced values is returned, so one bad frame does not count towards switching faces off.
+std::size_t SanitizeFinite(double* aValues, std::size_t aCount) noexcept;
+
 // ---- Slot state -------------------------------------------------------------------------------
 // The pose block of Lua's expression slot. Lua keeps the rest of the slot.
 struct SlotState

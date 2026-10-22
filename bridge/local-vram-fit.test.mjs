@@ -183,10 +183,34 @@ test('the game\'s room on a small card: 55% of the card between 3,000 and 4,608 
   for (const unknown of [0, -1, NaN, undefined, null, '8192']) assert.equal(gameRoomMiB(unknown), 0);
 });
 
+test('smallCardRoom keeps back only the room the game has not taken yet (review A1): a restart mid-play and a quick Continue get a sensible model share', () => {
+  // 8 GB card, the service restarted mid-play: 3,000 MiB free, Pocket on the CPU. The game holds about 4.2 GB, so almost none of its room is left to keep: the model had 0 MiB before.
+  const midPlay = smallCardRoom({totalMiB: 8232, freeMiB: 3000});
+  assert.equal(midPlay.gameUsedMiB, 4232);
+  assert.equal(midPlay.reserveMiB, 296);
+  assert.equal(midPlay.modelMiB, 2704);
+  // The same card, the game has taken its whole room and more: nothing is kept back at all.
+  const settled = smallCardRoom({totalMiB: 8232, freeMiB: 2000});
+  assert.deepEqual([settled.reserveMiB, settled.modelMiB], [0, 2000]);
+  // 12 GB card, OmniVoice loaded (2,500 MiB resident) and a quick Continue: about 4.8 GB free, the game holds about 3.7 GB. The model had about 0.2 GB before.
+  const quick = smallCardRoom({totalMiB: 11997, freeMiB: 4800, residentVoiceMiB: SMALL_CARD_ROOM.omniVoiceMiB});
+  assert.equal(quick.gameUsedMiB, 3697);
+  assert.equal(quick.reserveMiB, 911);
+  assert.equal(quick.modelMiB, 3889);
+  // Without counting the resident engine the game would look 2.5 GB larger than it is: the engine is never charged to the game's room.
+  assert.equal(smallCardRoom({totalMiB: 11997, freeMiB: 4800}).gameUsedMiB, 6197);
+  // The menu: only the desktop is on the card, the whole room is kept, as in the first report.
+  const menu = smallCardRoom({totalMiB: 8232, freeMiB: 7461});
+  assert.deepEqual([menu.reserveMiB, menu.modelMiB], [4528, 2933]);
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7900}).gameUsedMiB, 0, 'free memory above the card total minus the baseline never goes negative');
+  assert.equal(SMALL_CARD_ROOM.settleSeconds, undefined, 'no dependence on the service age');
+});
+
 test('smallCardRoom takes the game\'s room and a voice engine still to load out of the free memory, never below 0', () => {
-  assert.deepEqual(smallCardRoom({totalMiB: 8232, freeMiB: 7461}), {totalMiB: 8232, freeMiB: 7461, reserveMiB: 4528, voiceMiB: 0, modelMiB: 2933});
+  assert.deepEqual(smallCardRoom({totalMiB: 8232, freeMiB: 7461}), {totalMiB: 8232, freeMiB: 7461, reserveMiB: 4528, voiceMiB: 0, modelMiB: 2933, gameRoomMiB: 4528, gameUsedMiB: 0});
   assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461, voiceMiB: SMALL_CARD_ROOM.omniVoiceMiB}).modelMiB, 433);
-  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 3000, voiceMiB: 2500}).modelMiB, 0);
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 3000, voiceMiB: 2500}).modelMiB, 204, 'the game already holds 4.2 GB of its room: only the rest is kept back');
+  assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 3000, voiceMiB: 2500, limits: {...SMALL_CARD_ROOM, desktopMiB: 0}}).modelMiB, 500, 'with no desktop baseline the game would look larger and nothing would be kept back');
   assert.equal(smallCardRoom({totalMiB: 24564, freeMiB: 23000}), null, 'a large card keeps no reserve');
   assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: null}), null, 'no free-memory reading: nothing is decided from it');
   assert.equal(smallCardRoom({totalMiB: 8232, freeMiB: 7461, voiceMiB: NaN}).voiceMiB, 0);

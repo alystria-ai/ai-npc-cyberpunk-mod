@@ -198,8 +198,8 @@ test('the backend secret given to a dry run is never printed and never ends up i
   const secret = 'test-only-client-secret-3f9a1c7e5b2d4a60';
   const keyRoot = await mkdtemp(join(tmpdir(), 'scripts-package-auth-'));
   try {
-    const run = build(buildArgs(join(keyRoot, 'out'), join(keyRoot, 'cache'), ['--auth-url', 'https://backend.example/api/convai/token', '--auth-secret-env', 'CPM_TEST_AUTH_SECRET']),
-      {...NO_AUTH, CPM_TEST_AUTH_SECRET: secret});
+    const run = build(buildArgs(join(keyRoot, 'out'), join(keyRoot, 'cache'), ['--auth-url', 'https://backend.example/api/convai/token', '--auth-secret-env', 'CPM_TEST_CONVAI_AUTH_SECRET']),
+      {...NO_AUTH, CPM_TEST_CONVAI_AUTH_SECRET: secret});
     assert.equal(run.status, 0, run.stderr);
     assert(!(run.stdout + run.stderr).includes(secret), 'the secret is never printed');
     assert.match(run.stdout, /sign-in backend backend\.example/, 'only the host is logged');

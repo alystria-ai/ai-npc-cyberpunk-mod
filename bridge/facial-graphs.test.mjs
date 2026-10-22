@@ -580,13 +580,15 @@ test('on the extracted game graphs the crowd copy is the companion graph plus ex
 // base\quest\tertiary_characters\emmerick.ent, face graph man_big_sermo) stood at his post with no scene, V talked to him as npc-merc-male and his
 // mouth did not move: "Face request: status=skipped:quest why=a quest-bound character". The log shows "Focus class: ... workspot=true".
 // The spawn and talk-time decisions, run as written against those facts.
-const talkRefusalJs = transliterate('public func TalkRefusal(', ['npc', 'spawned', 'ArrayContains', 'IsDefined', 'GameInstance']);
+const talkRefusalJs = transliterate('public func TalkRefusal(', ['npc', 'spawned', 'ArrayContains', 'IsDefined', 'GameInstance', 'GetPlayer', 'PlayerPuppet']);
 const talkRefusal = (state, spawned = false) => {
   const npc = {GetGame: () => 'game', GetEntityID: () => 'id', GetRecordID: () => 'Character.Emmerick', IsQuest: () => state.quest,
     IsOnAutonomousAI: () => state.autonomous};
   const game = {GetSceneSystem: () => ({GetScriptInterface: () => ({IsEntityInDialogue: () => state.dialogue})}),
     GetWorkspotSystem: () => ({IsActorInWorkspot: () => state.workspot})};
-  return talkRefusalJs.call({m_storyTalk: false, m_named: []}, npc, spawned, (list, value) => list.includes(value), value => value != null, game);
+  const tier = 'tier' in state ? state.tier : 1;
+  return talkRefusalJs.call({m_storyTalk: false, m_named: []}, npc, spawned, (list, value) => list.includes(value), value => value != null, game,
+    () => (tier === null ? null : {}), {GetSceneTier: () => tier});
 };
 test('Emmerick: a quest-bound character standing at his post is prepared at spawn and not refused at talk time; a scene still refuses', () => {
   // Spawn: his record is not on the roster, so the quest tokens in his appearance no longer matter.
@@ -595,7 +597,12 @@ test('Emmerick: a quest-bound character standing at his post is prepared at spaw
   const idle = {dialogue: false, workspot: true, quest: false, autonomous: true};
   assert.equal(talkRefusal(idle), '');
   assert.equal(talkRefusal({...idle, autonomous: false}), '', 'a commanded AI at a workspot is his post, not a scene');
-  assert.equal(talkRefusal({...idle, quest: true, autonomous: false}), '', 'a quest marking at a workspot too');
+  assert.equal(talkRefusal({...idle, quest: true, autonomous: false}), '', 'a quest marking at a workspot too, V in open gameplay (scene tier 1)');
+  // A quest scene's own actor seated, leaning or waiting in its workspot: V is past open gameplay (or the tier is unreadable), so it is busy.
+  assert.equal(talkRefusal({...idle, quest: true, autonomous: false, tier: 2}), 'skipped:staged');
+  assert.equal(talkRefusal({...idle, quest: true, autonomous: false, tier: 3}), 'skipped:staged');
+  assert.equal(talkRefusal({...idle, quest: true, tier: null}), 'skipped:staged', 'no player: fail closed');
+  assert.equal(talkRefusal({...idle, quest: false, autonomous: false, tier: 2}), '', 'an unmarked person keeps his post');
   // Anyone the game is animating: a dialogue, or a quest or scene commanding the AI away from a workspot.
   assert.equal(talkRefusal({...idle, dialogue: true}), 'skipped:dialogue');
   assert.equal(talkRefusal({...idle, dialogue: true, autonomous: false}), 'skipped:dialogue');
@@ -610,5 +617,6 @@ test('Emmerick: a quest-bound character standing at his post is prepared at spaw
 test('the face status words still read plainly, and the Emmerick line is no longer the quest skip', () => {
   const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
   assert.match(facial, /\^skipped:driven\$', 'a quest or a scene commands this character'/);
+  assert.match(facial, /\^skipped:staged\$'/);
   assert.match(facial, /\^skipped:quest\$'/, 'the word stays for another mod\'s character a quest marks');
 });

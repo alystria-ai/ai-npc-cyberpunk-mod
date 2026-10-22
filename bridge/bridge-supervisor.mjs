@@ -18,6 +18,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {REPORT_FOLDER, collectCrashInfo, crashLogLines, exitCodeWords, prepareReportFolder, reportArguments} from './bridge-diagnostics.mjs';
 import {capLogFile} from './log-cap.mjs';
+import {CHILDREN_FILE, reapChildren} from './child-registry.mjs';
 import {parseKeyFileText} from './convai-key.mjs';
 import {AUTH_CONFIG_FILE, PACKAGED_AUTH_FILE, readAuthSettings} from './convai-credential.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
@@ -469,6 +470,17 @@ export class BridgeSupervisor {
     if (pid && pid === this.childPid) this.retiredPids.add(pid);
     this.child = null; this.childPid = null; this.childExit = null; this.adoptedPid = null;
     this.ready = false; this.stopRequested = false;
+    // A bridge that ends without cleaning up (a V8 out-of-memory, a native crash, "End task") leaves its model server running with the card's memory: stop what it
+    // wrote down in children.json (only a process that is exactly the exe and start it recorded; bridge/child-registry.mjs), so the next bridge finds the card free.
+    // A bridge that ended on request cleaned up itself and left nothing to find. Never longer than 15 s.
+    // The cap ends the work too (no entry is started after it; what is not reached stays in the file) and a late finish removes only the records it dealt with, so the next
+    // bridge's own are never overwritten.
+    const cap = new AbortController(), timer = setTimeout(() => cap.abort(), 15_000);
+    timer.unref?.();
+    try {
+      await Promise.race([reapChildren({file: resolve(this.stateDirectory, CHILDREN_FILE), log: line => this.log(line), signal: cap.signal}), delay(15_000, undefined, {ref: false})]);
+    } catch { /* a failed look at the leftovers never changes what the supervisor does next */ }
+    finally { clearTimeout(timer); }
     if (requested) {
       this.log(`The bridge (PID ${pid}) stopped on request; it stays stopped until it is started again.`);
       this.mode = this.watchingGame ? 'stopped' : 'done';

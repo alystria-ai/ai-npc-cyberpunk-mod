@@ -213,3 +213,45 @@ test('an unavailable resident helper retains immediate original PCM and explicit
   assert.deepEqual(source.pcm,before);assert.equal(stream.snapshot(19200,false,.3).source,'audio-envelope');
   assert.equal(starts,1);assert.equal(batches,0);await stream.close();
 });
+
+// ---- A poll that only moved the audible cursor is the same timeline (perf review 2026-10-22) ------------------------------------------------
+
+test('the audible cursor moving is not a new timeline: same revision, same row array, only the coverage moves; a packet, a finish or a source change is a new one', async()=>{
+  let resolveAnalysis;
+  const lipsync={analyse:async()=>new Promise(done=>{resolveAnalysis=done;})};
+  const face=new PocketFacialStream({input,lipsync});
+  for(let index=0;index<8;index++)face.push(packet(index+1,index*2400));
+  await tick();
+  const first=face.snapshot(19200,false,0),second=face.snapshot(19200,false,.08),third=face.snapshot(19200,false,.16);
+  assert.equal(second.revision,first.revision);assert.equal(third.revision,first.revision);
+  assert.equal(second.frames,first.frames,'the very same row array, not a rebuilt one');assert.equal(third.rows,first.rows);
+  assert.equal(first.coverage.audiblePositionSeconds,0);assert.equal(third.coverage.audiblePositionSeconds,.16);
+  assert.equal(ownedPocketFace({face:third,duration:.8,sourceComplete:false,positionSeconds:.16},input),third);
+  // New audio is a new timeline.
+  face.push(packet(9,19200));
+  const grown=face.snapshot(21600,false,.16);
+  assert.ok(grown.revision>first.revision);assert.notEqual(grown.frames,first.frames);
+  // Analysis that qualifies the unheard interval is one too, and the source flips with the cursor.
+  resolveAnalysis({mouthCuesFormat:'rhubarb-phonetic-v1',mouthCues:['A','B','D','F','G','H','E','C']
+    .map((value,index)=>({start:index*.1,end:(index+1)*.1,value})),timing:{lipEngine:'fixture-phonetic'}});
+  await tick();
+  const phonetic=face.snapshot(21600,false,.2);
+  assert.ok(phonetic.revision>grown.revision);assert.equal(phonetic.source,'local-phonetic');
+  const later=face.snapshot(21600,false,.21);
+  assert.equal(later.revision,phonetic.revision,'inside the same interval nothing changed');
+  face.finish();
+  const ended=face.snapshot(21600,true,.21);
+  assert.ok(ended.revision>later.revision);
+  assert.equal(face.snapshot(21600,true,.3).revision,ended.revision,'a finished line stays one timeline to its end');
+  face.close();
+});
+
+test('over a line the revision (and with it the face file rewrite) follows the audio and not the clock: polls every 40 ms over 10 s of buffered audio make a handful of revisions',()=>{
+  const face=new PocketFacialStream({input});
+  for(let index=0;index<100;index++)face.push(packet(index+1,index*2400));   // 10 s, all received
+  face.finish();
+  const revisions=new Set();
+  for(let poll=0;poll<250;poll++)revisions.add(face.snapshot(240000,true,Math.min(10,poll*.04)).revision);
+  assert.equal(revisions.size,1,'250 polls of a finished line are one revision');
+  face.close();
+});

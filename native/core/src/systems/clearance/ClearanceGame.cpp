@@ -103,6 +103,27 @@ GameProbe::GameProbe()
         knownOverlap = game::Method(type, "Overlap");
         knownRay = game::Method(type, "SyncRaycastByCollisionGroup");
         knownType = type;
+        // Found by name alone: the call writes a TraceResult through its own type, so a parameter added in a
+        // patch, or a larger TraceResult, would read past our arguments or overrun the one on our stack. Only a
+        // function that takes exactly what the probe passes is used; otherwise the query is "unavailable" and the
+        // Lua path keeps running.
+        const game::Arg vector = game::ArgOf<RED4ext::Vector4>();
+        const game::Arg name = game::ArgOf<RED4ext::CName>();
+        const game::Arg trace{"physicsTraceResult", static_cast<std::uint32_t>(sizeof(RED4ext::TraceResult))};
+        const game::Arg flag = game::ArgOf<bool>();
+        const game::Returns hitFlag = game::Returns::Fits("Bool", 1);
+        if (knownOverlap &&
+            !game::Verified(knownOverlap,
+                            {vector, vector, game::Arg{nullptr, static_cast<std::uint32_t>(sizeof(RED4ext::EulerAngles))},
+                             name, trace},
+                            hitFlag))
+        {
+            knownOverlap = nullptr;
+        }
+        if (knownRay && !game::Verified(knownRay, {vector, vector, name, trace, flag, flag}, hitFlag))
+        {
+            knownRay = nullptr;
+        }
     }
     m_overlap = knownOverlap;
     m_ray = knownRay;

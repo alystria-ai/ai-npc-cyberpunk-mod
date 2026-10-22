@@ -959,14 +959,32 @@ finish(nil,true); events.onUpdate(0.1)
 assert(#members==0 and not companions.inTransit and companions.travelReturns==nil and not published().ready)
 `));
 
-test('unfinished fast travel expires without restoration or native teardown reads', () => run(`
+test('unfinished fast travel that times out with V in the world recovers the party and resumes the mod; a late completion is inert', () => run(`
 events.onInit(); events.onUpdate(0)
 members={{serial=3,key='judy-alvarez',state='ready'}}
 before['FastTravelSystem.OnPerformFastTravelRequest'](fastTravelSystem,travelRequest('destination'))
+assert(companions.inTransit and not published().ready)
+tearingDown=true; before['PlayerPuppet.OnDetach'](); tearingDown=false
+after['PlayerPuppet.OnGameAttached'](); events.onUpdate(0.1)
+assert(not published().ready, 'still suspended before the timeout')
 clock=clock+121; events.onUpdate(0.1)
-assert(#members==0 and not companions.inTransit and not published().ready)
+assert(companions.travelReturns==1, 'the timeout ran the recovery once')
+assert(#members==1 and published().ready, 'the party was kept and the mod resumed')
 after['FastTravelSystem.OnLoadingScreenFinished'](nil,true); events.onUpdate(0.1)
-assert(companions.travelReturns==nil and not published().ready and stats.spawned==0)
+assert(companions.travelReturns==1 and published().ready, 'a late completion repeated nothing')
+`));
+
+test('unfinished fast travel that times out while V is still gone drops the receipts without restoration; the attach resumes the mod', () => run(`
+events.onInit(); events.onUpdate(0)
+members={{serial=3,key='judy-alvarez',state='ready'}}
+before['FastTravelSystem.OnPerformFastTravelRequest'](fastTravelSystem,travelRequest('destination'))
+tearingDown=true; before['PlayerPuppet.OnDetach'](); tearingDown=false
+player.attached=false
+clock=clock+121; events.onUpdate(0.1)
+assert(#members==0 and not companions.inTransit and not published().ready and companions.travelReturns==nil)
+player.attached=true; after['PlayerPuppet.OnGameAttached'](); events.onUpdate(0.1)
+after['FastTravelSystem.OnLoadingScreenFinished'](nil,true); events.onUpdate(0.1)
+assert(companions.travelReturns==nil and stats.spawned==0)
 `));
 
 test('expression context samples current actors only in a ready world and listening requires active recording', () => run(`
