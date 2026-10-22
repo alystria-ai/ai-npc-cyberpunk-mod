@@ -1087,7 +1087,7 @@ return {
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "OmniVoice nécessite plus de mémoire graphique que l’espace libre à côté du jeu. Pocket est utilisé.",
     ["OmniVoice needs 12 GB"] = "OmniVoice nécessite 12 Go",
     ["{voice} · needs 12 GB card"] = "{voice} · nécessite une carte de 12 Go",
-    ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "La carte graphique de ce PC a moins des 12 Go dont OmniVoice a besoin à côté du jeu. Si elle ne peut pas démarrer, Pocket est utilisé. Choisissez Pocket pour éviter l’attente.",
+    ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "La carte graphique de ce PC a moins des 12 Go dont OmniVoice a besoin à côté du jeu. Si OmniVoice ne peut pas démarrer, Pocket est utilisé. Choisissez Pocket pour éviter l’attente.",
     ["Forget all memories ({count} characters)"] = "Tout effacer ({count} personnages)",
     ["Dynamic info"] = "Infos en direct",
     ["Choose which live game info the characters are told: location, time and weather, company, health, money, gear, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider."] = "Choisissez les informations de jeu en direct transmises aux personnages : lieu, heure et météo, compagnie, santé, argent, équipement, quêtes et journal, et dialogues récents.\n\nTout est activé par défaut. Une information désactivée n’est envoyée à aucun fournisseur de conversation.",

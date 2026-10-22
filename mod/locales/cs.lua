@@ -1009,7 +1009,7 @@ return {
     ["New address saved. Paste your API key again for it."] = "Nová adresa uložena. Pro ni znovu vlož klíč API.",
     ["The free daily limit for this model was reached. It resets at {time}."] = "Denní bezplatný limit pro tento model je vyčerpán. Obnoví se v {time}.",
     ["The free daily limit for this model was reached. Try again after it resets."] = "Denní bezplatný limit pro tento model je vyčerpán. Zkus to znovu po obnovení.",
-    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Tento model spotřebuje odpověď na přemýšlení. V Nastavení zvol model bez uvažování.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Tento model celou odpověď spotřebuje na přemýšlení. V Nastavení zvol model bez uvažování.",
     ["All"] = "Vše",
     ["Also changed: {names}."] = "Také změněno: {names}.",
     ["Choose any character from the list below. They do not need to be in your current party."] = "Vyber libovolnou postavu ze seznamu níže. Nemusí být v tvé aktuální skupině.",
@@ -1109,5 +1109,5 @@ return {
     ["Quest and journal"] = "Úkol a deník",
     ["V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent, and the mod stops scanning the journal for it."] = "Sledovaný úkol V a jeho cíle, otevřené zakázky V a historie deníku.\n\nTo, co každá postava ví o tvém příběhu, zůstává zapnuté.\n\nVypnuto: nic z toho se neposílá a mod přestane prohledávat deník.",
     ["Recent game dialogue"] = "Nedávné dialogy z hry",
-    ["The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent."] = "Poslední repliky padlé ve scénách a odpovědi, které V zvolil, aby na to postava mohla navázat.\n\nVypnuto: neposílají se.",
+    ["The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent."] = "Poslední repliky ze scén a odpovědi zvolené V, aby na ně postava mohla navázat.\n\nVypnuto: neposílají se.",
 }
