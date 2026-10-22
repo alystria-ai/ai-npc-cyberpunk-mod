@@ -9,7 +9,7 @@ import {readFile, readdir, writeFile} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseTagged} from '../bridge/natural-speech.mjs';
-import {splitSpeechText} from '../bridge/speech-stream.mjs';
+import {splitSpeechText} from '../bridge/speech-phrases.mjs';
 import {phraseOffsets, segmentText} from '../bridge/emotion-analysis.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');

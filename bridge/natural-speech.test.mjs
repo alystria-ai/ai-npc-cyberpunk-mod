@@ -5,8 +5,9 @@ import {readFileSync} from 'node:fs';
 import {NaturalSpeech, OMNI_TAGS, CJK_TAGS, PLACES, omniTagsFor, splitsWord, OFFER_RATE, OFFER_RATE_BY_PROFILE, MAX_VOICED_TAGS, naturalSpeechContext, stripSpeechTags, keepSpeechTags, displayText,
   hasSpeechTags, parseTagged, speechPhrases, devicesUsed, PITY_TURNS} from './natural-speech.mjs';
 import {talkLine} from './natural-speech-talk.mjs';
-import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
-import {silentWav} from './speech-audio.mjs';
+import {splitSpeechText} from './speech-phrases.mjs';
+import {createOmniPcmVoice, OMNI_RATE} from './omni-pcm.mjs';
+import {encodePcmWav} from './convai-audio-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 
@@ -342,31 +343,76 @@ test('RealtimeHost hands every finished reply, text or microphone, to its transf
   assert.equal((await plain.reply({characterId: 'judy', scope: 'private', ttsEnabled: false})).text, 'Okay [sigh] then.');
 });
 
-test('Omni phrases carry the tags to synthesis while the stream manifest, which subtitles read, stays clean', async () => {
-  const raw = 'Hey V, [sigh] I have been thinking about what happened last night. We could head down to the market together, pick up some food and talk about the next job. That sounds good to me.';
-  const display = stripSpeechTags(raw), phrases = splitSpeechText(display), speech = speechPhrases(phrases, raw, OMNI_TAGS);
-  const audio = {audio: silentWav().toString('base64'), timing: {voiceSteps: 32}};
-  const generated = [], manifests = [], waiters = [];
-  let state = {};
-  const slots = new SpeechSlots({depot: 'unused', readState: async () => state,
-    store: async (base64, depot, slot) => ({slot, event: `convai_reply_${slot}`, duration: 2})});
-  const stream = new SpeechStream({input: {requestId: 'one', generation: 4, entity: 'judy-2'}, steps: 32, phrases, speech, slots,
-    current: async () => true, readState: async () => state, writeManifest: async value => manifests.push(structuredClone(value)),
-    synthesize: async text => { generated.push(text); return audio; }, wait: () => new Promise(done => waiters.push(done))});
-  await stream.begin(audio);
-  state = {requestId: 'one', state: 'playing', updated: Date.now(), streamId: stream.manifest.streamId, completedChunk: 0, slot: 0};
-  const finished = stream.finish();
-  for (let n = 0; n < 40 && !stream.manifest.complete; n++) {
-    state = {...state, updated: Date.now(), completedChunk: stream.manifest.chunks.length};
-    waiters.splice(0).forEach(done => done());
-    await new Promise(done => setImmediate(done));
+// What the bridge's omniVoiceFor (convai-bridge.mjs) gives createOmniPcmVoice as `voicedPhrases`, with the same head/tail rule.
+function bridgeVoicedPhrases({result, streamed, language = 'en'}) {
+  const tagged = (phrases, raw) => typeof raw === 'string' ? speechPhrases(phrases, raw, omniTagsFor(language)) : undefined;
+  let headPhrases = [];
+  return (phrases, {role}) => {
+    if (role === 'tail') {
+      const all = tagged([...headPhrases, ...phrases], streamed?.stream?.meta?.speechText);
+      return all?.slice(headPhrases.length);
+    }
+    headPhrases = phrases;
+    return streamed ? undefined : tagged(phrases, result.speechText);
+  };
+}
+function taggedWorker() {
+  const texts = [];
+  const synthesize = async (profile, text) => { texts.push(text); return {audio: encodePcmWav(new Float32Array(OMNI_RATE / 4).fill(.1), OMNI_RATE), timing: {}}; };
+  return {texts, synthesize};
+}
+const TAGGED_REPLY = 'Hey V, [sigh] I have been thinking about what happened last night. We could head down to the market together, pick up some food and talk about the next job. That sounds good to me.';
+
+test('Omni phrases carry the tags to the worker while the text the voice is given, which subtitles read, stays clean', async () => {
+  const raw = TAGGED_REPLY;
+  const display = stripSpeechTags(raw), phrases = splitSpeechText(display), tagged = speechPhrases(phrases, raw, OMNI_TAGS);
+  assert.ok(phrases.length >= 2 && tagged[0].includes('[sigh]'));
+  const worker = taggedWorker(), packets = [];
+  const voice = createOmniPcmVoice({synthesize: worker.synthesize, voicedPhrases: bridgeVoicedPhrases({result: {text: display, speechText: raw}})});
+  // The bridge hands the voice the clean display text (result.text), never the tagged one.
+  const response = await voice.synthesizeStream('judy', display, {role: 'head', onPcm: packet => packets.push(packet)});
+  assert.deepEqual(worker.texts, tagged, 'every phrase, the first included, is synthesized with its tags');
+  assert.equal(stripSpeechTags(worker.texts.join(' ')), display);
+  assert.ok(packets.every(packet => !Object.values(packet).some(value => typeof value === 'string' && hasSpeechTags(value))), 'nothing a tag could ride on reaches a packet');
+  assert.equal(response.timing.voicePhrases, phrases.length);
+  assert.ok(!JSON.stringify(response.timing).includes('[sigh]'), 'nor the timing that is logged');
+});
+
+test('Natural speech off, or a reply with no tag, sends OmniVoice the plain phrases', async () => {
+  const display = stripSpeechTags(TAGGED_REPLY), phrases = splitSpeechText(display);
+  for (const result of [{text: display, speechText: undefined}, {text: display, speechText: display}]) {
+    const worker = taggedWorker();
+    const voice = createOmniPcmVoice({synthesize: worker.synthesize, voicedPhrases: bridgeVoicedPhrases({result})});
+    await voice.synthesizeStream('judy', display, {role: 'head', onPcm() {}});
+    assert.deepEqual(worker.texts, phrases);
   }
-  await finished;
-  assert.deepEqual(stream.manifest.chunks.map(chunk => chunk.text), phrases);
-  assert.ok(manifests.every(manifest => manifest.chunks.every(chunk => !hasSpeechTags(chunk.text))), 'no tag in any manifest');
-  assert.equal(stream.descriptor().firstText, phrases[0]);
-  assert.deepEqual(generated, speech.slice(1), 'phrases after the first are synthesized with their tags');
-  assert.ok(speech[0].includes('[sigh]'));
+  // A Chinese or Japanese sound is voiced only on a reply in that language.
+  const cjk = 'Hey V, [question-ei] I have been thinking about what happened last night. We could head down to the market together.';
+  const clean = stripSpeechTags(cjk), spoken = splitSpeechText(clean);
+  for (const [language, kept] of [['en', false], ['zh', true]]) {
+    const worker = taggedWorker();
+    const voice = createOmniPcmVoice({synthesize: worker.synthesize, voicedPhrases: bridgeVoicedPhrases({result: {text: clean, speechText: cjk}, language})});
+    await voice.synthesizeStream('judy', clean, {role: 'head', onPcm() {}});
+    assert.equal(worker.texts.join(' ').includes('[question-ei]'), kept, language);
+    assert.equal(stripSpeechTags(worker.texts.join(' ')), spoken.join(' '));
+  }
+});
+
+test('a reply voiced while it is still written has tags for its rest only: the first sentence is plain, the tail carries the tags where the model wrote them', async () => {
+  const raw = TAGGED_REPLY, display = stripSpeechTags(raw), phrases = splitSpeechText(display);
+  // The first phrase is spoken as soon as it is written; the rest follows once the model has finished.
+  const head = phrases[0], tail = phrases.slice(1).join(' ');
+  const streamed = {stream: {meta: {speechText: raw}}};
+  const voiced = bridgeVoicedPhrases({result: {text: display}, streamed});
+  const worker = taggedWorker(), headWorker = taggedWorker();
+  const headVoice = createOmniPcmVoice({synthesize: headWorker.synthesize, voicedPhrases: voiced});
+  await headVoice.synthesizeStream('judy', head, {role: 'head', onPcm() {}});
+  assert.deepEqual(headWorker.texts, splitSpeechText(head), 'the head never carries a tag');
+  const tailVoice = createOmniPcmVoice({synthesize: worker.synthesize, voicedPhrases: voiced});
+  await tailVoice.synthesizeStream('judy', tail, {role: 'tail', onPcm() {}});
+  assert.equal(stripSpeechTags(worker.texts.join(' ')), tail);
+  const whole = speechPhrases([...splitSpeechText(head), ...splitSpeechText(tail)], raw, OMNI_TAGS) ?? [];
+  assert.deepEqual(worker.texts, whole.slice(splitSpeechText(head).length));
 });
 
 // ---- engines that cannot render a tag never receive it -------------------------------------------------------
@@ -426,7 +472,9 @@ test('the bridge wires Natural speech through the context, the reply transform, 
   assert.match(bridge, /const engine = turnVoice\(input\)\.engine;/);
   assert.match(bridge, /const localChoice = profile => \(\{uses: localVoice\.usesProfile\(profile\) && !localVoice\.cloudKeyless, provider: localVoice\.provider,/);
   assert.match(bridge, /input\.channel === 'phone' \|\| prepared\?\.route\?\.channel === 'phone'/);
-  assert.match(bridge, /naturalSpeech\.enabled\?speechPhrases\(phrases,result\.speechText,omniTagsFor\(language\)\)/);
+  assert.match(bridge, /naturalSpeech\.enabled && typeof raw === 'string' \? speechPhrases\(phrases, raw, omniTagsFor\(language\)\) : undefined/);
+  assert.match(bridge, /voicedPhrases: \(phrases, \{role\}\) =>/, 'the tags reach OmniVoice through its voicedPhrases only');
+  assert.match(bridge, /return streamed \? undefined : tagged\(phrases, result\.speechText\)/);
   assert.match(bridge, /naturalSpeech\.update\(settings\), emotionsChanged/);
   const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   assert.match(subtitles, /text:gsub\('%s\*%\[%a\[%a%-\]\*%\]', ''\)/);

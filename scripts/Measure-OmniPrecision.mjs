@@ -17,7 +17,7 @@ import {cpus} from 'node:os';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ResidentVoice} from '../bridge/resident-voice.mjs';
-import {splitSpeechText} from '../bridge/speech-stream.mjs';
+import {splitSpeechText} from '../bridge/speech-phrases.mjs';
 import {readPcmWav} from '../bridge/speech-audio.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');

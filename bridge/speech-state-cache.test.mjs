@@ -67,6 +67,6 @@ test('the bridge asks the cached reader on the turn path and the fresh one for r
   assert.match(source, /const readSpeechStateCached = \(\) => speechStateReader\.cached\(\);/);
   assert.match(source, /audioAvailable\(await readSpeechStateCached\(\)\)/);
   assert.match(source, /\(await readSpeechStateCached\(\)\)\.continuousAvailable !== true\) return whole\(\)/);
-  assert.match(source, /const slots = new SpeechSlots\(\{depot: audioDepot, readState: readSpeechState\}\)/, 'slot choice keeps a fresh read');
+  assert.doesNotMatch(source, /SpeechSlots|audioDepot/, 'the Audioware slots (and their fresh read) are gone');
   assert.match(source, /const speech = await readSpeechState\(\);\s*\n\s*if \(speech\.available && Date\.now\(\) - speech\.updated < 5000\) lastAudioHeartbeat/);
 });

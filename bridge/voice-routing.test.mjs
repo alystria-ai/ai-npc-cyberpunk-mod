@@ -4,14 +4,16 @@ import {readFileSync} from 'node:fs';
 import {resolve as absolutePath} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {silentWav} from './speech-audio.mjs';
+import {encodePcmWav} from './convai-audio-stream.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {variantSeed} from './voice-variants.mjs';
-import {SpeechStream,splitSpeechText} from './speech-stream.mjs';
+import {splitSpeechText} from './speech-phrases.mjs';
+import {createOmniPcmVoice} from './omni-pcm.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {BufferedPcm, waitUntil} from './group-lookahead.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {textExpressionSignal} from './text-emotion.mjs';
-import {analyseReply, planSignal, createPlanner, phraseOffsets, baselineFromSignal} from './emotion-analysis.mjs';
+import {analyseReply, planSignal, createPlanner, baselineFromSignal} from './emotion-analysis.mjs';
 import {EmotionSelection, waitLateEmotion} from './emotion-selector.mjs';
 import {MultilingualConversations, planTurnVoice, replyVoice} from './multilingual.mjs';
 
@@ -24,9 +26,9 @@ const code = section('const turnVoices = new Map();', 'const warmUsesConvaiVoice
   + section('async function synthesizeReply(', 'async function status(')
   + section('function continuousSpeech(', 'async function respond(')
   + section('async function respond(', 'const micPath =');
-function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection, jaliFace = null,
+function fixture({local = false, available = true, continuous = false, voiceSelection, jaliFace = null,
   multilingual = new MultilingualConversations()} = {}) {
-  const calls = [], publications = [];
+  const calls = [], publications = [], delivered = [];
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
@@ -36,21 +38,32 @@ function fixture({local = false, available = true, audioFailure = false, continu
   const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, replyStreaming: false, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
     // The voice language packs and Developer mode's last-reply capture (docs/VOICE_LANGUAGE_PACKS.md): none installed, capture off.
     languagePacks: {installed: false}, pocketLanguages: {speaks: () => false, packMissing: () => false, has: () => false, model: () => null, entry: () => null}, pocketLanguageNotice: {note() {}}, replyCapture: {enabled: false}, beginOmniCapture: () => {}, referenceOf: () => null, cloudReferenceOf: () => null,
-    localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed, paceOf: () => null,
+    localVoice: selectedVoice, multilingual, planTurnVoice, replyVoice, variantSeed, paceOf: () => null, omniPace: null,
     ownedPocketFace:()=>{},
-    jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,phraseOffsets,baselineFromSignal,
+    jaliFace,textExpressionSignal,analyseReply,planSignal,createPlanner,baselineFromSignal,
     emotionSelection:new EmotionSelection(),waitLateEmotion,
-    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},logFollowUp:()=>{},streaming:0,writeStreamManifest:async value=>calls.push(['omni-manifest',value]),
-    deliverPocketSpeech: async ({result,profile,speech}) => {
-      calls.push(['pocket-stream',profile.key,result.text]);
-      return {...result,continuous:true,timing:{...result.timing,voiceProvider:'pocket'},
+    splitSpeechText,naturalSpeech:new NaturalSpeech(),OMNI_TAGS,omniTagsFor,speechPhrases,logNaturalSpeech:()=>{},logFollowUp:()=>{},streaming:0,waitUntil,BufferedPcm,delivered,
+    // The delivery function is the one both local voices share. OmniVoice's voice is driven the way deliverPocketSpeech drives it (the whole
+    // reply text, or the held look-ahead's buffer), so the phrases reach the fake worker; Pocket's fake worker is not called here.
+    deliverPocketSpeech: async value => {
+      const {result, profile, speech, voice, voiceKey = profile.key, prefetched, language} = value;
+      calls.push([selectedVoice.provider === 'omni' ? 'omni-stream' : 'pocket-stream', profile.key, result.text]); delivered.push(value);
+      let response;
+      if (selectedVoice.provider === 'omni') {
+        if (prefetched) response = await prefetched.drain(() => {}, {});
+        else {
+          calls.push(['voice-stream', voiceKey, result.text]);
+          response = await voice.synthesizeStream(voiceKey, result.text, {onPcm() {}, role: 'head', ...(language ? {language} : {}), utterance: {decide() {}, settle() {}}});
+        }
+      }
+      return {...result,continuous:true,timing:{...result.timing,voiceProvider:response?.timing?.voiceProvider ?? 'pocket'},
         liveDelivery:{published:speech.published,ended:speech.ended,generated:speech.generated,id:speech.token}};
     },
     throwIfCancelled: () => {}, audioReady: async () => available,
     readSpeechState: async () => ({continuousAvailable: continuous}),
     // The turn path reads the cached copy (bridge/speech-state-cache.mjs); `available` stands for a live heartbeat here.
     readSpeechStateCached: async () => ({available, updated: Date.now(), continuousAvailable: continuous}),
-    audioAvailable: state => state.available === true, prepareSpeech: () => ({discard() {}}), leaseWake: {next: () => undefined},
+    audioAvailable: state => state.available === true, leaseWake: {next: () => undefined},
     readFile: async () => '{}', preparedInputs: new WeakMap(),
     ConvaiContinuousSpeech: class {
       constructor(options) { this.callbacks = options; this.published = true; this.ended = true; this.generated = true; this.token = 'continuous-owner';
@@ -60,7 +73,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
     },
     // Convai sends audio only when the Convai voice is the one speaking: a local voice speaks, or (a local voice that cannot run) nothing does.
     realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !selectedVoice.usesProfile(input.profileKey) && selectedVoice.convaiVoiceAllowed === true}),
-    realtime: {reply: async (config, options) => {
+    realtime: {localPcmBusy: false, reply: async (config, options) => {
       calls.push(['send', config]);
       if (options?.liveSpeech) {
         await options.liveSpeech.onFrame();
@@ -68,16 +81,9 @@ function fixture({local = false, available = true, audioFailure = false, continu
       }
       return config.ttsEnabled ? remote : {...remote, audio: undefined};
     }},
-    prefetch: {invalidate() {}, published: () => calls.push('prefetch-published')},
+    prefetch: {invalidate() {}, published: () => calls.push('prefetch-published')}, jaliFace,
     lookahead: {busy: false, setSource: value => calls.push(['lookahead-source', value.text, value.userText]), cancel() {}},
-    slots: {begin: async () => calls.push('begin-slot'), write: async (id, index, bytes) => {
-      calls.push(['write-slot', index, bytes]); if (audioFailure) throw Error('Fake disk error');
-      return {event: 'convai_reply_0', duration: 0.1};
-    }},
-    SpeechStream,
-    randomUUID: () => 'slot-owner', buildFacialTimeline: result => {
-      if(result.timing?.voiceProvider==='omni')return{source:'local-phonetic'};
-      assert.equal(result.faces,remote.faces);return{source:'convai-arkit61'};},
+    createOmniPcmVoice,
     atomic: async (path, value) => { publications.push([path, JSON.parse(value)]); return true; },
     resolve: (...parts) => parts.join('/'), sessionKey: () => 'exact-session',
     realtimeSessions: new Map(), sessions: new Map(), connections: {used: () => calls.push('used')},
@@ -143,18 +149,20 @@ test('local microphone speech keeps the original submitted receipt when the text
   assert.equal(f.calls.find(value=>value[0]==='knowledge')[1],original);
 });
 
-test('Convai sends once, preserves provider data and publishes one native WAV without text batching', async () => {
+test('the Convai voice chosen on purpose, with no continuous playback in the game, is one written-reply turn: text asked once, no audio, no second request', async () => {
   const f = fixture(), current = async () => true;
   const result = await f.api.respond(f.input, f.profile, {current});
-  assert.equal(result.audio, f.remote.audio); assert.equal(result.faces, f.remote.faces);
-  assert.equal(f.calls.filter(x => Array.isArray(x) && x[0] === 'send').length, 1);
-  assert.ok(!f.calls.includes('split'));
-  assert.equal(result.streamPlan, undefined);
-  await f.api.publishResult(f.input, f.profile, result, current);
-  assert.deepEqual(f.calls.filter(x => Array.isArray(x) && x[0] === 'write-slot'), [['write-slot', 1, f.remote.audio]]);
+  const sends = f.calls.filter(x => Array.isArray(x) && x[0] === 'send');
+  assert.equal(sends.length, 1); assert.equal(sends[0][1].ttsEnabled, false, 'no audio is requested: there is nothing that could play it');
+  assert.ok(!f.calls.includes('split')); assert.equal(result.streamPlan, undefined);
+  assert.equal(result.audio, undefined); assert.equal(result.timing.audioRoute, f.remote.timing.audioRoute, 'provider timing is kept');
+  assert.match(result.audioError, /streaming is unavailable/);
+  assert.equal(await f.api.publishResult(f.input, f.profile, result, current), true);
   const reply = f.publications.find(([path]) => path === 'reply.json')[1];
-  assert.equal(reply.text, f.remote.text); assert.equal(reply.stream, undefined);
-  assert.equal(reply.face.source, 'convai-arkit61');
+  assert.equal(reply.text, f.remote.text); assert.equal(reply.audio, undefined); assert.equal(reply.stream, undefined);
+  assert.match(reply.audioError, /written reply/);
+  assert.equal(f.calls.filter(x => Array.isArray(x) && x[0] === 'send').length, 1);
+  assert.ok(!f.calls.some(x => Array.isArray(x) && String(x[0]).startsWith('write-slot')), 'nothing is written for Audioware');
 });
 
 test('local voice requires continuous game admission instead of collecting a complete WAV or splitting text', async () => {
@@ -173,17 +181,7 @@ test('unavailable native audio uses one identified text turn without a second sy
   assert.equal(result.audio, undefined);
 });
 
-test('failed native audio preparation preserves the complete text without retrying the provider', async () => {
-  const f = fixture({audioFailure: true});
-  const result = await f.api.respond(f.input, f.profile);
-  await f.api.publishResult(f.input, f.profile, result);
-  const reply = f.publications.find(([path]) => path === 'reply.json')[1];
-  assert.equal(reply.text, f.remote.text); assert.equal(reply.audio, undefined);
-  assert.match(reply.audioError, /written reply/);
-  assert.equal(f.calls.filter(x => Array.isArray(x) && x[0] === 'send').length, 1);
-});
-
-test('loaded Convai streaming controller bypasses Omni batching and completed-WAV publication', async () => {
+test('the loaded Convai streaming controller speaks the Convai voice live: one send, one admission, and no second reply replaces it', async () => {
   const f = fixture({continuous: true}), current = async () => true;
   const result = await f.api.respond(f.input, f.profile, {current});
   assert.equal(result.continuous, true); assert.equal(result.liveDelivery.ended, true);
@@ -191,7 +189,6 @@ test('loaded Convai streaming controller bypasses Omni batching and completed-WA
   assert.equal(f.calls.filter(x => Array.isArray(x) && x[0] === 'send').length, 1);
   assert.ok(!f.calls.includes('split')); assert.equal(result.streamPlan, undefined);
   assert.equal(await f.api.publishResult(f.input, f.profile, result, current), true);
-  assert.ok(!f.calls.includes('begin-slot'));
   assert.equal(f.publications.length, 0, 'no second reply or native WAV replaces the live admission');
   assert.equal(f.realtimeSessions.get('exact-session'), 'test-session');
 });
@@ -263,9 +260,10 @@ test('a chosen local voice that cannot run: Convai sends no audio, no Convai liv
     assert.equal(result.text, f.remote.text, 'the written reply is intact');
   }
   // The Convai voice chosen on purpose still speaks.
-  const chosen = fixture({voiceSelection: {provider: 'convai', usesProfile: () => false, convaiVoiceAllowed: true}, continuous: false});
+  const chosen = fixture({voiceSelection: {provider: 'convai', usesProfile: () => false, convaiVoiceAllowed: true}, continuous: true});
   const spoken = await chosen.api.respond(chosen.input, chosen.profile, {current: async () => true});
-  assert.equal(chosen.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, true); assert.equal(spoken.audio, chosen.remote.audio);
+  assert.equal(chosen.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, true);
+  assert.equal(spoken.continuous, true); assert.equal(spoken.audio, undefined); assert.equal(chosen.calls.filter(value => value === 'live-frame').length, 1, 'the Convai voice is played live');
 });
 
 // A group look-ahead turn is generated while the previous speaker is audible and
@@ -314,23 +312,30 @@ test('cancelling a held Pocket turn stops its synthesis and never reaches the re
   assert.equal(synthesisSignal.aborted, true); assert.equal(delivered.length, 0);
 });
 
-test('a held Omni turn waits for the previous speaker to finish rendering phrases before queueing GPU work', async () => {
-  const f = fixture({continuous: true}), ahead = heldTurn(), order = [];
+test('a held Omni turn waits for the previous speaker to finish rendering phrases before queueing GPU work, then renders into memory until it is claimed', async () => {
+  const f = fixture({continuous: true}), ahead = heldTurn(), order = [], delivered = [];
   const current = async () => true; current.ahead = ahead;
   const localVoice = {provider: 'omni', steps: 16, usesProfile: () => true, synthesize: async (profile, text) => {
-    order.push('gpu'); return {audio: 'AAAA', faces: [], captions: [], timing: {}};
+    order.push('gpu'); return {audio: encodePcmWav(new Float32Array(12000).fill(.1), 24000), timing: {}};
   }};
-  const sandbox = {...f, localVoice, waitUntil, BufferedPcm, streaming: 1, jaliFace: null};
+  const sandbox = {...f, localVoice, streaming: 1, jaliFace: null,
+    deliverPocketSpeech: async value => { delivered.push(value); await value.prefetched.drain(() => {}, {}); return {...value.result, continuous: true}; }};
   runInNewContext(code + ';globalThis.run=synthesizeReply;globalThis.finish=()=>{streaming=0;};', sandbox);
   const running = sandbox.run(f.input, {...f.remote, audio: undefined}, undefined, current, f.profile);
   await new Promise(done => setTimeout(done, 120));
   assert.deepEqual(order, [], 'queueing behind the previous speaker would delay its next phrase');
-  sandbox.finish(); const result = await running;
-  assert.ok(order.length >= 1); assert.equal(typeof result.audio, 'string');
+  sandbox.finish(); await new Promise(done => setTimeout(done, 120));
+  assert.ok(order.length >= 1, 'the look-ahead renders as soon as the previous speaker has finished its phrases');
+  assert.equal(delivered.length, 0, 'nothing reaches the single renderer while the previous speaker is audible');
+  ahead.claim(); const result = await running;
+  assert.equal(delivered.length, 1); assert.equal(result.continuous, true);
+  assert.equal(order.length, splitSpeechText(f.remote.text).length, 'each phrase was rendered once, not again after the claim');
   // An ordinary (not held) turn never waits.
-  const normal = fixture({continuous: true}), plain = {...normal, localVoice, waitUntil, BufferedPcm, streaming: 1, jaliFace: null};
+  const normal = fixture({continuous: true, voiceSelection: localVoice}), plain = {...normal, localVoice, streaming: 1, jaliFace: null};
+  const before = order.length;
   runInNewContext(code + ';globalThis.run=synthesizeReply;', plain);
   await plain.run(normal.input, {...normal.remote, audio: undefined}, undefined, async () => true, normal.profile);
+  assert.ok(order.length > before, 'a turn that is not held starts rendering at once');
 });
 
 const turn = () => new Promise(resolve => setImmediate(resolve));
@@ -436,51 +441,63 @@ test('the routing boundary includes text, continuous audio, microphone, phone an
   f.context.phone.active = null; assert.equal(f.api.voiceBoundaryBusy(), false);
 });
 
-test('Omni16 and32 use one original text reply then their separate native phrase/phonetic pipeline',async()=>{
-  for(const steps of [16,32]){
-    const generated=[],voice={provider:'omni',steps,usesProfile:()=>true,
-      async synthesize(key,text,options){generated.push({key,text,steps:options.steps});
-        return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
-    const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
-    f.remote.text='We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
-    const result=await f.api.respond(f.input,f.profile,{current});
-    assert.equal(f.calls.find(value=>Array.isArray(value)&&value[0]==='send')[1].ttsEnabled,false);
-    assert.equal(result.continuous,undefined);assert.equal(result.streamPlan.steps,steps);
-    // Phrase 2 is queued beside phrase 1 so the GPU renders it during phrase 1's
-    // lip analysis and publication; it is handed to the stream, never rendered twice.
-    assert.equal(generated.length,2);assert.equal(generated[1].text,result.streamPlan.phrases[1]);
-    assert.ok(generated.every(value=>value.steps===steps));
-    assert.ok(!f.calls.some(value=>Array.isArray(value)&&value[0]==='pocket-stream'));
-    // Publication uses actual SpeechStream; fixed steps survive every phrase.
-    await f.api.publishResult(f.input,f.profile,result,current);
-    assert.equal(generated.length,result.streamPlan.phrases.length);
-    assert.ok(generated.every(value=>value.steps===steps));
-    assert.equal(f.calls.filter(value=>Array.isArray(value)&&value[0]==='send').length,1);
-    const reply=f.publications.find(([path])=>path==='reply.json')[1];
-    assert.ok(reply.audio&&reply.stream);assert.equal(reply.continuous,undefined);
+const wavOf = (seconds = .5) => encodePcmWav(new Float32Array(Math.round(24000 * seconds)).fill(.1), 24000);
+
+test('Omni16 and32 use one original text reply, then the whole reply goes to the shared delivery and its phrases are rendered at that quality', async () => {
+  for (const steps of [16, 32]) {
+    const generated = [], voice = {provider: 'omni', steps, usesProfile: () => true,
+      async synthesize(key, text, options) { generated.push({key, text, steps: options.steps}); return {audio: wavOf(), faces: [], captions: [], timing: {voiceProvider: 'omnivoice'}}; }};
+    const f = fixture({voiceSelection: voice, continuous: true}), current = async () => true;
+    f.remote.text = 'We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
+    const result = await f.api.respond(f.input, f.profile, {current});
+    assert.equal(f.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, false, 'Convai is asked for text only');
+    assert.equal(f.calls.filter(value => Array.isArray(value) && value[0] === 'send').length, 1);
+    assert.equal(result.continuous, true); assert.equal(result.streamPlan, undefined); assert.equal(result.audio, undefined);
+    assert.equal(result.timing.voiceProvider, 'omni');
+    // OmniVoice is delivered by the same function as Pocket, once, with the whole text; its phrases are what the worker renders.
+    assert.deepEqual(f.calls.filter(value => Array.isArray(value) && value[0] === 'omni-stream'), [['omni-stream', f.profile.key, f.remote.text]]);
+    assert.ok(!f.calls.some(value => Array.isArray(value) && value[0] === 'pocket-stream'));
+    assert.deepEqual(generated.map(value => value.text), splitSpeechText(f.remote.text));
+    assert.ok(generated.length >= 2 && generated.every(value => value.steps === steps && value.key === f.profile.key));
+    // The live admission is the reply: nothing else is published for it.
+    assert.equal(await f.api.publishResult(f.input, f.profile, result, current), true);
+    assert.equal(f.publications.find(([path]) => path === 'reply.json'), undefined);
+    assert.equal(generated.length, splitSpeechText(f.remote.text).length, 'publishing renders nothing again');
   }
 });
 
-test('with local facial weights Omni phrases use the game-trained model; when it fails, or there is none, the line plays on its audio envelope with no other analyser',async()=>{
-  const analysed=[],voice={provider:'omni',steps:32,usesProfile:()=>true,
-    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
-  const jaliFace={async analyseWav(audio){analysed.push(audio);return{jaliFrames:{model:true},timing:{lipEngine:'jali-audio-v1'}};}};
-  const f=fixture({voiceSelection:voice,continuous:true,jaliFace});
-  const result=await f.api.respond(f.input,f.profile,{current:async()=>true});
-  assert.equal(analysed.length,1);assert.deepEqual(result.jaliFrames,{model:true});
-  assert.equal(result.timing.lipEngine,'jali-audio-v1');
-  const failing=fixture({voiceSelection:voice,continuous:true,jaliFace:{async analyseWav(){throw Error('worker stopped');}}});
-  const fallback=await failing.api.respond(failing.input,failing.profile,{current:async()=>true});
-  assert.equal(fallback.jaliFrames,undefined);assert.equal(fallback.mouthCues,undefined);assert.equal(fallback.mouthCuesFormat,undefined);
-  assert.equal(fallback.timing.voiceProvider,'omni');assert.equal(fallback.timing.lipEngine,undefined);
-  const without=fixture({voiceSelection:voice,continuous:true});
-  const bare=await without.api.respond(without.input,without.profile,{current:async()=>true});
-  assert.equal(bare.mouthCues,undefined);assert.equal(bare.jaliFrames,undefined);assert.equal(bare.timing.voiceProvider,'omni');
+test('OmniVoice with no continuous playback in the game is a written reply: nothing is rendered and the Convai voice is never asked', async () => {
+  const generated = [], voice = {provider: 'omni', steps: 16, usesProfile: () => true,
+    async synthesize(key, text) { generated.push(text); return {audio: wavOf(), faces: [], captions: [], timing: {}}; }};
+  const f = fixture({voiceSelection: voice, continuous: false}), current = async () => true;
+  const result = await f.api.respond(f.input, f.profile, {current});
+  assert.equal(f.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, false);
+  assert.equal(result.audio, undefined); assert.match(result.audioError, /streaming is unavailable/);
+  assert.equal(generated.length, 0); assert.equal(f.delivered.length, 0);
+  assert.equal(result.continuous, undefined);
+});
+
+test('with local facial weights the game-trained model reaches OmniVoice\'s delivery as it does Pocket\'s; with none there is no analyser, and no separate lip analysis runs', async () => {
+  const voice = {provider: 'omni', steps: 32, usesProfile: () => true,
+    async synthesize() { return {audio: wavOf(), faces: [], captions: [], timing: {voiceProvider: 'omnivoice'}}; }};
+  const jaliFace = {begin() { return {}; }};
+  const f = fixture({voiceSelection: voice, continuous: true, jaliFace});
+  const result = await f.api.respond(f.input, f.profile, {current: async () => true});
+  assert.equal(f.delivered[0].jaliFace, jaliFace, 'the streaming face model is the one handed to the delivery');
+  assert.equal(f.delivered[0].phoneAnalysis, undefined, 'no separate recogniser runs for OmniVoice');
+  assert.equal(result.timing.voiceProvider, 'omni'); assert.equal(result.timing.lipEngine, undefined);
+  assert.equal(result.jaliFrames, undefined); assert.equal(result.mouthCues, undefined);
+  // The face comes from the same face builder as Pocket's: the audio the renderer plays, on its own clock (no per-phrase face file).
+  assert.equal(typeof f.delivered[0].speech.callbacks.faceBuilder, 'function');
+  const without = fixture({voiceSelection: voice, continuous: true});
+  const bare = await without.api.respond(without.input, without.profile, {current: async () => true});
+  assert.equal(without.delivered[0].jaliFace, null); assert.equal(bare.timing.voiceProvider, 'omni');
+  assert.equal(bare.mouthCues, undefined); assert.equal(bare.jaliFrames, undefined);
 });
 
 test('local voices get the context selector: sad text is sad, a plain reply rests neutral, Convai voices keep provider metadata',async()=>{
   const voice={provider:'omni',steps:32,usesProfile:()=>true,
-    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    async synthesize(){return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const f=fixture({voiceSelection:voice,continuous:true});
   f.remote.text='I miss him. Jackie was family, and now he is gone. Sorry.';
   const local=await f.api.respond(f.input,f.profile,{current:async()=>true});
@@ -504,7 +521,7 @@ test('local voices get the context selector: sad text is sad, a plain reply rest
 
 test('a text-only turn uses Convai\'s late emotion when it arrives before the first Omni phrase is ready',async()=>{
   const voice={provider:'omni',steps:32,usesProfile:()=>true,
-    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    async synthesize(){return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const f=fixture({voiceSelection:voice,continuous:true});
   f.remote.text='Some days are easier than others. Thanks for asking.';
   const reply=f.realtime.reply, reads=[];
@@ -625,7 +642,7 @@ test('Natural speech: OmniVoice voices the tags the model wrote while every show
   for(const enabled of [true,false]){
     const generated=[],voice={provider:'omni',steps:16,usesProfile:()=>true,
       async synthesize(key,text){generated.push(text);
-        return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+        return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
     const f=fixture({voiceSelection:voice,continuous:true}),current=async()=>true;
     f.naturalSpeech.update({naturalSpeech:enabled});
     f.remote.text=clean;f.remote.speechText=raw;
@@ -633,13 +650,13 @@ test('Natural speech: OmniVoice voices the tags the model wrote while every show
     await f.api.publishResult(f.input,f.profile,result,current);
     assert.equal(result.text,clean);
     const voiced=generated.join(' ');
-    if(enabled){assert.match(generated[0],/\[sigh\]/);assert.match(voiced,/\[laughter\]/);}
-    else assert.ok(!/\[/.test(voiced),'setting off: no tag is voiced');
-    const reply=f.publications.find(([path])=>path==='reply.json')[1];
-    assert.equal(reply.text,clean);assert.ok(!/\[/.test(reply.text));
-    const manifests=f.calls.filter(value=>Array.isArray(value)&&value[0]==='omni-manifest');
-    assert.ok(manifests.length>0);
-    assert.ok(manifests.every(([,manifest])=>manifest.chunks.every(chunk=>!/\[/.test(chunk.text))),'no tag in a stream chunk');
+    if(enabled){assert.match(generated[0],/\[sigh\]/);assert.match(voiced,/\[laughter\]/);assert.equal(voiced.replace(/ ?\[[a-z-]+\]/g,''),clean);}
+    else assert.deepEqual(generated,splitSpeechText(clean),'setting off: no tag is voiced');
+    // The voice, the delivery (its subtitles and the face's text) and the published reply are given the clean text only: tags exist only in what the worker renders.
+    assert.deepEqual(f.calls.filter(value=>Array.isArray(value)&&value[0]==='voice-stream').map(value=>value[2]),[clean]);
+    assert.ok(f.calls.filter(value=>Array.isArray(value)&&value[0]==='omni-stream').every(value=>!/\[/.test(value[2])));
+    assert.ok(f.delivered.every(value=>!/\[/.test(value.result.text)));
+    assert.ok(!/\[/.test(result.text));
   }
 });
 
@@ -657,9 +674,9 @@ const EMOTION_TEXT = 'We have a long enough original sentence to produce the fir
 const EMOTION_MARKS = [{at: 0, name: 'joy', strength: 'subtle'},
   {at: EMOTION_TEXT.indexOf('Then'), name: 'sadness', strength: 'strong'}];
 
-test('Expressive emotions: OmniVoice plans each phrase from the character\'s own marks, and the text reading is the fallback',async()=>{
+test('Expressive emotions: OmniVoice is planned from the character\'s own marks by the same continuous planner as Pocket, and the text reading is the fallback',async()=>{
   const voice={provider:'omni',steps:16,usesProfile:()=>true,
-    async synthesize(){return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+    async synthesize(){return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
   const f=fixture({voiceSelection:voice,continuous:true});
   f.remote.text=EMOTION_TEXT;f.remote.emotionMarks=EMOTION_MARKS;
   const marked=await f.api.respond(f.input,f.profile,{current:async()=>true});
@@ -667,14 +684,18 @@ test('Expressive emotions: OmniVoice plans each phrase from the character\'s own
   assert.ok(plan.segments.every(segment=>segment.tags.includes('llm-emotion')));
   assert.equal(plan.segments.find(segment=>segment.start===0).dominant,'joy');
   assert.equal(plan.segments.find(segment=>segment.start===second).dominant,'sadness');
-  assert.equal(marked.streamPlan.expressionPlan,plan,'the stream hands each phrase its own slice of this plan');
-  assert.equal(marked.streamPlan.spans[1][0],second,'the second phrase opens at the sad mark');
+  assert.equal(marked.streamPlan,undefined,'no per-phrase plan: one plan for the whole reply');
   assert.ok(planSignal(plan).emotion,'the reply-level cue comes from the marks');
+  // The planner the continuous speech re-runs as the audio arrives has the marks too.
+  const planned=f.delivered[0].speech.callbacks.planExpression(EMOTION_TEXT);
+  assert.equal(planned.segments.find(segment=>segment.start===second).dominant,'sadness');
+  assert.ok(planned.segments.every(segment=>segment.tags.includes('llm-emotion')));
   // No marks in the reply: the text-based plan, exactly as before.
   const plainFixture=fixture({voiceSelection:voice,continuous:true});
   plainFixture.remote.text=EMOTION_TEXT;
   const plain=await plainFixture.api.respond(plainFixture.input,plainFixture.profile,{current:async()=>true});
   assert.ok(plain.expressionPlan.segments.every(segment=>!segment.tags.includes('llm-emotion')));
+  assert.ok(plainFixture.delivered[0].speech.callbacks.planExpression(EMOTION_TEXT).segments.every(segment=>!segment.tags.includes('llm-emotion')));
 });
 
 test('Expressive emotions: Pocket\'s streaming planner is given the marks, and a reply without marks keeps the text reading',async()=>{
@@ -701,7 +722,7 @@ function multilingualVoice({provider='pocket'}={}){
   const generated=[];
   return {generated,provider,steps:provider==='omni'?16:undefined,usesProfile:()=>true,
     async synthesize(key,text,options){generated.push({key,text,language:options.language,steps:options.steps});
-      return{audio:silentWav().toString('base64'),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
+      return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
 }
 const multilingualOn=()=>new MultilingualConversations();
 // The fixture's realtimeConfig mirrors the bridge: Convai TTS only when the turn does not use a local voice.
@@ -733,7 +754,7 @@ test('with OmniVoice: Spanish and Japanese turns stay local and every phrase get
     assert.equal(sent(f).ttsEnabled,false);assert.ok(!pocketUsed(f));
     await f.api.publishResult(f.input,f.profile,result,async()=>true);
     assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language===language&&value.steps===16),language);
-    if(result.streamPlan)assert.equal(voice.generated.length,result.streamPlan.phrases.length);
+    assert.deepEqual(voice.generated.map(value=>value.text),splitSpeechText(reply),'every phrase of the reply, once');
     assert.equal(f.multilingual.lastLanguage,language,'the exchange language predicts the next turn without text');
   }
 });
@@ -818,25 +839,26 @@ test('a held Pocket turn prefetches with the same variant its delivery uses, dec
   assert.equal(voice.asked.length, 1, 'one pick per turn');
 });
 
-test('every Omni phrase of a turn, including the stream the publication renders, uses the one picked variant', async () => {
+test('every Omni phrase of a turn, whatever renders it, uses the one picked variant', async () => {
   const generated = [], voice = variantVoice(['npc-fixer-male-v2', 'npc-fixer-male-v4', 'npc-fixer-male-v3']);
   voice.synthesize = async (key, text, options) => { generated.push(key);
-    return {audio: silentWav().toString('base64'), faces: [], captions: [], timing: {voiceProvider: 'omnivoice'}}; };
+    return {audio: wavOf(), faces: [], captions: [], timing: {voiceProvider: 'omnivoice'}}; };
   voice.provider = 'omni';
   const f = fixture({voiceSelection: voice, continuous: true}), current = async () => true;
   f.input = ambientTurn(); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
   f.remote.text = 'We have a long enough original sentence to produce the first local phrase. Then we have another long enough sentence for the following phrase.';
   const result = await f.api.respond(f.input, f.profile, {current});
-  assert.equal(result.streamPlan.voiceKey, 'npc-fixer-male-v2');
+  assert.deepEqual(f.calls.filter(value => Array.isArray(value) && value[0] === 'voice-stream').map(value => value[1]), ['npc-fixer-male-v2'], 'the voice is asked for by the picked variant');
+  assert.equal(f.delivered[0].voiceKey, 'npc-fixer-male-v2');
   await f.api.publishResult(f.input, f.profile, result, current);
   assert.ok(generated.length >= 2); assert.ok(generated.every(key => key === 'npc-fixer-male-v2'), generated.join());
   assert.equal(voice.asked.length, 1);
-  assert.equal(f.publications.find(([path]) => path === 'reply.json')[1].profile, 'npc-fixer-male', 'the reply still names the profile');
+  assert.equal(f.delivered[0].profile.key, 'npc-fixer-male', 'the delivery still names the profile');
 });
 
 test('a voice without variants keeps the profile key for every call', async () => {
   const generated = [], voice = {provider: 'omni', steps: 16, usesProfile: () => true, voiceKeyFor: profile => profile,
-    async synthesize(key) { generated.push(key); return {audio: silentWav().toString('base64'), faces: [], captions: [], timing: {}}; }};
+    async synthesize(key) { generated.push(key); return {audio: wavOf(), faces: [], captions: [], timing: {}}; }};
   const f = fixture({voiceSelection: voice, continuous: true});
   f.input = ambientTurn(); f.profile = {key: 'npc-fixer-male', name: 'Fixer'};
   await f.api.respond(f.input, f.profile, {current: async () => true});

@@ -1,8 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {PcmChunkStream, ConvaiAudioStream, encodePcmWav, sliceFaces} from './convai-audio-stream.mjs';
-import {SpeechSlots} from './speech-stream.mjs';
-import {inspectWav} from './speech-audio.mjs';
+import {PcmChunkStream, encodePcmWav, sliceFaces, validateConvaiAudioChunk} from './convai-audio-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
 const tick = () => new Promise(done => setImmediate(done));
@@ -118,72 +116,19 @@ test('per-chunk spoken events are offset to that chunk and do not get repeated o
   assert.equal(rows[2].captions.length, 0);
 });
 
-function publisher() {
-  const h = {state: {}, current: true, writes: [], manifests: [], waiters: [], time: Date.now()};
-  const input = {requestId: 'request-one', generation: 4, entity: 'judy-copy'};
-  const slots = new SpeechSlots({depot: 'unused', readState: async () => h.state,
-    store: async (audio, depot, slot) => {
-      assert.notEqual(slot, h.state.requestId && h.state.slot);
-      h.writes.push(slot); return {slot, event: `convai_reply_${slot}`, ...inspectWav(Buffer.from(audio, 'base64'))};
-    }});
-  h.stream = new ConvaiAudioStream({input, streamId: 'stream-one', slots, current: async () => h.current,
-    readState: async () => h.state, writeManifest: async doc => h.manifests.push(structuredClone(doc)),
-    buildFace: row => ({source: 'fixture', at: row.startSeconds}), now: () => h.time,
-    wait: () => new Promise(done => h.waiters.push(done))});
-  h.ack = (completed, extra = {}) => {
-    h.state = {streamId: 'stream-one', requestId: input.requestId, state: 'playing', updated: h.time,
-      completedChunk: completed, slot: h.writes[completed], ...extra};
-    h.waiters.splice(0).forEach(done => done());
-  };
-  return h;
-}
-
-test('native manifest starts without a guessed total and finalizes without publishing the first chunk twice', async () => {
-  const h = publisher();
-  const first = await h.stream.append(chunk(1, 0));
-  assert.equal(first.index, 1); assert.equal(h.writes.length, 1);
-  assert.equal(h.stream.descriptor().version, 2); assert.equal(h.stream.descriptor().total, null);
-  assert.equal(h.manifests[0].bufferedDuration, 1); assert.equal(h.manifests[0].complete, false);
-  h.ack(0); await h.stream.append(chunk(2, 1));
-  await h.stream.finish({streamed: true, stream: {chunks: 2, duration: 2}, text: 'The final complete reply.'});
-  assert.equal(h.writes.length, 2);
-  assert.equal(h.manifests.at(-1).complete, true); assert.equal(h.manifests.at(-1).total, 2);
-  assert.equal(h.manifests.at(-1).text, 'The final complete reply.');
-  await h.stream.finish({}); // idempotent after final manifest
-  assert.equal(h.manifests.length, 3);
-});
-
-test('publisher backpressure protects native slots and rejects stale consumer ownership', async () => {
-  const h = publisher();
-  await h.stream.append(chunk(1, 0)); h.ack(0);
-  await h.stream.append(chunk(2, 1)); await h.stream.append(chunk(3, 2));
-  const blocked = h.stream.append(chunk(4, 3)); blocked.catch(() => {}); await tick();
-  assert.equal(h.writes.length, 3);
-  h.ack(0, {paused: true}); await tick(); assert.equal(h.writes.length, 3);
-  h.ack(1); await blocked; assert.equal(h.writes.length, 4);
-  h.ack(1, {requestId: 'another-request'});
-  await assert.rejects(h.stream.append(chunk(5, 4)), {name: 'AbortError'});
-  assert.equal(h.writes.length, 4);
-});
-
-test('native errors preserve only actually published segments and cancellation publishes nothing new', async () => {
-  const h = publisher(); await h.stream.append(chunk(1, 0));
-  await h.stream.fail(Error('network disappeared'));
-  assert.equal(h.manifests.at(-1).complete, true); assert.equal(h.manifests.at(-1).total, 1);
-  assert.match(h.manifests.at(-1).error, /rest of the voice/);
-  const second = publisher(); await second.stream.append(chunk(1, 0));
-  second.current = false;
-  await second.stream.fail(Error('old world disconnected'));
-  assert.equal(second.manifests.length, 1);
-});
-
-test('malformed indices, discontinuous clocks and final duration mismatches cannot be committed', async () => {
-  const h = publisher();
-  await assert.rejects(h.stream.append(chunk(2, 0)), /Invalid realtime/);
-  await h.stream.append(chunk(1, 0));
-  await assert.rejects(h.stream.append(chunk(2, .5)), /Invalid realtime/);
-  await assert.rejects(h.stream.finish({streamed: true, stream: {chunks: 1, duration: 5}, text: 'Hello'}), /Incomplete/);
-  assert.equal(h.manifests.at(-1).complete, false);
+test('a Convai audio chunk is validated for index, a continuous clock, duration, audio and text before it is used', () => {
+  const ok = chunk(1, 0);
+  assert.equal(validateConvaiAudioChunk(ok, {index: 1, startSeconds: 0}), ok);
+  assert.throws(() => validateConvaiAudioChunk(chunk(2, 0), {index: 1}), /Invalid realtime audio chunk/);
+  assert.throws(() => validateConvaiAudioChunk(chunk(2, .5), {index: 2, startSeconds: 1}), /Invalid realtime audio chunk/);
+  for (const bad of [null, {...ok, version: 2}, {...ok, index: 0}, {...ok, index: 1.5}, {...ok, startSeconds: -1}, {...ok, duration: .01},
+    {...ok, duration: 5}, {...ok, audio: 'not base64!'}, {...ok, audio: ''}, {...ok, text: '  '}, {...ok, textComplete: 'yes'}]) {
+    assert.throws(() => validateConvaiAudioChunk(bad), /Invalid realtime audio chunk/);
+  }
+  assert.throws(() => validateConvaiAudioChunk({...ok, faces: 'x'}), /Invalid realtime face slice/);
+  assert.throws(() => validateConvaiAudioChunk({...ok, captions: new Array(600).fill({})}), /Invalid realtime caption slice/);
+  assert.throws(() => validateConvaiAudioChunk({...ok, speechSegment: {version: 1, index: 1, startSeconds: 0, first: false, last: false}}), /boundary/);
+  assert.ok(validateConvaiAudioChunk({...ok, speechSegment: {version: 1, index: 1, startSeconds: 0, first: true, last: false}}));
 });
 
 test('all host operations reject the retired audio callback before starting a browser', async () => {

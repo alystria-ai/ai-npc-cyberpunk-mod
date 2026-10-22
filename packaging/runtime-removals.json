@@ -4,6 +4,16 @@
   "red4ext/plugins/AiNpcCyberpunkMod/app/defaults/service.txt",
   "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-key.mjs",
   "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-steering.mjs",
-  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-voice.mjs"
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/inworld-voice.mjs",
+  "red4ext/plugins/AiNpcCyberpunkMod/app/bridge/speech-stream.mjs",
+  "r6/audioware/CyberpunkConvai/speech.yml",
+  "r6/audioware/CyberpunkConvai/reply-0.wav",
+  "r6/audioware/CyberpunkConvai/reply-1.wav",
+  "r6/audioware/CyberpunkConvai/reply-2.wav",
+  "r6/audioware/CyberpunkConvai/reply-3.wav",
+  "r6/audioware/CyberpunkConvai/reply-4.wav",
+  "r6/audioware/CyberpunkConvai/reply-5.wav",
+  "r6/audioware/CyberpunkConvai/reply-6.wav",
+  "r6/audioware/CyberpunkConvai/reply-7.wav"
  ]
 }
