@@ -5,7 +5,7 @@ import {witnessReceiptsReader} from './witness-receipts.mjs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archetypeContext, isAmbientProfile, parseInput, profileFor} from './protocol.mjs';
-import {configureKnowledgeParts} from './knowledge-parts.mjs';
+import {configureKnowledgeParts, knowledgePartWatchers, preloadKnowledgePart} from './knowledge-parts.mjs';
 import {audioReady, prepareSpeech} from './speech-audio.mjs';
 import {createSpeechStateReader, audioAvailable} from './speech-state-cache.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
@@ -869,6 +869,9 @@ async function pollPhone() {
 const inputPath = resolve(runtime, 'last-input.json');
 // Requests name the world and journal parts the game publishes beside them (mod/knowledge-parts.lua); parseInput rebuilds them.
 configureKnowledgeParts({runtimeDir: runtime});
+// What the game published before this bridge started is read, parsed and frozen once now, a little after start-up, not by the first turn (the watcher below does the same
+// for every later revision): bridge/knowledge-parts.mjs preloadKnowledgePart.
+setTimeout(() => { for (const name of ['world', 'active', 'history']) void preloadKnowledgePart(name); }, 2000).unref();
 const replyPath = resolve(runtime, 'reply.json');
 const statusPath = resolve(runtime, 'bridge-status.json');
 const prefetchPath = resolve(runtime, 'group-prefetch.json');
@@ -3598,6 +3601,8 @@ watchFiles(runtime, {
   'last-input.json': tick,
   'microphone-command.json': () => pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)),
   'phone-chat-input.json': () => pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)),
+  // A new revision of the world facts or the journal rows is read and parsed as the game publishes it, so the turn that names it finds it in memory.
+  ...knowledgePartWatchers(),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
   // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons. The player's state files too: the copy
