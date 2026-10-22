@@ -40,14 +40,17 @@ export async function mistralProvider() {
 
 let llama = null;
 /** Starts the installed Local AI model (one at a time) and returns the server. `pin`: 'lite' (Bonsai 2 4B) or a model id. */
-export async function startLocal({pin = 'lite', log = () => {}} = {}) {
+export async function startLocal({pin = 'lite', mature = false, log = () => {}} = {}) {
   const {detectLocalAiPack} = await import('../../bridge/local-ai-pack.mjs');
   const {LocalLlmServer} = await import('../../bridge/local-llm-server.mjs');
   const pack = detectLocalAiPack({project: APP});
+  const {detectMaturePack} = await import('../../bridge/mature-pack.mjs');
+  const found = detectMaturePack({project: APP});
+  const matureModels = found.installed ? found.models : [];
   if (!pack.installed) throw Error(`Local AI pack not usable: missing ${pack.missing.join(', ')}`);
   await mkdir(dataDir, {recursive: true});
   llama = new LocalLlmServer({pack, warmup: false, stateFile: resolve(dataDir, 'local-ai-state.audit.json'), log,
-    selection: () => ({pin, matureOn: false, matureModels: [], customModels: []})});
+    selection: () => ({pin, matureOn: mature, matureModels: mature || String(pin).startsWith('mature:') ? matureModels : [], customModels: []})});
   const handle = await llama.ensure();
   return {server: llama, handle, status: llama.status()};
 }
