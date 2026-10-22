@@ -2197,12 +2197,13 @@ end
 -- A global, so onUpdate's closure gains no upvalue.
 convaiInMenu = function()
     local cache = convaiHeartbeat
+    -- One read per frame (the frame's flags from ConvaiFrameFlags seed it): the world-ready check, the reply's pause test and the
+    -- other readers of a frame share it.
+    if cache.menuFrame == cache.frame then return cache.menuValue end
     if not cache.menuDefinition then
         local definition = Game.GetAllBlackboardDefs().UI_System
         cache.menuFlag, cache.menuDefinition = definition.IsInMenu, definition
     end
-    -- One read per frame: the world-ready check, the reply's pause test and the other readers of a frame share it.
-    if cache.menuFrame == cache.frame then return cache.menuValue end
     local value = Game.GetBlackboardSystem():Get(cache.menuDefinition):GetBool(cache.menuFlag)
     cache.menuFrame, cache.menuValue = cache.frame, value
     return value
@@ -4284,13 +4285,32 @@ end)
 -- onUpdate's native checks as plain functions that take what they read: a pcall(function() ... end) inside onUpdate built a
 -- new closure (and boxed the locals it captured) on every frame. Globals, so the onUpdate closure gains no upvalue.
 -- V attached, alive and past the main menu: true and the requests handler (the pause check reuses it), or false.
+-- The frame's world facts come from ONE redscript call, ConvaiFrameFlags (Composer.reds), a bit mask: attached 1, dead 2, pre-game 4,
+-- game paused 8, in a menu 16, composer open 32, phone open 64. That replaces about eleven native calls a frame (the session and
+-- world checks and the phone read). Scripts without the method (an old install, a failed compile) keep the separate calls, tried
+-- again after 1200 frames.
 convaiSessionReady = function(player, suspended)
-    if suspended or not player or not player:IsAttached() or player:IsDeadNoStatPool() then return false end
+    if suspended or not player then return false end
+    local state = convaiHeartbeat
+    local flagsOk, flags
+    if state.frame >= (state.flagsRetryAt or 0) then
+        flagsOk, flags = pcall(convaiInvoke, player, 'ConvaiFrameFlags')
+        if flagsOk and type(flags) == 'number' then
+            state.flags, state.flagsFrame, state.menuFrame, state.menuValue = flags, state.frame, state.frame, flags % 32 >= 16
+            -- Second result: the state table itself, which convaiWorldReady and the phone read recognise.
+            return flags % 2 >= 1 and flags % 4 < 2 and flags % 8 < 4, state
+        end
+    end
+    if not player:IsAttached() or player:IsDeadNoStatPool() then return false end
     local requests = Game.GetSystemRequestsHandler()
+    -- The separate calls worked where the flags call did not: the method is missing.
+    if flagsOk ~= nil then state.flagsRetryAt = state.frame + 1200 end
     return not requests:IsPreGame(), requests
 end
 -- The game runs, no menu is open and the composer is closed.
 convaiWorldReady = function(requests, player)
+    local state = convaiHeartbeat
+    if requests == state then return state.flagsFrame == state.frame and state.flags % 64 < 8 end
     return not requests:IsGamePaused() and not convaiInMenu() and not player:ConvaiComposerOpen()
 end
 -- object:method() for a method without arguments, called inside the caller's pcall (no closure per call).
@@ -4431,7 +4451,9 @@ registerForEvent('onUpdate', function(delta)
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
-    local phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen')
+    local phoneRead, phoneOpen
+    if convaiHeartbeat.flagsFrame == convaiHeartbeat.frame then phoneRead, phoneOpen = true, convaiHeartbeat.flags % 128 >= 64
+    else phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen') end
     phoneOpen = phoneRead and phoneOpen == true
     local phoneActionOk, phoneActionError = true, nil
     if phoneDrainDue(phoneOpen) then
