@@ -5,12 +5,12 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## What's new in 0.2.9
 
 - **Fewer mods needed**: Audioware and TweakXL are no longer needed. Voices play through the mod's own audio, so game patches that break Audioware no longer silence the mod. If you still have either installed, nothing changes for you.
-- **OpenRouter**: page addresses from the OpenRouter website work in the model row, and models that must think before they answer are recognised.
-- **No yellow border**: the companions' picture of what they see no longer puts a yellow border around the game.
+- **OpenRouter**: paste a page address from the OpenRouter website as the Custom endpoint and it is saved as the API address (a model page also picks the model), and Test connection works with models that must reason before they answer.
+- **Companions can see without the yellow border**: where Windows allows it the picture is taken without the yellow capture border, and only when a turn needs one.
 - **Vortex installs the Local AI packs**: they hold no files Vortex mistakes for a different kind of mod, so adding them works. The Runtime now carries the engine they used to carry.
-- **Microphone connection notice**: if the microphone cannot reach its speech recognition, you get a clear notice instead of silence.
-- **Quest memory is on by default**: characters remember what you did in quests and what you decided, and you can still switch it off.
-- **Three new characters** join the cast with their own voices.
+- **Microphone notice**: when the connection to Convai fails at the start of a turn, the notice says so instead of telling you to check your Windows input device.
+- **Quest memory is on by default**: characters remember the choices you made in quests and what they saw you do.
+- **Three new characters** join the cast: Mr. Blue Eyes, Hasan Demir and Pedro Aimar.
 - **Street reputation (optional, off by default)**: gangs, police, corporations and ordinary residents can remember what V did, which quests V finished and how famous V is. Switch it on in the settings.
 - **A smaller Runtime**: the Pocket voice model is stored at half the size and files that nothing used were removed. The optional packs are smaller too (the OmniVoice pack is about 1.2 GB smaller, and the Local AI packs lose the engine copy).
 - **A safer Convai sign-in**: the Runtime no longer contains the shared Convai login. It signs in to the shared account through a small online service instead, and tells you once if it cannot.
