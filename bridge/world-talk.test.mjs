@@ -370,6 +370,39 @@ test('beginFocus: a story character gets no look-at, no hold and no bark muting,
   assert(beginFocus(player, worldJudy) == false and #calls == 0)
 `));
 
+// The two talk-key places that start a focus (composer and voice key): a game-placed character, story or quest-bound, is never turned.
+{
+  const composerStart = init.indexOf('if focusEntity ~= identity and not primary.holocall');
+  const composerEnd = init.indexOf("focusMode = 'chat'", composerStart);
+  const voiceStart = init.indexOf('if not primary.voiceOnly and not primary.holocall');
+  const voiceLine = init.slice(voiceStart, init.indexOf('\n', voiceStart));
+  test('the talk key focuses an ordinary NPC but never a story or quest-bound (guarded) one', () => {
+    assert.ok(composerStart > 0 && composerEnd > composerStart && voiceLine.includes('beginFocus'));
+    run(`
+      local began, focusEntity = {}, nil
+      local function beginFocus(_, n) began[#began + 1] = n; return true end
+      local function log() end
+      local player, identity = {}, 'x'
+      local function composer(primary, npc)
+        began, focusEntity = {}, nil
+        do -- the slice ends with the end of the enclosing voiceOnly block
+        ${init.slice(composerStart, composerEnd)}
+        return #began
+      end
+      local function voice(primary, npc)
+        began = {}
+        ${voiceLine}
+        return #began
+      end
+      local crowd, quest, story, holo = {}, {guarded = true}, {story = true}, {holocall = true}
+      assert(composer(crowd, 'crowd') == 1 and voice(crowd, 'crowd') == 1, 'a crowd NPC is still focused')
+      assert(composer(quest, 'quest') == 0 and voice(quest, 'quest') == 0, 'a quest-bound NPC is not turned, held or bark-muted')
+      assert(composer(story, 'story') == 0 and voice(story, 'story') == 0, 'a story character is not either')
+      assert(composer(holo, 'holo') == 0 and voice(holo, 'holo') == 0)
+    `);
+  });
+}
+
 test('the speech guard ends a story reply and says nothing for anyone else', () => run(`
   ${world}
   local clock, retired, logs, nextReason = 0, {}, {}, nil
@@ -414,8 +447,8 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   assert.match(select, /convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.'/);
   assert.match(select, /convaiFacialPlayback\.storyEntity = convaiStory and convaiStory\.entity or nil/);
   // No gaze: both talk paths skip the focus for a story character.
-  assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
-  assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not primary\.story then beginFocus\(player, npc\) end/);
+  assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
+  assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not \(primary\.story or primary\.guarded\) then beginFocus\(player, npc\) end/);
   assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
@@ -546,9 +579,9 @@ test('wiring: a quest-bound person with no roster profile is guarded like a stor
   assert.match(select, /convaiWorldPolicy\.protected\(npc\) == true then\s+local why = convaiWorldTalk:refusal\(npc, player, nil, key, true\)/);
   assert.match(select, /primary\.guarded = true\s+convaiStory = \{entity = primary\.entity, key = key, name = name, idle = true\}/);
   assert.match(select, /\(quest-bound\)[\s\S]*?convaiNotices\.send\(player, 'talk-busy'/, 'the same busy notice and a log line');
-  // The guarded person is not a story character: it is still faced toward V and still gets an archetype conversation.
+  // The guarded person is not a story character and still gets an archetype conversation, but like one it is not turned, held or bark-muted.
   assert.doesNotMatch(select.slice(select.indexOf('primary.guarded = true')), /primary\.story = /);
-  assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
+  assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
