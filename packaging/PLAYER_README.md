@@ -10,7 +10,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **V voice mods**: if you use a mod that replaces V's voice, V's AI lines now sound like it. The mod is found once when the game starts. You can also give V your own voice clip in the character editor.
 - **Talk to anyone**: every person you can aim at can be talked to now. People without a character of their own answer as a resident or worker of their kind, receptionists and quest extras included, and quest characters standing at their post get lip sync.
 - **Clearer messages**: a story character tells you when Talk to story characters is off and where to turn it on.
-- **Johnny**: he no longer says he is busy while he is just standing around or riding with you.
+- **Johnny**: changed when he counts as busy (just standing around or riding with you). If he still refuses, Generate report shows which rule blocked him.
 - **Mod Organizer 2**: fixed "The conversation service did not get that message" when Mod Organizer 2 showed the game two copies of the mod's files.
 - **Smaller graphics cards**: Local AI leaves room for the game on cards with 12 GB or less, and a model that runs on your processor gets the time its first reply needs. OmniVoice that does not fit next to the game switches to Pocket with one notice instead of retrying, and the voice menu says when OmniVoice needs an NVIDIA card or 12 GB.
 - **Fixes from error reports**: the Pocket voice starts reliably while the game is loading, the memory lock works under Wine and Proton, and crash reports carry what is needed to fix them.
