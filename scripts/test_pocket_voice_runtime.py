@@ -960,6 +960,16 @@ class Producer(unittest.TestCase):
             with self.assertRaises(worker.Cancelled):
                 worker.stream_request(Model(),{},'Reply.',commands,lambda frame:None,1,'johnny-silverhand',lambda values:(struct.pack('<3f',*values),3))
 
+    def test_the_start_up_heartbeat_carries_wall_clock_progress_besides_cpu_time(self):
+        frame=worker.heartbeat_frame('torch',cpu_ms=1500,io_bytes=lambda:123456,modules=lambda:812)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':1500,'ioBytes':123456,'modules':812,'step':'torch'})
+        frame=worker.heartbeat_frame(cpu_ms=5,io_bytes=lambda:None,modules=lambda:3)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':5,'modules':3},'a system that cannot say leaves the I/O out')
+        real=worker.heartbeat_frame()
+        self.assertGreaterEqual(real['cpuMs'],0);self.assertGreater(real['modules'],10)
+        if 'ioBytes' in real:
+            self.assertGreater(real['ioBytes'],0)
+
     def test_a_cancelled_reply_stops_decoding_its_backlog(self):
         # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
         class Latent:

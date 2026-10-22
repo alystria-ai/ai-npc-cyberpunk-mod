@@ -387,6 +387,45 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             "generationMs": (now() - started) * 1000}
 
 
+def process_io_bytes():
+    """The bytes this process has read and written so far, or None when the system cannot say. A start that waits for a virus scan or a cold
+    disk spends wall time and no CPU time; its reads still move this number once the wait is over, and the bridge counts that as life."""
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            class IoCounters(ctypes.Structure):
+                _fields_ = [(name, ctypes.c_ulonglong) for name in (
+                    "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+                    "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+            kernel32.GetProcessIoCounters.argtypes = [ctypes.c_void_p, ctypes.POINTER(IoCounters)]
+            kernel32.GetProcessIoCounters.restype = ctypes.c_int
+            counters = IoCounters()
+            if not kernel32.GetProcessIoCounters(kernel32.GetCurrentProcess(), ctypes.byref(counters)):
+                return None
+            return int(counters.ReadTransferCount + counters.WriteTransferCount)
+        with open("/proc/self/io", "r", encoding="ascii") as handle:
+            values = dict(line.split(": ", 1) for line in handle.read().splitlines() if ": " in line)
+        return int(values["rchar"]) + int(values["wchar"])
+    except Exception:  # noqa: BLE001 - a progress marker is advisory only.
+        return None
+
+
+def heartbeat_frame(step=None, cpu_ms=None, io_bytes=process_io_bytes, modules=lambda: len(sys.modules)):
+    """The start-up heartbeat: CPU time, bytes read and written and Python modules loaded (the last two only when known), and the import mark."""
+    frame = {"op": "heartbeat", "cpuMs": int(time.process_time() * 1000) if cpu_ms is None else cpu_ms}
+    io = io_bytes()
+    if isinstance(io, int) and io >= 0:
+        frame["ioBytes"] = io
+    frame["modules"] = int(modules())
+    if step is not None:
+        frame["step"] = step
+    return frame
+
+
 NORMAL_PRIORITY_CLASS = 0x00000020
 BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
 
@@ -471,16 +510,14 @@ def main():
             output.write(json.dumps({"owner": args.owner, **frame}, ensure_ascii=False, allow_nan=False) + "\n")
             output.flush()
 
-    # Startup progress for the bridge's stall watchdog: how much CPU this process has used (a slow import under a virus scan or a busy
-    # disk still creeps forward; a hung one uses none), once every two seconds while starting, and a mark after each heavy import. It
+    # Startup progress for the bridge's stall watchdog: how much CPU this process has used, how many bytes it has read and written and how many
+    # modules it has loaded (a slow import under a virus scan or a busy disk still creeps forward in one of them; a hung one in none), once every two
+    # seconds while starting, and a mark after each heavy import. It
     # stops when the worker is ready, so a worker that is serving never beats.
     started = threading.Event()
 
     def beat(step=None):
-        frame = {"op": "heartbeat", "cpuMs": int(time.process_time() * 1000)}
-        if step is not None:
-            frame["step"] = step
-        send(frame)
+        send(heartbeat_frame(step))
 
     def heartbeats():
         while not started.wait(2.0):

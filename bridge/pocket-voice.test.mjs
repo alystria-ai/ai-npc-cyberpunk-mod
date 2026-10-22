@@ -317,7 +317,7 @@ test('a worker stuck importing is stopped and started once more; the second one 
   const starting = h.client.start(); await tick();
   assert.equal(h.launches.length, 1);
   h.send(h.children[0], {op: 'state', state: 'loading'}); h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies'] - 1); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies'] + POCKET_LIMITS.stallGraceMs['importing-dependencies'] - 1); await tick();
   assert.equal(h.children[0].kills, 0, 'not yet');
   h.timers.advance(1); await tick();
   assert.equal(h.children[0].kills, 1, 'the stuck worker is stopped'); assert.equal(h.children[0].stdin.writableEnded, true);
@@ -337,10 +337,10 @@ test('a worker that stalls again is given up on cleanly: one restart only, no lo
   const h = restartHarness();
   const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await tick(); h.children[0].emit('close', 1); await tick();
+  h.timers.advance(STALL_AND_GRACE); await tick(); h.children[0].emit('close', 1); await tick();
   assert.equal(h.launches.length, 2);
   h.send(h.children[1], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await failed;
+  h.timers.advance(STALL_AND_GRACE); await failed;
   assert.equal(h.launches.length, 2, 'never a third worker'); assert.ok(h.client.failure);
   assert.equal(h.children[1].stdin.writableEnded, true);
   assert.match(h.logs.join(''), /stalled at importing-dependencies again; giving up/);
@@ -367,6 +367,8 @@ test('a worker that keeps moving through its phases is not restarted, and a slow
 // ---- progress: a slow import that keeps moving is never stopped; one that stands still is; the hard bound ends either ----
 
 const IMPORT = 'importing-dependencies';
+// The window of no progress plus the one bounded extra wait before a stuck worker is stopped.
+const STALL_AND_GRACE = POCKET_LIMITS.stallMs[IMPORT] + POCKET_LIMITS.stallGraceMs[IMPORT];
 const beat = async (h, child, cpuMs, step) => { h.send(child, {op: 'heartbeat', cpuMs, ...(step ? {step} : {})}); await tick(); };
 
 test('a slow import that makes progress is not killed, however long it takes within the hard bound, and then gets ready', async () => {
@@ -391,16 +393,17 @@ test('a slow import that makes progress is not killed, however long it takes wit
   h.client.close(); h.children[0].emit('close', 0);
 });
 
-test('a hung import (CPU time standing still, however many beats) is stopped at the stall window, and a slow second attempt is not', async () => {
+test('a hung import (nothing moving, however many beats) is stopped after the window and the grace wait, and a slow second attempt is not', async () => {
   const h = restartHarness();
   const starting = h.client.start(); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
   await beat(h, h.children[0], 1500);
-  // Beats that add no CPU (a deadlock) are not progress and do not push the window back.
-  for (let at = 0; at < POCKET_LIMITS.stallMs[IMPORT] - 2000; at += 2000) { h.timers.advance(2000); await beat(h, h.children[0], 1500 + 50); }
-  assert.equal(h.children[0].kills, 0, 'not before the window');
+  // Beats that add no CPU, no I/O and no module (a deadlock) are not progress and do not push the window back.
+  for (let at = 0; at < STALL_AND_GRACE - 4000; at += 2000) { h.timers.advance(2000); await beat(h, h.children[0], 1500 + 50); }
+  assert.equal(h.children[0].kills, 0, 'not before the window and the grace wait');
+  assert.match(h.logs.join(''), /nothing moved at importing-dependencies for 60s, worker CPU 1\.5s; waiting 120s more before stopping the worker/);
   h.timers.advance(4000); await tick();
-  assert.equal(h.children[0].kills, 1, 'a worker with no progress for the window is stopped');
+  assert.equal(h.children[0].kills, 1, 'a worker with no progress for the window and the grace wait is stopped');
   assert.match(h.logs.join(''), /stalled at importing-dependencies for 60s without progress, worker CPU 1\.5s; stopping/);
   // A beat that was already on its way while it is being stopped counts for nothing (and is not an error).
   await beat(h, h.children[0], 9_000_000);
@@ -415,14 +418,48 @@ test('a hung import (CPU time standing still, however many beats) is stopped at 
   h.client.close(); h.children[1].emit('close', 0);
 });
 
+// 0.2.3 reports: a virus scan or a cold disk costs the worker wall time and no CPU time, and the CPU-only watchdog stopped it in the middle of its imports.
+test('a worker whose CPU time stands still but that reads files or loads modules is not stopped, and a grace wait that sees progress starts the window over', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  const frame = (cpuMs, ioBytes, modules) => { h.send(h.children[0], {op: 'heartbeat', cpuMs, ioBytes, modules}); return tick(); };
+  await frame(500, 1_000_000, 200);
+  // A window and a half of a scan: CPU frozen, but the reads creep (a megabyte per 30 s) and a module appears now and then.
+  for (let at = 0, io = 1_000_000, modules = 200; at < 1.5 * POCKET_LIMITS.stallMs[IMPORT]; at += 2000) {
+    h.timers.advance(2000);
+    if (at % 30_000 === 0) io += 1_000_000;
+    if (at % 50_000 === 0) modules += 1;
+    await frame(500, io, modules);
+  }
+  assert.equal(h.children[0].kills, 0, 'I/O and module growth are progress'); assert.equal(h.launches.length, 1);
+  // Then it stops for the window, gets the grace wait, and shows a module before the end of it: the window starts over.
+  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT] + 1000); await tick();
+  assert.match(h.logs.join(''), /waiting 120s more/);
+  await frame(500, 9_000_000, 9999); h.timers.advance(POCKET_LIMITS.stallMs[IMPORT] - 1000); await tick();
+  assert.equal(h.children[0].kills, 0, 'progress during the grace wait is progress');
+  h.ready(h.children[0]); await starting; assert.equal(h.client.loaded, true);
+  h.client.close(); h.children[0].emit('close', 0);
+});
+
+test('heartbeat I/O and module counts are checked like the CPU time', async () => {
+  for (const bad of [{ioBytes: -1}, {ioBytes: 1.5}, {modules: '9'}, {modules: -2}]) {
+    const h = restartHarness();
+    const starting = h.client.start(), failed = assert.rejects(starting, /Invalid Pocket worker heartbeat/); await tick();
+    h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+    h.send(h.children[0], {op: 'heartbeat', cpuMs: 5, ...bad}); await failed;
+    h.children[0].emit('close', 1);
+  }
+});
+
 test('a worker that hangs on both attempts is stopped twice at the window and then given up on, and Pocket stays failed', async () => {
   const h = restartHarness();
   const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[0], 800);
-  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await tick(); h.children[0].emit('close', 1); await tick();
+  h.timers.advance(STALL_AND_GRACE); await tick(); h.children[0].emit('close', 1); await tick();
   h.send(h.children[1], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[1], 800);
   h.timers.advance(2000); await beat(h, h.children[1], 810);
-  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await failed;
+  h.timers.advance(STALL_AND_GRACE); await failed;
   assert.equal(h.launches.length, 2); assert.match(h.logs.join(''), /again; giving up/);
   assert.equal(h.children[1].stdin.writableEnded, true); h.children[1].emit('close', 1);
 });
