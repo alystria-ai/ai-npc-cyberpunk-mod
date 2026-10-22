@@ -266,8 +266,10 @@ local write = fakeIo.Write
 fakeIo.Write = function(name, text) return true end -- lands somewhere else
 local before = io
 local M, api = boot(true)
-assert(io == before and not api.present and not api.use('io'))
+assert(io == before and api.present and not api.ioReady and not api.use('io'))
 assert(lastPrint():find('different runtime folder'), lastPrint())
+assert(api.ioReason:find('plugin folder') and api.ioReason:find('CET folder') and api.ioReason:find('file is missing'), api.ioReason)
+assert(api.use('actuator') == true, 'a folder mismatch gates only io: the systems that touch no file keep running natively')
 fakeIo.Write = write
 `));
 

@@ -79,11 +79,12 @@ void CheckVersion(RED4ext::IScriptable*, RED4ext::CStackFrame* aFrame, bool* aOu
     const bool ok = rtti::Guard(
         "core",
         [&] {
-            const bool compatible = luaApi == kApiVersion && GlobalFileIo().Running();
+            // The API alone: whether file IO works is the "io" system's business (Lua's handshake), and
+            // faces, vehicles and the rest need no files, so a dead file worker must not take them down.
+            const bool compatible = luaApi == kApiVersion;
             if (!compatible)
             {
-                CONVAI_WARN("Lua asked for API %d, plugin has %d (io running: %s)", luaApi, kApiVersion,
-                            GlobalFileIo().Running() ? "yes" : "no");
+                CONVAI_WARN("Lua asked for API %d, plugin has %d", luaApi, kApiVersion);
             }
             return compatible;
         },

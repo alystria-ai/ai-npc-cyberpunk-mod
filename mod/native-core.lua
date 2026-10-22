@@ -179,35 +179,66 @@ function M.install(options)
         return ok
     end
 
+    -- present: the plugin is loaded and speaks this API (gates every system). ioReady: file IO also
+    -- proved it writes to this mod's runtime folder (gates only the "io" system: faces, vehicles,
+    -- chauffeur, passage, clearance, actions and gaze never touch a file, so a folder mismatch, as
+    -- under Mod Organizer 2, must not push them back to Lua).
     local present, reason, retry = false, nil, false
+    local ioReady, ioReason = false, nil
     local function bound(value) return type(value) == 'table' or type(value) == 'userdata' end
-    -- Plugin present, the same API, and writing to this mod's runtime folder? retry is true when
-    -- the classes are not bound yet, which a later detect() can change.
+    local function jsonString(text, key)
+        local raw = type(text) == 'string' and text:match('"' .. key .. '":"(.-[^\\])"') or nil
+        return raw and (raw:gsub('\\(.)', '%1')) or nil
+    end
+    -- Where CET (this Lua file) reads runtime/: the folder of this chunk when CET names it.
+    local function luaRuntime()
+        local ok, source = pcall(function() return debug.getinfo(1, 'S').source end)
+        local folder = ok and type(source) == 'string' and source:gsub('^@', ''):match('^(.*)[/\\][^/\\]*$') or nil
+        return folder and folder ~= '' and (folder .. '\\runtime') or 'runtime/ beside this Lua file (CET did not name it)'
+    end
+    -- One real round trip proves the plugin's runtime folder is the one this Lua reads. Returns true, or false and
+    -- why: the step that failed and both folders, so a report from a Mod Organizer 2 install shows the two places.
+    local function handshake()
+        local nonce = 'native-handshake ' .. tostring(clock()) .. ' ' .. tostring(math.random(100000000, 999999999))
+        local step, text = 'the native write', nil
+        local okRun, err = pcall(function()
+            local wrote = Io.Write('native-handshake.txt', nonce)
+            if wrote ~= true then step = 'the native write was refused (' .. tostring(wrote) .. ')'; error(step, 0) end
+            if Io.Flush(500) ~= true then step = 'the native flush timed out' else step = nil end
+            local file = realOpen('runtime/native-handshake.txt', 'rb')
+            text = file and file:read('*a'); if file then file:close() end
+            Io.Remove('native-handshake.txt')
+            if text == nonce then step = nil; return end
+            step = (step and (step .. ', and ') or '') .. (text == nil and 'the file is missing in CET\'s runtime folder' or 'the file there holds other text')
+            error(step, 0)
+        end)
+        if okRun then return true end
+        local status, statusText = pcall(function() return Core.Status() end)
+        local pluginFolder = status and jsonString(statusText, 'runtime') or nil
+        local vfs = status and type(statusText) == 'string' and statusText:match('"vfs":(%a+)') or nil
+        return false, 'the plugin writes to a different runtime folder: ' .. tostring(step or err)
+            .. '; plugin folder ' .. tostring(pluginFolder or '?') .. ', CET folder ' .. luaRuntime()
+            .. (vfs == 'true' and ' (a virtual file system is loaded)' or '')
+    end
+    -- Plugin present and the same API? Then, separately, does its file IO reach this mod's folder? retry is
+    -- true when the classes are not bound yet, which a later detect() can change.
     local function detect()
         Core, Io = resolve()
         present, retry = false, false
+        ioReady, ioReason = false, nil
         if not bound(Core) or not bound(Io) then
             reason, retry = 'plugin not loaded', true
             return false
         end
         local ok, compatible = pcall(function() return Core.CheckVersion(M.API) end)
         if not ok then reason, retry = 'CheckVersion failed: ' .. tostring(compatible), true; return false end
-        if compatible ~= true then reason = 'plugin API differs or its file worker is not running'; return false end
+        if compatible ~= true then reason = 'plugin API differs'; return false end
         local okVersion, version = pcall(function() return Core.PluginVersion() end)
         api.plugin = okVersion and tostring(version) or '?'
-        -- The plugin derives the runtime folder from the game folder and the mod folder name.
-        -- One real read proves it is this mod's folder.
-        local nonce = 'native-handshake ' .. tostring(clock()) .. ' ' .. tostring(math.random(100000000, 999999999))
-        local matched = pcall(function()
-            assert(Io.Write('native-handshake.txt', nonce) == true)
-            Io.Flush(500)
-            local file = realOpen('runtime/native-handshake.txt', 'rb')
-            local text = file and file:read('*a'); if file then file:close() end
-            Io.Remove('native-handshake.txt')
-            assert(text == nonce)
-        end)
-        if not matched then reason = 'the plugin writes to a different runtime folder'; return false end
         present, reason = true, nil
+        -- The plugin derives the runtime folder from the game folder and the mod folder name.
+        ioReady, ioReason = handshake()
+        api.ioReady, api.ioReason = ioReady, ioReason
         return true
     end
     detect()
@@ -222,7 +253,10 @@ function M.install(options)
         if now < row.next then return row.on end
         row.next = now + SWITCH_RECHECK
         local on, why = false, reason or 'plugin not loaded'
-        if present then
+        if present and system == 'io' and not ioReady then
+            -- The handshake proves file IO only: it gates "io" and nothing else.
+            why = ioReason or 'the file IO handshake failed'
+        elseif present then
             local ok, enabled = pcall(function() return Core.SystemEnabled(system) end)
             if not ok then why = 'switch check failed: ' .. tostring(enabled)
             elseif enabled ~= true then why = 'off (runtime/native-off.txt or tripped by faults)'
@@ -327,7 +361,9 @@ function M.install(options)
     api.off = function(system) return editSwitches(tostring(system or 'all'), true) end
     api.on = function(system) return editSwitches(tostring(system or 'all'), false) end
 
-    if not present and not retry then
+    -- Nothing to route: no plugin, or one whose file IO failed the handshake (the game's io and os stay untouched, the other
+    -- systems still run natively through api.use).
+    if (not present and not retry) or (present and not ioReady) then
         evaluate('io')
         return api
     end
