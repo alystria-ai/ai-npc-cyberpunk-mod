@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
+import {PersonaBook, LIMITS, buildMessages, knowledgeApart, PROMPT_SOURCE, systemHead, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
 import {BUDGET, COLD_PROMPT, PREFILL, PrefillMeter, PromptTooLarge, coldAttemptRoomMs, TokenMeter, budgetedChat, describeFit, estimateTokens, fitLimit, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
 import {MistralError, errorCodeFor, mapFailure} from './mistral-client.mjs';
 import {conversationContextBlocks} from './quest-context.mjs';
@@ -279,12 +279,60 @@ test('two turns that differ only in the world facts share the system message up 
     assert(first.indexOf(block.text) >= 0 && first.indexOf(block.text) + block.text.length <= shared, `${block.key} is inside the shared prefix`);
   }
   assert(first.indexOf('FORMAT') < shared && first.indexOf(systemHead({persona: judy}).slice(-80)) < shared, 'the persona and the format notes are shared too');
-  // Placed first, as the Convai context has them, the facts end the shared prefix right after the persona and the format notes (the failure of the first reports).
+  // The facts are set apart in the system message wherever they sit in the list of blocks (the Convai order has them first: the failure of the first reports), and
+  // they come after the older-talk summary too, which was after them before.
   const early = blocks => buildMessages(turn({blocks, history: []}))[0].content;
   const a = early(facts('WORLD FACTS\n- the first question was about Arasaka')), b = early(facts('WORLD FACTS\n- a different question, about the Afterlife and its prices'));
   let early_shared = 0;
   while (early_shared < a.length && a[early_shared] === b[early_shared]) early_shared++;
-  assert(early_shared < shared - 1000, 'the old order shares far less');
+  assert(early_shared >= shared - 1, 'the block order of the list no longer matters');
+  assert(a.indexOf('I remember that V helped me') < early_shared, 'the older-talk summary is inside the shared prefix');
+  assert(a.indexOf('WORLD KNOWLEDGE FOR THIS TURN') <= early_shared && early_shared < a.indexOf('RIGHT NOW'), 'the first difference is in the facts, which come last before the right-now block');
+  // Without the list of blocks (older callers), or when the world context was cut by its cap, the old single world block stands.
+  const parts = turn({blocks: facts('WORLD FACTS\n- the first question was about Arasaka'), history: []});
+  const plain = buildMessages({...parts, contextParts: {...parts.contextParts, worldBlocks: undefined}})[0].content;
+  assert(!plain.includes('WORLD KNOWLEDGE FOR THIS TURN') && plain.includes('WORLD FACTS\n- the first question'));
+  // A world context over its cap is cut in the stable blocks; the facts stay whole and the two together still fit.
+  const factsText = facts('WORLD FACTS\n- the first question was about Arasaka').find(block => block.key === 'knowledge').text;
+  const tight = buildMessages({...parts, limits: {...LIMITS, world: 9000}})[0].content;
+  assert(tight.includes('WORLD KNOWLEDGE FOR THIS TURN') && tight.includes(factsText));
+  const between = (text, from, to) => text.slice(text.indexOf(from), text.indexOf(to));
+  assert(between(tight, 'WORLD AND QUEST CONTEXT', 'WHAT YOU REMEMBER OF V FROM EARLIER TALKS').length + between(tight, 'WORLD KNOWLEDGE FOR THIS TURN', 'RIGHT NOW').length < 9000 + 400, 'together they fit the cap');
+});
+
+test('knowledgeApart: only the blocks the world context was joined from are split, and only when there is a knowledge block', () => {
+  const blocks = [{key: 'gear', text: 'G'}, {key: 'knowledge', text: 'K'}, {key: 'authority', text: 'A'}];
+  assert.deepEqual(knowledgeApart(blocks, 'G\n\nK\n\nA'), {stable: 'G\n\nA', knowledge: 'K'});
+  assert.equal(knowledgeApart(blocks, 'G\n\nK'), null, 'a world text that is not what the blocks make');
+  assert.equal(knowledgeApart([{key: 'gear', text: 'G'}], 'G'), null);
+  assert.equal(knowledgeApart([{key: 'knowledge', text: ' '}], ''), null);
+  assert.equal(knowledgeApart(undefined, 'G'), null);
+});
+
+test('the prompt cache: over a conversation with a summary the text a turn shares with the one before is longer, by the summary and everything else that was after the facts; the same words are sent', () => {
+  const summary = 'I remember that V helped me with a job at the Clouds and that we get along. ' + 'We talked about the braindance studio and the noodles. '.repeat(18);
+  // A world context under its cap (a cut would move with the length of the facts in the old layout and muddy the comparison).
+  const smaller = facts => [{key: undefined, text: 'RELATIONSHIP: V and Judy are friends. Judy trusts V.'}, {key: 'knowledge', text: facts}, {key: 'recency', text: 'RECENT SHARED EVENTS\n' + lines('event', 10)},
+    {key: 'history', text: 'JOURNAL HISTORY\n' + lines('quest', 30)}, {key: 'jobs', text: 'AVAILABLE JOBS\n' + lines('job', 20)}, {key: 'gear', text: 'V WEARS\n' + lines('gear', 6)}, {key: 'authority', text: 'Current verified save facts override older remembered claims.'}];
+  const turnOf = (facts, count) => ({...turn({history: exchanges(count), blocks: smaller(facts), text: 'What next? ' + count}), memory: summary});
+  const sharedWith = (build, one, two) => {
+    const first = build(one), second = build(two);
+    const x = first.map(message => message.content).join('\n#\n'), y = second.map(message => message.content).join('\n#\n');
+    let at = 0;
+    while (at < x.length && x[at] === y[at]) at++;
+    return {chars: at, tokens: estimateTokens([{role: 'user', content: x.slice(0, at)}], BUDGET.knownCharsPerToken), total: x.length, first};
+  };
+  const oldLayout = args => buildMessages({...args, contextParts: {...args.contextParts, worldBlocks: undefined, world: joinWorld(worldBlocksInCacheOrder(args.contextParts.worldBlocks))}});
+  const one = turnOf('WORLD FACTS\n' + lines('first-question fact', 40), 6), two = turnOf('WORLD FACTS\n' + lines('second-question fact', 40), 7);
+  const before = sharedWith(oldLayout, one, two), after = sharedWith(buildMessages, one, two);
+  console.log(`prompt cache: shared with the turn before ${before.chars} chars (${Math.round(before.tokens)} tokens) before, ${after.chars} (${Math.round(after.tokens)} tokens) after, of ${after.total} chars`);
+  assert(after.chars > before.chars + summary.length - 5, `shared before ${before.chars} chars, after ${after.chars}`);
+  assert(after.tokens > before.tokens + 200, 'at least the summary is read from the cache now');
+  // Nothing is added or dropped but the one heading: the same lines are in the system message.
+  const lineSet = text => text.split('\n').filter(Boolean).sort();
+  const oldSystem = oldLayout(one)[0].content, newSystem = after.first[0].content;
+  assert.deepEqual(lineSet(newSystem).filter(line => !line.startsWith('WORLD KNOWLEDGE FOR THIS TURN')), lineSet(oldSystem));
+  assert.deepEqual(after.first.slice(1), oldLayout(one).slice(1), 'the history and the last message are untouched');
 });
 
 test('PrefillMeter: a slow reading is carried to the model that replaces it on the same computer, for as long as it is recent, and a fast one is not', () => {
@@ -456,7 +504,7 @@ const numbered = (count, first = 0) => Array.from({length: count}, (_, index) =>
 const kept = fit => fit.messages.slice(1, -1);   // the exchanges of the history that were sent
 
 test('older exchanges: a conversation at the limit keeps the same first exchange for several turns, so the history is not read again every turn', async () => {
-  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const budget = () => ({contextTokens: 6640, meter: new TokenMeter()});   // a limit the prompt sits just over: the history is cut in blocks (6,640 since the knowledge section got a heading of its own)
   const fits = [];
   for (const size of [9, 10, 11]) {   // the memory store keeps the start of its window for a few turns while it grows by one exchange a turn
     fits.push(await fitMessages({args: turn({history: numbered(size), text: 'What next? ' + size}), budget: budget()}));
@@ -474,7 +522,7 @@ test('older exchanges: a conversation at the limit keeps the same first exchange
 });
 
 test('older exchanges: they go in whole blocks of BUDGET.trimBlock (never below keepExchanges), the prompt only gets shorter, and a prompt that fits is not cut', async () => {
-  const budget = () => ({contextTokens: 6600, meter: new TokenMeter()});
+  const budget = () => ({contextTokens: 6640, meter: new TokenMeter()});   // a limit the prompt sits just over: the history is cut in blocks (6,640 since the knowledge section got a heading of its own)
   const base = await fitMessages({args: turn({history: numbered(8)}), budget: budget()});
   const dropped = 8 - kept(base).length / 2;
   assert.equal(dropped % BUDGET.trimBlock, 0, 'a whole block was dropped (' + dropped + ')');

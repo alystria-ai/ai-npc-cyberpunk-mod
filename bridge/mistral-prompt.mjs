@@ -218,14 +218,35 @@ export function systemPrompt({persona, memory = '', limits = LIMITS, layers = nu
   // turns. Never cut by the prompt budget (bridge/prompt-budget.mjs): they are not part of the persona levels.
   const rules = worldRulesBlock(persona.worldRules);
   if (!layers) return [systemHead({persona, memory, limits, mature, guard}), rules].filter(Boolean).join('\n\n');
-  const fitted = capContext(`${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`, limits.world);
-  const world = mature ? matureWorld(fitted) : fitted;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
+  const prefixed = `${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`;
+  const fitted = capContext(prefixed, limits.world);
+  const lean = text => mature ? matureWorld(text) : text;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
+  // The per-turn knowledge block (ranked by V's words, so it differs on nearly every turn) goes after everything that is stable between turns, the older-talk summary
+  // included: a prompt cache (llama.cpp's) reuses the text up to the first difference, and with the block in the middle of the world context every turn read the summary
+  // again. Only when the blocks are the very ones the world context is made of; otherwise the old order stands. The cap of the world context then cuts the stable blocks
+  // (the middle of them, as before) at a place that does not depend on the facts (a cut that moved with the length of the facts would move the cached text with it), and
+  // the facts have a cap of their own, half the world's.
+  const apart = knowledgeApart(layers.worldBlocks, layers.world);
+  const world = lean(apart ? capContext(`${CONTEXT_PREFIX}${apart.stable || 'This is a private conversation with V.'}`, limits.world) : fitted);
   return [systemHead({persona, limits, mature, guard}), rules,
     section('FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)', capContext(layers.notes, limits.notes)),
     section('WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)', world),
     memory ? section('WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)) : '',
+    apart ? section('WORLD KNOWLEDGE FOR THIS TURN (never to be read aloud)', lean(capContext(apart.knowledge, Math.floor(limits.world / 2)))) : '',
     section('RIGHT NOW (from the game; background only, this changes as the talk goes on)', clip(layers.now, limits.now))]
     .filter(Boolean).join('\n\n');
+}
+
+/**
+ * The world blocks of a turn split into the stable ones and the per-turn `knowledge` block ({stable, knowledge} strings), or null when there is nothing to split:
+ * no knowledge block, no list of blocks, or a list that is not what `world` was joined from.
+ */
+export function knowledgeApart(blocks, world) {
+  if (!Array.isArray(blocks) || !blocks.length) return null;
+  const knowledge = joinBlocks(blocks.filter(block => block?.key === 'knowledge').map(block => block.text));
+  if (!knowledge) return null;
+  if (joinBlocks(blocks.map(block => block?.text)) !== String(world ?? '')) return null;
+  return {stable: joinBlocks(blocks.filter(block => block?.key !== 'knowledge').map(block => block?.text)), knowledge};
 }
 
 /** A context longer than the cap keeps its head and its tail (the voice, follow-up and first-person notes are last). */
@@ -254,7 +275,7 @@ const HERE = /You are (?:with V in person[^.]*\.|in V's head[^.]*\.|(?:messaging
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null, guard = false}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
   const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard,
-    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now} : null})}];
+    layers: v2 ? {notes: contextParts.notes, world: contextParts.world, now: contextParts.now, worldBlocks: contextParts.worldBlocks} : null})}];
   for (const turn of history.slice(-limits.turns)) {
     const v = clip(turn.v, limits.userLine), r = clip(turn.r, limits.replyLine);
     if (!v || !r) continue;
