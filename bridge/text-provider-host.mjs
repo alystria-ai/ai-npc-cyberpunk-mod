@@ -417,6 +417,10 @@ export function describeLocalTurn({ok, trace, error, detail, first = false, brie
 
 // ---- Host --------------------------------------------------------------------------------------------------------------------
 
+// An ordinary NPC that serves V (vendors, ripperdocs, bartenders, dealers): "Anything else?" is its own question and is not cut as a stock closing question (stripStockTail).
+const SERVICE_PROFILE = /^(?:npc-(?:ripperdoc|weapons-dealer|bartender|junk-dealer|market-stall|[a-z-]*vendor)-|viktor-vektor$|claire-russell$|robert-wilson$|misty-olszewski$|wakako-okada$)/;
+const QUOTED_START = /^(?:\s*\{[^{}\n]{1,24}\})*\s*["“”'‘]/;
+
 export class TextProviderHost {
   /**
    * provider    the provider state (bridge/mistral-key.mjs): `route` names the route in use, `active` whether one is
@@ -869,8 +873,18 @@ export class TextProviderHost {
     let recentSpoken = [];
     if (!reaction && this.spokenLines) { try { recentSpoken = this.spokenLines(profileKey) ?? []; } catch { recentSpoken = []; } }
     const visible = soFar => {
-      // A reply that opens with a short fragment of V's own line ("Dex?") loses it, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one.
-      const shown = reaction ? splitActions(soFar, {streaming: true}).text : stripEchoOpener(splitActions(soFar, {streaming: true}).text, text, {streaming: true});
+      // A reply that opens with V's own words asked back ("Dex?") loses them, for every speaker (rule 4 of the output rules); held back from the voice while it could still be one. Judged on the
+      // cleaned text, as the finished reply is (a speaker label or a *stage direction* before the echo must not hide it from the stream, or the voice would start on it and the finished reply,
+      // which no longer starts with that head, would be cut back to it).
+      const plain = splitActions(soFar, {streaming: true}).text;
+      let shown = plain;
+      if (!reaction) {
+        const cleanedSoFar = cleanReply(plain, {name: persona.name, isTag});
+        const cut = stripEchoOpener(cleanedSoFar, text, {streaming: true});
+        // What remains starting with a quotation mark is held back: the stream cleans it once more and would take a quote pair off a reply that is not wholly quoted, so the voice's head and the finished reply would differ.
+        if (cut !== cleanedSoFar) shown = QUOTED_START.test(cut) ? '' : cut;
+        else if (cutEcho) shown = cleanedSoFar;   // the add-on cuts below work on the cleaned text too, as in the finished reply
+      }
       if (!cutEcho) return shown;
       const own = stripPlayerEcho(speakerTurn(shown, persona.name, {streaming: true}), text, {streaming: true});
       return recentSpoken.length && startsLikeLine(own, recentSpoken) ? '' : own;
@@ -904,9 +918,10 @@ export class TextProviderHost {
         return run(nudge);
       }
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
+      // Rule 4 (no opening with V's words asked back) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
+      if (!reaction) cleaned = stripEchoOpener(cleaned, text);
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
-      // Rule 4 (no opening with V's words) and rule 5 (no stock closing question), kept for the small models that do not obey them; never for a battle or loot line.
-      if (!reaction) cleaned = stripStockTail(stripEchoOpener(cleaned, text));
+      if (!reaction) cleaned = stripStockTail(cleaned, {service: this.echoCut || SERVICE_PROFILE.test(profileKey)});
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
       let reply = capReply(cleaned, this.limits);
       if (wordLimit) reply = capWords(reply, wordLimit);

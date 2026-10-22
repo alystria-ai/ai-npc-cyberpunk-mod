@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {parseTurnContext, describeTurnContext, turnContext, turnContextDiagnostic, timeOfDay, sceneryFor, MAX_CHARS}
   from './turn-context.mjs';
 import {SceneryMemory, sceneryMemory} from './scenery-memory.mjs';
-import {parseInput, isAmbientProfile} from './protocol.mjs';
+import {parseInput, isAmbientProfile, archetypeContext} from './protocol.mjs';
 import * as quest from './quest-context.mjs';
 import {conversationContext, voiceConversationBlocks, turnContextOptions} from './quest-context.mjs';
 import {visibleGearContext} from './player-gear.mjs';
@@ -668,10 +668,13 @@ test('the whole block stays inside the cap with every fact set, and money is the
 });
 
 test('the right-now block still sits where it did: first in the Convai context and in the Mistral live context', () => {
+  sceneryMemory.clear();
   const input = parseInput(JSON.stringify(turn({turnContext: scene(full)})));
   const text = conversationContext(input);
   assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person'), text.slice(0, 120));
-  assert.ok(text.indexOf('It is raining.') < 600);
+  const scenery = text.indexOf('late night, about 2 AM.');
+  assert.ok(scenery > 0 && scenery < 1500, `the first turn carries the part of the day near the front (the weather is not told on a first turn): ${scenery}`);
+  assert.ok(!text.includes('It is raining.'), 'no weather on the first turn');
 });
 
 // ---- the Lua side
@@ -1053,6 +1056,36 @@ test('the weather is told again when V asks about it, and the clock when V asks 
   assert.match(backgroundOf(timeAsked), /It is late night, about 2 AM\./);
   assert.doesNotMatch(backgroundOf(timeAsked), /raining/, 'asking the time does not bring the weather');
   assert.doesNotMatch(conversationContext(nextTurn({text: 'what a mess'})), /Background/);
+});
+
+test('one context serves every provider (decision of 2026-10-22): Convai gets the same blocks as the text providers, so a first turn has no weather and an archetype is not told to announce its place', () => {
+  sceneryMemory.clear();
+  // conversationContext is the string Convai is sent (bridge/convai-bridge.mjs joins the same blocks the text providers lay out).
+  const convai = conversationContext(nextResident());
+  assert.doesNotMatch(convai, /It is raining\./, 'no weather on the first turn, for Convai too');
+  assert.match(convai, /Background \(mention only if it matters or V asks\): It is late night, about 2 AM\./);
+  const input = parseInput(JSON.stringify({...resident({requestId: '71-1-55ULL'}), archetype: {base: 'food-vendor', category: 'vendor', title: 'food vendor', district: 'Watson', area: 'Kabuki'}}));
+  const place = archetypeContext(input);
+  assert.match(place, /never announce the place name or tell V where they are unless V asks/, 'the archetype place sentence is the one every provider reads');
+  assert.doesNotMatch(convai, /Let the place flavor what you say/);
+});
+
+test('a weather question on the FIRST turn brings the weather, in English and in the languages of the game menus', () => {
+  // The first turn does not announce the weather, so a question about it must be recognised or the model is left to guess (review of 2026-10-22).
+  sceneryMemory.clear();
+  assert.match(backgroundOf(conversationContext(nextTurn({text: 'Is it always raining here?'}))), /It is raining\./, 'English, first turn');
+  const asks = ['is it cold out?', 'gonna get wet?', 'bring an umbrella', 'Nice weather.', 'Look at that sky', 'is it snowing?',          // en
+    '¿Está lloviendo?', '¿Hace frío o calor?', 'Chove aí?', 'Está um dia de chuva', 'Il pleut ?', 'Quel temps de chien, il fait froid', // es pt fr
+    'Regnet es?', 'Ist es kalt draußen?', 'Piove?', 'Che freddo, vero?', 'Pada deszcz?', 'Jaka pogoda?', 'Prší?', 'Je venku zima?',     // de it pl cs
+    'Esik az eső?', 'Hideg van odakint?', 'Дождь?', 'Какая погода?', 'Чи йде дощ?', 'Яка погода?', 'Yağmur yağıyor mu?', 'Hava nasıl?', // hu ru uk tr
+    '今日は雨？', '外は寒いね', '下雨了吗？', '天氣好冷', '날씨 어때?', '비 와요?'];                                                 // ja zh ko
+  for (const text of asks) {
+    sceneryMemory.clear();
+    const memory = new SceneryMemory();
+    assert.equal(memory.decide({key: 'k', id: '1', weather: 'rain', part: 'night', text}).weather, true, text);
+  }
+  const talk = ['Hey.', 'Hola, ¿cómo estás?', 'Wie geht es dir?', 'Quoi de neuf ?', 'Что делаешь?', '今日は元気？', '你好吗？', 'Tudo bem?', 'Come stai?', 'So what now?', 'See you on Sunday'];
+  for (const text of talk) assert.equal(new SceneryMemory().decide({key: 'k', id: '1', weather: 'rain', part: 'night', text}).weather, false, text);
 });
 
 test('each conversation is told on its own: another character, another stranger, a phone contact; and again after a long silence', () => {
