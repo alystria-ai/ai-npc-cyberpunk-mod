@@ -42,7 +42,8 @@ export function editorClient() {
   // custom: the character being made or edited ({draft}); null while a shipped character is open.
   // voice: the voice part of the open character ({key, words, chosen, saved}); null when it cannot have a clip (see voiceSection).
   // world: the world rules page ({draft: {worldRules}}) while it is open, else null; it belongs to no character, so `data` is null then.
-  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, world: null, tab: 'bio', filter: '', note: null};
+  // prompting: the Prompting page (the options, the open one and its draft) while it is open, else null; it belongs to no character either.
+  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, world: null, prompting: null, tab: 'bio', filter: '', note: null};
   let noteTimer = 0, pickSeq = 0;
 
   const say = (text, bad) => {
@@ -106,6 +107,7 @@ export function editorClient() {
   const worldDirty = () => !!model.world && model.world.draft.worldRules !== model.state.worldRules.text;
   const dirtyFields = () => {
     if (model.world) return worldDirty() ? ['world'] : [];
+    if (model.prompting) return promptingDirty() ? ['prompting'] : [];
     const text = model.custom ? (customDirty() ? ['custom'] : []) : model.data && model.draft ? FIELDS.filter(field => !same(model.draft[field], model.data.values[field])) : [];
     return voiceDirty() ? [...text, 'voice'] : text;
   };
@@ -189,7 +191,7 @@ export function editorClient() {
   // keepDraft: only the memory or voice part changed, so what is typed in the form stays. The voice part follows the character: another one (or
   // one that cannot have a clip) drops the chosen file and its blob addresses.
   const apply = (data, keepDraft) => {
-    model.data = data; model.world = null;
+    model.data = data; model.world = null; model.prompting = null;
     if (data.voiceOnly) data.name = vName(data.key, data.name);
     if (data.voiceOnly) { model.custom = null; model.draft = null; }
     else if (data.group === 'custom') {
@@ -480,7 +482,7 @@ export function editorClient() {
   };
   const newCharacter = () => {
     if (!leave()) return;
-    model.key = ''; model.draft = null; model.world = null;
+    model.key = ''; model.draft = null; model.world = null; clearTimeout(model.prompting?.timer); model.prompting = null;
     model.data = {key: '', name: '', group: 'custom', custom: blankCustom(), memory: {available: false, learns: false, summary: '', records: []}, voice: null};
     model.custom = {draft: blankCustom()};
     dropVoice();
@@ -517,10 +519,396 @@ export function editorClient() {
   };
   const openWorld = () => {
     if (model.world || !leave()) return;
-    model.key = ''; model.data = null; model.draft = null; model.custom = null; dropVoice();
+    model.key = ''; model.data = null; model.draft = null; model.custom = null; dropVoice(); clearTimeout(model.prompting?.timer); model.prompting = null;
     model.world = {draft: {worldRules: model.state.worldRules.text}};
     chrome(); drawList(); drawMain();
     $('main').focus({preventScroll: true});
+  };
+
+  // ---- prompting: how each conversation option (Mistral, Local AI Lite and Standard, the same with Mature content on, and the player's Custom models) is told to answer.
+  // The server (bridge/prompting-editor.mjs) keeps the shipped default, the player's change and the effective profile of each option. The page edits a draft of the effective
+  // profile (numbers as the text of their boxes) and sends only what differs from the saved one; the preview asks the server to render the draft, so what is shown is what the
+  // prompt builder would write. Nothing is stored until Save.
+  const PROMPT_START = {topP: 0.9, repeatPenalty: 1.1};
+  const numText = value => (value === null || value === undefined ? '' : String(value));
+  const numOf = text => { const value = String(text).trim(); return value === '' ? null : Number(value); };
+  const ruleOut = rule => ({id: rule.id, text: rule.text, ...(rule.talk && rule.talk.trim() ? {talk: rule.talk} : {}), ...(rule.mature && rule.mature.trim() ? {mature: rule.mature} : {})});
+  const toDraft = eff => ({
+    rules: eff.rules.map(rule => ({id: rule.id, text: rule.text, talk: rule.talk || '', mature: rule.mature || ''})),
+    examples: [...eff.examples], stop: [...eff.stop],
+    intro: {...eff.intro}, closing: {...eff.closing}, labels: {...eff.labels}, layout: {...eff.layout},
+    sampling: {temperature: numText(eff.sampling.temperature), topP: numText(eff.sampling.topP), topPOff: eff.sampling.topP === null,
+      repeatPenalty: numText(eff.sampling.repeatPenalty), repeatPenaltyOff: eff.sampling.repeatPenalty === null, maxTokens: numText(eff.sampling.maxTokens)},
+    limits: {persona: numText(eff.limits.persona), turns: numText(eff.limits.turns)},
+  });
+  // The change the draft makes to the saved profile `eff`, in the shape the server takes: whole lists, and only the sub-fields of an object that differ.
+  const patchOf = (draft, eff) => {
+    const patch = {};
+    const rules = draft.rules.map(ruleOut);
+    if (!same(rules, eff.rules.map(ruleOut))) patch.rules = rules;
+    if (!same(draft.examples, eff.examples)) patch.examples = [...draft.examples];
+    if (!same(draft.stop, eff.stop)) patch.stop = [...draft.stop];
+    for (const field of ['intro', 'closing', 'labels', 'layout']) {
+      const out = {};
+      for (const key of Object.keys(draft[field])) if (!same(draft[field][key], eff[field][key])) out[key] = draft[field][key];
+      if (Object.keys(out).length) patch[field] = out;
+    }
+    const sampling = {};
+    for (const key of ['temperature', 'maxTokens']) { const value = numOf(draft.sampling[key]); if (!same(value, eff.sampling[key])) sampling[key] = value; }
+    for (const key of ['topP', 'repeatPenalty']) {
+      if (draft.sampling[key + 'Off']) { if (eff.sampling[key] !== null) sampling[key] = 'off'; } else { const value = numOf(draft.sampling[key]); if (!same(value, eff.sampling[key])) sampling[key] = value; }
+    }
+    if (Object.keys(sampling).length) patch.sampling = sampling;
+    const limits = {};
+    for (const key of ['persona', 'turns']) { const value = numOf(draft.limits[key]); if (!same(value, eff.limits[key])) limits[key] = value; }
+    if (Object.keys(limits).length) patch.limits = limits;
+    return patch;
+  };
+  const promptingDirty = () => !!model.prompting && !!model.prompting.data && Object.keys(patchOf(model.prompting.draft, model.prompting.data.effective)).length > 0;
+  const profileName = row => (row.provider === 'custom' ? T('Custom: {model} at {host}', {model: row.models || '', host: row.host || ''})
+    : {mistral: T('Mistral'), 'local-lite': T('Local AI, Lite'), 'local-standard': T('Local AI, Standard'), 'mature-lite': T('Local AI, Lite, Mature on'), 'mature-standard': T('Local AI, Standard, Mature on')}[row.id] || row.label);
+  const labelNames = () => ({rules: T('Heading of the output rules'), examples: T('Heading of the example replies'), formatNotes: T('Heading of the format notes'), world: T('Heading of the world and quest context'),
+    remember: T('Heading of what the character remembers'), rightNow: T('Heading of the right-now facts'), youNow: T('Heading of the character’s own right-now facts'),
+    thisTurn: T('Heading of the notes for this turn'), things: T('Heading of the things remembered about V')});
+  const fieldNames = () => ({'intro.named': T('Opening line for a named character'), 'intro.ambient': T('Opening line for an ordinary person'),
+    'closing.text': T('Closing line'), 'closing.talk': T('Closing line for a speaker with a reply length of its own'),
+    'sampling.temperature': T('Temperature'), 'sampling.topP': T('Top P'), 'sampling.repeatPenalty': T('Repeat penalty'), 'sampling.maxTokens': T('Longest reply (in tokens)'),
+    'limits.persona': T('Longest character description, in characters'), 'limits.turns': T('Earlier turns kept'), 'layout.youNow': T('Right-now sentence'), 'layout.volatile': T('Notes for this turn'),
+    ...Object.fromEntries(Object.entries(labelNames()).map(([key, name]) => ['labels.' + key, name]))});
+  const errorKey = item => item.field + (item.index !== undefined ? '#' + item.index : '') + (item.key ? ':' + item.key : '');
+  // One problem as a sentence in the player's language. A problem about one box says which box.
+  const promptingText = item => {
+    const values = {max: item.max, min: item.min, n: (item.index || 0) + 1};
+    let text;
+    switch (item.code) {
+      case 'unknown-profile': return T('That prompting option was not found.');
+      case 'rules-few': text = T('Keep at least one rule.'); break;
+      case 'rules-many': text = T('Too many rules. Keep {max} or fewer.', values); break;
+      case 'rule-empty': text = T('Rule {n} is empty. Write the rule or delete it.', values); break;
+      case 'rule-long': text = T('Rule {n} is too long. Keep each one under {max} characters.', values); break;
+      case 'rules-total': text = T('The rules are too long together. Keep them under {max} characters in all.', values); break;
+      case 'examples-many': text = T('Too many example lines. Keep {max} or fewer.', values); break;
+      case 'examples-long': text = T('An example line is too long. Keep each one under {max} characters.', values); break;
+      case 'examples-total': text = T('The example lines are too long together. Keep them under {max} characters in all.', values); break;
+      case 'intro-long': case 'closing-long': case 'labels-long': text = T('This text is too long. Keep it under {max} characters.', values); break;
+      case 'empty': text = T('This text cannot be empty.'); break;
+      case 'out-of-range': text = T('Use a number from {min} to {max}.', values); break;
+      case 'stop-many': text = T('Too many stop texts. Keep {max} or fewer.', values); break;
+      case 'stop-long': text = T('A stop text is too long. Keep each one under {max} characters.', values); break;
+      default: return T('Could not save. Try again.');
+    }
+    const name = item.key ? fieldNames()[item.field + '.' + item.key] : '';
+    return name ? T('{field}: {message}', {field: name, message: text}) : text;
+  };
+  const promptingProblem = error => (error.status === 404 ? T('That prompting option was not found.') : error.errors && error.errors[0] ? promptingText(error.errors[0]) : T('Could not save. Try again.'));
+  const promptPath = (id, rest) => '/api/prompting/' + encodeURIComponent(id) + (rest || '');
+
+  const promptingPanel = () => {
+    const p = model.prompting, data = p.data;
+    const row = p.profiles.find(item => item.id === p.id);
+    const badges = item => [item.active ? h('span', {class: 'chip edited'}, T('In use now')) : null, item.changed ? h('span', {class: 'chip edited'}, T('Edited')) : null];
+    const pickers = rows => h('div', {class: 'profiles'}, rows.map(item => h('button', {type: 'button', class: 'pick profile' + (item.id === p.id ? ' on' : ''), 'aria-current': item.id === p.id ? 'true' : null,
+      onclick: () => choosePrompting(item.id)}, h('span', {}, profileName(item)), badges(item))));
+    const builtIn = p.profiles.filter(item => item.provider !== 'custom'), custom = p.profiles.filter(item => item.provider === 'custom');
+    const top = h('div', {},
+      h('p', {class: 'help'}, T('How each conversation option is told to answer. Every option has its own prompting. A change counts from the next reply, and nothing needs restarting.')),
+      h('p', {class: 'help'}, T('The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.')),
+      h('h3', {class: 'group'}, T('Mistral and Local AI')), pickers(builtIn),
+      h('p', {class: 'help'}, T('Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.')),
+      h('h3', {class: 'group'}, T('Your Custom models and APIs')),
+      custom.length ? pickers(custom) : h('p', {class: 'empty'}, T('A Custom model appears here once you choose Custom as the conversation provider and set a model.')));
+    if (!data) return top;
+    p.ui = {errs: {}, top: h('div', {class: 'errs', role: 'alert'}), preview: h('div', {class: 'previewbody'}), save: null, revert: null, totals: null};
+    const heading = h('div', {class: 'head'}, h('h2', {}, profileName(row)), badges(row),
+      h('button', {type: 'button', class: 'quiet', disabled: !Object.keys(data.override).length, onclick: () => resetPrompting()}, T('Reset everything')));
+    return h('div', {}, top, h('hr'), heading, p.ui.top, h('div', {class: 'pcols'}, h('div', {class: 'pedit'}, ...promptingSections(), promptingBar()), promptingPreview()));
+  };
+
+  const promptingChanged = () => {
+    const p = model.prompting, dirty = promptingDirty();
+    if (p.ui.save) p.ui.save.disabled = !dirty;
+    if (p.ui.revert) p.ui.revert.disabled = !dirty;
+    if (p.ui.totals) p.ui.totals();
+    schedulePreview();
+  };
+  const promptingBar = () => {
+    const p = model.prompting;
+    p.ui.save = h('button', {type: 'button', class: 'primary', onclick: savePrompting}, T('Save'));
+    p.ui.revert = h('button', {type: 'button', class: 'secondary', onclick: revertPrompting}, T('Revert changes'));
+    p.ui.save.disabled = p.ui.revert.disabled = !promptingDirty();
+    return h('div', {class: 'actions bar sticky'}, p.ui.save, p.ui.revert);
+  };
+  const section = (field, title, help, ...children) => {
+    const p = model.prompting;
+    const errs = h('div', {class: 'errs', role: 'alert'});
+    p.ui.errs[field] = errs;
+    const undo = h('button', {type: 'button', class: 'quiet', disabled: !(field in p.data.override), onclick: () => resetPrompting(field)}, T('Reset to default'));
+    return h('section', {class: 'psec', 'data-field': field}, h('div', {class: 'phead'}, h('h3', {}, title), undo), help ? h('p', {class: 'help'}, help) : null, ...children, errs);
+  };
+  const textBox = (id, label, value, max, mark, set, rows = 3) => {
+    const area = h('textarea', {id, rows, spellcheck: 'true', maxlength: String(max * 3), 'data-err': mark});
+    area.value = value;
+    const meter = h('div', {class: 'meter'}, counter(value, max));
+    area.addEventListener('input', () => { set(area.value); meter.replaceChildren(counter(area.value, max)); promptingChanged(); });
+    return h('div', {class: 'field'}, h('label', {for: id}, label), area, meter);
+  };
+  const numberBox = (id, label, value, [low, high], mark, set, {integer = false, hint = null, disabled = false} = {}) => {
+    const input = h('input', {type: 'number', id, min: String(low), max: String(high), step: integer ? '1' : 'any', inputmode: integer ? 'numeric' : 'decimal', 'data-err': mark, 'aria-describedby': id + '-h'});
+    input.value = value; input.disabled = disabled;
+    input.addEventListener('input', () => { set(input.value); promptingChanged(); });
+    return {input, node: h('div', {class: 'field num'}, h('label', {for: id}, label), input,
+      h('p', {class: 'help', id: id + '-h'}, T('From {min} to {max}.', {min: low, max: high}) + (hint ? ' ' + hint : '')))};
+  };
+  const shippedText = value => T('Shipped: {value}', {value});
+
+  // The rules: numbered, in order. Each has its text and two other versions (for a speaker with a reply length of its own, and for Mature content).
+  const rulesField = () => {
+    const p = model.prompting, d = p.draft, L = model.state.prompting.limits;
+    const mistral = p.profiles.find(item => item.id === p.id).provider === 'mistral';
+    const box = h('div', {class: 'list rules'}), total = h('div', {class: 'meter'});
+    const sum = () => d.rules.reduce((all, rule) => all + count(rule.text) + count(rule.talk) + count(rule.mature), 0);
+    const updateTotal = () => total.replaceChildren(h('span', {class: 'count' + (sum() > L.rulesTotal ? ' over' : '')}, T('{count} of {max}', {count: sum(), max: L.rulesTotal})));
+    p.ui.totals = updateTotal;
+    const draw = () => {
+      box.replaceChildren(...d.rules.map((rule, index) => {
+        const n = index + 1;
+        const field = (key, label, rows) => {
+          const area = h('textarea', {rows, spellcheck: 'true', maxlength: String(L.ruleText * 3), 'aria-label': label, 'data-err': key === 'text' ? 'rules#' + index : null});
+          area.value = rule[key];
+          const meter = h('span', {class: 'count' + (count(area.value) > L.ruleText ? ' over' : '')}, T('{count} of {max}', {count: count(area.value), max: L.ruleText}));
+          area.addEventListener('input', () => {
+            rule[key] = area.value;
+            meter.textContent = T('{count} of {max}', {count: count(area.value), max: L.ruleText});
+            meter.className = 'count' + (count(area.value) > L.ruleText ? ' over' : '');
+            promptingChanged();
+          });
+          return {area, meter};
+        };
+        const body = field('text', T('Rule {n}', {n}), 3), talk = field('talk', T('Rule {n}, for a speaker with a reply length of its own', {n}), 2), mature = field('mature', T('Rule {n}, for Mature content', {n}), 2);
+        const move = by => () => { const [item] = d.rules.splice(index, 1); d.rules.splice(index + by, 0, item); draw(); promptingChanged(); };
+        return h('div', {class: 'rule'},
+          h('div', {class: 'rulehead'}, h('strong', {}, T('Rule {n}', {n})), h('span', {class: 'grow'}), body.meter,
+            h('button', {type: 'button', class: 'quiet', disabled: index === 0, 'aria-label': T('Move rule {n} up', {n}), onclick: move(-1)}, T('Move up')),
+            h('button', {type: 'button', class: 'quiet', disabled: index === d.rules.length - 1, 'aria-label': T('Move rule {n} down', {n}), onclick: move(1)}, T('Move down')),
+            h('button', {type: 'button', class: 'quiet', 'aria-label': T('Delete rule {n}', {n}), onclick: () => { d.rules.splice(index, 1); draw(); promptingChanged(); }}, T('Delete'))),
+          body.area,
+          h('details', {class: 'variants', open: !!(rule.talk || rule.mature)}, h('summary', {}, T('Other versions of this rule')),
+            h('p', {class: 'help'}, T('Leave a version empty to use the rule text.')),
+            h('div', {class: 'sub'}, h('span', {}, T('For a speaker with a reply length of its own')), talk.meter, talk.area),
+            mistral && !rule.mature ? null : h('div', {class: 'sub'}, h('span', {}, T('For Mature content')), mature.meter, mature.area)));
+      }));
+      add.disabled = d.rules.length >= L.rules;
+      updateTotal();
+    };
+    const add = h('button', {type: 'button', class: 'secondary', onclick: () => {
+      const taken = new Set(d.rules.map(rule => rule.id));
+      let number = d.rules.length + 1;
+      while (taken.has('own-' + number)) number++;
+      d.rules.push({id: 'own-' + number, text: '', talk: '', mature: ''});
+      draw(); promptingChanged();
+      [...box.querySelectorAll('.rule')].pop()?.querySelector('textarea')?.focus();
+    }}, T('Add a rule'));
+    draw();
+    return [box, total, h('div', {class: 'actions'}, add)];
+  };
+  // A list of short texts (example replies, stop texts): one box each, added and deleted.
+  const linesField = (key, addLabel, placeholder, maxCount, maxEach, rows, aria) => {
+    const d = model.prompting.draft;
+    const box = h('div', {class: 'list'});
+    const draw = () => {
+      box.replaceChildren(...d[key].map((line, index) => {
+        const attributes = {'aria-label': aria(index + 1), placeholder, maxlength: String(maxEach * 3), 'data-err': key + '#' + index};
+        const input = rows > 1 ? h('textarea', {rows, ...attributes}) : h('input', {type: 'text', ...attributes});
+        input.value = line;
+        const meter = h('span', {class: 'count' + (count(line) > maxEach ? ' over' : '')}, T('{count} of {max}', {count: count(line), max: maxEach}));
+        input.addEventListener('input', () => {
+          d[key][index] = input.value;
+          meter.textContent = T('{count} of {max}', {count: count(input.value), max: maxEach});
+          meter.className = 'count' + (count(input.value) > maxEach ? ' over' : '');
+          promptingChanged();
+        });
+        return h('div', {class: 'row' + (rows > 1 ? ' tall' : '')}, input, meter, h('button', {type: 'button', class: 'quiet', onclick: () => { d[key].splice(index, 1); draw(); promptingChanged(); }}, T('Delete')));
+      }));
+      add.disabled = d[key].length >= maxCount;
+    };
+    const add = h('button', {type: 'button', class: 'secondary', onclick: () => {
+      d[key].push(''); draw(); promptingChanged();
+      const fields = box.querySelectorAll('input,textarea'); fields[fields.length - 1]?.focus();
+    }}, addLabel);
+    draw();
+    return [box, h('div', {class: 'actions'}, add)];
+  };
+
+  const promptingSections = () => {
+    const p = model.prompting, d = p.draft, L = model.state.prompting.limits, shipped = p.data.default;
+    const names = fieldNames(), tokens = {name: '{name}', words: '{words}'};
+    const sampling = () => {
+      const make = (key, label, range, options) => numberBox('p-sampling-' + key, label, d.sampling[key], range, 'sampling:' + key, value => { d.sampling[key] = value; }, options);
+      // Top P and the repeat penalty are not sent to the model while they are off.
+      const optional = (key, label, range) => {
+        const box = make(key, label, range, {hint: shipped.sampling[key] === null ? T('Shipped: off') : shippedText(shipped.sampling[key]), disabled: d.sampling[key + 'Off']});
+        const off = h('input', {type: 'checkbox', id: 'p-sampling-' + key + '-off'});
+        off.checked = d.sampling[key + 'Off'];
+        off.addEventListener('change', () => {
+          d.sampling[key + 'Off'] = off.checked;
+          if (!off.checked && box.input.value === '') { d.sampling[key] = String(shipped.sampling[key] ?? PROMPT_START[key]); box.input.value = d.sampling[key]; }
+          box.input.disabled = off.checked;
+          promptingChanged();
+        });
+        return h('div', {class: 'numrow'}, box.node, h('label', {class: 'check', for: 'p-sampling-' + key + '-off'}, off, h('span', {}, T('Off'))));
+      };
+      return [h('div', {class: 'numrow'}, make('temperature', names['sampling.temperature'], L.temperature, {hint: shippedText(shipped.sampling.temperature)}).node),
+        optional('topP', names['sampling.topP'], L.topP), optional('repeatPenalty', names['sampling.repeatPenalty'], L.repeatPenalty),
+        h('div', {class: 'numrow'}, make('maxTokens', names['sampling.maxTokens'], L.maxTokens, {integer: true, hint: shippedText(shipped.sampling.maxTokens)}).node)];
+    };
+    const limits = () => ['persona', 'turns'].map(key => numberBox('p-limits-' + key, names['limits.' + key], d.limits[key], L[key], 'limits:' + key, value => { d.limits[key] = value; },
+      {integer: true, hint: shipped.limits[key] === null ? T('Shipped: the mod’s own limit') : shippedText(shipped.limits[key])}).node);
+    const layout = () => {
+      const check = h('input', {type: 'checkbox', id: 'p-layout-youNow', 'data-err': 'layout:youNow'});
+      check.checked = d.layout.youNow;
+      check.addEventListener('change', () => { d.layout.youNow = check.checked; promptingChanged(); });
+      const select = h('select', {id: 'p-layout-volatile', 'data-err': 'layout:volatile'}, h('option', {value: 'before'}, T('before V’s words')), h('option', {value: 'after'}, T('after V’s words')));
+      select.value = d.layout.volatile;
+      select.addEventListener('change', () => { d.layout.volatile = select.value; promptingChanged(); });
+      return [h('label', {class: 'check', for: 'p-layout-youNow'}, check, h('span', {}, T('Repeat the “where you are” sentence right before V’s words'))),
+        h('div', {class: 'field'}, h('label', {for: 'p-layout-volatile'}, T('The notes for this turn go')), select)];
+    };
+    const headings = () => Object.entries(labelNames()).map(([key, label]) => {
+      const input = h('input', {type: 'text', id: 'p-labels-' + key, maxlength: String(L.label * 3), 'data-err': 'labels:' + key});
+      input.value = d.labels[key];
+      input.addEventListener('input', () => { d.labels[key] = input.value; promptingChanged(); });
+      return h('div', {class: 'field'}, h('label', {for: 'p-labels-' + key}, label), input);
+    });
+    return [
+      section('rules', T('Output rules'), T('The numbered rules the model reads before every reply. Use {name} for the character’s name and {words} for the reply length of a speaker that has one.', tokens), ...rulesField()),
+      section('examples', T('Example replies'), T('Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.'),
+        ...linesField('examples', T('Add an example reply'), T('An example reply'), L.examples, L.example, 1, n => T('Example reply {n}', {n}))),
+      section('intro', T('Opening line'), T('The first line of the character text. Use {name} for the character’s name.', tokens),
+        textBox('p-intro-named', names['intro.named'], d.intro.named, L.intro, 'intro:named', value => { d.intro.named = value; }),
+        textBox('p-intro-ambient', names['intro.ambient'], d.intro.ambient, L.intro, 'intro:ambient', value => { d.intro.ambient = value; })),
+      section('closing', T('Closing line'), T('The last thing the model reads before it answers. Use {name} for the character’s name and {words} for the reply length. The Mature setting adds its own clause after it.', tokens),
+        textBox('p-closing-text', names['closing.text'], d.closing.text, L.closing, 'closing:text', value => { d.closing.text = value; }),
+        textBox('p-closing-talk', names['closing.talk'], d.closing.talk, L.closing, 'closing:talk', value => { d.closing.talk = value; })),
+      section('labels', T('Section headings'), T('The headings that mark each part of the prompt. Change the wording, not the order.'), ...headings()),
+      section('layout', T('Layout'), T('Where some notes go in the prompt.'), ...layout()),
+      section('sampling', T('Sampling'), T('How freely the model words its reply. Leave a box empty to use the shipped value.'), ...sampling()),
+      section('limits', T('Length limits'), T('Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter.'), ...limits()),
+      section('stop', T('Stop texts'), T('A reply ends when the model writes one of these. Line breaks count. Up to {max}.', {max: L.stops}),
+        ...linesField('stop', T('Add a stop text'), T('A text that ends the reply'), L.stops, L.stop, 2, n => T('Stop text {n}', {n})))];
+  };
+
+  // The preview: the rules, the example replies and the closing line as the prompt builder writes them for a sample speaker.
+  const promptingPreview = () => {
+    const p = model.prompting, spec = model.state.prompting, s = p.sample;
+    const name = h('input', {type: 'text', id: 'p-sample-name', maxlength: String(spec.previewName * 3)});
+    name.value = s.name;
+    name.addEventListener('input', () => { s.name = name.value; schedulePreview(); });
+    const mature = h('input', {type: 'checkbox', id: 'p-sample-mature'});
+    mature.checked = s.mature;
+    mature.addEventListener('change', () => { s.mature = mature.checked; schedulePreview(); });
+    const words = h('input', {type: 'number', id: 'p-sample-words', min: String(spec.previewWords[0]), max: String(spec.previewWords[1]), step: '1', inputmode: 'numeric'});
+    words.value = String(s.words); words.disabled = !s.talk;
+    words.addEventListener('input', () => { const value = Number(words.value); if (Number.isInteger(value) && value >= spec.previewWords[0] && value <= spec.previewWords[1]) { s.words = value; schedulePreview(); } });
+    const talk = h('input', {type: 'checkbox', id: 'p-sample-talk'});
+    talk.checked = s.talk;
+    talk.addEventListener('change', () => { s.talk = talk.checked; words.disabled = !talk.checked; schedulePreview(); });
+    schedulePreview(true);
+    return h('aside', {class: 'ppreview', 'aria-label': T('Preview')}, h('h3', {}, T('Preview')),
+      h('p', {class: 'help'}, T('The prompt text as the model would read it for a sample character. It follows your edits as you type, before you save.')),
+      h('div', {class: 'field'}, h('label', {for: 'p-sample-name'}, T('Sample character name')), name),
+      h('label', {class: 'check', for: 'p-sample-talk'}, talk, h('span', {}, T('A speaker with a reply length of its own'))),
+      h('div', {class: 'field'}, h('label', {for: 'p-sample-words'}, T('Reply length in words')), words),
+      h('label', {class: 'check', for: 'p-sample-mature'}, mature, h('span', {}, T('Mature content is on'))),
+      p.ui.preview);
+  };
+  const drawPreview = () => {
+    const p = model.prompting, shown = p.preview;
+    if (!shown) { p.ui.preview.replaceChildren(); return; }
+    const block = (title, text, empty) => [h('h4', {}, title), text ? h('pre', {}, text) : h('p', {class: 'empty'}, empty)];
+    p.ui.preview.replaceChildren(...[p.stale ? h('p', {class: 'help stale', role: 'status'}, T('The preview waits until the problems in the form are fixed.')) : null,
+      ...block(T('Output rules'), shown.rules, ''), ...block(T('Example replies'), shown.examples, T('No example replies.')), ...block(T('Closing line'), shown.closing, T('No closing line.'))].filter(node => node));
+  };
+  // The unsaved edits are rendered by the server a moment after the last key press (and an older answer never replaces a newer one). The same answer carries the problems found
+  // in the form, which are shown at once in the sections they belong to.
+  function schedulePreview(now) {
+    const p = model.prompting;
+    if (!p || !p.data) return;
+    clearTimeout(p.timer);
+    const run = async () => {
+      const seq = ++p.seq, id = p.id;
+      try {
+        const reply = await api('POST', promptPath(id, '/preview'), {name: p.sample.name, talkWords: p.sample.talk ? p.sample.words : 0, mature: p.sample.mature, patch: patchOf(p.draft, p.data.effective)});
+        if (model.prompting !== p || p.id !== id || seq !== p.seq) return;
+        if (reply.ok) { p.preview = reply; p.stale = false; showPromptingErrors([]); } else { p.stale = true; showPromptingErrors(reply.errors); }
+        drawPreview();
+      } catch (error) { if (model.prompting === p && seq === p.seq) say(promptingProblem(error), true); }
+    };
+    if (now) void run(); else p.timer = setTimeout(run, 300);
+  }
+  function showPromptingErrors(list) {
+    const p = model.prompting;
+    p.errors = list;
+    for (const [field, node] of Object.entries(p.ui.errs)) node.replaceChildren(...list.filter(item => item.field === field).map(item => h('p', {class: 'err'}, promptingText(item))));
+    p.ui.top.replaceChildren(...list.filter(item => !(item.field in p.ui.errs)).map(item => h('p', {class: 'err'}, promptingText(item))));
+    const keys = new Set(list.map(errorKey));
+    for (const node of $('main').querySelectorAll('[data-err]')) { if (keys.has(node.dataset.err)) node.setAttribute('aria-invalid', 'true'); else node.removeAttribute('aria-invalid'); }
+  }
+
+  const keepScroll = draw => { const main = $('main'), top = main.scrollTop; draw(); main.scrollTop = top; };
+  // A reply of the server about the open option: remember it and draw again. `only`: the one field whose draft is replaced (a reset of one part), the other edits stay.
+  const promptingLanded = (data, only) => {
+    const p = model.prompting, fresh = toDraft(data.effective);
+    p.data = data;
+    p.draft = only ? {...p.draft, [only]: fresh[only]} : fresh;
+    const row = p.profiles.find(item => item.id === data.id);
+    if (row) { row.changed = Object.keys(data.override).length > 0; row.active = data.active; }
+    p.errors = []; p.preview = null; p.stale = false;
+    keepScroll(drawMain);
+  };
+  async function savePrompting() {
+    const p = model.prompting, patch = patchOf(p.draft, p.data.effective);
+    if (!Object.keys(patch).length) return;
+    try { hush(); promptingLanded(await api('PUT', promptPath(p.id), patch)); say(T('Saved.')); }
+    catch (error) {
+      if (error.status === 422 && model.prompting === p) showPromptingErrors(error.errors || []);
+      say(promptingProblem(error), true);
+    }
+  }
+  function revertPrompting() {
+    const p = model.prompting;
+    p.draft = toDraft(p.data.effective); p.errors = []; p.stale = false;
+    keepScroll(drawMain);
+  }
+  async function resetPrompting(field) {
+    const p = model.prompting, name = profileName(p.profiles.find(item => item.id === p.id));
+    if (!confirm(field ? T('Go back to the shipped prompting for {name}? Your changes to this part are removed.', {name}) : T('Go back to the shipped prompting for {name}? All your changes to it are removed.', {name}))) return;
+    try { hush(); promptingLanded(await api('POST', promptPath(p.id, '/reset'), field ? {field} : {}), field); say(T('Back to the shipped prompting.')); }
+    catch (error) { say(promptingProblem(error), true); }
+  }
+  async function choosePrompting(id) {
+    const p = model.prompting;
+    if (!p || id === p.id || !leave()) return;
+    try {
+      const data = await api('GET', promptPath(id));
+      clearTimeout(p.timer); p.seq++;
+      p.id = id;
+      p.sample.mature = id.startsWith('mature');
+      promptingLanded(data);
+    } catch (error) { say(promptingProblem(error), true); }
+  }
+  const openPrompting = async () => {
+    if (model.prompting || !leave()) return;
+    try {
+      const {profiles} = await api('GET', '/api/prompting');
+      const first = profiles.find(item => item.active) || profiles[0];
+      if (!first) return;
+      const data = await api('GET', promptPath(first.id));
+      model.key = ''; model.data = null; model.draft = null; model.custom = null; model.world = null; dropVoice();
+      model.prompting = {profiles, id: first.id, data, draft: toDraft(data.effective), errors: [], preview: null, stale: false, seq: 0, timer: 0, ui: null,
+        sample: {name: 'Judy', talk: false, words: 30, mature: first.id.startsWith('mature')}};
+      chrome(); drawList(); drawMain();
+      $('main').focus({preventScroll: true});
+    } catch (error) { say(promptingProblem(error), true); }
   };
 
   // ---- the page
@@ -537,6 +925,7 @@ export function editorClient() {
   function drawMain() {
     const main = $('main');
     drawBanner();
+    if (model.prompting) { main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, T('Prompting'))), h('div', {class: 'panel wide'}, promptingPanel())); return; }
     if (model.world) { main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, T('World rules')), model.state.worldRules.text ? h('span', {class: 'chip edited'}, T('Edited')) : null), h('div', {class: 'panel'}, worldPanel())); return; }
     if (!model.data) { main.replaceChildren(h('p', {class: 'empty big'}, T('Choose a character on the left.'))); return; }
     const data = model.data;
@@ -563,6 +952,7 @@ export function editorClient() {
   }
   function drawList() {
     $('world').classList.toggle('on', !!model.world);
+    $('prompting').classList.toggle('on', !!model.prompting);
     const query = model.filter.trim().toLowerCase();
     const groups = [['custom', T('Your characters')], ['v', T('V’s voice')], ['story', T('Story characters')], ['everyday', T('Everyday people')]];
     const nodes = [];
@@ -599,6 +989,9 @@ export function editorClient() {
     const world = $('world');
     world.textContent = T('World rules');
     world.hidden = !model.state.worldRules;
+    const prompting = $('prompting');
+    prompting.textContent = T('Prompting');
+    prompting.hidden = !model.state.prompting;
     drawBanner();
   };
   // The warning that Convai is answering. Not on the world rules page: Convai gets those as context, and that page says so.
@@ -611,6 +1004,7 @@ export function editorClient() {
   $('search').addEventListener('input', event => { model.filter = event.target.value; drawList(); });
   $('new').addEventListener('click', newCharacter);
   $('world').addEventListener('click', openWorld);
+  $('prompting').addEventListener('click', openPrompting);
   $('close').addEventListener('click', async () => {
     if (!leave()) return;
     try { await api('POST', '/api/close', {}); } catch { /* the page is closing anyway */ }
@@ -643,8 +1037,8 @@ header.top p{margin:2px 0 0;color:var(--dim);font-size:13px}
 .layout{display:grid;grid-template-columns:300px 1fr;flex:1;min-height:0}
 aside{border-right:1px solid var(--line);padding:16px;overflow:auto;max-height:calc(100vh - 120px);background:var(--panel)}
 aside input[type=search]{width:100%}
-aside #new,aside #world{width:100%;margin-bottom:12px}
-aside #world.on{border-color:var(--accent)}
+aside #new,aside #world,aside #prompting{width:100%;margin-bottom:12px}
+aside #world.on,aside #prompting.on{border-color:var(--accent)}
 #list ul{list-style:none;margin:0;padding:0}
 .group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:18px 0 6px}
 .pick{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:none;border:1px solid transparent;color:var(--text);padding:7px 10px;border-radius:6px;cursor:pointer;font:inherit}
@@ -695,7 +1089,44 @@ button:disabled{opacity:.4;cursor:default}
 .note.bad{border-color:var(--bad);color:var(--bad)}
 footer{padding:10px 24px;color:var(--dim);font-size:13px;border-top:1px solid var(--line);background:var(--panel)}
 .gone{padding:60px 24px;text-align:center;font-size:18px}
-@media (max-width:760px){.layout{grid-template-columns:1fr}aside{max-height:240px;border-right:0;border-bottom:1px solid var(--line)}main#main{max-height:none;padding:18px 16px}.row{grid-template-columns:1fr auto auto}.row .count{display:none}}
+.panel.wide{max-width:1280px}
+.profiles{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.profiles .pick.profile{width:auto;gap:8px;border-color:var(--line);flex-wrap:wrap}
+.profiles .pick.profile.on{border-color:var(--accent)}
+hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+.pcols{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;align-items:start}
+@media (min-width:1100px){.pcols{grid-template-columns:minmax(0,1fr) minmax(300px,420px)}.ppreview{position:sticky;top:0;max-height:calc(100vh - 160px);overflow:auto}}
+.psec{margin:0 0 26px;padding:0 0 4px}
+.phead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.phead h3{margin:0;font-size:17px}
+.phead .quiet{margin-left:auto}
+.rule{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--field)}
+.rulehead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.rulehead .grow{flex:1}
+.rulehead button{padding:4px 10px}
+.rule textarea{background:var(--panel)}
+.variants{margin-top:8px}
+.variants summary{cursor:pointer;color:var(--dim);font-size:13.5px}
+.variants .sub{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.variants .sub .count{align-self:flex-end}
+.numrow{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.field.num{margin:0 0 14px;max-width:340px;flex:1 1 220px}
+.field.num input[type=number]{width:100%}
+label.check{display:flex;gap:8px;align-items:center;margin:6px 0 10px;cursor:pointer}
+.numrow label.check{margin-top:26px}
+.row.tall{align-items:start}
+.row textarea{min-width:0}
+.errs:empty{display:none}
+.err{margin:6px 0 0;color:var(--bad);font-size:13.5px}
+[aria-invalid=true]{border-color:var(--bad)!important}
+.ppreview{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--panel)}
+.ppreview h3{margin:0 0 4px;font-size:17px}
+.ppreview h4{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.ppreview pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:10px}
+.ppreview .stale{color:var(--bad)}
+.ppreview .field{margin:0 0 10px}
+.actions.sticky{position:sticky;bottom:0;background:var(--bg);padding:12px 0;z-index:2}
+@media (max-width:760px){.layout{grid-template-columns:1fr}aside{max-height:240px;border-right:0;border-bottom:1px solid var(--line)}main#main{max-height:none;padding:18px 16px}.row{grid-template-columns:1fr auto auto}.rulehead .count{display:inline}.profiles .pick.profile{width:100%}.row .count{display:none}}
 @media (prefers-reduced-motion:reduce){.note{transition:none}}
 `;
 
@@ -721,7 +1152,7 @@ export function renderEditorPage({nonce, token, language = 'en'}) {
 <header class="top"><div class="grow"><h1 id="title">Character editor</h1><p id="sub"></p></div><button type="button" id="close" class="secondary">Close editor</button></header>
 <p id="banner" role="status" hidden></p>
 <div class="layout">
-<aside><button type="button" id="world" class="secondary" hidden>World rules</button><button type="button" id="new" class="primary" hidden>New character</button><input type="search" id="search" autocomplete="off"><nav id="list" aria-label="Characters"></nav></aside>
+<aside><button type="button" id="prompting" class="secondary" hidden>Prompting</button><button type="button" id="world" class="secondary" hidden>World rules</button><button type="button" id="new" class="primary" hidden>New character</button><input type="search" id="search" autocomplete="off"><nav id="list" aria-label="Characters"></nav></aside>
 <main id="main" tabindex="-1"></main>
 </div>
 <footer id="foot"></footer>
