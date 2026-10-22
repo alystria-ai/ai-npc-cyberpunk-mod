@@ -89,6 +89,8 @@ The support report (**Settings > Help > Generate report**) says whether the sett
 }
 ```
 
+`detail` holds only the keys of `DETAIL_KEYS` in `bridge/error-reports.mjs` (the provider and its error code, the Local AI reason, the voice `engine` and the voice worker's graphics memory `gpuDedicatedMiB` and `gpuSharedMiB`, and for a custom server's empty answer the `empty*` counts: how it ended the answer, the tokens it counted, the events, pieces and milliseconds, `emptyAnswerDetail` in `bridge/error-events.mjs`). Before 2026-10-22 the voice keys were recorded but dropped by this list, so every voice report had an empty `detail`.
+
 Log sources and their share of the 150 lines: `bridge-stderr` 70 (the lines around the error's own message when it is found, else the end), `service` 20, `launcher` 10, `probe` 25 (around the error), `cet-mod` 15, `redscript` 10 (error lines only). Each line is cut to 300 characters.
 
 Redaction, in order: the support report's `createRedactor` with every key file's value as a literal (`credentialSecrets`, `customServerSecrets`, `dataFolderSecrets` in `bridge/report-secrets.mjs`: the data folder's key files, the sign-in file's secret, the custom servers' keys, the packed key), then `withoutConversation` (quoted text of 12 characters or more with a space in it, and the values of `text=`, `reply:`, `prompt=`, `"text":`... fields), then the Windows account names this process can see (`USERNAME`, the profile folder, `os.userInfo()`). The `detail` object keeps only the fields the recorders write. `bridge/error-reports.test.mjs` runs the support report's planted secrets, IDs, account name and conversation text through the whole path and requires none of them to get out.

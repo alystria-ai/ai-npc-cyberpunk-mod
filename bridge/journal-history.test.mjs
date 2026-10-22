@@ -346,3 +346,23 @@ test('temporal words in "what did we do last?" do not pull in a job titled "Last
     profileKey: 'judy-alvarez', query: 'what did we do last? what next?'});
   assert.doesNotMatch(output.context, /Last Login/);
 });
+
+test('a scan frame whose session the caller proved re-checks only the journal (2 native checks per step, not 14), and a stale proof falls back to the full check', () => run(fixture + `
+local full,journal,journalReady,proven=0,0,true,true
+options.adapter.isReady=function() full=full+1; return ready end
+options.adapter.isJournalReady=function() journal=journal+1; return journalReady end
+options.sessionProven=function() return proven end
+local m=module.new(options)
+m:update(context)
+assert(full==0 and journal==2,'a proven frame checks the journal before and after the step: '..full..'/'..journal)
+journal=0; proven=false; now=now+1; m:demand({'active'},0); m:update(context)
+assert(full==2 and journal==0,'without a proof both checks are the full one: '..full..'/'..journal)
+-- The journal reporting delayed state changes rejects the step even when the session was proven.
+proven=true; journalReady=false; full,journal=0,0; now=now+1
+assert(m:update(context).status=='unavailable' and full==0 and journal==1)
+-- A collector without the journal check, or whose proof errors, keeps the full one.
+options.adapter.isJournalReady=nil; full=0; local plain=module.new(options); plain:update(context); assert(full==2)
+options.adapter.isJournalReady=function() journal=journal+1; return true end
+options.sessionProven=function() error('no frame') end
+full=0; local broken=module.new(options); broken:update(context); assert(full==2)
+`));

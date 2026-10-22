@@ -158,7 +158,7 @@ export function archetypeContext(input, {place = true} = {}) {
   }
   const district = placeName(facts.district), area = placeName(facts.area);
   // Said as a fact and no more: "let the place flavor what you say" made every ordinary NPC work the district into its answer (a player report, 2026-10-22).
-  if (district && place) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Mention it only when it matters to what V says, and never invent a specific address.`);
+  if (district && place) lines.push(`Where you are now: ${area && area !== district ? `${area}, ` : ''}${district}. Mention it only when it matters to what V says: never announce the place name or tell V where they are unless V asks, and never invent a specific address.`);
   if (!lines.length) return '';
   return ['CURRENT PERSON (from the game, this conversation only)', ...lines].join('\n');
 }

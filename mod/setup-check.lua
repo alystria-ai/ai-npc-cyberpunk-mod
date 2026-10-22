@@ -457,16 +457,40 @@ local function gameLine(id, check)
     return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
 end
 
+-- Which of the two is older when the setup check says they differ: true (the Runtime), false (the Scripts), nil (cannot tell: a version that does not read as numbers). A running
+-- service that never answered has no setup check at all (0.2.1 and older), so its Runtime is the older one. The Runtime updates exist from 0.2.3 on, so the page sends a
+-- Runtime that is older to its update zips (one by one) or the full Runtime, and a Scripts that is older to Nexus Mods.
+local function versionParts(value)
+    local parts = {}
+    for number in tostring(value or ''):gmatch('%d+') do parts[#parts + 1] = tonumber(number) end
+    return #parts > 0 and parts or nil
+end
+
+local function runtimeIsOlder(versions)
+    if not versions then return silent == true and true or nil end
+    local scripts, runtime = versionParts(versions.scripts), versionParts(versions.runtime)
+    if not scripts or not runtime then return nil end
+    for index = 1, math.max(#scripts, #runtime) do
+        local a, b = scripts[index] or 0, runtime[index] or 0
+        if b < a then return true end
+        if b > a then return false end
+    end
+    return nil
+end
+
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
     if versions and (versions.code == 'match' or versions.code == 'mismatch') then
         local values = {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?'}
+        local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
         out[#out + 1] = versions.code == 'mismatch'
-            and line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('Scripts {scripts} and Runtime {runtime} do not match. Download both for the same version and extract them into the Cyberpunk 2077 folder.', values))
+            and line('versions', ui.t('Scripts and Runtime'), 'problem', older
+                and ui.t('Scripts {scripts} and Runtime {runtime} do not match: the Runtime is out of date. Apply the Runtime update zips from the updates folder on the mod’s Hugging Face page one by one, starting from your version, or download the full Runtime. Extract each into the Cyberpunk 2077 folder, then restart the game.', values)
+                or ui.t('Scripts {scripts} and Runtime {runtime} do not match. Update whichever is older: the Scripts from Nexus Mods, or the Runtime from the mod’s Hugging Face page (its update zips one by one, or the full Runtime). Extract into the Cyberpunk 2077 folder, then restart the game.', values))
             or line('versions', ui.t('Scripts and Runtime'), 'ok', ui.t('Scripts {scripts} and Runtime {runtime}.', values))
     elseif not versions and silent then
         -- A running service that never answered: a Runtime from before the setup check existed (0.2.1 and older) cannot say its version.
-        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.'))
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.'))
     end
     local packs = bridgeCheck('packs')
     if packs then
@@ -640,7 +664,8 @@ local function shortText(id, names, old)
     if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
-    if id == 'versions' then return ui.t('The Scripts and Runtime versions do not match. Install the same version of both.') end
+    if id == 'versions-old' then return ui.t('The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.') end
+    if id == 'versions' then return ui.t('The Scripts and Runtime do not match. Update whichever is older. See Help in Settings.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
     if id == 'internet' then return ui.t('The conversation service cannot reach the internet. See Help in Settings.') end
     return ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = PRODUCT[id] or names or id})
@@ -715,6 +740,10 @@ local function firstLoad()
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end
     if first == 'nsui' and game.checks.nsui.code == 'mcm-old' then return shortText('mcm-old') end
+    -- Scripts and Runtime of different versions: a Runtime that is the older one (nearly every report) is told to apply its update zips or take the full Runtime. A Runtime that never
+    -- answered (0.2.1 and older: no update zips exist for it) has no versions to compare: it gets the generic notice, and the Help line tells it to get the full Runtime.
+    local versions = bridgeCheck('versions')
+    if first == 'versions' and versions ~= nil and runtimeIsOlder(versions) == true then return shortText('versions-old') end
     return shortText(first)
 end
 

@@ -439,3 +439,18 @@ test('when the companions leave OmniVoice V\'s Omni route is gone at once (V fal
   assert.equal(h.voice.vRouteSpeaks('v-male'), true);
   await h.voice.close();
 });
+
+// Opus review: V's helper swallowed every close error, so the main Pocket worker could start beside a helper whose exit stayed unconfirmed. Only that error is kept now.
+test('a helper whose exit stays unconfirmed keeps blocking the next Pocket worker; other close errors are still swallowed', async () => {
+  const make = closeError => {
+    const client = {loaded: true, failure: null, closing: false, hasProfile: () => true, start: async () => {}, close: async () => { throw Error(closeError); }};
+    return new VHelperVoice({create: () => client, wait: () => Promise.resolve(), retryDelays: [10]});
+  };
+  const stuck = make('Pocket worker exit could not be confirmed');
+  stuck.start(); await new Promise(done => setImmediate(done));
+  await assert.rejects(stuck.release(), /exit could not be confirmed/);
+  await assert.rejects(stuck.release(), /exit could not be confirmed/, 'and it stays so');
+  const odd = make('close blew up');
+  odd.start(); await new Promise(done => setImmediate(done));
+  await odd.release();
+});

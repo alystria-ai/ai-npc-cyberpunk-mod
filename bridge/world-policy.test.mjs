@@ -122,3 +122,37 @@ test('passive gaze: V merely looking at an ordinary NPC does not turn it; our co
   for _ = 1, 6 do updateGaze(player, 0.25) end
   assert(begun[1] == '6', 'our spawned companion responds to a look as before')
 `));
+
+test('gaze scan: at the 10 Hz tick the native query runs on the half-way tick and the measuring on the next, with the gathered list handed over', () => run(`
+  ${world}
+  convaiAttentionProbe = nil
+  local focusMode, focusEntity, gazePoll, gazeCandidate, gazeDwell, gazeLost = nil, nil, 0, nil, 0, 0
+  local canAcquire = true
+  local function gameplayCanAcquire() return canAcquire end
+  local gathers, measures, handed = 0, 0, {}
+  local function gatherTargets() gathers = gathers + 1; return {tag = gathers} end
+  local function targetAtCrosshair(gathered) measures = measures + 1; handed[#handed + 1] = gathered and gathered.tag or 'none'; return nil end
+  local function resetGaze() gazeCandidate, gazeDwell, gazeLost = nil, 0, 0 end
+  local supportedProfiles, manager = {}, {profileEnabled = function() return false end}
+  local function profileIdentity() return nil end
+  local function beginFocus() return true end
+  local function endFocus() end
+  local function log() end
+  local player = {}
+  ${gazeSource}
+  updateGaze(player, 0.1); assert(gathers == 1 and measures == 0, 'half way: gather only')
+  updateGaze(player, 0.1); assert(gathers == 1 and measures == 1 and handed[1] == 1, 'the measuring tick used the gathered list')
+  assert(convaiGazeGather == nil, 'the list is taken, not kept')
+  -- Nothing to gather while the scan could not run (a menu, the composer).
+  canAcquire = false
+  updateGaze(player, 0.1); updateGaze(player, 0.1)
+  assert(gathers == 1 and measures == 1, 'no query while V cannot acquire a target')
+  canAcquire = true
+  -- A list that went stale (a long hitch between the ticks) is dropped and the scan queries for itself.
+  updateGaze(player, 0.1)
+  convaiGazeGather.at = os.clock() - 1
+  updateGaze(player, 0.1)
+  assert(handed[#handed] == 'none', 'a stale list was used')
+  -- A frame that already holds a whole period (a slow frame, a test) scans at once, as before.
+  updateGaze(player, 0.25); assert(measures == 3 and handed[#handed] == 'none')
+`));

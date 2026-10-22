@@ -153,6 +153,9 @@ export function vgmstreamDecoder(executable, {timeoutMs = 30_000, run = execFile
   };
 }
 
+/** Lines in a row that may fail to decode, with none usable yet, before the build gives up. */
+export const MAX_BROKEN_RUN = 3;
+
 /**
  * Builds V's reference from one archive. `lines`: the gender's rows of v-mod-lines.json ({path, stringId, transcript}). Lines the archive does not
  * hold are skipped. Resolves to {wav (bytes), entry (the v-voice.json row: file, transcript, sha256, seconds, sampleRate, clips), report} or rejects
@@ -165,14 +168,22 @@ export async function buildModReference({archive, lines, decode, recipe = REFERE
     const present = hashed.filter(({hex}) => held.has(hex)).slice(0, recipe.maxLines);
     if (!present.length) throw Object.assign(Error('the archive holds none of the lines'), {code: 'no-lines'});
     const candidates = [], usable = [];
-    let picked = [], compressed = 0;
+    let picked = [], compressed = 0, badLines = 0, brokenRun = 0, decoderFailure = null;
     // Lines are decoded in the recipe's order and only until the set reaches its target length (normally the three English picks: about 11 s).
     for (const {line, hex} of present) {
       let wem;
       try { wem = await opened.read(hex); } catch (error) { candidates.push({line, skipped: error.code ?? 'unreadable'}); if (error.code === 'compressed') compressed++; continue; }
-      let wav;
-      try { wav = await decode(wem); } catch (error) { throw Object.assign(Error(`the decoder failed: ${String(error?.message ?? error).slice(0, 120)}`), {code: 'decoder'}); }
-      const candidate = {line, ...prepareClip(wav)};
+      // A line that cannot be decoded (or whose audio cannot be read) is skipped: a spare line takes its place. A decoder that fails line after line with nothing usable yet (a broken
+      // or hanging tool: up to 30 s a line) ends the build after MAX_BROKEN_RUN lines instead of trying all of them.
+      let candidate;
+      try { candidate = {line, ...prepareClip(await decode(wem))}; brokenRun = 0; }
+      catch (error) {
+        badLines++; brokenRun++;
+        decoderFailure = decoderFailure ?? `the decoder failed: ${String(error?.message ?? error).slice(0, 120)}`;
+        candidates.push({line, skipped: 'decoder'});
+        if (!usable.length && brokenRun >= MAX_BROKEN_RUN) break;
+        continue;
+      }
       candidates.push(candidate);
       if (candidate.gatedRmsDb === null) continue;
       usable.push(candidate);
@@ -182,7 +193,11 @@ export async function buildModReference({archive, lines, decode, recipe = REFERE
     }
     // One line in the log for lines the mod stores compressed (Oodle): reading them is not supported, they are skipped.
     if (compressed) log(`${compressed} line(s) of the mod are stored compressed, which is not supported; they were skipped`);
-    if (!picked.length) throw Object.assign(Error('no set of the lines in the mod fits the reference recipe'), {code: 'no-set'});
+    if (badLines) log(`${badLines} line(s) of the mod could not be decoded and were skipped`);
+    if (!picked.length) {
+      if (!usable.length && decoderFailure) throw Object.assign(Error(decoderFailure), {code: 'decoder'});
+      throw Object.assign(Error('no set of the lines in the mod fits the reference recipe'), {code: 'no-set'});
+    }
     const clips = picked.map(index => usable[index]);
     const samples = joinClips(clips.map(clip => clip.samples), {rate: recipe.rate, gap: recipe.gapSeconds});
     const wav = encodeWav16(samples, recipe.rate);

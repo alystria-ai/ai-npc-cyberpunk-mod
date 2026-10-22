@@ -143,7 +143,8 @@ test('Node\'s "does not provide an export named" (files of two versions) is read
   assert.equal(missingModuleInLog(`SyntaxError: The requested module './lone.mjs' does not provide an export named 'q'`, project), 'lone.mjs');
   for (const name of ['bridge/runtime-files.mjs', 'node_modules/fakepkg-core']) {
     const message = mismatchMessage(name);
-    assert.match(message, /full Runtime again, or apply the Runtime update zips in order/);
+    assert.match(message, /full Runtime again, or apply the Runtime update zips from the updates folder on the Hugging Face page of the mod one by one, starting from your version/);
+    assert(!/\d+\.\d+/.test(message.replace(name, '')), 'no version number in the instruction');
     assert(message.includes(name) && !/Made Up|Some Game|D:/.test(message));
   }
 });

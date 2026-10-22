@@ -204,3 +204,57 @@ test('quantum corrections do not accumulate an offset after the browser catches 
     return /regressed/.test(error.message);
   });
 });
+
+// 2026-10-22 review: 59 of 62 "the voice broke" lines were Pocket on a busy CPU, which refilled the start's 0.4 s every time (17 breaks in 30 s).
+const slow = (options = {}) => new ContinuousPcmCore({sampleRate: 8000, channels: 1, startupSeconds: .4, ...options});
+const breakOnce = (sound, at) => { // plays what is buffered and runs dry
+  let guard = 0; while (sound.bufferedFrames > 0 && guard++ < 10000) render(sound, 128, undefined, at);
+  render(sound, 128, undefined, at); // the render that finds nothing left
+};
+test('each break of a line asks for a bigger refill before the voice plays on (0.4 -> 0.8 -> 1.6 -> 3.2 -> 4 s), and a line that never breaks keeps the start\'s 0.4 s', () => {
+  const sound = slow(), second = 8000; sound.control(allowed, 0);
+  let offset = 0; const give = frames => { sound.append(pcm(Array(frames).fill(7)), offset); offset += frames; };
+  give(3200); render(sound, 128, undefined, 0); assert.equal(sound.snapshot().refillSeconds, .4, 'no break, no growth');
+  const targets = [];
+  for (let step = 0; step < 5; step++) {
+    breakOnce(sound, 1);
+    targets.push(sound.snapshot().refillSeconds);
+    // One start's worth is no longer enough to play on.
+    const before = sound.playedFrames; give(3200); render(sound, 128, undefined, 1);
+    if (step < 4) assert.equal(sound.playedFrames, before, `refill ${step + 1} waits for more than 0.4 s`);
+    give(40000); // plenty: it plays on again
+    render(sound, 128, undefined, 1); assert.ok(sound.playedFrames > before);
+  }
+  assert.deepEqual(targets, [.8, 1.6, 3.2, 4, 4]); assert.equal(sound.underruns, 5); assert.ok(second > 0);
+});
+
+test('a refill is sized from the measured arrival speed: audio arriving at 0.05x real time asks for the carry time of one refill at once', () => {
+  const sound = slow(); sound.control(allowed, 0);
+  sound.append(pcm(Array(3200).fill(1)), 0, 0);        // 0.4 s of audio at t = 0
+  sound.append(pcm(Array(800).fill(1)), 3200, 1900);   // only 0.1 s more after 1.9 s
+  assert.ok(Math.abs(sound.arrivalSpeed() - 0.1 / 1.9) < 1e-9);
+  sound.control(allowed, 1900); render(sound, 128, undefined, 1900); breakOnce(sound, 1900);
+  assert.equal(sound.underruns, 1);
+  const seconds = sound.snapshot().refillSeconds;
+  assert.ok(seconds > 2.3 && seconds < 2.4, `the refill is ${seconds} s`); // 2.5 s x (1 - 0.0526)
+});
+
+test('audio arriving faster than it plays measures as such and grows the refill only by doubling', () => {
+  const sound = slow(); sound.control(allowed, 0);
+  sound.append(pcm(Array(3200).fill(1)), 0, 0); sound.append(pcm(Array(16000).fill(1)), 3200, 1000);
+  assert.equal(sound.arrivalSpeed(), 2);
+  sound.control(allowed, 1000); render(sound, 128, undefined, 1000); breakOnce(sound, 1000); assert.equal(sound.snapshot().refillSeconds, .8);
+  assert.equal(slow().arrivalSpeed(), null, 'nothing to measure before a second packet');
+});
+
+test('a refill never waits longer than refillWaitMs once the amount of the start is there', () => {
+  const sound = slow(); sound.control(allowed, 0);
+  sound.append(pcm(Array(3200).fill(1)), 0, 0); render(sound, 128, undefined, 0); sound.control(allowed, 100); breakOnce(sound, 100);
+  sound.append(pcm(Array(3200).fill(2)), sound.receivedFrames, 200);   // the start's 0.4 s, but the refill asks for 0.8 s
+  const before = sound.playedFrames; let resumedAt = null;
+  for (let at = 400; at <= PCM_LIMITS.refillWaitMs + 800 && resumedAt === null; at += 400) {
+    sound.control(allowed, at); render(sound, 128, undefined, at);
+    if (sound.playedFrames > before) resumedAt = at;
+  }
+  assert.ok(resumedAt >= PCM_LIMITS.refillWaitMs + 100 && resumedAt <= PCM_LIMITS.refillWaitMs + 500, `resumed on what it had at ${resumedAt} ms`);
+});

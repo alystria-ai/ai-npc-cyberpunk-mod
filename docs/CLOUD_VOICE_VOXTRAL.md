@@ -78,8 +78,8 @@ and Voxtral spoke again four minutes later with the same key. A 403 can be a gat
 
 No local voice is loaded, so there is no local voice to fall back to. **Only while nothing of the reply has been heard** does a
 failure matter: before any audio has been delivered, each of these throws a `VoxtralError`. A request that gave no audio in time, lost
-its connection or was refused (`timeout`, `network`, `request`) is **asked once more with a longer wait** (10 s to first audio instead of
-7 s; `VoiceSelection.synthesizeHead`, `cloudRetryAudioMs`). A reply that still has no audio is shown as written text, with the one
+its connection or was refused (`timeout`, `network`, `request`) is **asked once more with a longer wait** (6 s to first audio instead of
+5 s; `VoiceSelection.synthesizeHead`, `cloudRetryAudioMs`). A reply that still has no audio is shown as written text, with the one
 notice (`deliverPocketSpeech` returns the written reply). A turn whose cloud voice **cannot be asked right now** (no key at all, a
 refused key or a limit cooling down: `VoiceSelection.cloudKeyless`) is **written**: neither a local voice nor the Convai cloud voice stands in
 (owner rule 2026-10-21: the Convai voice speaks only when the player chose it; from 2026-10-13 to 2026-10-21 a keyless Voxtral turn went to the
@@ -91,7 +91,7 @@ in the cloud voice, the rest of it is never given to another voice (see "One rep
 | --- | --- | --- |
 | No Mistral key | `no-key` | written replies until a key appears (never the Convai voice) |
 | No clip at all for this character (see below) | `no-reference` | written reply for this character; the rest still use Voxtral |
-| No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | asked once more (10 s); then a written reply; the next reply tries again |
+| No first audio in 5 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | asked once more (6 s); then a written reply; the next reply tries again |
 | 429 | `limit` | a `Retry-After` of 1 s or less (or none): asked again once after it; longer: cool-down for it (20 s when none given twice, at most 60 s), replies are written meanwhile; every Mistral request pauses for it |
 | 401 | `key` | never asked again; 60 s cool-down, replies are written meanwhile |
 | 403 | `key` only if it repeats | asked again once after 300 ms; still 403: `key`, 20 s cool-down, replies are written meanwhile |
@@ -125,7 +125,7 @@ Pocket: timeout" on the third, longest reply). So a reply of 160 characters or m
   "the rest of the reply could not be spoken, the reply ends after the part already heard (the voice is not switched)".
 - If the second request fails after its audio has started playing, the reply ends there (`truncated: true`); nothing is spoken twice.
 
-The first-audio limit is 7 s from the send. Every Voxtral reply logs `[Voxtral] first audio Nms, chars N` (with the two request sizes
+The first-audio limit is 5 s from the send. The first ask is hedged: with no audio after 2.5 s (`hedgeMs`) the same line is asked a second time in parallel, and the first audio of either is the reply's (the other is cancelled before it hands on a sample), so a stalled call (one in ten, 5 to 11 s) costs about 2.5 s plus a normal first audio instead of the whole limit and the second ask (the written reply waits for the first audio: 17 to 29 s in the worst case before, 2026-10-22 review). Every Voxtral reply logs `[Voxtral] first audio Nms, chars N` (with the two request sizes
 for a split reply, and `second request first audio Nms`), and every fallback logs its reason with the detail (for example `gave no
 audio within 7000 ms`), so the real distribution can be read from `runtime/bridge.stderr.log`.
 

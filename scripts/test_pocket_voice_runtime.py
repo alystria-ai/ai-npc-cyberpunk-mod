@@ -662,6 +662,19 @@ class LanguageModels(Assets):
         self.assertEqual(config['replace_characters'], {'\u2019': "'"}, 'the language configuration is the one that was downloaded')
         self.assertEqual(json.loads((self.language / 'inference.yaml').read_text())['weights_path'], 'model.safetensors', 'the downloaded file is not changed')
 
+    def test_a_model_read_before_is_not_hashed_again_until_the_file_changes(self):
+        runtime.VERIFIED_ASSETS.clear()
+        with patch.object(runtime, 'digest_file', wraps=runtime.digest_file) as digest:
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3)
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3, 'the second swap to the same unchanged files reads nothing')
+            model = self.language / 'model.safetensors'
+            model.write_bytes(b'a different French fixture!')   # another size: read again, and refused
+            with self.assertRaises(ValueError):
+                runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 4)
+
     def test_a_changed_file_a_wrong_hash_an_unknown_language_or_a_deeper_model_is_refused(self):
         for field in ('sha256', 'tokenizerSha256', 'configSha256'):
             with self.assertRaises(ValueError):
@@ -710,6 +723,35 @@ class LanguageModels(Assets):
         runtime.add_language_voices(registry, {'panam-palmer': {**self.descriptor, 'sha256': '0' * 64}})
         self.assertEqual(registry['refs'], {})
         self.assertEqual(registry['unavailable'], {'panam-palmer': 'unavailable'})
+
+    def test_a_language_voice_whose_clip_changed_is_prepared_again_from_the_new_clip(self):
+        registry = runtime.new_language_registry(self.validate(), 'fr', self.expected['sha256'])
+        store = self.prepared_store(directory=self.work / 'prepared-voices' / 'lang-fr', model=self.expected['sha256'])
+        encoded = []
+        cache = runtime.ReferenceCache(registry, lambda path: encoded.append(runtime.digest_file(path)) or {'prompt': runtime.digest_file(path)}, store=store)
+        runtime.add_language_voices(registry, {'panam-palmer': self.descriptor}, cache)
+        old_state, _ = cache.prepare('panam-palmer', keep=True)
+        old_hash = self.descriptor['sha256']
+        self.assertEqual(old_state, {'prompt': old_hash})
+        saved = [file.name for file in store.directory.glob('*.safetensors')]
+        self.assertEqual(saved, [store.path('panam-palmer', old_hash).name])
+        # the pack clip is replaced (an update of the pack), then the worker adds the voices again
+        clip = self.refs / 'multilingual' / 'fr' / 'picked' / 'panam-palmer.wav'
+        tone(clip, hertz=440)
+        changed_descriptor = {**self.descriptor, 'sha256': runtime.digest_file(clip)}
+        self.assertNotEqual(changed_descriptor['sha256'], old_hash)
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': changed_descriptor}, cache), ['panam-palmer'])
+        self.assertEqual(cache.prepared(), [], 'the old clone leaves the cache')
+        self.assertFalse(store.path('panam-palmer', old_hash).exists(), 'and the saved setup of the old clip leaves the disk')
+        new_state, _ = cache.prepare('panam-palmer', keep=True)
+        self.assertEqual(cache.last_source, 'computed', 'rebuilt from the new clip, not served from the cache or the disk')
+        self.assertEqual(new_state, {'prompt': changed_descriptor['sha256']})
+        self.assertEqual(len(encoded), 2)
+        # what a language swap would stash: the new hash is never beside the old clone
+        self.assertEqual({key: state['prompt'] == registry['descriptors'][key]['sha256'] for key, state in cache.states.items()}, {'panam-palmer': True})
+        # the same clip again leaves the voice alone
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': changed_descriptor}, cache), [])
+        self.assertEqual(cache.prepared(), ['panam-palmer'])
 
     def test_the_language_command_is_read_like_any_serial_command(self):
         pipe = Pipe()
@@ -944,6 +986,86 @@ class Producer(unittest.TestCase):
         with self.assertRaises(worker.Cancelled):
             worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<f',1.),1))
         self.assertEqual(events,['decoder drained','decoder joined'])
+
+    def test_an_acknowledgement_that_never_comes_ends_the_request_not_the_worker(self):
+        # The worker waited 10 s for an acknowledgement and failed the whole worker ("Pocket generation stopped"), while the bridge's own
+        # consumer limit (a cold renderer) is longer: it is a cancelled request now, and the backstop is longer than the bridge's limits.
+        self.assertGreater(worker.ACK_WAIT_SECONDS,30+10)
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1);commands.expect_ack(1)
+        with self.assertRaises(worker.Cancelled):
+            commands.await_ack(.01)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+        commands=worker.Commands(io.StringIO(''),'a'*32);commands.begin(1)
+        with patch.object(worker,'ACK_WAIT_SECONDS',.01):
+            with self.assertRaises(worker.Cancelled):
+                worker.stream_request(Model(),{},'Reply.',commands,lambda frame:None,1,'johnny-silverhand',lambda values:(struct.pack('<3f',*values),3))
+
+    def test_the_start_up_heartbeat_carries_wall_clock_progress_besides_cpu_time(self):
+        frame=worker.heartbeat_frame('torch',cpu_ms=1500,io_bytes=lambda:123456,modules=lambda:812)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':1500,'ioBytes':123456,'modules':812,'step':'torch'})
+        frame=worker.heartbeat_frame(cpu_ms=5,io_bytes=lambda:None,modules=lambda:3)
+        self.assertEqual(frame,{'op':'heartbeat','cpuMs':5,'modules':3},'a system that cannot say leaves the I/O out')
+        real=worker.heartbeat_frame()
+        self.assertGreaterEqual(real['cpuMs'],0);self.assertGreater(real['modules'],10)
+        if 'ioBytes' in real:
+            self.assertGreater(real['ioBytes'],0)
+
+    def test_both_workers_turn_on_faulthandler_so_a_native_fault_leaves_a_stack(self):
+        # Exit 3221225477 (an access violation) used to leave nothing to read in an error report.
+        for name in ('pocket-voice-worker.py','resident-voice-worker.py'):
+            source=(ROOT/'bridge'/name).read_text(encoding='utf-8')
+            self.assertIn('faulthandler.enable(file=sys.stderr, all_threads=True)',source,name)
+            self.assertLess(source.index('faulthandler.enable('),source.index('args = parser.parse_args()'),name)
+
+    def test_the_request_time_limit_is_for_standing_still_not_for_length(self):
+        # MAX_AUDIO_SECONDS was one wall-clock timer for the whole request: a long reply on a slow computer was cut in the middle of a line.
+        now=[0.0];stalled=threading.Event()
+        timer=worker.ProgressTimer(120,stalled.set,clock=lambda:now[0],poll=.005)
+        timer.start()
+        try:
+            for step in range(6):                      # 300 s of wall time, a touch every 50 s
+                now[0]+=50;timer.touch();self.assertFalse(stalled.wait(.05),'moving requests are never cut')
+            now[0]+=119;self.assertFalse(stalled.wait(.05))
+            now[0]+=2;self.assertTrue(stalled.wait(2),'a request that stood still for the limit is stopped')
+        finally:
+            timer.cancel()
+        # The hook on Commands is what the stream loop touches: a chunk produced and a packet acknowledged.
+        commands=worker.Commands(io.StringIO(''),'a'*32);touches=[];commands.on_progress=lambda:touches.append(1);commands.begin(1)
+        class Model:
+            def generate_audio_stream(self,state,text,**options):
+                yield [.1]*3
+                yield [.2]*2
+        def send(frame):
+            commands.ack.set()
+        worker.stream_request(Model(),{},'Reply.',commands,send,1,'johnny-silverhand',lambda values:(struct.pack('<%df'%len(values),*values),len(values)))
+        self.assertGreaterEqual(len(touches),4,'two chunks and two acknowledged packets')
+
+    def test_a_cancelled_reply_stops_decoding_its_backlog(self):
+        # The upstream decoder decodes every queued latent before it ends; on a busy computer that was seconds, past the bridge's cancel deadline.
+        class Latent:
+            shape=(1,4,32)
+            def new_zeros(self,*shape):
+                return ('silence',)+shape
+        class Mimi:
+            def __init__(self):
+                self.decoded=0
+            def decode_from_latent(self,latent,state):
+                self.decoded+=1;return 'audio'
+        mimi=Mimi();stop=threading.Event();wrapped=worker.skip_decoding_when_stopped(mimi,stop)
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,1)
+        stop.set()
+        self.assertEqual(mimi.decode_from_latent(Latent(),{}),('silence',1,1,1));self.assertEqual(mimi.decoded,1,'a cancelled reply decodes nothing more')
+        stop.clear();self.assertEqual(mimi.decode_from_latent(Latent(),{}),'audio');self.assertEqual(mimi.decoded,2,'the next reply decodes again')
+        self.assertIs(worker.skip_decoding_when_stopped(mimi,stop),wrapped,'wrapping twice changes nothing')
+
+    def test_a_cancel_raises_the_priority_at_once_from_the_reader_thread(self):
+        pipe,commands=self.commands();raised=threading.Event();commands.on_cancel=raised.set
+        pipe.send({'owner':'a'*32,'op':'stream','id':1,'profile':'johnny-silverhand','text':'One full reply.'})
+        request=commands.queue.get(timeout=1);commands.begin(request['id'])
+        pipe.send({'owner':'a'*32,'op':'cancel','id':1});self.assertTrue(raised.wait(1))
+        self.close(pipe,commands)
 
     def test_cpu_environment_is_offline_thread_bounded_and_removes_secrets(self):
         environment=runtime.cpu_environment(2)

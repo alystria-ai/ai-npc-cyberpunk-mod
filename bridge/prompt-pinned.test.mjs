@@ -14,22 +14,26 @@ const judyArgs = (text = USER_LINES.a) => ({persona: prompt.persona, memory: MEM
 // ---- The prompt is pinned --------------------------------------------------------------------------------------------------
 
 test('the prompt Mistral and the local AI build is byte for byte what it was (hashes taken from commit 1e207eec, re-taken on 2026-10-14 for the first-person profiles)', () => {
-  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them), on 2026-10-22 for the right-now block's own where-sentence and its one guidance sentence (lines a-g, the reaction and the Mature layer; Dynamic info, docs/DYNAMIC_INFO.md) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
+  // Computed with `buildMessages` as of 1e207eec (no `compact` anywhere), re-taken on 2026-10-14 for the first-person profiles (old code and new code agree on them) and on 2026-10-15 for the place and usual-haunts sentences of the right-now block (lines a-g, the reaction and the Mature layer; the 'ctx' and system-head hashes did not change): Judy's seven fixture lines, a reaction, layout v1 and the Mature layer. Re-taken on 2026-10-21 (lines a-g, the reaction and the Mature layer) for the clock: it left the right-now block for a short Background line in the volatile tail (bridge/scenery-memory.mjs); the fixture's turn is a first turn, so that line is there.
+  // Re-taken on 2026-10-22 (response audit): rule 7 no longer asks for "a few words of attitude about the place or the hour" and says nothing of weather, time or place unless V asks; the copy of the
+  // right-now sentence before V's words no longer names the place (the system message's block still does). The roster text itself is unchanged here (PersonaBook `lean` is off in this fixture).
+  // Re-taken again on 2026-10-22 on the merge with feat/dynamic-info: the right-now block's own where-sentence (the place is a second sentence, never in the first) and its one
+  // guidance sentence ("mention a place or the time only if it matters to what V says"; docs/DYNAMIC_INFO.md), on top of the response audit's changes above.
   const expected = {
-    a: '332897714185ff663d62d012f245e4ad090482b9f72c3e79c620f2831be7b1fd',
-    b: 'fac0c9bb5a9f7dfbb082baa8e6e50e91b90a2998671056427ea4160db065ff7d',
-    c: 'e7dae0c284487c6faec18c26f7126d5f07728f5d376b955daea5804e8a08e3d6',
-    d: 'c1fd88f38762ee34636d75da4adb2ef3e424359dcf70985b3121377bbed0edac',
-    e: '194509d6c6a631308d08002be62bf586cc7791ccaeeef94b98fba2ab36580dad',
-    f: 'ac67c2ee35a7b9c22d86c44120c60a54764bf3d2f066b81a09930f3b810d15a2',
-    g: 'fb8c88b693a18904c209aa19a8506d1ab73ee481bc51674983833132c41c1b29',
+    a: '9484f015db561b5a4bba0bb4d908cade917ff53447d3ad94f02121313dbf4523',
+    b: '48b8efbd8ed099d9e3a97d3026b1ccc6b22fd2078ecea910b53d93696952cafc',
+    c: 'b7152596707f76b22fb8c57060660b9c9ee06a8ec408cff230b381f3fb0a14b1',
+    d: 'eef1415038d486573626848b12f7831de0c78f91a8ce389517a33f12b673a20a',
+    e: '84d90cfa9af664890e5b3f2f24987dfcb73f4d6b7e521590e3950d05edc3d5e8',
+    f: 'ebbc55932aa1d7dca1aca9f377a10dc6ca6290f0fee852c359583c150c2139e8',
+    g: '6d1903eabf9b28afd78c0d0bae481de0155f5e09405f5e9a64b5e4413faeecce',
   };
   for (const [key, hash] of Object.entries(expected)) assert.equal(sha(messagesFor(prompt, key)), hash, `line ${key}`);
-  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'aca192680434203f04bc16b90541c27d417e10ef2c13d4524444e0b57453873c');
+  assert.equal(sha(buildMessages({...judyArgs('a loot event'), reaction: true})), 'b4b4fe85d48899f32742674965b77eed1d79fe37164e1c6976fc0b1a620bf7dd');
   assert.equal(sha(buildMessages({persona: prompt.persona, memory: MEMORY, history: HISTORY, context: 'ctx', text: 'hi', limits: LIMITS})),
-    '71afe8b30cf3be13bf64bdd54f4a34283b875d3679159a9affe2944f5f9bbaa1');
-  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '320209db60fe39b285a41a84e5f3e6a9b29147c1a939acdd1c5b98badc8def02');
-  assert.equal(sha(systemHead({persona: prompt.persona})), 'dc55ee3f93c420f63746cbbed90314261e4d78c936f5e034614424f98cbd39e0');
+    '7f933442ae619c5f94fd241b699d8a0a28a7808450262e0de38207efd830fc5f');
+  assert.equal(sha(buildMessages({...judyArgs('hi'), mature: 'full'})), '064da91080a5f0eec680ee7258cbed1d5a77aa73614adcf2f8ed5ed77a53886f');
+  assert.equal(sha(systemHead({persona: prompt.persona})), '56050c0db2c3d4bd9b252f4c681e401769dfd3d313534b03ba7149321896aa41');
 });
 
 // ---- The budget's new options ----------------------------------------------------------------------------------------------

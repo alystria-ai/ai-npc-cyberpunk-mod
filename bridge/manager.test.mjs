@@ -3601,11 +3601,11 @@ test('V’s voice is one row (Off, Pocket, Voxtral, OmniVoice): Voxtral needs th
     -- Back to Pocket, always allowed.
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket' and saved.vVoice == true)
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 2)
-    -- A file that says Voxtral while no key is saved shows Pocket (2) in the row.
+    -- A file that says Voxtral while no key is saved shows Voxtral (3) in the row (V's voice follows its own setting; the entry is greyed out and says it needs the key).
     assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
     key('b', {provider = 'convai', effective = 'convai', saved = false})
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').value == 2 and row('vVoice').disabledElements[3] == true, 'Voxtral without a key reads as Pocket')
+    assert(row('vVoice').value == 3 and row('vVoice').disabledElements[3] == true and row('vVoice').elements[3] == 'Voxtral · needs Mistral key', 'Voxtral without a key still reads as Voxtral, with its note')
     key('c', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager'); assert(row('vVoice').value == 3)
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = 2}}).ok and saved.vVoiceEngine == 'pocket')

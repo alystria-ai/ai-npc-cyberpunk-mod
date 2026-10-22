@@ -16,6 +16,9 @@ export const PHONE_WARM_DWELL_MS = 600;
 export const PHONE_WARM_KEEPALIVE_MS = 15000;
 export const PHONE_WARM_IDLE_MS = 5 * 60 * 1000;
 export const PHONE_WARM_MAX_STARTS = 4;
+// A phone conversation page nobody used for this long is closed, with the phone host's browser when it was the last one (bridge/convai-bridge.mjs releaseUnused;
+// RealtimeHost.releaseIdlePages). Longer than a message and its follow-up usually take; the next message opens a page again.
+export const PHONE_HOST_IDLE_MS = 3 * 60 * 1000;
 const CONTACT = /^[A-Za-z0-9_-]{1,120}$/;
 const STALE_MS = 15000;
 

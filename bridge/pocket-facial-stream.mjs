@@ -204,11 +204,18 @@ export class PocketFacialStream {
       phoneticIntervals:intervals.map(interval=>[interval.start,Math.min(duration,interval.end)]),
       receivedSeconds:duration,pendingAnalyses:this.pending.size};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
-      continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...SPEECH_TRACKS],frames,
+      continuous:true,complete:sourceComplete,duration,revision:this.published(`${geometryKey}:${phonetic}`),rows:geometryKey,tracks:[...SPEECH_TRACKS],frames,
       motion:'local-phonetic-smooth-v1',
       source:phonetic?'local-phonetic':'audio-envelope',...(phonetic?{articulation:PHONETIC_ARTICULATION}:{}),coverage,
       ...(this.recognition?{recognition:this.recognition}:{})};
     this.cached={key,face};return face;
+  }
+  // The revision a face is published under. It grows only when what the game reads from the timeline changed (its rows and the source that made them): the audible
+  // cursor moves on every poll, but a poll that only moved it is the same timeline, and a new revision made the bridge copy the whole timeline and rewrite the face
+  // file 25 times a second for the whole line (docs: perf review 2026-10-22). `coverage` still carries the current cursor for the bridge's own checks; the game reads none of it.
+  published(key) {
+    if (this.publication?.key !== key) this.publication = {key, revision: ++this.publicationRevision};
+    return this.publication.revision;
   }
   // Model-driven prefix: native controls from the game-trained model where its
   // rows cover the audio, otherwise the shared envelope fallback. The first
@@ -254,7 +261,7 @@ export class PocketFacialStream {
       phoneticIntervals:Number.isFinite(start)&&covered>start?[[start,covered]]:[],
       receivedSeconds:duration,pendingAnalyses:0};
     const face={version:1,requestId:this.input.requestId,entity:this.input.entity,generation:this.input.generation,
-      continuous:true,complete:sourceComplete,duration,revision:++this.publicationRevision,tracks:[...JALI_TIMELINE_TRACKS],
+      continuous:true,complete:sourceComplete,duration,revision:this.published(`${geometryKey}:${modelled}`),rows:geometryKey,tracks:[...JALI_TIMELINE_TRACKS],
       frames:rows,source:modelled?JALI_SOURCE:'audio-envelope',...(modelled?{articulation:JALI_ARTICULATION}:{}),coverage,
       ...(upper?.length===rows.length?{modelExpressions:{version:1,format:'jali-upper-v1',frames:upper}}:{})};
     this.cached={key,face};return face;

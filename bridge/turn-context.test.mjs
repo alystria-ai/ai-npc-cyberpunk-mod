@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {parseTurnContext, describeTurnContext, turnContext, turnContextDiagnostic, timeOfDay, sceneryFor, MAX_CHARS}
   from './turn-context.mjs';
 import {SceneryMemory, sceneryMemory} from './scenery-memory.mjs';
-import {parseInput, isAmbientProfile} from './protocol.mjs';
+import {parseInput, isAmbientProfile, archetypeContext} from './protocol.mjs';
 import * as quest from './quest-context.mjs';
 import {conversationContext, voiceConversationBlocks, turnContextOptions} from './quest-context.mjs';
 import {visibleGearContext} from './player-gear.mjs';
@@ -673,10 +673,13 @@ test('the whole block stays inside the cap with every fact set, and money is the
 });
 
 test('the right-now block still sits where it did: first in the Convai context and in the Mistral live context', () => {
+  sceneryMemory.clear();
   const input = parseInput(JSON.stringify(turn({turnContext: scene(full)})));
   const text = conversationContext(input);
   assert.ok(text.startsWith('Right now (from the game, this turn only): You are with V in person'), text.slice(0, 120));
-  assert.ok(text.indexOf('It is raining.') < MAX_CHARS + 100, 'the Background line follows the block at once');
+  const scenery = text.indexOf('late night, about 2 AM.');
+  assert.ok(scenery > 0 && scenery < 1500, `the first turn carries the part of the day near the front (the weather is not told on a first turn): ${scenery}`);
+  assert.ok(!text.includes('It is raining.'), 'no weather on the first turn');
 });
 
 // ---- the Lua side
@@ -1035,10 +1038,10 @@ const nextTurn = (extra = {}, snapshot = {}) => parseInput(JSON.stringify(turn({
 const nextResident = (extra = {}, snapshot = {}) => parseInput(JSON.stringify(resident({requestId: `${++turnNumber}-1-55ULL`, turnContext: scene({party: [], weather: 'rain', ...snapshot}), ...extra})));
 const backgroundOf = text => text.split('\n\n').find(part => part.startsWith('Background')) ?? '';
 
-test('the weather is told on the first turn, left out on a repeat with the same weather, told again on a change', () => {
+test('the weather is not told on the first turn (the part of the day is), nor on a repeat with the same weather, and is told on a change', () => {
   sceneryMemory.clear();
   const first = conversationContext(nextTurn());
-  assert.equal(backgroundOf(first), `${BACKGROUND_LEAD} It is late night, about 2 AM. It is raining.`);
+  assert.equal(backgroundOf(first), `${BACKGROUND_LEAD} It is late night, about 2 AM.`, 'the rain is not announced on a first turn (response audit 2026-10-22: strangers then mentioned it in 11 replies of 12)');
   assert.doesNotMatch(first.split('\n\n')[0], /raining|late night/, 'not in the right-now block itself');
   const again = conversationContext(nextTurn());
   assert.equal(backgroundOf(again), '', 'nothing new: no background line at all');
@@ -1066,24 +1069,54 @@ test('the weather is told again when V asks about it, and the clock when V asks 
   assert.doesNotMatch(conversationContext(nextTurn({text: 'what a mess'})), /Background/);
 });
 
+test('one context serves every provider (decision of 2026-10-22): Convai gets the same blocks as the text providers, so a first turn has no weather and an archetype is not told to announce its place', () => {
+  sceneryMemory.clear();
+  // conversationContext is the string Convai is sent (bridge/convai-bridge.mjs joins the same blocks the text providers lay out).
+  const convai = conversationContext(nextResident());
+  assert.doesNotMatch(convai, /It is raining\./, 'no weather on the first turn, for Convai too');
+  assert.match(convai, /Background \(mention only if it matters or V asks\): It is late night, about 2 AM\./);
+  const input = parseInput(JSON.stringify({...resident({requestId: '71-1-55ULL'}), archetype: {base: 'food-vendor', category: 'vendor', title: 'food vendor', district: 'Watson', area: 'Kabuki'}}));
+  const place = archetypeContext(input);
+  assert.match(place, /never announce the place name or tell V where they are unless V asks/, 'the archetype place sentence is the one every provider reads');
+  assert.doesNotMatch(convai, /Let the place flavor what you say/);
+});
+
+test('a weather question on the FIRST turn brings the weather, in English and in the languages of the game menus', () => {
+  // The first turn does not announce the weather, so a question about it must be recognised or the model is left to guess (review of 2026-10-22).
+  sceneryMemory.clear();
+  assert.match(backgroundOf(conversationContext(nextTurn({text: 'Is it always raining here?'}))), /It is raining\./, 'English, first turn');
+  const asks = ['is it cold out?', 'gonna get wet?', 'bring an umbrella', 'Nice weather.', 'Look at that sky', 'is it snowing?',          // en
+    '¿Está lloviendo?', '¿Hace frío o calor?', 'Chove aí?', 'Está um dia de chuva', 'Il pleut ?', 'Quel temps de chien, il fait froid', // es pt fr
+    'Regnet es?', 'Ist es kalt draußen?', 'Piove?', 'Che freddo, vero?', 'Pada deszcz?', 'Jaka pogoda?', 'Prší?', 'Je venku zima?',     // de it pl cs
+    'Esik az eső?', 'Hideg van odakint?', 'Дождь?', 'Какая погода?', 'Чи йде дощ?', 'Яка погода?', 'Yağmur yağıyor mu?', 'Hava nasıl?', // hu ru uk tr
+    '今日は雨？', '外は寒いね', '下雨了吗？', '天氣好冷', '날씨 어때?', '비 와요?'];                                                 // ja zh ko
+  for (const text of asks) {
+    sceneryMemory.clear();
+    const memory = new SceneryMemory();
+    assert.equal(memory.decide({key: 'k', id: '1', weather: 'rain', part: 'night', text}).weather, true, text);
+  }
+  const talk = ['Hey.', 'Hola, ¿cómo estás?', 'Wie geht es dir?', 'Quoi de neuf ?', 'Что делаешь?', '今日は元気？', '你好吗？', 'Tudo bem?', 'Come stai?', 'So what now?', 'See you on Sunday'];
+  for (const text of talk) assert.equal(new SceneryMemory().decide({key: 'k', id: '1', weather: 'rain', part: 'night', text}).weather, false, text);
+});
+
 test('each conversation is told on its own: another character, another stranger, a phone contact; and again after a long silence', () => {
   sceneryMemory.clear();
-  assert.match(conversationContext(nextTurn()), /It is raining\./);
-  assert.match(conversationContext(nextTurn({profileKey: 'panam-palmer', name: 'Panam', entity: '12ULL', requestId: `${++turnNumber}-1-12ULL`})), /It is raining\./, 'another character');
-  assert.doesNotMatch(conversationContext(nextTurn()), /raining/, 'Judy has heard it');
+  assert.match(conversationContext(nextTurn()), /late night, about 2 AM\./);
+  assert.match(conversationContext(nextTurn({profileKey: 'panam-palmer', name: 'Panam', entity: '12ULL', requestId: `${++turnNumber}-1-12ULL`})), /late night, about 2 AM\./, 'another character');
+  assert.doesNotMatch(conversationContext(nextTurn()), /late night, about 2 AM/, 'Judy has heard it');
   // Two strangers: each hears it once.
-  assert.match(conversationContext(nextResident()), /It is raining\./);
-  assert.doesNotMatch(conversationContext(nextResident()), /raining/);
-  assert.match(conversationContext(nextResident({entity: '56ULL', requestId: `${++turnNumber}-1-56ULL`})), /It is raining\./, 'another NPC');
+  assert.match(conversationContext(nextResident()), /late night, about 2 AM\./);
+  assert.doesNotMatch(conversationContext(nextResident()), /late night, about 2 AM/);
+  assert.match(conversationContext(nextResident({entity: '56ULL', requestId: `${++turnNumber}-1-56ULL`})), /late night, about 2 AM\./, 'another NPC');
   // A phone chat with Judy is its own conversation.
   const text = conversationContext(turn({requestId: `${++turnNumber}-1-11ULL`, channel: 'phone', turnContext: scene({weather: 'rain', party: [], vehicle: false})}));
-  assert.match(backgroundOf(text), /It is raining\./);
+  assert.match(backgroundOf(text), /late night, about 2 AM\./);
   // After a long silence, with a clock we control.
   let at = 1_000_000; const memory = new SceneryMemory({now: () => at});
   const ask = id => memory.decide({key: 'k', id, weather: 'rain', part: 'night', text: 'hi'});
-  assert.deepEqual(ask('a'), {weather: true, time: true});
+  assert.deepEqual(ask('a'), {weather: false, time: true}, 'the first turn: the part of the day, not the weather');
   at += 60_000; assert.deepEqual(ask('b'), {weather: false, time: false});
-  at += 21 * 60_000; assert.deepEqual(ask('c'), {weather: true, time: true}, 'a conversation silent for 20 minutes hears it again');
+  at += 21 * 60_000; assert.deepEqual(ask('c'), {weather: false, time: true}, 'a conversation silent for 20 minutes hears the part of the day again');
   at += 1000; assert.deepEqual(ask('d'), {weather: false, time: false});
   // A turn on which the game could not read the weather keeps what the conversation was told.
   assert.deepEqual(memory.decide({key: 'k', id: 'e', weather: undefined, part: 'night', text: ''}), {weather: false, time: false});
@@ -1136,19 +1169,19 @@ test('who gets what is unchanged: a companion keeps health, heat and money in th
   const companion = [conversationContext(nextTurn({}, snapshot)), conversationContext(nextTurn({}, snapshot)), conversationContext(nextTurn({}, snapshot))];
   for (const [index, text] of companion.entries()) {
     assert.match(text, /V is badly hurt\. V has a serious police chase on them\. V is a woman \(she\/her\), lifepath Street Kid\. V is nearly broke\./, `turn ${index + 1}`);
-    assert.equal(/raining/.test(text), index === 0, `the weather only on the first turn (${index + 1})`);
+    assert.doesNotMatch(text, /raining/, `no weather on the first turn nor while it stays the same (${index + 1})`);
   }
   assert.doesNotMatch(companion[0].split('\n\n')[0], /raining|late night/, 'the block itself carries neither');
   const strangers = [conversationContext(nextResident({}, snapshot)), conversationContext(nextResident({}, snapshot))];
   for (const [index, text] of strangers.entries()) {
     assert.match(text, /V looks badly hurt\./);
     assert.doesNotMatch(text, /police|MaxTac|broke|cash|eddies|rich|V is badly hurt|lifepath/, `stranger, turn ${index + 1}`);
-    assert.equal(/It is raining/.test(text), index === 0, `stranger, turn ${index + 1}`);
+    assert.doesNotMatch(text, /It is raining/, `stranger, turn ${index + 1}`);
   }
   const phone = () => conversationContext(turn({requestId: `${++turnNumber}-1-11ULL`, profileKey: 'panam-palmer', channel: 'phone',
     turnContext: scene({party: [], ...snapshot})}));
   const first = phone(), second = phone();
-  assert.match(backgroundOf(first), /It is raining\./);
+  assert.match(backgroundOf(first), /late night, about 2 AM\./);
   assert.doesNotMatch(first + second, /hurt|police|MaxTac|broke|cash|eddies|rich|Also with V|Panam\./);
   assert.doesNotMatch(second, /raining/);
 });
