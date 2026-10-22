@@ -109,8 +109,19 @@ const wholeNumber = value => (Number.isSafeInteger(Number(value)) && Number(valu
 const formatVersions = versions => Object.entries(versions ?? {}).filter(([version]) => VERSION_SHAPE.test(version))
   .sort((a, b) => compareVersions(b[0], a[0]) || (a[0] < b[0] ? 1 : -1)).map(([version, count]) => `${version} x${wholeNumber(count)}`).join(', ');
 
-// Invisible and direction-changing characters (zero width, bidi overrides and isolates, line and paragraph separators, BOM) are removed.
-const HIDDEN = /[\u200B-\u200F\u2028-\u202E\u2060-\u206F\uFEFF]/g;
+// Characters a reader cannot see but a model reads: every format character (\p{Cf}: zero width, soft hyphen, the Arabic letter mark, bidi controls and
+// isolates, the Unicode Tag characters U+E0000 to E007F that spell out hidden text, BOM), control characters, line and paragraph separators, variation
+// selectors, the combining grapheme joiner and the blank Hangul fillers. They are removed, from the text of the index and from the saved files.
+const span = (from, to) => `${String.fromCodePoint(from)}-${String.fromCodePoint(to)}`;
+const HIDDEN = new RegExp(`[\\p{Cf}\\p{Cc}\\p{Zl}\\p{Zp}${span(0xE0000, 0xE007F)}${span(0xFE00, 0xFE0F)}${span(0xE0100, 0xE01EF)}${span(0x180B, 0x180F)}`
+  + `${String.fromCodePoint(0x34F, 0x115F, 0x1160, 0x3164, 0xFFA0)}]`, 'gu');
+/** `value` with every invisible character removed from each string in it (and each key), however deeply nested. */
+export function withoutHidden(value, depth = 0) {
+  if (typeof value === 'string') return value.replace(HIDDEN, '');
+  if (depth > 40 || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(item => withoutHidden(item, depth + 1));
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key.replace(HIDDEN, ''), withoutHidden(item, depth + 1)]));
+}
 const MARKUP = /[`<>\[\]&]/g;
 /**
  * Free-form report text as one escaped JSON string literal: whitespace flattened, cut to `limit` characters, quotes and control
@@ -118,7 +129,7 @@ const MARKUP = /[`<>\[\]&]/g;
  * The result still parses as JSON back to the text (minus what was removed).
  */
 export const escapeText = (text, limit = 200) => {
-  const flat = String(text ?? '').replace(HIDDEN, '').replace(/\s+/g, ' ').trim();
+  const flat = String(text ?? '').replace(/[\r\n\t\v\f]+/g, ' ').replace(HIDDEN, '').replace(/\s+/g, ' ').trim();
   const characters = Array.from(flat);
   const cutText = characters.length > limit ? `${characters.slice(0, limit - 3).join('')}...` : flat;
   const escapeAs = character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`;
@@ -314,7 +325,7 @@ export async function fetchErrorReports({baseUrl, secret, out, limit = 100, fetc
       await mkdir(join(out, signature), {recursive: true});
       // The notice goes first, and a "_untrusted" field in the server's answer cannot replace it.
       const {_untrusted: ignored, ...rest} = data ?? {};
-      await writeFile(file, `${JSON.stringify({_untrusted: FILE_NOTICE, ...rest}, null, 2)}\n`);
+      await writeFile(file, `${JSON.stringify({_untrusted: FILE_NOTICE, ...withoutHidden(rest)}, null, 2)}\n`);
       summary.newReports += 1;
     }
     // Only a report that is saved here (just now or before) is ever deleted on the server.
