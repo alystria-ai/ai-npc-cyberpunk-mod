@@ -581,3 +581,34 @@ async function harness(mock, {model = 'vendor/test-model:free', now} = {}) {
 function turn(text, extra = {}) {
   return {text, context: 'CURRENT PERSON\nQuest facts here.', sessionId: 'session-1', local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private'}, ...extra};
 }
+
+test('a model that must reason (OpenRouter recursive/flint-v1.0:free, 2026-10-23): every reasoning field is refused, so the request goes again without one, streams, and the thinking is never shown; the Test button does the same and the refusal is remembered', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    const mandatory = {status: 400, body: {error: {message: 'Provider returned error', code: 400, metadata: {raw: JSON.stringify({error: {message: 'Reasoning is mandatory for this endpoint and cannot be disabled.', code: 400}}), provider_name: 'Chutes'}}}};
+    const plan = request => 'reasoning' in request.body ? mandatory : {sse: [{role: 'assistant', reasoning: 'The user wants a test word. '}, {reasoning_details: [{type: 'reasoning.text', text: 'x'}]}, 'O', 'K']};
+    mock.behave(plan);
+    const config = {ready: true, key: KEY, model: 'recursive/flint-v1.0:free', chatUrl: mock.url + '/chat/completions', origin: mock.origin, local: false,
+      address: {hostname: 'openrouter.ai'}, reasoning: reasoningSteps({hostname: 'openrouter.ai', model: 'recursive/flint-v1.0:free'})};
+    // The Test button with no route memory of its own (a standalone call) still gets through: none, low, then no field.
+    let outcome = await testConnection(config);
+    assert.equal(outcome.state, 'ok', JSON.stringify(outcome));
+    assert.deepEqual(mock.requests.map(request => request.body.reasoning ?? null), [{effort: 'none'}, {effort: 'low'}, null]);
+    // With the route's memory (what the bridge passes): learned once, never asked again, by the test or by a turn.
+    const adapt = newAdaptation();
+    mock.requests.length = 0;
+    assert.equal((await testConnection(config, {adapt})).state, 'ok');
+    assert.equal(mock.requests.length, 3);
+    mock.requests.length = 0;
+    const turn = await streamChat({...via(mock, {model: config.model}), reasoning: config.reasoning, adapt, retries: 0});
+    assert.equal(turn.text, 'OK', 'the reply streams and holds none of the thinking');
+    assert.deepEqual(mock.requests.map(request => 'reasoning' in request.body), [false], 'no extra request on later turns');
+    mock.requests.length = 0;
+    assert.equal((await testConnection(config, {adapt})).state, 'ok');
+    assert.equal(mock.requests.length, 1);
+    // The stream is a stream: the pieces arrive one by one, and the thinking is not among them.
+    const pieces = [];
+    await streamChat({...via(mock, {model: config.model}), reasoning: config.reasoning, adapt, retries: 0, onDelta: piece => pieces.push(piece)});
+    assert.deepEqual(pieces, ['O', 'K']);
+  } finally { await mock.close(); }
+});

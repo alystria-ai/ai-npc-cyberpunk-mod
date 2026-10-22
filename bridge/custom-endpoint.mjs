@@ -20,7 +20,7 @@ import {readFile, rm} from 'node:fs/promises';
 import {writePrivate, keyTail} from './mistral-key.mjs';
 import {readClipboardText} from './convai-key.mjs';
 import {checkEndpoint, hostKind} from './custom-models.mjs';
-import {streamChat, MistralError, failureKind, resetClock} from './mistral-client.mjs';
+import {streamChat, MistralError, failureKind, resetClock, newAdaptation} from './mistral-client.mjs';
 import {reasoningSteps, noThinkingFields} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
@@ -305,14 +305,14 @@ export function describeFailure(error) {
  * One tiny request to the saved endpoint with the saved model and key, through the same client every turn uses. Resolves
  * {state: 'ok', ms} or {state: 'failed', code, status?, waitS?, detail?, ms}; never throws and never carries the key.
  *   chat       the request function (streamChat; replaced in tests)
- *   adapt      the route's remembered refusals, when the caller has them (a refusal learned here is then known to the turns)
+ *   adapt      the route's remembered refusals (a refusal learned here is then known to the turns); a test with none of its own still asks again without a field the server refuses, as a turn does
  */
-export async function testConnection(custom, {chat = streamChat, adapt, fetchImpl, now = () => performance.now()} = {}) {
+export async function testConnection(custom, {chat = streamChat, adapt = newAdaptation(), fetchImpl, now = () => performance.now()} = {}) {
   if (!custom?.ready) return {state: 'failed', code: 'no-setup', ms: 0};
   const began = now();
   try {
     await chat({apiKey: custom.key ?? undefined, model: custom.model, provider: 'custom', endpoint: custom.chatUrl, trustedOrigin: custom.origin,
-      headers: custom.extraHeaders, reasoning: custom.reasoning, ...(adapt ? {adapt} : {}), ...(fetchImpl ? {fetchImpl} : {}),
+      headers: custom.extraHeaders, reasoning: custom.reasoning, adapt, ...(fetchImpl ? {fetchImpl} : {}),
       messages: [{role: 'system', content: 'You are a connection test. Reply with the single word OK.'}, {role: 'user', content: 'Test.'}],
       maxTokens: 24, temperature: 0, retries: 0, firstByteMs: custom.local ? 60000 : 25000, totalMs: custom.local ? 90000 : 35000});
     return {state: 'ok', ms: Math.round(now() - began)};
