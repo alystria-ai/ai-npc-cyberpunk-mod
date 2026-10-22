@@ -61,13 +61,24 @@ end
 function M.describe(facts, projection)
     if type(facts) ~= 'table' then return 'facts=none' end
     local parts = {}
-    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
+    for _, name in ipairs({'gone', 'hub', 'dialogue', 'driven', 'workspot', 'quest', 'combat', 'playerCombat', 'hurt', 'mounted'}) do
         local value = facts[name]
-        -- workspot is read only for a quest-bound person with no roster profile (idle), so it is listed only when it was read.
-        if name ~= 'workspot' or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
+        -- workspot is read only for a quest-bound person with no roster profile (idle), so it is listed only when it was read; quest is the
+        -- game's runtime quest flag, for the log line only (it never refuses by itself: every story character carries it).
+        if (name ~= 'workspot' and name ~= 'quest') or value ~= nil then parts[#parts + 1] = name .. '=' .. (type(value) == 'boolean' and tostring(value) or '?') end
     end
     if projection == true then parts[#parts + 1] = 'projection=true' end
     return table.concat(parts, ' ')
+end
+
+-- The game's own runtime quest flag of a person (GameObject:IsQuest(): set by a quest on a person whatever their TweakDB record says, a
+-- side-job witness or a rescue target on a generic record). true when set, false when read and not set, nil when it could not be read.
+-- Asked only when V picks a talk target or a reaction is offered or run, never per frame.
+function M.runtimeQuest(npc)
+    if not npc then return nil end
+    local ok, value = pcall(function() return npc:IsQuest() end)
+    if ok and type(value) == 'boolean' then return value end
+    return nil
 end
 
 -- What the player is told, by reason (the notice text itself is the interface's, mod/init.lua).
@@ -84,6 +95,7 @@ function M.read(npc, player, sample, idle)
     end
     try('gone', function() return not npc:IsAttached() or npc:IsDeadNoStatPool() end)
     try('driven', function() return not npc:IsOnAutonomousAI() end)
+    try('quest', function() return npc:IsQuest() == true end)
     if idle == true then try('workspot', function() return Game.GetWorkspotSystem():IsActorInWorkspot(npc) == true end) end
     try('combat', function() return NPCPuppet.IsInCombat(npc) == true end)
     try('dialogue', function()
@@ -118,7 +130,7 @@ end
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local clock = options.clock or os.clock
-    local service = {held = {}, count = 0}
+    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest}
 
     -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
     -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride). idle: a quest-bound person

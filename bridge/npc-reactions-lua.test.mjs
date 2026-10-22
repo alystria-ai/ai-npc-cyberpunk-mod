@@ -719,6 +719,13 @@ test('wiring: a global service, built from the module; the offer and the start g
   assert.match(actionsSource, /if private and not drive and not tactic and not follow and not leave then\s+reaction = capturedOffer/);
 });
 
+test('wiring: the quest flag is the record flag or the runtime IsQuest of the game, read at offer and reaction time only', () => {
+  const block = between("local loaded, module = pcall(dofile, 'npc-reactions.lua')", '-- Johnny in your head');
+  const flag = block.slice(block.indexOf('storyFlag = function'), block.indexOf('refusal = function'));
+  assert.match(flag, /quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest' then return true end/);
+  assert.match(flag, /convaiWorldTalk ~= nil and convaiWorldTalk\.runtimeQuest\(npc\) == true/);
+});
+
 test('wiring: nothing per frame beyond one nil check; the release, the log, the reset and the packaging are in place', () => {
   const update = between('gameplayActions.update(worldReady)', "local ok, ready = pcall(convaiInvoke, player, 'ConvaiHasSubmission')");
   assert.match(update, /if convaiNpcReactions then convaiNpcReactions\.update\(\) end/);

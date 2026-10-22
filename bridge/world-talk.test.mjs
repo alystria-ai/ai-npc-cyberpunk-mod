@@ -541,9 +541,27 @@ test('read: the workspot is asked only for an idle (quest-bound, unnamed) person
   assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'hub', 'V in a scene refuses an idle person too')
 `));
 
+test('runtimeQuest: the own quest flag of the game, read on demand; unreadable is nil, never a guess; read lists it for the log only', () => withModule(`
+  ${fakeGame}
+  assert(W.runtimeQuest(nil) == nil)
+  assert(W.runtimeQuest({}) == nil, 'no IsQuest on the object')
+  local marked = {IsQuest = function() return true end}
+  local plain = {IsQuest = function() return false end}
+  local broken = {IsQuest = function() error('native missing') end}
+  assert(W.runtimeQuest(marked) == true and W.runtimeQuest(plain) == false and W.runtimeQuest(broken) == nil)
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  assert(service.runtimeQuest(marked) == true, 'the service carries it for init.lua')
+  function npc:IsQuest() return true end
+  local facts = W.read(npc, 'V', function() return playerSample end)
+  assert(facts.quest == true and W.describe(facts):find('quest=true', 1, true))
+  assert(W.classify(facts) == nil, 'a quest flag alone never refuses: every story character has it')
+  local none = W.read(setmetatable({}, {__index = npc}), 'V', function() return playerSample end)
+  assert(W.describe({gone = false}):find('quest', 1, true) == nil)
+`));
+
 test('wiring: a quest-bound person with no roster profile is guarded like a story character but keeps the ordinary behaviour', () => {
   const select = between('local function selectConversation(', 'local function voiceTargetValid');
-  assert.match(select, /convaiWorldPolicy\.protected\(npc\) == true then\s+local why = convaiWorldTalk:refusal\(npc, player, nil, key, true\)/);
+  assert.match(select, /convaiWorldPolicy\.protected\(npc\) == true or convaiWorldTalk\.runtimeQuest\(npc\) == true\) then\s+local why = convaiWorldTalk:refusal\(npc, player, nil, key, true\)/);
   assert.match(select, /primary\.guarded = true\s+convaiStory = \{entity = primary\.entity, key = key, name = name, idle = true\}/);
   assert.match(select, /\(quest-bound\)[\s\S]*?convaiNotices\.send\(player, 'talk-busy'/, 'the same busy notice and a log line');
   // The guarded person is not a story character: it is still faced toward V and still gets an archetype conversation.

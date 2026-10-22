@@ -857,11 +857,14 @@ do
                 protected = function(npc) return convaiWorldPolicy.protected(npc) end,
                 story = function(npc) return convaiWorldPolicy.story(npc) end,
             },
-            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity).
+            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity), or the game's
+            -- runtime quest flag (IsQuest, read fresh: a quest can mark a person on a generic record, a side job's witness or rescue
+            -- target). Asked only when the offer is made or the reaction runs.
             storyFlag = function(npc, entity)
                 local facts = archetypeFacts(npc, entity, tostring(npc:GetBodyType() or ''))
                 local quest = facts.quest
-                return quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest'
+                if quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest' then return true end
+                return convaiWorldTalk ~= nil and convaiWorldTalk.runtimeQuest(npc) == true
             end,
             refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
             awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
@@ -2475,7 +2478,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- not a scene: `idle` (the fifth argument) lets a commanded AI through while the person is in a workspot. Read fresh on this key
     -- press, cached per entity (protected), and the same test then guards the recording and the reply (convaiStory).
     if not primary.story and not primary.spawned and convaiWorldTalk ~= nil and convaiWorldPolicy ~= nil
-        and not companions.owns(npc) and convaiWorldPolicy.protected(npc) == true then
+        and not companions.owns(npc) and (convaiWorldPolicy.protected(npc) == true or convaiWorldTalk.runtimeQuest(npc) == true) then
         local why = convaiWorldTalk:refusal(npc, player, nil, key, true)
         if why then
             log('World conversation refused: profile=' .. key .. ' reason=' .. why .. ' (quest-bound)'
