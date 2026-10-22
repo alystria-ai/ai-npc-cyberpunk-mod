@@ -309,6 +309,13 @@ bool RenameFile(const std::wstring& aFrom, const std::wstring& aTo)
 }
 } // namespace fileio
 
+bool PinThisModule() noexcept
+{
+    HMODULE module = nullptr;
+    return GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                              reinterpret_cast<LPCWSTR>(&GlobalFileIo), &module) != 0;
+}
+
 FileIo& GlobalFileIo()
 {
     // Leaked on purpose: a destructor at DLL detach would run under the loader lock, and a worker
@@ -414,6 +421,11 @@ void FileIo::Stop(uint32_t aBudgetMs)
     else
     {
         CONVAI_WARN("File IO: the worker did not finish within %u ms; leaving it", aBudgetMs);
+        // The detached thread still runs this DLL's code: keep the library mapped for the rest of the process.
+        if (!PinThisModule())
+        {
+            CONVAI_ERROR("File IO: the module could not be pinned with a thread still running");
+        }
         m_worker.detach();
     }
 
@@ -437,6 +449,10 @@ void FileIo::Stop(uint32_t aBudgetMs)
             else
             {
                 CONVAI_WARN("File IO: the change watcher did not finish within 500 ms; leaving it");
+                if (!PinThisModule())
+                {
+                    CONVAI_ERROR("File IO: the module could not be pinned with a thread still running");
+                }
                 m_watcher.detach(); // the event handle stays open on purpose: the thread may still wait on it
             }
         }

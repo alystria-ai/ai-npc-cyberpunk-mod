@@ -199,6 +199,11 @@ private:
 
 FileIo& GlobalFileIo();
 
+// Keeps this DLL mapped until the process ends (GetModuleHandleEx with the pin flag). Called before a
+// plugin thread is detached, so a library RED4ext frees cannot pull the code from under it.
+// Safe to call twice; returns false only if the module could not be pinned.
+bool PinThisModule() noexcept;
+
 // Disk helpers, exposed for the tests.
 namespace fileio
 {
