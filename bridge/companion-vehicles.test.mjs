@@ -877,9 +877,9 @@ const waitFixture=`${foreignFixture}
   end
   function api.foreignPending(ids) world.pendingCalls=world.pendingCalls+1; return world.walking or 0 end
   local baseMount=api.mount
-  function api.mount(entry,car,seat,exit)
+  function api.mount(entry,car,seat,exit,failsafe)
     if exit and world.unmountRefused then
-      local c={kind='unmount',entry=entry,car=car,seat=seat,state='Failure'}
+      local c={kind='unmount',entry=entry,car=car,seat=seat,state='Failure',failsafe=failsafe}
       world.commands[#world.commands+1]=c; return c
     end
     return baseMount(entry,car,seat,exit)
@@ -994,7 +994,7 @@ test('V gets out while she sits in V car although another car was planned for he
   assert(#lines('exit-start')==1 and lines('exit-start')[1].reason=='vehicle-change')
 `));
 
-test('an unmount the game keeps refusing is retried in rounds ten seconds apart, three rounds at most',()=>run(`${waitFixture}
+test('an unmount the game keeps refusing is retried in rounds ten seconds apart: three plain rounds, then one failsafe round, then it stops',()=>run(`${waitFixture}
   party(1); tick(30)
   assert(fleet.people[1].phase=='riding')
   world.unmountRefused=true; world.primary=nil
@@ -1003,11 +1003,51 @@ test('an unmount the game keeps refusing is retried in rounds ten seconds apart,
   assert(fleet.people[1].phase=='exit-failed',tostring(fleet.people[1].phase))
   tick(150)
   assert(unmounts()>=4,unmounts())
-  tick(600)
-  assert(unmounts()==9,'bounded: '..unmounts())
+  tick(900)
+  assert(unmounts()==12,'bounded: '..unmounts())
+  local plain,failsafe=0,0
+  for _,c in ipairs(world.commands) do
+    if c.kind=='unmount' then if c.failsafe then failsafe=failsafe+1 else plain=plain+1 end end
+  end
+  assert(plain==9 and failsafe==3,plain..' plain, '..failsafe..' failsafe')
   local kinds={}
   for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
-  assert(table.concat(kinds,','):find('exit-failed-0',1,true) and table.concat(kinds,','):find('exit-failed-2',1,true),table.concat(kinds,','))
+  assert(table.concat(kinds,','):find('exit-failed-0',1,true) and table.concat(kinds,','):find('exit-failed-3',1,true),table.concat(kinds,','))
+`));
+
+test('when every unmount round failed the copy is moved out once, then removed, and the fleet leaves the exiting phase',()=>run(`${waitFixture}
+  party(1); tick(30)
+  assert(fleet.people[1].phase=='riding')
+  world.unmountRefused=true; world.primary=nil
+  local discards,asked=0,{}
+  hooks.discard=function(entry) discards=discards+1; asked[#asked+1]=entry.serial; return true end
+  tick(300)
+  assert(discards==0 and (world.recoveries[1] or 0)==0,'still inside the unmount rounds: '..discards)
+  tick(600)
+  assert(world.recoveries[1]==1,'moved out exactly once: '..tostring(world.recoveries[1]))
+  assert(discards==1 and asked[1]==1,'removal asked once: '..discards)
+  assert(fleet.people[1].removing,'no further unmounts while the removal is pending')
+  local before=unmounts(); tick(300)
+  assert(unmounts()==before and discards==1)
+  local kinds={}
+  for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
+  assert(table.concat(kinds,','):find('exit-teleport-out',1,true) and table.concat(kinds,','):find('exit-discarded',1,true),table.concat(kinds,','))
+  -- The owner of the copy deletes it: the person is removed and the fleet is done.
+  transport.remove(fleet,1); entries[1]=nil; tick(5)
+  assert(fleet.phase=='on-foot',tostring(fleet.phase))
+`));
+
+test('a removal the owner refuses is asked again ten seconds later, and a fleet without the hook just keeps its bounded retries',()=>run(`${waitFixture}
+  party(1); tick(30)
+  world.unmountRefused=true; world.primary=nil
+  local discards=0
+  hooks.discard=function(entry) discards=discards+1; return false end
+  tick(1200)
+  assert(discards>=3,'asked again: '..discards)
+  assert(not fleet.people[1].removing)
+  hooks.discard=nil
+  local before=unmounts(); tick(300)
+  assert(unmounts()==before,'no unmount beyond the failsafe round')
 `));
 
 test('a plain exit logs the start and each person once, never per tick',()=>run(`${waitFixture}

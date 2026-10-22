@@ -188,7 +188,14 @@ local function bodyName(value)
 end
 
 local function rounded(value) return value and math.floor(value*10+.5)/10 or nil end
+-- Copies the fleet gave up on (every unmount refused, still seated): dismissed at the start of the next tick, never inside the
+-- fleet update that asked, because that update still holds this tick's list of ready copies.
+local discardQueue = {}
 local vehicleHooks = {
+    discard = function(entry)
+        discardQueue[#discardQueue+1] = entry.serial
+        return true
+    end,
     release = function(entry)
         equipment.release(entry.equipment)
         -- Release standing movement/gaze in this same handoff even when the
@@ -2180,6 +2187,14 @@ function M.update(player,delta,focusEntity)
     elapsed,runtimeClock=elapsed+dt,runtimeClock+dt
     if elapsed<0.1 then return end
     local step=elapsed; elapsed=0
+    if #discardQueue>0 then
+        local queued=discardQueue; discardQueue={}
+        for _,serial in ipairs(queued) do
+            local ok,done=pcall(M.dismiss,serial)
+            -- A refused removal reopens the fleet's own retry (it asks again ten seconds later).
+            if not ok or done==false then vehicles.discardRefused(fleet,serial) end
+        end
+    end
     local playerPosition=space.copy(player:GetWorldPosition())
     local gazeSettings=M.gazeSettings and M.gazeSettings() or nil
 

@@ -6,6 +6,7 @@ local stopChauffeurConvoy
 local MAX_ATTEMPTS=3
 local BOARD_TIMEOUT,EXIT_TIMEOUT,ATTACH_TIMEOUT=20,12,12
 local EXIT_RETRY=10
+local FAILSAFE_ROUND=3
 local function terminal(state)
     return state=='Success' or state=='Failure' or state=='Cancelled' or state=='Interrupted' or state=='Detached'
 end
@@ -642,6 +643,30 @@ local function cleanup(s)
         end
     end
 end
+-- Every unmount round is spent and the copy still sits in the car. Once: move it out beside the car (the same ground placement the
+-- fast-travel recovery uses). Five seconds later, still seated: ask the owner of the copy to remove it (hooks.discard), again every
+-- ten seconds until the removal is accepted. Only fleet people are ever here, never a character the mod did not spawn.
+local function giveUpExit(s,person,player,hooks,positions,budget)
+    if not person.teleportedOut then
+        person.teleportedOut=true; person.escalatedAt=s.clock
+        exitNote(s,person,'exit-teleport-out',{})
+        if s.api.recover then
+            local _,err,deferred=safe(s.api.recover,person.entry,player,positions or {})
+            if deferred then person.teleportedOut=nil end
+            if err then person.error=err end
+        end
+        return budget
+    end
+    if s.clock-(person.escalatedAt or 0)<(person.discardAsked and EXIT_RETRY or EXIT_RETRY/2) then return budget end
+    person.escalatedAt=s.clock
+    if type(hooks.discard)=='function' then
+        local accepted,err=safe(hooks.discard,person.entry)
+        person.discardAsked=true
+        if accepted then person.removing=true; person.error=nil; exitNote(s,person,'exit-discarded',{})
+        elseif err then person.error=err end
+    end
+    return budget
+end
 local function leave(s,person,player,hooks,budget,recoveryPositions)
     if not person.owned then return budget end
     if person.removing then releaseCommand(s,person); return budget end
@@ -719,12 +744,15 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
         exitNote(s,person,'exit-failed-'..(person.rounds or 0),{round=person.rounds or 0})
         -- Three refused unmounts are not the end: try again in rounds, ten seconds apart, instead of leaving her seated for good.
         person.failedAt=person.failedAt or s.clock
-        if s.clock-person.failedAt<EXIT_RETRY or (person.rounds or 0)>=2 then return budget end
+        if s.clock-person.failedAt<EXIT_RETRY then return budget end
+        -- Rounds 0 to 2 are ordinary unmounts, round 3 asks the game for its instant failsafe exit. When that is spent too, the copy
+        -- is moved out beside the car, and if it still sits there, removed (it is our own spawned copy): the exit never sticks.
+        if (person.rounds or 0)>=FAILSAFE_ROUND then return giveUpExit(s,person,player,hooks,recoveryPositions,budget) end
         person.rounds=(person.rounds or 0)+1; person.attempts,person.failedAt=0,nil
     end
     person.attempts=person.attempts+1; person.commandAt=s.clock
     person.commandState=nil
-    local command,err=safe(s.api.mount,person.entry,car,mount.seat,true)
+    local command,err=safe(s.api.mount,person.entry,car,mount.seat,true,(person.rounds or 0)>=FAILSAFE_ROUND or nil)
     person.command=command; person.phase='unmounting'; person.error=err
     if not command then person.retryAt=s.clock+2 end
     emit(s,'unmount-requested',person)
@@ -940,6 +968,11 @@ function M.removing(s,serial)
         M.cancelChauffeur(s,'The selected companion is leaving.'); return
     end
     if drivesConvoy(s,serial) then startExit(s,'companion-dismissed') end
+end
+-- The owner of the copy refused the removal the fleet asked for (hooks.discard): the exit retry takes it up again.
+function M.discardRefused(s,serial)
+    local person=s.people[serial]
+    if person then person.removing=nil end
 end
 function M.fastTravel(s) s.fastTravelPending=true end
 -- Called before native teleportation while owners are still valid. Only IDs,

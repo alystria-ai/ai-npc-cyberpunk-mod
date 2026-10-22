@@ -561,7 +561,7 @@ function M.new(companions, readiness, options)
         if not member then return false, ui.t('That copy is no longer in your party.') end
         if member.serial then
             local trip = Q.chauffeur()
-            if trip.active and trip.driverSerial == member.serial then
+            if trip.active and trip.driverSerial == member.serial and trip.dismissible ~= true then
                 return false, ui.t('Stop the trip and step out before dismissing your driver.')
             end
             leaves[member.serial], dismissErrors[member.serial] = true, nil

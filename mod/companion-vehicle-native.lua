@@ -165,16 +165,19 @@ local function command(ai,handle,owner)
     if accepted==false then operation.refused=true end
     return operation
 end
-function M.mount(entry,vehicle,seat,unmount)
+-- failsafe (an unmount only): the game's instant exit with its failsafe teleport, the last real attempt before the copy is moved
+-- out or removed.
+function M.mount(entry,vehicle,seat,unmount,failsafe)
     local cmd=NewObject(unmount and 'AIUnmountCommand' or 'AIMountCommand')
     local data=NewObject('gameMountEventData')
+    local instant=unmount==true and failsafe==true
     data.mountParentEntityId=vehicle.entityID
     data.slotName=CName.new(seat)
-    data.isInstant=false
+    data.isInstant=instant
     data.setEntityVisibleWhenMountFinish=true
     data.removePitchRollRotationOnDismount=false
     data.ignoreHLS=false
-    data.allowFailsafeTeleport=false
+    data.allowFailsafeTeleport=instant
     data.mountEventOptions=NewObject('gameMountEventOptions')
     data.mountEventOptions.silentUnmount=false
     -- This ID describes an existing occupant for the stealing path, not the car.
