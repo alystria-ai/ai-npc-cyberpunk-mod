@@ -732,6 +732,7 @@ return {
     ["Requires a Mistral key (add it in Settings > Conversation provider)"] = "需要 Mistral 金鑰（請在 設定 > 對話提供者 中新增）",
     ["Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message."] = "目前與夥伴對話需要 Convai。請在 設定 > 對話提供者 中將對話提供者設為 Convai（免費方案），或改為輸入文字。",
     ["The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider."] = "已達到對話上限。請稍後再試，或新增一個免費的 Mistral 金鑰，並在 設定 > 對話提供者 中將 對話提供者 設為 Mistral。",
+    ["Convai could not sign in. Try again in a moment, or choose Mistral or Local AI in Settings > Conversation provider."] = "無法登入 Convai。請稍後再試，或在 設定 > 對話提供者 中選擇 Mistral 或 Local AI。",
     ["Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider."] = "你的 Convai API 金鑰已達到方案上限。請稍後再試，或在 設定 > 對話提供者 中新增其他金鑰。",
     ["You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC."] = "今天的 Convai 免費方案額度已用完。明天會重設。若要立即繼續，請在 設定 > 對話提供者 中選擇其他提供者。Mistral（免費，使用你自己的免費金鑰）每天允許約 5,000 輪對話。Local AI 不限次數，在這台電腦上執行。",
     ["Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited)."] = "Convai 今日{limit}輪已用完。\nMistral（免費，約5,000/天）或 Local AI（無限）",

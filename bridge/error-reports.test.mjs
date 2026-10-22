@@ -691,6 +691,30 @@ test('a released Runtime sends to the address in app/defaults/error-reports.json
   } finally { await f.cleanup(); }
 });
 
+test('the sign-in settings a release ships (defaults/convai-auth.json) never become the error report target or secret', async () => {
+  const {dataFolderSecrets} = await import('./report-secrets.mjs');
+  const f = await folders();
+  const signIn = `signin-${SIGNING_SECRET}`, shipped = `shipped-${SIGNING_SECRET}`;
+  try {
+    await mkdir(join(f.project, 'defaults'), {recursive: true});
+    await writeFile(join(f.project, 'defaults', 'convai-auth.json'), JSON.stringify({version: 1, enabled: true, url: 'https://signin.example/api/convai/token', secret: signIn, fallback: false}));
+    // Alone, the request secret is no report target: no secret, no reports (they wait in the queue).
+    assert.equal(await readBackendAddress({env: {}, path: join(f.state, 'convai-auth.json')}), null);
+    assert.equal(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), null);
+    // With the reports' own file, that file decides: its address and its secret, never the request secret.
+    await writeFile(join(f.project, 'defaults', 'error-reports.json'), JSON.stringify({version: 1, url: 'https://reports.example/anything', secret: shipped}));
+    assert.deepEqual(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), {url: 'https://reports.example/api/errors/report', secret: shipped});
+    // The request secret is still a secret: scrubbed from every report.
+    await writeFile(join(f.state, 'bridge.stderr.log'), `Error: boom with ${signIn} in it\n`);
+    const record = {signature: 'cccccccccccccccc', kind: 'bridge-exception', count: 1, firstAt: START, lastAt: START, message: `boom ${signIn}`, frame: '', stack: []};
+    const {body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
+    assert.ok(!body.includes(signIn) && !body.includes(shipped), 'neither shipped secret leaves');
+    const secrets = await dataFolderSecrets({stateDirectory: f.state, project: f.project});
+    assert.ok(secrets.includes(signIn) && secrets.includes(shipped), 'both are returned for scrubbing');
+  } finally { await f.cleanup(); }
+});
+
 // ------------------------------------------------------------------ a crash's facts and the Runtime's files
 
 test('a bridge crash report carries the exit code in words, the stage and Node\'s report summary, and every text goes through the redactor', async () => {

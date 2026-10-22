@@ -3598,6 +3598,10 @@ local function keyReplyNotice(reply)
         return 'key-memory', ui.t('Your Convai plan has no room for conversation memory, so companions will not remember past talks.')
     end
     if reply.errorCode == 'daily-limit' then return 'daily-limit', dailyLimitText() end
+    -- The shared Convai account could not be signed in to (the sign-in backend did not answer, refused, or the package has none): a turn V asked for says so.
+    if reply.errorCode == 'convai-unavailable' then
+        return 'convai-unavailable', ui.t('Convai could not sign in. Try again in a moment, or choose Mistral or Local AI in Settings > Conversation provider.')
+    end
     -- Mistral: three failures the bridge names, and two one-time notices on the first reply.
     if reply.errorCode == 'mistral-key' then
         return 'mistral-key', ui.t('Mistral did not accept your key. Check it in Settings > Conversation provider.')
@@ -4862,6 +4866,9 @@ registerForEvent('onUpdate', function(delta)
                         -- The daily allowance: a turn V asked for says so once; an automatic reaction just stops.
                         elseif keyId == 'daily-limit' then
                             if not pending.reaction then convaiNotices.send(player, 'daily-limit', keyText) end
+                        -- Convai sign-in failed: the same rule.
+                        elseif keyId == 'convai-unavailable' then
+                            if not pending.reaction then convaiNotices.send(player, 'convai-unavailable', keyText) end
                         -- Mistral failures: a turn V asked for says so; an automatic reaction (battle, loot) just stops.
                         elseif keyId == 'mistral-key' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-key', keyText) end

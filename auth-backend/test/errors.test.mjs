@@ -594,7 +594,7 @@ test('no install id, hash the client sent, or address is in any key or value, an
 test('the settings have the documented defaults, ranges and names, and are listed for /readyz', () => {
   const config = readConfig({});
   assert.deepEqual([config.errorReportsOff, config.errorInstallPerDay, config.errorIpPerHour, config.errorStorePerDay, config.errorSamples, config.errorTtlDays],
-    [false, 10, 30, 300, 10, 30]);
+    [false, 40, 30, 300, 10, 30]);
   assert.equal(DEFAULTS.errorStorePerDay, 300);
   for (const name of ['ERROR_REPORTS_OFF', 'ERROR_REPORTS_INSTALL_PER_DAY', 'ERROR_REPORTS_IP_PER_HOUR', 'ERROR_REPORTS_STORE_PER_DAY', 'ERROR_REPORTS_SAMPLES', 'ERROR_REPORTS_TTL_DAYS']) {
     assert.ok(ENV_NAMES.includes(name), name);

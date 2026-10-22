@@ -79,7 +79,6 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/johnny-head.mjs',
   'bridge/journal-history.mjs',
   'bridge/journal-quest-types.mjs',
-  'bridge/key-codec.mjs',
   'bridge/knowledge-decisions.mjs',
   'bridge/knowledge-parts.mjs',
   'bridge/language-english-vocab.mjs',

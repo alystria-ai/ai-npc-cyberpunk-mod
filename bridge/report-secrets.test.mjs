@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {packKey} from './key-codec.mjs';
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 
 const RED4EXT_LOG = [
@@ -36,7 +35,7 @@ test("the custom provider's key (player-custom-endpoint.txt) is scrubbed by valu
   } finally { await rm(data, {recursive: true, force: true}); }
 });
 
-test('every key file of the data folder, the sign-in secret, the packed key and the environment secret are returned for scrubbing', async () => {
+test('every key file of the data folder, the sign-in secret, both secrets a release ships and the environment secret are returned for scrubbing', async () => {
   const root = await mkdtemp(join(tmpdir(), 'report-secrets-all-'));
   try {
     const data = join(root, 'data'), project = join(root, 'app');
@@ -47,7 +46,7 @@ test('every key file of the data folder, the sign-in secret, the packed key and 
     await writeFile(join(data, 'player-convai-key.txt'), `api-key=${player}\n`);
     await writeFile(join(data, 'player-mistral-key.txt'), `api-key=${mistral}\n`);
     await writeFile(join(data, 'convai-auth.json'), JSON.stringify({enabled: true, url: 'https://example.invalid', secret: auth}));
-    await writeFile(join(project, 'defaults', 'service.txt'), packKey(shared));
+    await writeFile(join(project, 'defaults', 'convai-auth.json'), JSON.stringify({version: 1, enabled: true, url: 'https://example.invalid/api/convai/token', secret: shared, fallback: false}));
     await writeFile(join(project, 'defaults', 'error-reports.json'), JSON.stringify({version: 1, url: 'https://example.invalid/', secret: shipped}));
     const secrets = await dataFolderSecrets({stateDirectory: data, project, env: {CYBERPUNK_CONVAI_AUTH_SECRET: signing}});
     for (const value of [player, mistral, auth, shared, shipped, signing]) assert.ok(secrets.includes(value), `${value.slice(0, 5)}... is returned`);

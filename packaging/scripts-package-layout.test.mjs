@@ -5,7 +5,7 @@
 import {test, before, after} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -176,38 +176,70 @@ test('the install note is the first thing in the zip root and tells the player t
   assert.equal(names().filter(name => !name.includes('/')).join(), INSTALL_NOTE, 'the note is the only top-level file');
 });
 
-test('the key given to a dry run is never printed and never ends up in the Scripts zip', async () => {
+// The Runtime ships no Convai key (packaging/lib/convai-auth.mjs): the build refuses one, and takes the token backend's address and client secret instead.
+const NO_AUTH = {CONVAI_AUTH_URL: '', CONVAI_AUTH_CLIENT_SECRET: ''};
+
+test('a Convai key given to the build is refused with a clear message, never printed and never written', async () => {
   const secret = 'test-only-key-3f9a1c7e5b2d4a60';
   const keyRoot = await mkdtemp(join(tmpdir(), 'scripts-package-key-'));
   try {
-    const run = build(['--version', VERSION, '--dry-run', '--packages', 'scripts', '--worktree', '--out', join(keyRoot, 'out'),
-      '--cache', join(keyRoot, 'cache'), '--key-env', 'CPM_TEST_PACKAGE_KEY'], {CPM_TEST_PACKAGE_KEY: `api-key = ${secret}`});
+    for (const args of [['--key-env', 'CPM_TEST_PACKAGE_KEY'], ['--key-file', join(keyRoot, 'key.txt')]]) {
+      await writeFile(join(keyRoot, 'key.txt'), `api-key = ${secret}\n`);
+      const run = build(buildArgs(join(keyRoot, 'out'), join(keyRoot, 'cache'), args), {...NO_AUTH, CPM_TEST_PACKAGE_KEY: `api-key = ${secret}`});
+      assert.notEqual(run.status, 0, args[0]);
+      assert.match(run.stderr, /Convai key is no longer shipped/);
+      assert(!(run.stdout + run.stderr).includes(secret), 'the key is never printed');
+    }
+    assert.equal(existsSync(join(keyRoot, 'out/packages')), false, 'nothing was built');
+  } finally { await rm(keyRoot, {recursive: true, force: true}); }
+});
+
+test('the backend secret given to a dry run is never printed and never ends up in the Scripts zip; GitHub gets it masked', async () => {
+  const secret = 'test-only-client-secret-3f9a1c7e5b2d4a60';
+  const keyRoot = await mkdtemp(join(tmpdir(), 'scripts-package-auth-'));
+  try {
+    const run = build(buildArgs(join(keyRoot, 'out'), join(keyRoot, 'cache'), ['--auth-url', 'https://backend.example/api/convai/token', '--auth-secret-env', 'CPM_TEST_CONVAI_AUTH_SECRET']),
+      {...NO_AUTH, CPM_TEST_CONVAI_AUTH_SECRET: secret});
     assert.equal(run.status, 0, run.stderr);
-    assert(!(run.stdout + run.stderr).includes(secret), 'the key is never printed');
+    assert(!(run.stdout + run.stderr).includes(secret), 'the secret is never printed');
+    assert.match(run.stdout, /sign-in backend backend\.example/, 'only the host is logged');
+    const masked = build(buildArgs(join(keyRoot, 'out2'), join(keyRoot, 'cache')), {...NO_AUTH, CONVAI_AUTH_URL: 'https://backend.example/api/convai/token', CONVAI_AUTH_CLIENT_SECRET: secret, GITHUB_ACTIONS: 'true'});
+    assert.equal(masked.status, 0, masked.stderr);
+    assert(masked.stdout.includes(`::add-mask::${secret}`), 'the runner is told to mask it');
     const keyZip = join(keyRoot, 'out/packages', ZIP_NAME);
     const where = join(keyRoot, 'x'); await mkdir(where);
     assert.equal(spawnSync(tar, ['-xf', keyZip, '-C', where]).status, 0);
     for (const rel of await walk(where)) {
       const bytes = await readFile(join(where, rel));
-      assert(!bytes.includes(secret), `${rel} carries the key`);
-      assert(!bytes.includes(Buffer.from(secret).toString('base64')), `${rel} carries the key base64`);
+      assert(!bytes.includes(secret), `${rel} carries the secret`);
+      assert(!bytes.includes(Buffer.from(secret).toString('base64')), `${rel} carries the secret base64`);
     }
   } finally { await rm(keyRoot, {recursive: true, force: true}); }
 });
 
-test('a key with an unexpected format stops the build without printing it; an empty key stops a non-dry run', async () => {
-  const keyRoot = await mkdtemp(join(tmpdir(), 'scripts-package-badkey-'));
+test('a bad backend address or secret stops the build without printing the secret; a real Runtime build without both stops before anything is fetched', async () => {
+  const keyRoot = await mkdtemp(join(tmpdir(), 'scripts-package-badauth-'));
   try {
-    const bad = 'not a valid key !!!';
-    const stopped = build(['--version', VERSION, '--dry-run', '--packages', 'scripts', '--worktree', '--out', join(keyRoot, 'a'),
-      '--cache', join(keyRoot, 'c'), '--key-env', 'CPM_TEST_PACKAGE_KEY'], {CPM_TEST_PACKAGE_KEY: bad});
-    assert.notEqual(stopped.status, 0);
-    assert.match(stopped.stderr, /unexpected format/);
-    assert(!(stopped.stdout + stopped.stderr).includes(bad), 'the value is not shown');
-    const empty = build(['--version', VERSION, '--packages', 'scripts', '--worktree', '--out', join(keyRoot, 'b'),
-      '--cache', join(keyRoot, 'c'), '--key-env', 'CPM_TEST_PACKAGE_KEY'], {CPM_TEST_PACKAGE_KEY: '   '});
-    assert.notEqual(empty.status, 0);
-    assert.match(empty.stderr, /Convai key is empty/);
+    const good = 'test-only-client-secret-3f9a1c7e5b2d4a60';
+    const cases = [
+      [{CONVAI_AUTH_URL: 'http://backend.example/api/convai/token', CONVAI_AUTH_CLIENT_SECRET: good}, /must be https/],
+      [{CONVAI_AUTH_URL: 'https://backend.example/api/other', CONVAI_AUTH_CLIENT_SECRET: good}, /must end with \/api\/convai\/token/],
+      [{CONVAI_AUTH_URL: 'https://backend.example/api/convai/token', CONVAI_AUTH_CLIENT_SECRET: 'too short 123'}, /client secret/],
+      [{CONVAI_AUTH_URL: 'https://backend.example/api/convai/token', CONVAI_AUTH_CLIENT_SECRET: ''}, /needs both/],
+      [{CONVAI_AUTH_URL: '', CONVAI_AUTH_CLIENT_SECRET: good}, /needs both/],
+    ];
+    for (const [env, message] of cases) {
+      const run = build(buildArgs(join(keyRoot, 'a'), join(keyRoot, 'c')), env);
+      assert.notEqual(run.status, 0);
+      assert.match(run.stderr, message);
+      assert(!(run.stdout + run.stderr).includes(good) && !(run.stdout + run.stderr).includes('too short 123'), 'no secret is shown');
+    }
+    // A non-dry build of the Runtime without the backend settings fails loudly, before any download.
+    const runtime = build(['--version', VERSION, '--packages', 'runtime', '--worktree', '--out', join(keyRoot, 'b'), '--cache', join(keyRoot, 'c')], NO_AUTH);
+    assert.notEqual(runtime.status, 0);
+    assert.match(runtime.stderr, /needs the sign-in backend.*CONVAI_AUTH_URL.*CONVAI_AUTH_CLIENT_SECRET/);
+    // ...while a Scripts-only real build needs no backend, and a dry-run Runtime build would too (it may omit them).
+    assert.equal(existsSync(join(keyRoot, 'c')), false, 'nothing was downloaded');
   } finally { await rm(keyRoot, {recursive: true, force: true}); }
 });
 

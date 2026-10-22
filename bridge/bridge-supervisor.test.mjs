@@ -10,7 +10,6 @@ import {setTimeout as sleep} from 'node:timers/promises';
 import {BridgeSupervisor, MOD_RUNTIME, parseSupervisorArguments, processAlive, usvfsCompatImport} from './bridge-supervisor.mjs';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
 import {INCOMPLETE_EXIT_CODE} from './runtime-files.mjs';
-import {packKey} from './key-codec.mjs';
 
 const prefix = 'cyberpunk-bridge-supervisor-';
 const fakeKey = 'api-key=fixture-key-not-a-credential';
@@ -238,15 +237,24 @@ test('missing setup is reported without starting a bridge and recovers once the 
   run.endGame(); await run.done;
 });
 
-test('the packed key of the release package passes the supervisor check, and a damaged one is a setup failure', async t => {
+test('a release has no key: the packaged sign-in settings pass the supervisor check, a switched-off or damaged file does not, and a key packed by an older release is no key', async t => {
   const f = await fixture(t, {key: false});
+  // The key a release before 0.2.9 packed into the state folder is not a credential any more.
   await writeFile(join(f.state, 'convai-key.txt'), 'convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n');
+  await mkdir(join(f.project, 'defaults'), {recursive: true});
+  const packaged = join(f.project, 'defaults', 'convai-auth.json');
+  await writeFile(packaged, '{damaged');
   const run = supervise(f);
-  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a damaged packed key was accepted');
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a damaged sign-in file and a packed old key were accepted');
   assert.equal(failed.code, 'missing-key');
-  await writeFile(join(f.state, 'convai-key.txt'), packKey('packed-fixture-not-a-credential-0123'));
-  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the packed key was not accepted');
-  assert.doesNotMatch(await readFile(f.statusPath, 'utf8'), /packed-fixture/, 'the credential is never published');
+  // The developer's own state-folder file wins over the package: "enabled": false keeps the backend off.
+  await writeFile(packaged, JSON.stringify({version: 1, enabled: true, url: 'https://example.invalid/api/convai/token', secret: 'test-secret-not-a-credential-0123456789', fallback: false}));
+  await writeFile(join(f.state, 'convai-auth.json'), JSON.stringify({enabled: false}));
+  await new Promise(resolve => setTimeout(resolve, 600));
+  assert.equal((await readJson(f.statusPath)).code, 'missing-key', 'the state folder turned the backend off');
+  await rm(join(f.state, 'convai-auth.json'));
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the packaged sign-in settings were not accepted');
+  assert.doesNotMatch(await readFile(f.statusPath, 'utf8'), /test-secret-not-a-credential/, 'the secret is never published');
   run.endGame(); await run.done;
 });
 
