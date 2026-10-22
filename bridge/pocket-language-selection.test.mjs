@@ -195,3 +195,15 @@ test('the support report lists the models (language, size, whether the pack is i
   assert.equal(JSON.stringify(section).includes('secret'), false);
   assert.equal(pocketLanguageModelsSection(undefined), null);
 });
+
+test('a reference kept only for a V voice mod is not sent to the Pocket worker as a language voice (it refuses paths outside the pack and the player folder); the player\'s own clip still is', async () => {
+  await setup(async ({voice}) => {
+    assert.ok((await voice.pocketLanguageFor('panam-palmer', 'fr'))?.voices['panam-palmer'].reference.includes('multilingual/fr/'), 'no mod: the pack clip');
+    voice.keepsReference = key => key === 'panam-palmer';
+    assert.equal(await voice.pocketLanguageFor('panam-palmer', 'fr'), null, 'a mod\'s reference: the English student speaks, no refused language command');
+  });
+  await setup(async ({voice}) => {
+    voice.keepsReference = () => true;
+    assert.equal((await voice.pocketLanguageFor('panam-palmer', 'fr')).voices['panam-palmer'].reference, 'runtime/player-voices/panam-palmer.wav');
+  }, {player: true});
+});
