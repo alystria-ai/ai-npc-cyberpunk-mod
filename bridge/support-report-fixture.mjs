@@ -30,6 +30,12 @@ export const VECTORS = [
   {input: `token ${PLANTED.base64} ok`, gone: [PLANTED.base64]},
   {input: 'Conversation result: generation=1 error=false', keep: ['Conversation result: generation=1 error=false']},
   {input: 'Basic information about bin/x64/plugins/cyber_engine_tweaks/mods', keep: ['Basic information about bin/x64/plugins/cyber_engine_tweaks/mods']},
+  {input: 'fetch https://alice:hunter2pass@example.com/v1/path failed', gone: ['alice', 'hunter2pass'], keep: ['https://', '@example.com/v1/path failed']},
+  {input: 'mail me at jane.doe+game@example.org please', gone: ['jane.doe', 'example.org'], keep: ['mail me at', 'please']},
+  {input: 'Mistral key Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc in use', gone: ['Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc'], keep: ['in use']},
+  {input: 'GET /oauth?code=abc123secretcode&state=ok', gone: ['abc123secretcode'], keep: ['state=ok']},
+  {input: 'at C:\\Users\\John Smith\\Documents\\mod\\x.lua:12', gone: ['John', 'Smith'], keep: ['<user>', 'Documents', 'x.lua:12']},
+  {input: 'version 0.2.8@build mailto:x at node@20.1.0 and react@18.3.1', keep: ['node@20.1.0', 'react@18.3.1']},
   {input: "Type 'MovePolicies' not found.", keep: ["Type 'MovePolicies' not found."]},
   {input: 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\red4ext\\logs', keep: ['E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\red4ext\\logs']},
 ];

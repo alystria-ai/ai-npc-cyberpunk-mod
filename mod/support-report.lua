@@ -30,6 +30,8 @@ local KEYWORDS = {'authorization', 'convai-key', 'convai_key', 'api-key', 'api_k
     'access-token', 'access_token', 'auth-token', 'auth_token', 'refresh-token', 'refresh_token', 'id-token',
     'id_token', 'token', 'secret', 'passwd', 'password', 'private-key', 'private_key', 'cookie', 'session-key',
     'session_key'}
+local QUERY_NAMES = {'key', 'token', 'api_key', 'apikey', 'access_token', 'auth', 'signature', 'sig', 'pass', 'passwd', 'password', 'pwd', 'code',
+    'secret', 'client_secret', 'refresh_token'}
 local KEY_PREFIXES = {'hf', 'ghp', 'gho', 'ghs', 'ghu', 'sk', 'pk', 'xoxa', 'xoxb', 'xoxp', 'xoxr', 'AKIA', 'AIza', 'ya29'}
 local SENSITIVE_NAME = {'key', 'token', 'secret', 'passw', 'credential', 'authorization', 'bearer', 'cookie', 'signature'}
 local ID_NAME = {'enduserid', 'userid', 'sessionid', 'characterid', 'connectionid', 'roomid', 'participantid', 'ownerid',
@@ -111,10 +113,22 @@ function M.redactLine(line, secrets)
         out[#out + 1] = line:sub(position)
         line = table.concat(out)
     end
+    -- Address parameters that carry a secret (the service's rule): ?code=..., &pass=..., ...
+    for _, name in ipairs(QUERY_NAMES) do
+        line = line:gsub('([?&]' .. name .. '=)[^&%s"\']+', '%1[redacted]')
+    end
+    -- user:password@host in an address, and email addresses (the service's rules, bridge/support-report.mjs).
+    line = line:gsub('(%a[%w%+%.%-]*://)[^%s/%?#@"\'<>\\]+@', '%1[redacted]@')
+    line = line:gsub('[%w%._%%%+%-]+@[%w%-]+[%w%.%-]*%.%a%a+', '[email-redacted]')
     line = line:gsub('[%w%+_=%-]+', function(run)
         if isUuid(run) then return '[id:' .. hash8(run:lower()) .. ']' end
         if #run >= 32 and run:match('^%x+$') then return '[hex-redacted]' end
-        if #run >= 40 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+        -- 32 and more, like the service: a Mistral key is 32 letters and digits.
+        if #run >= 32 and run:find('%d') and run:find('%a') then return '[token-redacted]' end
+    end)
+    -- A name with spaces ("John Smith") is taken whole up to the next separator (at most 64 characters); with no separator after it, only its first word.
+    line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)([^\\/"\'<>|:*?,;=%+%[%]]+)([\\/])', function(prefix, name, separator)
+        if #name <= 64 then return prefix .. '<user>' .. separator end
     end)
     line = line:gsub('(%a:[\\/]+[Uu][Ss][Ee][Rr][Ss][\\/]+)[^\\/%s"\'<>|:*?]+', '%1<user>')
     return line

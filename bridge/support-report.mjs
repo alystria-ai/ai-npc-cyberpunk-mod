@@ -49,12 +49,17 @@ const RULES = [
   [/\b(authorization|proxy-authorization)(["']?\s*[:=]\s*["']?)[^\r\n"',;}]*/gi, '$1$2[redacted]'],
   [new RegExp(String.raw`(${KEYWORD}["']?\s*[:=]\s*["']?)${VALUE}`, 'gi'), '$1[redacted]'],
   [/\b(Bearer)\s+[A-Za-z0-9._~+\/=-]{8,}/gi, '$1 [redacted]'],
-  [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig)=)[^&\s"']+/gi, '$1[redacted]'],
+  // user:password@host in an address (the part before the @ of an authority; the host and path stay).
+  [/\b([a-z][a-z0-9+.-]{1,20}:\/\/)[^\s\/?#@"'<>\\]+@/gi, '$1[redacted]@'],
+  [/([?&](?:key|token|api_key|apikey|access_token|auth|signature|sig|pass|passwd|password|pwd|code|secret|client_secret|refresh_token)=)[^&\s"']+/gi, '$1[redacted]'],
   [/\b(?:hf|ghp|gho|ghs|ghu|sk|pk|xox[abpr]|AKIA|AIza|ya29)[-_A-Za-z0-9.]{12,}/g, '[token-redacted]'],
+  // An email address (after the address rule above, so user:pass@host.tld is already gone).
+  [/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g, '[email-redacted]'],
 ];
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
-const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
+// 32 and more: a Mistral key is 32 letters and digits (the Lua redactor, mod/support-report.lua, uses the same length).
+const LONG_RUN = /[A-Za-z0-9+_=-]{32,}/g;
 // The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
 // JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
 // or the end; past 64 characters with none, only its first word is (the old rule). A Windows account name never holds , ; = + [ ] or those.
@@ -63,6 +68,16 @@ const NOT_IN_NAME = String.raw`\r\n"'<>|:*?,;=+\[\]`;
 const USER_PATH = new RegExp(String.raw`((?:^|[\\/:]|%5c|%2f|%3a)Users${PATH_SEPARATOR}+)`
   + String.raw`(?:[^\\/${NOT_IN_NAME}]{1,64}?(?=${PATH_SEPARATOR}|[${NOT_IN_NAME}]|$)|[^\\/\s"'<>|:*?]+)`, 'gi');
 const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The Windows account names this process can see (USERNAME, the profile folder's name, os.userInfo): the names a path may carry for the player. */
+export function accountNames(env = process.env) {
+  const names = new Set();
+  const add = value => { if (typeof value === 'string' && value.trim().length >= 2) names.add(value.trim()); };
+  add(env.USERNAME); add(env.USER);
+  for (const name of ['USERPROFILE', 'HOME']) if (typeof env[name] === 'string') add(env[name].split(/[\\/]/).filter(Boolean).at(-1));
+  try { add(os.userInfo().username); } catch {}
+  return [...names].sort((a, b) => b.length - a.length);
+}
 
 export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 
@@ -596,7 +611,7 @@ export async function collectReport(options) {
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
-  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const redact = createRedactor({secrets, ids: options.knownIds ?? [], accounts: accountNames(environment)});
   const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];

@@ -12,7 +12,7 @@ import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs
 import {MistralError, newTrace} from './mistral-client.mjs';
 import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
-import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportTarget,
+import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
 import {readBackendAddress} from './convai-credential.mjs';
 import {CODE_LIST, codeListText, hashBytes, resetRuntimeIntegrityCache} from './runtime-integrity.mjs';
@@ -299,6 +299,17 @@ test('no planted secret, conversation text or account name gets out, and the pay
     assert.ok(payload.report.logs.some(item => item.source === 'redscript' && item.lines.some(line => line.includes('Cannot resolve type'))));
     assert.ok(!payload.report.logs.some(item => item.lines.some(line => line.includes('routine line 1000'))), 'only lines around the error');
   } finally { await f.cleanup(); }
+});
+
+test('the error-report cleaner hides account names in any path (two-letter ones too), emails and user:pass@host', () => {
+  const {clean} = reportCleaner({names: ['Jo', 'Zedmaster'], secrets: [], ids: []});
+  const b = '\\';
+  assert.equal(clean(`opened E:${b}Jo${b}Games${b}y.lua and D:${b}Zedmaster${b}x`), `opened E:${b}<user>${b}Games${b}y.lua and D:${b}<user>${b}x`);
+  assert.equal(clean('then Jo went to Josephine'), 'then Jo went to Josephine', 'a two-letter name is only hidden as a path part');
+  assert.equal(clean('Zedmaster logged in'), '<user> logged in', 'a longer name is hidden anywhere');
+  const out = clean('proxy https://u:p4ssw0rd@host.example:8080/a mail a.b@c.example.com');
+  assert.equal(out, 'proxy https://[redacted]@host.example:8080/a mail [email-redacted]');
+  assert.equal(clean('key Q7wE3rT9yU1iO5pA2sD4fG6hJ8kL0zXc here'), 'key [token-redacted] here', 'a 32-character key');
 });
 
 test('the conversation filter removes quoted sentences and text fields, and keeps the words an error needs', () => {

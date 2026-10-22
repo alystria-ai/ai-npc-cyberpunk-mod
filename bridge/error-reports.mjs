@@ -27,7 +27,8 @@ import {createHash} from 'node:crypto';
 import {mkdir, open, readFile, readdir, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {dirname, join, resolve} from 'node:path';
 import os from 'node:os';
-import {createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
+import {accountNames, createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
+export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
@@ -119,20 +120,11 @@ export function withoutConversation(line) {
     .replace(CONTENT_VALUE, (match, name, separator) => `${name}${separator}[text removed]`);
 }
 
-/** The Windows account names this process can see (USERNAME, the profile folder's name, os.userInfo), for a literal scrub. */
-export function accountNames(env = process.env) {
-  const names = new Set();
-  const add = value => { if (typeof value === 'string' && value.trim().length >= 3) names.add(value.trim()); };
-  add(env.USERNAME); add(env.USER);
-  for (const name of ['USERPROFILE', 'HOME']) if (typeof env[name] === 'string') add(env[name].split(/[\\/]/).filter(Boolean).at(-1));
-  try { add(os.userInfo().username); } catch {}
-  return [...names].sort((a, b) => b.length - a.length);
-}
-
 /** text -> redacted text: the support report's redactor, then the conversation filter, then the account names. */
 export function reportCleaner({secrets = [], ids = [], names = accountNames()} = {}) {
-  const redact = createRedactor({secrets, ids});
-  const patterns = names.map(name => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9])`, 'gi'));
+  // Every name counts as a path part (even a two-letter one, as in D:\Jo\Games); only names of three or more characters are also hidden anywhere in a line.
+  const redact = createRedactor({secrets, ids, accounts: names});
+  const patterns = names.filter(name => name.length >= 3).map(name => new RegExp(`(?<![A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9])`, 'gi'));
   const clean = text => {
     let value = withoutConversation(redact.text(String(text ?? '')));
     for (const pattern of patterns) value = value.replace(pattern, '<user>');
