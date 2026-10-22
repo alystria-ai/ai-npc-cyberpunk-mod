@@ -1009,6 +1009,10 @@ function M.takeVoiceFallbackNotice()
     if not pending then return nil end
     -- OmniVoice cannot run on this PC at all (it needs an NVIDIA graphics card): said once, and not as a retry or a plain "unavailable".
     -- OmniVoice did not get the graphics memory it needs next to the game (timed out on a small card or with memory spilled into shared memory): Pocket speaks, said once.
+    -- Windows ran out of memory it can promise (the paging file is too small, error 1455) for the voice: OmniVoice then Pocket, or Pocket itself. Said once, with what helps.
+    if pending.reason == 'virtual-memory' then
+        return ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.')
+    end
     if pending.reason == 'omni-memory' and pending.to == 'pocket' then
         return ui.t('OmniVoice needs more graphics memory than is free next to the game. Pocket is used.')
     end
@@ -1301,7 +1305,9 @@ local function updateLocalVoice()
         local temporary = fallback.temporary == true
         -- 'omni-no-nvidia' (OmniVoice needs an NVIDIA card) is its own notice, whatever the lower voice is.
         -- 'omni-memory' (not enough graphics memory next to the game) is its own notice when Pocket takes over.
-        local reason = fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
+        -- 'virtual-memory' (Windows ran out of memory: the paging file is too small) is its own notice for OmniVoice or Pocket, whatever the lower voice is.
+        local reason = fallback.reason == 'virtual-memory' and (fallback.from == 'omni' or fallback.from == 'pocket') and fallback.reason
+            or fallback.from == 'omni' and (fallback.reason == 'omni-no-nvidia' or (fallback.reason == 'omni-memory' and fallback.to == 'pocket')) and fallback.reason or nil
         local id = fallback.from .. '>' .. fallback.to .. (temporary and ':temporary' or '') .. (reason and (':' .. reason) or '')
         if not voiceFallbackSeen[id] then
             voiceFallbackSeen[id] = true

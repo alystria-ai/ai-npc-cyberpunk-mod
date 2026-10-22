@@ -1670,8 +1670,8 @@ test('the no-speech failure never cuts off a recognised or still-thinking voice 
     offset = 16000; await new Promise(done => setTimeout(done, 120));
     assert.equal(api.diagnostics().activeTurn, true, mode + ' keeps waiting past the no-speech window');
     offset = 61000;
-    await assert.rejects(pending, error => /did not finish the reply \(transcript=(yes|no) text=no /.test(error.message)
-      && error.message.includes(mode === 'transcript' ? 'transcript=yes' : 'thinking=true'));
+    await assert.rejects(pending, error => /did not finish the reply \(transcript=(true|false) text=false /.test(error.message)
+      && error.message.includes(mode === 'transcript' ? 'transcript=true' : 'thinking=true'));
     await api.close();
   }
 });

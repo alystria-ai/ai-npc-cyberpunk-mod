@@ -4,6 +4,7 @@ import {lookup as dnsLookup} from 'node:dns/promises';
 import {connect as netConnect} from 'node:net';
 import {join, relative, resolve} from 'node:path';
 import {promisify} from 'node:util';
+import {totalmem} from 'node:os';
 import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
 import {checkRuntimeSteps} from './runtime-steps.mjs';
@@ -135,6 +136,32 @@ export async function detectGraphicsCards({run = defaultRun, platform = process.
     const [names, qwords, dwords] = await Promise.all(['DriverDesc', 'HardwareInformation.qwMemorySize', 'HardwareInformation.MemorySize'].map(ask));
     return graphicsCardsFrom(names, qwords, dwords);
   } catch { return []; }
+}
+
+// ------------------------------------------------------------ memory facts
+
+const MIB = 1024 * 1024;
+// RAM plus the paging files is what Windows can promise (the "commit limit"): TotalVirtualMemorySize of Win32_OperatingSystem, in KiB.
+const COMMIT_QUERY = '(Get-CimInstance -ClassName Win32_OperatingSystem).TotalVirtualMemorySize';
+const COMMIT_TIMEOUT_MS = 8000;
+
+/**
+ * The memory facts an error report carries so a "paging file is too small" failure (Windows error 1455) can be told from a plain one: {totalRamMiB, commitLimitMiB}.
+ * The RAM is Node's own reading (no process); the commit limit is one PowerShell read (a few hundred ms, 8 s at most), made once per bridge process by
+ * cachedMemoryFacts and only when a report is built, never in a turn or a frame. Never throws: a field that cannot be read is null (the commit limit off Windows).
+ */
+export async function detectMemoryFacts({run = defaultRun, platform = process.platform, env = process.env, ramBytes = totalmem} = {}) {
+  let totalRamMiB = null, commitLimitMiB = null;
+  try { const bytes = Number(typeof ramBytes === 'function' ? ramBytes() : ramBytes); if (bytes > 0) totalRamMiB = Math.round(bytes / MIB); } catch { /* unknown */ }
+  if (platform === 'win32') {
+    try {
+      const shell = join(env.SystemRoot || env.windir || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+      const result = await run(shell, ['-NoProfile', '-NonInteractive', '-Command', COMMIT_QUERY], {timeout: COMMIT_TIMEOUT_MS, windowsHide: true, encoding: 'utf8', maxBuffer: 1 << 16});
+      const kib = Number(String(result?.stdout ?? '').trim());
+      if (Number.isFinite(kib) && kib > 0) commitLimitMiB = Math.round(kib / 1024);
+    } catch { /* the commit limit stays unknown */ }
+  }
+  return {totalRamMiB, commitLimitMiB};
 }
 
 // ------------------------------------------------------------ mod managers
@@ -304,12 +331,13 @@ export function detectBrowserName({env = process.env, candidates = systemBrowser
 }
 
 // Looked up once per bridge process: the registry reads start processes, and none of these changes while the game runs.
-const caches = {graphics: null, browser: undefined, managers: null};
+const caches = {graphics: null, browser: undefined, managers: null, memory: null};
 export function cachedGraphicsCards(options) { return caches.graphics ??= detectGraphicsCards(options); }
 export function cachedBrowserName(options) { return caches.browser === undefined ? (caches.browser = detectBrowserName(options)) : caches.browser; }
 export function cachedModManagers(options) { return caches.managers ??= detectModManagers(options); }
+export function cachedMemoryFacts(options) { return caches.memory ??= detectMemoryFacts(options); }
 /** For tests: forget what the caches hold. */
-export function resetSetupCheckCaches() { caches.graphics = null; caches.browser = undefined; caches.managers = null; }
+export function resetSetupCheckCaches() { caches.graphics = null; caches.browser = undefined; caches.managers = null; caches.memory = null; }
 
 // ----------------------------------------------------- the pack-move report
 
@@ -515,12 +543,12 @@ export async function collectSetupCheck(options = {}) {
 
   // The Pocket voice (V's voice, and the companions' when Pocket is the voice they use): a problem only while a worker has failed and has not loaded
   // again. Only the bridge knows (voice() -> null | {engine, reason, cause?}); a run without it has no such row. The row gives the engine, never the reason's
-  // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) is the one
-  // cause a row names.
+  // words (they can hold a folder): the reason is in the log and the error report. `cause: 'blocked'` (Windows refused to load a file of the voice) and
+  // `cause: 'virtual-memory'` (Windows ran out of memory, the paging file is too small) are the causes a row names.
   const voice = () => guarded('voice', async () => {
     const problem = await call('voice');
     if (!problem) return {state: 'ok', code: 'ok'};
-    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' ? {cause: 'blocked'} : {})};
+    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' || problem.cause === 'virtual-memory' ? {cause: problem.cause} : {})};
   });
 
   const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),

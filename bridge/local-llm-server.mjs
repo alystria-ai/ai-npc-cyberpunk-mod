@@ -607,7 +607,7 @@ export class LocalLlmServer extends EventEmitter {
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
   // selection: () => {pin, matureOn, matureModels}, read at each start and each reselect (the player's model choice, bridge/local-model-choice.mjs).
   // tier ('standard' | 'lite') is the older, stricter form of a pin: that tier or an error, no memory check.
-  // gameRoom: {voiceMiB(), residentVoiceMiB()}, set by the bridge (null = off): on a card of 12 GB or less the placement leaves the part of the game's room the game has not taken yet and the
+  // gameRoom: {voiceMiB(), residentVoiceMiB()}, set by the bridge (null = off): on a card of 24 GB or less the placement leaves the part of the game's room the game has not taken yet and the
   // voice engine still to load out of what the model may take (bridge/local-vram-fit.mjs smallCardRoom). voiceMiB() is the size of a voice engine that is wanted and not loaded yet; residentVoiceMiB() the size of one that is loaded (it is not the game's).
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,

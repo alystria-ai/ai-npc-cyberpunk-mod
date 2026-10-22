@@ -1622,7 +1622,7 @@ test('a voice engine that is still to load takes its size out of the model\'s ro
   assert.deepEqual([argValue(h.calls[0], '-fit'), argValue(h.calls[0], '-fitt')], ['on', '4528']);
 });
 
-test('a card of 12 GB or less with room for both gets the whole model on the card; a larger card and an old service take the free memory as it is', async t => {
+test('a card of 12 GB or less with room for both gets the whole model on the card; a card above 24 GB and an old service take the free memory as it is', async t => {
   // 11,997 MiB (the 4080 Laptop of the tests): the game is measured holding 62% of a 12 GB card (report 931d4563), so 7,438 MiB are kept for it and 3,791 MiB are left for the model.
   // The model (3,734 at 16,384 plus the margin) no longer fits whole at the start: it is placed with most of its layers on the card (before: 4,608 kept, whole, then 993 MiB spilled when the game came).
   const big = roomHarness(t, {listDevices: async () => DEVICES, free: {value: 11229}});
@@ -1630,8 +1630,13 @@ test('a card of 12 GB or less with room for both gets the whole model on the car
   const line = big.logs.find(text => text.includes('game room on a small card'));
   assert.ok(line.includes('7438 MiB kept for the game') && line.includes('so 3791 MiB for the model'), line);
   assert.ok(!line.includes('about 0% of its layers'), line);
-  // A card above 12 GB: no plan line at all.
-  const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
+  // A 24 GB card (report 8e09af42, an RTX 4090): the game's room is 62% of it, 15,230 MiB, of which the 564 MiB it already holds (card - free - 1,000 desktop) are not kept again, at the start (it used to be none: the model got all the free memory and 3.2 GB of it spilled when the game and OmniVoice arrived).
+  const card24 = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
+  await card24.server.ensure();
+  const plan24 = card24.logs.find(text => text.includes('game room on a small card'));
+  assert.ok(plan24.includes('card 24564 MiB, 14666 MiB kept for the game, 23000 MiB free now, so 8334 MiB for the model'), plan24);
+  // A card above 24 GB (32 GB): no plan line at all.
+  const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 5090 (32607 MiB, 31000 MiB free)\n', free: {value: 31000}});
   await huge.server.ensure();
   assert.ok(!huge.logs.some(text => text.includes('game room on a small card')) && huge.calls[0].args.includes('-ngl'));
 });

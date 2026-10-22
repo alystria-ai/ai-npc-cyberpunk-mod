@@ -5,8 +5,8 @@ import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises
 import {tmpdir} from 'node:os';
 import {join, relative} from 'node:path';
 import {GAME_FOLDERS as PLACE_PACKS_FOLDERS} from '../packaging/runtime/place-packs.mjs';
-import {SETUP_CHECK_FILE, SETUP_REQUEST_FILE, SERVICE_HOSTS, SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers,
-  checkReachable, collectSetupCheck, detectBrowserName, detectGraphicsCards, detectModManagers, findNestedPacks, GAME_FOLDERS,
+import {SETUP_CHECK_FILE, SETUP_REQUEST_FILE, SERVICE_HOSTS, SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedMemoryFacts, cachedModManagers,
+  checkReachable, collectSetupCheck, detectBrowserName, detectGraphicsCards, detectMemoryFacts, detectModManagers, findNestedPacks, GAME_FOLDERS,
   graphicsCardsFrom, localAiCheck, neededServices, parseRegistryValues, parseSetupRequest, readPackPlacement,
   resetSetupCheckCaches} from './setup-check.mjs';
 
@@ -112,6 +112,27 @@ test('the graphics cards, the browser name and the mod managers are looked up on
     const managers = cachedModManagers({sharedObjects: ['C:\\x\\usvfs_x64.dll']});
     assert.equal(managers, cachedModManagers({sharedObjects: []}));
     assert.deepEqual(await managers, {managers: ['mo2']});
+  } finally { resetSetupCheckCaches(); }
+});
+
+test('the memory facts of a report: total RAM from Node, the commit limit from one PowerShell read, read once per process, null where they cannot be read', async () => {
+  const calls = [];
+  const run = async (file, args, options) => { calls.push({file, args, options}); return {stdout: '41943040\r\n'}; };
+  const facts = await detectMemoryFacts({run, platform: 'win32', env: {SystemRoot: 'C:\\Windows'}, ramBytes: 32 * 1024 ** 3});
+  assert.deepEqual(facts, {totalRamMiB: 32768, commitLimitMiB: 40960});
+  assert.equal(calls.length, 1); assert.match(calls[0].file, /powershell\.exe$/i); assert.ok(calls[0].args.join(' ').includes('TotalVirtualMemorySize'));
+  assert.equal(calls[0].options.windowsHide, true); assert.ok(calls[0].options.timeout <= 10_000);
+  // A read that fails, prints nothing usable, or runs off Windows keeps the RAM and leaves the commit limit unknown; nothing throws.
+  assert.deepEqual(await detectMemoryFacts({run: async () => { throw Error('no powershell'); }, platform: 'win32', ramBytes: 8 * 1024 ** 3}), {totalRamMiB: 8192, commitLimitMiB: null});
+  assert.deepEqual(await detectMemoryFacts({run: async () => ({stdout: 'garbage'}), platform: 'win32', ramBytes: 8 * 1024 ** 3}), {totalRamMiB: 8192, commitLimitMiB: null});
+  assert.deepEqual(await detectMemoryFacts({run, platform: 'linux', ramBytes: 4 * 1024 ** 3}), {totalRamMiB: 4096, commitLimitMiB: null});
+  assert.equal(calls.length, 1, 'no process off Windows');
+  assert.deepEqual(await detectMemoryFacts({run, platform: 'linux', ramBytes: () => { throw Error('os'); }}), {totalRamMiB: null, commitLimitMiB: null});
+  resetSetupCheckCaches();
+  try {
+    const first = cachedMemoryFacts({run, platform: 'win32', ramBytes: 16 * 1024 ** 3});
+    const second = cachedMemoryFacts({run: async () => { throw Error('asked again'); }, platform: 'win32'});
+    assert.equal(first, second); assert.equal(calls.length, 2); assert.deepEqual(await first, {totalRamMiB: 16384, commitLimitMiB: 40960});
   } finally { resetSetupCheckCaches(); }
 });
 
@@ -467,6 +488,10 @@ test('voice: a row only when the bridge can say, a problem only while the Pocket
     {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'v-helper'});
   assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'ImportError: DLL load failed: An Application Control policy has blocked this file.', cause: 'blocked'})})).voice,
     {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket', cause: 'blocked'});
+  // Windows ran out of memory (the paging file is too small): the row names that cause and nothing else of the reason; an unknown cause is dropped.
+  assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'OSError: The paging file is too small for this operation to complete. (os error 1455)', cause: 'virtual-memory'})})).voice,
+    {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket', cause: 'virtual-memory'});
+  assert.deepEqual((await checks({voice: async () => ({engine: 'pocket', reason: 'x', cause: 'C:\\Users\\someone'})})).voice, {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'pocket'});
   const boom = () => { throw Error('detector failed'); };
   assert.deepEqual((await checks({voice: boom})).voice, {id: 'voice', state: 'unknown', code: 'unknown'});
   assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);

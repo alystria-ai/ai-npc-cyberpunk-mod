@@ -1075,6 +1075,7 @@ return {
     ["Portuguese"] = "ポルトガル語",
 
     ["OmniVoice needs more graphics memory than is free next to the game. Pocket is used."] = "ゲーム実行中の空きを超えるグラフィックメモリが OmniVoice に必要です。Pocket を使用します。",
+    ["Windows ran out of memory for the voice. A larger paging file or closing other apps helps."] = "Windows の音声用メモリ不足です。ページング ファイルの拡大か他のアプリの終了が有効です。",
     ["OmniVoice needs 12 GB"] = "OmniVoice には 12 GB が必要",
     ["{voice} · needs 12 GB card"] = "{voice} · 12 GB のカードが必要",
     ["The graphics card in this PC has less than the 12 GB OmniVoice needs next to the game. If it cannot start, Pocket is used. Choose Pocket to skip the wait."] = "このPCのグラフィックカードは、ゲーム実行中の空きが OmniVoice に必要な 12 GB に足りません。起動できない場合は Pocket を使用します。待ち時間を省くには Pocket を選んでください。",

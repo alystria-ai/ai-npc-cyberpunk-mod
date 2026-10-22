@@ -549,7 +549,10 @@ local function bridgeLines(out)
     -- The Pocket voice failed to start (two 0.2.2 players had no voice from V and no way to tell why). Only a failure has a line: a voice that works
     -- needs none. Pocket ships inside the Runtime, so the line says nothing needs installing.
     local voice = bridgeCheck('voice')
-    if voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
+    if voice and voice.code == 'pocket-failed' and voice.cause == 'virtual-memory' then
+        -- Windows ran out of memory it can promise (error 1455, the paging file is too small): restarting changes nothing, a larger paging file or fewer programs does.
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows ran out of memory for the voice. A larger paging file or closing other apps helps.'))
+    elseif voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
         -- Windows refused to load a file of the voice (Smart App Control, or an Application Control policy of a company or school): restarting changes nothing.
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.'))
     elseif voice and voice.code == 'pocket-failed' then

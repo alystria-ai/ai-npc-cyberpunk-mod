@@ -292,6 +292,10 @@ test('the browser, Local AI and the internet: every state has its own line and f
   assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('Windows blocked a file', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
     and lineOf('voice').description:find('another voice', 1, true) and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
   assert(#check.problems() == 0)
+  -- Windows ran out of memory it can promise (error 1455): restarting cannot help, a larger paging file or fewer programs can; the same sentence as the in-game notice.
+  answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'virtual-memory'}}); check.run()
+  assert(lineOf('voice').state == 'problem' and lineOf('voice').description == 'Windows ran out of memory for the voice. A larger paging file or closing other apps helps.', tostring(lineOf('voice').description))
+  assert(#check.problems() == 0)
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('voice') == nil)
   local states = {

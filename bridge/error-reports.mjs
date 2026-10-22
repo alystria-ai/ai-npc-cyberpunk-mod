@@ -17,7 +17,7 @@
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
 // CET, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
-// Mature content as on or off only; the graphics card name and memory; the setup check's lines; whether the Runtime's code files match the release
+// Mature content as on or off only; the graphics card name and memory, the PC's total RAM and its commit limit (RAM plus paging files); the setup check's lines; whether the Runtime's code files match the release
 // (counts and up to five file names, bridge/runtime-integrity.mjs, worked out when the report is built); for a bridge crash, the exit code in words,
 // the stage the bridge was in and the summary of Node's own report (bridge/bridge-diagnostics.mjs); up to 150 log lines around the error
 // (bridge stderr, the service log, the launcher, the mod's own logs, the redscript log's error lines); the install id hashed again.
@@ -31,7 +31,7 @@ import os from 'node:os';
 import {accountNames, createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
 export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
-import {cachedGraphicsCards} from './setup-check.mjs';
+import {cachedGraphicsCards, cachedMemoryFacts} from './setup-check.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {GAME_EVENTS_FILE, QUEUE_FOLDER, attachLogs, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
@@ -308,7 +308,7 @@ export async function reportSecrets({stateDirectory, project, environment = proc
  * it. The JSON is at most MAX_BODY_BYTES (log lines are dropped, oldest first from the largest source, until it fits).
  */
 export async function buildErrorPayload({record, game, modRoot, runtime, stateDirectory, project, installId, gameInfo = {}, secrets,
-  graphics = () => cachedGraphicsCards(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
+  graphics = () => cachedGraphicsCards(), memory = () => cachedMemoryFacts(), integrity = () => checkRuntimeFiles({project}), environment = process.env, names, now = Date.now}) {
   const scrub = secrets ?? await reportSecrets({stateDirectory, project, environment});
   const {clean, stats} = reportCleaner({secrets: scrub, ...(names ? {names} : {})});
   const versions = await collectVersions({game, modRoot, project, gameInfo});
@@ -316,6 +316,9 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
   const gpu = (Array.isArray(cards) ? cards : []).slice(0, 4)
     .map(card => ({name: clean(clip(card?.name, 120) ?? ''), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
     .filter(card => card.name);
+  // Total RAM and the commit limit (RAM plus the paging files): what tells a "paging file is too small" failure (error 1455) from another one. Read once per bridge process.
+  const facts = await Promise.resolve().then(() => typeof memory === 'function' ? memory() : memory).catch(() => null);
+  const wholeMiB = value => Number.isFinite(value) && value > 0 ? Math.round(value) : null;
   // Only the detail fields the recorders write (codes, versions, the log a Lua error was found in and the mod's own label before it).
   const detail = record.detail && typeof record.detail === 'object'
     ? Object.fromEntries(Object.entries(record.detail).filter(([key]) => DETAIL_KEYS.has(key))
@@ -342,7 +345,7 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       ...(record.kind === 'bridge-crash' && record.crash ? {crash: cleanStrings(record.crash, clean)} : {}),
       runtimeFiles: cleanStrings(await Promise.resolve().then(() => integrity()).catch(() => ({state: 'unavailable'})), clean),
       choices: await collectChoices({runtime, gameInfo}),
-      system: {gpu},
+      system: {gpu, totalRamMiB: wholeMiB(facts?.totalRamMiB), commitLimitMiB: wholeMiB(facts?.commitLimitMiB)},
       setup: (await collectSetup({runtime, gameInfo, now: now()})).map(line => clean(line)),
       // A queued record carries the excerpt taken when the event was seen; one without (an older queue file) is read now.
       logs: Array.isArray(record.logs) ? keptLogs(record.logs, clean) : await collectLogs({paths: logPaths({game, modRoot, runtime, stateDirectory}), record, clean}),

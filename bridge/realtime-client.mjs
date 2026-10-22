@@ -721,9 +721,10 @@ async function collect(current) {
     return result;
   } catch (error) {
     const failure = rendererError(current, error);
-    // The close reason stays the bare message; the thrown error also says what had arrived, so a stuck reply can be diagnosed.
+    // The close reason stays the bare message; the thrown error also says what had arrived, so a stuck reply can be diagnosed. The flags are written true/false
+    // because the report redactor (bridge/error-reports.mjs CONTENT_VALUE) reads "transcript=" and "text=" as player text and removes any other value; true and false survive it.
     const detail = failure === error && error?.message === COLLECT_TIMEOUT_ERROR
-      ? ` (transcript=${current.userText ? 'yes' : 'no'} text=${current.text ? 'yes' : 'no'} complete=${current.textComplete}`
+      ? ` (transcript=${Boolean(current.userText)} text=${Boolean(current.text)} complete=${current.textComplete}`
         + ` thinking=${client?.state?.isThinking === true} audio=${current.dataAudio ? current.dataAudio.ready === true : 'off'})` : '';
     current.dataAudio?.abort(failure.message);
     if (turn === current && current.epoch === epoch) await close(failure.message || 'Conversation failed');
