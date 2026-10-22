@@ -883,3 +883,29 @@ test('the client\'s daily limit stays below what the backend allows per install,
   assert.ok(DEFAULTS.errorInstallPerDay > DAILY_LIMIT, `backend ${DEFAULTS.errorInstallPerDay} must be above the client's ${DAILY_LIMIT}`);
   assert.ok(QUEUE_MAX > DAILY_LIMIT, 'the queue holds more than a day\'s reports');
 });
+
+// 2026-10-22 reports c8281dee, 1a895674 and ee4689b6: the player's own setup is already told in the game, so it is no error report.
+test('a custom provider that does not know the typed model, and a Local AI server of the player that does not answer, are not reported', async () => {
+  const unknownModel = new Error('The custom provider does not know that model: mistralai/mistral-7b-instruct:free is no longer available on OpenRouter [custom:model]');
+  assert.equal(reportableTurnFailure(unknownModel), false);
+  assert.equal(reportableTurnFailure(unknownModel, {errorCode: 'custom-model'}), false);
+  for (const word of ['server-unreachable', 'server-blocked', 'server-key-refused', 'server-bad-address']) {
+    const error = new Error(`LocalAiUnavailable: [local:unavailable] the local model server did not start (${word})`);
+    assert.equal(reportableTurnFailure(error, {errorCode: 'local-unavailable', localReason: 'start-failed'}), false, word);
+  }
+  // Our own server failing to start, and other custom provider failures, still count.
+  assert.equal(reportableTurnFailure(new Error('[local:unavailable] the local model server did not start (exited)'), {errorCode: 'local-unavailable', localReason: 'start-failed'}), true);
+  assert.equal(reportableTurnFailure(new Error('The custom provider did not answer in time [custom:network]')), true);
+  assert.equal(reportableTurnFailure(new Error('The custom provider answered with an empty reply [custom:empty]')), true);
+  const f = await folders();
+  try {
+    const deferred = [];
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => deferred.push(fn)});
+    events.turnFailed(unknownModel, {provider: 'custom'});
+    // The setup check: Local AI that could not start because the player's server is down or blocked is no problem report; our own failed start is.
+    events.setupChecked({checks: [{id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true, playerServer: true}]});
+    assert.equal(deferred.length, 0, 'nothing is queued for either');
+    events.setupChecked({checks: [{id: 'local-ai', state: 'problem', code: 'start-failed', selected: true, installed: true}]});
+    assert.equal(deferred.length, 1);
+  } finally { await f.cleanup(); }
+});

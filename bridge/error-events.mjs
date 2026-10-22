@@ -424,6 +424,10 @@ const LOCAL_DOWN = new Set(['local-fallback', 'local-unavailable']);
 // The game ending a talk is what it is for: V pressed the talk key again, walked away, opened a menu or loaded a save (the continuous speech
 // lease, mod/continuous-speech.lua: an explicit stop, or no refresh while the game is paused or loading). Not the mod failing.
 const NOT_A_FAULT = /\b(?:abort(?:ed)?|cancell?ed|superseded|interrupted|voice service is closed|no speech was heard|continuous speech was stopped by the game|continuous speech game lease expired|continuous speech owner changed)\b/i;
+// The player's own setup, already told to the player in the game (2026-10-22 reports c8281dee and 1a895674): the custom provider does not know the model the player typed ("[custom:model]", a 404
+// from the endpoint: OpenRouter's free models come and go), and Local AI pointed at a server of the player's own that does not answer, refuses the key or is not an OpenAI-style address ("(server-unreachable)",
+// "(server-blocked)", ...). Nothing in the mod to fix, so no report is filed.
+const PLAYER_SETUP = /\[custom:model\]|\(server-(?:unreachable|blocked|key-refused|bad-address)\)/i;
 
 /** Whether a failed turn is worth a report (see OWN_DOING). Pure; the bridge passes what it knows. */
 export function reportableTurnFailure(error, {errorCode, localReason, microphone = false} = {}) {
@@ -431,7 +435,7 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
   if (error?.name === 'AbortError' || error?.name === 'TurnLimitError' || error?.code === 'ABORT_ERR') return false;
   if (typeof error?.code === 'string' && error.code.startsWith('MIC_')) return false;
   const text = typeof error?.message === 'string' ? error.message : String(error);
-  if (NOT_A_FAULT.test(text)) return false;
+  if (NOT_A_FAULT.test(text) || PLAYER_SETUP.test(text)) return false;
   if (errorCode && OWN_DOING.has(errorCode)) return false;
   if (LOCAL_DOWN.has(errorCode) && OWN_LOCAL_REASONS.has(localReason)) return false;
   // A microphone turn fails for the device as often as for the service: only one that names a provider failure counts.
@@ -503,6 +507,8 @@ export class ErrorEvents {
   setupChecked(document) {
     for (const row of Array.isArray(document?.checks) ? document.checks.slice(0, 16) : []) {
       if (row?.state !== 'problem' || typeof row.id !== 'string' || typeof row.code !== 'string') continue;
+      // Local AI that could not start because the server the player runs is down, blocked or wrongly set up: their setup, already told in the game (2026-10-22 report ee4689b6).
+      if (row.playerServer === true) continue;
       this.record({kind: 'setup-problem', message: `${clip(row.id, 40)} ${clip(row.code, 40)}`, frame: 'setup-check',
         detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {})}});
     }

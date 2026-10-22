@@ -907,7 +907,14 @@ local function ownKeyRows(snapshot)
             label = label .. ' (' .. ui.t('Unavailable') .. ')'
             status = mistral.localReason == 'mature-off' and ui.t('Only Mature models found. Turn on Mature content to use them.') or loadingText('local-ai', 'failed')
             -- Why, in the bridge's own plain words (the model server you added does not answer, ...): the sentence alone cannot tell a missing server from a failed start.
-            if mistral.localReason ~= 'mature-off' and mistral.localDetail then status = status .. '\n\n' .. mistral.localDetail end
+            -- The one sentence that has a translation (the PC itself refuses the connection to the server: a firewall or security program, bridge/local-llm-server.mjs SERVER_BLOCKED_TEXT) is shown in the menu language.
+            if mistral.localReason ~= 'mature-off' and mistral.localDetail then
+                local detail = mistral.localDetail
+                if detail == 'Something on this PC (a firewall or security software) is blocking the connection to the model server you added.' then
+                    detail = ui.t('Something on this PC (a firewall or security software) is blocking the connection to the model server you added.')
+                end
+                status = status .. '\n\n' .. detail
+            end
         end
         status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end

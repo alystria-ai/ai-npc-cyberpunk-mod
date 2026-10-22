@@ -700,6 +700,7 @@ return {
     ["If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong."] = "如果角色停止回应、语音中断或出现错误：请选择“生成报告”，并将其指定的文件连同一句简短说明（你当时在做什么）发送给开发者。\n\n下方列出的日志会显示出了什么问题。",
     ["Invited characters are prepared immediately. Their memories start when you actually talk to them.\n\nOne player identity is shared across all saves and stays the same after forgetting.\n\nCurrent game context describes the world you have loaded."] = "受邀角色会立即准备好。他们的记忆在你真正与其交谈时才开始形成。\n\n所有存档共用一个玩家身份，清除记忆后也保持不变。\n\n当前游戏背景描述的是你已加载的世界。",
     ["Only Mature models found. Turn on Mature content to use them."] = "仅找到成人模型。请开启成人内容。",
+    ["Something on this PC (a firewall or security software) is blocking the connection to the model server you added."] = "这台电脑上的某个程序（防火墙或安全软件）正在阻止与你添加的模型服务器的连接。",
     ["Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule."] = "绝对禁止：未成年人或未经同意的性行为、涉及真实人物的性内容、仇恨内容、现实中武器或毒品的制作说明。安全检查会强制执行未成年人规则。",
     ["Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent."] = "关闭：回复仅为文本，不生成语音。\n\n同时关闭字幕时，自动反应保持无声。",
     ["See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves."] = "查看每个角色记得的内容，并让其中一个或全部角色忘记。\n\n记忆会跨存档保留。",

@@ -1623,12 +1623,13 @@ test('a voice engine that is still to load takes its size out of the model\'s ro
 });
 
 test('a card of 12 GB or less with room for both gets the whole model on the card; a larger card and an old service take the free memory as it is', async t => {
-  // 11,997 MiB (the 4080 Laptop of the tests): 4,608 MiB for the game leaves 6,621 MiB, the model (3,734 at 16,384 plus the margin) fits whole.
+  // 11,997 MiB (the 4080 Laptop of the tests): the game is measured holding 62% of a 12 GB card (report 931d4563), so 7,438 MiB are kept for it and 3,791 MiB are left for the model.
+  // The model (3,734 at 16,384 plus the margin) no longer fits whole at the start: it is placed with most of its layers on the card (before: 4,608 kept, whole, then 993 MiB spilled when the game came).
   const big = roomHarness(t, {listDevices: async () => DEVICES, free: {value: 11229}});
   await big.server.ensure();
-  assert.ok(big.calls[0].args.includes('-ngl') && argValue(big.calls[0], '-fit') === 'off' && argValue(big.calls[0], '-c') === '16384');
   const line = big.logs.find(text => text.includes('game room on a small card'));
-  assert.ok(line.includes('4608 MiB kept for the game') && line.includes('all of its layers on the card'), line);
+  assert.ok(line.includes('7438 MiB kept for the game') && line.includes('so 3791 MiB for the model'), line);
+  assert.ok(!line.includes('about 0% of its layers'), line);
   // A card above 12 GB: no plan line at all.
   const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
   await huge.server.ensure();
@@ -1658,7 +1659,8 @@ test('a 12 GB card with OmniVoice already loaded and a quick Continue: the resid
   const quick = roomHarness(t, {listDevices: async () => devices, free: {value: 4800}, room: {residentVoiceMiB: () => 2500}});
   await quick.server.ensure();
   const plan = quick.logs.find(line => line.includes('game room on a small card'));
-  assert.ok(plan.includes('911 MiB kept for the game') && plan.includes('so 3889 MiB for the model'), plan);
-  // The same numbers before the fix left 192 MiB: nothing of the model fit.
-  assert.ok(!plan.includes('so 192 MiB'));
+  // The game holds about 3.7 GB now and takes about 7.4 GB in the world (62% of the card): 3,741 MiB of its room are still kept, 1,059 MiB are left for the model.
+  assert.ok(plan.includes('3741 MiB kept for the game') && plan.includes('so 1059 MiB for the model'), plan);
+  // The resident engine is not charged to the game (counted once): without that the game would look 2.5 GB larger and the model would get 3,559 MiB it cannot have.
+  assert.ok(!plan.includes('so 192 MiB') && !plan.includes('so 3559 MiB'));
 });
