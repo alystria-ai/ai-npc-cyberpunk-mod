@@ -114,9 +114,9 @@ test('custom provider: the decision asks one word, the reply is told about it, t
   }
 });
 
-test('custom provider: ordinary talk sends no decision, a question about driving is decided as none, and nothing starts', async () => {
+test('custom provider (a remote server, parallel): ordinary talk sends no decision, a question about driving is decided as none, and nothing starts', async () => {
   const mock = await startOpenAiMock();
-  const {host, delivered} = await customHarness(mock);
+  const {host, delivered} = await customHarness(mock, {local: false});
   try {
     mock.behave(answer(() => 'NONE', 'Fine.'));
     await host.reply(turn('how was your day, Judy?', {companionAction: ride()}));
@@ -127,9 +127,9 @@ test('custom provider: ordinary talk sends no decision, a question about driving
   } finally { host.close(); await mock.close(); }
 });
 
-test('custom provider: the model says none to "drive me there", and the plain request still starts the ride; a look-alike does not', async () => {
+test('custom provider (a remote server, parallel): the model says none to "drive me there", and the plain request still starts the ride; a look-alike does not', async () => {
   const mock = await startOpenAiMock();
-  const {host, delivered, logs} = await customHarness(mock);
+  const {host, delivered, logs} = await customHarness(mock, {local: false});
   try {
     mock.behave(answer(() => 'NONE', 'On it, V.'));
     await host.reply(turn('drive me to the waypoint', {companionAction: ride()}));
@@ -144,9 +144,9 @@ test('custom provider: the model says none to "drive me there", and the plain re
   } finally { host.close(); await mock.close(); }
 });
 
-test('custom provider: a decision request that fails (the server errors on it) does not lose a plain request, and does not fail the reply', async () => {
+test('custom provider (a remote server, parallel): a decision request that fails (the server errors on it) does not lose a plain request, and does not fail the reply', async () => {
   const mock = await startOpenAiMock();
-  const {host, delivered, logs} = await customHarness(mock);
+  const {host, delivered, logs} = await customHarness(mock, {local: false});
   try {
     mock.behave(request => isDecision(request.body) ? {status: 500, body: {error: {message: 'boom'}}} : {sse: ['Right behind you, V.']});
     const result = await host.reply(turn('follow me', {companionAction: noRide({follow: {name: 'Judy Alvarez'}})}));
@@ -193,6 +193,65 @@ test('custom provider: a model that thinks first is asked the decision again wit
     const sizes = mock.requests.filter(request => isDecision(request.body)).map(request => request.body.max_tokens);
     assert.deepEqual(sizes, [12, 12], 'no larger room for a one-word answer');
     assert.equal(route.adaptation().thinks, true, 'the next requests carry the no-thinking fields from the start');
+  } finally { host.close(); await mock.close(); }
+});
+
+// ---- A route that answers one request at a time (a model server on this computer): the decision never stands in front of the reply ----------
+
+test('one request at a time: a plain request is read from the words, so the reply is the only request and it is sent first', async () => {
+  const mock = await startOpenAiMock();
+  const {host, delivered, logs} = await customHarness(mock, {local: true});
+  try {
+    assert.equal(host.routes.custom.parallel, false);
+    mock.behave(answer(() => 'NONE', 'Hop in, V.'));
+    const result = await host.reply(turn('drive me to the waypoint', {companionAction: ride()}));
+    await settle();
+    assert.equal(mock.requests.filter(request => isDecision(request.body)).length, 0, 'no decision request: the model was asked for the reply only');
+    assert.equal(mock.requests.length, 1);
+    assert.match(mock.requests[0].body.messages.at(-1).content, /GAME ACTIONS: V is asking you to drive them/, 'the reply is written for the ride');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN}], 'the ride still reaches the game after the reply');
+    assert.equal(result.text, 'Hop in, V.');
+    assert.ok(logs.some(line => /action DRIVE: V's words ask for it plainly, no decision asked/.test(line)), logs.join('|'));
+    delivered.length = 0;
+    const follow = {companionAction: noRide({follow: {name: 'Judy Alvarez'}})};
+    await host.reply(turn('Follow me. Do you know the way?', follow));
+    await settle();
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN, follow: true}], 'a plain request in one sentence beats the question in the next');
+    assert.equal(mock.requests.filter(request => isDecision(request.body)).length, 0);
+  } finally { host.close(); await mock.close(); }
+});
+
+test('one request at a time: a question about the character is plain talk with no decision request, and nothing starts', async () => {
+  const mock = await startOpenAiMock();
+  const {host, delivered} = await customHarness(mock, {local: true});
+  try {
+    mock.behave(answer(() => 'DRIVE', 'I used to, V.'));
+    for (const line of ['do you know how to drive?', 'did you ever fight in the pits', 'I used to drive a lot']) await host.reply(turn(line, {companionAction: ride()}));
+    await settle();
+    assert.equal(mock.requests.filter(request => isDecision(request.body)).length, 0);
+    assert.equal(mock.requests.length, 3);
+    for (const request of mock.requests) assert.match(request.body.messages.at(-1).content, /GAME ACTIONS: V is not asking you to do anything/);
+    assert.deepEqual(delivered, []);
+  } finally { host.close(); await mock.close(); }
+});
+
+test('one request at a time: a line the words cannot settle is still decided by the model, which is read before the reply, and the action stays correct', async () => {
+  const mock = await startOpenAiMock();
+  const {host, delivered} = await customHarness(mock, {local: true});
+  try {
+    mock.behave(answer(() => 'FOLLOW', 'Right behind you, V.'));
+    const result = await host.reply(turn('why not walk along with me, would you', {companionAction: noRide({follow: {name: 'Judy Alvarez'}})}));
+    await settle();
+    assert.equal(mock.requests.length, 2);
+    assert.ok(isDecision(mock.requests[0].body), 'the decision is the one request that can come first');
+    assert.match(mock.requests[1].body.messages.at(-1).content, /GAME ACTIONS: V is asking you to come along/);
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN, follow: true}]);
+    assert.equal(result.text, 'Right behind you, V.');
+    // A leave is never read from the words: it always goes to the model.
+    mock.requests.length = 0; delivered.length = 0;
+    await host.reply(turn('you can go home now', {companionAction: noRide({leave: {members: [{name: 'Judy Alvarez', self: true}]}})}));
+    await settle();
+    assert.equal(mock.requests.filter(request => isDecision(request.body)).length, 1);
   } finally { host.close(); await mock.close(); }
 });
 

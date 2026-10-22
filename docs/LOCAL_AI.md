@@ -1282,7 +1282,10 @@ token) and Mistral's cache valid.
 The same companion-action path as Mistral applies (see "Companion actions" in `docs/MISTRAL.md`): the decision is a separate 12-token
 request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. Measured on Gemma 4 E4B
 (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`, 64 replies): precision 100%, recall 81%. The reply waits for the decision (a short prompt
-and a one-word answer, not yet timed on the player's hardware), so on a slow GPU this adds to the time before the first sound.
+and a one-word answer, not yet timed on the player's hardware), so on a slow GPU this adds to the time before the first sound. Since 2026-10-22 (perf/bridge-1022) the
+request is asked only when the words cannot settle it: a plain request ("drive me", "follow me", "attack him"; a sentence of its own wins over a question in the next one)
+is read from the words with no request at all, and a question about the character (`menu.guess` says NONE) is plain talk with no request. The action still goes to the game
+after the reply, and the single slot keeps the persona in both cases. Every other line is decided by the model as before (a leave never from the words).
 When the 12-token decision fails or says none, a plain request ("drive me", "attack him", "follow me") still counts (`explicitRequest`, see
 "Which provider decides how" in `docs/MISTRAL.md`), which lifts the 81% recall on a small model. What the player needs: the companion in V's
 party, V on foot beside their own stopped car with a destination marked on the map (drive), or a tagged enemy (attack). Nothing else differs from Convai.
