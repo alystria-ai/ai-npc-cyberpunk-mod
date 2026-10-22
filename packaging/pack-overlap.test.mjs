@@ -1,7 +1,8 @@
 // A new version reuses the optional packs unchanged (server-side copies on Hugging Face), so its Scripts and Runtime meet the OLD pack files in
 // the player's game folder. These tests hold the rule that makes "Replace" always safe: the Runtime and the Scripts never carry a path a pack
-// carries with other bytes (docs/PACKAGING.md, "Packs reused unchanged"). They use a committed listing of the five 0.2.1 packs (path, size, CRC-32:
-// packaging/pack-listings/packs-0.2.1.json), never the packs themselves.
+// carries with other bytes (docs/PACKAGING.md, "Packs reused unchanged"). They use committed listings of the packs (path, size, CRC-32), never the packs
+// themselves: the five 0.2.1 packs (packs-0.2.1.json: the rule's history and the 0.2.1 Runtime that broke it) and the five packs rebuilt for 0.2.9
+// (packs-0.2.9.json: the stricter rule, the Runtime and the packs ship no file in common).
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -151,7 +152,11 @@ test('the Scripts package the builder makes shares only identical files with the
     // The command line says the same thing about the same zip.
     const cli = spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', zip], {encoding: 'utf8'});
     assert.equal(cli.status, 0, cli.stdout + cli.stderr);
-    assert.match(cli.stdout, /OK: every file shared with a pack has the same bytes/);
+    assert.match(cli.stdout, /OK: the zip ships no file a pack ships \(the install note apart\)/);
+    // The rule of 0.2.1 to 0.2.8 is still there for the old listing: a shared file may have the same bytes.
+    const lenient = spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', zip, '--listing', resolve(project, 'packaging/pack-listings/packs-0.2.1.json'), '--allow-identical'], {encoding: 'utf8'});
+    assert.equal(lenient.status, 0, lenient.stdout + lenient.stderr);
+    assert.match(lenient.stdout, /OK: every file shared with a pack has the same bytes/);
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 
@@ -356,4 +361,72 @@ test('the install steps of the README, the player readme and the Nexus page tell
   for (const file of ['README.md', 'packaging/PLAYER_README.md', 'docs/NEXUS_PAGE.md']) {
     assert.match(await readFile(resolve(project, file), 'utf8'), /If Windows asks about files with the same names, choose Replace: it is always safe\./, file);
   }
+});
+
+// ---- the packs rebuilt for 0.2.9: the Runtime and the packs ship no file in common ---------------------------------------------------------------
+
+const listing29 = validateListing(await readJson('packaging/pack-listings/packs-0.2.9.json'));
+
+test('the committed 0.2.9 listing describes the five rebuilt packs and adds up: no engine copy, no tests folders, no draft clips', () => {
+  assert.deepEqual(listing29.packs.map(pack => [pack.name, pack.entries, pack.file]), [
+    ['OmniPack', 18099, 'OmniPack.zip'], ['LocalAI-Standard', 8, 'LocalAI-Standard.zip'], ['LocalAI-Lite', 8, 'LocalAI-Lite.zip'],
+    ['Mature-Standard', 10, 'Mature-Standard.zip'], ['Mature-Lite', 10, 'Mature-Lite.zip']]);
+  assert.deepEqual(listing29.packs[0].claimed.map(item => [item.prefix, item.entries]), PACK_OWN_TREES.map((prefix, index) => [prefix, [16985, 159, 11][index]]),
+    'the Python environment lost its 4,099 tests files and its two DLL copies: 21086 entries before, 16985 now');
+  for (const pack of listing29.packs) {
+    for (const [path] of pack.files) {
+      assert(!/\/app\/local-ai\/llama\//.test(path), `${pack.name} carries the engine: ${path}`);
+      assert(!/llama\.cpp-MIT/.test(path), `${pack.name} carries the engine's licence: ${path}`);
+      assert(!/full-cast-draft|\/tests?\//.test(path), `${pack.name}: ${path}`);
+    }
+  }
+  // Every pack carries the install note, the same 574 bytes, and the four model packs the same embedding model and licence texts (each works alone).
+  for (const pack of listing29.packs) assert.deepEqual(pack.files.find(([path]) => path === NOTE).slice(1), [574, '0c69b021'], pack.name);
+  const embed = listing29.packs.slice(1).map(pack => pack.files.find(([path]) => path.endsWith('granite-embedding-107m-multilingual-Q8_0.gguf')).slice(1).join(':'));
+  assert.equal(new Set(embed).size, 1, 'the same embedding model in every Local AI and Mature pack');
+});
+
+test('the Runtime check is strict: a file the zip and a pack both ship fails it (the install note excepted), and --allow-identical is the old rule', async () => {
+  const directory = await temporary();
+  try {
+    const clip = `${PLUGIN}/voices/archetypes/omni-long/some-voice.wav`;
+    const same = await zipOf(directory, 'same.zip', {[clip]: 'the same clip'});
+    // A listing in which the OmniPack ships that very clip (the zip's own size and CRC-32), the install note aside.
+    const own = zipFiles(await listZip(same))[0];
+    const edited = structuredClone(listing29);
+    edited.packs[0].files.push([clip, own.size, own.crc]);
+    edited.packs[0].entries++;
+    lines.length = 0;
+    assert.equal(await checkZips([same], edited, {log: collect}), false, 'strict by default');
+    assert.match(lines.join('\n'), /OmniPack: 1 file\(s\) the zip and the pack both ship/);
+    assert.match(lines.join('\n'), /FAILED/);
+    lines.length = 0;
+    assert.equal(await checkZips([same], edited, {log: collect, strict: false}), true, 'the rule of 0.2.1 to 0.2.8: the same bytes are fine');
+    // The same path with other bytes fails either way.
+    const other = await zipOf(directory, 'other.zip', {[clip]: 'a different clip'});
+    assert.equal(await checkZips([other], edited, {log: collect, strict: false}), false);
+    // The install note alone is fine, whatever the mode, because every package carries it.
+    const note = await zipOf(directory, 'note.zip', {[NOTE]: 'note'});
+    const noted = structuredClone(listing29), mine = zipFiles(await listZip(note))[0];
+    for (const pack of noted.packs) { const row = pack.files.find(([name]) => name === NOTE); row[1] = mine.size; row[2] = mine.crc; }
+    assert.equal(await checkZips([note], noted, {log: collect}), true);
+    // The command line: exit 1 strict, 0 with --allow-identical.
+    const listingFile = join(directory, 'listing.json');
+    await writeFile(listingFile, JSON.stringify(edited));
+    const cli = args => spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', same, '--listing', listingFile, ...args], {encoding: 'utf8'});
+    assert.equal(cli([]).status, 1); assert.equal(cli(['--allow-identical']).status, 0);
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the real 0.2.9 Scripts package and the committed Runtime file list pass the strict check against the 0.2.9 listing', async () => {
+  const runtime = (await readJson('packaging/pack-listings/runtime-0.2.9-pack-folders.json')).files.map(([path, size, crc]) => ({path, size, crc}));
+  const result = compareWithPacks(runtime, listing29);
+  assert.deepEqual([result.different, result.inPackTrees], [[], []]);
+  assert.deepEqual([...new Set(result.identical.map(item => item.path))], [NOTE]);
+  const root = await temporary();
+  try {
+    const zip = await buildScripts(root);
+    const cli = spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', zip], {encoding: 'utf8'});
+    assert.equal(cli.status, 0, cli.stdout + cli.stderr);
+  } finally { await rm(root, {recursive: true, force: true}); }
 });

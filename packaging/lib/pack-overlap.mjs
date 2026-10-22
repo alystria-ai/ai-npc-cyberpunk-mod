@@ -7,11 +7,21 @@
 // carry must be byte for byte the same (the install note, a clip both a Runtime voice and an OmniVoice list use); anything the
 // Runtime has in a newer version than the pack's copy lives at a path the pack does not use.
 //
+// Since 0.2.9 the rule is stricter: the Runtime and the Scripts share NO file with a pack at all (checkZips, strict mode), the install note apart:
+// the 120 Omni clips the Runtime carries for the newest voices are not in the OmniPack, and the Local AI and Mature packs hold no copy of the engine the
+// Runtime carries. Two packs may still share files with each other (the embedding model and the licence texts in every Local AI and Mature pack, so each
+// pack works alone); that is byte for byte the same and never involves the Runtime.
+//
 // This module is the shared knowledge: where those Runtime-only places are (the build and the checks use the same names), the move the
 // 0.2.1 Runtime needs to follow the rule, and the comparison itself. packaging/check-pack-overlap.mjs is the command line.
 import {fileReader, listZip} from './zip.mjs';
 
 export const PLUGIN = 'red4ext/plugins/AiNpcCyberpunkMod';
+
+// The one file every package carries on purpose, the same bytes each time (build-release.mjs INSTALL_NOTE; its text is fixed).
+export const INSTALL_NOTE_PATH = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
+/** The files of a comparison (compareWithPacks) that a Runtime or Scripts zip shares with a pack although it should not: every shared path but the install note. */
+export const strayShared = result => [...result.identical, ...result.different].filter(item => item.path !== INSTALL_NOTE_PATH);
 
 // The Mistral voice's pre-built reference slots (docs/PACKAGING.md, "Pre-built Mistral voice references"). The OmniVoice pack keeps its own
 // slots, for the clips it adds, in voices/prepared (the bridge's cache folder); the Runtime's slots (the Pocket clips) are in a folder

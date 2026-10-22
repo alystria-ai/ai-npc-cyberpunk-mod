@@ -10,11 +10,11 @@ How the player release is built, what it contains and how it starts. Players rea
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods (the same file is `Scripts.zip` on Hugging Face: the name on Nexus is the owner's own) | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
 | `Runtime-Update-<from>-to-<to>.zip` | Hugging Face, in the `updates/` folder (every step is kept; before 0.2.8 the last few sat beside the full Runtime) | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
 | `Runtime-<v>.zip` | GitHub release of this repository (asset `Runtime-<v>.zip`), mirrored to the root of the Hugging Face repository as `Runtime.zip` | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the llama.cpp engine of Local AI (`app/llama-cpp/`, about 82.5 MiB, 29.8 MiB zipped), the vgmstream decoder of V voice mods (`app/vgmstream/`, 8.1 MB, 3.4 MB zipped), the bridge, the Pocket voice and lip-sync models, voice references and game archives (the Audioware reply bank of older Runtimes is gone: every voice plays through the browser renderer). |
-| `OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
-| `LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole (and, while `localAi.server.inPacks` is true, a copy of the llama-server engine, which the Runtime now carries). |
-| `LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
+| `OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip (about 5.3 GB since 0.2.9): CUDA Python environment, the VoiceStudio adapter, the OmniVoice model (the language model as float16) and the OmniVoice references the Runtime does not carry ("The OmniVoice pack" below). |
+| `LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the embedding model and the chat model, whole. Models only since 0.2.9 (`localAi.server.inPacks` is false): the llama-server engine is in the Runtime, so the pack needs the Runtime of 0.2.7 or newer. |
+| `LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.3 GB), the same embedding model, models only. |
 | `MicPack-European-<v>.zip`, `MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
-| `Mature-Lite-<v>.zip`, `Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) and the Local AI engine (the `llama` folder, the embedding model and the licence texts, the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone. |
+| `Mature-Lite-<v>.zip`, `Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`), the embedding model and the licence texts (the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone on the Runtime's engine (the Runtime of 0.2.7 or newer). |
 
 The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, sorted into folders: the Scripts and Runtime zips at the root,
 `local-ai/` (the two Local AI packs), `mature/` (the two Mature packs), `mic/` (the two microphone packs), `voice/` (the OmniVoice pack), `updates/` and `multilingual/`.
@@ -169,10 +169,12 @@ free-memory fit, and their DLLs, 26 files, 82.5 MiB, 29.8 MiB zipped) is built i
 download, hash and keep/drop/require lists the packs used (`localAi.server`; `runtimeFolder` names the folder, `bridge/local-ai-pack.mjs` `RUNTIME_ENGINE_FOLDER`). The Runtime update zip then
 delivers an engine fix like any other changed file (a Runtime update from 0.2.6 adds the 26 files), and `packaging/lib/runtime-required.mjs` makes `check-runtime-contents.mjs` and the
 install test refuse a Runtime without them. The bridge uses the Runtime's engine first and the copy inside a pack as the fall-back (docs/LOCAL_AI.md, "The engine is in the Runtime");
-`apply-removals` already protects `app/local-ai/`, so a pack's own `llama/` is never deleted. **The packs:** `localAi.server.inPacks` (true now) keeps a copy of the engine in the packs'
-`llama/` folder, so a pack downloaded by a player who has not updated the Runtime still runs; no pack has to be rebuilt for this change (the packs on Hugging Face are reused
-unchanged, and the old ones work with the new Runtime). The next time a pack is rebuilt for another reason, set `inPacks` to false: the pack then carries models only (about 37 MB
-smaller), its marker names no `server`, and it needs a Runtime from 0.2.7 on (say so on the Nexus requirements and the model card).
+`apply-removals` already protects `app/local-ai/`, so a pack's own `llama/` is never deleted. **The packs:** 0.2.7 to 0.2.8 kept a copy of the engine in the packs' `llama/` folder
+(`localAi.server.inPacks` true), so a pack downloaded by a player who had not updated the Runtime still ran. **Since 0.2.9 (2026-10-22) `inPacks` is false:** the four Local AI and Mature packs
+carry models only (30.9 MB smaller each, 85.7 MB less on disk: 25 files, the engine and its two licence texts), their manifests and markers name no `server`, and they need the Runtime of
+0.2.7 or newer (the packs' notices, the Mature README, the model card and the Nexus requirements say so). The old packs still work with the new Runtime, and a new pack beside an old one is
+fine (the Runtime's engine is used first). A new pack on a Runtime older than 0.2.7 reads as "the Local AI pack is not installed" (no engine to run it).
+`packaging/check-pack-overlap.mjs` now checks that no pack ships a file the Runtime ships ("Packs reused unchanged", below).
 
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Bonsai 2 4B (PrismML, a Qwen3.5-based model) Apache-2.0, granite-embedding
@@ -290,6 +292,43 @@ looks first.
 - The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
 - Slot files carry a fixed `written` time, so the same inputs give the same package.
 
+### The OmniVoice pack
+
+One zip, `voice/OmniPack.zip` on Hugging Face (`omni` in `build-release.mjs`): the CUDA Python 3.11 environment (`app/omni/python/`), the VoiceStudio adapter (`app/omni/voicestudio/`), the OmniVoice
+model (`app/omni/model/`), the reference clips of the voices it was frozen with (`voices/archetypes/omni-long`, `omni-short`, `voices/picked/autobest/omni-long`, `omni-short`), the Mistral voice's
+prepared slots for them (`voices/prepared/`), its own copies of the voice lists (`app/omni/defaults/`, the read-second fall-back), the notices and the marker `app/omni/omni-pack.json`.
+
+**The leaner pack of 0.2.9 (2026-10-22, 6,585.5 MB zipped before, 5,341 MB after; 8,693 MB on disk before, about 7,400 MB after).** Four changes, all pinned or ruled in code:
+
+- **The language model is float16** (`app/omni/model/model.safetensors`, 1,225,189,208 bytes instead of 2,450,344,112). The worker loads it as float16 (the VoiceStudio adapter's `model_manager`
+  passes `dtype=torch.float16`, and `bridge/resident-voice-worker.py` refuses a model that did not load as `torch.float16`), so the float32 file was read, rounded and thrown away at every start.
+  `packaging/convert-omni-fp16.py` rounds every float32 tensor to the nearest float16 (what the loader does: `tensor.to(torch.float16)`), keeps the integer tensor and the metadata, refuses a finite
+  value that would overflow, and checks its own output tensor by tensor. It is deterministic, so `release.config.json` pins the result (`toolchain.omniModel.converted`: size and SHA-256) beside the
+  upstream file's pin (`files`): the build checks the upstream file against its hash, converts it with the pack's own Python and checks the result against the second pin. Loaded with
+  `dtype=torch.float16`, the old and the new file give the same tensors bit for bit (checked with `omnivoice.OmniVoice.from_pretrained` on both).
+- **The audio tokenizer stays float32** (`app/omni/model/audio_tokenizer/model.safetensors`, 805,665,628 bytes, the unmodified upstream file). OmniVoice loads it with no dtype, so it runs as float32 (its
+  `config.json` says `"dtype": "float32"`; transformers takes that), and a float16 file would change the audio instead of only the download. The other model files (`config.json`, the text tokenizer, the
+  licences) are unmodified upstream files too. The pack's notice (`app/omni/THIRD-PARTY-NOTICES.txt`) says which file was changed and how, with both hashes (CC-BY-NC asks for the change to be stated), and the
+  marker `omni-pack.json` records `precision` (`model` float16, `audioTokenizer` float32) and `modelFileSha256`. "Every model file is the unmodified upstream file" is true of every pack but this one.
+- **Left out** (`packaging/lib/omni-pack-rules.mjs`, one rule set for the builder and the rebuild tool): the `tests/` and `test/` folders of the Python packages (4,099 files, 66.7 MB on disk together with the next
+  two items; `testing` packages such as `torch.testing` stay), the copies of `fbgemm.dll` and `asmjit.dll` in `torch/bin/` (identical to the ones in `torch/lib/`, which is where torch loads them from), and
+  the three draft clips of the first cast (`voices/full-cast-draft/`, named only by the 0.2.1 lists). The install note (`HOW TO INSTALL ...txt`) is added, like in every package the builder makes.
+- **The 120 Omni clips of the newest voices stay in the Runtime.** The Runtime carries a long and a short Omni clip for the 60 voices added after the pack was frozen (11 + 11 archetype clips, 49 + 49
+  picked ones, 45.5 MB zipped; `packaging/pack-listings/runtime-omni-clips-0.2.9.json`). The Mistral voice (Voxtral) reads them for players without this pack: `bridge/voxtral-voice.mjs` takes the Omni
+  long clip, else the short one, else the Pocket clip. Moving them into the pack would give those 60 voices Pocket references on every PC without the pack, a worse Mistral voice for the
+  players who never install it, to save them 45.5 MB. So the Runtime keeps them and the pack leaves them out (`omniPack.runtimeClips` in `release.config.json`: a build from scratch skips exactly those
+  paths and stops if its clip differs from the listed size and CRC-32), which also means the two never ship the same file. Without the pack Mistral still has Omni references for those 60 and Pocket ones
+  for the other 252, as before; with the pack all 312 voices have Omni ones (60 from the Runtime, 252 from the pack). The pack works only on top of the Runtime anyway (the launcher, the worker, the lists).
+
+**What was checked (2026-10-22, RTX 4080 Laptop, the owner's laptop reported as in Silent mode, the Windows plan Balanced; timings are for comparison only).** (1) The install test (`packaging/test-release-install.mjs --omni`, a clean stand-in game folder with the real Scripts, Runtime and this pack): 29 of 29 checks, OmniVoice on `cuda:0` speaks. It also caught a mistake of the first leaner build: numpy.testing imports `numpy._core.tests._natype`, which scipy's import chain needs, so the worker died importing transformers' `AutoFeatureExtractor`; that one file stays (`TEST_FILES_KEPT`). (2) Old and new model loaded the way the worker loads them (`dtype=torch.float16`): 840 tensors, 0 mismatches bit for bit, every language model tensor float16 in both, the audio tokenizer float32 in both. (3) The real `ResidentVoice` rendered 5 characters (judy-alvarez, jackie-welles, johnny-silverhand, kerry-eurodyne, meredith-stout) with 2 lines each from the old pack and from the new one, twice each: all 10 outputs are byte-identical across the four runs (same SHA-256), so the ECAPA cosine (the repo's `scripts/pocket_training/likeness.py` guard) between old and new is exactly 1.0000 for every pair, and against each voice's reference clip 0.66 to 0.85, mean 0.77, for both. (4) Back to back, old, new, old, new, 5 voices, two lines each, 16 steps: a line renders in 0.80 s on average (old 0.80 and 0.79, new 0.83 and 0.82 for the first line of each voice; 0.84 and 0.80 against 0.85 and 0.82 for the second), voice preparation 1.0 to 1.1 s. The new pack rendered about 25 ms (3%) slower than the old one in both pairs; the weights on the card are identical bit for bit and the outputs too, so it is not the model (the runs came from two folders, and a few runs cannot tell a 3% difference from a laptop's noise). The worker start (process, imports, model load, CUDA graph) was 53.7 s, 25.2 s, 19.6 s, 22.2 s: the first run read the 2.4 GB file from a cold disk cache, so the start is no clean comparison, the new file is half as many bytes to read. Time to first audio of OmniVoice is the whole line (the worker returns each line whole).
+
+**How it is made.** `node packaging/build-release.mjs --packages omni --models hf ...` builds it from scratch (a fresh pip install of the hash-locked environment, the pinned model files, the private
+bucket's current lists and clips). The pack's contents have not changed since 0.2.1 (the packs are "reused unchanged", below), so the 0.2.9 file was made from the existing zip with
+`node packaging/rebuild-omni-pack.mjs --from <OmniPack zip> --out <folder> --version 0.2.9 --python <app/omni/python/python.exe of an installed pack>`: it extracts the entries it keeps (each checked against its
+CRC-32), converts the model (the old file must be the pinned upstream file), applies the same leave-out rules, writes the notices, marker and install note the way the builder does and writes one sorted
+zip with the builder's writer (`OmniPack-<v>.zip` and `.files.json`). It stops when the old pack already holds a clip the Runtime carries. `packaging/omni-pack-rules.test.mjs` covers the rules, the pins and a
+small synthetic pack through the tool.
+
 ### Packs reused unchanged
 
 A new version rebuilds the Scripts and the Runtime, but the optional packs are several GB each, so a version that did not change them
@@ -320,6 +359,11 @@ from the template, so a newer template reaches the bridge at the next start.
   slots has the other ones there. They are read first but used only when the signature fits, which means the same clip with the same
   settings, so the result is the same reference; the format rule above stops a cached WAV from hiding the Runtime's Ogg.
 
+**Since 0.2.9 the rule is stricter: the Runtime and the Scripts ship NO file a pack ships**, not even byte for byte (`check-pack-overlap.mjs check` is strict by default; the install note, the same
+574 bytes in every package, is the one exception). Now the Omni clips the Runtime carries are left out of the pack, the Local AI and Mature packs carry no copy of the engine the Runtime carries, and the listing of the rebuilt packs (`packs-0.2.9.json`) with the Runtime's files in the pack
+folders (`runtime-0.2.9-pack-folders.json`) is tested for it. The packs may still share files with each other (the embedding model and the licence texts, so each works alone): that is byte
+for byte the same, never involves the Runtime, and is the same as before.
+
 Also true, and checked: the Runtime and Scripts put nothing in a tree only the OmniVoice pack writes (`app/omni/python/`, `voicestudio/`,
 `model/`); the 0.2.1 Runtime's three unused `voices/full-cast-draft/<key>/reference.wav` clips (coach-fred, jim-jarry, life-coach; the pack has them
 for its older lists) are left out (`RUNTIME_DROPS`); the five packs share files only byte for byte (the Local AI and Mature engine files, the licence texts); and
@@ -327,8 +371,8 @@ the install note (`INSTALL_NOTE` in `build-release.mjs`) is the 574-byte text th
 the packs are rebuilt.
 
 **Checking a build.** `node packaging/check-pack-overlap.mjs check <zip>...` reads only the zip's directory and compares every shared path
-with `packaging/pack-listings/packs-0.2.1.json` (path, size and CRC-32 of the five 0.2.1 packs); it exits 1 and groups the offenders by
-folder. It reads ZIP64 directories (the OmniVoice pack is one) and also fails a zip that holds one path twice with different bytes (a
+with `packaging/pack-listings/packs-0.2.9.json` (path, size and CRC-32 of the five packs rebuilt for 0.2.9; `--listing` names another, and `--allow-identical` is the old lenient rule, used with
+`packs-0.2.1.json`, whose packs the old Runtimes share files with); it exits 1 and groups the offenders by folder. It reads ZIP64 directories (the OmniVoice pack is one) and also fails a zip that holds one path twice with different bytes (a
 patched zip can; `ZipWriter` refuses it); a pack with a path twice cannot be listed. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
 build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
 rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is

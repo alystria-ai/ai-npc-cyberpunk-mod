@@ -59,6 +59,7 @@ import {AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAu
 import {makePocketBf16} from './lib/pocket-bf16.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
+import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
@@ -658,7 +659,6 @@ async function omniPackage(source, config, models) {
   const stage = resolve(out, 'stage/omni');
   await rm(stage, {recursive: true, force: true});
   const tool = config.toolchain;
-  const notices = [];
 
   const pythonDir = resolve(stage, 'python');
   await installPython(tool.omniPython, resolve(source.root, tool.omniPython.lock), pythonDir, ['..\\..\\bridge']);
@@ -673,7 +673,8 @@ async function omniPackage(source, config, models) {
     if (excluded(rel)) continue;
     if (rel.startsWith(studio.package + '/')) await copyInto(resolve(studioDir, rel), resolve(pythonDir, 'Lib/site-packages', rel));
   }
-  await pkg.tree(`${omni}/python`, pythonDir, {skip: PYTHON_SKIP});
+  // Without the tests folders of the Python packages and the DLL copies in torch/bin (packaging/lib/omni-pack-rules.mjs).
+  await pkg.tree(`${omni}/python`, pythonDir, {skip: rel => PYTHON_SKIP(rel) || omniPythonSkip(rel)});
   for (const rel of tracked) {
     if (excluded(rel)) continue;
     if (studio.adapter.some(prefix => rel.startsWith(prefix + '/'))) pkg.file(`${omni}/voicestudio/${rel}`, resolve(studioDir, rel));
@@ -681,11 +682,9 @@ async function omniPackage(source, config, models) {
   }
   pkg.text(`${omni}/voicestudio/SOURCE.txt`, `VoiceStudio ${studio.revision}\r\n${studio.repository}\r\n`
     + `Licence: ${studio.license} (see LICENSE). The complete corresponding source is available at the repository above at this revision.\r\n`);
-  notices.push(`Python ${tool.omniPython.version} embeddable distribution - PSF License: app/omni/python/LICENSE.txt`);
-  notices.push(`Python packages (${basename(tool.omniPython.lock)}), including PyTorch with CUDA 12.8 - licences in each *.dist-info folder`);
-  notices.push(`VoiceStudio ${studio.revision} (OmniVoice adapter and the omnivoice package) - ${studio.license} - ${studio.repository}`);
 
-  // The OmniVoice model, unmodified, at the pinned revision.
+  // The OmniVoice model at the pinned revision: every file unmodified except model.safetensors, which is rounded to float16 (the precision the worker
+  // loads it in; packaging/convert-omni-fp16.py, release.config.json toolchain.omniModel.converted). The audio tokenizer stays float32: OmniVoice loads it as float32.
   const model = tool.omniModel;
   const modelDir = resolve(cache, `omnivoice-${model.revision.slice(0, 12)}`);
   for (const [rel, spec] of Object.entries(model.files)) {
@@ -696,16 +695,17 @@ async function omniPackage(source, config, models) {
     } else {
       path = await download(model.urlTemplate.replace('{revision}', model.revision).replace('{path}', rel), resolve(modelDir, rel), spec.sha256, log);
     }
+    if (rel === 'model.safetensors') path = await omniHalfPrecisionModel(path, model, modelDir, resolve(pythonDir, 'python.exe'), source);
     pkg.file(`${omni}/model/${rel}`, path);
   }
-  notices.push(`OmniVoice model (${model.repository} ${model.revision}) - code Apache-2.0, pretrained weights CC-BY-NC (see app/omni/model/README.md)`);
-  notices.push('OmniVoice audio tokenizer - Boson Higgs Audio 2 Community License (app/omni/model/audio_tokenizer/LICENSE)');
-  notices.push(`The OmniVoice weights are non-commercial (CC-BY-NC). VoiceStudio is AGPL-3.0-only: complete source at ${studio.repository} revision ${studio.revision} (app/omni/voicestudio/SOURCE.txt).`);
-  notices.push('AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.');
   pkg.text(`${omni}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
   // OmniVoice voice configurations and their reference clips.
   const configs = config.models.groups.find(item => item.target === 'voice-configs/');
+  // The clips the Runtime carries for the voices added after this pack was frozen stay in the Runtime (the Mistral voice reads them without the pack):
+  // the pack never ships the same path (packaging/check-pack-overlap.mjs). A clip the pack would skip must be the very bytes the Runtime has.
+  const runtimeClips = runtimeClipSet(await readJson(resolve(source.root, config.omniPack.runtimeClips)));
+  let leftToRuntime = 0;
   const seen = new Set(), values = {};
   for (const name of OMNI_LIST_NAMES) {
     const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
@@ -714,9 +714,17 @@ async function omniPackage(source, config, models) {
     pkg.json(`${omni}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, model));
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
-      seen.add(rel); pkg.file(`${plugin}/voices/${rel}`, path);
+      seen.add(rel);
+      const held = runtimeClips.get(`${plugin}/voices/${rel}`.toLowerCase());
+      if (held) {
+        if ((await stat(path)).size !== held.size || await crcOfFile(path) !== held.crc) throw Error(`The Runtime carries voices/${rel} with other bytes than this build's clip.`);
+        leftToRuntime++; continue;
+      }
+      pkg.file(`${plugin}/voices/${rel}`, path);
     }
   }
+  if (leftToRuntime !== runtimeClips.size) throw Error(`The Runtime clip listing names ${runtimeClips.size} clips but the lists use ${leftToRuntime} of them.`);
+  log(`OmniVoice reference clips: ${leftToRuntime} left to the Runtime package (they are in it already).`);
   // The Mistral voice clones from the OmniVoice clips (long first, then short, then Pocket's) when this pack is installed, and its
   // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips in its own folder
   // (voices/prepared-runtime); this pack's slots, for the clips whose hash differs, go in voices/prepared, and the bridge finds either by
@@ -729,10 +737,23 @@ async function omniPackage(source, config, models) {
     [values['local-voices.autobest-long.json'], values['local-voices.autobest-short.json']], {except: shipped, label: 'Voxtral references (OmniVoice clips)'});
   await pkg.tree(`${plugin}/voices/prepared`, voxtral.directory);
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the OmniVoice pack (${voxtral.skipped.length} identical to the Runtime package's).`);
-  pkg.text(`${omni}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod OmniVoice pack - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
-  pkg.json(`${omni}/omni-pack.json`, {product: config.product, package: 'omni', version, commit: '' + source.commit,
-    python: tool.omniPython.version, model: `${model.repository}@${model.revision}`, adapter: `${studio.repository}@${studio.revision}`});
+  pkg.text(`${omni}/THIRD-PARTY-NOTICES.txt`, omniNoticesText(omniNoticeLines({tool, studio})));
+  pkg.json(`${omni}/omni-pack.json`, omniMarker({config, version, commit: source.commit}));
   return pkg;
+}
+
+// The pinned upstream model.safetensors as the pack ships it: rounded to float16 by packaging/convert-omni-fp16.py with the pack's own Python (torch and
+// safetensors are in it), checked against the pinned result. Kept in the cache: an existing converted file is reused when its SHA-256 matches.
+async function omniHalfPrecisionModel(upstream, model, modelDir, python, source) {
+  const pin = model.converted['model.safetensors'];
+  const target = resolve(modelDir, 'float16/model.safetensors');
+  if (existsSync(target) && await sha256File(target) === pin.sha256) return target;
+  await mkdir(dirname(target), {recursive: true});
+  log('Rounding the OmniVoice model to float16 (packaging/convert-omni-fp16.py).');
+  await run(python, [resolve(source.root, pin.script), upstream, target], {quiet: true});
+  const actual = await sha256File(target);
+  if (actual !== pin.sha256 || (await stat(target)).size !== pin.size) throw Error(`The float16 OmniVoice model is ${actual}, not the pinned ${pin.sha256} (release.config.json, toolchain.omniModel.converted).`);
+  return target;
 }
 
 // A Local AI download (docs/LOCAL_AI.md): the llama-server build, the embedding model and one chat model, with a manifest
@@ -870,6 +891,7 @@ async function localAiPackage(source, config, tierKey) {
       + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
       + ` - https://huggingface.co/${lite.repository}`,
     embedNotice,
+    ...(spec.server.inPacks === false ? ['This pack carries models only and needs the Runtime of version 0.2.7 or newer: the llama.cpp engine that runs the models is part of the Runtime, not of this pack.'] : []),
     'The model files are the unmodified converted files of the publishers named above.',
     'AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.',
   ];
@@ -926,7 +948,7 @@ async function maturePackage(source, config, tierKey) {
     `- The model is a community fine-tune of the Apache-2.0 base model named above.${tierKey === 'good' ? ' Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy' : ''}`,
     `- ${llamaNotice}`, `- ${embedNotice}`,
     config.localAi.server.inPacks === false
-      ? '- The pack includes the embedding model and uses the llama-server engine that is part of the Runtime. The same files are in the Local AI packs; installing one pack over another only overwrites identical files.'
+      ? '- The pack includes the embedding model and uses the llama-server engine that is part of the Runtime, so it needs the Runtime of version 0.2.7 or newer. The same embedding model is in the Local AI packs; installing one pack over another only overwrites identical files.'
       : '- The pack includes the llama-server build and the embedding model, so it works without a Local AI pack. The same files are in the Local AI packs; installing one pack over another only overwrites identical files.',
     '- The licence paths above (licenses/...) are in the Local AI folder, one level up from this folder; the Apache-2.0 text is also in mature/licenses/.',
     '- AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see ../LICENSE.txt.', ''].join('\r\n'));
