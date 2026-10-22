@@ -95,6 +95,8 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
+    // keepsReference: key => boolean (the bridge): a voice whose reference a pack's clip must not replace although it is not the player's own clip (V with a V voice mod's reference, docs/V_VOICE.md).
+    this.keepsReference=typeof options.keepsReference==='function'?options.keepsReference:()=>false;
     // The Pocket language models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
     // cloned from the pack's clip; without them Pocket speaks English only.
     this.pocketLanguages=options.pocketLanguages||null;
@@ -410,7 +412,10 @@ export class VoiceSelection {
     if (['pocket','omni','convai'].includes(chosen)){
       // Choosing a provider again retries it, even if it failed earlier.
       if(chosen!==this.requestedProvider){
-        if(!(chosen==='omni'&&(this.omniNoCuda||this.omniNoMemory)))this.failedBackends.delete(chosen);
+        // Choosing OmniVoice again after it ran out of memory retries it once (a failure for want of memory is for the session otherwise, and V would stay mute with it): one more
+        // attempt, and a second failure for memory sets the flag again. No CUDA is a fact about the PC and stays.
+        if(chosen==='omni'&&this.omniNoMemory&&!this.omniNoCuda){this.omniNoMemory=false;this.log('OmniVoice was chosen again: trying it once more after the memory failure');}
+        if(!(chosen==='omni'&&this.omniNoCuda))this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
         if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;
@@ -988,6 +993,8 @@ export class VoiceSelection {
     try {
       if (this.hasPlayerClip(profile)) {
         const own = this.registries.pocket.profiles[profile];
+        // Only the player's own clip is a language voice of Pocket's worker (it refuses any other path outside multilingual/<lang>/): a reference kept for a V voice mod is spoken by the English student.
+        if (own && !isPlayerReference(own.reference)) return null;
         descriptor = own ? {reference: own.reference, sha256: own.sha256, transcript: own.transcript} : null;
       } else descriptor = await this.languagePacks?.omniDescriptor(language, profile) ?? null;
     } catch { descriptor = null; }
@@ -999,7 +1006,7 @@ export class VoiceSelection {
       if (this.provider !== 'pocket' || this.cloudActive || this.silent || this.clientBackend !== 'pocket' || !this.client?.loaded || !this.usesProfile(profile)) return null;
       const voice = this.voiceOf(profile), pocketLanguage = await this.pocketLanguageFor(voice, language);
       if (!pocketLanguage || this.provider !== 'pocket' || this.cloudActive) return null;
-      return await this.client.prepareLanguage(voice, pocketLanguage);
+      return await this.client.prepareLanguage(voice, pocketLanguage, {urgent: true});   // the turn's reply waits for this swap: normal priority
     } catch { return null; }
   }
   // A reply spoken by the cloud voice. No local voice takes part, so there is no fallback voice here: a request that gave no audio in
@@ -1092,8 +1099,12 @@ export class VoiceSelection {
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps,...(languageReference?{languageReference}:{})});
   }
-  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips")? It is the player's choice and no pack replaces it.
-  hasPlayerClip(key){return isPlayerReference(this.registry?.profiles?.[key]?.reference);}
+  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips"), or a reference of the player's own making that a voice language pack must not replace (V's V voice mod
+  // reference, docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one)? Neither is replaced by a pack clip in another language.
+  hasPlayerClip(key){
+    if(isPlayerReference(this.registry?.profiles?.[key]?.reference))return true;
+    try{return this.keepsReference(key)===true;}catch{return false;}
+  }
   async prepareProfile(profile, options = {}) {
     // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other
     // voice chosen (local or Voxtral) they are written ('text'), never given to a cloud voice.
@@ -1148,7 +1159,14 @@ export class VoiceSelection {
       const phonePreparing=this.provider==='pocket'&&this.playbackEnabled!==false&&this.phoneAnalysis
         ?this.phoneAnalysis.prepare(options).catch(error=>{throwIfCancelled(options.signal);return{ready:false};}):null;
       phonePreparing?.catch(()=>{});
-      try { receipt = await client.prepareProfile(voice, options); }
+      try {
+        // A Pocket language is resident (the last language stays loaded): the voice is prepared in that language's view, so no model is swapped out for a warm-up.
+        // A character with no clip in that language's pack falls back to the English student (the client defers that one unless the caller requires it).
+        const resident = this.provider === 'pocket' && !client.profileReady?.(voice) ? client.residentLanguage : null;
+        const pocketLanguage = resident && typeof client.prepareLanguage === 'function' ? await this.pocketLanguageFor(voice, resident).catch(() => null) : null;
+        throwIfCancelled(options.signal);
+        receipt = pocketLanguage ? await client.prepareLanguage(voice, pocketLanguage, {signal: options.signal}) : await client.prepareProfile(voice, options);
+      }
       catch (error) {
         throwIfCancelled(options.signal);
         if (!this.closed && (this.provider === 'convai' || this.provider === TEXT_ROUTE)) return remote(this.remoteReason(profile));

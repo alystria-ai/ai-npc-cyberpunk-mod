@@ -39,3 +39,35 @@ for (const code of CODES) {
     }
   });
 }
+
+// The Pocket "voice language pack missing" notices (ids pocket-pack-fr/it/de/es/pt): {language} is the language name in the menu
+// language. Each must fit two lines with every one of the five names, in English and in all fifteen translations.
+const POCKET_PACK = '{language} replies show as text: the {language} voice language pack is missing.';
+const LANGUAGES = ['French', 'Italian', 'German', 'Spanish', 'Portuguese'];
+const fillIn = (text, name) => text.replaceAll('{language}', name);
+
+test('the English Pocket pack notice fits two lines with each language name and is what the game shows', () => {
+  const init = read('../mod/init.lua'), docs = read('../docs/NOTIFICATIONS.md'), catalog = read('../localization/en.json');
+  for (const name of LANGUAGES) {
+    assert.deepEqual(noticeProblems(fillIn(POCKET_PACK, name), {english: true}), [], name);
+    assert.ok(docs.includes(fillIn(POCKET_PACK, name)), `docs/NOTIFICATIONS.md does not list: ${name}`);
+  }
+  assert.ok(init.includes(`ui.t('${POCKET_PACK}'`), 'mod/init.lua does not hold the notice');
+  assert.ok(catalog.includes(`"${POCKET_PACK}"`), 'localization/en.json does not hold the notice');
+});
+
+for (const code of CODES) {
+  test(`${code}: the Pocket pack notice is translated, keeps its placeholder and fits two lines with each language name`, () => {
+    const rows = new Map([...read(`../mod/locales/${code}.lua`).matchAll(/^\s*\["(.*)"\] = "(.*)",\r?$/gmu)].map(([, key, value]) => [unescape(key), unescape(value)]));
+    const translated = rows.get(POCKET_PACK);
+    assert.ok(translated, `${code} has no translation of the Pocket pack notice`);
+    assert.notEqual(translated, POCKET_PACK, `${code}: not translated`);
+    assert.equal(translated.match(/\{[^}]*\}/g)?.every(hole => hole === '{language}'), true, `${code}: only the {language} placeholder is allowed`);
+    assert.ok(translated.includes('{language}'), `${code}: lost its placeholder`);
+    for (const english of LANGUAGES) {
+      const name = rows.get(english);
+      assert.ok(name, `${code} has no name for ${english}`);
+      assert.deepEqual(noticeProblems(fillIn(translated, name)), [], `${code}: ${fillIn(translated, name)}`);
+    }
+  });
+}

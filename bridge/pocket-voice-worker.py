@@ -576,7 +576,7 @@ def main():
                 raise ValueError("Pocket has no model for this language")
             if target == lang["tag"]:
                 if target:
-                    add_language_voices(lang["registry"], request.get("voices", {}))
+                    add_language_voices(lang["registry"], request.get("voices", {}), lang["cache"])
                 return 0.0
             started_at = time.perf_counter()
             config = None
@@ -607,7 +607,7 @@ def main():
                 lang_store = PreparedVoiceStore(registry["paths"]["workDirectory"] / "prepared-voices" / f"lang-{target}", lang["sha256"],
                                                 SOURCE_SHA256, save_state, load_state)
                 lang["cache"] = ReferenceCache(lang["registry"], lambda path: model.get_state_for_audio_prompt(path, truncate=False), store=lang_store)
-                add_language_voices(lang["registry"], request.get("voices", {}))
+                add_language_voices(lang["registry"], request.get("voices", {}), lang["cache"])
                 kept = stash.pop(target, None)
                 if kept and kept[0] == lang["sha256"]:
                     for key, (reference_sha256, state) in kept[1].items():

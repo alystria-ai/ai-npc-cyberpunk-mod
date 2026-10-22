@@ -166,9 +166,11 @@ export function describeFit(fit, freeMiB, marginMiB) {
  *   gameShare / gameCapMiB / gameFloorMiB   the game's room: 55% of the card, at least 3,000 MiB (the old reserve of bridge/local-model-choice.mjs), at most 4,608 MiB. The 8 GB card of the report
  *                  (8,232 MiB) gets 4,528 MiB; the same report showed the game holding about 4.3 GB beside OmniVoice (8,232 - 659 MiB left - 2.5 GB OmniVoice - 0.77 GB used at the menu)
  *   omniVoiceMiB   OmniVoice's resident size (docs/RESOURCE_LIFECYCLE.md, about 2.5 GB); Pocket runs on the CPU and takes none
- *   settleSeconds  the service is this young: after it the game is running and the free memory read is real (a start later than that, and every reload after a spill or a step-down, takes it as it is)
+ *   desktopMiB     what the desktop and other programs hold on any card (the report's 0.77 GB at the menu, rounded up): not the game's, so not counted against its room
+ *   Reserved only for what the game has NOT taken yet (2026-10-22 review, A1): the game's footprint is measured (card total - free - a resident voice engine - desktopMiB) and subtracted from the room, so a service
+ *   restarted mid-play, or a quick Continue that has the game and OmniVoice on the card already, keeps nothing back twice. Nothing depends on how long the service has run.
  */
-export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 12288, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, settleSeconds: 240});
+export const SMALL_CARD_ROOM = Object.freeze({maxCardMiB: 12288, gameShare: 0.55, gameCapMiB: 4608, gameFloorMiB: 3000, omniVoiceMiB: 2500, desktopMiB: 1000});
 
 /** The game's room (MiB) on a card of this size, or 0 for a card above SMALL_CARD_ROOM.maxCardMiB or an unknown one. */
 export function gameRoomMiB(totalMiB, limits = SMALL_CARD_ROOM) {
@@ -176,10 +178,17 @@ export function gameRoomMiB(totalMiB, limits = SMALL_CARD_ROOM) {
   return Math.round(Math.max(limits.gameFloorMiB, Math.min(limits.gameCapMiB, totalMiB * limits.gameShare)));
 }
 
-/** {totalMiB, freeMiB, reserveMiB, voiceMiB, modelMiB} (modelMiB: what the model may take, never below 0), or null on a card with no reserve or with no free-memory reading. */
-export function smallCardRoom({totalMiB, freeMiB, voiceMiB = 0, limits = SMALL_CARD_ROOM} = {}) {
-  const reserveMiB = gameRoomMiB(totalMiB, limits);
-  if (reserveMiB <= 0 || !Number.isFinite(freeMiB)) return null;
+/**
+ * {totalMiB, freeMiB, reserveMiB, voiceMiB, modelMiB, gameRoomMiB, gameUsedMiB}, or null on a card with no reserve or with no free-memory reading. reserveMiB is the room the game has not taken yet
+ * (the whole room at the game's start, 0 once the game holds it); modelMiB is what the model may take, never below 0. `residentVoiceMiB` is a voice engine that is already loaded (it is in the used
+ * memory but is not the game's); `voiceMiB` is one still to load.
+ */
+export function smallCardRoom({totalMiB, freeMiB, voiceMiB = 0, residentVoiceMiB = 0, limits = SMALL_CARD_ROOM} = {}) {
+  const gameRoom = gameRoomMiB(totalMiB, limits);
+  if (gameRoom <= 0 || !Number.isFinite(freeMiB)) return null;
   const voice = Number.isFinite(voiceMiB) && voiceMiB > 0 ? voiceMiB : 0;
-  return {totalMiB, freeMiB, reserveMiB, voiceMiB: voice, modelMiB: Math.max(0, Math.round(freeMiB - voice - reserveMiB))};
+  const resident = Number.isFinite(residentVoiceMiB) && residentVoiceMiB > 0 ? residentVoiceMiB : 0;
+  const gameUsedMiB = Math.max(0, Math.round(totalMiB - freeMiB - resident - (limits.desktopMiB ?? 0)));
+  const reserveMiB = Math.max(0, gameRoom - gameUsedMiB);
+  return {totalMiB, freeMiB, reserveMiB, voiceMiB: voice, modelMiB: Math.max(0, Math.round(freeMiB - voice - reserveMiB)), gameRoomMiB: gameRoom, gameUsedMiB};
 }

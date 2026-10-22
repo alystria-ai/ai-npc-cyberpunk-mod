@@ -1587,7 +1587,7 @@ test('a turn with no answer after 10 s reads the counters once (not three minute
 
 const RTX3070 = 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 3070 (8232 MiB, 7461 MiB free)\n';
 function roomHarness(t, {room = {}, listDevices = async () => RTX3070, free = {value: 7461}, ...options} = {}) {
-  const gameRoom = {voiceMiB: () => 0, uptimeSeconds: () => 12, ...room};
+  const gameRoom = {voiceMiB: () => 0, residentVoiceMiB: () => 0, ...room};
   return onlyGood(fitHarness(t, {selected: {matureOn: true}, free, listDevices, gameRoom, ...options}));
 }
 
@@ -1633,8 +1633,32 @@ test('a card of 12 GB or less with room for both gets the whole model on the car
   const huge = roomHarness(t, {listDevices: async () => 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4090 (24564 MiB, 23000 MiB free)\n', free: {value: 23000}});
   await huge.server.ensure();
   assert.ok(!huge.logs.some(text => text.includes('game room on a small card')) && huge.calls[0].args.includes('-ngl'));
-  // The service is older than four minutes: the game is running and what is free is real.
-  const late = roomHarness(t, {room: {uptimeSeconds: () => 600}});
-  await late.server.ensure();
-  assert.ok(late.calls[0].args.includes('-ngl') && !late.logs.some(text => text.includes('game room on a small card')));
+});
+
+const RTX3070_MIDPLAY = `Available devices:
+  Vulkan0: NVIDIA GeForce RTX 3070 (8232 MiB, 3000 MiB free)
+`;
+test('a supervisor restart mid-play on an 8 GB card keeps back only what the game has not taken: the model gets a real share, not the processor alone (review A1)', async t => {
+  // The game already holds about 4.2 GB: 3,000 MiB free, the model's room is 3,000 - 296 and the plan line says the game's room was mostly taken.
+  const h = roomHarness(t, {listDevices: async () => RTX3070_MIDPLAY, free: {value: 3000}});
+  const slow = [];
+  h.server.on('offload-slow', event => slow.push(event));
+  await h.server.ensure();
+  const plan = h.logs.find(line => line.includes('game room on a small card'));
+  assert.ok(plan.includes('296 MiB kept for the game') && plan.includes('so 2704 MiB for the model'), plan);
+  assert.ok(!plan.includes('about 0% of its layers'), plan);
+  assert.ok(Math.max(...slow.map(event => event.share), 1) > 0.15, 'not the processor alone');
+  assert.deepEqual(h.failures, []);
+});
+
+test('a 12 GB card with OmniVoice already loaded and a quick Continue: the resident engine is not charged to the game, so the model gets its share (review A1)', async t => {
+  const devices = `Available devices:
+  Vulkan0: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 4800 MiB free)
+`;
+  const quick = roomHarness(t, {listDevices: async () => devices, free: {value: 4800}, room: {residentVoiceMiB: () => 2500}});
+  await quick.server.ensure();
+  const plan = quick.logs.find(line => line.includes('game room on a small card'));
+  assert.ok(plan.includes('911 MiB kept for the game') && plan.includes('so 3889 MiB for the model'), plan);
+  // The same numbers before the fix left 192 MiB: nothing of the model fit.
+  assert.ok(!plan.includes('so 192 MiB'));
 });

@@ -2756,7 +2756,7 @@ local function beginTextNow(groupMode, waited)
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
             convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
-            if focusEntity ~= identity and not primary.holocall and not primary.story then
+            if focusEntity ~= identity and not primary.holocall and not (primary.story or primary.guarded) then
                 local focused, reason = beginFocus(player, npc)
                 if not focused then
                     log('NPC focus unavailable: ' .. tostring(reason))
@@ -2915,7 +2915,7 @@ local function toggleVoice(groupMode, source)
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
-            if not primary.voiceOnly and not primary.holocall and not primary.story then beginFocus(player, npc) end
+            if not primary.voiceOnly and not primary.holocall and not (primary.story or primary.guarded) then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -3619,7 +3619,7 @@ local function keyReplyNotice(reply)
         local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
         local language = names[reply.keyNoticeLanguage]
         if language then
-            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it.', {language = language})
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} voice language pack is missing.', {language = language})
         end
     end
     if reply.keyNotice == 'mistral-no-key' then

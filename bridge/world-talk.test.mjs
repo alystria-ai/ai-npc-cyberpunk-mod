@@ -370,6 +370,39 @@ test('beginFocus: a story character gets no look-at, no hold and no bark muting,
   assert(beginFocus(player, worldJudy) == false and #calls == 0)
 `));
 
+// The two talk-key places that start a focus (composer and voice key): a game-placed character, story or quest-bound, is never turned.
+{
+  const composerStart = init.indexOf('if focusEntity ~= identity and not primary.holocall');
+  const composerEnd = init.indexOf("focusMode = 'chat'", composerStart);
+  const voiceStart = init.indexOf('if not primary.voiceOnly and not primary.holocall');
+  const voiceLine = init.slice(voiceStart, init.indexOf('\n', voiceStart));
+  test('the talk key focuses an ordinary NPC but never a story or quest-bound (guarded) one', () => {
+    assert.ok(composerStart > 0 && composerEnd > composerStart && voiceLine.includes('beginFocus'));
+    run(`
+      local began, focusEntity = {}, nil
+      local function beginFocus(_, n) began[#began + 1] = n; return true end
+      local function log() end
+      local player, identity = {}, 'x'
+      local function composer(primary, npc)
+        began, focusEntity = {}, nil
+        do -- the slice ends with the end of the enclosing voiceOnly block
+        ${init.slice(composerStart, composerEnd)}
+        return #began
+      end
+      local function voice(primary, npc)
+        began = {}
+        ${voiceLine}
+        return #began
+      end
+      local crowd, quest, story, holo = {}, {guarded = true}, {story = true}, {holocall = true}
+      assert(composer(crowd, 'crowd') == 1 and voice(crowd, 'crowd') == 1, 'a crowd NPC is still focused')
+      assert(composer(quest, 'quest') == 0 and voice(quest, 'quest') == 0, 'a quest-bound NPC is not turned, held or bark-muted')
+      assert(composer(story, 'story') == 0 and voice(story, 'story') == 0, 'a story character is not either')
+      assert(composer(holo, 'holo') == 0 and voice(holo, 'holo') == 0)
+    `);
+  });
+}
+
 test('the speech guard ends a story reply and says nothing for anyone else', () => run(`
   ${world}
   local clock, retired, logs, nextReason = 0, {}, {}, nil
@@ -414,8 +447,8 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   assert.match(select, /convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.'/);
   assert.match(select, /convaiFacialPlayback\.storyEntity = convaiStory and convaiStory\.entity or nil/);
   // No gaze: both talk paths skip the focus for a story character.
-  assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
-  assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not primary\.story then beginFocus\(player, npc\) end/);
+  assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
+  assert.match(init, /if not primary\.voiceOnly and not primary\.holocall and not \(primary\.story or primary\.guarded\) then beginFocus\(player, npc\) end/);
   assert.match(init, /if \(primary\.story or primary\.guarded\) and convaiWorldTalk:refusal\(npc, Game\.GetPlayer\(\), entity, primary\.profileKey, primary\.guarded\) then return false end/);
   // No actions: neither the typed nor the spoken path offers or even mentions follow, fight, drive or leave for a story character.
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
@@ -523,6 +556,34 @@ test('classify idle: a commanded AI at a workspot is not a scene, and every othe
   assert(W.classify(facts({workspot = true, mounted = true}), false, true) == 'vehicle')
 `));
 
+test('classify idle: a scene actor at a workspot (V past open gameplay) is busy, a post with V in open gameplay still talks', () => withModule(`
+  local function facts(over)
+    local f = {gone = false, hub = false, dialogue = false, driven = false, combat = false, hurt = false, mounted = false}
+    for k, v in pairs(over or {}) do f[k] = v end
+    return f
+  end
+  assert(W.classify(facts({driven = true, workspot = true, staged = false}), false, true) == nil, 'the bouncer at his post, V in open gameplay')
+  assert(W.classify(facts({driven = true, workspot = true, staged = true}), false, true) == 'driven', 'a scene actor seated or leaning in its workspot')
+  assert(W.classify(facts({driven = false, workspot = true, staged = true}), false, true) == nil, 'a person on its own AI is not refused for the workspot')
+  assert(W.describe(facts({workspot = true, staged = true})):find('staged=true', 1, true))
+  assert(not W.describe(facts({})):find('staged', 1, true), 'listed only when read')
+`));
+
+test('read: staged is read for an idle person only, from V scene tier (2 or more or unknown is staged)', () => withModule(`
+  ${fakeGame}
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function() return true end} end
+  state.autonomous = false
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  assert(W.read(npc, 'V', function() return playerSample end).staged == nil, 'not read for a story character')
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == false, 'tier 1: open gameplay')
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == nil, 'a post in open gameplay: no refusal')
+  playerSample.tier = 2
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == true)
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'a scene actor in a workspot with V at tier 2: busy')
+  playerSample.tier = nil
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'tier unknown: fail closed')
+`));
+
 test('read: the workspot is asked only for an idle (quest-bound, unnamed) person, and describe lists it only when read', () => withModule(`
   ${fakeGame}
   local asked = 0
@@ -546,9 +607,9 @@ test('wiring: a quest-bound person with no roster profile is guarded like a stor
   assert.match(select, /convaiWorldPolicy\.protected\(npc\) == true then\s+local why = convaiWorldTalk:refusal\(npc, player, nil, key, true\)/);
   assert.match(select, /primary\.guarded = true\s+convaiStory = \{entity = primary\.entity, key = key, name = name, idle = true\}/);
   assert.match(select, /\(quest-bound\)[\s\S]*?convaiNotices\.send\(player, 'talk-busy'/, 'the same busy notice and a log line');
-  // The guarded person is not a story character: it is still faced toward V and still gets an archetype conversation.
+  // The guarded person is not a story character and still gets an archetype conversation, but like one it is not turned, held or bark-muted.
   assert.doesNotMatch(select.slice(select.indexOf('primary.guarded = true')), /primary\.story = /);
-  assert.match(init, /not primary\.holocall and not primary\.story then\s+local focused, reason = beginFocus\(player, npc\)/);
+  assert.match(init, /not primary\.holocall and not \(primary\.story or primary\.guarded\) then\s+local focused, reason = beginFocus\(player, npc\)/);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -613,3 +674,20 @@ test('profileIdentity + notice: the receptionist, WorkerMaleDE and Emmerick talk
     assert.match(init, /ui\.t\('\{name\} is a story character\. Turn on Talk to story characters in Esc > Mods\.'/);
   });
 }
+
+test('staged belongs to the quest-marked person only, and an unreadable player side fails closed (review follow-up to A7)', () => withModule(`
+  ${fakeGame}
+  Game.GetWorkspotSystem = function() return {IsActorInWorkspot = function() return true end} end
+  state.autonomous = false
+  local service = W.new({sample = function() return playerSample end, clock = function() return 0 end})
+  playerSample.tier = 2
+  function npc:IsQuest() return false end
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == false, 'a person the game does not mark as a quest person keeps the workspot')
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == nil, 'the bouncer at his door, V at tier 2')
+  function npc:IsQuest() return true end
+  assert(W.read(npc, 'V', function() return playerSample end, true).staged == true)
+  assert(service:refusal(npc, 'V', nil, 'npc-merc-male', true) == 'driven', 'a quest-marked scene actor, V at tier 2')
+  -- No player-side sample at all: nothing says V is in open gameplay, so a quest-marked person is not let through
+  assert(W.read(npc, 'V', nil, true).staged == true)
+  assert(W.read(npc, 'V', function() return {available = false} end, true).staged == true)
+`));

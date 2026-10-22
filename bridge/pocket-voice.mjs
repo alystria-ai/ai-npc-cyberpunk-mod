@@ -164,7 +164,10 @@ export class PocketVoice {
   get profileKeys() { return this.registry.keys.filter(key => this.available.has(key)); }
   hasProfile(key) { return this.registry.has(key) && this.available.has(key); }
   usesProfile(key) { return this.enabled && this.hasProfile(key); }
-  profileReady(key) { return this.loaded && !this.failure && !this.closing && this.hasProfile(key) && this.prepared.has(key); }
+  // A voice prepared in the resident language's view is as ready as one prepared in the English student's (the reply that needs the other model swaps it itself).
+  profileReady(key) { return this.loaded && !this.failure && !this.closing && ((this.hasProfile(key) && this.prepared.has(key)) || this.languageView?.prepared.has(key) === true); }
+  // The reply language ('fr') of the model that is resident, or null: the language the last turn was in, which stays loaded (no idle timer).
+  get residentLanguage() { return this.languageView?.reply ?? null; }
   publish(state, extra = {}) {
     this.state = state;
     try { Promise.resolve(this.onState({version: 1, state, engine: 'pocket-tts', provider: 'pocket',
@@ -497,8 +500,9 @@ export class PocketVoice {
     throwIfCancelled(signal);
     if (this.closing || this.failure) throw this.failure || cancelled();
     const table = tag !== null && this.language === tag ? {...this.languageView.table, ...pocketLanguage.voices} : {...(pocketLanguage?.voices ?? {})};
-    await this.languageCommand(tag === null ? {language: null} : {language: tag, expected: pocketLanguage.expected, voices: pocketLanguage.voices ?? {}, ...(urgent ? {urgent: true} : {})},
-      tag === null ? null : {tag, table, model: {sha256: pocketLanguage.expected.sha256}});
+    // `urgent` on either swap: a reply waits for it (the English one too), so the worker runs it at normal priority.
+    await this.languageCommand(tag === null ? {language: null, ...(urgent ? {urgent: true} : {})} : {language: tag, expected: pocketLanguage.expected, voices: pocketLanguage.voices ?? {}, ...(urgent ? {urgent: true} : {})},
+      tag === null ? null : {tag, reply: pocketLanguage.tag, table, model: {sha256: pocketLanguage.expected.sha256}});
     return this.languageView;
   }
   languageCommand(payload, next) {
@@ -556,12 +560,13 @@ export class PocketVoice {
     const prepared = await this.command('prepare', profile, {signal, urgent, view}); throwIfCancelled(signal);
     return prepared;
   }
-  prepareProfile(profile, {signal} = {}) {
+  prepareProfile(profile, {signal, required = false} = {}) {
     if (!this.usesProfile(profile)) return Promise.resolve({provider: 'text', ready: true,
       reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
-    // A language is resident and this voice is already prepared in the English student's cache: it stays prepared (the worker keeps it), and warming it
-    // must not swap the English model back in just before a reply in the language.
-    if (this.language && this.prepared.has(profile)) return Promise.resolve({provider: 'pocket', ready: this.profileReady(profile), profile});
+    // A language is resident (the last language stays loaded): an English warm-up must not swap it out and back for every character that comes into view
+    // (two model loads for a voice nobody hears). A voice already prepared (English cache or the language view) stays so; any other waits for its first reply, which
+    // makes the swap itself. `required`: the caller cannot go on without this voice prepared (an invitation), so it is prepared as before.
+    if (this.language && (!required || this.profileReady(profile))) return Promise.resolve({provider: 'pocket', ready: this.profileReady(profile), profile, ...(this.profileReady(profile) ? {} : {deferred: true})});
     const operation = this.tail.then(async () => { const prepared = await this.ensurePrepared(profile, signal);
       return {provider: 'pocket', ready: this.profileReady(profile), profile,
         ...(prepared?.preparationSource ? {preparationMs: prepared.preparationMs, preparationSource: prepared.preparationSource} : {})}; });
@@ -584,11 +589,11 @@ export class PocketVoice {
     });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);
   }
-  /** Swaps a language model in and prepares one voice of it, ahead of the reply (the turn's language is known before its reply is written). Never urgent. */
-  prepareLanguage(profile, pocketLanguage, {signal} = {}) {
+  /** Swaps a language model in and prepares one voice of it, ahead of the reply (the turn's language is known before its reply is written). `urgent`: the reply waits for it. */
+  prepareLanguage(profile, pocketLanguage, {signal, urgent = false} = {}) {
     if (!pocketLanguage || !this.enabled) return Promise.resolve({provider: 'text', ready: false, reason: 'no-language'});
     const operation = this.tail.then(async () => {
-      await this.ensurePrepared(profile, signal, {pocketLanguage});
+      await this.ensurePrepared(profile, signal, {pocketLanguage, urgent});
       return {provider: 'pocket', ready: this.languageView?.prepared.has(profile) === true, profile, language: pocketLanguage.tag};
     });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);

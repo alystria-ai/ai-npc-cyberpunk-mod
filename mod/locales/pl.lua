@@ -1075,7 +1075,7 @@ return {
     ["OmniVoice needs NVIDIA"] = "OmniVoice wymaga NVIDIA",
     ["This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices."] = "Ten PC nie ma karty graficznej NVIDIA, a OmniVoice jej wymaga. OmniVoice tutaj nie uruchomi się. Wybierz Pocket, aby słyszeć głosy.",
     ["{voice} · needs NVIDIA card"] = "{voice} · wymaga karty NVIDIA",
-    ["The Pocket voice for {language} is installed, but it needs the {language} voice language pack, which is missing. Replies in {language} show as text until you install it."] = "Głos Pocket dla języka „{language}” jest zainstalowany, ale brakuje pakietu językowego głosu dla „{language}”. Odpowiedzi w języku „{language}” są wyświetlane jako tekst, dopóki go nie zainstalujesz.",
+    ["{language} replies show as text: the {language} voice language pack is missing."] = "Odpowiedzi „{language}” są wyświetlane jako tekst: brak pakietu głosu „{language}”.",
     ["French"] = "francuski",
     ["Italian"] = "włoski",
     ["German"] = "niemiecki",

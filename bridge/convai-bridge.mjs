@@ -51,7 +51,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
-import {loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
+import {installVVoiceReference, loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
@@ -224,12 +224,14 @@ const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line =
 await languagePacks.scan().catch(error => console.error('[VoiceLanguagePacks] scan failed:', error?.message ?? error));
 // Developer mode: the last spoken reply's audio and its reference, in <state>/debug (bridge/last-reply-capture.mjs). Off otherwise, and then it costs nothing.
 const replyCapture = new LastReplyCapture({directory: resolve(stateDirectory, CAPTURE_FOLDER), log: line => console.error('[Debug] ' + line)});
-// A player's V voice mod (docs/V_VOICE.md, "V voice mods"): once, here, the archives of archive/pc/mod and REDmod are looked at (cached by name, size and
-// time) and the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip for V (the editor) wins over both.
-// Nothing here runs again during a session, and the decoder process it may start exits when its line is done. `source` on each voice names the reference.
-const {report: vVoiceModReport, ...vVoiceReferences} = await loadVVoiceReferencesWithMods({
-  shippedDirectories: [...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')], game, stateDirectory, project,
-  log: line => console.error('[VVoice] ' + line)});
+// A player's V voice mod (docs/V_VOICE.md, "V voice mods"): the reference built from the mod's own lines replaces the shipped clip of that gender. The player's own clip
+// for V (the editor) wins over both. Here, at start, only the references an earlier scan built are read (two small files per gender: no archive is listed, no process is
+// started, so the ready signal waits for nothing); the scan itself (startVVoiceModScan, below) runs once, in the background, only while V's voice is on. `source` on each
+// voice names the reference.
+const vVoiceLoadOptions = {shippedDirectories: [...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')], game, stateDirectory, project,
+  log: line => console.error('[VVoice] ' + line)};
+const {report: initialVVoiceModReport, ...vVoiceReferences} = await loadVVoiceReferencesWithMods({...vVoiceLoadOptions, scan: false});
+let vVoiceModReport = initialVVoiceModReport;
 // The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
 // they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
 // of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
@@ -322,8 +324,11 @@ const voxtralPreparer = (options = {}) => {
   }
   return options.player ? voxtralPreparers.player : voxtralPreparers.shipped;
 };
+// V's reference built from a V voice mod is the player's own making: a voice language pack's V clip (the game's own dub in that language) does not replace it, in any language
+// (docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one). Read from memory per reply.
+const vModKeepsReference = key => { const gender = vGenderOfKey(key); return gender !== null && String(vVoiceReferences.voices[gender]?.source ?? '').startsWith('mod:'); };
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks,
+  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder, languagePacks, keepsReference: vModKeepsReference,
   prepare: voxtralPreparers ? (bytes, options = {}) => voxtralPreparer(options)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 // The graphics card vendors (names only, bridge/gpu-vendors.mjs), from the card list the setup check and the error report read too (looked up once):
@@ -347,7 +352,7 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
-  voxtral:voxtralVoice,languagePacks,pocketLanguages,
+  voxtral:voxtralVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
@@ -429,6 +434,8 @@ const omniSettled = () => voiceSettingsRead && (localVoice.requestedProvider !==
 // memory that Omni is about to take. Pocket runs on the CPU and counts nothing; V's OmniVoice engine is a job on the same worker and adds nothing.
 const omniStillToLoadMiB = () => localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && localVoice.playbackEnabled !== false && localVoice.provider !== 'omni'
   && (localVoice.fallback == null || localVoice.omniRetry != null) ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
+// The graphics memory OmniVoice holds while it is loaded: part of the card's used memory that is not the game's (the small-card room measures the game's footprint without it).
+const omniResidentMiB = () => localVoice.clientBackend === 'omni' && localVoice.client?.loaded === true && localVoice.playbackEnabled !== false ? SMALL_CARD_ROOM.omniVoiceMiB : 0;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
@@ -440,7 +447,7 @@ const scanCustomModels = () => (customScan = customScanner.scan({totalVramMiB: l
 const localModelSelection = () => { maturePackInstalled(true); return {pin: localModelPin, matureOn: matureContent.enabled, matureModels: maturePackModels, customModels: scanCustomModels().models}; };
 const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stateDirectory, 'local-ai-state.json'), selection: localModelSelection,
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
-  gameRoom: {voiceMiB: omniStillToLoadMiB, uptimeSeconds: () => process.uptime()},
+  gameRoom: {voiceMiB: omniStillToLoadMiB, residentVoiceMiB: omniResidentMiB},
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
 localServer.on('failed', ({reason}) => {
@@ -1239,6 +1246,30 @@ const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
 const vGenderMemory = {
   gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
   save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
+// The V voice mod scan (bridge/v-voice-mod-service.mjs, bridge/v-voice-mods.mjs): archive indexes and, only when a reference has to be built, the decoder, at most once per session,
+// in the background a little after start-up and only once V's voice is on (never at start, never per reply). A reference that changed (a mod installed, swapped or removed) is
+// installed where the workers read it and the running voices follow it (LiveVoices), with no restart; the player's own clip for V still wins.
+const V_MOD_SCAN_DELAY_MS = 20_000;
+let vModScanStarted = false;
+const scanVVoiceMods = async () => {
+  try {
+    const found = await loadVVoiceReferencesWithMods({...vVoiceLoadOptions, scan: true, current: vVoiceReferences.voices});
+    vVoiceModReport = found.report;
+    for (const gender of found.changed) {
+      const voice = found.voices[gender];
+      if (voice) {
+        await installVVoiceReference(voice, [...referenceRoots, voiceConfig.runtime?.referenceDirectory], {log: line => console.error('[VVoice] ' + line)});
+        vVoiceReferences.voices[gender] = voice;
+      } else delete vVoiceReferences.voices[gender];
+      await liveVoices?.refresh(V_VOICE_KEYS[gender]);
+    }
+  } catch (error) { console.error('[VVoice] the V voice mod scan failed: ' + String(error?.message ?? error).slice(0, 120)); }
+};
+const startVVoiceModScan = () => {
+  if (vModScanStarted) return;
+  vModScanStarted = true;
+  setTimeout(() => { void scanVVoiceMods(); }, V_MOD_SCAN_DELAY_MS).unref?.();
+};
 // Which reference V speaks from, for the log and the support report: the player's own clip, a V voice mod's ('mod:<archive file name>') or the shipped one.
 const vReferenceLabel = gender => playerVoices.has(V_VOICE_KEYS[gender]) ? 'manual' : vVoiceReferences.voices[gender]?.source ?? 'shipped';
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory, referenceLabel: vReferenceLabel,
@@ -1557,7 +1588,7 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
   for (;;) {
     throwIfCancelled(signal);
     if (stopped) throw Error('Voice service is closed');
-    const receipt = await localVoice.prepareProfile(profile, {signal});
+    const receipt = await localVoice.prepareProfile(profile, {signal, required: true});
     const unvoiced = receipt?.provider === 'convai' || receipt?.provider === 'text';
     if (receipt?.ready !== true || !['convai','text','pocket','omni'].includes(receipt.provider)
         || (!unvoiced && receipt.profile !== profile)) {
@@ -3412,10 +3443,12 @@ async function pollSettings(checkShutdown = true) {
     // (owner decision 2026-10-20), so V speaks with Pocket and is Voxtral again when the setting goes off. A saved OmniVoice counts as Pocket
     // unless the companions' chosen voice is OmniVoice and its pack is installed (a second big GPU model is never loaded for V): the same
     // two conditions as the row's greyed-out entry (mod/manager.lua vOmniBlock). An Omni voice that is merely failing or loading is not that:
-    // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it.
-    const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false;
+    // the engine stays Omni and V's line is skipped with the reason (vVoice.omni.problem), so no Pocket worker loads beside it. One that has FALLEN BACK is the other case (out of
+    // graphics memory, or no CUDA: both last for the session): the companions are on Pocket or text, so V reads as Pocket too and speaks with the Pocket worker that is loaded.
+    const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && !localVoice.omniNoMemory && !localVoice.omniNoCuda;
     const vSettings = vSettingsFor(settings, {cloudUsable: voxtralVoice.hasKey && matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
     if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
+    if (vVoice.enabled) startVVoiceModScan();
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));

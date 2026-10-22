@@ -916,10 +916,46 @@ test('an Omni timeout with graphics memory spilled into shared memory is not tri
   assert.equal(h.failures.length, 1, 'the first failure is still reported (it carries the graphics memory reading)'); assert.deepEqual(h.failures[0].gpu, SPILLED);
   // However long it waits, and whatever is chosen next, Omni is not started again.
   for (const delay of [45_000, 180_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('choosing OmniVoice again after it ran out of memory retries it once; a second memory failure is for the session again (review A11)', async () => {
+  const h = retryFixture({omni: ['timeout-spill', 'timeout-spill', 'ok'], options: {gpuMemoryMiB: () => 12282}});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniNoMemory, true); assert.equal(h.omniWorkers().length, 1);
+  // The same choice standing in the settings does nothing, however long it waits.
+  for (const delay of [45_000, 600_000]) { h.advance(delay); h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 1);
+  // The companions are on the loaded Pocket worker and V's line (read as Pocket, bridge/convai-bridge.mjs vOmniUsable) is spoken by it, not skipped for 'the companions are not on OmniVoice'.
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.vRouteSpeaks('johnny-silverhand'), true);
+  assert.match(h.voice.vOmniProblem('johnny-silverhand'), /not on OmniVoice/, 'the Omni engine itself would still be skipped: that is why V reads as Pocket');
+  // Choosing another voice and then OmniVoice again in the menu: one more try.
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 2, 'Omni is started once more');
+  assert.equal(h.voice.omniNoMemory, true, 'and the second failure for memory is for the session');
+  assert.ok(h.logs.some(line => /OmniVoice was chosen again: trying it once more/.test(line)));
+  for (const delay of [45_000, 600_000]) { h.advance(delay); h.voice.update({}, null, false); await h.settle(); }
+  assert.equal(h.omniWorkers().length, 2, 'no third attempt without another choice');
+  assert.equal(h.voice.resolvedProvider, 'pocket');
+  // Another round: the third try works and OmniVoice is the voice again.
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.omniWorkers().length, 3); assert.equal(h.voice.omniNoMemory, false); assert.equal(h.voice.resolvedProvider, 'omni');
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('no CUDA is a fact about the PC: choosing OmniVoice again does not retry it', async () => {
+  const h = retryFixture({omni: ['nocuda', 'ok']});
+  h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle();
+  h.voice.update({}, null, false); await h.voice.start(); await h.settle();
+  assert.equal(h.voice.omniNoCuda, true);
   h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
   h.voice.update({voiceProvider: 'omni'}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
-  assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.resolvedProvider, 'pocket');
-  await h.voice.close(); assert.equal(h.live(), 0);
+  assert.equal(h.omniWorkers().length, 1); assert.equal(h.voice.omniNoCuda, true);
+  await h.voice.close();
 });
 
 test('an Omni timeout on a card of 8 GB or less (no reading needed, a startup timeout has none) is the same: Pocket, once, no retry loop', async () => {

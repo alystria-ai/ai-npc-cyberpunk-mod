@@ -662,6 +662,19 @@ class LanguageModels(Assets):
         self.assertEqual(config['replace_characters'], {'\u2019': "'"}, 'the language configuration is the one that was downloaded')
         self.assertEqual(json.loads((self.language / 'inference.yaml').read_text())['weights_path'], 'model.safetensors', 'the downloaded file is not changed')
 
+    def test_a_model_read_before_is_not_hashed_again_until_the_file_changes(self):
+        runtime.VERIFIED_ASSETS.clear()
+        with patch.object(runtime, 'digest_file', wraps=runtime.digest_file) as digest:
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3)
+            runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 3, 'the second swap to the same unchanged files reads nothing')
+            model = self.language / 'model.safetensors'
+            model.write_bytes(b'a different French fixture!')   # another size: read again, and refused
+            with self.assertRaises(ValueError):
+                runtime.inspect_language_export(self.paths, 'fr', self.expected, yaml_load=json.loads)
+            self.assertEqual(digest.call_count, 4)
+
     def test_a_changed_file_a_wrong_hash_an_unknown_language_or_a_deeper_model_is_refused(self):
         for field in ('sha256', 'tokenizerSha256', 'configSha256'):
             with self.assertRaises(ValueError):
@@ -710,6 +723,35 @@ class LanguageModels(Assets):
         runtime.add_language_voices(registry, {'panam-palmer': {**self.descriptor, 'sha256': '0' * 64}})
         self.assertEqual(registry['refs'], {})
         self.assertEqual(registry['unavailable'], {'panam-palmer': 'unavailable'})
+
+    def test_a_language_voice_whose_clip_changed_is_prepared_again_from_the_new_clip(self):
+        registry = runtime.new_language_registry(self.validate(), 'fr', self.expected['sha256'])
+        store = self.prepared_store(directory=self.work / 'prepared-voices' / 'lang-fr', model=self.expected['sha256'])
+        encoded = []
+        cache = runtime.ReferenceCache(registry, lambda path: encoded.append(runtime.digest_file(path)) or {'prompt': runtime.digest_file(path)}, store=store)
+        runtime.add_language_voices(registry, {'panam-palmer': self.descriptor}, cache)
+        old_state, _ = cache.prepare('panam-palmer', keep=True)
+        old_hash = self.descriptor['sha256']
+        self.assertEqual(old_state, {'prompt': old_hash})
+        saved = [file.name for file in store.directory.glob('*.safetensors')]
+        self.assertEqual(saved, [store.path('panam-palmer', old_hash).name])
+        # the pack clip is replaced (an update of the pack), then the worker adds the voices again
+        clip = self.refs / 'multilingual' / 'fr' / 'picked' / 'panam-palmer.wav'
+        tone(clip, hertz=440)
+        changed_descriptor = {**self.descriptor, 'sha256': runtime.digest_file(clip)}
+        self.assertNotEqual(changed_descriptor['sha256'], old_hash)
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': changed_descriptor}, cache), ['panam-palmer'])
+        self.assertEqual(cache.prepared(), [], 'the old clone leaves the cache')
+        self.assertFalse(store.path('panam-palmer', old_hash).exists(), 'and the saved setup of the old clip leaves the disk')
+        new_state, _ = cache.prepare('panam-palmer', keep=True)
+        self.assertEqual(cache.last_source, 'computed', 'rebuilt from the new clip, not served from the cache or the disk')
+        self.assertEqual(new_state, {'prompt': changed_descriptor['sha256']})
+        self.assertEqual(len(encoded), 2)
+        # what a language swap would stash: the new hash is never beside the old clone
+        self.assertEqual({key: state['prompt'] == registry['descriptors'][key]['sha256'] for key, state in cache.states.items()}, {'panam-palmer': True})
+        # the same clip again leaves the voice alone
+        self.assertEqual(runtime.add_language_voices(registry, {'panam-palmer': changed_descriptor}, cache), [])
+        self.assertEqual(cache.prepared(), ['panam-palmer'])
 
     def test_the_language_command_is_read_like_any_serial_command(self):
         pipe = Pipe()

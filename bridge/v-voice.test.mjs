@@ -952,7 +952,7 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   // A saved Voxtral without a Mistral key is Pocket for V (the one row of V's voice offers Voxtral only with a key), and so is one beside Mature content
   // (owner decision 2026-10-20: no cloud voice with Mature content on).
   assert.match(bridge, /const vSettings = vSettingsFor\(settings, \{cloudUsable: voxtralVoice\.hasKey && matureAllowsCloudVoice\(matureContent\.enabled\), omniUsable: vOmniUsable\}\);/);
-  assert.match(bridge, /const vOmniUsable = localVoice\.requestedProvider === 'omni' && localVoice\.omniPack\?\.installed !== false;/);
+  assert.match(bridge, /const vOmniUsable = localVoice\.requestedProvider === 'omni' && localVoice\.omniPack\?\.installed !== false && !localVoice\.omniNoMemory && !localVoice\.omniNoCuda;/);
   assert.match(bridge, /if \(vVoice\.update\(vSettings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
   assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)/);
