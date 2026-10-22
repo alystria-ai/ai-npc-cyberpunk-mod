@@ -1871,3 +1871,36 @@ test('vision: without the setting the session connects audio-only, and turning i
   finalText(clients[1], 'Hi.', 'second');
   await second;
 });
+
+// ---- A text-only reply read while Convai is still writing it (bridge/realtime-host.mjs, textStream) ----------------------------------------
+
+function streamingRows(client, text, {done = false, id = 'reply'} = {}) {
+  const rows = [...client.chatMessages.filter(row => row.id !== id), {id, type: 'bot-llm-text', content: text, isStreaming: !done}];
+  client.chatMessages = rows; client.state.isThinking = !done;
+  client.handlers.get('messagesChange')(rows);
+}
+
+test('partialReply gives the text so far of the turn that asked for it, and nothing for any other key, before the turn, or after it', async () => {
+  const {api, clients} = fixture();
+  const cfg = {...config, ttsEnabled: false, textStreamKey: 'turn-key-1'};
+  await api.warm(cfg);
+  assert.equal(api.partialReply('turn-key-1'), '', 'no turn yet');
+  const pending = api.reply(cfg); await flush();
+  const client = clients[0];
+  assert.equal(api.partialReply('turn-key-1'), '', 'a turn with no text yet');
+  streamingRows(client, 'Sure, V. I can');
+  assert.equal(api.partialReply('turn-key-1'), 'Sure, V. I can');
+  assert.equal(api.partialReply('another-key'), '', 'another turn never reads this one');
+  assert.equal(api.partialReply(), '');
+  assert.equal(api.partialReply('bad key!'), '');
+  streamingRows(client, 'Sure, V. I can help with that.', {done: true});
+  const result = await pending;
+  assert.equal(result.text, 'Sure, V. I can help with that.', 'the reply call still returns the whole text');
+  assert.equal(api.partialReply('turn-key-1'), '', 'a finished turn is not readable');
+  // The next turn has no key of its own unless it asks for one: it never inherits the older reply's text.
+  const second = api.reply({...cfg, textStreamKey: undefined}); await flush();
+  streamingRows(client, 'Second reply.', {id: 'two'});
+  assert.equal(api.partialReply('turn-key-1'), '');
+  streamingRows(client, 'Second reply.', {id: 'two', done: true}); await second;
+  await api.close();
+});

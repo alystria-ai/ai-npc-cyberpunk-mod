@@ -1,4 +1,5 @@
 import {createServer} from 'node:http';
+import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {chromium} from 'playwright';
@@ -25,6 +26,9 @@ const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 // 32 MiB leaves room for pose timestamps, metadata and bounded reply text.
 // This is a transport ceiling, not a larger utterance/facial admission limit.
 export const CONTINUOUS_SNAPSHOT_JSON_LIMIT = 32 * 1024 * 1024;
+
+// How often the text of a reply that is still being written is read from the page (see evaluateSpeech, textStream).
+export const TEXT_STREAM_POLL_MS = 40;
 
 export async function continuousSnapshotForHost(page, token, signal, pcmFrom) {
   // Playwright recursively encodes every number in a returned object. Passing
@@ -331,11 +335,32 @@ export class RealtimeHost {
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
-  async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
+  async evaluateSpeech(page, method, config, {signal, liveSpeech, textStream, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);
     config = this.withVision(config);
-    if (!liveSpeech || config?.ttsEnabled === false)
-      return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+    if (!liveSpeech || config?.ttsEnabled === false) {
+      const textKey = textStream && method === 'reply' && typeof textStream.update === 'function' ? randomUUID() : null;
+      const call = page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config: textKey ? {...config, textStreamKey: textKey} : config, method});
+      // A text-only reply the bridge voices while Convai is still writing it (a local voice on the Convai text route): the text so far is read
+      // from the page every TEXT_STREAM_POLL_MS and handed to the reply stream, which finds the first sentence the voice can start on. The reply's
+      // own result still decides the final text. A poll that fails changes nothing (the call itself reports the failure).
+      if (textKey) {
+        let over = false, last = '';
+        const poll = (async () => {
+          while (!over && !signal?.aborted) {
+            try {
+              const text = await page.evaluate(key => window.convaiRealtime.partialReply?.(key) ?? '', textKey);
+              if (!over && typeof text === 'string' && text && text !== last) { last = text; textStream.update(text); }
+            } catch { /* the reply call reports a real failure */ }
+            if (over) break;
+            await new Promise(done => { const timer = setTimeout(done, TEXT_STREAM_POLL_MS); timer.unref?.(); });
+          }
+        })();
+        void poll.catch(() => {});
+        return abortable(call.finally(() => { over = true; }), signal);
+      }
+      return abortable(call, signal);
+    }
     const {token, onFrame} = liveSpeech;
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(token) || typeof onFrame !== 'function')
       throw Error('Invalid live speech admission');
@@ -431,7 +456,7 @@ export class RealtimeHost {
     };
     return this.observe(attempt(), method !== 'warm');
   }
-  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
+  async runOnce(config, method, {signal, discard = false, onAudioChunk, liveSpeech, textStream} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
     // Retire the old per-file chunk capability. Only an explicit liveSpeech
@@ -463,7 +488,7 @@ export class RealtimeHost {
       const images = await pictures;
       throwIfCancelled(signal);
       if (images) config.visionImages = images;
-      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech,
+      const result = await this.evaluateSpeech(lease.value, method, this.audioRates.forConfig(config), {signal, liveSpeech, textStream,
         current: () => epoch === this.epoch && !this.closing});
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();

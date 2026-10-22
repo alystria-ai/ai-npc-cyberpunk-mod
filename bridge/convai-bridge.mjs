@@ -1702,6 +1702,16 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     const config = realtimeConfig(input), token = result.lateEmotionToken;
     late.promise = waitLateEmotion(() => realtime.lateEmotion(config, token), {signal})
       .then(value => { late.signal = value; late.settled = true; late.lateMs = Date.now() - late.startedAt; return value; });
+  } else if (streamed?.convaiLate) {
+    // A streamed Convai reply: Convai's label (the ordered one, or the late one the page hands a token for) is known only when the reply has returned. The stream's planner
+    // reads `late` at each rebuild; the finished reply's plan below takes it when it is there.
+    late.settled = false;
+    const config = streamed.convaiLate;
+    late.promise = Promise.resolve(streamed.final).then(async final => {
+      if (final?.expressionSignal !== undefined) return final.expressionSignal;
+      if (!Number.isSafeInteger(final?.lateEmotionToken)) return undefined;
+      return waitLateEmotion(() => realtime.lateEmotion(config, final.lateEmotionToken), {signal});
+    }, () => undefined).then(value => { late.signal = value; late.settled = true; late.lateMs = Date.now() - late.startedAt; return value; });
   } else late.settled = true;
   const expressionReceipt = (plan, expression, extra = {}) => atomic(resolve(runtime, 'expression-receipt.json'), JSON.stringify({
     version: 3, updated: Date.now(), requestId: input.requestId, profile: input.profileKey, provider: omni ? 'omni' : 'pocket',
@@ -1739,12 +1749,13 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     expressionReceipt(plan, late.signal, {convai: late.signal.emotion, convaiLate: late.lateMs ?? null});
     return true;
   };
-  if (!omni) late.promise?.then(() => refine(), () => {});
+  if (!omni && !streamed) late.promise?.then(() => refine(), () => {});
   if (streamed) streamed.settle = async spoken => {
     const final = await finishedReply(streamed, spoken);
     const merged = mergeFinishedReply(spoken, final, streamed);
     const {expressionSignal: _signal, expressionPlan: _plan, ...base} = merged;
-    result = {...base, ...(final?.expressionSignal !== undefined ? {expressionSignal: final.expressionSignal} : {})};
+    const known = final?.expressionSignal ?? (late.settled ? late.signal : undefined);
+    result = {...base, ...(known !== undefined ? {expressionSignal: known} : {})};
     plan = planFor(result.expressionSignal);
     result = withPlan(result, plan);
     emotionSelection.remember(input.profileKey, plan);
@@ -1974,13 +1985,30 @@ async function respondStreamed(input, profile, {signal, current}) {
   final.catch(() => {});
   return voiceStreamedReply(input, profile, {signal, current, stream, final, config});
 }
+// The default route: Convai writes the text (its own voice is off), a local voice speaks it. The text so far is read from the conversation page while Convai writes it
+// (bridge/realtime-host.mjs, textStream) and the first complete sentence goes to the voice before the reply is finished, as on the text routes. Convai's own emotion label
+// belongs to the finished reply: it is read when the reply returns and the face takes it up as it does for a reply voiced as a whole (late, below).
+async function respondConvaiStreamed(input, profile, {signal, current}) {
+  const config = realtimeConfig(input);
+  const stream = newReplyStream(config, profile);
+  const final = Promise.resolve(realtime.reply(config, {signal, textStream: stream})).then(result => {
+    markStage('fullText');
+    // The finished text agrees with the sentence already given to the voice, or is cut back to it (the text never contradicts the audio).
+    const text = stream.reconcile(result.text);
+    const done = {...result, text, transport: 'realtime'};
+    stream.finish(text, done);
+    return done;
+  }, error => { stream.fail(error); throw error; });
+  final.catch(() => {});
+  return voiceStreamedReply(input, profile, {signal, current, stream, final, config, convaiLate: config});
+}
 const newReplyStream = (config, profile) => new ReplyStream({name: config.local?.name ?? profile?.name ?? '', isTag: hasEmotionTag});
 
 // The voice half of a streamed reply, shared by a typed turn (respondStreamed) and a voice-key turn (bridge/voice-key-stream.mjs, started
 // from prepareReply while the text host is still writing the reply). 'stream' is the ReplyStream the text host feeds, 'final' the
 // finished reply's promise. 'userText' (voice key only) is what the player said: the first sentence's admission carries it.
 // 'receiptPrepared' is the turn's knowledge receipt when it is not the default one (undefined: the default).
-async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared}) {
+async function voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText = () => '', receiptPrepared, convaiLate}) {
   const marks = [];
   stream.onChange(() => { if (stream.complete && Array.isArray(stream.meta?.emotionMarks)) marks.splice(0, marks.length, ...stream.meta.emotionMarks); });
   const whole = async () => synthesizeReply(input, await final, signal, current, profile, receiptPrepared);
@@ -2008,7 +2036,7 @@ async function voiceStreamedReply(input, profile, {signal, current, stream, fina
   const partial = {text: head, transport: 'realtime', sessionID: config.sessionId, timing: {streamedHead: true},
     ...(said ? {userText: said} : {}),
     ...(headMarks.length ? {emotionMarks: headMarks} : {}), ...(naturalSpeech.enabled && stream.headSounds.length ? {voiceMarks: stream.headSounds} : {})};
-  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal});
+  return synthesizeReply(input, partial, signal, current, profile, receiptPrepared, {stream, final, marks, signal, ...(convaiLate ? {convaiLate} : {})});
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
@@ -2025,6 +2053,7 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
     // Mistral has no Convai audio: a turn that would use the cloud voice (no local voice available) is a written reply.
     if (!turnUsesLocal(input) && !mistral.active) return convaiReply(input, profile, current, signal);
     if (mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondStreamed(input, profile, {signal, current});
+    if (!mistral.active && replyStreaming && !current?.ahead && !input.reaction) return respondConvaiStreamed(input, profile, {signal, current});
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal, current, profile);
   }
   prefetch.invalidate(); prepared?.cancel();
