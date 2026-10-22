@@ -388,6 +388,20 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
  * The bridge's recorder: fire and forget, at most once per signature per bridge run and QUEUE_MAX in all, never awaited by a turn.
  * Each record first reads settings.json (the setting may have changed) and then writes one file.
  */
+/**
+ * How a server the player runs ended an answer that had no text, as numbers and one short word (never any text of the answer): the end-of-answer reason it gave (`stop`, `length`, ...),
+ * the tokens it counted for it, the events and pieces of the stream, the seconds the answer took. An empty answer of such a server comes back in 100 ms or in seconds and the report said
+ * nothing else (2026-10-22 report: a custom server that answered the summary requests empty every time).
+ */
+export function emptyAnswerDetail(error) {
+  const trace = error?.kind === 'empty' && error?.provider === 'custom' ? error.trace : null;
+  if (!trace || typeof trace !== 'object') return {};
+  const whole = value => (Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined);
+  const finish = typeof trace.finishReason === 'string' && /^[a-z_]{1,20}$/.test(trace.finishReason) ? trace.finishReason : undefined;
+  const fields = {emptyFinish: finish, emptyEvents: whole(trace.events), emptyPieces: whole(trace.pieces), emptyThinking: whole(trace.reasoning), emptyTokens: whole(trace.completionTokens), emptyMs: whole(trace.elapsedMs)};
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+}
+
 export class ErrorEvents {
   constructor({stateDirectory, runtime, now = Date.now, defer = setImmediate} = {}) {
     Object.assign(this, {stateDirectory, runtime, now, defer});
@@ -407,7 +421,7 @@ export class ErrorEvents {
     const base = eventFromError(error, 'turn-failed');
     this.record({...base, message: `${clip(provider, 20)}${errorCode ? ` ${errorCode}` : ''}: ${base.message}`.slice(0, 400),
       detail: {provider: clip(provider, 20), ...(errorCode ? {errorCode} : {}), ...(microphone ? {microphone: true} : {}),
-        ...(localReason ? {localReason: clip(String(localReason), 40)} : {})}});
+        ...(localReason ? {localReason: clip(String(localReason), 40)} : {}), ...emptyAnswerDetail(error)}});
   }
   /**
    * A voice that could not start (the Pocket voice, V's own Pocket worker, OmniVoice), with the few words the worker gave. A player with no voice has

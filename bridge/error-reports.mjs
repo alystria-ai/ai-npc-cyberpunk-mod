@@ -42,7 +42,10 @@ export const MAX_LOG_LINES = 150;
 export const TIMINGS = Object.freeze({timeoutMs: 10_000, firstFlushMs: 60_000, debounceMs: 15_000, retryMs: 15 * 60_000,
   tickMs: 5 * 60_000, maxFailures: 3, crashPairMs: 30_000});
 const LINE_LIMIT = 300;
-const DETAIL_KEYS = new Set(['provider', 'errorCode', 'localReason', 'microphone', 'log', 'context', 'scripts', 'runtime', 'detail']);
+// `engine` and the graphics-memory numbers are what ErrorEvents.voiceFailed records (they never reached a report before: the voice reports of 2026-10-22 all had an empty detail), the `empty*` ones
+// how a server the player runs ended an answer with no text (emptyAnswerDetail in bridge/error-events.mjs): a short word and counts, never text.
+const DETAIL_KEYS = new Set(['provider', 'errorCode', 'localReason', 'microphone', 'log', 'context', 'scripts', 'runtime', 'detail',
+  'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs']);
 const VERSION = /^\d{1,6}(?:\.\d{1,6}){1,3}(?:[-+][0-9A-Za-z.-]{1,30})?$/;
 // Log sources, in the order they appear in a report, with their share of the 150 lines. `anchor`: the lines around the error's own
 // message are taken when it is found in the file (else the end of the file); `errors`: only error lines.

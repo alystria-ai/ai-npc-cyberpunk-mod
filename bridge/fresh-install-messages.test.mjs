@@ -83,10 +83,10 @@ test('a running service that never answers the setup check is a Runtime older th
   assert(lineOf('versions') == nil, 'nothing to say before the service has had a chance to answer')
   local shown, request = firstLoad(nil)
   assert(request ~= nil, 'a running service is asked')
-  assert(shown == 'The Scripts and Runtime versions do not match. Install the same version of both.', tostring(shown))
+  assert(shown == 'The Runtime is out of date. Apply its update zips one by one, or get the full Runtime.', tostring(shown))
   local line = lineOf('versions')
   assert(line.state == 'problem' and line.value == 'Problem', tostring(line and line.state))
-  assert(line.description == 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.', line.description)
+  assert(line.description == 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.', line.description)
   assert(check.problemCount() == 1 and table.concat(check.problems(), ',') == 'versions')
   assert(ids():sub(1, 17) == 'versions=problem ', ids())
   assert(table.concat(check.reportLines(), '\n'):find('the running service did not answer the request', 1, true))
@@ -153,7 +153,7 @@ test('a Local AI or Mature pack one folder too deep is told once: the packs line
 `));
 
 test('the new sentence is a catalogued English UI key', () => {
-  const text = 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.';
+  const text = 'The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the full Runtime from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, then restart the game.';
   assert.equal(catalog[text], text);
 });
 

@@ -143,6 +143,13 @@ test('an error inside the stream and an empty answer are errors; an empty answer
   assert.equal(calls, 2);
 });
 
+test('an empty answer of a custom server records how the server ended it (end reason, tokens counted), for the error report', async () => {
+  const finish = JSON.stringify({id: 'x', object: 'chat.completion.chunk', model: 'm', choices: [{index: 0, delta: {}, finish_reason: 'stop'}], usage: {prompt_tokens: 900, completion_tokens: 0}});
+  await assert.rejects(streamChat({apiKey: KEY, messages: [], retries: 0, provider: 'custom', endpoint: 'http://127.0.0.1:1234/v1/chat/completions', trustedOrigin: 'http://127.0.0.1:1234',
+    fetchImpl: async () => sse(`data: ${finish}\n\n`, 'data: [DONE]\n\n')}),
+  error => error.kind === 'empty' && error.trace.finishReason === 'stop' && error.trace.completionTokens === 0 && error.trace.pieces === 0);
+});
+
 test('a timeout before the first byte is a network error, and the caller cancelling is an abort, not an error', async () => {
   const hang = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'}))));
   await assert.rejects(streamChat({apiKey: KEY, messages: [], retries: 0, firstByteMs: 20, fetchImpl: hang}), error => error.kind === 'network');

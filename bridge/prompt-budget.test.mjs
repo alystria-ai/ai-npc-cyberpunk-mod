@@ -287,6 +287,32 @@ test('two turns that differ only in the world facts share the system message up 
   assert(early_shared < shared - 1000, 'the old order shares far less');
 });
 
+test('PrefillMeter: a slow reading is carried to the model that replaces it on the same computer, for as long as it is recent, and a fast one is not', () => {
+  let clock = 1_000_000;
+  const now = () => clock;
+  const cpu = new PrefillMeter({now, offload: true});
+  assert.deepEqual(cpu.carry(), {rate: PREFILL.offloadPrior, at: clock}, 'the prior of a model with layers on the CPU is carried while a turn used it lately');
+  clock += 4 * 60_000; cpu.touch();
+  const next = new PrefillMeter({now, carry: cpu.carry()});
+  assert.equal(next.tokensPerSecond, PREFILL.offloadPrior, 'a model on the card that follows it is believed slow at first');
+  assert.equal(next.slow, true);
+  next.observe({timings: {promptTokens: 3000, cachedTokens: 0, promptMs: 1000}});   // 3,000 a second: the card is fine after all
+  assert.equal(next.tokensPerSecond, (PREFILL.offloadPrior + 3000) / 2);
+  assert.equal(next.slow, false, 'measured fast within one turn');
+  assert.equal(next.carry(), null, 'a fast machine carries nothing');
+  // A reading that is older than PREFILL.maxAgeMs is not carried, and a carried one ages from when it was made.
+  const old = new PrefillMeter({now, offload: true});
+  clock += PREFILL.maxAgeMs + 1;
+  assert.equal(old.carry(), null);
+  assert.equal(new PrefillMeter({now, carry: {rate: 100, at: clock - PREFILL.maxAgeMs - 1}}).tokensPerSecond, null);
+  // A measurement carries with the time it was made.
+  const measured = new PrefillMeter({now});
+  measured.observe({timings: {promptTokens: 3000, cachedTokens: 0, promptMs: 15000}});   // 200 a second
+  const made = clock; clock += 5 * 60_000;
+  assert.deepEqual(measured.carry(), {rate: 200, at: made});
+  assert.equal(new PrefillMeter({now, carry: measured.carry()}).tokensPerSecond, 200);
+});
+
 test('PrefillMeter: learns the reading speed from the server\'s timings and from a request stuck on the prompt, and asks for a smaller prompt only on a slow machine', () => {
   let clock = 0;
   const meter = new PrefillMeter({now: () => clock});
