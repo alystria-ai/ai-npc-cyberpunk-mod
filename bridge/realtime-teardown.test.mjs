@@ -428,7 +428,7 @@ test('packaged client assets preserve the exact route allowlist and loopback Hos
   const executable = resolve(process.cwd(), 'packaged 浏览器/browser.exe');
   const {host, browser, launches, assets} = await assetFixture(t, {browserExecutable: executable});
   await host.start();
-  assert.deepEqual(launches, [{executablePath: executable, headless: true,
+  assert.deepEqual(launches, [{executablePath: executable, headless: true, chromiumSandbox: true,
     ignoreDefaultArgs: ['--mute-audio'],
     args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
       '--disable-backgrounding-occluded-windows']}]);

@@ -5,12 +5,12 @@ import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {launchSystemBrowser} from './system-browser.mjs';
+import {browserMissing, launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 import {AudioRates} from './convai-audio-rates.mjs';
 
-const PCM_MODULES = Object.freeze([
+export const PCM_MODULES = Object.freeze([
   'continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs',
   'local-pcm-client.mjs',
 ]);
@@ -283,7 +283,7 @@ export class RealtimeHost {
     let browser;
     try {
       // Edge, else an installed Chrome; CYBERPUNK_CONVAI_BROWSER (a developer's override) names an executable instead.
-      browser = await launchSystemBrowser(browserChoice => this.launchBrowser({...browserChoice, headless: true,
+      browser = await launchSystemBrowser(browserChoice => this.launchWithSandbox({...browserChoice, headless: true,
         ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
         // The hidden pages play the reply (and run the Convai connection) while the game window has the focus: Chromium must not treat them as
         // background pages (timers throttled, the renderer's priority class lowered, a window it calls occluded paused), or a reply waits.
@@ -330,6 +330,25 @@ export class RealtimeHost {
       }, dispose: page => this.disposePage(page)});
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
+  }
+  /**
+   * Starts the hidden Chromium with its renderer sandbox on (Playwright adds --no-sandbox unless chromiumSandbox is true): the page decodes remote
+   * WebRTC audio and data, and a renderer bug stays inside the sandbox. If the browser will not start that way (a restricted Windows account, Wine
+   * or Proton, security software that blocks the sandbox's job objects), it is started once more without it, the reason is logged, and the host
+   * remembers it, so no later start tries the sandbox again. A browser that is simply not there is not retried.
+   */
+  async launchWithSandbox(options) {
+    if (this.sandboxRefused) return this.launchBrowser({...options, chromiumSandbox: false});
+    try {
+      return await this.launchBrowser({...options, chromiumSandbox: true});
+    } catch (error) {
+      if (browserMissing(error)) throw error;
+      const reason = String(error?.message ?? error).split(/\r?\n/).find(line => line.trim())?.trim().slice(0, 160) ?? 'no reason given';
+      const browser = await this.launchBrowser({...options, chromiumSandbox: false});
+      this.sandboxRefused = true;
+      try { this.log(`The hidden browser would not start with its sandbox (${reason}); it runs without it`); } catch {}
+      return browser;
+    }
   }
   async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
     if (this.credential) config = await abortable(Promise.resolve(this.credential(config)), signal);

@@ -209,7 +209,7 @@ export function systemBrowserAvailable(options = {}) {
   return !systemBrowserCandidates({...options, env}).next().done;
 }
 
-const missing = error => /is not found|doesn't exist|does not exist|ENOENT/i.test(String(error?.message ?? error));
+export const browserMissing = error => /is not found|doesn't exist|does not exist|ENOENT/i.test(String(error?.message ?? error));
 
 // ------------------------------------------------------------------------------------------ the player's browser.txt
 
@@ -277,7 +277,7 @@ export function resetBrowserFailureLog() { saidAlready.clear(); }
 // The error for a browser that was found (or named) and would not start: it names the browser, so the log and the game say that and not "no
 // browser". Its code, BROWSER_START_FAILED, is read by the bridge, which tells the game.
 function startFailure(error, name, log) {
-  const message = missing(error) ? `${name} is set as the browser but its program is not there` : `${name} was found but would not start: ${startReason(error)}`;
+  const message = browserMissing(error) ? `${name} is set as the browser but its program is not there` : `${name} was found but would not start: ${startReason(error)}`;
   if (!saidAlready.has(message)) { saidAlready.add(message); log(message + '.'); }
   return Object.assign(Error(message), {code: 'BROWSER_START_FAILED', browser: name, cause: error});
 }
@@ -305,7 +305,7 @@ export async function launchSystemBrowser(launch, {executablePath, log = () => {
   for (const {name, choice} of launchChoices(lookup)) {
     try { return await launch(choice); } catch (error) { errors.push({error, name}); }
   }
-  const real = errors.find(({error}) => !missing(error));
+  const real = errors.find(({error}) => !browserMissing(error));
   if (real) throw startFailure(real.error, real.name, log);
   if (!saidAlready.has(NO_BROWSER_MESSAGE)) { saidAlready.add(NO_BROWSER_MESSAGE); log(NO_BROWSER_MESSAGE); }
   throw Object.assign(Error(NO_BROWSER_MESSAGE), {code: 'NO_BROWSER', cause: errors[0]?.error});
