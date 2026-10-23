@@ -15,6 +15,7 @@ Read sites: the Lua getter or rule in `mod/manager.lua`, and the bridge reader. 
 | Key | Values | Default | Lua (read / rules) | Bridge (read) | Enables, disables, forces | Loads / unloads | Player text |
 |---|---|---|---|---|---|---|---|
 | `uiLanguage` | `auto` or 15 codes | `auto` | `ui.configure`; unknown → `auto` | `speech-language.mjs` `update` (mic language hint) | hint for non-English mic recognition | none | Interface language (see D5) |
+| `replyLanguage` (2026-10-23) | `en`, `auto` or 14 codes (`REPLY_LANGUAGES`) | `en` | `M.replyLanguageChoices`; unknown or missing → `en` (no migration: a missing key is English for everyone) | `multilingual.mjs` `replyLanguageFrom` (needs `voice` on), `setFixed` | a fixed language skips the detection: twin, voice plan, context, V's line; `auto` detects (short lines never switch, hysteresis); with `voice` off it does nothing | none | Voice language |
 | `archetypeConversations` | bool | on | `M.archetypeConversations`, `profileEnabled` | – | npc-* profiles talk | none | Talk to ordinary NPCs |
 | `storyConversations` | bool | off | `M.storyConversations` | – | game characters talk (talk, face and audio only) | none | Talk to story characters |
 | `reputation` (2026-10-23) | bool | off | `M.reputation`; on loads `mod/reputation.lua` and registers its three hooks (`init.lua` `convaiReputationWanted`) | `bridge/reputation.mjs`, only when a turn carries the game's `reputation` snapshot | ordinary NPCs' standing lines (docs/REPUTATION_DESIGN.md) | off: nothing loaded, hooked or written | Street reputation |

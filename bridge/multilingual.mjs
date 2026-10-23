@@ -1,4 +1,5 @@
-// Replies follow the player's language, automatically (the Multilingual conversations setting is gone since 2026-10-21).
+// Replies follow the player's language, automatically (the Multilingual conversations setting is gone since 2026-10-21), unless the Voice language
+// setting (Settings > Voices, `replyLanguage`, 2026-10-23) fixes a language: English is its default, Automatic is the detection described below.
 //
 // Every turn's text is checked by bridge/reply-language.mjs, once, with no model and no I/O. What that decides:
 //   - the reply-language block of the turn's context (textProviderLanguageContext: nothing in an English conversation, so the context is
@@ -17,7 +18,8 @@
 // cannot speak a turn (a local one that failed, Pocket in a language other than English, Voxtral with no key or in a language it does not list)
 // never hands the turn to a cloud voice. That turn is 'none': the reply is shown as written text (owner rule 2026-10-21).
 // Pure functions plus one small state holder: no I/O.
-import {detectLanguage} from './reply-language.mjs';
+import {assessLanguage, detectLanguage, spokenLanguage} from './reply-language.mjs';
+import {MOD_LANGUAGES} from './speech-language.mjs';
 
 const plain = value => !!value && typeof value === 'object' && !Array.isArray(value)
   && [Object.prototype, null].includes(Object.getPrototypeOf(value));
@@ -55,15 +57,88 @@ export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
   return {twins, skipped};
 }
 
-/** The language the conversation was last in: a fallback for turns without text of their own (a recording, a reaction, one word). */
+// ---- The Reply language setting (Settings, Voices; runtime/settings.json `replyLanguage`) -----------------------------------
+/**
+ * The choices, in the order of the row: English (the default), Automatic ('auto', the detection below), then the mod's other languages (the
+ * interface languages: the ones the voice language packs, the Pocket language models and the cloud voices speak). mod/manager.lua holds the same list.
+ */
+export const REPLY_LANGUAGES = Object.freeze(['en', 'auto', ...MOD_LANGUAGES.filter(code => code !== 'en')]);
+export const DEFAULT_REPLY_LANGUAGE = 'en';
+/**
+ * What the saved settings make of it: {setting, fixed}. `setting` is the saved choice (an unknown value reads as English). `fixed` is the
+ * language every turn is in, or null when the detection decides. It is a VOICE setting: while Voice playback is off it does nothing and the
+ * routing is Automatic, exactly as before the setting existed.
+ */
+export function replyLanguageFrom(settings) {
+  const raw = settings?.replyLanguage;
+  const setting = REPLY_LANGUAGES.includes(raw) ? raw : DEFAULT_REPLY_LANGUAGE;
+  const voice = settings?.voice !== false;
+  return {setting, fixed: voice && setting !== 'auto' ? setting : null};
+}
+
+/**
+ * The language of the conversation, kept between turns: a fallback for turns without text of their own (a recording, a reaction, one word), and
+ * the state of the reply-language detection (Automatic).
+ *
+ * Automatic is careful (docs/MULTILINGUAL_PROFILES.md, "Reply language"): a text moves the conversation to another language only when
+ *   - it is solid evidence (bridge/reply-language.mjs assessLanguage: not a short Latin line, unless the word lists are highly confident AND
+ *     the line holds a letter English does not write), and
+ *   - it is a long line, or the second solid detection of that language in a row, or it agrees with the prior (the language the player was
+ *     heard in before, or the game's own text language: `hint` and `prior`).
+ * A short line in Latin letters ("hows biz", "wassup", "yo choom") never moves it.
+ * A fixed reply language (`setFixed`, the Reply language setting while Voice playback is on) skips all of it: every turn is in that language.
+ */
 export class MultilingualConversations {
-  constructor() { this.lastLanguage = null; }
-  /** Remember a confidently detected language of player text or a reply. Returns true when it changed. */
-  observe(text) {
-    const {language} = detectLanguage(text);
-    if (!language || language === this.lastLanguage) return false;
-    this.lastLanguage = language;
+  constructor() { this.lastLanguage = null; this.pending = null; this.prior = null; this.fixed = null; }
+  /** The Reply language setting: a language code, or null for Automatic. Returns true when it changed. */
+  setFixed(code) {
+    const next = typeof code === 'string' && code && code !== 'auto' ? code : null;
+    if (next === this.fixed) return false;
+    this.fixed = next; this.pending = null;
+    if (next) this.lastLanguage = next;
     return true;
+  }
+  /** The game's own text language (the menu language), the weakest prior; null when it is not known. */
+  setPrior(code) { this.prior = typeof code === 'string' && code ? code : null; }
+  /**
+   * What a text does to the conversation, without changing anything: {language, detected, commit}.
+   *   language: the language this turn is in (the new one when the text moves the conversation, else where it stays; null when nothing is known);
+   *   detected: the text had a language of its own (whether or not it was solid);
+   *   own:      the turn's language is the text's own (not just where the conversation stays);
+   *   commit:   {lastLanguage, pending} to store when the turn is published.
+   */
+  judge(text, hint = null) {
+    const stay = {language: this.lastLanguage ?? hint ?? null, detected: false, own: false, commit: {lastLanguage: this.lastLanguage, pending: this.pending}};
+    if (this.fixed) return {...stay, language: this.fixed, own: true, commit: {lastLanguage: this.fixed, pending: null}};
+    const found = assessLanguage(text);
+    if (!found.language) return stay;
+    stay.detected = true;
+    const known = this.lastLanguage ?? hint ?? null;
+    if (found.language === known) return {...stay, own: true, commit: {lastLanguage: known, pending: null}};
+    const expected = hint ?? this.prior;
+    const agrees = !!expected && found.language === expected && found.language !== 'en' && found.strength !== 'model' && found.tokens >= 3;
+    // A line of three words or more that agrees with the prior (a language the player was heard in, or the game's own) does not have to prove itself twice.
+    if (!found.solid && !(agrees && found.short)) return stay;
+    const confirmed = found.long || agrees || this.pending?.language === found.language;
+    if (!confirmed) return {...stay, commit: {lastLanguage: this.lastLanguage, pending: {language: found.language}}};
+    return {language: found.language, detected: true, own: true, commit: {lastLanguage: found.language, pending: null}};
+  }
+  /** Remember a text of the player (or a reply). Returns true when the conversation's language changed. */
+  observe(text, hint = null) {
+    const {commit} = this.judge(text, hint);
+    const changed = commit.lastLanguage !== this.lastLanguage;
+    this.lastLanguage = commit.lastLanguage; this.pending = commit.pending;
+    return changed;
+  }
+  /**
+   * A published turn: the player's text decides; the reply counts only when the player's text had no language of its own (a recording, a
+   * reaction), so a reply cannot be the second detection of the player's own line.
+   */
+  observeTurn(playerText, replyText, hint = null) {
+    if (this.fixed) return false;
+    const mine = this.judge(playerText, hint);
+    if (mine.detected) return this.observe(playerText, hint);
+    return this.observe(replyText, hint);
   }
   /**
    * The reply-language block for a turn (textProviderLanguageContext). `hint` is a language the player is known to use (the microphone's last
@@ -71,15 +146,27 @@ export class MultilingualConversations {
    * when the conversation has no language yet.
    */
   contextFor(text, hint = null) {
-    return textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint});
+    if (this.fixed) return textProviderLanguageContext({fixed: this.fixed});
+    const {language, own} = this.judge(text, hint);
+    return textProviderLanguageContext({text, lastLanguage: this.lastLanguage ?? hint, decided: own ? language : null});
   }
-  /** The language a turn is expected in: its own text when that is clear, else the last exchange's, else English. */
-  expected(text) {
-    const {language} = detectLanguage(text);
-    return language ?? this.lastLanguage ?? 'en';
+  /** The language a turn is expected in: a fixed choice, else its own text when that is clear enough, else the last exchange's, else English. */
+  expected(text) { return this.judge(text).language ?? 'en'; }
+  /** The language of one line V types (V's voice, bridge/v-voice.mjs): English unless the line is solidly in another language or a fixed one is chosen. */
+  lineLanguage(text) {
+    if (this.fixed === 'en') return 'en';
+    const own = spokenLanguage(text);
+    if (this.fixed) return own === 'en' ? 'en' : this.fixed;
+    return own ?? 'en';
   }
   /** Does the Convai route send this turn to the multilingual twin? (wantsTwin) */
-  wantsTwin({text, reaction = false, hint = null} = {}) { return wantsTwin({text, reaction, lastLanguage: this.lastLanguage ?? hint}); }
+  wantsTwin({text, reaction = false, hint = null} = {}) {
+    if (this.fixed) return this.fixed !== 'en';
+    const held = this.lastLanguage ?? hint;
+    if (reaction || typeof text !== 'string' || !text) return !!held && held !== 'en';
+    const {language} = this.judge(text, hint);
+    return !!language && language !== 'en';
+  }
 }
 
 /**
@@ -114,7 +201,11 @@ export function wantsTwin({text, reaction = false, lastLanguage = null} = {}) {
  * another language never reaches Pocket (a fallback or hand-edited setup). A voice that cannot speak the language (Pocket, or Voxtral for a
  * language it does not list) is shown as text, never handed to the Convai voice.
  */
-export function planTurnVoice({enabled = false, language = 'en', local = {}, textProvider = false} = {}) {
+export function planTurnVoice({fixed = false, ...rest} = {}) {
+  const plan = planVoice(rest);
+  return fixed ? {...plan, fixed: true} : plan;
+}
+function planVoice({enabled = false, language = 'en', local = {}, textProvider = false} = {}) {
   const chosen = local.uses ? local.provider : local.convai === true ? 'convai' : 'none';
   if (chosen === 'none') return {engine: 'none', language: enabled || textProvider ? (language || 'en') : null, reason: 'local-voice-unavailable', ...(enabled ? {} : textProvider ? {textProvider: true} : {})};
   if (!enabled && !textProvider) return {engine: chosen, language: null, reason: 'multilingual-off'};
@@ -177,7 +268,7 @@ export function replyVoice({plan, text, local = {}} = {}) {
   // A text provider never changes the chosen voice in an English conversation (a Voxtral player stays on Voxtral, and Pocket still speaks a
   // reply full of the characters' Spanish slang): only a conversation in another language checks the finished reply.
   if (plan.textProvider) {
-    const language = detectLanguage(text).language ?? plan.language ?? 'en';
+    const language = (plan.fixed ? null : spokenLanguage(text)) ?? plan.language ?? 'en';
     if (plan.engine === 'omni') return {engine: 'omni', language};
     if (plan.language === 'en') return {engine: plan.engine, language: 'en'};
     if (language === 'en') return {engine: plan.engine, language: 'en'};
@@ -185,8 +276,8 @@ export function replyVoice({plan, text, local = {}} = {}) {
     if (pocketSpeaks(local, language)) return {engine: plan.engine, language};
     return {engine: 'none', language, reason: unspoken(language)};
   }
-  const detected = detectLanguage(text).language;
-  // An unclear reply keeps what the turn expected.
+  const detected = plan.fixed ? null : spokenLanguage(text);
+  // An unclear reply (or a short one in Latin letters, which says little) keeps what the turn expected.
   const language = detected ?? plan.language ?? 'en';
   if (local.provider === 'omni') return {engine: 'omni', language};
   if (language === 'en') return {engine: 'pocket', language: 'en'};
@@ -209,8 +300,7 @@ const REFERENCE_NOTE = 'Everything else in this context is written in English on
  * answered in English in game (2026-10-08). Naming the language of the player's message fixes that. A turn without
  * player text (a reaction, the microphone placeholder) follows the language the conversation was last in.
  */
-export function languageContext({text, lastLanguage = null} = {}) {
-  const language = detectLanguage(text).language;
+export function languageContext({text, lastLanguage = null, language = detectLanguage(text).language} = {}) {
   if (language) {
     const name = LANGUAGE_NAMES[language] ?? 'that language';
     return `Language: answer in the language of the player's latest message, which is ${name}. ${REFERENCE_NOTE} `
@@ -228,14 +318,24 @@ export function languageContext({text, lastLanguage = null} = {}) {
  *   it has no clear language (a recording, a reaction, one word) and the conversation is in another language: that language is kept;
  *   otherwise nothing.
  */
-export function textProviderLanguageContext({text, lastLanguage = null} = {}) {
-  const language = detectLanguage(text).language;
+export function textProviderLanguageContext({text, lastLanguage = null, fixed = null, decided} = {}) {
+  // A fixed reply language (Settings > Voices > Reply language): named on every turn, English excepted (an English conversation sends the
+  // context it always did).
+  if (fixed) return fixed === 'en' ? '' : fixedLanguageContext(fixed);
+  // `decided`: the language the conversation's rules settled on for this turn (MultilingualConversations.judge; null: none), which a short line does not move.
+  const language = decided !== undefined ? decided : detectLanguage(text).language;
   if (language) {
     if (language === 'en' && (!lastLanguage || lastLanguage === 'en')) return '';
-    return languageContext({text, lastLanguage});
+    return languageContext({language, lastLanguage});
   }
   if (!lastLanguage || lastLanguage === 'en') return '';
-  return languageContext({text, lastLanguage});
+  return languageContext({language: null, lastLanguage});
+}
+
+/** The reply-language block of a fixed reply language: the player's chosen language, whatever they write. */
+export function fixedLanguageContext(code) {
+  const name = LANGUAGE_NAMES[code] ?? 'that language';
+  return `Language: write the whole reply in ${name}, whatever language the player's message is in. ${REFERENCE_NOTE} Keep your own personality, slang and names.`;
 }
 
 /**

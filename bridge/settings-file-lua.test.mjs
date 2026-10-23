@@ -17,7 +17,7 @@ const luaString = text => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").r
 const customised = {
   ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
   voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead',
-  naturalSpeech: true, followUpInterest: false,
+  naturalSpeech: true, followUpInterest: false, replyLanguage: 'ja',
 };
 
 test('a first start writes exactly the documented defaults, once; a second start from that file writes nothing', () => {
@@ -82,7 +82,7 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('writes', writes('runtime/settings.json.tmp'))
     `);
     for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'voiceProvider', 'omniSteps',
-      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'followUpInterest']) {
+      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'followUpInterest', 'replyLanguage']) {
       assert.deepEqual(out.settings[key], customised[key], `${key} came back from the backup`);
     }
     assert.equal(out.writes, 0, 'a normalized backup needs no rewrite just to be loaded');
@@ -139,7 +139,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
     johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
-    uiLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
+    uiLanguage: 'klingon', replyLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
     errorReports: 'off', dynamicInfo: 'all',
   };
   const out = run(`${managerLua}

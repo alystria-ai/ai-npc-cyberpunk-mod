@@ -12,7 +12,7 @@
 // English evidence keeps the English path whatever the interface says (an English speaker with a Russian game gets Moonshine).
 //
 // Pure functions and one small state holder: no I/O except the optional file read the caller passes in.
-import {detectLanguage} from './reply-language.mjs';
+import {spokenLanguage} from './reply-language.mjs';
 import {VOXTRAL_STT3_LANGUAGES} from './voxtral-languages.mjs';
 
 // The languages Mistral's transcription model lists (Voxtral Mini Transcribe 3, docs.mistral.ai, 2026-10-21; bridge/voxtral-languages.mjs): 44 of the
@@ -115,8 +115,8 @@ export class SpeechLanguage {
   /** Text the player typed. Only a clear language counts (a short or mixed line says nothing). Returns true when the language changed. */
   observeText(text) {
     if (typeof text !== 'string' || !text.trim()) return false;
-    const {language} = detectLanguage(text);
-    return this.#set(language, 'text');
+    // A short line in Latin letters says little ("hows biz" is not Turkish): spokenLanguage keeps English and accepts another language only when solid.
+    return this.#set(spokenLanguage(text), 'text');
   }
   /** The language an engine reported for a recording ('ru', 'Russian', 'pt-br'). */
   observeVoice(value) { return this.#set(baseLanguage(value), 'voice'); }
@@ -137,6 +137,15 @@ export class SpeechLanguage {
     }
     return baseLanguage(this.fileText);
   }
+  /**
+   * The game's own text language (the interface language setting, else runtime/ui-language.txt as last read), as a base code, or null. It is the
+   * weakest prior of the reply-language detection (bridge/multilingual.mjs). `refreshUi()` reads the file (at most once in a few seconds).
+   */
+  uiPrior() {
+    if (this.setting !== 'auto') return baseLanguage(this.setting);
+    return this.fileText ? baseLanguage(this.fileText) : null;
+  }
+  async refreshUi() { await this.#ui(); return this.uiPrior(); }
   /** {language, source} for the recording that opens now: 'text' | 'voice' | 'ui' | 'default'. */
   async current() {
     if (this.evidence) return {language: this.evidence.language, source: this.evidence.source};

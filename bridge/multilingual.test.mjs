@@ -133,9 +133,12 @@ test('the turn plan gates Natural speech and Expressive emotions: the cloud voic
 test('the holder remembers the language the conversation was last in, on every route', () => {
   const value = new MultilingualConversations();
   assert.equal(value.expected('[Microphone]'), 'en');
+  // Hysteresis: a short line leaves English only as the second solid detection in a row (or as one long line).
+  assert.equal(value.observe('Hola, ¿cómo estás?'), false, 'the first short line is only noted'); assert.equal(value.lastLanguage, null);
   assert.equal(value.observe('Hola, ¿cómo estás?'), true); assert.equal(value.lastLanguage, 'es');
   assert.equal(value.expected('[Microphone]'), 'es', 'a turn without text keeps the conversation language');
-  assert.equal(value.expected('How are you doing tonight?'), 'en');
+  assert.equal(value.expected('How are you doing tonight?'), 'es', 'one English line does not move a Spanish conversation back');
+  assert.equal(value.expected('hows biz'), 'es');
   assert.equal(value.observe('ok'), false, 'unclear text keeps the last language');
   assert.equal(value.lastLanguage, 'es');
   // There is no setting to switch it off or on: an old settings object is not read.
@@ -162,7 +165,7 @@ test('wantsTwin: a clear non-English message goes to the twin, a clear English o
   const value = new MultilingualConversations();
   assert.equal(value.wantsTwin({text: '[Microphone]'}), false);
   assert.equal(value.wantsTwin({text: '[Microphone]', hint: 'fr'}), true);
-  value.observe('Siamo quasi arrivati?');
+  value.observe('Hola, ¿cómo estás?'); value.observe('Hola, ¿cómo estás?');
   assert.equal(value.wantsTwin({text: 'ok', hint: 'en'}), true, 'the conversation\'s language wins over the hint');
 });
 
@@ -626,7 +629,10 @@ test('the reply-language block names the player\'s language, last in the context
   assert.match(languageContext({text: ''}), /language the player is using with you\. Everything else/);
   const setting = new MultilingualConversations();
   assert.equal(setting.contextFor('How are you?'), '', 'an English conversation sends the context it always did');
-  assert.match(setting.contextFor('hola, cómo estás'), /which is Spanish/);
+  assert.equal(setting.contextFor('hola, cómo estás'), '', 'a short line alone does not leave English');
+  setting.observe('hola, cómo estás');
+  assert.match(setting.contextFor('hola, cómo estás'), /which is Spanish/, 'the second in a row does');
+  assert.match(new MultilingualConversations().contextFor('hola, cómo estás? vamos a la tienda, que tengo mucho que hacer'), /which is Spanish/, 'a long line at once');
   setting.observe('Hola, ¿cómo estás?');
   assert.match(setting.contextFor('[Microphone]'), /so far Spanish/);
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
@@ -647,7 +653,7 @@ test('an English conversation adds nothing: the context stays what it always was
   const setting = new MultilingualConversations();
   for (const text of ['What do you need, choom?', 'Hey V, meet me at the Afterlife tonight.', '', '[Microphone]', 'ok', "Ay, chica, let's go"])
     assert.equal(setting.contextFor(text), '', JSON.stringify(text));
-  setting.observe('What do you need, choom?'); setting.observe('Nothing much, V. You?');
+  setting.observe('Hey V, meet me at the Afterlife tonight.'); setting.observe('Nothing much, V. You?');
   assert.equal(setting.lastLanguage, 'en');
   assert.equal(setting.contextFor('[Microphone]'), '');
   assert.equal(setting.contextFor('Thanks, that helps.'), '');
@@ -658,7 +664,8 @@ test('the note follows the conversation: kept for a turn with no text, and Engli
   assert.equal(setting.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.'), true);
   assert.match(setting.contextFor('[Microphone]'), /language the player is using with you \(so far Spanish\)/);
   assert.match(setting.contextFor(''), /so far Spanish/, 'a reaction bark follows the conversation');
-  assert.match(setting.contextFor('Thanks, that helps a lot.'), /which is English/, 'back to English: said once, so the reply follows');
+  assert.match(setting.contextFor('Thanks, that helps a lot.'), /so far Spanish/, 'a short English line does not move the conversation');
+  assert.match(setting.contextFor('Thanks, that really helps me a lot today.'), /which is English/, 'back to English with a long line: said once, so the reply follows');
 });
 
 test('a short line in a supported language is called by the context block (the live finding of 2026-10-21: "Combien de temps encore ?" was answered in English)', () => {
@@ -800,14 +807,14 @@ test('one notice per game session says OmniVoice has voices in other languages',
 
 test('the bridge wires the text-provider language: note, voice plan, notice and the V line', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /planTurnVoice\(\{textProvider: true, language: multilingual\.expected\(input\.reaction \? '' : input\.text\),/);
+  assert.match(bridge, /planTurnVoice\(\{textProvider: true, fixed: multilingual\.fixed !== null, language: multilingual\.expected\(input\.reaction \? '' : input\.text\),/);
   assert.match(bridge, /\?\? voiceLanguageNotice\.take\(\)/);
   assert.match(bridge, /if \(!unavailable && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
-  assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.expected\(input\.text\)\}\)/);
+  assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.lineLanguage\(input\.text\)\}\)/);
   // An add-on speaker's own remarks follow the conversation's last detected language (the player's, on any route).
-  assert.match(bridge, /lastLanguage: multilingual\.lastLanguage \?\? speechLanguage\.evidence\?\.language \?\? null\}\);/);
+  assert.match(bridge, /const language = multilingual\.contextFor\(input\.reaction \? '' : input\.text, speechLanguage\.evidence\?\.language \?\? null\);/);
   // A reply to a reaction (a bark) does not set the conversation's language.
-  assert.match(bridge, /if \(!input\.reaction\) \{ multilingual\.observe\(input\.text\); multilingual\.observe\(result\.text\); \}/);
+  assert.match(bridge, /if \(!input\.reaction\) multilingual\.observeTurn\(input\.text, result\.text, speechLanguage\.evidence\?\.language \?\? null\);/);
   // The game side shows the notice.
   const game = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(game, /reply\.keyNotice == 'voice-language'/);
