@@ -180,6 +180,6 @@ test('the bridge asks for it at the composer, at the talk key and at the start o
     'the composer hint does not prepare who V is about to talk to');
   assert.match(bridge, /void mic\.start\(prepared\.input, realtimeConfig\(prepared\.input\)\)[^\n]*\n[^\n]*\n\s*warmTalkTargets\(\[prepared\.input\.profileKey, \.\.\.\(prepared\.input\.group\?\.audience \?\? \[\]\)\]\);/,
     'the talk key does not prepare the speaker');
-  assert.match(bridge, /companionVision\.beginTurn\(input\);\s*warmTalkTargets\(\[input\.profileKey\], \{persona: false\}\);/,
+  assert.match(bridge, /companionVision\.beginTurn\(input\);(?:\s*\/\/[^\n]*|\s*companionVision\.stageForNext\([^\n]*\);)*\s*warmTalkTargets\(\[input\.profileKey\], \{persona: false\}\);/,
     'a turn does not make sure its voice is prepared');
 });

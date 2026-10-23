@@ -105,7 +105,7 @@ export class VoiceSelection {
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
-    // The multilingual packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
+    // The language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
     // Pack clips the OmniVoice worker was asked to prepare ahead of a reply (warmOmniLanguage): voice|language|hash -> the worker that has it.
@@ -1156,7 +1156,7 @@ export class VoiceSelection {
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
     profile=this.voiceOf(profile);
     const steps=options.steps??this.omniSteps;
-    // The multilingual pack's clip of this voice for the reply's language, when the pack has one (the worker checks it; a clip it refuses is spoken from
+    // The language pack's clip of this voice for the reply's language, when the pack has one (the worker checks it; a clip it refuses is spoken from
     // the English reference). In memory but for the clip's hash, read once per file.
     let languageReference;
     if(options.language&&options.language!=='en'&&this.languagePacks&&!this.hasPlayerClip(profile)){
@@ -1169,14 +1169,14 @@ export class VoiceSelection {
     // Only the tags OmniVoice renders reach it; any other bracketed tag is removed.
     return client.synthesize(profile,keepSpeechTags(text,omniTagsFor(options.language)),{...options,steps,...(languageReference?{languageReference}:{})});
   }
-  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips"), or a reference of the player's own making that a multilingual pack must not replace (V's V voice mod
+  // Does the player's own clip speak this voice (docs/CHARACTER_EDITOR.md, "Voice clips"), or a reference of the player's own making that a language pack must not replace (V's V voice mod
   // reference, docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one)? Neither is replaced by a pack clip in another language.
   hasPlayerClip(key){
     if(isPlayerReference(this.registry?.profiles?.[key]?.reference))return true;
     try{return this.keepsReference(key)===true;}catch{return false;}
   }
   /**
-   * OmniVoice, a reply expected in `language` (not English) and a multilingual pack with a clip of this character: the worker checks the clip and builds its
+   * OmniVoice, a reply expected in `language` (not English) and a language pack with a clip of this character: the worker checks the clip and builds its
    * conditioning prompt now, while the reply is being written (or the composer is open), so the first line in that language does not do it (about half a second
    * to a second on a fast card, more on a slow one). Resolves true when the clip was prepared, false when there is nothing to prepare (the caller then prepares the
    * English voice as usual). Quiet: never throws, and asks the worker once per voice, language and worker.
