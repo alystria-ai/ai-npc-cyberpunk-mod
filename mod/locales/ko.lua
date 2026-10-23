@@ -1250,4 +1250,6 @@ return {
     ["Speak now"] = "지금 말하세요",
     ["Controller talk button"] = "컨트롤러 대화 버튼",
     ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "컨트롤러로 대화하려면 캐릭터를 향한 상태에서 왼쪽 스틱 누르기(L3)를 누른 채 말하고, 손을 떼면 전송됩니다. 스틱을 움직이지 않은 상태로 누르고 있으세요.\n\n도보 중에만 가능하며 메뉴, 장면, 대화 선택지, 통화, 전투, 차량 탑승 중에는 불가능합니다. 이 클릭은 여전히 스프린트를 켜고 끄지만, 멈춰 서 있을 때는 아무 효과가 없습니다.",
+    ["V speaks your microphone lines"] = "V가 마이크로 한 대사를 말함",
+    ["After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider."] = "말한 뒤(길게 눌러 말하기 또는 음성 활성화)에 V가 당신의 말을 V의 음성으로 소리 내어 반복합니다. V의 음성이 켜져 있어야 합니다. 방금 직접 말한 내용이라 기본값은 꺼짐입니다.\n\n응답은 V를 기다리지 않습니다. 응답이 먼저 준비되면 V의 말은 중간에 끊깁니다. OmniVoice나 Convai 제공자에서는 사용할 수 없습니다.",
 }

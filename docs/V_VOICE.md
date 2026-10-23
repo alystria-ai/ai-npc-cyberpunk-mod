@@ -4,7 +4,7 @@ October 14, 2026. A setting that makes a typed line sound like V said it. With *
 for typed lines** on, whatever you type to a companion is also spoken aloud, in a male or female V voice cloned from V's own
 lines in the game. Then the companion answers.
 
-**On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
+**On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only by default: push-to-talk is not replayed (you already spoke it), unless **V speaks your microphone lines** is turned on (below). Reactions, phone Chat, add-on
 remarks and the later speakers of a group round never get a V line. A line typed to an add-on's voice (the Delamain cab, Skippy) does
 (2026-10-16; before it did not, and V was silent in the cab): `runAddonTurn` starts V's line beside the add-on's text request exactly as for a
 companion, in V's own voice page, and the add-on's reply waits for it. The composer of an add-on's voice leaves a voice-only hint in
@@ -26,6 +26,55 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
 
 Any failure (a clone that cannot be made, a voice error, no audio in time) skips V's line, writes one `[VVoice]` log line and
 never touches the conversation.
+
+## Microphone lines (2026-10-24, branch `feat/v-voice-mic`, setting `vVoiceMic`, off by default)
+
+A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voices > V speaks your microphone lines**, right under
+V's voice, off by default, only meaningful while V's voice is on (the saved choice is kept when V's voice goes off).
+
+**Why push-to-talk never replayed V (found 2026-10-24).** The first version of the feature (29234fb4, 2026-10-14) wrote it into the setting's description and the docs
+in one phrase: "push-to-talk is never replayed (you already spoke it)". There is no other written reason (`git log -S"never replays V"` finds only that commit, the
+TODO and the older notes say the same). The reasoning that follows from it: a typed line is silent, so V's voice is the only way it is heard; a spoken line has
+been heard in the player's own voice a moment ago, so a second voice is an echo, and a spoken line has its recognised words on screen as V's live subtitle already
+(`subtitles.showLive`). So the default stays off, and the setting's description gives the reason ("Off by default, because you just said it yourself").
+
+**What it does.** After a voice turn (the hold-to-talk release, or the end of speech of Voice activation) V's voice speaks the **final transcript**, with the same
+engine choice (Pocket or Voxtral), volume (the game's Dialogue volume and Voice volume), V's gender and reference, language rules (a language the engine cannot speak
+is skipped, as for a typed line) and the same gates (no reaction, no phone Chat, only the first speaker of a group round). The subtitle is the live caption the
+microphone already shows. An empty recording (no speech), a cancelled turn and a transcript with nothing to say start no line.
+
+**Ordering against the reply, and why it differs from a typed line.** A typed line is **waited for**: the reply's audio is held until V has finished (30 s at most
+without audio, "What you hear, and in which order"). That rule is wrong for a spoken line: the player has just said it, and every millisecond the reply spends behind
+an echo is latency for nothing. So a spoken line is **soft** (`VLine` `soft`, `bridge/v-voice.mjs`): it never holds the reply, there is no grace, no hand-off and no wait.
+
+1. The final transcript exists before the reply is asked for on a text provider (`options.onTranscript`, `bridge/local-stt-capture.mjs`, called after the
+   recognition and before the model request). `bridge/mic-v-line.mjs` starts V's line there, so it is synthesized beside the reply's text request, exactly where a
+   typed line starts beside it. Nothing is added to the path of the reply (the callback is synchronous and starts a background job).
+2. **When the reply asks, V yields. If V is not yet audible it is dropped (`reply-ready`); if V is audible and not finished it is cut short (`cut-for-reply`).**
+   "Asks" is the same place a typed line is held: `hold`/`holdPeek` of the continuous speech (the reply's audio is ready), `waitClear` for a reply published as a
+   whole, and the companion's voice request going out on a worker V shares with it (the Pocket worker when the companions use Pocket too: `ttsSent` on the turn's
+   small clock, the old "step aside" rule). A line on V's own Pocket worker or on the cloud does not share a worker with the reply, but is still cut when the reply's
+   audio is ready, so the two voices never overlap. A line that is over before the reply is ready is simply heard in full.
+3. There is no typed-line rule to follow in this case, because the typed rule is the one that delays the reply. The choice made here is **cut short or skip, never wait**.
+   A short sentence (about 1 to 3 s of speech) usually ends before a reply's first sentence is ready (about 1.1 s of model plus the voice's start).
+
+**Where it works.** Mistral, Local AI and Custom providers (any microphone engine: the local recogniser or Voxtral speech-to-text), and a spoken line to an add-on's voice
+or a character the player made. **Not with the Convai provider:** Convai recognises the speech together with the reply, so the final transcript only exists
+after the reply has started and there is nothing to start from (the bridge logs `[VVoice] V's microphone line skipped: the Convai provider ...` once, the setting does
+nothing there). **Not with OmniVoice:** its render would sit in front of the companion's on the one GPU worker and the reply would wait for it, so the line is skipped
+(`mic-omni`, logged once). Both are in the setting's description.
+
+**A leak found and closed on the way.** A voice turn to an add-on's voice (the Delamain cab, Skippy) or to a character the player made carried no `source`
+mark, so the typed-line gate let V speak it, and the reply waited for it. Those turns now start V as spoken lines: off by default like every microphone line, soft when
+the setting is on.
+
+**Log.** `[VVoice] profile=... result=... source=microphone` for each spoken line (`reason=cut-for-reply` or `reply-ready` when the reply came first),
+`[VVoice] setting is now on, engine pocket, microphone lines on` when the setting changes, and the session totals count these lines with the typed ones.
+V's voice is prepared while the player talks (`warmUp` at the start of a recording), so the line is not the cold one. Nothing runs per frame.
+
+**Tests.** `bridge/mic-v-line.test.mjs` (setting default off, the transcript reaching V's path, language and gender rules, an empty or cancelled turn, the reply never
+held, the shared worker, the wiring), `bridge/manager.test.mjs` (the setting persists off by default, the row), `bridge/ui-catalog.test.mjs` and
+`bridge/description-fit.test.mjs` (the strings in all 15 languages).
 
 ## The grace, the warm voice and the totals (2026-10-19, branch `fix/v-voice-typed`)
 
@@ -126,7 +175,7 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 - **Cleared before the reply.** The reply's caption (`show` or `beginTimed`) clears the line first, so the companion's subtitle never
   starts beneath it. V's subtitle owns no utterance, so it never holds a reply back.
 - **Typed and spoken.** It shows for every typed line, whether or not V's voice is on or can speak (the Convai cloud voice, or the
-  setting off): the subtitle is what V says, the voice is optional. The voice of a microphone turn was never replayed, but its recognised
+  setting off): the subtitle is what V says, the voice is optional. The voice of a microphone turn is not replayed by default (setting V speaks your microphone lines, above), but its recognised
   words already showed as V's live line (`subtitles.showLive`, `mod/init.lua` `microphone.onHeard`), so mic turns are covered the same way.
 - **Settings.** With the game's subtitles off (`player:ConvaiManagerSubtitles()`, the same switch replies use) nothing is shown. No phone
   Chat text, reaction or add-on remark gets it (those never pass the composer's submission); no per-frame work beyond a caption's own.
@@ -539,7 +588,8 @@ libraries is the slow part and is made slower by a virus scanner looking at the 
 | Simulated measurement | `scripts/Measure-VVoice.mjs` (`--legacy`, `--runs`, `--prep`, `--json`) |
 | V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
 | Grace, totals, remembered gender | `bridge/v-voice.mjs` (`V_GRACE_MS`, `VLine.startGrace`, `VVoice.count`, `VVoice.know`), `bridge/convai-bridge.mjs` (`vGenderMemory`, `onVHelperReady`) |
-| Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
+| Microphone lines | `bridge/mic-v-line.mjs`, `VLine` `soft` and `VVoice.startSpoken` in `bridge/v-voice.mjs`, the wrappers in `bridge/convai-bridge.mjs` (`micV`), `mod/manager.lua` (`vVoiceMic`) |
+| Tests | `bridge/mic-v-line.test.mjs`, `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check
 

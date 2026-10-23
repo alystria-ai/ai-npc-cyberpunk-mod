@@ -331,6 +331,7 @@ local function sharedCharacterLines(snapshot)
     if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
     if settings.followUpInterest then speech[#speech + 1] = ui.t('Follow-up questions') end
     if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
+    if settings.vVoice and settings.vVoiceMic then speech[#speech + 1] = ui.t('V speaks your microphone lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
     if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
@@ -1554,6 +1555,9 @@ local function schema()
                     vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
                     or ui.t('OmniVoice')},
                 {elements = true}),
+            -- Under V's voice. Off by default (push-to-talk never replayed V: you had just said it yourself); only meaningful while V's voice is on.
+            setting('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot.settings.vVoiceMic == true, false,
+                'After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider.'),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then
@@ -1850,7 +1854,7 @@ function M.apply(changes)
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'followUpInterest'
+            or key == 'followUpInterest' or key == 'vVoiceMic'
             or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
