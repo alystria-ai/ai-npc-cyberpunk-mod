@@ -623,3 +623,23 @@ test('a turn that finds the token expired after a good answer starts one fetch i
   for (let turn = 0; turn < 5; turn++) await assert.rejects(downKeys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
   assert.equal(started, 0, 'no request from a turn once the last answer was a failure');
 });
+
+test('a sign-in the backend rate-limits is a sign-in state, never "turns are coming too quickly"', async () => {
+  for (const [status, body, kind] of [[429, {error: 'rate', retryAfterSeconds: 120}, 'signin'], [503, {error: 'busy'}, 'signin'], [503, {error: 'paused'}, 'signin']]) {
+    const timers = fakeTimers();
+    const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL,
+      fetchImpl: async () => Response.json(body, {status}), now: () => 0, setTimer: timers.setTimer, clearTimer: timers.clearTimer});
+    const keys = await keysWith(tokens);
+    tokens.start(); await flush();
+    // A turn long after the first answer: the guard's own rate limit has nothing to do with it.
+    const error = await keys.credentialFor(config).then(() => null, failure => failure);
+    assert.ok(error, status);
+    assert.doesNotMatch(error.message, /coming too quickly|convai-quota/);
+    assert.match(error.message, /\[convai-auth:\w+\]/);
+    assert.equal(classifyFailure(error), kind);
+    const watch = new QuotaWatch({keys});
+    assert.equal(watch.codeFor(error), 'convai-unavailable', 'the game says Convai could not sign in');
+  }
+  // The local guard's own rate limit keeps its message and classification.
+  assert.equal(classifyFailure(new TurnLimitError('rate')), 'rate');
+});

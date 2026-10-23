@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "A hangmodell nem töltődött be. Nézd meg a hangot a Beállításokban, vagy válassz másikat, majd hívd meg újra.",
     ["The memory service did not respond. Check your connection, then invite again."] = "Az emlékszolgáltatás nem válaszolt. Ellenőrizd a kapcsolatot, majd hívd meg újra.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "A beszélgetési kapcsolat nem nyílt meg. Ellenőrizd a kapcsolatot, majd hívd meg újra.",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "A Convai bejelentkezése most foglalt. Várj pár percet, majd hívd meg újra.",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "A Convai napi kerete elfogyott. Válassz másik szolgáltatót a Beállításokban, vagy hívd meg újra holnap.",
     ["Calls are not available during combat."] = "Hívások harc közben nem elérhetők.",
     ["Calls are not available right now."] = "Most nem érhetők el a hívások.",
     ["Holocall ended: combat started."] = "A holohívás véget ért: harc kezdődött.",

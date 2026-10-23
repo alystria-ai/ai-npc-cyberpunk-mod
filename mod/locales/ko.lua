@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "음성 모델을 불러오지 못했습니다. 설정에서 음성을 확인하거나 다른 음성을 선택한 다음 다시 초대하세요.",
     ["The memory service did not respond. Check your connection, then invite again."] = "기억 서비스가 응답하지 않았습니다. 연결을 확인한 다음 다시 초대하세요.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "대화 연결이 열리지 않았습니다. 연결을 확인한 다음 다시 초대하세요.",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "Convai 로그인이 지금 혼잡합니다. 몇 분 기다린 뒤 다시 초대하세요.",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Convai 일일 한도를 모두 사용했습니다. 설정에서 다른 제공업체를 고르거나 내일 다시 초대하세요.",
     ["Calls are not available during combat."] = "전투 중에는 통화를 할 수 없습니다.",
     ["Calls are not available right now."] = "지금은 통화를 할 수 없습니다.",
     ["Holocall ended: combat started."] = "홀로콜 종료: 전투가 시작되었습니다.",

@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "Ses modeli yüklenemedi. Ayarlar'daki sesi kontrol et ya da başka bir ses seç, sonra yeniden davet et.",
     ["The memory service did not respond. Check your connection, then invite again."] = "Hafıza servisi yanıt vermedi. Bağlantını kontrol et, sonra yeniden davet et.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "Konuşma bağlantısı açılmadı. Bağlantını kontrol et, sonra yeniden davet et.",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "Convai girişi şu an meşgul. Birkaç dakika bekle, sonra yeniden davet et.",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Convai'nin günlük limiti doldu. Ayarlar'dan başka bir sağlayıcı seç ya da yarın yeniden davet et.",
     ["Calls are not available during combat."] = "Çatışma sırasında aramalar kullanılamaz.",
     ["Calls are not available right now."] = "Aramalar şu anda kullanılamıyor.",
     ["Holocall ended: combat started."] = "Holo arama sona erdi: çatışma başladı.",

@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "Hlasový model se nenačetl. Zkontroluj hlas v Nastavení nebo vyber jiný a pak pozvi znovu.",
     ["The memory service did not respond. Check your connection, then invite again."] = "Služba paměti neodpověděla. Zkontroluj připojení a pak pozvi znovu.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "Konverzační připojení se neotevřelo. Zkontroluj připojení a pak pozvi znovu.",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "Přihlášení do Convai je teď zaneprázdněné. Počkej pár minut a pak pozvi znovu.",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Denní limit Convai je vyčerpán. Vyber jiného poskytovatele v Nastavení, nebo pozvi zítra znovu.",
     ["Calls are not available during combat."] = "Hovory nejsou během boje k dispozici.",
     ["Calls are not available right now."] = "Hovory teď nejsou k dispozici.",
     ["Holocall ended: combat started."] = "Holohovor skončil: začal boj.",

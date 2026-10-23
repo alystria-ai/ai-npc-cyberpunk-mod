@@ -578,7 +578,9 @@ test('the bridge sends the admitted turn\'s selected provider key and relationsh
   assert.match(source, /selectProfile: \(profile, boundary, turn\) => relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\)\}\)/);
   assert.match(source, /characterId: routeFor\(input\)\?\.guard\?\.characterId/);
   // Inviting a companion on a non-Convai text provider takes the local-only preparation: no Convai REST call.
-  assert.match(source, /invitationMemory\(playerMemory, currentBoundary, \(\) => mistral\.active\)/);
+  // It follows the CHOSEN provider (a switch waits for an idle boundary, such as the end of a phone call), not the one in use.
+  assert.match(source, /invitationMemory\(playerMemory, currentBoundary, invitationTextProvider\)/);
+  assert.match(source, /const invitationTextProvider = \(\) => mistral\.requested !== 'convai';/);
   // One profile per character: nothing reads the retired alternate-profile file, and memory ignores retired provider rows.
   assert.match(source, /retired: providerKey => RETIRED_PROVIDER_KEY\.test\(providerKey\)/);
   assert.match(source, /import \{relationshipContext\} from '\.\/romance-context\.mjs'/);

@@ -203,8 +203,10 @@ export class TokenSource {
   /** The error for a turn that has neither a token nor a permitted fallback. */
   unavailableError() {
     if (this.lastKind === 'daily') return new TurnLimitError('daily');
-    if (this.lastKind === 'rate') return new TurnLimitError('rate');
-    return Error(`Convai sign-in is unavailable (${this.lastKind ?? 'not answered yet'}) [convai-auth:${this.lastKind ?? 'pending'}]`);
+    // The backend's per-address token limit is a sign-in state, not "turns are coming too quickly" (that is the local guard's own
+    // message, bridge/shared-key-guard.mjs): it carries the sign-in marker so the game says Convai sign-in is unavailable.
+    if (this.lastKind === 'rate') return Object.assign(Error('Convai sign-in is rate limited by the sign-in backend [convai-auth:rate]'), {authKind: 'rate'});
+    return Object.assign(Error(`Convai sign-in is unavailable (${this.lastKind ?? 'not answered yet'}) [convai-auth:${this.lastKind ?? 'pending'}]`), {authKind: this.lastKind ?? 'pending'});
   }
   /** Values to scrub from reports: the tokens held now and recently, and the request-signing secret. */
   secrets() { return [...this.#seen, this.secret]; }

@@ -447,3 +447,31 @@ test('local-cpu: a model that runs mostly on the processor is said once with the
   other.noteLocalCpuHeavy();
   assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
 });
+
+test('a chosen provider that cannot be used names why Convai answers (fallbackReason), so the fallback is never silent', async () => {
+  const {provider} = memoryProvider(null);
+  await provider.load();
+  assert.equal(provider.fallbackReason, null, 'Convai chosen: nothing to explain');
+  provider.setPreference('mistral');
+  assert.equal(provider.requested, 'convai');
+  assert.equal(provider.fallbackReason, 'mistral-no-key');
+  provider.apply();
+  assert.equal(provider.active, false, 'Convai still answers');
+  await provider.save(KEY);
+  assert.equal(provider.fallbackReason, null);
+  assert.equal(provider.requested, 'mistral');
+  provider.setPreference('custom');
+  assert.equal(provider.fallbackReason, 'custom-no-setup');
+  provider.setPreference('local');
+  assert.equal(provider.fallbackReason, null, 'Local AI never falls back');
+});
+
+test('the bridge logs the provider setting and a failed turn on the fallback carries the notice code', () => {
+  const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(source, /Conversation provider setting: \$\{mistral\.preference\}/);
+  assert.match(source, /const fallback = mistral\.applied === 'convai' && !input\?\.reaction \? mistral\.fallbackReason : null;/);
+  assert.match(source, /if \(fallback && !corrected\.keyNotice\) return \{\.\.\.corrected, keyNotice: fallback\};/);
+  // An invitation follows the chosen provider and logs its failures.
+  assert.match(source, /textProvider: invitationTextProvider, connectionWanted: \(\) => !mistral\.pending, provider: \(\) => mistral\.requested/);
+  assert.match(source, /log: line => console\.error\('\[CyberpunkConvai\] ' \+ line\)/);
+});

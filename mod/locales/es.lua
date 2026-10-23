@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "El modelo de voz no se cargó. Revisa la voz en Ajustes o elige otra, y luego vuelve a invitar.",
     ["The memory service did not respond. Check your connection, then invite again."] = "El servicio de memoria no respondió. Revisa tu conexión y luego vuelve a invitar.",
     ["The conversation connection did not open. Check your connection, then invite again."] = "La conexión de conversación no se abrió. Revisa tu conexión y luego vuelve a invitar.",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "El inicio de sesión en Convai está ocupado ahora. Espera unos minutos y vuelve a invitar.",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Se ha agotado el límite diario de Convai. Elige otro proveedor en Ajustes o vuelve a invitar mañana.",
     ["Calls are not available during combat."] = "Las llamadas no están disponibles durante el combate.",
     ["Calls are not available right now."] = "Las llamadas no están disponibles en este momento.",
     ["Holocall ended: combat started."] = "Holollamada terminada: ha comenzado el combate.",

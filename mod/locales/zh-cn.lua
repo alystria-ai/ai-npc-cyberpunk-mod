@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "语音模型未能加载。请在设置中检查语音，或选择其他语音，然后重新邀请。",
     ["The memory service did not respond. Check your connection, then invite again."] = "记忆服务没有响应。请检查网络连接，然后重新邀请。",
     ["The conversation connection did not open. Check your connection, then invite again."] = "对话连接未能打开。请检查网络连接，然后重新邀请。",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "Convai 登录目前繁忙。请稍等几分钟，然后重新邀请。",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Convai 今日额度已用完。请在设置中选择其他服务商，或明天再重新邀请。",
     ["Calls are not available during combat."] = "战斗中无法通话。",
     ["Calls are not available right now."] = "目前无法通话。",
     ["Holocall ended: combat started."] = "全息通话已结束：战斗开始。",
