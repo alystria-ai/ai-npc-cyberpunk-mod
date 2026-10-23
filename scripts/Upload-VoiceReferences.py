@@ -77,7 +77,7 @@ def main() -> int:
                 local = refs_local / relative
                 if not local.is_file() or sha256(local) != descriptor["sha256"]:
                     problems.append(f"{name}:{key}: local file missing or hash differs ({relative})")
-                # Archetype clips ship inside the Runtime, not the bucket; only picked references must be listed.
+                # This script uploads only picked references; archetype clips (voice-references/archetypes/) go up separately, but a build with --models hf needs them in the bucket too (packaging/fetch-models.py).
                 if relative.startswith(REFERENCES) and refs_remote + relative not in listed:
                     problems.append(f"{name}:{key}: {relative} would not be in the manifest")
         if problems:
