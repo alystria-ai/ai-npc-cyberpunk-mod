@@ -6075,3 +6075,50 @@ test('Home has no Character editor row without the editor module, and the four d
     assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);
 });
+
+test('V speaks your microphone lines is off by default, only a boolean is kept, an Apply stores it, and the row sits under V’s voice with the reason for the default', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.vVoiceMic == false and manager.vVoiceMic() == false and manager.snapshot(player).settings.vVoiceMic == false, 'off by default, and saved so')
+    -- A saved choice is kept; anything that is not a boolean is the default, off.
+    for _, case in ipairs({{true, true}, {false, false}, {'yes', false}, {1, false}, {'missing', false}}) do
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'}}
+      if case[1] ~= 'missing' then seed.vVoiceMic = case[1] end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.vVoiceMic() == case[2] and saved.vVoiceMic == case[2], tostring(case[1]))
+      assert(manager.snapshot(player).settings.vVoiceMic == case[2])
+      assert(saved.future.keep == 'unchanged')
+    end
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(manager.applySettings(player, {vVoiceMic = true}) and manager.vVoiceMic() and saved.vVoiceMic == true)
+    assert(saved.vVoice == true and saved.vVoiceChosen ~= true, 'V’s voice itself is untouched by this key')
+    assert(manager.applySettings(player, {vVoiceMic = 'yes'}) == false and manager.vVoiceMic(), 'a non-boolean is refused')
+    -- It survives other changes, and V’s voice going off keeps the choice (it only means something while V’s voice is on).
+    assert(manager.applySettings(player, {followUpInterest = false}) and manager.vVoiceMic())
+    assert(manager.applySettings(player, {vVoice = false}) and manager.vVoiceMic() and saved.vVoiceMic == true)
+    assert(manager.applySettings(player, {vVoiceMic = false}) and not manager.vVoiceMic() and saved.vVoiceMic == false)
+  `);
+  run(`${nsuiFixture}
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    local order = {}
+    for _, category in ipairs(loaded.categories) do
+      if category.id == 'voices' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
+    end
+    local at = {}
+    for index, id in ipairs(order) do at[id] = index end
+    assert(at.vVoiceMic and at.vVoiceMic == at.vVoice + 1, 'right under V’s voice')
+    local item = row('vVoiceMic')
+    assert(item.label == 'V speaks your microphone lines' and item.type == 'bool' and item.value == false and item.defaultValue == false)
+    assert(item.description:find('Needs V’s voice on', 1, true) and item.description:find('Off by default, because you just said it yourself', 1, true)
+        and item.description:find('The reply never waits for V', 1, true) and item.description:find('Not available with OmniVoice', 1, true))
+    -- Stored through the settings page like any switch, and shown as on afterwards.
+    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = true}}).ok and saved.vVoiceMic == true)
+    loaded = registered.loadMod('manager')
+    assert(row('vVoiceMic').value == true)
+    assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = false}}).ok and saved.vVoiceMic == false)
+  `);
+});

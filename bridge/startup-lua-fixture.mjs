@@ -250,7 +250,7 @@ export const freshSettings = {
   reputation: false, voiceActivation: false,
   naturalSpeech: false, followUpInterest: true,
   matureContent: false, localModel: 'auto',
-  vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket',
+  vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket', vVoiceMic: false,
   enabledByKey: {'viktor-vektor': true, 'misty-olszewski': true, 'judy-alvarez': true, 'panam-palmer': true, 'resident-male': true,
     'resident-female': true, 'johnny-silverhand': true},
   enabled: [true, true, true, true, true, true],

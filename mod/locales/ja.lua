@@ -1248,4 +1248,6 @@ return {
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "キーを押し続けなくても話せます。キャラクターの方を向いているとき、またはコンパニオンが近くにいるとき、MODは声を聞き、約1秒の間を置くと応答します。\n\nゲーム自身のシーンや選択肢の最中、キャラクターが話している間は聞き取りません。音声が検出されるまでPCから何も送信されません。ヘッドホン推奨。Bluetoothヘッドセットのマイクは聞き取り中、通話品質になります。",
     ["Opening microphone…"] = "マイクを開いています…",
     ["Speak now"] = "今話してください",
+    ["V speaks your microphone lines"] = "マイクのセリフをVの声で話す",
+    ["After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider."] = "話した後（ボタンを押し続けて話す、または音声起動）、あなたの言葉をVの声で声に出して繰り返します。Vの声をオンにしておく必要があります。自分で言ったばかりなので、初期設定はオフです。\n\n返答がVを待つことはありません。返答が先に準備できた場合、Vの声は途中で切られます。OmniVoiceやConvaiプロバイダーでは使えません。",
 }

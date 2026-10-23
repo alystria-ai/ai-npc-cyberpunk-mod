@@ -51,6 +51,7 @@ import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-sp
 import {FollowUp} from './follow-up.mjs';
 import {dynamicInfo} from './dynamic-info.mjs';
 import {VVoice, V_VOICE_KEYS, extraVoices, vSettingsFor} from './v-voice.mjs';
+import {MicVLines} from './mic-v-line.mjs';
 import {installVVoiceReference, loadVVoiceReferencesWithMods, vGenderOfKey} from './v-voice-mod-service.mjs';
 import {MatureContent, matureAllowsCloudVoice} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
@@ -785,6 +786,7 @@ async function cancelKnowledgeTurn(prepared) {
   await knowledgeRouter.activity(prepared, 'cancelled-turn').catch(() => {});
 }
 async function cancelMicrophone() {
+  micV.dropAll('turn-ended');   // V's line for a spoken turn ends with the turn (bridge/mic-v-line.mjs)
   const current = mic.current;
   if (current && companionActions.pending?.packet.requestId === current.requestId) void companionActions.revoke();
   if (current) await cancelKnowledgeTurn(microphoneKnowledge.get(current.requestId));
@@ -1380,11 +1382,13 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
   report: (input, summary) => {
     try {
       console.error(`[VVoice] profile=${input.profileKey} voice=${summary.voice} engine=${summary.engine} ref=${JSON.stringify(summary.reference ?? 'shipped')} result=${summary.result}`
-        + `${summary.reason ? ' reason=' + summary.reason : ''} marks=${JSON.stringify(summary.marks)}`);
+        + `${summary.reason ? ' reason=' + summary.reason : ''}${summary.spoken ? ' source=microphone' : ''} marks=${JSON.stringify(summary.marks)}`);
       routingLog.record(describeVLine({input, summary}));
       void measure(input, {vVoice: summary}).catch(() => {});
     } catch { /* a log line never affects a reply */ }
   }});
+// V's voice for what the player said (setting vVoiceMic, off by default): the soft line of each voice turn (bridge/mic-v-line.mjs, docs/V_VOICE.md).
+const micV = new MicVLines({vVoice, stopped: () => stopped});
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
@@ -2282,6 +2286,8 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     };
     current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
       && prepared && knowledgeRouter.currentSync(prepared);
+    // V's soft line for this spoken turn, if one was started: the reply never holds for it, it asks and the line yields (bridge/mic-v-line.mjs).
+    current.vLine = () => micV.lineOf(input.requestId);
     // A local voice on a text route (Mistral, the local AI): the reply is voiced while it is still being written, as a typed turn's
     // is (bridge/voice-key-stream.mjs). Without a safe first sentence, another voice or no continuous playback it is voiced whole, as before.
     if (turnUsesLocal(input)) {
@@ -2316,6 +2322,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
         return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
       };
       current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
+      current.vLine = () => micV.lineOf(input.requestId);
       const speech = microphoneSpeech.get(input.requestId);
       let spoken;
       if (streamed) { handedOn = true; streamed.finish({...result, transport: 'realtime'}); spoken = await streamed.spoken; }
@@ -2353,6 +2360,11 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     if (!noSpeech && !silent && !language) noteTurnFailure(error, input, {microphone: true});
   },
 });
+
+// V repeats what the player said (setting vVoiceMic): started by the transcript callback of the microphone channel on a text provider, soft (the reply never
+// waits for it), skipped on the Convai provider whose transcript only arrives with the reply. An add-on's or a made character's voice turn starts it itself.
+mic.prepareReply = micV.wrapPrepare(mic.prepareReply, {own: input => addonVoice.voice(input), textRoute: () => mistral.active});
+mic.onReply = micV.wrapReply(mic.onReply);
 
 async function resetLiveRoutes({cancelTurns = true} = {}) {
   await companionActions.revoke();
@@ -2555,6 +2567,8 @@ async function pollMicrophone() {
         void mic.start(prepared.input, realtimeConfig(prepared.input)).catch(error => console.error(error.message));
         // While V talks: the voice (OmniVoice) and the persona (local AI) of whoever answers, if nothing prepared them before.
         warmTalkTargets([prepared.input.profileKey, ...(prepared.input.group?.audience ?? [])]);
+        // V repeats the spoken line (setting): its voice is prepared now, while the player talks, so the line is not the slow one. Nothing runs per frame.
+        if (vVoice.micWanted) { vVoice.noteGender(prepared.input); vVoice.warmUp(); }
         // A reply the local renderer will voice (Pocket, Voxtral): its output device opens while V talks (RealtimeHost.standbyLocal; an
         // unused one closes itself after 30 s). Routing is read without fixing this turn's voice plan, which waits for the words.
         const choice = localChoice(prepared.input.profileKey);
@@ -2813,7 +2827,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   let vLine = null;
   vVoice.noteGender(input);
   current.vLine = () => vLine;
-  const startV = () => { if (!remark && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock}); };
+  const startV = () => { if (!remark && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock, spoken: Boolean(userText)}); };
   if (voiced && !remark && replyStreaming && !ahead) {
     // A conversation streams its first sentence to the voice, like any text-provider turn.
     const stream = newReplyStream(config, profile);
@@ -2896,7 +2910,7 @@ async function runCustomTurn(request, input, profile, current, clock, {userText 
   let vLine = null;
   vVoice.noteGender(input);
   current.vLine = () => vLine;
-  const startV = () => { if (!input.reaction && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock}); };
+  const startV = () => { if (!input.reaction && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock, spoken: Boolean(userText)}); };
   if (voiced && !input.reaction && replyStreaming && !ahead) {
     // The first sentence goes to the voice while the rest is still being written, as for any text-provider turn.
     const stream = newReplyStream(config, profile);
@@ -3575,7 +3589,7 @@ async function pollSettings(checkShutdown = true) {
     // graphics memory, or no CUDA: both last for the session): the companions are on Pocket or text, so V reads as Pocket too and speaks with the Pocket worker that is loaded.
     const vOmniUsable = localVoice.requestedProvider === 'omni' && localVoice.omniPack?.installed !== false && !localVoice.omniNoMemory && !localVoice.omniNoCuda;
     const vSettings = vSettingsFor(settings, {cloudUsable: matureAllowsCloudVoice(matureContent.enabled), omniUsable: vOmniUsable});
-    if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
+    if (vVoice.update(vSettings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}, microphone lines ${vVoice.micEnabled ? 'on' : 'off'}`);
     if (vVoice.enabled) startVVoiceModScan();
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);

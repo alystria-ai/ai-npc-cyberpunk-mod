@@ -1248,4 +1248,6 @@ return {
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "無需按住按鍵即可說話。當你面向角色或有同伴在附近時，模組會聆聽你的聲音，並在你停頓約一秒後回應。\n\n絕不在遊戲自身的場景或對話選項中聆聽，角色說話時也絕不聆聽。除非聽到語音，否則不會有任何內容離開你的電腦。最好使用耳機；藍牙耳機的麥克風會在聆聽時切換為通話音質。",
     ["Opening microphone…"] = "正在開啟麥克風…",
     ["Speak now"] = "請現在說話",
+    ["V speaks your microphone lines"] = "V 朗讀你的麥克風台詞",
+    ["After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider."] = "你說完後（按住語音鍵或語音啟動），V 會用 V 的聲音大聲重複你的話。需要開啟 V 的語音。預設關閉，因為這些話你自己剛說過。\n\n回覆永遠不會等 V：如果回覆先準備好，V 會被提前打斷。不適用於 OmniVoice 或 Convai 提供者。",
 }

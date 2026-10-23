@@ -15,6 +15,12 @@
 //     before the reply to a typed line, so V's line is WAITED FOR: it is never dropped for being slow (only a real failure drops it, with
 //     the reason in the log), the companion's reply follows it. The overlap is kept: V's render is queued on the Omni worker the moment
 //     the line is sent (it renders while the companion's text is written), the companion's own render queues right behind it.
+// Microphone lines (2026-10-24, setting vVoiceMic, off by default): the same voice also repeats what the player SAID, after a voice turn (hold to talk, Voice
+// activation) once the final transcript exists (VVoice.start with `spoken`). Typed lines are waited for; a spoken line is not, because the player has just
+// said it and the reply must not pay for the echo: the line is SOFT (VLine `soft`). It starts the moment the transcript is known, beside the reply's text
+// request, and the reply never holds for it (no grace, no hold, no wait). When the reply asks (its audio is ready, or its voice request goes out on a worker the
+// two share) a line that is not finished is cut short (audible) or dropped (not yet audible). Not on OmniVoice (its render sits in front of the companion's on the
+// one GPU worker, which would delay the reply) and not with the Convai provider (its transcript only arrives with the reply: the bridge never asks).
 // Never the Convai cloud voice (it cannot clone). A cloud voice never falls back to a local model: if V's cloud line fails, V is
 // silent for that line (its subtitle is on screen) and the conversation is untouched.
 //
@@ -208,11 +214,11 @@ export function wavToPackets(bytes, {profile, owner = randomBytes(16).toString('
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {}, reference = null,
     after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, onGrace = () => {},
-    graceMs = V_GRACE_MS, patient = false, now = () => performance.now()}) {
+    graceMs = V_GRACE_MS, patient = false, soft = false, now = () => performance.now()}) {
     // `patient`: the player chose an engine that is waited for (OmniVoice). There is no grace and no budget: the reply waits for V's first
     // audio for as long as the render takes, and only a failure or the end of the turn drops the line.
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log, reference,
-      after, edges, token, onSettled, onAudible, onGrace, graceMs, patient, now});
+      after, edges, token, onSettled, onAudible, onGrace, graceMs, patient, soft, now});
     // The grace (V_GRACE_MS): started once, by the first time the reply asks while V is not audible yet.
     this.graceTimer = null; this.graceStarted = false; this.graceAt = 0; this.waitedMs = 0;
     this.state = 'synth';
@@ -230,9 +236,9 @@ export class VLine {
     this.finished = this.state === 'dropped' ? Promise.resolve() : this.run();
   }
 
-  get blocking() { return this.state === 'playing'; }
+  get blocking() { return this.state === 'playing' && !this.soft; }
   /** The reply is ready, V is not audible yet and the grace is running: the reply waits for V's first audio (never longer than graceMs). */
-  get waiting() { return this.state === 'synth' && (this.patient || this.graceTimer !== null); }
+  get waiting() { return !this.soft && this.state === 'synth' && (this.patient || this.graceTimer !== null); }
   get settled() { return this.state === 'done' || this.state === 'dropped'; }
 
   /** Calls `fn` once when the line stops being audible or pending (at once if it already has). */
@@ -244,6 +250,7 @@ export class VLine {
    * reply waits for V's synthesis for no longer than that. Safe to call on every poll.
    */
   holds() {
+    if (this.soft) { this.yieldToReply(); return false; }
     if (this.state === 'synth') this.startGrace();
     return this.state === 'playing' || this.waiting;
   }
@@ -286,12 +293,14 @@ export class VLine {
    * last moments. Safe to call on every poll.
    */
   holdsPublish(leadMs = V_HANDOFF_LEAD_MS) {
+    if (this.soft) { this.yieldToReply(); return false; }
     if (this.state === 'synth') this.startGrace();
     return this.holdsPublishPeek(leadMs);
   }
 
   /** holdsPublish() without its side effect. */
   holdsPublishPeek(leadMs = V_HANDOFF_LEAD_MS) {
+    if (this.soft) return false;
     return this.waiting || (this.state === 'playing' && !this.nearEnd(leadMs));
   }
 
@@ -323,7 +332,19 @@ export class VLine {
    * 7 lines in the reports): the line is the player's, it plays, and the companion's request waits its turn on the worker and speaks after V (its sound is held until
    * V's line has ended anyway). Kept as the call the bridge makes at that moment.
    */
-  companionVoiceStarted() { /* V's line goes on */ }
+  companionVoiceStarted() {
+    // A spoken line on the worker the companion shares: the companion's request would queue behind it, so it steps aside (the old rule, kept for the one line that must not delay the reply).
+    if (this.soft && this.local) this.yieldToReply();
+  }
+
+  /**
+   * A spoken (microphone) line never holds the reply: the reply asked, so the line ends now. Audible: cut short ('cut-for-reply'); not audible yet: dropped
+   * ('reply-ready'). Nothing waits for it and nothing is held. A settled line is left as it is.
+   */
+  yieldToReply() {
+    if (this.settled) return;
+    this.drop(this.state === 'playing' ? 'cut-for-reply' : 'reply-ready');
+  }
 
   drop(reason) {
     if (this.settled) return;
@@ -343,7 +364,7 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), ...(this.soft ? {spoken: true} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, ...(this.reference ? {reference: this.reference} : {}), chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
@@ -468,6 +489,8 @@ export class VVoice {
     remember = null, graceMs = V_GRACE_MS, referenceLabel = null} = {}) {
     Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, omni, log, report, remember, graceMs, referenceLabel});
     this.enabled = false;
+    // V speaks the player's microphone lines too (runtime/settings.json "vVoiceMic", off by default); meaningful only while `enabled`.
+    this.micEnabled = false;
     this.engine = 'pocket';
     this.lastGender = null;
     try { const known = remember?.gender; if (GENDERS.includes(known)) this.lastGender = known; } catch { /* a missing memory is just a first session */ }
@@ -488,8 +511,11 @@ export class VVoice {
     // A saved false counts only when the player set it (vVoiceChosen, mod/manager.lua): the first version saved false as its default.
     const next = settings.vVoice !== false || settings.vVoiceChosen !== true;
     const engine = V_ENGINES.includes(settings.vVoiceEngine) ? settings.vVoiceEngine : 'pocket';
-    if (next === this.enabled && engine === this.engine) return false;
+    // Off unless the player turned it on: a file that never stored it, or anything that is not true, is off.
+    const mic = settings.vVoiceMic === true;
+    if (next === this.enabled && engine === this.engine && mic === this.micEnabled) return false;
     this.enabled = next;
+    this.micEnabled = mic;
     if (engine !== this.engine) { this.engine = engine; this.logged.clear(); }
     return true;
   }
@@ -512,19 +538,25 @@ export class VVoice {
 
   get available() { return GENDERS.some(gender => this.voices[gender]); }
 
+  /** V's voice is on and so is the microphone-line setting: a voice turn's transcript is worth passing to start() (cheap check, no work). */
+  get micWanted() { return this.enabled && this.micEnabled && this.available; }
+
   /** V's line is wanted from the Pocket voice (some Pocket worker has to be loaded for it). */
   get wantsPocket() { return this.enabled && this.available && this.engine === 'pocket'; }
 
   once(key, line) { if (this.logged.has(key)) return; this.logged.add(key); this.log(line); }
 
   /**
-   * Why this turn does not get a V line, or null when it does. Typed lines only: a spoken line is never replayed. A line typed to an
+   * Why this turn does not get a V line, or null when it does. Typed lines; a spoken line (`spoken`) only with the microphone setting on. A line typed to an
    * add-on's voice (a cab, a gun: input.addon names the speaker, input.reaction is not set) is a typed line like any other and gets V's
    * voice (live 2026-10-16: V was silent in the Delamain cab); an add-on remark carries a reaction and never does.
    */
-  skipReason(input) {
+  skipReason(input, {spoken = false} = {}) {
     if (!this.enabled) return 'off';
-    if (!input || input.reaction || input.source !== undefined || input.channel === 'phone') return 'not-typed';
+    // A spoken line (the final transcript of a voice turn) is repeated only with the microphone setting on. It is a conversation line like a typed one otherwise:
+    // its input carries source 'microphone' (a companion) or none (an add-on's or a made character's voice turn), so that mark is not held against it.
+    if (spoken && !this.micEnabled) return 'mic-off';
+    if (!input || input.reaction || (!spoken && input.source !== undefined) || input.channel === 'phone') return 'not-typed';
     if (input.group && input.group.index !== 1) return 'later-group-speaker';
     if (!this.available) return 'no-clips';
     return null;
@@ -541,9 +573,9 @@ export class VVoice {
    * Starts V's line for a typed turn and returns it, or null (nothing to say, or not possible). Never throws and never waits: the
    * synthesis runs beside the companion's text request.
    */
-  start(input, {signal, clock} = {}) {
+  start(input, {signal, clock, spoken: fromSpeech = false} = {}) {
     try {
-      const reason = this.skipReason(input);
+      const reason = this.skipReason(input, {spoken: fromSpeech});
       if (reason) {
         if (reason === 'no-clips') this.once('no-clips', "V's voice is on but the reference clips are missing (assets/v-voice); typed lines stay silent");
         return null;
@@ -571,6 +603,11 @@ export class VVoice {
       if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', "V's voice skipped: the game's dialogue volume is not known"); return this.skip('volume-unknown'); }
       if (volume <= 0.001) return null;
       let route;
+      if (fromSpeech && plan.engine === 'omni') {
+        // Never for a spoken line: the render would sit in front of the companion's on the one GPU worker and the reply would wait for it.
+        this.once('mic-omni', "V's microphone line skipped: OmniVoice would make the reply wait for it");
+        return this.skip('mic-omni');
+      }
       if (plan.engine === 'omni') {
         // OmniVoice, the companions' own worker. Not there (the companions are on another voice, still loading, playback Off, failed): no line,
         // the reason in the log (once per reason); nothing is loaded for it. Otherwise the render is queued on the worker NOW, ahead of the
@@ -601,7 +638,7 @@ export class VVoice {
       try { reference = this.referenceLabel?.(gender) ?? reference; } catch { /* a label never affects speech */ }
       const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log, reference,
         play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, render: route.render, local: route.local,
-        patient: route.patient === true, after: this.previous, graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
+        patient: route.patient === true, soft: fromSpeech === true, after: this.previous, graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
         onAudible: () => clock?.mark('vAudible'), onGrace: () => clock?.mark('vGrace')});
       this.previous = line.finished;
       line.whenClear(() => { clock?.mark(line.state === 'done' ? 'vEnded' : 'vDropped'); });
@@ -612,6 +649,23 @@ export class VVoice {
       this.once('start:' + String(error?.message).slice(0, 40), `V's voice skipped: ${String(error?.message ?? error).slice(0, 120)}`);
       return null;
     }
+  }
+
+  /**
+   * The final transcript of a voice turn (hold to talk, Voice activation, a spoken line to an add-on's or a made character's voice): the same line as a typed
+   * one, spoken in V's voice, but soft (VLine `soft`): the reply never waits for it. `input` is the turn's input; `text` is the recognised words. Returns the
+   * line or null (setting off, empty transcript, a language the engine cannot speak, ...). Never throws and never waits.
+   */
+  startSpoken(input, text, options = {}) {
+    if (!this.micWanted || typeof text !== 'string' || !text.trim()) return null;
+    return this.start({...input, text}, {...options, spoken: true});
+  }
+
+  /** A voice turn whose transcript cannot come before the reply (the Convai provider): counted by reason, the message logged once. Only while the setting is on. */
+  micUnavailable(reason, message) {
+    if (!this.micWanted) return null;
+    this.once('mic:' + reason, message);
+    return this.skip('mic-' + reason);
   }
 
   /**

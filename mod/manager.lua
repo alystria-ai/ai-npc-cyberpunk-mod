@@ -838,6 +838,9 @@ local function loadSettings()
     -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
+    -- V speaks your microphone lines (key vVoiceMic): off by default and kept off unless the player turns it on. The bridge reads it beside vVoice (a hold-to-talk or
+    -- Voice activation line is repeated in V's voice only while both are on, docs/V_VOICE.md "Microphone lines"). Anything that is not a boolean is the default, off.
+    if type(settings.vVoiceMic) ~= 'boolean' then settings.vVoiceMic, settingsNeedSave = false, true end
     -- 'omni' is kept as saved even when it cannot be used now (the companions are not on OmniVoice, the pack is missing): the page and the bridge read
     -- it as Pocket then (M.vOmniBlock), and the file is left alone.
     if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' and settings.vVoiceEngine ~= 'omni' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
@@ -1170,11 +1173,17 @@ function M.followUpInterest()
 end
 
 -- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by V's own voice engine
--- (vVoiceEngine: Pocket by default, Voxtral, or OmniVoice while the companions use it), whatever voice the companions use otherwise. Typed lines only;
--- push-to-talk never replays V.
+-- (vVoiceEngine: Pocket by default, Voxtral, or OmniVoice while the companions use it), whatever voice the companions use otherwise. Typed lines only,
+-- unless the player also turned on vVoiceMic (off by default: push-to-talk never replayed V because you had just said it yourself).
 function M.vVoice()
     loadSettings()
     return settings.vVoice == true
+end
+
+-- Off by default. On, and with V's voice on, what the player says by microphone (hold to talk, Voice activation) is repeated in V's voice too (the bridge).
+function M.vVoiceMic()
+    loadSettings()
+    return settings.vVoiceMic == true
 end
 
 -- Why OmniVoice cannot speak for V with these settings: 'pack' (the optional OmniVoice pack is missing, named first), 'voice' (the companion voice in
@@ -1846,6 +1855,7 @@ function M.snapshot(player)
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
             vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or settings.vVoiceEngine == 'omni' and 'omni' or 'pocket',
+            vVoiceMic = settings.vVoiceMic == true,
             -- Part of the main mod: off by default; Local AI and Custom (not Convai, not Mistral). The optional Mature pack (uncensored models, Local AI) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
@@ -1900,7 +1910,7 @@ function M.applySettings(player, values)
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'decisionLedger' or key == 'witnessReceipts'
             or key == 'naturalSpeech' or key == 'errorReports'
-            or key == 'followUpInterest' or key == 'vVoice' then
+            or key == 'followUpInterest' or key == 'vVoice' or key == 'vVoiceMic' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'matureContent' then

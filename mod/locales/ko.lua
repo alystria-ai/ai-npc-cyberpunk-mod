@@ -1248,4 +1248,6 @@ return {
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "키를 누르고 있지 않아도 말할 수 있습니다. 캐릭터를 마주 보고 있거나 동료가 가까이 있으면, 모드가 목소리를 듣고 약 1초 동안 말을 멈추면 대답합니다.\n\n게임 자체의 장면이나 대화 선택지 중, 캐릭터가 말하는 동안에는 절대 듣지 않습니다. 음성이 감지되지 않으면 PC에서 아무것도 나가지 않습니다. 헤드폰이 가장 좋고, 블루투스 헤드셋 마이크는 듣는 동안 통화 음질로 바뀝니다.",
     ["Opening microphone…"] = "마이크 여는 중…",
     ["Speak now"] = "지금 말하세요",
+    ["V speaks your microphone lines"] = "V가 마이크로 한 대사를 말함",
+    ["After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider."] = "말한 뒤(길게 눌러 말하기 또는 음성 활성화)에 V가 당신의 말을 V의 음성으로 소리 내어 반복합니다. V의 음성이 켜져 있어야 합니다. 방금 직접 말한 내용이라 기본값은 꺼짐입니다.\n\n응답은 V를 기다리지 않습니다. 응답이 먼저 준비되면 V의 말은 중간에 끊깁니다. OmniVoice나 Convai 제공자에서는 사용할 수 없습니다.",
 }
