@@ -93,7 +93,8 @@ function M.update(player, elapsed, ready)
         if want then
             state.polledAt = -100
             -- What the detector said before this listening began is old: only what comes after counts.
-            state.seen = M.peek()
+            local old = M.peek()
+            state.seen = old and old.id or nil
         end
     end
     if not state.listening then return end

@@ -130,6 +130,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/reputation.lua"
     },
     {
+      "source": "mod/voice-activation.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-activation.lua"
+    },
+    {
       "source": "mod/player-gear.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
     },

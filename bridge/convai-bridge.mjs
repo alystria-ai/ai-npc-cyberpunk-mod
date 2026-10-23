@@ -126,6 +126,7 @@ import {SpeechLanguage, LOCAL_PACKS, planRecording, PLAYER_LANGUAGE_FILE, parseP
 import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {MicTap, TapCapture, TAP} from './mic-tap.mjs';
+import {MicLive} from './mic-live.mjs';
 import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
@@ -1045,24 +1046,17 @@ function publishMicState(options) {
   return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), updated: Date.now()}), options);
 }
 const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
-let liveListen = false, listenAllowed = false, listenTimer = null;
+const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
+  log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
+  onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
 const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onVad: status => { micVad = micVadBody(status); void publishMicState().catch(() => {}); },
   // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
-  onRelease: () => { clearTimeout(listenTimer); listenTimer = setTimeout(() => reconsiderListening(), 400); listenTimer.unref?.(); }});
+  onRelease: () => micLive.afterRelease()});
+micLive.tap = micTap;
+console.error('[CyberpunkConvai] Microphone: ' + describeThresholds());
 realtime.micTap = micTap;
 realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); };
-function reconsiderListening() {
-  if (stopped) return;
-  const want = liveListen && listenAllowed;
-  if (want && micTap.state === 'closed') {
-    console.error('[CyberpunkConvai] Microphone: voice activation listens (' + describeThresholds() + ')');
-    micTap.open('vad', {listen: true}).catch(error => {
-      console.error('[CyberpunkConvai] Microphone: voice activation could not open the microphone: ' + String(error?.message ?? error).slice(0, 160));
-      micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {});
-    });
-  } else if (!want && micTap.listening) void micTap.release('vad', 'voice activation is off');
-}
 const mistralSpeech = createLocalSpeech({
   stt: englishStt,
   capture: new TapCapture({tap: micTap}),
@@ -3512,7 +3506,7 @@ async function pollSettings(checkShutdown = true) {
       }
     }
     // Voice activation (Settings > Voices, off by default): without it the game's listen request is not honoured and a listening tap is released.
-    if (settings) { listenAllowed = settings.voiceActivation === true; reconsiderListening(); }
+    if (settings) micLive.setAllowed(settings.voiceActivation === true);
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
@@ -3675,26 +3669,7 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
 // The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone-live.lua): read the moment the game writes it.
-const livePath = resolve(runtime, 'microphone-live.json');
-let liveObserved = '', liveHold = null;
-async function pollLive() {
-  if (stopped) return;
-  const raw = await readFile(livePath, 'utf8').catch(() => '');
-  if (raw === liveObserved) return;
-  liveObserved = raw;
-  let value; try { value = JSON.parse(raw); } catch { return; }
-  if (!value || typeof value !== 'object') return;
-  const holdId = typeof value.holdId === 'string' && /^[\w.-]{1,40}$/.test(value.holdId) ? value.holdId : null;
-  if (holdId && value.down === true && holdId !== liveHold) {
-    liveHold = holdId;
-    micTap.hold(holdId).catch(error => console.error('[CyberpunkConvai] Microphone: the key press could not open the microphone: ' + String(error?.message ?? error).slice(0, 160)));
-  } else if (holdId && value.down === false && holdId === liveHold) {
-    void micTap.released(holdId);
-  }
-  const listen = value.listen === true;
-  if (listen !== liveListen) { liveListen = listen; reconsiderListening(); }
-}
-const liveTimer = setInterval(() => { void pollLive().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);
+const liveTimer = setInterval(() => { void micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => pollLog('[CyberpunkConvai] Preparation poll:', error)); }, 150);
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => pollLog('[CyberpunkConvai] Look-ahead poll:', error)); }, 60);
 // Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
@@ -3720,7 +3695,7 @@ watchFiles(runtime, {
   'last-input.json': tick,
   'microphone-command.json': () => pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)),
   // The key press opens the microphone tap with no wait for the 150 ms poll above.
-  'microphone-live.json': () => pollLive().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)),
+  'microphone-live.json': () => micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)),
   'phone-chat-input.json': () => pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
@@ -3747,7 +3722,7 @@ async function shutdown() {
   clearInterval(setupTimer); setupCheck.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
-  clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); clearTimeout(listenTimer); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
+  clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); micLive.stop(); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
   stockCancel?.();
   await invitations.clear('service-stopped');
