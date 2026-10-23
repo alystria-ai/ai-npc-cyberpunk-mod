@@ -944,9 +944,13 @@ before a load (`lms load --estimate-only`) and has a CUDA-only "limit offload to
 2. **Spill detection.** After a reply that was slow (under 12 tokens a second, 20 pieces or more) or a stall, at most once in three minutes, one `typeperf` read (0.4 s) of the server
    process's Dedicated and Shared Usage. Shared usage beyond 128 MiB that is at least 300 MiB and 10% of what the process holds is a spill. Nothing per frame, per turn or while the
    replies are fast; no counters (not Windows, a failed read) change nothing. The reading goes to the log and `diagnostics().engine.spill`.
-3. **Reaction to a spill.** The server is stopped (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to it with a 1,024 MiB margin (once per
-   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then the same model with part of it on the CPU, three times a session at most,
-   then Local AI is unavailable with the `too-small` detail; before 2026-10-21 it was "then the cloud"). Measured end to end with the real server (Balanced mode, the
+3. **Reaction to a spill.** Since 2026-10-24 the model is stopped only when something can replace it (`#spillReplacement`, judged while it is still loaded and answering: the free
+   memory plus the model's own dedicated memory, which goes back on the stop). The replacement is, in this order: the same model fitted to it with a 1,024 MiB margin (once per model per
+   session); the next smaller model of its family if it fits whole; the same model with part of its layers on the CPU if at least 35% of them stay on the card, the system memory for
+   the rest is free (the LOW_RAM gate) and fewer than three such reloads were made. Then the server is stopped (its memory goes back at once) and the replacement is loaded. When there
+   is none the model stays loaded, slow but answering, once in the log ("nothing can replace it") and not looked at again for ten minutes (the refit is not used up). Before this the model was
+   unloaded first and the checks came after, and four installs (12 GB cards included, 2026-10-24 reports 014a3be6 / 316c6d2b) ended with no Local AI at all ("low-ram"). No notice: the
+   game's `local-cpu` one says the processor runs the model. (Before 2026-10-24 a spill that could not be fitted stepped down as after two stalls, then Local AI was unavailable with the `too-small` detail; before 2026-10-21 it was "then the cloud".) Measured end to end with the real server (Balanced mode, the
    card over-committed by four other servers): Gemma 4 E4B spilled at 6.2 tokens a second (1,073 prompt tokens a second), 6.5 s after the slow reply was reported the lite model was
    loaded and read 3,658 prompt tokens and wrote 103 tokens a second (Silent mode: 6.2 and 109, 8.8 s). A partial placement does not look like a spill (76 MiB shared with 20 layers on the card). Before this change a reply that came, however slowly, was never counted as a stall.
 4. **A model on the CPU for the most part steps down at its first stall** (kept, 2026-10-21, with the "allow, warn once" decision below). When the fit says under 35% of the layers can stay on the

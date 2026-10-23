@@ -1089,7 +1089,13 @@ const PROJECTED = {'big-u.gguf': {16384: 3734, 8192: 3598, q8: 3520}, 'q4.gguf':
 function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], table = PROJECTED, ...options} = {}) {
   const fitProbe = async args => { probes.push(args); return table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null; };
   const gpuMemory = spill ? async () => spill.value : null;
-  const h = stepHarness(t, {freeVramMiB: () => free.value, fitProbe, gpuMemory, now: () => clock.now, ...options});
+  // `free.value` is the graphics memory that is free with none of our model loaded; while a model of ours runs, what it holds on the card (the spill counters' dedicated MiB) is not free, and
+  // goes back when it stops. That is how a spill decision (it adds the model's own memory to what is free) and the start after the stop both see the same room.
+  let created = null;
+  const running = () => created?.calls.some(call => call.child.exitCode === null && call.child.signalCode === null) === true;
+  const freeVramMiB = () => free.value - (spill && running() ? Number(spill.value.dedicatedMiB) || 0 : 0);
+  const h = stepHarness(t, {freeVramMiB, fitProbe, gpuMemory, now: () => clock.now, ...options});
+  created = h;
   return {...h, free, probes, clock, spill};
 }
 const argValue = (call, flag) => call.args[call.args.indexOf(flag) + 1];
@@ -1284,7 +1290,7 @@ test('a spill with no smaller model (the 2026-10-21 8 GB RTX 4060 report: answer
     h.logs.filter(line => /partial|fit of/.test(line)).join('|'));
   assert.deepEqual([h.server.diagnostics().engine.offloadPlan.fitTargetMiB, h.server.diagnostics().model.offload], [1792, true]);
   assert.equal(h.probes.filter(probe => probe.contextSize === 8192 && probe.kvType === 'q8_0').length >= 1, true);
-  // The offloaded model spills again: it is loaded again the same way (at most three times a session), and then Local AI is unavailable (the card cannot hold it beside the game).
+  // The offloaded model spills again: it is loaded again the same way (at most three times a session), and then it stays loaded: slow, but it answers (before 2026-10-24 Local AI became unavailable here).
   for (let again = 2; again <= 3; again++) {
     h.clock.now += 200_000;
     h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
@@ -1292,30 +1298,115 @@ test('a spill with no smaller model (the 2026-10-21 8 GB RTX 4060 report: answer
   }
   h.clock.now += 200_000;
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
-  assert.equal(await until(() => h.failures.length > 0), true);
-  assert.deepEqual([h.failures, h.steps, h.calls.length], [[{reason: 'low-memory', detail: 'too-small'}], [], 4]);
+  assert.equal(await until(() => h.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.deepEqual([h.failures, h.steps, h.calls.length, h.server.status().state], [[], [], 4, 'ready'], 'the fourth reload is not made: the model that answers stays');
+  assert.equal(h.calls[3].child.exitCode, null, 'the running server was not stopped');
 });
 
-test('a spill with no smaller model and too little of the card left (the game holds it): the same model is loaded mostly on the CPU, said once, no cloud event', async t => {
+const SLOW_TURN = {ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}};
+const serverAlive = call => call.child.exitCode === null && call.child.signalCode === null;
+
+test('a spill that nothing can replace (2026-10-24 reports 014a3be6 / 316c6d2b: no smaller model, the game holds the card): the model stays loaded, slow but answering, said once in the log, no failure, no notice, no unload', async t => {
   const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
-  const free = {value: 4500};
-  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free});
-  const slow = [];
-  h.server.on('offload-slow', event => slow.push(event));
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 4500}});
+  const events = [];
+  for (const name of ['offload-slow', 'model-stepdown', 'model-fallback', 'failed']) h.server.on(name, event => events.push([name, event]));
   await h.server.ensure();
-  free.value = 2800;   // (2,800 - 1,792 - 1,100) is nothing: the model would be on the CPU
-  h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
+  h.free.value = 2800;   // 2,800 MiB would be free once it stopped: no rung fits, and (2,800 - 1,792 - 1,100) leaves nothing of the model on the card, which reads no faster than the spill
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.ok(h.logs.some(line => /Qwen3\.5-4B has 972 MiB in shared system memory \(the game took the graphics memory\) and nothing can replace it \(only about 0% of its layers would fit the card\): it stays loaded/.test(line)), h.logs.join('\n'));
+  assert.deepEqual([h.calls.length, serverAlive(h.calls[0]), h.failures, h.steps, h.fallbacks, events, h.server.status().state], [1, true, [], [], [], [], 'ready']);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-4B', 'the next turn is answered by the same model, at once');
+  assert.equal(h.server.diagnostics().engine.spillKept.spilledMiB, 972);
+  // It is said once, and not looked at again for ten minutes (no probes, no reading); then the replacement is looked for again.
+  const reads = h.logs.filter(line => /graphics memory of the model server/.test(line)).length, probes = h.probes.length;
+  h.clock.now += 200_000; h.server.noteTurn(SLOW_TURN);
+  await sleep(100);
+  assert.deepEqual([h.logs.filter(line => /graphics memory of the model server/.test(line)).length, h.probes.length], [reads, probes], 'no second look inside the ten minutes');
+  h.clock.now += 500_000; h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.filter(line => /graphics memory of the model server/.test(line)).length === reads + 1), true);
+  assert.equal(h.logs.filter(line => /nothing can replace it/.test(line)).length, 1, 'said once');
+  assert.deepEqual([h.calls.length, h.server.diagnostics().engine.spillKept.checks], [1, 2]);
+  // The game gives the card back: the same model, still kept, is now fitted whole (the one refit the model has is not used up by the kept looks).
+  h.free.value = 9000; h.clock.now += 700_000; h.server.noteTurn(SLOW_TURN);
   assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
-  assert.deepEqual([h.failures, h.steps, h.server.status().state, slow.map(event => [event.id, event.share])], [[], [], 'ready', [['standard', 0]]]);
-  assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the spilled server was stopped');
-  assert.equal(argValue(h.calls[1], '-fit'), 'on');
-  // Not enough system memory for the part that stays on the processor: it is not started, and the reason says so.
-  const poor = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 4500}, freeMemMiB: () => 32000});
-  await poor.server.ensure();
-  poor.free.value = 2800; poor.server.freeMemMiB = () => 1500;
-  poor.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
-  assert.equal(await until(() => poor.failures.length > 0), true);
-  assert.deepEqual([poor.failures, poor.steps, poor.calls.length], [[{reason: 'start-failed', detail: 'low-ram'}], [], 1]);
+  assert.deepEqual([argValue(h.calls[1], '-c'), h.calls[1].args.includes('-ngl'), h.failures, h.steps], ['16384', true, [], []]);
+});
+
+test('a spill whose only replacement needs more system memory than is free (the LOW_RAM gate of the 014a3be6 installs): the model stays loaded instead of being unloaded into "low-ram"', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 4500}, freeMemMiB: () => 32000});
+  await h.server.ensure();
+  h.free.value = 3900;   // about 45% of the layers would fit the card: a placement, but the processor's part needs memory
+  h.server.freeMemMiB = () => 1500;
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.ok(h.logs.some(line => /MiB of system memory would be needed for its CPU part and 1500 MiB are free/.test(line)), h.logs.join('\n'));
+  assert.deepEqual([h.failures, h.calls.length, serverAlive(h.calls[0]), h.server.status().state], [[], 1, true, 'ready']);
+  // With the memory free the same spill is replaced by the model with part of its layers on the CPU.
+  const roomy = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 4500}, freeMemMiB: () => 32000});
+  await roomy.server.ensure();
+  roomy.free.value = 3900;
+  roomy.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => roomy.calls.length === 2 && roomy.server.status().state === 'ready'), true);
+  assert.deepEqual([roomy.failures, argValue(roomy.calls[1], '-fit')], [[], 'on']);
+});
+
+test('a spill with a smaller model that does not fit whole either keeps the running model; one that fits replaces it (and the running one is stopped only then)', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  // Standard (q4) spilled, lite (q2, 1,311 MiB file, 2,011 MiB by the file-size rule) would have 1,900 MiB: no.
+  const tight = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free: {value: 4500}, table: {...PROJECTED, 'q2.gguf': {16384: 3000, 8192: 3000, q8: 3000}}});
+  await tight.server.ensure();
+  tight.free.value = 1900;
+  tight.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => tight.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.ok(tight.logs.some(line => /Qwen3\.5-2B does not fit whole in the 1900 MiB that would be free/.test(line)), tight.logs.join('\n'));
+  assert.deepEqual([tight.steps, tight.failures, tight.calls.length, serverAlive(tight.calls[0])], [[], [], 1, true]);
+  // 2,500 MiB would be free: lite goes whole onto the card.
+  const fits = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free: {value: 4500}});
+  await fits.server.ensure();
+  fits.free.value = 2500;
+  fits.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => fits.steps.length > 0), true);
+  assert.equal((await fits.server.ensure()).model, 'Qwen3.5-2B');
+  assert.deepEqual([fits.loaded(), fits.failures], [['q4.gguf', 'q2.gguf'], []]);
+  assert.equal(serverAlive(fits.calls[0]), false, 'the spilled server was stopped for it');
+});
+
+test('a spilled model that was fitted once and spills again, with no smaller model and no placement worth loading, stays (it used to step down into "low-memory")', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, lite: false, spill, free: {value: 24000}});
+  await h.server.ensure();
+  h.free.value = 4500;   // 3,426 + 1,024 fit but 3,562 + 1,024 do not: refit once, in the 8,192 context
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.equal(argValue(h.calls[1], '-c'), '8192');
+  h.free.value = 2000; h.clock.now += 200_000;   // spilled again, nothing fits
+  h.server.noteTurn(SLOW_TURN);
+  assert.equal(await until(() => h.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.deepEqual([h.calls.length, serverAlive(h.calls[1]), h.failures, h.server.status().state], [2, true, [], 'ready']);
+});
+
+test('the low-RAM gate of a load with part of the model on the CPU, at the numbers of the 014a3be6 / 316c6d2b installs: the CPU part of the 5,088 MiB Mature model needs 6,723 MiB at 0% on the card, nothing less starts', async t => {
+  // 5,088 MiB file, 0% of the layers on the card: 5,088 + 610 (the cache, 12% of the weights) + 1,024 MiB kept for the game and Windows = 6,723 MiB. Free system memory is "available" memory (it already
+  // counts the file cache), so the gate is not conservative on that account: the whole file has to be resident for a CPU-only read. The 072bc3 install (32 GB, 5,793 free) was 930 MiB short and the
+  // 16 GB installs (870 to 5,439 free) 1,300 to 5,800 MiB short; none of them would have run, so the thresholds stand and the fix is to not unload the model that answered.
+  const {offloadRamNeedMiB} = await import('./local-vram-fit.mjs');
+  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 5088, projectedMiB: 3520}), 6723);
+  assert.equal(offloadRamNeedMiB({share: 0, sizeMiB: 2582, projectedMiB: 3271}) < 4200, true);
+  const need = share => offloadRamNeedMiB({share, sizeMiB: 5088, projectedMiB: 3520});
+  assert.deepEqual([need(0.3) < need(0), need(0.5) < need(0.3), need(1)], [true, true, null]);
+  const start = async freeRam => {
+    const h = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 450}, freeMemMiB: () => freeRam, fileSizeMiB: file => (String(file).endsWith('big-u.gguf') ? 5088 : CHOICE_SIZES[String(file).split(/[\\/]/).pop()] ?? 0)}));
+    await h.server.ensure().catch(() => {});
+    return h;
+  };
+  const refused = await start(6722);
+  assert.deepEqual([refused.failures, refused.calls.length], [[{reason: 'start-failed', detail: 'low-ram'}], 0]);
+  assert.ok(refused.logs.some(line => /about 6723 MiB of system memory are needed for its CPU part and cache, 6722 MiB are free/.test(line)), refused.logs.join('\n'));
+  const allowed = await start(6723);
+  assert.deepEqual([allowed.failures, allowed.calls.length], [[], 1]);
 });
 
 test('a spilled model the player added is fitted again like a pack model (it was left alone before), and with no placement on the card it runs mostly on the processor', async t => {
@@ -1332,13 +1423,18 @@ test('a spilled model the player added is fitted again like a pack model (it was
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
   assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
   assert.deepEqual([h.loaded(), argValue(h.calls[1], '-c'), h.calls[1].args.includes('-ngl')], [['mine.gguf', 'mine.gguf'], '8192', true], 'the same file, whole on the card in the smaller context');
-  // It spills again with nothing smaller (a model the player added never steps down) and 3,000 MiB left: the same file is loaded mostly on the processor, said once.
+  // It spills again with nothing smaller (a model the player added never steps down) and 4,900 MiB left: the same file is loaded with part of its layers on the CPU (about 63% stay on the card).
   const slow = [];
   h.server.on('offload-slow', event => slow.push(event));
-  free.value = 3000; h.clock.now += 200_000;
+  free.value = 4900; h.clock.now += 200_000;
   h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
   assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
-  assert.deepEqual([h.failures, h.steps.length, slow.map(event => event.id), argValue(h.calls[2], '-fit')], [[], 0, ['custom:mine'], 'on']);
+  assert.deepEqual([h.failures, h.steps.length, slow, argValue(h.calls[2], '-fit')], [[], 0, [], 'on']);
+  // And with 3,000 MiB left (4% on the card, no faster than the spill) it stays as it is.
+  free.value = 3000; h.clock.now += 200_000;
+  h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});
+  assert.equal(await until(() => h.logs.some(line => /nothing can replace it/.test(line))), true);
+  assert.deepEqual([h.calls.length, h.failures, slow], [3, [], []]);
 });
 
 test('a changed choice that would end on the model already loaded does not reload it, and still says the chosen model does not fit', async t => {
@@ -1349,7 +1445,7 @@ test('a changed choice that would end on the model already loaded does not reloa
   const h = fitHarness(t, {selected: {matureOn: true}, spill, table: withoutStandard});
   await h.server.ensure();
   assert.equal(h.server.modelId, 'mature:good');
-  h.free.value = 3000; h.state.pin = 'standard';
+  h.free.value = 6300; h.state.pin = 'standard';   // 3,000 MiB are free while our 3,300 MiB model runs (the harness subtracts what it holds)
   assert.equal(await h.server.reselect(), false);
   assert.equal(h.calls.length, 1, 'no reload of the same 5 GB model');
   assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored'}]);
@@ -1456,26 +1552,25 @@ test('the server\'s own log saying the device was lost is enough: recover() rest
 
 // ---- 2026-10-21, round 3: a step-down race, and an early look for a spill --------------------------------------------------------------------------------------------------
 
-test('a turn that comes while a spill is being acted on waits for the step and is answered by the smaller model: no start the step would cancel, no "stopped", Local AI stays up', async t => {
+test('a turn that comes while a spill is being looked at is answered at once by the model that is up (no step gate held for a look), and one that comes while the step runs waits for it and is answered by the smaller model: no "stopped", Local AI stays up', async t => {
   const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
   const free = {value: 24000};
   const gate = {on: false, open: null};
   gate.promise = new Promise(resolve => { gate.open = resolve; });
-  // The free-memory read that #spillAct makes after it stopped the model is held, as it is for real while nvidia-smi runs.
-  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free, freeVramMiB: async () => { if (gate.on) await gate.promise; return free.value; }});
+  let hh = null;
+  // The free-memory read of the look at a spill is held, as it is for real while nvidia-smi runs; the model's own memory is free once it stopped.
+  const h = hh = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill, free, freeVramMiB: async () => { if (gate.on) await gate.promise; return free.value - (hh.calls.some(serverAlive) ? 2200 : 0); }});
   await h.server.ensure();
-  free.value = 3000;   // the game holds the card: the large model does not fit whole any more, so the step ends in a step-down
+  free.value = 3000;   // the game holds the card: the large model does not fit whole any more (3,000 MiB are free once it stopped), the lite one does, so the step ends in a step-down
   gate.on = true;
-  h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 3, promptTokens: 2500}, pieces: 40}});   // a slow reply: the counters are read, the model spilled
-  assert.equal(await until(() => h.logs.some(line => /unloading it and loading it again fitted/.test(line))), true);
-  await sleep(40);   // #spillAct is at its free-memory read; the model is stopped
-  assert.equal(h.server.status().state, 'stopped');
-  // The retried turn calls ensure() now. Before the fix it started the large model again here, and #stepDown's stop() cancelled that start: the turn failed with 'stopped'.
-  const turn = h.server.ensure();
-  await sleep(200);
-  assert.deepEqual([h.calls.length, h.server.status().state], [1, 'stopped'], 'the large model was not started again while the step runs');
+  h.server.noteTurn(SLOW_TURN);   // a slow reply: the counters are read, the model spilled, the replacement is looked for
+  await sleep(100);
+  assert.equal(h.server.status().state, 'ready', 'the model is not stopped before there is something to replace it');
+  const early = await Promise.race([h.server.ensure().then(handle => handle.model), sleep(500).then(() => 'waited')]);
+  assert.equal(early, 'Qwen3.5-4B', 'a turn during the look is not held');
   gate.open();
-  const handle = await turn;
+  assert.equal(await until(() => h.steps.length > 0), true);
+  const handle = await h.server.ensure();
   assert.equal(handle.model, 'Qwen3.5-2B');
   assert.deepEqual([h.loaded(), h.failures, h.server.status().state, h.steps.map(step => step.model)], [['q4.gguf', 'q2.gguf'], [], 'ready', ['Qwen3.5-2B']]);
 });
