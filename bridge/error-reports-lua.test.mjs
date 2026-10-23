@@ -88,6 +88,20 @@ test('the first-load setup check gives the versions and check lines, and an even
   assert.deepEqual(quiet.events, []);
 });
 
+test('a service that never started names why in the event and in the setup line of every report of the session', () => {
+  const parsed = parseGameEvents(run(`
+    local checks = {service = {state = 'problem', code = 'never', detail = 'plugin-not-loaded'}, files = {state = 'ok', code = 'found', version = '0.2.9'},
+      cet = {state = 'ok', code = 'found', version = 'v1.35.0'}}
+    assert(M.noteSetup({'service'}, checks) == true)
+    return file()`));
+  assert.deepEqual(parsed.events.map(row => row.message), ['service never']);
+  assert.deepEqual(parsed.events[0].detail, {detail: 'plugin-not-loaded'});
+  assert.ok(parsed.game.setup.includes('service: problem never (plugin-not-loaded)'), parsed.game.setup.join('|'));
+  // another service code carries no detail in its line
+  const running = parseGameEvents(run(`assert(M.noteSetup({}, {service = {state = 'ok', code = 'running', detail = 'x'}})) return file()`));
+  assert.ok(running.game.setup.includes('service: ok running'), running.game.setup.join('|'));
+});
+
 test('a report says which host of the Companion Manager the player had: the nsui line and the Mod Configuration Menu version', () => {
   const text = (nsui, problems = '') => run(`
     local checks = {cet = {state = 'ok', code = 'found', version = 'v1.35.0'}, nsui = ${nsui}}

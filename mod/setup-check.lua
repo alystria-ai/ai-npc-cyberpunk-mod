@@ -213,12 +213,22 @@ local function statusModule()
     return ok and type(status) == 'table' and status or nil
 end
 
+-- Why nothing in this session started the service, for the report row's detail (2026-10-24 triage: six installs of 0.2.9 reported "service never"
+-- and every one had this mod's RED4ext plugin not loaded, so the Runtime was missing or not yet in place). 'plugin-not-loaded': the native plugin,
+-- which holds the launcher, did not bind (convaiNative says so, native-core.lua; "Native core: ... (plugin not loaded)" in probe.log). 'no-launcher-trace':
+-- the plugin is loaded and still no status file of this session exists, which would be a launcher or supervisor fault. Two reads of a table, no file.
+local function neverDetail()
+    local native = try(function() return convaiNative end)
+    if type(native) == 'table' and native.present == true then return 'no-launcher-trace' end
+    return 'plugin-not-loaded'
+end
+
 local function serviceCheck(now)
     local status = statusModule()
     if not status then return {state = 'unknown', code = 'unknown'} end
     local reach = try(function() return status.reach(now) end)
     local down = try(function() return status.unavailable(now) end)
-    if reach == 'never' then return {state = 'problem', code = 'never'} end
+    if reach == 'never' then return {state = 'problem', code = 'never', detail = neverDetail()} end
     if type(down) == 'table' then
         if down.kind == 'starting' then return {state = 'ok', code = 'starting'} end
         if down.kind == 'browser' then return {state = 'problem', code = 'browser-missing'} end

@@ -167,6 +167,12 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   local never = check.serviceLine()
   assert(never.value == 'Not running' and never.description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true))
   assert(never.description:find('red4ext/plugins/AiNpcCyberpunkMod', 1, true))
+  -- the row says why (2026-10-24 triage): this mod's native plugin did not load, or it did and still nothing reported
+  assert(check.inspect().game.checks.service.detail == 'plugin-not-loaded', 'no native plugin: the Runtime is missing or not loaded')
+  env.native = true; applyEnv(); check.run()
+  assert(check.inspect().game.checks.service.code == 'never' and check.inspect().game.checks.service.detail == 'no-launcher-trace', 'plugin loaded, no trace')
+  assert(check.serviceLine().value == 'Not running', 'the line for the player is the same')
+  env.native = false; applyEnv(); check.run()
   -- a status file from an earlier game session says nothing about this one
   advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', updated = ms(-3600)})
   check.run()
