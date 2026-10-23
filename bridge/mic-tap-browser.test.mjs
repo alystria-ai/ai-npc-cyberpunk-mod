@@ -43,7 +43,7 @@ test('the capture page posts 40 ms chunks when the tap asks, keeps them until a 
   } finally { await browser?.close(); }
 });
 
-test('a warm device: the key press starts at once, the device stays open and unread between recordings, and cool() lets it go', {timeout: 120000}, async t => {
+test('the linger: the device opens at the press, stays open and unread for lingerMs after the turn, the next press is instant, then it closes; busy closes it at once', {timeout: 120000}, async t => {
   let browser;
   try {
     browser = await chromium.launch({channel: 'msedge', headless: true,
@@ -52,41 +52,38 @@ test('a warm device: the key press starts at once, the device stays open and unr
   try {
     const capture = new LocalSttCapture({getBrowser: async () => browser});
     const logged = [];
-    const tap = new MicTap({capture, log: line => logged.push(line)});
-    const info = await tap.warm(true);
-    assert.ok(info?.warm === true && info.device, 'the device is open: ' + JSON.stringify(info));
-    const state = () => capture.page.evaluate(() => ({warm: window.localStt.isWarm()}));
-    assert.equal((await state()).warm, true);
-    await wait(300);                                      // warm and unread: nothing may be delivered to the bridge
-    const stray = [];
-    capture.target = chunk => stray.push(chunk);
-    await wait(300);
-    assert.equal(stray.length, 0, 'a warm device delivers nothing');
-    capture.target = null;
-    // key press: the recording starts without opening anything
-    const began = Date.now();
-    await tap.hold('warm-1');
-    const pressMs = Date.now() - began;
-    assert.ok(pressMs < 150, 'the press found the device open: ' + pressMs + ' ms');
-    tap.open('req-w', {holdId: 'warm-1'});
-    const adapter = new TapCapture({tap}), got = [];
-    await adapter.begin(chunk => got.push(chunk), {requestId: 'req-w'});
-    await wait(500);
-    assert.ok(got.reduce((sum, chunk) => sum + chunk.length, 0) / 32 >= 400, 'audio flows from the press on');
-    await tap.released('warm-1');
-    await adapter.abort();
+    const tap = new MicTap({capture, log: line => logged.push(line), limits: {lingerMs: 1500}});
+    const open = () => capture.page.evaluate(() => window.localStt.isOpen());
+    await capture.ensurePage();
+    assert.equal(await open(), false, 'nothing is open before a press');
+    const turn = async (holdId, requestId) => {
+      const began = Date.now();
+      await tap.hold(holdId);
+      const pressMs = Date.now() - began;
+      tap.open(requestId, {holdId});
+      const adapter = new TapCapture({tap}), got = [];
+      await adapter.begin(chunk => got.push(chunk), {requestId});
+      await wait(400);
+      await tap.released(holdId);
+      await adapter.abort();
+      return {pressMs, bytes: got.reduce((sum, chunk) => sum + chunk.length, 0)};
+    };
+    const first = await turn('l-1', 'req-l1');
+    assert.ok(first.bytes > 0, 'the first press recorded');
     assert.equal(tap.state, 'closed');
-    assert.equal((await state()).warm, true, 'the device is still open after the recording');
-    const after = got.length;
-    await wait(300);
-    assert.equal(got.length, after, 'and reads nothing again');
-    // a second press is as quick
-    const again = Date.now();
-    await tap.hold('warm-2');
-    assert.ok(Date.now() - again < 150, 'the second press too');
-    await tap.release(undefined, 'done');
-    await tap.warm(false);
-    assert.equal((await state()).warm, false, 'cool() released the device');
-    assert.ok(logged.some(line => /kept open, reading nothing/.test(line)));
+    assert.equal(await open(), true, 'the device stays open after the turn');
+    assert.equal(tap.lingering, true);
+    const second = await turn('l-2', 'req-l2');
+    assert.ok(second.pressMs < first.pressMs && second.pressMs < 150, `the next press found it open: ${first.pressMs} ms then ${second.pressMs} ms`);
+    await wait(1900);
+    assert.equal(await open(), false, 'the device closed after the linger');
+    assert.ok(logged.some(line => /tap released/.test(line)));
+    // busy: closes at once, no linger
+    await turn('l-3', 'req-l3');
+    assert.equal(await open(), true);
+    tap.setBlocked(true); await wait(300);
+    assert.equal(await open(), false, 'a menu, a loading screen, a scene or a choice list closes it at once');
+    await turn('l-4', 'req-l4'); await wait(300);
+    assert.equal(await open(), false, 'and nothing lingers while the game is busy');
   } finally { await browser?.close(); }
 });

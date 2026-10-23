@@ -4237,25 +4237,18 @@ end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 
--- Keeps the bridge's microphone device open, reading nothing, only while a conversation is possible (the owner's choice, 2026-10-23: "only near
--- someone"): a character who can be talked to is faced or aimed at, or a companion is near (the conditions Voice activation listens under,
--- mod/voice-activation.lua `sample`), and released MIC_WARM_LINGER_S after the last such moment. Never in a menu, a loading screen, a scene, a
--- dialogue with choices or a call: those release it at once. The talk key then starts a recording with no wait for the device (docs/VOICE_INPUT.md).
--- The bridge can switch it off (CYBERPUNK_CONVAI_MIC_WARM=0). Runs on the 10 Hz tick (the answer is cached for 0.5 s); a global function, so
--- onUpdate reaches it without a new upvalue.
-MIC_WARM_LINGER_S = 90
-function convaiMicWarmTick(player, ready)
+-- The talk key's microphone device is opened by the key press and stays open, unread, for about 15 s after a voice turn so the next press of a
+-- conversation starts at once (docs/VOICE_INPUT.md; the bridge times it, bridge/mic-tap.mjs). This tick tells the bridge when the game is BUSY (a menu, a
+-- loading screen, a scene, a dialogue with choices, a call): the device then closes at once and does not linger. It looks only while a voice turn
+-- is in flight or ended less than MIC_LINGER_WATCH_S ago, so a player who never uses the voice key pays one clock compare per tick. A global function,
+-- so onUpdate reaches it without a new upvalue.
+MIC_LINGER_WATCH_S = 17
+function convaiMicLingerTick(player, ready)
     local now = os.clock()
-    local possible, blocked = convaiVoiceActivationModule().sample(player, ready)
-    if blocked then convaiMicWarmAt = nil elseif possible then convaiMicWarmAt = now end
-    local want = convaiMicWarmAt ~= nil and now - convaiMicWarmAt < MIC_WARM_LINGER_S
-    if want ~= microphone.warming() then
-        microphone.warm(want)
-        convaiMicWarmBeatAt = now
-    elseif want and now - (convaiMicWarmBeatAt or 0) >= 30 then
-        convaiMicWarmBeatAt = now
-        microphone.beat()
-    end
+    if microphone.context ~= nil or microphone.holding() then convaiMicLingerUntil = now + MIC_LINGER_WATCH_S end
+    if convaiMicLingerUntil == nil or now > convaiMicLingerUntil then return end
+    local _, blocked = convaiVoiceActivationModule().sample(player, ready)
+    microphone.block(blocked)
 end
 
 -- Voice activation: talk with no key (docs/VOICE_INPUT.md). A global function, so onUpdate reaches it without a new upvalue.
@@ -4867,9 +4860,9 @@ registerForEvent('onUpdate', function(delta)
     -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
     local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
     if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
-    -- The microphone kept open (reading nothing) only near someone to talk to, so the talk key starts at once: a clock compare per tick.
-    local warmOk, warmError = pcall(convaiMicWarmTick, player, worldReady)
-    if not warmOk then convaiLogOnce('Microphone warm-up failed: ' .. tostring(warmError)) end
+    -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
+    local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
+    if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
         abandonSession('world unavailable during update')

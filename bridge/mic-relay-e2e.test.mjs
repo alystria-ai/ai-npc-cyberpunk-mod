@@ -8,7 +8,7 @@ import {LocalSttCapture} from './local-stt-capture.mjs';
 import {MicTap, TapCapture} from './mic-tap.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
-// The whole Convai-route microphone path in real Edge, minus Convai itself: a warm fake device (a looping 440 Hz tone) -> the key press -> the tap keeps
+// The whole Convai-route microphone path in real Edge, minus Convai itself: a fake device that lingers open after a first turn (a looping 440 Hz tone) -> the key press -> the tap keeps
 // the audio while the "connection" opens -> the relay pump hands it to a second page's PcmRelay -> the track goes over a WebRTC peer connection to a far
 // end that records what arrives. What the player said from the key press on must reach the far end whole, and none of it before the track is "published".
 const wait = ms => new Promise(done => setTimeout(done, ms));
@@ -32,7 +32,9 @@ test('real Edge: audio from the key press reaches the far end of the relay track
   } catch (error) { rmSync(folder, {recursive: true, force: true}); t.skip('Edge is not available here: ' + String(error.message).slice(0, 80)); return; }
   try {
     const tap = new MicTap({capture: new LocalSttCapture({getBrowser: async () => browser})});
-    assert.ok((await tap.warm(true))?.warm, 'the device is open before any key press');
+    // A first press opens the device (cold) and a turn ends; the device then lingers, so the press under test finds it open.
+    await tap.hold('e2e-0'); await wait(300); await tap.released('e2e-0'); await tap.release(undefined, 'first turn over'); await wait(200);
+    assert.equal(tap.lingering, true, 'the device lingers after the turn');
 
     // The "Convai page": the relay plus a far end that records the level of what arrives.
     const page = await browser.newPage();
@@ -64,7 +66,7 @@ test('real Edge: audio from the key press reaches the far end of the relay track
     const lease = {value: {isClosed: () => false, evaluate: (_fn, text) => page.evaluate(b64 => window.relay.pushBase64(b64), text)}};
     const pressed = Date.now();
     await tap.hold('e2e-1');
-    assert.ok(Date.now() - pressed < 200, 'the press found the device open: ' + (Date.now() - pressed) + ' ms');
+    assert.ok(Date.now() - pressed < 200, 'the press within the linger found the device open: ' + (Date.now() - pressed) + ' ms');
     tap.open('req-e2e', {holdId: 'e2e-1'});
     await wait(1000);
     const pump = hostLike.startRelayPump(lease, tap, 'req-e2e');
@@ -86,6 +88,6 @@ test('real Edge: audio from the key press reaches the far end of the relay track
     assert.equal(drained.drained, true);
     assert.ok(loudMs >= 0.85 * pushedMs, `the far end heard ${loudMs} ms of the ${Math.round(pushedMs)} ms that was said`);
     pump.close();
-    await tap.release(undefined, 'done'); await tap.warm(false);
+    await tap.release(undefined, 'done');
   } finally { await browser.close(); rmSync(folder, {recursive: true, force: true}); }
 });

@@ -287,3 +287,18 @@ test('a channel whose tap was not opened ahead opens it itself, as before', asyn
 test('a VAD tap is the same VoiceActivity as the bridge uses (no second detector)', () => {
   assert.equal(typeof new VoiceActivity().push, 'function');
 });
+
+test('a key let go before the device has opened ends the turn once the audio captured so far is in, with the whole of it kept', async () => {
+  const capture = fakeCapture({openMs: 60}), tap = new MicTap({capture});
+  const opening = tap.hold('early');
+  await tick(5);
+  capture.emit(Buffer.alloc(1280, 7));                        // the first chunk arrives while the device is still answering
+  const released = tap.released('early');                      // the key is already up
+  await opening; await released;
+  assert.equal(tap.state, 'ended');
+  assert.deepEqual(capture.log.filter(line => line === 'end' || line.startsWith('begin')).map(line => line.split(':')[0]), ['begin', 'end'], 'closed once it had opened, never before');
+  tap.open('req-early', {holdId: 'early'});
+  const got = [];
+  const attached = tap.attach('req-early', chunk => got.push(chunk));
+  assert.equal(attached.ended, true); assert.equal(Buffer.concat(got).length, 1280);
+});

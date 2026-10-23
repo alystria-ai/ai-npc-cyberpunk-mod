@@ -194,36 +194,31 @@ test('sample: possible near someone, blocked in menus, loading screens, scenes a
   `);
 });
 
-// ---- the warm device: kept open, reading nothing, only near someone ----------------------------------------------------------------------
-function warmFunction() {
-  const start = initSource.indexOf('MIC_WARM_LINGER_S = 90');
-  assert.ok(start > 0, 'init.lua has the warm tick');
-  const end = initSource.indexOf('\nend\n', initSource.indexOf('function convaiMicWarmTick(', start)) + 5;
+// ---- the linger check: the game tells the bridge when it is busy --------------------------------------------------------------------------
+function lingerFunction() {
+  const start = initSource.indexOf('MIC_LINGER_WATCH_S = 17');
+  assert.ok(start > 0, 'init.lua has the linger tick');
+  const end = initSource.indexOf('\nend\n', initSource.indexOf('function convaiMicLingerTick(', start)) + 5;
   return initSource.slice(start, end);
 }
 
-test('the warm tick keeps the device open only near someone to talk to: 90 s after the last such moment, never in a menu, a loading screen, a scene or a choice list', () => {
+test('the linger tick looks only while a voice turn runs or ended less than 17 s ago, and tells the bridge whether the game is busy', () => {
   check(`
-    local writes, beats, clockNow = {}, 0, 1000
-    local answer = {possible = true, blocked = false}
-    microphone = {warming = function() return writes.on == true end, warm = function(on) writes.on = on; writes[#writes + 1] = on end, beat = function() beats = beats + 1 end}
-    function convaiVoiceActivationModule() return {sample = function() return answer.possible, answer.blocked end} end
+    local blocks, asked, clockNow, answer = {}, 0, 1000, false
+    microphone = {context = nil, holding = function() return nil end, block = function(on) blocks[#blocks + 1] = on end}
+    function convaiVoiceActivationModule() return {sample = function() asked = asked + 1; return false, answer end} end
     os.clock = function() return clockNow end
-    ${warmFunction()}
-    convaiMicWarmTick(player, true); assert(#writes == 1 and writes[1] == true, 'warm as soon as somebody is near or faced')
-    for i = 1, 50 do clockNow = clockNow + 0.1; convaiMicWarmTick(player, true) end
-    assert(#writes == 1 and beats == 0, 'no write while nothing changes')
-    clockNow = clockNow + 31; convaiMicWarmTick(player, true); assert(beats == 1, 'the 30 s beat')
-    -- V walks away from everybody: the device stays for the linger, then goes
-    answer.possible = false
-    clockNow = clockNow + 60; convaiMicWarmTick(player, true); assert(#writes == 1, 'still warm 60 s after the last moment')
-    clockNow = clockNow + 40; convaiMicWarmTick(player, true); assert(#writes == 2 and writes[2] == false, 'let go 90 s after it')
-    answer.possible = true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[3] == true, 'and warm again near someone')
-    -- a menu, a loading screen, a scene or a choice list: released at once, no linger
-    answer.possible, answer.blocked = false, true
-    clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[4] == false, 'blocked: let go at once')
-    answer.blocked = false; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(#writes == 4, 'and the linger does not come back by itself')
-    answer.possible = true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[5] == true)
-    answer.possible, answer.blocked = true, true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[6] == false, 'blocked wins over possible')
+    ${lingerFunction()}
+    for i = 1, 20 do clockNow = clockNow + 0.1; convaiMicLingerTick(player, true) end
+    assert(asked == 0 and #blocks == 0, 'no voice turn yet: nothing is looked at')
+    microphone.context = {}
+    convaiMicLingerTick(player, true); assert(asked == 1 and blocks[1] == false, 'a turn runs: the game is not busy')
+    microphone.context = nil
+    answer = true; clockNow = clockNow + 5; convaiMicLingerTick(player, true); assert(blocks[2] == true, 'a menu or a scene during the linger: busy at once')
+    answer = false; clockNow = clockNow + 5; convaiMicLingerTick(player, true); assert(blocks[3] == false)
+    local before = asked
+    clockNow = clockNow + 20; convaiMicLingerTick(player, true); assert(asked == before, 'past the linger window nothing is looked at again')
+    microphone.holding = function() return 'k' end
+    convaiMicLingerTick(player, true); assert(asked == before + 1, 'a held key opens the window again')
   `);
 });

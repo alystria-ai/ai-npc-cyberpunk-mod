@@ -106,68 +106,60 @@ test('a microphone that cannot open for listening is reported once to the game',
   assert.equal(tap.state, 'closed');
 });
 
-// ---- the device kept open ------------------------------------------------------------------------------------------------------------------
-function warmSetup({warmAllowed = true} = {}) {
+// ---- the linger: the device stays open after a voice turn, and closes at once when the game is busy -----------------------------------------
+function lingerSetup() {
   const calls = [];
-  let sink = null, warmed = false;
-  const capture = {calls, get warmed() { return warmed; },
+  let sink = null, deviceOpen = false;
+  const capture = {calls, get deviceOpen() { return deviceOpen; },
     emit: chunk => sink?.(chunk),
-    warm: async () => { calls.push('warm'); warmed = true; return {device: 'Fake microphone', warm: true}; },
-    cool: async () => { calls.push('cool'); warmed = false; },
-    begin: async onChunk => { calls.push(warmed ? 'begin (warm)' : 'begin (cold)'); sink = onChunk; return {device: 'Fake microphone'}; },
+    cool: async () => { calls.push('cool'); deviceOpen = false; },
+    begin: async onChunk => { calls.push(deviceOpen ? 'begin (open)' : 'begin (cold)'); deviceOpen = true; sink = onChunk; return {device: 'Fake microphone'}; },
     end: async () => { calls.push('end'); sink = null; },
     abort: async () => { calls.push('abort'); sink = null; }};
-  let file = '', clock = 1_000_000;
-  const tap = new MicTap({capture});
-  const live = new MicLive({tap, read: async () => file, warmAllowed, now: () => clock, staleMs: 120_000});
-  return {capture, tap, live, write: value => { file = JSON.stringify(value); return live.poll(); }, advance: ms => { clock += ms; }, poll: () => live.poll()};
+  const timers = [];
+  const tap = new MicTap({capture, setTimer: (fn, ms) => { const t = {fn, ms, unref() {}}; timers.push(t); return t; }, clearTimer: t => { if (t) t.cancelled = true; }});
+  const live = new MicLive({tap, read: async () => file});
+  let file = '';
+  return {capture, tap, live, timers, write: value => { file = JSON.stringify(value); return live.poll(); },
+    lingerTimer: () => timers.filter(t => !t.cancelled && t.ms === 15_000).at(-1)};
 }
 
-test('warm: true keeps the device open before any key press, and the press then finds it open', async () => {
-  const {capture, tap, write} = warmSetup();
-  await write({n: 1, warm: true}); await tick();
-  assert.deepEqual(capture.calls, ['warm']);
-  assert.equal(tap.warmWanted, true);
-  await write({n: 2, warm: true, holdId: 'k-1', down: true}); await tick();
-  assert.deepEqual(capture.calls, ['warm', 'begin (warm)'], 'the press did not have to open the device');
-  await write({n: 3, warm: true, holdId: 'k-1', down: false}); await tick();
-  await tap.release(undefined, 'done');
-  assert.equal(capture.warmed, true, 'the device stays open after the recording');
-  assert.ok(!capture.calls.includes('cool'));
-});
-
-test('warm: false, or the game gone silent for two minutes, lets the device go; a beat keeps it', async () => {
-  const {capture, tap, write, advance, poll} = warmSetup();
-  await write({n: 1, warm: true}); await tick();
-  advance(100_000); await write({n: 2, warm: true}); advance(100_000); await poll(); await tick();
-  assert.equal(tap.warmWanted, true, 'a beat 100 s ago keeps it');
-  advance(30_000); await poll(); await tick();
-  assert.equal(tap.warmWanted, false, 'no beat for 130 s: the game is gone'); assert.equal(capture.warmed, false);
-  await write({n: 3, warm: true}); await tick();
-  assert.equal(capture.warmed, true);
-  await write({n: 4, warm: false}); await tick();
-  assert.equal(capture.warmed, false);
-});
-
-test('a device that is in use is let go when the recording ends, not under it', async () => {
-  const {capture, tap, live, write} = warmSetup();
-  await write({n: 1, warm: true}); await tick();
-  await tap.open('req-1');
-  await write({n: 2, warm: false}); await tick();
-  assert.equal(capture.warmed, true, 'still open: a recording uses it');
+test('after a voice turn the device stays open for 15 s, the next press finds it open, and then it closes', async () => {
+  const {capture, tap, lingerTimer} = lingerSetup();
+  await tap.hold('k1'); tap.open('req-1', {holdId: 'k1'}); await tap.released('k1');
   await tap.release('req-1', 'the recording is over'); await tick();
-  assert.equal(capture.warmed, false);
+  assert.equal(capture.deviceOpen, true, 'still open after the turn');
+  assert.ok(!capture.calls.includes('cool'));
+  assert.equal(tap.lingering, true);
+  await tap.hold('k2'); await tick();
+  assert.deepEqual(capture.calls.filter(c => c.startsWith('begin')), ['begin (cold)', 'begin (open)'], 'the second press found the device open');
+  assert.equal(tap.lingering, false, 'a press ends the linger wait');
+  await tap.release(undefined, 'done'); await tick();
+  const timer = lingerTimer();
+  assert.ok(timer, 'a new 15 s linger started'); timer.fn(); await tick();
+  assert.equal(capture.deviceOpen, false, 'closed after the linger'); assert.ok(capture.calls.includes('cool'));
+});
+
+test('blocked: a lingering device closes at once, none lingers while the game is busy, and a press ends the block', async () => {
+  const {capture, tap, live, write} = lingerSetup();
+  await tap.hold('k1'); tap.open('req-1', {holdId: 'k1'}); await tap.release('req-1', 'done'); await tick();
+  assert.equal(capture.deviceOpen, true);
+  await write({n: 1, blocked: true}); await tick();
+  assert.equal(capture.deviceOpen, false, 'a menu, a loading screen, a scene or a choice list closes it at once');
+  await write({n: 2, blocked: true, holdId: 'k3', down: true}); await tick();
+  await tap.release(undefined, 'done'); await tick();
+  assert.equal(capture.deviceOpen, false, 'while the game is busy nothing lingers');
+  await write({n: 3, blocked: false, holdId: 'k4', down: true}); await tick();
+  await tap.release(undefined, 'done'); await tick();
+  assert.equal(capture.deviceOpen, true, 'not busy any more: it lingers again');
   assert.ok(live);
 });
 
-test('the warm device comes back after the voice browser was closed (afterRelease), and CYBERPUNK_CONVAI_MIC_WARM=0 keeps it closed', async () => {
-  const a = warmSetup();
-  await a.write({n: 1, warm: true}); await tick();
-  a.capture.warmed2 = false;
-  assert.equal(a.tap.warmWanted, true);
-  const off = warmSetup({warmAllowed: false});
-  await off.write({n: 1, warm: true}); await tick();
-  assert.deepEqual(off.capture.calls, [], 'the switch keeps the device closed between recordings');
-  await off.write({n: 2, warm: true, holdId: 'k-9', down: true}); await tick();
-  assert.deepEqual(off.capture.calls, ['begin (cold)']);
+test('listening and a replaced tap never linger, and CYBERPUNK_CONVAI_MIC_LINGER=0 (lingerAllowed false) closes the device with the recording', async () => {
+  const a = lingerSetup();
+  await a.tap.open('vad', {listen: true}); await a.tap.release('vad', 'voice activation is off'); await tick();
+  assert.equal(a.capture.deviceOpen, false, 'a listening microphone closes with the setting');
+  const b = lingerSetup(); b.tap.lingerAllowed = false;
+  await b.tap.open('req-1'); await b.tap.release('req-1', 'done'); await tick();
+  assert.equal(b.capture.deviceOpen, false, 'the switch closes it with the recording');
 });

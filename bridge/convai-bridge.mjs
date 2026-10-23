@@ -1048,8 +1048,7 @@ function publishMicState(options) {
   return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), updated: Date.now()}), options);
 }
 const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
-// CYBERPUNK_CONVAI_MIC_WARM=0 keeps the device closed between recordings (a key press then waits for it to open, and what is said meanwhile is lost).
-const micLive = new MicLive({tap: null, warmAllowed: process.env.CYBERPUNK_CONVAI_MIC_WARM !== '0', read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
+const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
 const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
@@ -1057,6 +1056,8 @@ const micTap = new MicTap({capture: micCapture, log: line => console.error('[Cyb
   // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
   onRelease: () => micLive.afterRelease()});
 micLive.tap = micTap;
+// CYBERPUNK_CONVAI_MIC_LINGER=0: the device closes with each recording instead of staying open for about 15 s after a voice turn.
+if (process.env.CYBERPUNK_CONVAI_MIC_LINGER === '0') micTap.lingerAllowed = false;
 // What the file held when this bridge started is from an earlier run (a key that was down, a listen request of a game that has gone): never acted on.
 micLive.observed = await readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => '');
 console.error('[CyberpunkConvai] Microphone: ' + describeThresholds());
