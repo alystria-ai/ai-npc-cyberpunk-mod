@@ -643,3 +643,109 @@ test('a sign-in the backend rate-limits is a sign-in state, never "turns are com
   // The local guard's own rate limit keeps its message and classification.
   assert.equal(classifyFailure(new TurnLimitError('rate')), 'rate');
 });
+
+/** A source whose fetch answers from a script ('fail' = network error, 'ok' = a token, {status, body} = that answer), on a clock the test moves. */
+function scripted(steps, extra = {}) {
+  const timers = fakeTimers(), clock = {now: 0}, calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({at: clock.now, signal: init.signal});
+    const step = steps[Math.min(calls.length - 1, steps.length - 1)];
+    if (step === 'fail') throw new TypeError('fetch failed');
+    if (step === 'ok') return Response.json({authToken: `fake-token-${calls.length}`, expiresAt: new Date(clock.now + 3_600_000).toISOString()});
+    return Response.json(step.body ?? {}, {status: step.status});
+  };
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: false,
+    now: () => clock.now, setTimer: timers.setTimer, clearTimer: timers.clearTimer, random: () => 0.5, fetchImpl, ...extra});
+  return {tokens, timers, clock, calls};
+}
+
+test('a network blip costs one turn, not minutes: a turn after the failure is 3 s old retries at once and gets the token', async () => {
+  const {tokens, clock, calls} = scripted(['fail', 'ok']);
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  assert.equal(calls.length, 1);
+  // Within 3 s of the failure a turn still fails at once and starts nothing.
+  clock.now = 2_000;
+  await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  assert.equal(calls.length, 1);
+  // Later, the same turn tries again and waits for it.
+  clock.now = 4_000;
+  const credential = await keys.credentialFor({characterId: 'alex'});
+  assert.equal(credential.authToken, 'fake-token-2');
+  assert.equal(calls.length, 2, 'one attempt for that turn');
+  assert.equal(tokens.snapshot().lastKind, 'ok');
+  // Healthy again: later turns make no request.
+  for (let turn = 0; turn < 20; turn++) await keys.credentialFor({characterId: 'alex'});
+  assert.equal(calls.length, 2);
+});
+
+test('turn retries are bounded: one attempt per turn, three in a row, and none once the hour\'s requests are spent', async () => {
+  const {tokens, clock, calls, timers} = scripted(['fail']);
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  clock.now = 4_000;
+  await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  assert.equal(calls.length, 2);
+  await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  assert.equal(calls.length, 2, 'the failure is new again: no second attempt in the same instant');
+  clock.now = 8_000; await assert.rejects(keys.credentialFor({characterId: 'alex'}), /unreachable/);
+  clock.now = 12_000; await assert.rejects(keys.credentialFor({characterId: 'alex'}), /unreachable/);
+  assert.equal(calls.length, 4, 'start plus three turn attempts');
+  clock.now = 20_000;
+  for (let turn = 0; turn < 10; turn++) await assert.rejects(keys.credentialFor({characterId: 'alex'}), /unreachable/);
+  assert.equal(calls.length, 4, 'three failed turn attempts in a row end them; the schedule carries on');
+  clock.now = 40_000; await timers.fire();
+  assert.equal(calls.length, 5, 'the scheduled retry still runs');
+  // The hour's request budget caps turn attempts: eight requests were made, so a turn makes none.
+  const spent = scripted(['fail']);
+  const spentKeys = await releaseKeys(spent.tokens);
+  spent.tokens.start(); await flush();
+  for (let step = 1; step <= 7; step++) { spent.clock.now = step * 60_000; await spent.timers.fire(); }
+  assert.equal(spent.calls.length, 8);
+  spent.clock.now = 8 * 60_000 + 10_000;
+  await assert.rejects(spentKeys.credentialFor({characterId: 'alex'}), /unreachable/);
+  assert.equal(spent.calls.length, 8, 'eight requests in the last hour: the turn waits for the schedule');
+});
+
+test('a turn never retries a refusal or a rate limit: the backend\'s own wait stands', async () => {
+  for (const step of [{status: 429, body: {error: 'rate', retryAfterSeconds: 300}}, {status: 429, body: {error: 'install_limit', retryAfterSeconds: 300}},
+    {status: 503, body: {error: 'busy', retryAfterSeconds: 900}}, {status: 503, body: {error: 'paused'}}, {status: 403, body: {}}, {status: 426, body: {}}, {status: 401, body: {error: 'unauthorized'}}]) {
+    const {tokens, clock, calls} = scripted([step]);
+    const keys = await releaseKeys(tokens);
+    tokens.start(); await flush();
+    clock.now = 10_000;
+    await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:\w+\]/);
+    assert.equal(calls.length, 1, `${step.status} ${step.body.error ?? ''}: no turn attempt`);
+  }
+  // A rate limit that follows a failed attempt counts as a server failure for the key fallback, but it is still the backend's wait.
+  const {tokens, clock, calls} = scripted(['fail', {status: 429, body: {error: 'rate', retryAfterSeconds: 300}}]);
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  clock.now = 4_000; await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:/);
+  assert.equal(calls.length, 2, 'the failure was a network one: one attempt, answered with a rate limit');
+  clock.now = 20_000; await assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:/);
+  assert.equal(calls.length, 2, 'the rate limit holds: no turn attempt');
+});
+
+test('a turn attempt gives up sooner than the background fetch', async () => {
+  const timeouts = [];
+  const real = AbortSignal.timeout;
+  AbortSignal.timeout = ms => { timeouts.push(ms); return real.call(AbortSignal, ms); };
+  try {
+    const {tokens, clock} = scripted(['fail', 'ok']);
+    const keys = await releaseKeys(tokens);
+    tokens.start(); await flush();
+    clock.now = 5_000;
+    await keys.credentialFor({characterId: 'alex'});
+  } finally { AbortSignal.timeout = real; }
+  assert.deepEqual(timeouts, [10_000, 6_000]);
+});
+
+test('retrying for a turn adds no notice: the log line for a failure is written once', async () => {
+  const logs = [];
+  const {tokens, clock} = scripted(['fail'], {log: message => logs.push(message)});
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  for (const at of [4_000, 8_000, 12_000]) { clock.now = at; await assert.rejects(keys.credentialFor({characterId: 'alex'}), /unreachable/); }
+  assert.equal(logs.filter(line => /could not be reached/.test(line)).length, 1);
+});
