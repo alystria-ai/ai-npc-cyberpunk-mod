@@ -370,7 +370,10 @@ async function main() {
       // chain starts at this step and shows no gap); the setup check's own walk reaches the installed version.
       const stepsDir = join(app, STEPS_DIR), stepNames = existsSync(stepsDir) ? await readdir(stepsDir) : [];
       const chain = await checkRuntimeSteps({project: app, current: JSON.parse(await readFile(join(app, 'release.json'), 'utf8')).version});
-      check('the update left its own step marker and no base marker, and the chain has no gap', stepNames.some(name => new RegExp(`^step-.+-to-${version.replace(/./g, '\.')}\.json$`).test(name)) && !stepNames.includes('base.json') && chain.code === 'ok',
+      // base.json is there exactly when the previous Runtime had one (0.2.9 and later write it; 0.2.8 and older had no markers): the update never adds or replaces it.
+      const hadBase = [...update.previous].some(name => name.toLowerCase() === `${PLUGIN_FOLDER}/app/${STEPS_DIR}/base.json`.toLowerCase());
+      check('the update left its own step marker, kept the previous base marker (if any), and the chain has no gap',
+        stepNames.some(name => name.startsWith('step-') && name.endsWith(`-to-${version}.json`)) && stepNames.includes('base.json') === hadBase && chain.code === 'ok',
         `${stepNames.join(', ') || '(none)'}; chain ${chain.code}`);
       check('the plugin folder holds nothing the new Runtime does not ship', extra.length === 0, extra.slice(0, 5).join(', ') || `${newList.length} shipped files`);
     }
