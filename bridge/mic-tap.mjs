@@ -91,8 +91,8 @@ export class MicTap {
   // onVad(status): {seq, phase: 'speech'|'ended', onsetMs?, endMs?} for each start or end the detector decided.
   // onRelease(): the tap is closed again (the bridge reopens it for listening when the game still wants that).
   constructor({capture, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, makeVad = () => new VoiceActivity(),
-      onVad = () => {}, onRelease = () => {}, limits = {}} = {}) {
-    Object.assign(this, {capture, now, setTimer, clearTimer, log, makeVad, onVad, onRelease});
+      onVad = () => {}, onRelease = () => {}, onCue = () => {}, limits = {}} = {}) {
+    Object.assign(this, {capture, now, setTimer, clearTimer, log, makeVad, onVad, onRelease, onCue});
     this.limits = {...TAP, ...limits};
     this.state = 'closed';          // closed | opening | open | ended (the device is released, the kept audio waits for its channel)
     this.generation = 0;
@@ -107,7 +107,7 @@ export class MicTap {
   _reset() {
     this.owner = null; this.holdId = null; this.mode = null; this.vadTurn = false;
     this.ring = null; this.sink = null; this.info = null; this.ready = null; this.vad = null;
-    this.bytes = 0; this.startMs = 0; this.openedAt = 0; this.stopping = null; this.vadState = null;
+    this.bytes = 0; this.startMs = 0; this.openedAt = 0; this.stopping = null; this.vadState = null; this.cueHold = null;
   }
 
   _cancelTimers() { for (const name of Object.keys(this.timers)) { this.clearTimer(this.timers[name]); delete this.timers[name]; } }
@@ -153,6 +153,9 @@ export class MicTap {
     this.sink = null; this.info = null; this.bytes = 0; this.startMs = 0; this.stopping = null; this.vadState = null;
     this.vad = listen || vad ? this.makeVad() : null;
     this.state = 'opening';
+    // The talk key's cue (mod/microphone.lua): only for a key press whose device is NOT already open (cold, outside the linger): "opening" now, "ready" with
+    // the first audio. Never for Voice activation (no key) or a device that is open.
+    if (holdId && !listen && this.capture.deviceOpen !== true) { this.cueHold = holdId; this._cue('opening'); }
     const began = this.now();
     this.openedAt = began;
     this.ready = this._run(() => {
@@ -203,9 +206,12 @@ export class MicTap {
 
   whenReady(owner) { return this.isOwner(owner) ? this.ready : Promise.reject(cancelled()); }
 
+  _cue(phase) { try { this.onCue({hold: this.cueHold, phase}); } catch { /* an observer never breaks the tap */ } }
+
   _chunk(generation, chunk) {
     if (generation !== this.generation || this.state === 'closed') return;
     const bytes = asBuffer(chunk);
+    if (this.cueHold) { const hold = this.cueHold; this.cueHold = null; this.onCue({hold, phase: 'ready'}); }
     this.bytes += bytes.length;
     if (this.sink) { try { this.sink(bytes); } catch { /* a consumer fault never stops the tap */ } }
     else this.ring.push(bytes);

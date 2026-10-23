@@ -121,6 +121,7 @@ test('every notice call site names a catalogued id', () => {
     const source = code(name);
     const found = [];
     for (const call of calls(source, 'convaiNotices.send(')) found.push({call, expression: call.args[1], what: 'send'});
+    for (const call of calls(source, 'convaiNotices.cue(')) found.push({call, expression: call.args[1], what: 'cue'});
     for (const call of calls(source, 'report(')) {
       if (name === 'manager-party.lua') found.push({call, expression: call.args[0], what: 'report'});
     }
@@ -658,3 +659,18 @@ test('the default screen writes a timed notice once with the duration asked for'
     assert(notices.screen.clear() == true and written[3].duration == 0 and written[3].isShown == false)
   `);
 });
+
+test('the talk key cue is one instant held notice changed in place, taken down by cueEnd, and never over a notice that replaced it', () => run(`
+  local posts, clears = {}, 0
+  notices.screen.post = function(_, text, instant) posts[#posts + 1] = {text, instant}; return 'native' end
+  notices.screen.clear = function() clears = clears + 1; return true end
+  assert(notices.cue(player, 'mic-cue', 'Opening microphone…') and posts[1][1] == 'Opening microphone…' and posts[1][2] == true, 'instant: no intro')
+  assert(notices.cueActive())
+  assert(notices.cue(player, 'mic-cue', 'Speak now') and #posts == 2 and posts[2][2] == true, 'the next text goes to the same line in place')
+  assert(notices.cueEnd(player) and clears == 1 and not notices.cueActive())
+  assert(not notices.cueEnd(player) and clears == 1, 'ending twice clears nothing more')
+  notices.cue(player, 'mic-cue', 'Opening microphone…'); notices.lastSentAt = notices.lastSentAt + 5
+  assert(not notices.cueEnd(player) and clears == 1, 'another notice replaced it: it stays')
+  notices.mute(true); assert(true)
+  assert(not notices.cue(nil, 'mic-cue', 'x'), 'no player, no cue')
+`));

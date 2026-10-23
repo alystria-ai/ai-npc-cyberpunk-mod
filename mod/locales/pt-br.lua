@@ -1246,4 +1246,6 @@ return {
     ["Voice activation could not open the microphone. Check your Windows input device."] = "A ativação por voz não conseguiu abrir o microfone. Verifique o dispositivo de entrada do Windows.",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "A entrada de voz não conseguiu se conectar ao Convai. Segure a tecla de voz novamente ou digite.",
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "Fale sem segurar tecla. Quando você estiver virado para um personagem ou houver um companheiro por perto, o mod escuta e responde após cerca de um segundo de pausa.\n\nNunca durante as cenas ou escolhas de diálogo do jogo, nem enquanto um personagem fala. Nada sai do seu PC sem fala ouvida. Fones de ouvido são melhores; o microfone de um headset Bluetooth o põe em qualidade de chamada enquanto escuta.",
+    ["Opening microphone…"] = "Abrindo o microfone…",
+    ["Speak now"] = "Fale agora",
 }

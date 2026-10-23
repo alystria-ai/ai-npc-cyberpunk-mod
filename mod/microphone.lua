@@ -95,12 +95,23 @@ local function command(action, context, source, hold)
     return true
 end
 
+-- The cold-start cue (the bridge says the device was not open at the press): "Opening microphone…", then "Speak now" in place the moment the first audio
+-- arrives, gone 1.5 s after that, at the key release, or when the turn ends. Nothing when the device was already open (the linger) and for Voice activation.
+local CUE_READY_S, CUE_MAX_S = 1.5, 8
+function M.endCue(player)
+    if M.cueAt == nil then return end
+    M.cueAt = nil
+    if convaiNotices and convaiNotices.cueEnd then convaiNotices.cueEnd(player) end
+end
+
 local function clear()
     M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
     M.finishPendingSource = nil
     M.targetValid, M.recordingAt, M.finishedAt = nil, nil, nil
     M.heardRaw, M.heardAt = nil, nil
     M.source, M.vadId, M.beganAt, M.noteShown = nil, nil, nil, nil
+    M.endCue()
+    M.holdKeyId, M.cueSeen, M.cueAt, M.cueReadyAt = nil, nil, nil, nil
 end
 
 function M.cancel(reason)
@@ -180,6 +191,7 @@ function M.begin(context, targetValid, source, extra)
     M.context, M.state, M.started = context, 'starting', os.time()
     M.beganAt = M.started
     M.source, M.vadId = source or 'press', extra and extra.vadId or nil
+    M.holdKeyId = extra and extra.hold or nil
     M.targetValid = targetValid
     return true
 end
@@ -262,6 +274,16 @@ function M.update(player)
         if ok and type(value) == 'table' then
             -- Voice activation (mod/voice-activation.lua): the bridge's detector says the player stopped speaking. It rides on whatever state the file holds,
             -- so it is read before the turn's own state is matched to this request.
+            local cue = type(value.cue) == 'table' and value.cue or nil
+            if cue and M.source == 'press' and M.holdKeyId and cue.hold == M.holdKeyId and cue.id ~= M.cueSeen and M.state ~= 'reply' then
+                M.cueSeen = cue.id
+                if cue.phase == 'opening' then
+                    if convaiNotices.cue and convaiNotices.cue(player, 'mic-cue', ui.t('Opening microphone…')) then M.cueAt = M.clock() end
+                elseif cue.phase == 'ready' and M.cueAt ~= nil then
+                    if convaiNotices.cue then convaiNotices.cue(player, 'mic-cue', ui.t('Speak now')) end
+                    M.cueReadyAt = M.clock()
+                end
+            end
             local vad = type(value.vad) == 'table' and value.vad or nil
             if M.source == 'vad' and vad and vad.phase == 'ended' and vad.id ~= M.vadId and M.state ~= 'reply' and not M.finishPending then
                 M.finishPending, M.finishPendingSource = true, 'vad-end'
@@ -312,6 +334,7 @@ function M.update(player)
             end
         end
     end
+    if M.cueAt ~= nil and (M.state == 'reply' or (M.cueReadyAt and M.clock() - M.cueReadyAt >= CUE_READY_S) or M.clock() - M.cueAt >= CUE_MAX_S) then M.endCue(player) end
     if M.context and (M.state == 'starting' or M.state == 'recording' or M.state == 'reply') then showHeard(player) end
     if M.context and M.finishPending then return M.finish(nil, M.finishPendingSource == 'vad-end' and 'vad' or 'pending') end
     -- 30 s from the press, however far the bridge has got.

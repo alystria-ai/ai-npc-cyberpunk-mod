@@ -62,7 +62,7 @@ for(const code of ['pl','cs','hu','tr','it','uk'])test(`${code} is translated, n
 
 // Instant push-to-talk and Voice activation (2026-10-23): the new strings are in the catalogue and in every dictionary, and the notices of the old
 // press-to-start / press-to-end flow are gone from both, so no dictionary keeps a sentence nothing shows any more.
-const hold=['Voice activation','Voice activation could not open the microphone. Check your Windows input device.',
+const hold=['Opening microphone…','Speak now','Voice activation','Voice activation could not open the microphone. Check your Windows input device.',
  'No speech was heard. Hold the talk key while you speak.','Voice input could not reach Convai. Hold the voice key again, or type.'];
 const retired=['Connecting microphone - wait for Listening','Listening - press {key} again to finish','Listening - press the same voice chat shortcut again to finish',
  'Use {key} to finish this recording.','Press your Group voice chat shortcut to finish recording.','Press your Talk by voice shortcut to finish recording.',

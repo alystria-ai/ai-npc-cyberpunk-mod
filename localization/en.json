@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1244,
+    "strings": 1246,
     "dynamicTemplates": 52,
     "contexts": 37
   },
@@ -635,6 +635,7 @@
     "Opening line": "Opening line",
     "Opening line for a named character": "Opening line for a named character",
     "Opening line for an ordinary person": "Opening line for an ordinary person",
+    "Opening microphone…": "Opening microphone…",
     "Opening the editor in your browser. Switch to your browser if it does not come to the front.": "Opening the editor in your browser. Switch to your browser if it does not come to the front.",
     "Opening the page in your browser…": "Opening the page in your browser…",
     "Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.": "Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.",
@@ -808,6 +809,7 @@
     "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.": "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.",
     "Something on this PC (a firewall or security software) is blocking the connection to the model server you added.": "Something on this PC (a firewall or security software) is blocking the connection to the model server you added.",
     "Spanish": "Spanish",
+    "Speak now": "Speak now",
     "Speaking rules": "Speaking rules",
     "Speaking style": "Speaking style",
     "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
@@ -2323,6 +2325,7 @@
       "Opening line",
       "Opening line for a named character",
       "Opening line for an ordinary person",
+      "Opening microphone…",
       "Opening the editor in your browser. Switch to your browser if it does not come to the front.",
       "Opening the page in your browser…",
       "Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.",
@@ -2434,6 +2437,7 @@
       "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.",
       "Something on this PC (a firewall or security software) is blocking the connection to the model server you added.",
       "Spanish",
+      "Speak now",
       "Speaking rules",
       "Speaking style",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
@@ -6699,7 +6703,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:320"
+        "mod/microphone.lua:343"
       ]
     },
     "Microphone unavailable. Check your Windows input device.": {
@@ -6708,7 +6712,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:308"
+        "mod/microphone.lua:330"
       ]
     },
     "Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.": {
@@ -7216,7 +7220,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:287"
+        "mod/microphone.lua:309"
       ]
     },
     "None found: installed by hand.": {
@@ -7632,6 +7636,14 @@
       ],
       "references": [
         "mod/character-editor.lua:194"
+      ]
+    },
+    "Opening microphone…": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:281"
       ]
     },
     "Opening the editor in your browser. Switch to your browser if it does not come to the front.": {
@@ -9069,6 +9081,14 @@
       "references": [
         "mod/init.lua:3778",
         "mod/manager-ui.lua:192"
+      ]
+    },
+    "Speak now": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:283"
       ]
     },
     "Speaking rules": {
@@ -10612,7 +10632,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:294"
+        "mod/microphone.lua:316"
       ]
     },
     "The model ID was removed.": {
@@ -11606,7 +11626,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:304"
+        "mod/microphone.lua:326"
       ]
     },
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": {
@@ -11615,7 +11635,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:281"
+        "mod/microphone.lua:303"
       ]
     },
     "Voice input only understands English for now. Typing works in any language.": {
@@ -11624,8 +11644,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:278",
-        "mod/microphone.lua:299"
+        "mod/microphone.lua:300",
+        "mod/microphone.lua:321"
       ]
     },
     "Voice language": {
@@ -12253,7 +12273,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:235"
+        "mod/microphone.lua:247"
       ]
     },
     "Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.": {

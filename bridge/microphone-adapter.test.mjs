@@ -513,3 +513,53 @@ test('wiring: a menu ends only a recording that is opening or running', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /if not worldReady then\s+gameplayActions\.revoke\('menu'\)\s+local round = groupChat\.round\s+if \(microphone\.context ~= nil and microphone\.state ~= 'reply'\) or \(round and round\.mode == 'voice' and round\.stage == 'recording'\) then\s+cancelVoice\('menu'\)/);
 });
+
+// ---- the cold-start cue: "Opening microphone…" then "Speak now" in place, only when the device was not already open --------------------------
+const cueFixture = `
+ local posts,clears={},0
+ convaiNotices.screen.post=function(_,text,instant)posts[#posts+1]={text,instant}return 'native' end
+ convaiNotices.screen.clear=function()clears=clears+1;return true end
+ local clock=10;mic.clock=function()return clock end
+ local function cue(id,hold,phase)
+  files['runtime/microphone-state.json']=json.encode({requestId='older',state='off',cue={id=id,hold=hold,phase=phase,cold=true}})
+ end
+`;
+
+test('a cold press shows "Opening microphone…", changes it in place to "Speak now" when the first audio arrives, and takes it down 1.5 s later', () => check(cueFixture + `
+ assert(mic.begin(input(false),nil,'press',{hold='h1'}))
+ mic.update(player);assert(#posts==0,'no cue yet: the bridge has not said the device is cold')
+ cue('b:cue:1','h1','opening');mic.update(player)
+ assert(#posts==1 and posts[1][1]=='Opening microphone…' and posts[1][2]==true,'one instant held notice')
+ mic.update(player);assert(#posts==1,'the same cue is not posted again')
+ clock=12;mic.update(player);assert(clears==0,'it stays while the device opens')
+ cue('b:cue:2','h1','ready');mic.update(player)
+ assert(#posts==2 and posts[2][1]=='Speak now' and posts[2][2]==true,'changed in place, instant: no new intro')
+ clock=13;mic.update(player);assert(clears==0)
+ clock=13.6;mic.update(player);assert(clears==1,'gone 1.5 s after the first audio')
+ clock=20;mic.update(player);assert(clears==1 and #posts==2,'and not again')
+`));
+
+test('the cue is gone at the key release, when the turn is cancelled, and never hides a notice that replaced it', () => check(cueFixture + `
+ local context=input(false);assert(mic.begin(context,nil,'press',{hold='h1'}))
+ cue('b:cue:1','h1','opening');mic.update(player);assert(#posts==1)
+ assert(mic.finish('private','release')==context)
+ mic.update(player);assert(clears==1,'the release ends the turn and takes the cue down')
+ mic.cancel('done')
+ local second=input(false);second.requestId='voice-2';assert(mic.begin(second,nil,'press',{hold='h2'}))
+ cue('b:cue:3','h2','opening');mic.update(player);assert(#posts==2)
+ mic.cancel('tap');assert(clears==2,'a cancelled turn takes it down')
+ local third=input(false);third.requestId='voice-3';assert(mic.begin(third,nil,'press',{hold='h3'}))
+ cue('b:cue:5','h3','opening');mic.update(player);assert(#posts==3)
+ convaiNotices.lastSentAt=convaiNotices.lastSentAt+5   -- an error notice came after the cue
+ mic.cancel('error');assert(clears==2,'the error notice is not cleared')
+`));
+
+test('no cue when the device was already open (no cue from the bridge), for another key press, and for a turn Voice activation began', () => check(cueFixture + `
+ assert(mic.begin(input(false),nil,'press',{hold='h1'}))
+ cue('b:cue:1','other-hold','opening');mic.update(player);assert(#posts==0,'another key press\\'s cue is not ours')
+ cue('b:cue:2','h1','ready');mic.update(player);assert(#posts==0,'"Speak now" without "Opening" (the device opened before the cue was read) shows nothing')
+ mic.cancel('x')
+ local vad=input(false);vad.requestId='voice-9';assert(mic.begin(vad,nil,'vad',{vadId='b:7'}))
+ cue('b:cue:3','h1','opening');mic.update(player);assert(#posts==0,'Voice activation never shows the cue')
+ assert(#feedback==0)
+`));

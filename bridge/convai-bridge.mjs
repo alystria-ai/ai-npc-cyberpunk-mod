@@ -1042,10 +1042,10 @@ async function routeRecording() {
 // Mistral's transcription and Convai's page all take their audio from it. The game's microphone-live.json says when to open and close it.
 // What the game reads: microphone-state.json carries `vad` (the detector's latest start or end, with an id) beside the turn's own state.
 const BOOT_ID = Date.now().toString(36);
-let micStateLast = {state: 'off', requestId: ''}, micVad = null;
+let micStateLast = {state: 'off', requestId: ''}, micVad = null, micCue = null, micCueSeq = 0;
 const micVadBody = status => status ? {id: BOOT_ID + ':' + status.seq, phase: status.phase, at: Date.now()} : null;
 function publishMicState(options) {
-  return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), updated: Date.now()}), options);
+  return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), ...(micCue ? {cue: micCue} : {}), updated: Date.now()}), options);
 }
 const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
 const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
@@ -1053,6 +1053,8 @@ const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'm
   onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
 const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onVad: status => { micVad = micVadBody(status); void publishMicState().catch(() => {}); },
+  // The talk key pressed with the device cold: the game shows "Opening microphone…" and then "Speak now" (mod/microphone.lua).
+  onCue: cue => { micCue = {id: BOOT_ID + ':cue:' + (++micCueSeq), hold: cue.hold, phase: cue.phase, cold: true}; void publishMicState().catch(() => {}); },
   // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
   onRelease: () => micLive.afterRelease()});
 micLive.tap = micTap;

@@ -68,6 +68,11 @@ Voice activation keeps the device open while it listens, so a Bluetooth headset 
 - **Key up**: `microphone-live.json` (`down: false`) stops the tap on the spot (the device closes, the last block is flushed) and the `finish`
   command is written in any recording state, also while the bridge is still opening. A hold shorter than 0.2 s (`HOLD_S`) is a bounce: the
   recording is cancelled silently.
+- **The cold-start cue (2026-10-23, after the live test).** A press whose device is NOT already open (cold, outside the 15 s linger) shows one instant held
+  notice: "Opening microphone…" at once (the bridge says so through `cue` in `microphone-state.json`, keyed by the press's hold id), changed in place to "Speak
+  now" the moment the first audio arrives, and taken down 1.5 s later, at the key release, or when the turn ends (`convaiNotices.cue` / `cueEnd`: its own held
+  line, not the loading board's, which takes down any held notice when nothing loads). Nothing when the device is open and nothing for Voice activation. The old
+  "Connecting microphone - wait for Listening" string was already retired with the other press-to-finish notices (the two new strings replace it in all 15 locales).
 - **No notices for a normal turn.** Removed: "Connecting microphone", "Listening - press {key} again to finish", "Use {key} to finish this
   recording", the voice key's "Preparing connection to {name}". Kept, each once: a language this setup cannot hear, no speech (new text:
   "Hold the talk key while you speak"), the microphone sends no sound, microphone unavailable, no connection to Convai.

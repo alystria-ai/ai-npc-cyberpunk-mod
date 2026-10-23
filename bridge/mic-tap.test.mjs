@@ -302,3 +302,36 @@ test('a key let go before the device has opened ends the turn once the audio cap
   const attached = tap.attach('req-early', chunk => got.push(chunk));
   assert.equal(attached.ended, true); assert.equal(Buffer.concat(got).length, 1280);
 });
+
+// ---- the cold-start cue ------------------------------------------------------------------------------------------------------------------
+test('a key press with the device cold says "opening" at once and "ready" with the first audio; once each', async () => {
+  const cues = [], capture = fakeCapture({openMs: 20}), tap = new MicTap({capture, onCue: cue => cues.push(cue)});
+  const opening = tap.hold('cold-1');
+  assert.deepEqual(cues, [{hold: 'cold-1', phase: 'opening'}], 'at once, before the device answers');
+  await tick(5);
+  assert.deepEqual(cues.map(c => c.phase), ['opening'], 'not ready before audio arrives');
+  capture.emit(Buffer.alloc(1280)); capture.emit(Buffer.alloc(1280));
+  assert.deepEqual(cues.map(c => c.phase), ['opening', 'ready'], 'ready with the first audio, once');
+  await opening;
+  tap.open('req-c', {holdId: 'cold-1'});
+  capture.emit(Buffer.alloc(1280));
+  assert.equal(cues.length, 2, 'the request taking the tap over adds nothing');
+});
+
+test('no cue when the device is already open (the linger), for Voice activation, for a replaced tap and for a request without a key', async () => {
+  const cues = [], capture = fakeCapture();
+  let lingering = true;                                           // the lingering device
+  Object.defineProperty(capture, 'deviceOpen', {get: () => lingering});
+  const tap = new MicTap({capture, onCue: cue => cues.push(cue)});
+  await tap.hold('warm-1'); capture.emit(Buffer.alloc(1280));
+  assert.deepEqual(cues, [], 'the device was open: no cue');
+  await tap.release(undefined, 'done');
+  lingering = false;
+  await tap.open('vad', {listen: true}); capture.emit(Buffer.alloc(1280)); await tap.release('vad');
+  await tap.open('req-nokey'); capture.emit(Buffer.alloc(1280)); await tap.release('req-nokey');
+  assert.deepEqual(cues, [], 'Voice activation and a start with no key never cue');
+  const taken = new MicTap({capture, onCue: cue => cues.push(cue)});
+  await taken.open('vad', {listen: true});
+  taken.open('req-key', {holdId: 'k-9'}); capture.emit(Buffer.alloc(1280));
+  assert.deepEqual(cues, [], 'a press that takes a listening tap over finds the device open');
+});
