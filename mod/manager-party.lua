@@ -813,18 +813,24 @@ function M.new(companions, readiness, options)
                     -- A joining copy shows no text: the board posts "joined" when it arrives.
                     feedback = assigned and '' or (job.name .. ': ' .. tostring(assignmentError))
                 else
+                    -- The notice below says it; the failed invitation leaves the list (it was reserved, not a copy).
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
+                    if preparationId == job.id then preparationId = nil end
                     report('party-failed', ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id,
                         {kind = 'failed', name = job.name})
-                    remaining[#remaining + 1] = job
                 end
-            else
-                if status.state == 'error' and Q.claimPreparationFailure(job.id, job.revision) then
+            elseif status.state == 'error' then
+                -- A failed preparation says why once, then leaves the list: it must not stay as an invitation that looks pending.
+                -- (Flush runs in gameplay only, so a failure first seen in the paused menu stays listed, as Remove, until then.)
+                if Q.claimPreparationFailure(job.id, job.revision) then
                     job.preparationError = status.error
                     report('party-failed', ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id,
                         {kind = 'failed', name = job.name})
                 end
+                if readiness then readiness.cancel(job) end
+                if preparationId == job.id then preparationId = nil end
+            else
                 remaining[#remaining + 1] = job
             end
         end

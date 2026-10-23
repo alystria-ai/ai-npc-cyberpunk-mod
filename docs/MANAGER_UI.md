@@ -30,8 +30,8 @@ that sub-pages stuck. The page logic moved to `mod/manager-ui.lua`, the NSUI hos
 Mods screen (Esc > Mods)
  +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
       +-- section "Companion Manager"      first section of every page, kept when the page changes
-      |     Home:         Characters to invite, Current party, Model browser, Settings,   (button "Open")
-      |                   Character editor
+      |     Home:         Characters to invite, Current party, Model browser, Character editor,   (button "Open")
+      |                   Settings
       |     other pages:  the Back row at the TOP                                         (button "Back")
       |     then, only when there is something to say: one feedback line
       +-- the sections of the page that is open (table below)
@@ -39,7 +39,7 @@ Mods screen (Esc > Mods)
 
 | Page | Back goes to | Sections |
 | --- | --- | --- |
-| Home | none | none: the five destinations are the page (the fifth, Character editor, opens the browser at once and has no page) |
+| Home | none | none: the five destinations are the page (the fourth, Character editor, above Settings, opens the browser at once and has no page) |
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
@@ -86,10 +86,10 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in
   effect (speech, behavior, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
   contacts and quest unlocks. There is no search box (NSUI has none); the list pages (see "How lists page").
-- **Current party:** one row per actual or invited copy, "Name #number", with **Dismiss** (or **Cancel invitation** while it is only
-  invited). A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
-  gameplay resumes, and if the game refuses it the row returns with the reason on a line below it. A failed invitation shows its
-  reason the same way. An empty party shows "Your party is empty". While a companion drives (the chauffeur), the section **Your group**
+- **Current party:** one row per actual or invited copy, "Name #number", with one action per state: **Dismiss** once it has joined, **Cancel invitation** while it is
+  still being prepared, **Remove** if its preparation failed. A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
+  gameplay resumes, and if the game refuses it the row returns with the reason on a line below it. A failed invitation is listed with its
+  reason and **Remove** only while the menu is paused: when gameplay resumes the queue posts its one notice and drops it. An empty party shows "Your party is empty". While a companion drives (the chauffeur), the section **Your group**
   holds the trip state and **Stop trip**. The party has no size limit (see "Party size").
 - **Model browser:** every Character record in the game, so any model can be invited, including characters without conversation
   support, which join as followers and do not talk. Each row's help names the record and the conversation profile, if any.

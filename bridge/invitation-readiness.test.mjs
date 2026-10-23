@@ -205,23 +205,28 @@ reject(function(v) v.invitations[2], v.invitations[1] = v.invitations[1], nil en
 reject(function(v) v.invitations = 'ready' end)
 unknown = 'judy-alvarez'
 files['runtime/companion-invitations-state.json'] = json.encode(good)
-readiness.update(); queue.flush(); assert(#spawned == 0 and queue.list()[1].state == 'failed')
--- A failed attempt keeps its error: the profile becoming known again and a
--- valid receipt for the old revision cannot revive or spawn it.
+readiness.update(); assert(queue.list()[1].state == 'failed')
+-- The gameplay flush says why once and drops the failed invitation: it never spawns and never stays listed as a pending one.
+queue.flush(); assert(#spawned == 0 and #queue.list() == 0 and #queue.takeNotices() == 1)
 unknown = nil
-readiness.update(); queue.flush()
-assert(#spawned == 0 and queue.list()[1].state == 'failed' and queue.list()[1].error == 'That conversation profile is unavailable.')
+assert(queue.invite('judy') and queue.list()[1].state ~= 'failed')
+unknown = 'judy-alvarez'
+readiness.update(); assert(queue.list()[1].state == 'failed' and queue.list()[1].error == 'That conversation profile is unavailable.')
+-- Until the flush, a valid receipt for the old revision cannot revive it, and a new revision does start a fresh attempt.
+unknown = nil
+readiness.update(); assert(#spawned == 0 and queue.list()[1].state == 'failed')
 -- Only an explicit retry (a new revision) starts a fresh preparation attempt.
 assert(queue.assign(queue.list()[1].id, 'judy-alvarez', 'Judy') and queue.list()[1].state == 'preparing-memory')
 files['runtime/companion-invitations-state.json'] = 'corrupt'
 readiness.update(); queue.flush(); assert(#spawned == 0)
 ms = ms + 59000; readiness.update(); queue.flush()
 assert(queue.list()[1].state == 'preparing-memory' and #spawned == 0, 'a service still starting failed before a minute of silence')
-ms = ms + 1000; readiness.update(); queue.flush()
+ms = ms + 1000; readiness.update()
 assert(queue.list()[1].state == 'failed' and queue.list()[1].error:find('did not answer', 1, true) and #spawned == 0)
 assert(queue.assign(queue.list()[1].id, 'judy-alvarez', 'Judy'))
-receipt('error', {error = 'Preparation timed out'}); readiness.update(); queue.flush()
+receipt('error', {error = 'Preparation timed out'}); readiness.update()
 assert(queue.list()[1].state == 'failed' and queue.list()[1].error == 'Preparation timed out' and #spawned == 0)
+queue.flush(); assert(#queue.list() == 0 and queue.count() == 0, 'a failed preparation stayed listed after its notice')
 `));
 
 test('a failure read through the paused snapshots keeps its one notice until the gameplay flush posts it', () => run(`
@@ -237,16 +242,18 @@ queue.flush()
 local notices = queue.takeNotices()
 assert(#notices == 1 and notices[1].failed and notices[1].invitationId == id
     and notices[1].message == 'Judy could not prepare: Provider unavailable')
+-- The notice said it: the failed invitation left the list (no Cancel invitation row that looks pending forever).
+assert(#queue.list() == 0 and queue.count() == 0 and queue.preparationFeedback(id) == nil)
 assert(queue.claimPreparationFailure(id, 1) == false, 'the gameplay flush left the failure claimable')
 for _ = 1, 3 do readiness.update(); queue.flush(); queue.list(); queue.preparationFeedback() end
 assert(#queue.takeNotices() == 0 and #spawned == 0, 'the failed attempt notified or spawned again')
 -- A claim taken by another gameplay reporter (popup or phone) is the one notice.
-assert(queue.assign(id, 'judy-alvarez', 'Judy') and queue.list()[1].state == 'preparing-memory')
+assert(queue.invite('judy')); id = queue.list()[1].id
 receipt('error', {error = 'Provider unavailable again'}); readiness.update()
-assert(queue.list()[1].state == 'failed' and queue.claimPreparationFailure(id, 2) == true)
+assert(queue.list()[1].state == 'failed' and queue.claimPreparationFailure(id, 1) == true)
 queue.flush()
 assert(#queue.takeNotices() == 0, 'a claimed failure also produced the queue notice')
-assert(queue.claimPreparationFailure(id, 2) == false)
+assert(queue.claimPreparationFailure(id, 1) == false)
 `));
 
 test('whole-second CET time accepts Date.now receipts from that second and rejects larger skew', () => run(`
@@ -268,14 +275,16 @@ for _, mode in ipairs({'open', 'write', 'close', 'encode'}) do
     failure = mode
     assert(queue.invite('judy') == false)
     assert(queue.count() == 1 and queue.list()[1].state == 'failed' and queue.list()[1].error)
-    queue.flush(); assert(#spawned == 0)
     failure = nil
-    assert(queue.dismiss(queue.list()[1].id) and queue.count() == 0)
+    -- Visible and removable until the gameplay flush; the notice is then the record and the invitation leaves the list.
+    if mode == 'open' or mode == 'write' then assert(queue.dismiss(queue.list()[1].id) and queue.count() == 0)
+    else queue.flush(); assert(#spawned == 0 and queue.count() == 0 and #queue.takeNotices() == 1) end
+    queue.takeNotices()
 end
 failure = 'open'
 assert(queue.invite('raw') == false and queue.list()[1].state == 'failed')
-queue.flush(); assert(#spawned == 0)
-failure = nil; assert(queue.dismiss(queue.list()[1].id))
+failure = nil
+queue.flush(); assert(#spawned == 0 and queue.count() == 0)
 assert(queue.invite('raw') and queue.list()[1].state == 'ready-to-join')
 assert(#spawned == 0, 'model-only readiness spawned during a paused action')
 queue.flush()
@@ -381,7 +390,8 @@ queue.flush()
 local notices = queue.takeNotices()
 assert(#notices == 1 and notices[1].message:find('Judy could not prepare: The conversation service did not answer', 1, true), notices[1] and notices[1].message)
 -- A service that never answered waits just as long, with the same wait named.
-assert(queue.assign(id, 'judy-alvarez', 'Judy'))
+assert(queue.count() == 0, 'the failed invitation stayed listed after its notice')
+assert(queue.invite('judy')); id = queue.list()[1].id
 assert(queue.preparationFeedback(id).wait == 'bridge')
 ms = ms + 59000; readiness.update(); assert(not queue.preparationFeedback(id).failed)
 ms = ms + 1000; readiness.update(); assert(queue.preparationFeedback(id).failed)
@@ -397,17 +407,18 @@ local reasons = {
 for _, case in ipairs(reasons) do
     assert(queue.invite('judy'))
     local id = queue.list()[1].id
-    receipt('error', {error = 'Bridge wording that is replaced', errorKind = case[1]}); readiness.update(); queue.flush()
+    receipt('error', {error = 'Bridge wording that is replaced', errorKind = case[1]}); readiness.update()
     assert(queue.list()[1].error == case[2], case[1] .. ': ' .. tostring(queue.list()[1].error))
+    queue.flush()
     local notices = queue.takeNotices()
     assert(#notices == 1 and notices[1].message == 'Judy could not prepare: ' .. case[2], notices[1] and notices[1].message)
-    assert(queue.dismiss(id))
+    assert(queue.count() == 0)
 end
 assert(queue.invite('judy'))
-receipt('error', {error = 'The party has no free conversation connection.', errorKind = 'capacity'}); readiness.update(); queue.flush()
+receipt('error', {error = 'The party has no free conversation connection.', errorKind = 'capacity'}); readiness.update()
 assert(queue.list()[1].error == 'The party has no free conversation connection.')
 assert(queue.dismiss(queue.list()[1].id))
 assert(queue.invite('judy'))
-receipt('error', {error = 'Made-up failure', errorKind = 'made-up'}); readiness.update(); queue.flush()
+receipt('error', {error = 'Made-up failure', errorKind = 'made-up'}); readiness.update()
 assert(queue.list()[1].error == 'Made-up failure', 'an unknown kind replaced the bridge text')
 `));
