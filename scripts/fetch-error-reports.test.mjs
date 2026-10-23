@@ -459,3 +459,68 @@ test('every default-ignorable character is removed (Khmer vowel inherent, unassi
     assert.equal(escapeText(`x${odd}y`), '"xy"');
   });
 });
+
+test('--backup-url reads a second server (the Cloudflare Worker) into the same folder and index, and one server failing does not stop the other', async () => {
+  await withFolder(async folder => {
+    const BACKUP = 'https://backup.invalid';
+    const primary = fakeServer(), backup = fakeServer();
+    // The backup knows signature A too (one more report, a different id) and a signature only it has.
+    const B1 = idAt(NOW - 2 * 86_400_000, 'e'), SIG_C = 'c'.repeat(16), C1 = idAt(NOW - 3600_000, 'f');
+    backup.state.signatures = [
+      {...primary.state.signatures[0], reports: 2, stored: 1, versions: {'0.2.2': 2}, ids: [B1], lastSeen: new Date(NOW - 3600_000).toISOString()},
+      {signature: SIG_C, kind: 'voice-failed', message: 'only on the worker', frame: null, reports: 1, stored: 1, firstSeen: new Date(NOW - 3600_000).toISOString(),
+        lastSeen: new Date(NOW - 3600_000).toISOString(), versions: {'0.2.2': 1}, ids: [C1]},
+    ];
+    backup.state.reports = new Map([[`${SIG_A}/${B1}`, reportBody(SIG_A, B1, '0.2.2')], [`${SIG_C}/${C1}`, reportBody(SIG_C, C1, '0.2.2')]]);
+    const route = (url, init) => (String(url).startsWith(BACKUP) ? backup : primary).fetchImpl(url, init);
+    await writeFile(join(folder, 'secret.txt'), SECRET);
+    const logs = [], errors = [];
+    const argv = ['--url', ORIGIN, '--backup-url', BACKUP, '--admin-secret-file', join(folder, 'secret.txt'), '--out', join(folder, 'out')];
+    const call = fetchImpl => { logs.length = 0; errors.length = 0; return run(argv, {fetchImpl, now: () => NOW, log: line => logs.push(line), error: line => errors.push(line)}); };
+
+    assert.equal(await call(route), 0);
+    assert.deepEqual((await readdir(join(folder, 'out', SIG_A))).sort(), [`${A1}.json`, `${A2}.json`, `${B1}.json`].sort());
+    assert.deepEqual(await readdir(join(folder, 'out', SIG_C)), [`${C1}.json`]);
+    for (const request of backup.calls) {
+      assert.equal(request.headers.Authorization, `Bearer ${SECRET}`, 'the same admin secret is used for the backup unless another file is given');
+      assert.equal(request.redirect, 'error');
+    }
+    const index = await readFile(join(folder, 'out', 'INDEX.md'), 'utf8');
+    assert.match(index, new RegExp(`\\| \`${SIG_A}\` \\| lua-error \\| 6 \\| 3 \\|`), 'a signature both servers list is one row with the counts added');
+    assert.match(index, /0\.2\.2 x5/);
+    assert.match(index, new RegExp(`\`${SIG_C}\``));
+
+    // The backup is down: the first server is still read and saved, and the exit code says something failed.
+    await rm(join(folder, 'out'), {recursive: true, force: true});
+    const down = (url, init) => (String(url).startsWith(BACKUP) ? Promise.reject(new Error('connect failed')) : primary.fetchImpl(url, init));
+    assert.equal(await call(down), 1);
+    assert.match(errors.join('\n'), /backup\.invalid could not be read/);
+    assert.deepEqual((await readdir(join(folder, "out", SIG_A))).sort(), [`${A1}.json`, `${A2}.json`].sort());
+    // The first server is down: the backup is still read.
+    await rm(join(folder, 'out'), {recursive: true, force: true});
+    const noPrimary = (url, init) => (String(url).startsWith(BACKUP) ? backup.fetchImpl(url, init) : Promise.reject(new Error('connect failed')));
+    assert.equal(await call(noPrimary), 1);
+    assert.deepEqual(await readdir(join(folder, 'out', SIG_C)), [`${C1}.json`]);
+    // Both down: the command fails.
+    const none = () => Promise.reject(new Error('connect failed'));
+    assert.equal(await call(none), 1);
+    assert.match(errors.join('\n'), /failed/);
+  });
+});
+
+test('--delete-fetched deletes each report on the server it came from', async () => {
+  await withFolder(async folder => {
+    const BACKUP = 'https://backup.invalid';
+    const primary = fakeServer(), backup = fakeServer();
+    const B1 = idAt(NOW - 2 * 86_400_000, 'e');
+    backup.state.signatures = [{...primary.state.signatures[0], reports: 1, stored: 1, versions: {'0.2.2': 1}, ids: [B1]}];
+    backup.state.reports = new Map([[`${SIG_A}/${B1}`, reportBody(SIG_A, B1, '0.2.2')]]);
+    const route = (url, init) => (String(url).startsWith(BACKUP) ? backup : primary).fetchImpl(url, init);
+    await writeFile(join(folder, 'secret.txt'), SECRET);
+    const code = await run(['--url', ORIGIN, '--backup-url', BACKUP, '--admin-secret-file', join(folder, 'secret.txt'), '--out', join(folder, 'out'), '--delete-fetched'],
+      {fetchImpl: route, now: () => NOW, log() {}, error() {}});
+    assert.equal(code, 0);
+    assert.equal(primary.state.reports.size, 0);
+    assert.equal(backup.state.reports.size, 0);
+  });
+});

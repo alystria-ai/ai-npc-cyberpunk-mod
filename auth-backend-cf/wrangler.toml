@@ -1,0 +1,29 @@
+# Backup sign-in backend on Cloudflare Workers (free plan). No secret is ever written in this file: the Convai key and the
+# secrets are set with `wrangler secret put` (see README.md). Everything under [vars] is public and may be changed freely.
+name = "cyberpunk-convai-auth-backup"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[vars]
+# 'shared' (one Convai token for everybody, minted at most about once an hour) or 'per-install'. Same meaning as on Vercel.
+CONVAI_AUTH_MODE = "shared"
+# Optional: where the counters live (applies only the first time the store is created). weur, eeur, enam, apac ... Leave empty for
+# "near the first request". Players in Russia are served well from eeur or weur.
+STATE_LOCATION_HINT = ""
+# Other optional settings (same names and meaning as auth-backend/README.md): CONVAI_AUTH_PAUSED, CONVAI_AUTH_MIN_VERSION,
+# CONVAI_AUTH_INSTALL_PER_HOUR, CONVAI_AUTH_IP_PER_HOUR, CONVAI_AUTH_NEW_INSTALLS_PER_IP_PER_DAY, CONVAI_AUTH_MINTS_PER_DAY,
+# CONVAI_AUTH_DAILY_TURN_CAP, CONVAI_AUTH_BLOCKED_INSTALLS, ERROR_REPORTS_OFF, ERROR_REPORTS_* ...
+
+# Durable Objects hold the counters (the token limits) and the error reports. SQLite-backed classes are the only kind the free plan has.
+[[durable_objects.bindings]]
+name = "STATE"
+class_name = "StateDO"
+
+[[durable_objects.bindings]]
+name = "ERRORS"
+class_name = "ErrorsDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["StateDO", "ErrorsDO"]

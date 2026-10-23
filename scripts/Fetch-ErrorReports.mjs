@@ -2,10 +2,16 @@
 // Developer-side: copy the automatic error reports from the sign-in backend (auth-backend/, "Error reports" in its README) into
 // local files you can read and grep, and write an index of what is there.
 //
-//   node scripts/Fetch-ErrorReports.mjs [--url https://<address>] [--admin-secret-file <path>] [--out <dir>] [--limit N] [--delete-fetched]
+//   node scripts/Fetch-ErrorReports.mjs [--url https://<address>] [--admin-secret-file <path>] [--backup-url https://<address>]
+//                                       [--backup-admin-secret-file <path>] [--out <dir>] [--limit N] [--delete-fetched]
 //
 //   --url                 the backend address (only its origin is used). Default: the origin of "url" in runtime/convai-auth.json.
 //   --admin-secret-file   a file holding the admin secret. Default: runtime/convai-auth-admin.txt, else auth-backend/secrets/admin.secret.
+//   --backup-url          a second server to read as well: the Cloudflare Worker (auth-backend-cf/), which keeps the reports of the
+//                         players who reach it in its own store. Its reports are saved and indexed together with the first server's
+//                         (a signature seen by both is one row, its counts added). Can be given more than once.
+//   --backup-admin-secret-file  the admin secret of the backup server(s). Default: the same secret as the first server's (set the
+//                         same CONVAI_AUTH_ADMIN_SECRET on both).
 //   --out                 where the reports go. Default: deliverables/error-reports (git ignored).
 //   --limit N             how many signatures to list (1 to 200, default 100; the newest first).
 //   --delete-fetched      after a report is saved here, delete it on the server (the counts stay in the server's index).
@@ -286,11 +292,22 @@ function failure(response, data) {
   return new Error(`The server answered ${response.status}${code}.${hint}`);
 }
 
-/**
- * Saves every kept report the server lists that is not saved yet, then rewrites INDEX.md. `fetchImpl` is fetch (a fake in the tests).
- * Returns {signatures, total, newReports, alreadyHere, gone, deleted, indexPath, out}.
- */
-export async function fetchErrorReports({baseUrl, secret, out, limit = 100, fetchImpl = fetch, now = Date.now, deleteFetched = false}) {
+/** Adds up the rows two servers list for one signature: counts and versions summed, ids joined, the earliest first and latest last seen. */
+export function mergeRows(left, right) {
+  const total = (a, b) => (Number.isFinite(Number(a)) || Number.isFinite(Number(b)) ? (Number(a) || 0) + (Number(b) || 0) : a);
+  const versions = {...(left.versions ?? {})};
+  for (const [version, count] of Object.entries(right.versions ?? {})) versions[version] = (Number(versions[version]) || 0) + (Number(count) || 0);
+  const earlier = (a, b) => (!a ? b : !b ? a : Date.parse(a) <= Date.parse(b) ? a : b);
+  const later = (a, b) => (!a ? b : !b ? a : Date.parse(a) >= Date.parse(b) ? a : b);
+  // What the signature is: the text of the server that saw it more often.
+  const lead = (Number(right.reports) || 0) > (Number(left.reports) || 0) ? right : left;
+  return {...left, kind: lead.kind, message: lead.message, frame: lead.frame, reports: total(left.reports, right.reports), stored: total(left.stored, right.stored),
+    versions, firstSeen: earlier(left.firstSeen, right.firstSeen), lastSeen: later(left.lastSeen, right.lastSeen),
+    ids: [...new Set([...(left.ids ?? []), ...(right.ids ?? [])])]};
+}
+
+/** Reads one server: saves every kept report it lists that is not saved yet. Returns the signature rows it listed. */
+async function fetchFromServer({baseUrl, secret, out, limit, fetchImpl, deleteFetched}, summary) {
   const origin = checkBaseUrl(baseUrl);
   if (!secret) throw new UsageError('No admin secret given.');
   const call = async (query, method = 'GET') => {
@@ -305,7 +322,8 @@ export async function fetchErrorReports({baseUrl, secret, out, limit = 100, fetc
   const listing = await call(`limit=${Math.min(200, Math.max(1, Math.trunc(limit) || 100))}`);
   if (!listing.response.ok) throw failure(listing.response, listing.data);
   const signatures = Array.isArray(listing.data?.signatures) ? listing.data.signatures : [];
-  const summary = {signatures: signatures.length, total: Number(listing.data?.total) || signatures.length, newReports: 0, alreadyHere: 0, gone: 0, deleted: 0, indexPath: '', out};
+  summary.signatures += signatures.length;
+  summary.total += Number(listing.data?.total) || signatures.length;
 
   const wanted = [];
   for (const row of signatures) {
@@ -335,15 +353,46 @@ export async function fetchErrorReports({baseUrl, secret, out, limit = 100, fetc
       if (data?.deleted) summary.deleted += 1;
     }
   });
-  summary.indexPath = await writeIndex({out, signatures, fetchedAt: now()});
+  return signatures;
+}
+
+/**
+ * Saves every kept report the server lists that is not saved yet, then rewrites INDEX.md. `fetchImpl` is fetch (a fake in the tests).
+ * `backups` ([{baseUrl, secret}]): more servers read the same way (the Cloudflare Worker); a signature listed by several is one row.
+ * One server failing does not stop the others (it is named in `failures`); with every server failing, the first error is thrown.
+ * Returns {signatures, total, newReports, alreadyHere, gone, deleted, indexPath, out, failures}.
+ */
+export async function fetchErrorReports({baseUrl, secret, out, limit = 100, fetchImpl = fetch, now = Date.now, deleteFetched = false, backups = []}) {
+  checkBaseUrl(baseUrl);
+  if (!secret) throw new UsageError('No admin secret given.');
+  const summary = {signatures: 0, total: 0, newReports: 0, alreadyHere: 0, gone: 0, deleted: 0, indexPath: '', out, failures: []};
+  const servers = [{baseUrl, secret}, ...backups];
+  const rows = new Map();
+  let firstError = null, succeeded = 0;
+  for (const server of servers) {
+    try {
+      for (const row of await fetchFromServer({...server, out, limit, fetchImpl, deleteFetched}, summary)) {
+        if (!SIGNATURE.test(String(row?.signature))) continue;
+        rows.set(row.signature, rows.has(row.signature) ? mergeRows(rows.get(row.signature), row) : row);
+      }
+      succeeded += 1;
+    } catch (problem) {
+      if (problem instanceof UsageError || servers.length === 1) throw problem;
+      firstError ??= problem;
+      summary.failures.push({origin: checkBaseUrl(server.baseUrl), message: problem instanceof Error ? problem.message : 'unknown failure'});
+    }
+  }
+  if (!succeeded) throw firstError;
+  summary.indexPath = await writeIndex({out, signatures: [...rows.values()], fetchedAt: now()});
   return summary;
 }
 
 // --- Command line -----------------------------------------------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const options = {deleteFetched: false, help: false};
-  const withValue = {'--url': 'url', '--admin-secret-file': 'secretFile', '--out': 'out', '--limit': 'limit'};
+  const options = {deleteFetched: false, help: false, backupUrls: []};
+  const withValue = {'--url': 'url', '--admin-secret-file': 'secretFile', '--out': 'out', '--limit': 'limit', '--backup-url': 'backupUrl',
+    '--backup-admin-secret-file': 'backupSecretFile'};
   for (let index = 0; index < argv.length; index++) {
     const name = argv[index];
     if (name === '--delete-fetched') options.deleteFetched = true;
@@ -351,7 +400,8 @@ function parseArgs(argv) {
     else if (withValue[name]) {
       const value = argv[++index];
       if (value === undefined || value.startsWith('--')) throw new UsageError(`${name} needs a value.`);
-      options[withValue[name]] = value;
+      if (name === '--backup-url') options.backupUrls.push(value);
+      else options[withValue[name]] = value;
     } else throw new UsageError(`Unknown option: ${name}`);
   }
   if (options.limit !== undefined && !(/^\d{1,3}$/.test(options.limit) && Number(options.limit) >= 1 && Number(options.limit) <= 200)) {
@@ -360,7 +410,7 @@ function parseArgs(argv) {
   return options;
 }
 
-const USAGE = 'Usage: node scripts/Fetch-ErrorReports.mjs [--url https://<address>] [--admin-secret-file <path>] [--out <dir>] [--limit N] [--delete-fetched]';
+const USAGE = 'Usage: node scripts/Fetch-ErrorReports.mjs [--url https://<address>] [--admin-secret-file <path>] [--backup-url https://<address>] [--backup-admin-secret-file <path>] [--out <dir>] [--limit N] [--delete-fetched]';
 
 /** The whole command, with its inputs injectable for the tests. Returns the exit code: 0 done, 1 fetching failed, 2 bad call or setup. */
 export async function run(argv, {root = projectRoot, fetchImpl = fetch, now = Date.now, log = console.log, error = console.error} = {}) {
@@ -373,11 +423,14 @@ export async function run(argv, {root = projectRoot, fetchImpl = fetch, now = Da
     const baseUrl = options.url ? checkBaseUrl(options.url) : await readBackendOrigin(root);
     const secret = await readAdminSecret(options.secretFile ? [resolve(options.secretFile)]
       : [resolve(root, 'runtime', 'convai-auth-admin.txt'), resolve(root, 'auth-backend', 'secrets', 'admin.secret')]);
+    const backupSecret = options.backupUrls.length && options.backupSecretFile ? await readAdminSecret([resolve(options.backupSecretFile)]) : secret;
+    const backups = options.backupUrls.map(url => ({baseUrl: checkBaseUrl(url), secret: backupSecret}));
     const out = resolve(options.out ?? join(root, 'deliverables', 'error-reports'));
-    const summary = await fetchErrorReports({baseUrl, secret, out, limit: Number(options.limit ?? 100), fetchImpl, now, deleteFetched: options.deleteFetched});
+    const summary = await fetchErrorReports({baseUrl, secret, out, limit: Number(options.limit ?? 100), fetchImpl, now, deleteFetched: options.deleteFetched, backups});
     log(`${summary.signatures} signatures (${summary.total} on the server), ${summary.newReports} new reports written, ${summary.alreadyHere} already here${summary.gone ? `, ${summary.gone} gone from the server` : ''}${options.deleteFetched ? `, ${summary.deleted} deleted on the server` : ''}.`);
     log(`Index: ${summary.indexPath}`);
-    return 0;
+    for (const failed of summary.failures) error(`${failed.origin} could not be read: ${failed.message}`);
+    return summary.failures.length ? 1 : 0;
   } catch (problem) {
     if (problem instanceof UsageError) {
       error(problem.message);
