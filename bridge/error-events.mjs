@@ -461,6 +461,16 @@ export function emptyAnswerDetail(error) {
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
+/**
+ * Why a failed Convai sign-in could not reach the backend, as one code (ENOTFOUND, ECONNRESET, ETIMEDOUT, UND_ERR_CONNECT_TIMEOUT, TimeoutError, a
+ * TLS code...; bridge/convai-credential.mjs networkCause), so the next triage can tell a block, a reset, a timeout and a DNS failure apart (2026-10-24
+ * report 8022b61e). Only a code of capitals, digits and underscores or a short word passes: never a host name, an address or a message.
+ */
+export function authCauseDetail(error) {
+  const cause = error?.authCause;
+  return typeof cause === 'string' && /^(?:[A-Z][A-Z0-9_]{2,39}|TimeoutError|aborted|redirect|fetch-failed|unknown)$/.test(cause) ? {authCause: cause} : {};
+}
+
 export class ErrorEvents {
   constructor({stateDirectory, runtime, now = Date.now, defer = setImmediate} = {}) {
     Object.assign(this, {stateDirectory, runtime, now, defer});
@@ -480,7 +490,7 @@ export class ErrorEvents {
     const base = eventFromError(error, 'turn-failed');
     this.record({...base, message: `${clip(provider, 20)}${errorCode ? ` ${errorCode}` : ''}: ${base.message}`.slice(0, 400),
       detail: {provider: clip(provider, 20), ...(errorCode ? {errorCode} : {}), ...(microphone ? {microphone: true} : {}),
-        ...(localReason ? {localReason: clip(String(localReason), 40)} : {}), ...emptyAnswerDetail(error)}});
+        ...(localReason ? {localReason: clip(String(localReason), 40)} : {}), ...emptyAnswerDetail(error), ...authCauseDetail(error)}});
   }
   /**
    * A voice that could not start (the Pocket voice, V's own Pocket worker, OmniVoice), with the few words the worker gave. A player with no voice has

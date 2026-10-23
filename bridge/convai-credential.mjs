@@ -41,8 +41,15 @@ const NEAR_EXPIRY_MS = 15_000;
 // server (a refusal is obeyed), at the earliest this long after the last failure, a shorter timeout than the background fetch, at most
 // this many turn-started attempts in a row without an answer, and only while the install has used fewer than this many requests in the
 // last hour (the backend allows 12 an hour per install; the schedule and bridge restarts need the rest).
+//
+// Timeouts (2026-10-24 triage, installs on slow or filtered networks): the request itself is given 25 s, the attempt of a turn too. Neither
+// makes a turn wait longer: a turn waits in ready() for at most four seconds whatever the request's timeout, and an attempt that is still
+// running then goes on in the background and serves the next turn. A throttled line (a few kilobytes a second) cannot finish a TLS
+// handshake and a signed POST in 6 or 10 s but can in 25; the price is only that a dead line holds the one-request-at-a-time slot (a
+// scheduled retry waits behind it) for up to 25 s instead of 6 to 10.
 const TURN_RETRY_AFTER_MS = 3_000;
-const TURN_RETRY_TIMEOUT_MS = 6_000;
+const REQUEST_TIMEOUT_MS = 25_000;
+const TURN_RETRY_TIMEOUT_MS = REQUEST_TIMEOUT_MS;
 const TURN_RETRY_MAX_FAILS = 3;
 const HOURLY_BUDGET = 8;
 const TURN_RETRY_KINDS = new Set(['unreachable', 'server']);
@@ -135,15 +142,39 @@ export async function loadInstallId({path, readText = file => readFile(file, 'ut
 
 export const signRequest = (secret, timestamp, body) => 'v1=' + createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 
+/**
+ * A short, safe word for why a request to the backend threw, from the error and its causes: a network error code (ENOTFOUND for DNS,
+ * ECONNRESET for a reset, ETIMEDOUT or UND_ERR_CONNECT_TIMEOUT for a connection that never completed, ECONNREFUSED, a TLS or certificate
+ * code), TimeoutError when our own timer ended the request, 'redirect' when the backend answered with a redirect (the request refuses
+ * them), else 'fetch-failed' or 'unknown'. Only a code of capitals, digits and underscores is ever returned: never a host name, an
+ * address, a message or any text of the error, so it can go into the log and a report.
+ */
+export function networkCause(error) {
+  let fallback = 'unknown';
+  const seen = new Set();
+  const visit = (value, depth) => {
+    if (!value || typeof value !== 'object' || depth > 4 || seen.has(value)) return null;
+    seen.add(value);
+    if (typeof value.code === 'string' && /^[A-Z][A-Z0-9_]{2,39}$/.test(value.code)) return value.code;
+    if (value.name === 'TimeoutError') return 'TimeoutError';
+    if (value.name === 'AbortError' && depth === 0) fallback = 'aborted';
+    if (typeof value.message === 'string' && /redirect/i.test(value.message) && depth > 0) fallback = 'redirect';
+    if (value.name === 'TypeError' && depth === 0 && fallback === 'unknown') fallback = 'fetch-failed';
+    if (Array.isArray(value.errors)) for (const inner of value.errors.slice(0, 3)) { const found = visit(inner, depth + 1); if (found) return found; }
+    return visit(value.cause, depth + 1);
+  };
+  return visit(error, 0) ?? fallback;
+}
+
 const clampSeconds = (value, fallback, min, max) => Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 
 export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
   #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
-  #failedKind = ''; #failedAt = 0; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
+  #failedKind = ''; #failedAt = 0; #cause = ''; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
 
   constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
-    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true, onLimit = () => {}} = {}) {
+    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = REQUEST_TIMEOUT_MS, fallback = true, onLimit = () => {}} = {}) {
     if (typeof url !== 'string' || !url || typeof secret !== 'string' || !secret || !UUID_V4.test(String(installId))
         || typeof fetchImpl !== 'function') throw Error('Invalid sign-in backend configuration');
     Object.defineProperty(this, 'secret', {value: secret}); // not enumerable: never in a snapshot or a JSON dump
@@ -229,7 +260,10 @@ export class TokenSource {
     // The backend's per-address token limit is a sign-in state, not "turns are coming too quickly" (that is the local guard's own
     // message, bridge/shared-key-guard.mjs): it carries the sign-in marker so the game says Convai sign-in is unavailable.
     if (this.lastKind === 'rate') return Object.assign(Error('Convai sign-in is rate limited by the sign-in backend [convai-auth:rate]'), {authKind: 'rate'});
-    return Object.assign(Error(`Convai sign-in is unavailable (${this.lastKind ?? 'not answered yet'}) [convai-auth:${this.lastKind ?? 'pending'}]`), {authKind: this.lastKind ?? 'pending'});
+    // authCause (a code like ENOTFOUND, see networkCause) is not in the message: the message is what the error report's signature is made
+    // of, so the cause rides in the report's detail (bridge/error-events.mjs turnFailed) and one signature keeps counting every case.
+    return Object.assign(Error(`Convai sign-in is unavailable (${this.lastKind ?? 'not answered yet'}) [convai-auth:${this.lastKind ?? 'pending'}]`),
+      {authKind: this.lastKind ?? 'pending', ...(this.#cause ? {authCause: this.#cause} : {})});
   }
   /** Values to scrub from reports: the tokens held now and recently, and the request-signing secret. */
   secrets() { return [...this.#seen, this.secret]; }
@@ -237,7 +271,7 @@ export class TokenSource {
   snapshot() {
     return {installTail: this.installId.slice(-4), expiresAt: this.#token?.expiresAt ?? null, lastKind: this.lastKind ?? null,
       blocked: this.blocked ? {...this.blocked} : null, allowance: this.allowance, pendingTurns: this.pending, minClient: this.minClient,
-      usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit};
+      usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit, lastCause: this.#cause || null};
   }
   /** The backend's daily limit travels with every token and every daily refusal: the top-level `dailyInteractionLimit`, else the
    * `allowance.limit` an older deployment sends. A value that is missing, not a whole number or out of range is ignored (the last
@@ -269,7 +303,8 @@ export class TokenSource {
     // The backend refuses a report above 1000 turns (400), which would repeat for ever; the rest follows in the next answer.
     const sent = Math.min(this.pending, 1000);
     let outcome;
-    try { outcome = await this.#post(sent, turn ? TURN_RETRY_TIMEOUT_MS : this.timeoutMs); } catch { outcome = {kind: 'unreachable'}; }
+    try { outcome = await this.#post(sent, turn ? TURN_RETRY_TIMEOUT_MS : this.timeoutMs); }
+    catch (error) { outcome = {kind: 'unreachable', cause: networkCause(error)}; }
     this.#apply(outcome, sent, turn);
   }
   async #post(turns, timeoutMs = this.timeoutMs) {
@@ -301,9 +336,10 @@ export class TokenSource {
     this.#announced = kind;
     this.log(message);
   }
-  #apply({kind, data}, sent, turn = false) {
+  #apply({kind, data, cause}, sent, turn = false) {
     const now = this.now();
     this.lastKind = kind;
+    this.#cause = kind === 'unreachable' && typeof cause === 'string' ? cause : '';
     this.#failedKind = kind === 'ok' ? '' : kind; this.#failedAt = now; // the real kind: lastKind may be turned into 'server' below
     this.#turnFails = kind === 'ok' ? 0 : turn ? this.#turnFails + 1 : this.#turnFails;
     if (typeof data?.minClient === 'string') this.minClient = data.minClient.slice(0, 20);
@@ -365,7 +401,7 @@ export class TokenSource {
     } else {
       const delay = RETRY_STEPS_MS[Math.min(this.#failures, RETRY_STEPS_MS.length - 1)];
       this.#failures += 1;
-      this.#announce(kind, `Sign-in backend ${kind === 'unreachable' ? 'could not be reached' : `failed (${kind})`}; retrying`);
+      this.#announce(`${kind}:${this.#cause}`, `Sign-in backend ${kind === 'unreachable' ? `could not be reached${this.#cause ? ` (${this.#cause})` : ''}` : `failed (${kind})`}; retrying`);
       this.#schedule(delay);
     }
   }

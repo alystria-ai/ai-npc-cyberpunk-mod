@@ -111,6 +111,8 @@ function M.noteSetup(problems, checks)
         if type(check) == 'table' then
             lines[#lines + 1] = id .. ': ' .. (plain(check.state, 20) or '?') .. ' ' .. (plain(check.code, 40) or '?')
                 .. (id == 'nsui' and plain(check.version, 40) and (' ' .. plain(check.version, 40)) or '')
+                -- Why the service never started ('plugin-not-loaded', 'no-launcher-trace', setup-check.lua): the line of every report of this session says it.
+                .. (id == 'service' and check.code == 'never' and plain(check.detail, 40) and (' (' .. plain(check.detail, 40) .. ')') or '')
         end
     end
     info.setup = lines
