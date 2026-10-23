@@ -3671,7 +3671,7 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 // interval costs little and removes up to 150 ms from every turn's start.
 const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
-// The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone-live.lua): read the moment the game writes it.
+// The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone.lua): read the moment the game writes it.
 const liveTimer = setInterval(() => { void micLive.poll().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => pollLog('[CyberpunkConvai] Preparation poll:', error)); }, 150);
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => pollLog('[CyberpunkConvai] Look-ahead poll:', error)); }, 60);

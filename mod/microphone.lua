@@ -73,7 +73,7 @@ end
 
 -- `source` says what caused the command (press, release, cap, pending, cancel...). The bridge logs it, so a recording that does not
 -- stop shows whether the stop reached it.
--- `hold` (start only): the id of the key press that opened the bridge's microphone tap ahead of this command (mod/microphone-live.lua).
+-- `hold` (start only): the id of the key press that opened the bridge's microphone tap ahead of this command (mod/microphone.lua, holdKey).
 local function command(action, context, source, hold)
     local f = io.open('runtime/microphone-command.json', 'wb')
     if not f then return false end

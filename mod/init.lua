@@ -2968,7 +2968,7 @@ end
 -- Hold to talk: the voice key records from the moment it goes down until it comes up, and V's turn ends there (docs/VOICE_INPUT.md).
 -- source: 'press' (the key went down: begin a recording), 'release' (the key came back up: finish it, even while the bridge is still opening)
 -- or 'vad' (Voice activation heard V start speaking: begin, with no key; mod/voice-activation.lua).
--- holdId: this key press's id, already told to the bridge (mod/microphone-live.lua) so its microphone tap is open. vadId: the detector's id for the start.
+-- holdId: this key press's id, already told to the bridge (mod/microphone.lua holdKey) so its microphone tap is open. vadId: the detector's id for the start.
 -- No notice is shown for a normal turn: no "connecting", no "listening", no "finished". Only a real failure speaks (no microphone, no connection).
 local function toggleVoice(groupMode, source, holdId, vadId)
     source = source or 'press'
