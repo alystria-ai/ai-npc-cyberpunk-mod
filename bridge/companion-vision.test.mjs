@@ -115,7 +115,7 @@ test('the age limit is 15 s: the frame from before a conversation is sent while 
   assert.ok(Number(/frame (\d+) s old/.exec(logs.at(-1))[1]) <= 15);
 });
 
-test('a stale buffer is never sent: the turn takes one capture (at most TURN_CAPTURE_WAIT_MS), and with none it goes without a picture and logs why', async () => {
+test('a stale buffer is never sent and a turn never waits for a picture: it goes without one, a capture starts in the background for the next turn, and the log says why', async () => {
   const logs = [];
   const {vision, state, run, capture} = scene({log: line => logs.push(line)});
   await run(FRAME_INTERVAL_MS * 3);
@@ -125,10 +125,16 @@ test('a stale buffer is never sent: the turn takes one capture (at most TURN_CAP
   assert.equal(capture.running, false, 'the helper stays released during the conversation');
   const callsBefore = capture.calls;
   const images = await vision.imagesForTurn({visionTurn: 'b'});
-  assert.equal(capture.calls, callsBefore + 1, 'one capture for the turn');
-  assert.equal(images.length, 1);
-  assert.equal(images[0].base64, shotOf(capture.calls), 'the new picture, not a stale one');
-  assert.match(logs.at(-1), /1 image\(s\), frame 0 s old/);
+  assert.equal(images, null, 'no frame within the limit: the turn goes out at once without a picture');
+  assert.match(logs.find(line => /turn \w+: /.test(line)), /no fresh frame|no frame yet/);
+  assert.equal(vision.diagnostics().turnsWithoutFrame, 1);
+  await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, callsBefore + 1, 'one capture was started in the background');
+  assert.equal(shotOf(capture.calls), vision.frame().base64, 'it lands in the buffer');
+  const next = await vision.imagesForTurn({visionTurn: 'b2'});
+  assert.equal(next.length, 1, 'the next turn has a frame');
+  assert.equal(next[0].base64, shotOf(capture.calls), 'the new picture, not a stale one');
+  assert.equal(capture.calls, callsBefore + 1, 'and takes no capture of its own');
   await run(1000);
   assert.equal(capture.running, false, 'the helper is released again by the next polls');
   assert.equal(vision.diagnostics().turnCaptures, 1);
@@ -138,7 +144,7 @@ test('a stale buffer is never sent: the turn takes one capture (at most TURN_CAP
   failing.state.conversing = true;
   await failing.run(30000);
   assert.equal(await failing.vision.imagesForTurn({visionTurn: 'c'}), null);
-  assert.match(logs.at(-1), /turn \w+: no frame yet/);
+  assert.ok(logs.some(line => /turn \w+: no frame yet/.test(line)));
   assert.equal(failing.vision.diagnostics().turnsWithoutFrame, 1);
 });
 
@@ -151,10 +157,10 @@ test('a turn that finds only an old frame says how old it was in the log', async
   await run(52000);
   capture.capture = async () => ({ok: false, reason: 'failed'});
   assert.equal(await vision.imagesForTurn({visionTurn: 'late'}), null);
-  assert.match(logs.at(-1), /no fresh frame \(newest 5\d s old, limit 15 s\)/);
+  assert.ok(logs.some(line => /no fresh frame \(newest 5\d s old, limit 15 s\)/.test(line)));
 });
 
-test('a slow capture does not hold a turn for more than TURN_CAPTURE_WAIT_MS', async () => {
+test('a slow capture does not hold a turn at all: no sleep, no timer, the turn goes out while the capture is still running', async () => {
   let release;
   const capture = fakeCapture();
   const slow = {...capture, get running() { return capture.running; }, start: capture.start, stop: capture.stop,
@@ -163,7 +169,8 @@ test('a slow capture does not hold a turn for more than TURN_CAPTURE_WAIT_MS', a
   const vision = new CompanionVision({capture: slow, now: () => 1000, env: {}, sleep: ms => { waited = ms; return new Promise(done => setImmediate(done)); }});
   const images = await vision.imagesForTurn({visionTurn: 'x'});
   assert.equal(images, null);
-  assert.equal(waited, 450);
+  assert.equal(waited, 0, 'nothing slept for a picture');
+  assert.ok(vision.turnCapture, 'the capture is still running, started for the next turn');
   release();   // it lands in the buffer for the next turn
   await new Promise(done => setImmediate(done)); await new Promise(done => setImmediate(done));
   assert.equal(vision.frames.length, 1);
@@ -229,7 +236,7 @@ test('typed line: with no young frame a picture is taken as the composer opens a
   assert.ok(FRESH_FRAME_AGE_MS < MAX_FRAME_AGE_MS);
 });
 
-test('a long typed line: a frame staged more than 15 s ago is replaced by a new capture at the send', async () => {
+test('a long typed line: a frame staged more than 15 s ago is not sent; the turn goes out at once and a capture starts for the next one', async () => {
   const {vision, state, run, capture} = scene({stagePage: async () => ({staged: true})});
   await run(FRAME_INTERVAL_MS * 2);
   state.conversing = true;
@@ -239,8 +246,11 @@ test('a long typed line: a frame staged more than 15 s ago is replaced by a new 
   await run(20000);   // V types for 20 s
   const calls = capture.calls;
   const images = await vision.imagesForTurn({visionTurn: 'slow-typist'});
-  assert.equal(capture.calls, calls + 1);
-  assert.notEqual(images[0].base64, stagedShot, 'not the staged picture, which is past the limit');
+  assert.equal(images, null, 'not the staged picture, which is past the limit, and no wait for a new one');
+  await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, calls + 1, 'a capture was started in the background');
+  const next = await vision.imagesForTurn({visionTurn: 'next-line'});
+  assert.notEqual(next[0].base64, stagedShot, 'the next turn has the new picture');
 });
 
 test('debug: the last picture sent is kept only when a developer turns it on, with a line about it', async () => {
@@ -308,9 +318,11 @@ test('talk key: with no young frame a picture is taken as the key is pressed and
   const stale = capture.calls;
   await run(20000);
   const replaced = await vision.imagesForTurn({visionTurn: 'mic-long'}, {phase: 'finish'});
-  assert.equal(capture.calls, stale + 1);
-  assert.equal(replaced[0].base64, shotOf(capture.calls), 'a new picture goes with the finish');
-  assert.match(logs.at(-1), /the staged one was 2\d s old/);
+  assert.equal(replaced, null, 'the finish does not wait for a new picture');
+  assert.ok(logs.some(line => /the frame staged while talking was 2\d s old/.test(line)));
+  await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, stale + 1, 'a capture started in the background for the next turn');
+  assert.equal(vision.frame().base64, shotOf(capture.calls));
 });
 
 test('attachToNextTurn: queued pictures follow the frame, filtered by character, expire, and never exceed four', async () => {
@@ -681,7 +693,22 @@ test('talk key: a picture that could not be staged on the recording still goes w
   await run(20000);
   const calls = capture.calls;
   const replaced = await vision.imagesForTurn({visionTurn: 'mic-old'}, {phase: 'finish'});
-  assert.equal(capture.calls, calls + 1);
-  assert.equal(replaced[0].base64, shotOf(capture.calls));
-  assert.match(logs.at(-1), /the unstaged one was/);
+  assert.equal(replaced, null, 'a picture past the limit is not sent and the finish does not wait for another');
+  assert.ok(logs.some(line => /the frame staged while talking was 2\d s old/.test(line)));
+  await new Promise(done => setImmediate(done));
+  assert.equal(capture.calls, calls + 1, 'a capture started in the background');
+});
+
+test('a recording whose frame is still being taken at the finish does not wait for it', async () => {
+  let release;
+  const capture = fakeCapture();
+  const slow = {...capture, get running() { return capture.running; }, start: capture.start, stop: capture.stop,
+    capture: () => new Promise(done => { release = () => done({ok: true, mime: 'image/jpeg', base64: shotOf(9), width: 1, height: 1, bytes: 1, ms: {}}); })};
+  let waited = 0;
+  const vision = new CompanionVision({capture: slow, now: () => 1000, env: {}, sleep: ms => { waited = ms; return new Promise(done => setImmediate(done)); }});
+  vision.beginVoice('mic-quick');
+  await new Promise(done => setImmediate(done));
+  assert.equal(await vision.imagesForTurn({visionTurn: 'mic-quick'}, {phase: 'finish'}), null);
+  assert.equal(waited, 0);
+  release();
 });

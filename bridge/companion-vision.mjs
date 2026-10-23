@@ -14,7 +14,7 @@
 // starts (composer opens, talk key pressed) and no frame is younger than FRESH_FRAME_AGE_MS, one frame is taken at that moment
 // (helper start plus capture, about 0.3 to 0.5 s, hidden behind typing or talking) and staged; the companion may be in it, which
 // is accepted: a picture of the right place with her in it beats a clean one of the place they left. A turn that has no staged frame
-// and none fresh waits at most TURN_CAPTURE_WAIT_MS for one capture, then goes without a picture and says so in the log.
+// and none within MAX_FRAME_AGE_MS goes without a picture at once (a turn never waits for a picture) and says so in the log; it starts one capture in the background so the next turn has a frame.
 //
 // The yellow border (2026-10-23 Discord report: yellow bars around the screen, flashing every few seconds): Windows draws a border around a window
 // that Windows Graphics Capture is capturing, for as long as the capture lasts, and an ordinary program cannot turn it off. So the helper takes the
@@ -48,8 +48,6 @@ export const MAX_FRAME_AGE_MS = 15000;
 // A frame this young is used as it is; an older one makes the turn take a new picture first (twice the 3 s buffer cadence, so a
 // walk with the buffer running normally needs no extra capture).
 export const FRESH_FRAME_AGE_MS = 6000;
-// The longest a turn with no fresh picture waits for one capture (a turn that was not staged ahead).
-export const TURN_CAPTURE_WAIT_MS = 450;
 // How long a queued picture (attachToNextTurn) waits for a turn before it is dropped.
 export const QUEUE_TTL_MS = 20000;
 // How long ahead-of-time staging keeps retrying while the page is still connecting or the recording is starting.
@@ -233,13 +231,13 @@ export class CompanionVision {
     const frame = this.stagedFrame;
     return frame && this.now() - frame.at <= MAX_FRAME_AGE_MS ? frame : null;
   }
-  // A frame for a turn that has none staged: any frame within MAX_FRAME_AGE_MS, else one capture, waited for at most
-  // TURN_CAPTURE_WAIT_MS (a turn is never slowed to replace a 7 s old picture with a 1 s old one). Never throws.
-  async freshFrame() {
+  // A frame for a turn that has none staged: any frame within MAX_FRAME_AGE_MS, else null at once. A turn never waits for a picture; with none, one capture is
+  // started in the background (not awaited) so the next turn has a frame. Never throws.
+  freshFrame() {
     const have = this.frame();
     if (have) return have;
-    await Promise.race([this.captureForTurn('turn'), this.sleep(TURN_CAPTURE_WAIT_MS)]).catch(() => {});
-    return this.frame() ?? null;
+    void this.captureForTurn('turn').catch(() => {});
+    return null;
   }
   // Why a turn has no picture, for the log: no frame ever, or the newest was too old.
   noPictureReason() {
@@ -389,12 +387,11 @@ export class CompanionVision {
     const queued = this.takeQueued(config.characterId);
     if (phase === 'finish' && id && this.voice.has(id)) {
       const entry = this.voice.get(id);
-      // The frame for the recording is still being taken (the talk key was only just pressed): wait for it, briefly.
-      if (!entry.images) await Promise.race([entry.done, this.sleep(TURN_CAPTURE_WAIT_MS)]).catch(() => {});
+      // The frame for the recording may still be being taken (the talk key was only just pressed): the finish does not wait for it.
       const age = entry.frame ? this.now() - entry.frame.at : null;
       // V talked for so long that the picture is past the limit: a new one replaces it (this turn publishes it).
       if (age !== null && age > MAX_FRAME_AGE_MS) {
-        const frame = await this.freshFrame();
+        const frame = this.freshFrame();
         if (frame && this.now() - frame.at <= MAX_FRAME_AGE_MS) {
           this.noteSent(frame, 'replaced a stale staged frame at the end of the recording');
           return this.settle(id, [{mime: frame.mime, base64: frame.base64}, ...queued].slice(0, MAX_IMAGES),
@@ -411,10 +408,10 @@ export class CompanionVision {
       return this.settle(id, [...(entry.images ?? []), ...queued].slice(0, MAX_IMAGES),
         entry.staged ? 'frame and queued pictures' : `${entry.images ? 'frame not staged on the recording, sent with the turn' : 'queued pictures'}${entry.images && queued.length ? ' and queued pictures' : ''}`);
     }
-    // The frame staged while V typed, else a young frame, else one capture (at most TURN_CAPTURE_WAIT_MS): never one past the limit.
+    // The frame staged while V typed, else a young frame, else none (a capture starts for the next turn): never one past the limit, never a wait.
     // The frame this turn's page holds already (staged while V typed, or when the speaker before began): the same frame goes, so the page publishes nothing new.
     const held = this.takePageFrame(config);
-    const frame = held?.frame ?? this.stagedYoung() ?? await this.freshFrame();
+    const frame = held?.frame ?? this.stagedYoung() ?? this.freshFrame();
     const usable = frame && this.now() - frame.at <= MAX_FRAME_AGE_MS ? frame : null;
     if (!usable) this.counters.turnsWithoutFrame++;
     if (usable) this.noteSent(usable, held ? 'sent with the turn, already staged on its page' : 'sent with the turn');
