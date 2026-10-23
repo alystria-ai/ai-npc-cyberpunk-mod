@@ -5,7 +5,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {streamChat, mapFailure, errorCodeFor, failureKind, errorExtrasFor, resetClock, MistralError, newAdaptation, rejectedParameters} from './mistral-client.mjs';
-import {ThinkFilter, THINKING_MODEL, NO_THINK_MODEL, afterStrayClose, reasoningIn, reasoningSteps, retryBudget, withNoThink} from './reasoning.mjs';
+import {ThinkFilter, THINKING_MODEL, NO_THINK_MODEL, REASONING_ROOM, afterStrayClose, lowerEffort, reasoningIn, reasoningSteps, retryBudget, withNoThink} from './reasoning.mjs';
 import {CustomEndpoint, describeFailure, parseEndpointUrl, testConnection} from './custom-endpoint.mjs';
 import {TextProviderHost, customRoute} from './text-provider-host.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -187,7 +187,7 @@ test('a reply that is not streamed: reasoning, reasoning_content and <think> tex
 
 test('what a refusal says about the reasoning fields: it moves the request to the next step, and a refusal of something else does not', () => {
   const OPENROUTER = 'Reasoning is mandatory for this endpoint and cannot be disabled.';
-  assert.deepEqual(rejectedParameters(400, OPENROUTER), {names: [], swap: false, reasoning: true});
+  assert.deepEqual(rejectedParameters(400, OPENROUTER), {names: [], swap: false, reasoning: true, mandatory: true});
   assert.deepEqual(rejectedParameters(400, "Unsupported parameter: 'reasoning_effort' is not supported with this model."), {names: [], swap: false, reasoning: true});
   assert.deepEqual(rejectedParameters(400, 'registry.ollama.ai/library/llama3.2:latest does not support thinking'), {names: [], swap: false, reasoning: true});
   assert.deepEqual(rejectedParameters(400, "Unsupported parameter: 'thinking'"), {names: [], swap: false, reasoning: true});
@@ -610,5 +610,122 @@ test('a model that must reason (OpenRouter recursive/flint-v1.0:free, 2026-10-23
     const pieces = [];
     await streamChat({...via(mock, {model: config.model}), reasoning: config.reasoning, adapt, retries: 0, onDelta: piece => pieces.push(piece)});
     assert.deepEqual(pieces, ['O', 'K']);
+  } finally { await mock.close(); }
+});
+
+// ---- A model that must reason: room from the first request, least effort on the retry (2026-10-23) -------------------------------------
+
+const MANDATORY_400 = {status: 400, body: {error: {message: 'Provider returned error', code: 400, metadata: {raw: JSON.stringify({error: {message: 'Reasoning is mandatory for this endpoint and cannot be disabled.', code: 400}}), provider_name: 'Chutes'}}}};
+// A model that thinks for `need` tokens before it answers: a request with less room than that ends in thinking only (finish: length), one with enough streams the answer.
+const thinksFor = need => request => {
+  if (request.body.reasoning?.effort === 'none') return MANDATORY_400;
+  const room = request.body.max_tokens ?? request.body.max_completion_tokens;
+  return room < need ? thoughtOnly({usage: {completion_tokens: room, completion_tokens_details: {reasoning_tokens: room}}})
+    : {sse: [{reasoning: 'The user said hi. '}, {reasoning_details: [{type: 'reasoning.text', text: 'x'}]}, 'Hello', ', V.'], finish: 'stop'};
+};
+const sentOf = mock => mock.requests.map(request => [request.body.reasoning, request.body.max_tokens]);
+
+test('lowerEffort: OpenRouter low, medium and high become minimal; none, other providers fields and no field have nothing lower', () => {
+  for (const effort of ['low', 'medium', 'high']) assert.deepEqual(lowerEffort({reasoning: {effort}}), {reasoning: {effort: 'minimal'}});
+  assert.deepEqual(lowerEffort({reasoning: {effort: 'low', exclude: true}}), {reasoning: {effort: 'minimal', exclude: true}});
+  for (const field of [{reasoning: {effort: 'none'}}, {reasoning: {effort: 'minimal'}}, {reasoning_effort: 'low'}, {thinking: {type: 'disabled'}}, undefined]) assert.equal(lowerEffort(field), undefined);
+});
+
+test('a model that must reason: the refusal is remembered, and from the first request on the route has no "none", the field at its next step and room for the thinking and the answer', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    const steps = reasoningSteps({hostname: 'openrouter.ai', model: 'recursive/flint-v1.0:free'});
+    mock.behave(thinksFor(900));
+    const adapt = newAdaptation();
+    const pieces = [];
+    const first = await streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt, retries: 0, maxTokens: 300, onDelta: piece => pieces.push(piece)});
+    assert.equal(first.text, 'Hello, V.');
+    assert.deepEqual(pieces, ['Hello', ', V.'], 'the content streams at once and no thinking is among it');
+    // The 400 is cheap; the second request is the only one that is a turn: no empty reply, no third request.
+    assert.deepEqual(sentOf(mock), [[{effort: 'none'}, 300], [{effort: 'low'}, REASONING_ROOM]]);
+    assert.equal(first.attempts, 2);
+    assert.equal(adapt.mustReason, true);
+    assert.equal(adapt.floorTokens, REASONING_ROOM);
+    assert.equal(adapt.lowEffort, false, 'the least effort is for a retry after an empty reply, not for every turn');
+    // Later turns, and the Test button: one request each, with the room and without "none".
+    mock.requests.length = 0;
+    await streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt, retries: 0});
+    assert.deepEqual(sentOf(mock), [[{effort: 'low'}, REASONING_ROOM]]);
+    mock.requests.length = 0;
+    const config = {ready: true, key: KEY, model: 'recursive/flint-v1.0:free', chatUrl: mock.url + '/chat/completions', origin: mock.origin, local: false, address: {hostname: 'openrouter.ai'}, reasoning: steps};
+    assert.equal((await testConnection(config, {adapt})).state, 'ok');
+    assert.equal(mock.requests.length, 1);
+    // A refusal learned by the Test button (the bridge shares the route's memory with it) is known to the first turn.
+    const shared = newAdaptation();
+    assert.equal((await testConnection(config, {adapt: shared})).state, 'ok');
+    mock.requests.length = 0;
+    await streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt: shared, retries: 0});
+    assert.deepEqual(sentOf(mock), [[{effort: 'low'}, REASONING_ROOM]]);
+  } finally { await mock.close(); }
+});
+
+test('a reply of only thinking on a route that must reason: the retry has a bigger budget and the least effort, not the same request, and both are remembered', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    const steps = reasoningSteps({hostname: 'openrouter.ai', model: 'recursive/flint-v1.0:free'});
+    mock.behave(thinksFor(REASONING_ROOM + 500));
+    const adapt = newAdaptation();
+    const retried = [];
+    const result = await streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt, retries: 0, maxTokens: 300, onRetry: info => retried.push(info.error.kind)});
+    assert.equal(result.text, 'Hello, V.');
+    assert.deepEqual(sentOf(mock), [[{effort: 'none'}, 300], [{effort: 'low'}, REASONING_ROOM], [{effort: 'minimal'}, 4096]]);
+    assert.deepEqual(retried, ['request', 'empty']);
+    assert.equal(adapt.floorTokens, 4096);
+    assert.equal(adapt.lowEffort, true);
+    // The next turns start right: the larger room and the least effort, in one request.
+    mock.requests.length = 0;
+    await streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt, retries: 0});
+    assert.deepEqual(sentOf(mock), [[{effort: 'minimal'}, 4096]]);
+    // A model that still thinks through that: told so, after the one retry, with no thinking shown.
+    mock.requests.length = 0;
+    mock.behave(request => request.body.reasoning?.effort === 'none' ? MANDATORY_400 : thoughtOnly());
+    const pieces = [];
+    await assert.rejects(streamChat({...via(mock, {model: 'recursive/flint-v1.0:free'}), reasoning: steps, adapt: newAdaptation(), ...quick, retries: 3, onDelta: piece => pieces.push(piece)}), error => error.kind === 'reasoning');
+    assert.deepEqual(pieces, []);
+    assert.equal(mock.requests.length, 3, 'none, low with room, minimal with more room, and no more');
+  } finally { await mock.close(); }
+});
+
+test('the least effort is refused by a model that takes "low": it is not asked again, the request goes on at "low" with the bigger budget', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    const steps = reasoningSteps({hostname: 'openrouter.ai', model: 'some/reasoner:free'});
+    const refusal = {status: 400, body: {error: {message: "Unsupported value: reasoning.effort 'minimal' is not supported with this model.", code: 400}}};
+    mock.behave(request => request.body.reasoning?.effort === 'minimal' ? refusal : thinksFor(REASONING_ROOM + 500)(request));
+    const adapt = newAdaptation();
+    const result = await streamChat({...via(mock, {model: 'some/reasoner:free'}), reasoning: steps, adapt, retries: 0, maxTokens: 300});
+    assert.equal(result.text, 'Hello, V.');
+    assert.deepEqual(sentOf(mock), [[{effort: 'none'}, 300], [{effort: 'low'}, REASONING_ROOM], [{effort: 'minimal'}, 4096], [{effort: 'low'}, 4096]]);
+    assert.equal(adapt.lowEffortRefused, true);
+    assert.equal(adapt.lowEffort, false);
+    assert.equal(adapt.reasoningStep, 1, 'the field stays at "low"');
+    mock.requests.length = 0;
+    await streamChat({...via(mock, {model: 'some/reasoner:free'}), reasoning: steps, adapt, retries: 0});
+    assert.deepEqual(sentOf(mock), [[{effort: 'low'}, 4096]]);
+  } finally { await mock.close(); }
+});
+
+test('a model that may be told not to think, and one that refuses a reasoning field without saying it must reason, are sent what they were: no room, no least effort', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    const steps = reasoningSteps({hostname: 'openrouter.ai', model: 'nvidia/nemotron-3.5-super-vl:free'});
+    mock.behave(() => null);
+    const adapt = newAdaptation();
+    for (let turn = 0; turn < 3; turn++) await streamChat({...via(mock, {model: 'nvidia/nemotron-3.5-super-vl:free'}), reasoning: steps, adapt, retries: 0, maxTokens: 300});
+    assert.deepEqual(sentOf(mock), [[{effort: 'none'}, 300], [{effort: 'none'}, 300], [{effort: 'none'}, 300]]);
+    assert.equal(adapt.mustReason, false);
+    assert.equal(adapt.floorTokens, 0);
+    mock.requests.length = 0;
+    mock.behave(request => 'reasoning' in request.body ? {status: 400, body: {error: {message: "Unsupported parameter: 'reasoning'", code: 400}}} : null);
+    const other = newAdaptation();
+    await streamChat({...via(mock, {model: 'x/y'}), reasoning: steps, adapt: other, retries: 0, maxTokens: 300});
+    assert.equal(other.mustReason, false);
+    assert.equal(other.floorTokens, 0);
+    assert.deepEqual(mock.requests.map(request => request.body.max_tokens), [300, 300, 300]);
   } finally { await mock.close(); }
 });

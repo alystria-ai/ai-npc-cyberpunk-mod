@@ -72,6 +72,24 @@ export function noThinkingFields({hostname, local = false} = {}) {
     : {reasoning_effort: 'low', chat_template_kwargs: {enable_thinking: false}};
 }
 
+/**
+ * The room a request is given from its first try on a route that has refused to turn reasoning off (OpenRouter's "Reasoning is mandatory for this endpoint and cannot be disabled",
+ * adapt.mustReason in bridge/mistral-client.mjs): such a model thinks 100 to 1500 tokens before its first word whatever effort it is asked for (measured 2026-10-23, recursive/flint-v1.0:free: 100 to 650 on most turns, over 1500 on one in ten,
+ * with `effort` low or minimal and `reasoning.max_tokens` 64 or 256 alike), so the usual 300-token reply budget is gone before the answer starts. The reply's own length cap
+ * (`shouldStop`) ends the stream as soon as the reply is long enough, so the larger limit costs no time when the model answers normally.
+ */
+export const REASONING_ROOM = 2500;
+
+/**
+ * The same request field asked for the least reasoning the provider has a word for, used when a reply came back empty because the model thought through its budget: OpenRouter's
+ * `effort: 'low'` (or medium, high) becomes 'minimal', the lowest level that still reasons (https://openrouter.ai/docs/use-cases/reasoning-tokens). undefined when there is nothing lower to ask
+ * (`none`, another provider's field, or no field).
+ */
+export function lowerEffort(field) {
+  const effort = field?.reasoning?.effort;
+  return ['low', 'medium', 'high'].includes(effort) ? {...field, reasoning: {...field.reasoning, effort: 'minimal'}} : undefined;
+}
+
 /** The fields `reasoningSteps` can add to a request (all of them are removed when a request is rebuilt for another step). */
 export const REASONING_FIELDS = Object.freeze(['reasoning', 'reasoning_effort', 'thinking']);
 

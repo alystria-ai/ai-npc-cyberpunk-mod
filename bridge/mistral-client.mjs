@@ -10,7 +10,7 @@
 // names its exact origin as `trustedOrigin`: a server the player runs themselves (bridge/custom-models.mjs, an `endpoint` entry) on the local network
 // or, with the player's explicit "remote": true, anywhere; the key then goes to that origin and to no other.
 import {markStage} from './turn-clock.mjs';
-import {ThinkFilter, reasoningIn, reasoningTokens, afterStrayClose, retryBudget, withNoThink, NO_THINK_MODEL, NO_THINKING_FIELDS} from './reasoning.mjs';
+import {ThinkFilter, reasoningIn, reasoningTokens, afterStrayClose, retryBudget, withNoThink, lowerEffort, REASONING_ROOM, NO_THINK_MODEL, NO_THINKING_FIELDS} from './reasoning.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
 // The conversation models, fastest first. The free plan's allowance differs by model and account (measured 11 Oct 2026: Small and
@@ -152,13 +152,14 @@ export function rejectedParameters(status, text) {
   const lower = String(text ?? '').toLowerCase();
   const about = REASONING_FIELD.test(lower) && !NO_SUCH_MODEL.test(lower);
   if (!REFUSAL_WORDS.test(lower) && !(about && MANDATORY.test(lower))) return null;
-  const flag = about ? {reasoning: true} : {};
+  // `mandatory`: the model says it must reason (the request cannot ask for none): the route is remembered as one that thinks first (adapt.mustReason).
+  const flag = about ? {reasoning: true, ...(MANDATORY.test(lower) ? {mandatory: true} : {})} : {};
   const names = DROPPABLE.filter(name => lower.includes(name));
   if (/\bstream\b/.test(lower.replace(/stream_options/g, ''))) names.push('stream');
   const swap = /\bmax_tokens\b/.test(lower) && /max_completion_tokens/.test(lower);
   if (/\bmax_tokens\b/.test(lower) && !swap) names.push('max_tokens');
   if (swap) return {names: names.filter(name => name !== 'max_completion_tokens'), swap: true, ...flag};
-  if (!names.length) return about ? {names: [], swap: false, reasoning: true} : NO_SUCH_MODEL.test(lower) || !FIELD_WORDS.test(lower) ? null : {names: [], swap: false};
+  if (!names.length) return about ? {names: [], swap: false, ...flag} : NO_SUCH_MODEL.test(lower) || !FIELD_WORDS.test(lower) ? null : {names: [], swap: false};
   return {names, swap: false, ...flag};
 }
 
@@ -611,13 +612,15 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     const capped = remaining < totalMs;
     // Do the fields that ask for no thinking go with this attempt? (The retry of a reply that was only thinking, or an endpoint that has shown it thinks.)
     const askedNoThink = !!noThinking && (thinkRetry || adapt?.thinks === true);
+    // Does this attempt ask for the least reasoning the provider has a word for? The room-and-effort retry of a reply that went to thinking, or a route where that worked before.
+    const askedLow = provider === 'custom' && !adapt?.lowEffortRefused && (!!larger || adapt?.lowEffort === true) && lowerEffort(reasoning?.[adapt?.reasoningStep ?? 0]) !== undefined;
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
-        adapt, headers, reasoning, noThinking: askedNoThink ? noThinking : undefined, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
+        adapt, headers, reasoning, noThinking: askedNoThink ? noThinking : undefined, lowEffort: askedLow, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
         ...(larger ? {maxTokens: larger.maxTokens, noThink: larger.noThink} : {})});
       // What the larger budget (and the switch) bought is kept: the next requests start with it, so no turn pays for the empty first try again.
-      if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; }
+      if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; if (askedLow) adapt.lowEffort = true; }
       return {...result, attempts: attempt + 1 + adapted + (larger ? 1 : 0), failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
@@ -659,6 +662,14 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
         lastError.failed = failed;
         throw lastError;
       }
+      // The server refused the least-reasoning level the retry asked for (a model that takes 'low' but not 'minimal'): it is not asked again, and the request goes on at the step it was at.
+      if (askedLow && adapt && adapted < MAX_ADAPTATIONS && lastError.paramsRejected?.reasoning && !lastError.paramsRejected.names?.length && !lastError.paramsRejected.swap) {
+        adapt.lowEffort = false; adapt.lowEffortRefused = true;
+        adapted++;
+        try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
+        attempt--;
+        continue;
+      }
       // The custom provider's server refused an optional field of the request: the same request is sent once more without it, at once, and the
       // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again. A server that refuses
       // one field at a time (OpenAI's reasoning models: max_tokens, then temperature) is asked again after each refusal that taught something new,
@@ -694,7 +705,10 @@ const MAX_ADAPTATIONS = 4;
 // the route keeps one per endpoint and model for the session.
 // `thinks`: a request to this endpoint came back with only thinking, so the fields that ask for no thinking go with every request (bridge/reasoning.mjs noThinkingFields);
 // `noThinkDropped`: which of those fields the server refused by name.
-export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false, thinks: false, noThinkDropped: new Set()}; }
+// `mustReason`: the model refused to have reasoning turned off ("Reasoning is mandatory"): requests carry the reasoning field at its next step (not 'none') and `floorTokens` makes room for
+// the thinking from the first try. `lowEffort`: a reply that came back empty was asked again with the least effort the provider has a word for (bridge/reasoning.mjs lowerEffort) and
+// that worked, so later requests ask for it from the start; `lowEffortRefused`: the server refused that level, which is not asked again.
+export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false, thinks: false, noThinkDropped: new Set(), mustReason: false, lowEffort: false, lowEffortRefused: false}; }
 const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'repeat_penalty', 'stop']);
 /**
  * Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). `steps`: how many
@@ -702,9 +716,12 @@ const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'tem
  */
 function learnRefusal(adapt, rejected, steps = 0) {
   adapt.noThinkDropped ??= new Set();
-  const signature = () => `${adapt.swapped}|${[...adapt.dropped].join(',')}|${adapt.reasoningStep ?? 0}|${[...adapt.noThinkDropped].join(',')}`;
+  const signature = () => `${adapt.swapped}|${[...adapt.dropped].join(',')}|${adapt.reasoningStep ?? 0}|${[...adapt.noThinkDropped].join(',')}|${adapt.mustReason === true}`;
   const before = signature();
   if (rejected.swap) adapt.swapped = true;
+  // A model that says it must reason: every request of the route has room for its thinking and the answer from now on (the first turn after Test connection, or after the refusal, is not
+  // asked for 300 tokens that the thinking would use up), and the request is sent again at once without asking for none (the next step of the field).
+  if (rejected.mandatory) { adapt.mustReason = true; adapt.floorTokens = Math.max(adapt.floorTokens ?? 0, REASONING_ROOM); }
   for (const name of rejected.noThink ?? []) adapt.noThinkDropped.add(name);
   if (rejected.reasoning) adapt.reasoningStep = Math.min((adapt.reasoningStep ?? 0) + 1, steps);
   // A refusal that names no field drops every optional one (the reasoning field too); a rename of max_tokens alone, or a refusal of the reasoning field alone,
@@ -744,7 +761,7 @@ function emptyAnswer(provider, apiKey, {thought, finishReason, extra = {}}) {
 }
 
 async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer = setTimeout, clearTimer = clearTimeout,
-  reasoning, noThinking, noThink, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
+  reasoning, noThinking, noThink, lowEffort = false, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
   const trace = newTrace();
@@ -786,7 +803,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       const body = {model, messages: custom && (noThink || adapt?.noThink) && NO_THINK_MODEL.test(model) ? withNoThink(messages) : messages, stream: true,
         max_tokens: custom && thinkingRoom !== false && adapt?.floorTokens ? Math.max(maxTokens, adapt.floorTokens) : maxTokens, temperature, ...extraBody};
       // The field that asks a reasoning model to think less, at the step the server has not refused yet (bridge/reasoning.mjs).
-      if (custom) Object.assign(body, reasoning?.[adapt?.reasoningStep ?? 0]);
+      if (custom) Object.assign(body, lowEffort ? lowerEffort(reasoning?.[adapt?.reasoningStep ?? 0]) ?? reasoning?.[adapt?.reasoningStep ?? 0] : reasoning?.[adapt?.reasoningStep ?? 0]);
       // The fields that ask for no thinking at all, for a server that has shown it thinks (a refused one is left out).
       if (noThinking) for (const [name, value] of Object.entries(noThinking)) if (!adapt?.noThinkDropped?.has(name)) body[name] = value;
       if (adapt) applyAdaptation(body, adapt);
