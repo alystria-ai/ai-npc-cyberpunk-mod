@@ -133,6 +133,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   maxRestarts: 2,
   deviceLostStepDown: 2,       // the graphics device was lost (Vulkan ErrorDeviceLost) this many times in a session: the first loss restarts llama-server, the second steps down a model size
   offloadReloads: 3,           // a model that spilled, was lost or stalled again is loaded again with part of it on the CPU at most this many times a session, then Local AI is unavailable
+  spillKeptRecheckMs: 600_000, // a spilled model nothing can replace stays loaded (slow, but it answers); the replacement is looked for again no sooner than this
   deviceListRetryMs: 1500,     // the listing of the graphics devices (llama-server --list-devices) failed to run: one more try after this long, then the start fails and names the error
   deviceLostPauseMs: 2000,     // the driver needs a moment to reset the device: the server it is restarted on waits this long before it starts
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
@@ -1325,7 +1326,7 @@ export class LocalLlmServer extends EventEmitter {
         custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
       engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
         contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null,
-        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {})},
+        ...(loaded.kvType ? {kvType: loaded.kvType} : {}), ...(loaded.fit ? {fit: loaded.fit} : {}), ...(loaded.offloadPlan ? {offloadPlan: loaded.offloadPlan} : {}), ...(loaded.spill ? {spill: loaded.spill} : {}), ...(loaded.spillKept ? {spillKept: loaded.spillKept} : {})},
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
@@ -1797,40 +1798,109 @@ export class LocalLlmServer extends EventEmitter {
       this.log('[local] graphics memory of the model server after ' + why + ': ' + memory.dedicatedMiB + ' MiB on the card, ' + memory.sharedMiB + ' MiB in shared system memory'
         + (verdict.spilled ? ' (spilled: ' + verdict.spilledMiB + ' MiB beyond the usual)' : ''));
       if (!verdict.spilled || this.#stepping) return false;
+      // What could replace the model is worked out first, with the model still up and answering and no step gate held (a turn that comes meanwhile is not made to wait for a look): the model
+      // leaves only when a replacement exists (2026-10-24 reports 014a3be6 / 316c6d2b: four installs, 12 GB cards included, ended with no Local AI at all after an unload that nothing could follow).
+      const plan = await this.#spillReplacement(verdict, memory);
+      if (!plan || generation !== this.#generation || this.#proc !== proc || this.#state !== 'ready' || this.#stepping) return false;
+      if (!plan.kind) { this.#spillKeep(verdict, plan); return true; }
       this.#beginStep();
-      try { await this.#spillAct(verdict); } finally { this.#endStep(); }
+      try { await this.#spillAct(verdict, plan); } finally { this.#endStep(); }
       return true;
     } catch { return false; } finally { this.#checking = false; }
   }
 
   /**
-   * A model spilled into shared memory: it reads at a crawl (83 to 3.9 generated tokens a second measured). The card the game leaves is smaller than it was at the load, so the model is
-   * unloaded (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to what is free now, once per model per session: the largest context
-   * of the ladder whose projection plus FIT_LIMITS.refitMarginMiB fits, with the 8-bit KV cache as the last rung (the whole model on the card: a model half on the CPU reads prompts
-   * no faster). When no rung fits, or the refit spilled again, the next smaller model of its family is loaded (#stepDown), and with none the same model is loaded with part of its
-   * layers on the CPU (any share loads; under FIT_LIMITS.hopelessShare the player is told once), else, after three such reloads, Local AI is unavailable ('low-memory', TOO_SMALL: no cloud provider takes the turns).
+   * Is there anything that could replace a model that spilled into shared memory, judged while it is still loaded and answering (nothing is stopped, nothing is loaded)? Resolves
+   * `{kind, room, ...}`: `kind` 'refit' (the same model, whole on the card, in a context of the ladder), 'smaller' (the next smaller installed model of its family, whole on the card),
+   * 'offload' (the same model with part of its layers on the CPU: at least FIT_LIMITS.hopelessShare of them on the card, the system memory for the rest free, reloads left) or null (nothing:
+   * `why` says what was missing). The memory that will be free is read with the model's own dedicated memory added (it goes back when the model stops: the same sum as #reloadWouldKeep).
+   * Every check is the one the start itself makes; the system memory is the reading before the stop, which is lower than after it, so a doubtful case reads as "nothing" and the model stays.
+   * Null when it cannot be told at all (the model is not one to act on). Never throws.
+   */
+  async #spillReplacement(verdict, memory) {
+    try {
+      const fromId = this.#modelId, selected = this.#selected(this.pack);
+      const from = selected.models.find(model => model.id === fromId);
+      if (!from || from.external === true) return null;
+      const again = this.#refitted.has(fromId);
+      let free = null;
+      try { free = Number(await this.freeVramMiB()); } catch { /* unknown */ }
+      const own = Number(memory?.dedicatedMiB);
+      if (!Number.isFinite(free) || !Number.isFinite(own) || own < 0) return {kind: null, why: 'the free graphics memory cannot be read'};
+      const room = free + own;
+      const sizeOf = file => this.fileSizeMiB(file);
+      // The same model, whole on the card, once per model per session (a second spill after a fit means the fit was not enough).
+      let fit = null;
+      if (!again) {
+        fit = await this.#fitFor(from, room, FIT_LIMITS.refitMarginMiB, this.#device).catch(() => null);
+        if (fit?.pick) return {kind: 'refit', room, fit};
+      }
+      const next = stepDownTarget({models: selected.models, from, sizeOf});
+      if (next) {
+        // The smaller model replaces it only if it goes whole onto the card (the file-size rule, or its own projection).
+        const nextSize = Number(sizeOf(next.file)) || 0;
+        let whole = nextSize > 0 && modelNeedMiB(next, nextSize) <= room;
+        if (!whole) { const nextFit = await this.#fitFor(next, room, FIT_LIMITS.marginMiB, this.#device).catch(() => null); whole = Boolean(nextFit?.pick); }
+        return whole ? {kind: 'smaller', room, next} : {kind: null, why: next.name + ' does not fit whole in the ' + Math.round(room) + ' MiB that would be free', room};
+      }
+      // No smaller model: the same one with part of its layers on the CPU, when that is not worse than where it is (a share under hopelessShare reads about as slowly as a spill), the
+      // processor's side has the system memory, and the reloads of this session are not used up (then the step-down would end in 'low-memory').
+      const tries = this.#offloadTried.get(fromId) ?? 0;
+      if (tries >= LOCAL_LLM_LIMITS.offloadReloads) return {kind: null, why: 'it was already loaded with part on the CPU ' + tries + ' times this session', room};
+      fit = fit ?? await this.#fitFor(from, room, FIT_LIMITS.refitMarginMiB, this.#device).catch(() => null);
+      const projected = fit?.projections?.find(rung => rung.contextSize === FIT_LIMITS.offloadContext && rung.kvType === FIT_LIMITS.offloadKvType)?.projectedMiB ?? null;
+      const size = Number(sizeOf(from.file)) || 0;
+      const plan = offloadPlan({projectedMiB: projected, sizeMiB: size, freeMiB: room});
+      if (plan.share === null) return {kind: null, why: 'where it would go is not known', room};
+      if (plan.hopeless) return {kind: null, why: 'only about ' + Math.round(plan.share * 100) + '% of its layers would fit the card', room};
+      const ram = offloadRamNeedMiB({share: plan.share, sizeMiB: size, projectedMiB: plan.projectedMiB});
+      const freeRam = Number(this.freeMemMiB());
+      if (ram !== null && Number.isFinite(freeRam) && freeRam < ram) return {kind: null, why: 'about ' + Math.round(ram) + ' MiB of system memory would be needed for its CPU part and ' + Math.round(freeRam) + ' MiB are free', room};
+      return {kind: 'offload', room, share: plan.share};
+    } catch { return null; }
+  }
+
+  /**
+   * A model spilled into shared memory and nothing can replace it (see #spillReplacement): it stays loaded. It is slower (the part in shared memory is read over the bus) but it answers, and
+   * unloading it would have left the player with no Local AI at all. Said once per load in the log; the replacement is looked for again after LOCAL_LLM_LIMITS.spillKeptRecheckMs. No notice:
+   * the game's 'local-cpu' notice says the model runs on the processor, which is not what happened here.
+   */
+  #spillKeep(verdict, plan) {
+    this.#spillAt = this.now() + LOCAL_LLM_LIMITS.spillKeptRecheckMs - SPILL_LIMITS.checkEveryMs;
+    if (!this.#loaded) return;
+    if (this.#loaded.spillKept) { this.#loaded.spillKept.checks++; return; }
+    this.#loaded.spillKept = {at: new Date(this.now()).toISOString(), spilledMiB: verdict.spilledMiB, why: plan.why ?? null, checks: 1};
+    this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory) and nothing can replace it' + (plan.why ? ' (' + plan.why + ')' : '')
+      + ': it stays loaded, replies are slower but it answers');
+    this.emit('diagnostics', this.diagnostics());
+  }
+
+  /**
+   * A model spilled into shared memory and something can replace it (#spillReplacement said what): it reads at a crawl (83 to 3.9 generated tokens a second measured). The card the game leaves is
+   * smaller than it was at the load, so the model is unloaded (its memory goes back at once) and the replacement is loaded: the same model fitted to what is free now, once per model per session
+   * (the largest context of the ladder whose projection plus FIT_LIMITS.refitMarginMiB fits, with the 8-bit KV cache as the last rung: the whole model on the card, a model half on the CPU reads
+   * prompts no faster), else the next smaller model of its family (#stepDown), else, with none, the same model with part of its layers on the CPU (any share the plan allowed). When no
+   * replacement exists the model is not touched (#spillKeep): there is no longer a step that ends in 'low-memory' or LOW_RAM for a model that was answering.
    * The saved choice is never changed. A model the player added is handled the same way (it was left alone before: a spilled one stayed at 1 to 5 tokens a second).
    */
-  async #spillAct(verdict) {
+  async #spillAct(verdict, plan) {
     const fromId = this.#modelId, selected = this.#selected(this.pack);
     const from = selected.models.find(model => model.id === fromId);
     if (!from || from.external === true) return;
-    if (this.#refitted.has(fromId)) { this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down'); return this.#stepDown({cause: 'spill'}); }
-    this.#refitted.add(fromId);
-    this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory): unloading it and loading it again fitted to what is free');
-    await this.stop();
-    let free = null;
-    try { free = Number(await this.freeVramMiB()); } catch { /* unknown */ }
-    const fit = Number.isFinite(free) ? await this.#fitFor(from, free, FIT_LIMITS.refitMarginMiB, this.#device).catch(() => null) : null;
-    if (fit?.pick) {
-      this.#refitPlan = {id: fromId, fit};
+    if (plan.kind === 'refit') {
+      this.#refitted.add(fromId);
+      this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory): unloading it and loading it again fitted to what is free');
+      await this.stop();
+      this.#refitPlan = {id: fromId, fit: plan.fit};
       this.#stepFrom = null;
       this.emit('diagnostics', this.diagnostics());
       this.#kick();
       return;
     }
-    this.log('[local] ' + this.#model + ' does not fit whole in the ' + (Number.isFinite(free) ? Math.round(free) + ' MiB' : 'memory') + ' that is free now: stepping down');
-    return this.#stepDown({free: Number.isFinite(free) ? free : null, cause: 'spill'});
+    if (this.#refitted.has(fromId)) this.log('[local] ' + this.#model + ' spilled again after it was fitted to the free memory: stepping down');
+    else this.log('[local] ' + this.#model + ' has ' + verdict.spilledMiB + ' MiB in shared system memory (the game took the graphics memory) and ' + (plan.kind === 'smaller' ? plan.next.name + ' fits whole' : 'part of it can stay on the card')
+      + ' in the ' + Math.round(plan.room) + ' MiB that will be free: stepping down');
+    return this.#stepDown({free: Number.isFinite(plan.room) ? plan.room : null, cause: 'spill'});
   }
 
   /**
