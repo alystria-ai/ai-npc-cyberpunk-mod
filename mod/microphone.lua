@@ -1,12 +1,52 @@
 local M = {}
--- A second press this soon after "Listening" is a bouncing key or a double tap, not "I finished".
-local MIN_RECORD_S = 0.7
 -- A reply this overdue is dropped by the next press so the player can speak again.
 local RETRY_AFTER_S = 8
 -- The words Convai has heard so far are shown at most this often (seconds).
 local HEARD_EVERY_S = 0.3
 M.clock = os.clock
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
+
+-- The two live signals the bridge's microphone tap (bridge/mic-tap.mjs) needs before any turn exists, one small file (runtime/microphone-live.json):
+--   hold   the talk key went down / came up. The bridge opens the microphone at the key press and keeps what it hears, so the first word is never lost
+--          while the conversation connection is still opening; the key release stops it on the spot.
+--   listen Voice activation (mod/voice-activation.lua) wants the microphone open (a conversation is possible) or closed.
+-- A write happens on a change only: the key's two edges (one write each) and when listening starts or stops. Never per frame.
+local live = {holdId = nil, down = false, listen = false, writes = 0}
+
+local function writeLive()
+    live.writes = live.writes + 1
+    local f = io.open('runtime/microphone-live.json', 'wb')
+    if not f then return false end
+    local ok = pcall(function()
+        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen}))
+    end)
+    f:close()
+    return ok
+end
+
+-- A new id for each key press (the bridge tells a press from the one before it by it).
+function M.newHoldId() return tostring(os.time()) .. '-' .. tostring(math.floor(os.clock() * 1000) % 100000) end
+
+function M.holdKey(holdId)
+    if type(holdId) ~= 'string' or holdId == '' then return false end
+    live.holdId, live.down = holdId, true
+    return writeLive()
+end
+
+function M.releaseKey(holdId)
+    if holdId == nil or holdId ~= live.holdId or not live.down then return false end
+    live.down = false
+    return writeLive()
+end
+
+function M.listen(on)
+    on = on == true
+    if live.listen == on then return false end
+    live.listen = on
+    return writeLive()
+end
+
+function M.listening() return live.listen end
 
 local function sameOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
@@ -33,10 +73,11 @@ end
 
 -- `source` says what caused the command (press, release, cap, pending, cancel...). The bridge logs it, so a recording that does not
 -- stop shows whether the stop reached it.
-local function command(action, context, source)
+-- `hold` (start only): the id of the key press that opened the bridge's microphone tap ahead of this command (mod/microphone-live.lua).
+local function command(action, context, source, hold)
     local f = io.open('runtime/microphone-command.json', 'wb')
     if not f then return false end
-    f:write(json.encode({nonce = tostring(os.time()) .. ':' .. tostring(os.clock()), action = action, source = source or 'unknown', input = context}))
+    f:write(json.encode({nonce = tostring(os.time()) .. ':' .. tostring(os.clock()), action = action, source = source or 'unknown', hold = hold, input = context}))
     f:close()
     M.lastCommand = {action = action, requestId = context.requestId, source = source}
     if type(M.log) == 'function' then pcall(M.log, 'Microphone command: ' .. action .. ' source=' .. tostring(source or 'unknown')) end
@@ -48,6 +89,7 @@ local function clear()
     M.finishPendingSource = nil
     M.targetValid, M.recordingAt, M.finishedAt = nil, nil, nil
     M.heardRaw, M.heardAt = nil, nil
+    M.source, M.vadId, M.beganAt, M.noteShown = nil, nil, nil, nil
 end
 
 function M.cancel(reason)
@@ -74,22 +116,18 @@ function M.received(requestId)
     return true
 end
 
--- What a press of the voice key means while a recording or its reply is in flight.
---   idle        nothing is running: begin a recording
---   connecting  the device is still opening: ignore it (finishing now would submit an empty recording)
---   bounce      the recording just began: ignore it
---   finish      end the recording and submit it
---   waiting     the reply is on its way: ignore it (a spammed key must not cancel a good reply)
---   retry       the reply is overdue: drop it so a fresh recording can begin
+-- What a press of the voice key means while a recording or its reply is in flight. The key is hold-to-talk: it records from the press until it
+-- is let go, so a second press while a recording is running is only a key repeat or a second key.
+--   idle     nothing is running: begin a recording
+--   busy     a recording is opening or running: ignore it
+--   waiting  the reply is on its way: ignore it (a spammed key must not cancel a good reply)
+--   retry    the reply is overdue: drop it so a fresh recording can begin
 function M.press()
     if not M.context then return 'idle' end
-    local state = M.state
-    if state == 'starting' then return 'connecting' end
-    if state == 'reply' then
+    if M.state == 'reply' then
         return os.time() - (M.finishedAt or os.time()) >= RETRY_AFTER_S and 'retry' or 'waiting'
     end
-    if state == 'recording' and M.recordingAt and M.clock() - M.recordingAt < MIN_RECORD_S then return 'bounce' end
-    return 'finish'
+    return 'busy'
 end
 
 -- The language the mod resolved for its interface (the game's own language under Automatic), for the bridge's speech recognition
@@ -105,7 +143,9 @@ function M.publishLanguage(language)
     return true
 end
 
-function M.begin(context, targetValid, source)
+-- source: 'press' (the key went down) or 'vad' (Voice activation heard the player start speaking; `extra.vadId` is the detector's id for that start).
+-- extra.hold: the key press's hold id (the bridge's microphone tap is already open for it).
+function M.begin(context, targetValid, source, extra)
     M.cancel('replaced')
     if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
@@ -121,12 +161,14 @@ function M.begin(context, targetValid, source)
         local captured = pcall(M.captureActions, context)
         if not captured then context.chauffeurOffer = nil end
     end
-    if not command('start', context, source or 'press') then
+    if not command('start', context, source or 'press', extra and extra.hold or nil) then
         M.knowledgeOwner = nil
         if type(M.onCancelled) == 'function' then M.onCancelled(context, 'start-write-failed') end
         return false
     end
     M.context, M.state, M.started = context, 'starting', os.time()
+    M.beganAt = M.started
+    M.source, M.vadId = source or 'press', extra and extra.vadId or nil
     M.targetValid = targetValid
     return true
 end
@@ -206,51 +248,63 @@ function M.update(player)
     if f then
         local ok, value = pcall(json.decode, f:read('*a')); f:close()
         -- An empty placeholder (or a half-written file) decodes to nothing: no state yet.
-        if ok and type(value) == 'table' and value.requestId == M.context.requestId then
-            if value.state == 'recording' and M.state == 'starting' then
-                M.state = 'recording'; M.started = os.time(); M.recordingAt = M.clock()
-                local shortcut = ui.boundKey(M.context.group
-                    and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
-                local listening = shortcut
-                    and ui.t('Listening - press {key} again to finish', {key = shortcut})
-                    or ui.t('Listening - press the same voice chat shortcut again to finish')
-                if value.note == 'english-only' then
-                    -- The language is not English and nothing on this setup recognises it (bridge/speech-language.mjs): once per game
-                    -- session, under the Listening line in one notice.
-                    convaiNotices.sendLines(player, {{id = 'mic-listening', text = listening},
-                        {id = 'mic-english-only', text = ui.t('Voice input only understands English for now. Typing works in any language.')}})
-                elseif value.note == 'pack-available' then
-                    -- The same, but an optional microphone pack hears this language and is not installed: the notice says where the help is.
-                    convaiNotices.sendLines(player, {{id = 'mic-listening', text = listening},
-                        {id = 'mic-english-only', text = ui.t('Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.')}})
-                else
-                    convaiNotices.send(player, 'mic-listening', listening)
+        if ok and type(value) == 'table' then
+            -- Voice activation (mod/voice-activation.lua): the bridge's detector says the player stopped speaking. It rides on whatever state the file holds,
+            -- so it is read before the turn's own state is matched to this request.
+            local vad = type(value.vad) == 'table' and value.vad or nil
+            if M.source == 'vad' and vad and vad.phase == 'ended' and vad.id ~= M.vadId and M.state ~= 'reply' and not M.finishPending then
+                M.finishPending, M.finishPendingSource = true, 'vad-end'
+            end
+            if value.requestId == M.context.requestId then
+                if value.state == 'recording' then
+                    if M.state == 'starting' then M.state = 'recording'; M.started = os.time(); M.recordingAt = M.clock() end
+                    -- A turn is not announced ("Listening" is gone: the key is already recording). Only a language this setup cannot hear is
+                    -- told, once per game session, because the words will not come out as said.
+                    if value.note and not M.noteShown then
+                        M.noteShown = true
+                        if value.note == 'english-only' then
+                            -- The language is not English and nothing on this setup recognises it (bridge/speech-language.mjs).
+                            convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
+                        elseif value.note == 'pack-available' then
+                            -- The same, but an optional microphone pack hears this language and is not installed: the notice says where the help is.
+                            convaiNotices.send(player, 'mic-english-only', ui.t('Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'))
+                        end
+                    end
+                elseif value.state == 'no-speech' then
+                    -- Voice activation starts on a sound that may not have been speech: that turn ends quietly.
+                    if M.source ~= 'vad' then
+                        convaiNotices.send(player, 'mic-no-speech', ui.t('No speech was heard. Hold the talk key while you speak.'))
+                    end
+                    M.cancel('no-speech')
+                    return nil
+                elseif value.state == 'silent' then
+                    -- The device sent no sound at all (a muted, dead or wrong Windows input): name it instead of "no speech".
+                    local name = type(value.device) == 'string' and value.device ~= '' and value.device:sub(1, 80) or '?'
+                    convaiNotices.send(player, 'mic-silent', ui.t('The microphone {name} sends no sound. Check your Windows input device.', {name = name}))
+                    M.cancel('microphone-silent')
+                    return nil
+                elseif value.state == 'error' and value.reason == 'language' then
+                    -- Mistral could not take a recording in another language and nothing local could read it (bridge/local-stt-capture.mjs).
+                    convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
+                    M.cancel('microphone-language')
+                    return nil
+                elseif value.state == 'error' and value.reason == 'connection' then
+                    -- Convai's media server or the network did not answer at the start of the turn (bridge/realtime-host.mjs, microphoneConnectionFailure): the microphone is fine, the next press opens a fresh connection.
+                    convaiNotices.send(player, 'mic-connection', ui.t('Voice input could not reach Convai. Hold the voice key again, or type.'))
+                    M.cancel('microphone-connection')
+                    return nil
+                elseif value.state == 'error' then
+                    convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
+                    M.cancel('microphone-error')
+                    return nil
                 end
-            elseif value.state == 'no-speech' then
-                convaiNotices.send(player, 'mic-no-speech', ui.t('No speech was heard. Wait for Listening, then speak before you finish.'))
-                M.cancel('no-speech')
-            elseif value.state == 'silent' then
-                -- The device sent no sound at all (a muted, dead or wrong Windows input): name it instead of "no speech".
-                local name = type(value.device) == 'string' and value.device ~= '' and value.device:sub(1, 80) or '?'
-                convaiNotices.send(player, 'mic-silent', ui.t('The microphone {name} sends no sound. Check your Windows input device.', {name = name}))
-                M.cancel('microphone-silent')
-            elseif value.state == 'error' and value.reason == 'language' then
-                -- Mistral could not take a recording in another language and nothing local could read it (bridge/local-stt-capture.mjs).
-                convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
-                M.cancel('microphone-language')
-            elseif value.state == 'error' and value.reason == 'connection' then
-                -- Convai's media server or the network did not answer at the start of the turn (bridge/realtime-host.mjs, microphoneConnectionFailure): the microphone is fine, the next press opens a fresh connection.
-                convaiNotices.send(player, 'mic-connection', ui.t('Voice input could not reach Convai. Press the voice key again, or type.'))
-                M.cancel('microphone-connection')
-            elseif value.state == 'error' then
-                convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
-                M.cancel('microphone-error')
             end
         end
     end
-    if M.context and (M.state == 'recording' or M.state == 'reply') then showHeard(player) end
-    if M.context and M.finishPending then return M.finish(nil, 'pending') end
-    if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish(nil, 'cap') end
+    if M.context and (M.state == 'starting' or M.state == 'recording' or M.state == 'reply') then showHeard(player) end
+    if M.context and M.finishPending then return M.finish(nil, M.finishPendingSource == 'vad-end' and 'vad' or 'pending') end
+    -- 30 s from the press, however far the bridge has got.
+    if M.context and M.state ~= 'reply' and M.beganAt and os.time() - M.beganAt >= 30 then return M.finish(nil, 'cap') end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then
         M.cancel(); convaiNotices.send(player, 'mic-timeout', ui.t('Microphone connection timed out. Please try again.'))
     end

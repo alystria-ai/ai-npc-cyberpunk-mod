@@ -793,6 +793,29 @@ test('Talk to story characters is off by default, offered under Conversations an
   `);
 });
 
+test('Voice activation is off by default, offered under Voices, saved with the settings, and only a boolean is accepted', () => {
+  run(`${nsuiFixture}
+    assert(manager.voiceActivation() == false and manager.snapshot(player).settings.voiceActivation == false, 'a missing key is off')
+    assert(invoke('tab:settings').ok)
+    local setting = assert(row('voiceActivation'), 'the setting is not offered')
+    assert(setting.type == 'bool' and setting.value == false and setting.defaultValue == false)
+    assert(setting.label == 'Voice activation')
+    local voices
+    for _, category in ipairs(loaded.categories) do if category.id == 'voices' then voices = category end end
+    local found = false
+    for _, item in ipairs(voices.settings) do if item.id == 'voiceActivation' then found = true end end
+    assert(found, 'the setting is not in the Voices section')
+    assert(saved.voiceActivation == false, 'a new install saves the default Off')
+    assert(registered.applyBatch('manager', {{id = 'voiceActivation', value = true}}).ok and manager.voiceActivation() == true and saved.voiceActivation == true, 'an explicit On is kept')
+    loaded = registered.loadMod('manager'); assert(row('voiceActivation').value == true)
+    assert(registered.applyBatch('manager', {{id = 'voiceActivation', value = false}}).ok)
+    assert(manager.voiceActivation() == false and saved.voiceActivation == false, 'an explicit Off is kept')
+    loaded = registered.loadMod('manager'); assert(row('voiceActivation').value == false)
+    assert(not manager.applySettings(player, {voiceActivation = 'yes'}) and manager.voiceActivation() == false)
+    assert(manager.storyConversations() == false, 'the neighbouring setting is not disturbed')
+  `);
+});
+
 test('Johnny in your head and Johnny speaks up are one select row: Off by default, four entries mapped onto the two stored settings both ways, and no standing row', () => {
   run(`${nsuiFixture}
     assert(manager.johnnyInHead() == false and manager.snapshot(player).settings.johnnyInHead == false, 'a missing key is off')

@@ -209,7 +209,7 @@ test('an identical notice is not repeated inside its window for a player, a deve
     assert(notices.send(player, 'mic-error', 'Microphone unavailable.'), 'a developer lost a repeat')
     developer = false
     -- A notice without a window is never dropped as a repeat (the board decides for itself).
-    assert(notices.send(player, 'mic-listening', 'Listening') and notices.send(player, 'mic-listening', 'Listening'))
+    assert(notices.send(player, 'mic-heard', 'You: hello') and notices.send(player, 'mic-heard', 'You: hello'))
     -- The voice fallback is announced once per ten minutes.
     assert(notices.send(player, 'voice-fallback', 'A is unavailable. Companions are using B instead.'))
     now = now + 599
