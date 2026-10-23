@@ -1248,4 +1248,6 @@ return {
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "无需按住按键即可说话。当你面向角色或有同伴在附近时，模组会聆听你的声音，并在你停顿约一秒后回应。\n\n绝不在游戏自身的场景或对话选项中聆听，角色说话时也绝不聆听。除非听到语音，否则不会有任何内容离开你的电脑。最好使用耳机；蓝牙耳机的麦克风会在聆听时切换为通话音质。",
     ["Opening microphone…"] = "正在打开麦克风…",
     ["Speak now"] = "请现在说话",
+    ["Controller talk button"] = "手柄说话键",
+    ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "用手柄说话：在角色身上按住左摇杆按下（L3），说话，松开即发送。摇杆保持不动时按住。\n\n仅限步行时使用，菜单、场景、对话选项、通话、战斗或载具中都不可用。按下时仍会切换冲刺，站着时不会有任何效果。",
 }

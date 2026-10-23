@@ -162,7 +162,7 @@ local modules={
  ['speech.lua']={clearEntity=noop,update=noop,stop=noop,abandon=function()record('speech')end},
  ['character-catalog.lua']={build=function()return {records={}}end,resolve=function(_,value)return value.managedKey,value.name end},
  ['manager.lua']={configure=noop,interfaceLanguage=function()return'auto'end,subtitleStyle=function()return'dialogue'end,profileEnabled=function()return true end,
-  voiceNeedsConvai=function()return false end,voiceActivation=function()return false end,reset=noop,update=noop,developerMode=function()return false end,battleReactions=function()return false end,lootReactions=function()return false end},
+  voiceNeedsConvai=function()return false end,voiceActivation=function()return false end,padTalk=function()return false end,reset=noop,update=noop,developerMode=function()return false end,battleReactions=function()return false end,lootReactions=function()return false end},
  ['nsui.lua']={configure=noop,install=noop,update=noop,resetSession=noop,shutdown=noop},
  ['phone-layout.lua']={install=noop,refresh=noop},['phone-chat-style.lua']={install=noop,refresh=noop},
  ['phone-chat.lua']={configure=function(_,_,options)phoneOptions=options end,update=noop,abandon=function()record('phone')end},

@@ -4294,6 +4294,35 @@ function convaiVoiceActivationTick(player, elapsed, ready)
     end
     convaiVoiceActivationModule().update(player, elapsed, ready)
 end
+-- Controller talk button (Settings > Voices, off by default; docs/CONTROLLER_BINDING.md): hold the left stick click (L3) to talk, let go to send. The
+-- redscript half (PadTalk.reds) listens to the game's walking action for that click and times the hold; mod/pad-binding.lua decides whether the moment is
+-- allowed and runs the talk key's own code path (voiceKeyEdge, under its own key id so a keyboard hold and a controller hold never end each other).
+-- Event driven: nothing here runs per frame, and while the setting is off the module is not even loaded. Global functions, so onUpdate reaches them without
+-- a new upvalue.
+function convaiPadBindingModule()
+    if convaiPadBinding then return convaiPadBinding end
+    convaiPadBinding = dofile('pad-binding.lua')
+    convaiPadBinding.deps = {
+        enabled = function() return manager.padTalk() end,
+        -- A menu, a loading screen or the text box: the same test the talk key itself makes.
+        menu = function(who) return not gameplayCanAcquire(who) end,
+        sample = function(who) return battleObserver.sample(who) end,
+        press = function() voiceKeyEdge('pad_voice', false, true) end,
+        release = function() voiceKeyEdge('pad_voice', false, false) end,
+        observe = function(fn) Observe('PlayerPuppet', 'ConvaiPadNotify', function(this) fn(this) end) end,
+        log = log,
+    }
+    return convaiPadBinding
+end
+
+function convaiPadBindingTick(player, ready)
+    if not manager.padTalk() then
+        -- Turned off after being on: the hold ends and the redscript listener stops (once; the module's tick returns at its first line otherwise).
+        if convaiPadBinding then convaiPadBinding.tick(player, ready) end
+        return
+    end
+    convaiPadBindingModule().tick(player, ready)
+end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
@@ -4860,6 +4889,9 @@ registerForEvent('onUpdate', function(delta)
     -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
     local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
     if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
+    -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
+    local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
+    if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
     if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
@@ -5233,6 +5265,7 @@ registerForEvent('onShutdown', function()
     if autoConnect then pcall(autoConnect.reset) end
     microphone.cancel()
     if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
+    if convaiPadBinding then pcall(convaiPadBinding.stop, liveWorld and Game.GetPlayer() or nil) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end
     active = nil
