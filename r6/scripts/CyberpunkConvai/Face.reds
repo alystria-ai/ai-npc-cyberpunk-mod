@@ -572,7 +572,10 @@ public class ConvaiFaceService extends ScriptableService {
     // are what it is, not a scene. Only an AI that a scene or quest commands refuses it here (a dialogue was refused above); the Lua
     // side adds combat, injury, a ride and V's own quest conversation before any reply starts.
     if this.m_storyTalk && ArrayContains(this.m_named, npc.GetRecordID()) {
-      if !npc.IsOnAutonomousAI() { return "skipped:driven"; };
+      // Johnny Silverhand (told by mod/init.lua through ConvaiFaceProjection) is a voice and a figure of V's head, not a person the game
+      // stages: its scenes, workspots and mounts command his AI all the time (sitting in V's car), so that is no reason to keep his mouth
+      // shut. His own scene dialogue (above) still refuses him.
+      if !npc.ConvaiFaceIsProjection() && !npc.IsOnAutonomousAI() { return "skipped:driven"; };
       return "";
     };
     // An ordinary or quest-bound character of the game (the template, the appearance and the record say nothing about whether the
@@ -701,6 +704,24 @@ private final func ConvaiSpawnedElsewhere(dynamic: ref<DynamicEntitySystem>) -> 
     this.m_convaiSpawnedKnown = true;
   };
   return this.m_convaiSpawned;
+}
+
+// Whether the Lua side named this character a projection of V's head (Johnny Silverhand, mod/world-talk.lua PROJECTIONS) at its talk start: the
+// commanded-AI refusal of TalkRefusal does not apply to him. Set only on his puppet, never read per frame.
+@if(ModuleExists("Codeware"))
+@addField(NPCPuppet)
+private let m_convaiFaceProjection: Bool;
+
+@if(ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceProjection(on: Bool) -> Void {
+  this.m_convaiFaceProjection = on;
+}
+
+@if(ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceIsProjection() -> Bool {
+  return this.m_convaiFaceProjection;
 }
 
 // The reason a conversation start refused this NPC (a dialogue, a quest, a commanded AI): the layer stays inert and
@@ -849,6 +870,11 @@ public final func ConvaiFaceReset() -> Bool {
 }
 
 // Stand-ins without Codeware: nothing was prepared, so the face is never ready and Lua writes no mouth movement.
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceProjection(on: Bool) -> Void {
+}
+
 @if(!ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {

@@ -1625,6 +1625,16 @@ convaiGuarded = function(label, fn, ...)
     if not ok then log(label .. ' failed: ' .. tostring(result)) end
     return ok, result
 end
+-- The face request of a talk start (Face.reds ConvaiFaceRequest): returns what pcall returns. For Johnny Silverhand (convaiStory.projection,
+-- mod/world-talk.lua PROJECTIONS) the puppet is first told so (ConvaiFaceProjection), so his commanded AI (a ride in V's car, a scene seat) does
+-- not shut his mouth; scripts from before that method just answer an error, which is ignored. A global, so no function here gains an upvalue.
+function convaiFaceRequestFor(npc, entity)
+    local story = convaiStory
+    if story and story.projection == true and entity ~= nil and story.entity == entity then
+        pcall(function() npc:ConvaiFaceProjection(true) end)
+    end
+    return pcall(function() return npc:ConvaiFaceRequest() end)
+end
 -- A talk start whose speaker's face will not move: one line with the status (Face.reds ConvaiFaceRequest), what it means, and the
 -- facts that name a replaced model (kind, record, appearance, entity template, face graph and rig, the mod's own graphs). A speaking
 -- face ("prepared:...") writes nothing. Called once per talk start (text, voice, group speaker), never per frame.
@@ -2625,9 +2635,17 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- riding. Read fresh on this key press; the same test then guards the recording and the reply. Nothing of the character
     -- is touched: a refusal is a notice and a log line.
     primary.story = convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true or nil
-    convaiStory = primary.story and {entity = primary.entity, key = key, name = name} or nil
+    -- projection: Johnny Silverhand, whom the game's scenes and mounts command all the time (sitting in V's car): his face is asked for and
+    -- written without the commanded-AI refusal (Face.reds TalkRefusal, mod/facial-playback.lua luaActorSafe). His own scene dialogue,
+    -- a fight and an injury still keep his mouth to the game.
+    local projection = primary.story and convaiWorldTalk ~= nil and convaiWorldTalk.PROJECTIONS ~= nil
+        and convaiWorldTalk.PROJECTIONS[key] == true or nil
+    convaiStory = primary.story and {entity = primary.entity, key = key, name = name, projection = projection} or nil
     -- The face writer then judges this one speaker by the story rules (no scene flag: it stays true in ordinary gameplay).
-    if convaiFacialPlayback then convaiFacialPlayback.storyEntity = convaiStory and convaiStory.entity or nil end
+    if convaiFacialPlayback then
+        convaiFacialPlayback.storyEntity = convaiStory and convaiStory.entity or nil
+        convaiFacialPlayback.storyProjection = projection == true
+    end
     if primary.story then
         local why = convaiWorldTalk:refusal(npc, player, nil, key)
         if why then
@@ -2661,7 +2679,10 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
         primary.guarded = true
         convaiStory = {entity = primary.entity, key = key, name = name, idle = true}
-        if convaiFacialPlayback then convaiFacialPlayback.storyEntity = primary.entity end
+        if convaiFacialPlayback then
+            convaiFacialPlayback.storyEntity = primary.entity
+            convaiFacialPlayback.storyProjection = false
+        end
         log('World conversation: profile=' .. key .. ' (quest-bound, archetype)')
     end
     -- A spawned character V talks to is remembered by its ID (key press only), so a later group round counts it wherever V faces.
@@ -2876,7 +2897,7 @@ local function beginTextNow(groupMode, waited)
         speech.target = npc
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face or gaze.
         if not primary.voiceOnly then
-            local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+            local faceOk, faceStatus = convaiFaceRequestFor(npc, identity)
             convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
             if focusEntity ~= identity and not primary.holocall and not (primary.story or primary.guarded) then
@@ -3011,7 +3032,7 @@ local function toggleVoice(groupMode, source)
         speech.target = npc
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
         if not primary.voiceOnly then
-            local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
+            local faceOk, faceStatus = convaiFaceRequestFor(npc, entity)
             convaiFaceRequestLog(npc, entity, faceOk, faceStatus)
         end
         local context
@@ -4276,7 +4297,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     convaiTalkNative, convaiGazeGather = nil, nil
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     convaiStory = nil
-    if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
+    if convaiFacialPlayback then convaiFacialPlayback.storyEntity, convaiFacialPlayback.storyProjection = nil, nil end
     if convaiWorldTalk then convaiWorldTalk:reset() end
     if convaiNpcReactions then convaiNpcReactions.reset() end
     convaiHeadTalk = nil

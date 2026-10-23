@@ -970,7 +970,7 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   }
   assert.match(read('../mod/init.lua'), /\nreturn \{addons = convaiAddons and convaiAddons\.public or nil\}\s*$/);
   // The face, gaze and gameplay actions are never touched for a voice.
-  assert.match(init, /if not primary\.voiceOnly then\s+local faceOk, faceStatus = pcall\(function\(\) return npc:ConvaiFaceRequest\(\) end\)/);
+  assert.match(init, /if not primary\.voiceOnly then\s+local faceOk, faceStatus = convaiFaceRequestFor\(npc, \w+\)/);
   assert.match(init, /if not context\.voiceOnly then\s+local faceOk, faceStatus = pcall\(function\(\) return actor:ConvaiFaceRequest\(\) end\)/);
   assert.match(init, /if context\.voiceOnly then[^]*?elseif not context\.group and not context\.reaction then gameplayActions\.capture/);
 });

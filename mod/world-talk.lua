@@ -140,7 +140,7 @@ end
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local clock = options.clock or os.clock
-    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest}
+    local service = {held = {}, count = 0, runtimeQuest = M.runtimeQuest, PROJECTIONS = M.PROJECTIONS}
 
     -- The reason the character cannot be talked to now, or nil. entity: its entity hash text (the hold's key). profileKey: the
     -- character's profile (a projection of V's head, M.PROJECTIONS, is not refused for a scene's AI or a ride). idle: a quest-bound person

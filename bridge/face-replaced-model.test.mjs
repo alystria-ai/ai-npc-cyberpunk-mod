@@ -231,7 +231,9 @@ test('convaiFaceRequestLog writes the one line, run as init.lua has it, and repo
 test('the three talk starts and the reply line use the helper; nothing logs a face request any other way', () => {
   assert.equal([...init.matchAll(/convaiFaceRequestLog\(/g)].length, 4, 'the definition and the three talk starts (text, voice, group speaker)');
   assert.equal([...init.matchAll(/log\('Face request: /g)].length, 1, 'the only Face request line is the one convaiFaceRequestLog writes');
-  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 5, 'the call sites are unchanged: three talk starts, the scripted dev talk, a spawned speaker\'s reaction');
+  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 4,
+    'the call sites: the text and voice talk starts share convaiFaceRequestFor (one call), the group speaker, the scripted dev talk, a spawned speaker\'s reaction');
+  assert.equal([...init.matchAll(/convaiFaceRequestFor\(/g)].length, 3, 'the definition and the text and voice talk starts');
   // The reply line: the reason and the facts follow face=... only when the speaker's mouth is not ready.
   const result = body(init, "local faceState, faceNote = 'none', ''", "if automatic and pending.requestId == automatic.requestId then");
   assert.match(result, /if not \(faceOk and faceReady == true\) and convaiFacialPlayback and convaiFacialPlayback\.faceNote then/);

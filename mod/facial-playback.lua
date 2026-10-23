@@ -562,8 +562,10 @@ end
 local injuryTags,injuryNames={'Injured','Defeated','Unconscious','Stunned','Ragdoll'}
 -- sceneAllowed: the broad IsEntityInScene flag is not read (a named character of the game that V talks to: it stays true in
 -- ordinary gameplay, so it would keep every such mouth shut; the dialogue, autonomy, combat and injury checks remain).
-local function luaActorSafe(actor,sceneAllowed)
-    if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
+-- autonomyAllowed: a commanded AI is not read either (Johnny Silverhand, M.storyProjection: the game's scenes, workspots and mounts command
+-- him all the time, in the passenger seat of V's car above all; the dialogue, combat and injury checks remain).
+local function luaActorSafe(actor,sceneAllowed,autonomyAllowed)
+    if (not autonomyAllowed and not actor:IsOnAutonomousAI()) or NPCPuppet.IsInCombat(actor) then return false end
     local scene=Game.GetSceneSystem():GetScriptInterface()
     local id=actor:GetEntityID()
     if scene:IsEntityInDialogue(id) or (not sceneAllowed and scene:IsEntityInScene(id)) then return false end
@@ -588,7 +590,7 @@ local function safeExpressionActor(actor,entity)
     -- M.storyEntity: the named game character V is talking to (init.lua sets it; docs/WORLD_CHARACTERS.md). The Lua checks without
     -- the broad scene flag; the native check reads it, so it is not used for this one speaker.
     if entity~=nil and entity==M.storyEntity then
-        local ok,ready=pcall(luaActorSafe,actor,true)
+        local ok,ready=pcall(luaActorSafe,actor,true,M.storyProjection==true)
         return ok and ready==true
     end
     if native and M.expressionClock>=safeUnknownUntil then
