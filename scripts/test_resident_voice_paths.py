@@ -400,7 +400,7 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertEqual(frames[-1]['op'], 'error')
         self.assertEqual(registry['playerRoot'], self.player.resolve())
 
-    # ---- voice language packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip beside its profile's English reference ----
+    # ---- multilingual packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip beside its profile's English reference ----
 
     def pack_clip(self, name='johnny-silverhand', language='zh-cn', kind='picked', seconds=1, rate=24000):
         folder = self.paths['referenceDirectory'] / 'multilingual' / language / kind

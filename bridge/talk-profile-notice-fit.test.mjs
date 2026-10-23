@@ -40,9 +40,9 @@ for (const code of CODES) {
   });
 }
 
-// The Pocket "voice language pack missing" notices (ids pocket-pack-fr/it/de/es/pt): {language} is the language name in the menu
+// The Pocket "multilingual pack missing" notices (ids pocket-pack-fr/it/de/es/pt): {language} is the language name in the menu
 // language. Each must fit two lines with every one of the five names, in English and in all fifteen translations.
-const POCKET_PACK = '{language} replies show as text: the {language} voice language pack is missing.';
+const POCKET_PACK = '{language} replies show as text: the {language} multilingual pack is missing.';
 const LANGUAGES = ['French', 'Italian', 'German', 'Spanish', 'Portuguese'];
 const fillIn = (text, name) => text.replaceAll('{language}', name);
 

@@ -143,7 +143,7 @@ Five optional downloads, one per language: `PocketTTS-Model-French.zip`, `-Itali
 pack's `multilingual/<lang>/` folder) and carries `model.safetensors`, `tokenizer.json`, `inference.yaml`, a `NOTICE.txt` with the licence, the
 attribution, Kyutai's prohibited-use terms and the changes, and a `pocket-model.json` marker (sizes and SHA-256 of the files). They are built by
 `packaging/build-pocket-models.mjs`. The mod uses them only to speak replies in that language, in a character's voice cloned from the game's own dub of
-that character, with the voice language pack of the same language. They are not part of the Runtime package.
+that character, with the multilingual pack of the same language. They are not part of the Runtime package.
 
 | Component | Version | Licence | Where the licence text is |
 |---|---|---|---|

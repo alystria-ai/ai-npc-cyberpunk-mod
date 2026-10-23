@@ -1,5 +1,5 @@
 // PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): optional downloads that let the Pocket voice (CPU) speak French, Italian, German, Spanish and
-// Portuguese, cloned from the game's own dub of a character in that language (the voice language pack of the same language, bridge/voice-language-packs.mjs).
+// Portuguese, cloned from the game's own dub of a character in that language (the multilingual pack of the same language, bridge/voice-language-packs.mjs).
 //
 // A model is a folder <references>/multilingual-pocket/<lang>/ (a sibling of <references>/multilingual/<lang>/, the voice pack) with pocket-model.json,
 // model.safetensors, tokenizer.json, inference.yaml and NOTICE.txt. This module finds the models and checks each one all-or-none, like the packs:
@@ -7,7 +7,7 @@
 //   scan()      reads every pocket-model.json and stats the files it names (sizes must match; the SHA-256 of the big file is checked by the worker when it
 //               loads the model, so a start does not read 220 MB per model). A model that is not valid is ignored as a whole, with one log line.
 //   refresh()   the live re-scan (every 30 s from the settings poll): one directory listing and one stat per manifest, the full check only when one changed.
-//   speaks(tag) Pocket may speak this reply language: a valid model AND a valid voice language pack of the same language, in the folder the Pocket worker reads.
+//   speaks(tag) Pocket may speak this reply language: a valid model AND a valid multilingual pack of the same language, in the folder the Pocket worker reads.
 //   packMissing(tag)  the model is valid but its voice pack is not: the reply is shown as text and the player is told once per language (PocketLanguageNotice).
 //   report()    what the support report lists (no paths).
 //

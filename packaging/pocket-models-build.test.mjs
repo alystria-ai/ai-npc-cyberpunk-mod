@@ -152,7 +152,7 @@ test('the notice carries the licence, Kyutai\'s prohibited-use terms and the cha
     assert.ok(notice.includes('voice impersonation or cloning without explicit and lawful consent'));
     assert.ok(notice.includes(CHANGES_SENTENCE));
     assert.ok(notice.includes('Changes: model.safetensors and tokenizer.json are unmodified. inference.yaml is Kyutai\'s configuration with the weight and tokenizer paths changed to the local files in this folder.'));
-    assert.ok(notice.replace(/\s+/g, ' ').includes(`speak replies in ${info.title} in a character's voice cloned from the game's own dub of that character, from the voice language pack of the same language`));
+    assert.ok(notice.replace(/\s+/g, ' ').includes(`speak replies in ${info.title} in a character's voice cloned from the game's own dub of that character, from the multilingual pack of the same language`));
     assert.ok(/impersonate a real person/.test(notice));
   }
 });

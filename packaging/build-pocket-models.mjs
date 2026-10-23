@@ -5,7 +5,7 @@
 //        [--token-file <path>] [--download]
 //
 // Each zip carries one language of Kyutai's Pocket TTS (CC-BY-4.0, the gated cloning weights of kyutai/pocket-tts) under
-// red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/, a sibling of the voice language pack's multilingual/<lang>/ folder:
+// red4ext/plugins/AiNpcCyberpunkMod/voices/multilingual-pocket/<lang>/, a sibling of the multilingual pack's multilingual/<lang>/ folder:
 //   model.safetensors   the gated file, byte for byte
 //   tokenizer.json      from kyutai/pocket-tts-without-voice-cloning (the same file as in the gated repo)
 //   inference.yaml      Kyutai's v4.0.0 configuration with ONLY the weight and tokenizer paths changed to the local files
@@ -271,7 +271,7 @@ export function buildNotice(lang) {
     'How this mod uses the model',
     '---------------------------',
     `The AI NPC Cyberpunk Mod uses this model only to speak replies in ${title} in a character's voice cloned from the game's own dub of that character,`,
-    `from the voice language pack of the same language. Do not use it, with the mod or on its own, to impersonate a real person or to clone a real`,
+    `from the multilingual pack of the same language. Do not use it, with the mod or on its own, to impersonate a real person or to clone a real`,
     `person's voice without their explicit and lawful consent: Kyutai's terms above prohibit "voice impersonation or cloning without explicit and`,
     `lawful consent".`,
     ''].join('\r\n');

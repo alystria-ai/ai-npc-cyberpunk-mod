@@ -641,7 +641,7 @@ test('Voxtral 3: a line in a language the cloud voice speaks is spoken by it (pl
   }
 });
 
-test('Voxtral: a line in another language tells the cloud voice its language (so it can clone from a voice language pack\'s V clip) and the log names that clip; English sends no language', async () => {
+test('Voxtral: a line in another language tells the cloud voice its language (so it can clone from a multilingual pack\'s V clip) and the log names that clip; English sends no language', async () => {
   for (const language of ['zh', 'en']) {
     const asked = [];
     const {voice, calls} = engineFeature({engine: 'voxtral', language, cloudLanguages: ['zh'], cloudStream: async (key, text, options) => { asked.push(options); await options.onPcm(packet({profile: key})); return {frames: 4800}; }});

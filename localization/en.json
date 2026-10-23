@@ -541,7 +541,7 @@
     "Mistral: model unavailable": "Mistral: model unavailable",
     "Mistral’s free limit is reached for now. Try again in a moment.": "Mistral’s free limit is reached for now. Try again in a moment.",
     "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.": "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.",
-    "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.": "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
+    "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.": "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
     "Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.": "Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.",
     "Mod files": "Mod files",
     "Mod logs": "Mod logs",
@@ -557,6 +557,7 @@
     "Move rule {n} up": "Move rule {n} up",
     "Move up": "Move up",
     "Moved into place from {folder}: {packs}.": "Moved into place from {folder}: {packs}.",
+    "Multilingual pack ({code})": "Multilingual pack ({code})",
     "NEXT  >": "NEXT  >",
     "NIGHT CITY": "NIGHT CITY",
     "Name": "Name",
@@ -1115,7 +1116,6 @@
     "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
     "Voice input only understands English for now. Typing works in any language.": "Voice input only understands English for now. Typing works in any language.",
     "Voice language": "Voice language",
-    "Voice language pack ({code})": "Voice language pack ({code})",
     "Voice playback": "Voice playback",
     "Voice volume (%)": "Voice volume (%)",
     "Voice: {voice}": "Voice: {voice}",
@@ -1245,7 +1245,7 @@
     "{first} and {second}": "{first} and {second}",
     "{first}, {second} and {count} others": "{first}, {second} and {count} others",
     "{first}, {second} and {third}": "{first}, {second} and {third}",
-    "{language} replies show as text: the {language} voice language pack is missing.": "{language} replies show as text: the {language} voice language pack is missing.",
+    "{language} replies show as text: the {language} multilingual pack is missing.": "{language} replies show as text: the {language} multilingual pack is missing.",
     "{message} The change is active, but could not be saved for next time.": "{message} The change is active, but could not be saved for next time.",
     "{names} joined your group.": "{names} joined your group.",
     "{name} (custom · too large)": "{name} (custom · too large)",
@@ -2253,7 +2253,7 @@
       "Mistral: model unavailable",
       "Mistral’s free limit is reached for now. Try again in a moment.",
       "Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.",
-      "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
+      "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.",
       "Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.",
       "Mod files",
       "Mod logs such as probe.log and mcm.log are in {path}",
@@ -2264,6 +2264,7 @@
       "Move rule {n} up",
       "Move up",
       "Moved into place from {folder}: {packs}.",
+      "Multilingual pack ({code})",
       "Name",
       "Natural speech",
       "Natural speech needs a local voice, so {setting} was switched to {voice}.",
@@ -2641,7 +2642,6 @@
       "Voice input could not reach Convai. Hold the voice key again, or type.",
       "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
       "Voice input only understands English for now. Typing works in any language.",
-      "Voice language pack ({code})",
       "Voice: {voice}",
       "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.",
       "Voxtral (recommended)",
@@ -2719,7 +2719,7 @@
       "{first} and {second}",
       "{first}, {second} and {count} others",
       "{first}, {second} and {third}",
-      "{language} replies show as text: the {language} voice language pack is missing.",
+      "{language} replies show as text: the {language} multilingual pack is missing.",
       "{names} joined your group.",
       "{name} (custom · too large)",
       "{name} (custom)",
@@ -6849,7 +6849,7 @@
         "mod/setup-check.lua:428"
       ]
     },
-    "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.": {
+    "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.": {
       "contexts": [
         "ui.localized"
       ],
@@ -6976,6 +6976,14 @@
       ],
       "references": [
         "mod/setup-check.lua:505"
+      ]
+    },
+    "Multilingual pack ({code})": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:344"
       ]
     },
     "NEXT  >": {
@@ -11656,14 +11664,6 @@
         "mod/manager-ui.lua:1523"
       ]
     },
-    "Voice language pack ({code})": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/setup-check.lua:344"
-      ]
-    },
     "Voice playback": {
       "contexts": [
         "page.setting"
@@ -12739,7 +12739,7 @@
         "mod/manager-party.lua:72"
       ]
     },
-    "{language} replies show as text: the {language} voice language pack is missing.": {
+    "{language} replies show as text: the {language} multilingual pack is missing.": {
       "contexts": [
         "ui.localized"
       ],

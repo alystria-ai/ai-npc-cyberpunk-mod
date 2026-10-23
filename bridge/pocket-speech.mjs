@@ -28,7 +28,7 @@ async function writtenReply(stream,fallback,signal){
   return typeof stream.text==='string'&&stream.text.trim()?stream.text:fallback;
 }
 export async function deliverPocketSpeech({input,profile,voiceKey=profile.key,result,current,signal,voice,host,speech,lipsync,phoneAnalysis,jaliFace,onAnalysis,prefetched,stream,language,capture}) {
-  // The reply's language when it is not English (a voice language pack's clip for the Mistral voice; Pocket ignores it).
+  // The reply's language when it is not English (a multilingual pack's clip for the Mistral voice; Pocket ignores it).
   const languageOption=language&&language!=='en'?{language}:{};
   // Seconds of audio handed to the renderer and heard so far (read by an engine that renders in phrases, bridge/omni-pcm.mjs, to stay a bounded
   // lead ahead of the player; Pocket ignores it).

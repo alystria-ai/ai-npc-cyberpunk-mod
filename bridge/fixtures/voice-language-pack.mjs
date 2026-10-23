@@ -1,4 +1,4 @@
-// A tiny voice language pack for tests (docs/VOICE_LANGUAGE_PACKS.md): a manifest and a few clips that are generated sine waves, a fraction of a second long.
+// A tiny multilingual pack for tests (docs/VOICE_LANGUAGE_PACKS.md): a manifest and a few clips that are generated sine waves, a fraction of a second long.
 // Never real game audio. `writePack(root, {...})` writes <root>/multilingual/<language>/ and returns what it wrote.
 import {mkdir, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';

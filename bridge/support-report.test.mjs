@@ -169,7 +169,7 @@ test('the report holds versions, settings, party, providers, recent errors and b
   } finally { await f.cleanup(); }
 });
 
-test('the report lists the voice language packs the service found, with why a pack is not used; a report made without the service says nothing about them', async () => {
+test('the report lists the multilingual packs the service found, with why a pack is not used; a report made without the service says nothing about them', async () => {
   const f = await plantedInstall();
   try {
     const request = {id: 'r-test-packs', issuedAt: Date.now(), lua: {cetVersion: 'v1.99.0', language: 'en', view: 'help', party: []}};

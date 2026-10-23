@@ -1,4 +1,4 @@
-# Voice language packs
+# Multilingual packs
 
 Optional packs that let OmniVoice and the Mistral voice (Voxtral) clone a character from the game's own dub in the reply's language, instead of the English actor's clips. One pack per voiced language of the game: `fr`, `it`, `de`, `es-es`, `ja`, `ko`, `pl`, `pt-br`, `ru`, `zh-cn` (Steam's "Full Audio" list). Pocket speaks English only and gets nothing from them.
 
@@ -59,7 +59,7 @@ When a reply's detected language has an installed pack, and the speaking voice i
 
 ## What the bridge does with a pack (implemented 2026-10-21, `bridge/voice-language-packs.mjs`)
 
-**Finding and checking.** At service start, and again within 30 s of a change (a listing and a stat per manifest from the settings poll, never from a reply), the bridge reads `<references>/multilingual/<lang>/manifest.json` for each of the ten folder names above (`<references>` is the `voices/` folder; the dev checkout's `runtime/voice-references`). A pack is used only when all of this holds, else the whole pack is ignored with one log line (`[VoiceLanguagePacks] voice language pack zh-cn is not used: <reason>`) and the reason goes in the support report (`voiceLanguagePacks`):
+**Finding and checking.** At service start, and again within 30 s of a change (a listing and a stat per manifest from the settings poll, never from a reply), the bridge reads `<references>/multilingual/<lang>/manifest.json` for each of the ten folder names above (`<references>` is the `voices/` folder; the dev checkout's `runtime/voice-references`). A pack is used only when all of this holds, else the whole pack is ignored with one log line (`[VoiceLanguagePacks] multilingual pack zh-cn is not used: <reason>`) and the reason goes in the support report (`voiceLanguagePacks`):
 
 - `version` is 1, `language` is the folder name, `languageTag` is the code in the table above;
 - every voice key matches `^[a-z0-9][a-z0-9-]{0,79}$`, its `file` matches `(picked|archetypes|v-voice)/<name>.wav`, and it has a non-empty `text`;

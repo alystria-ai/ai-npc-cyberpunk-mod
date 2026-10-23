@@ -36,7 +36,7 @@ function fixture({local = false, available = true, continuous = false, voiceSele
   const selectedVoice = voiceSelection ?? {provider: local ? 'pocket' : 'convai', usesProfile: () => local, convaiVoiceAllowed: !local};
   // The turn's latency marks (bridge/turn-clock.mjs) are not under test here.
   const sandbox = {customCharacters: {has: key => String(key).startsWith('custom-')}, addonHost: {usesVoiceContext: () => false}, markStage: () => {}, markPublished: () => {}, turnMark: () => {}, mistral: {active: false}, replyStreaming: false, voiceLanguageNotice: {note: () => calls.push('voice-language-note')}, remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json', keyNotice: () => ({}),
-    // The voice language packs and Developer mode's last-reply capture (docs/VOICE_LANGUAGE_PACKS.md): none installed, capture off.
+    // The multilingual packs and Developer mode's last-reply capture (docs/VOICE_LANGUAGE_PACKS.md): none installed, capture off.
     languagePacks: {installed: false}, pocketLanguages: {speaks: () => false, packMissing: () => false, has: () => false, model: () => null, entry: () => null}, pocketLanguageNotice: {note() {}}, replyCapture: {enabled: false}, beginOmniCapture: () => {}, referenceOf: () => null, cloudReferenceOf: () => null,
     localVoice: selectedVoice, multilingual, speechLanguage: {evidence: null}, planTurnVoice, replyVoice, variantSeed, paceOf: () => null, omniPace: null,
     ownedPocketFace:()=>{},

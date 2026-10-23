@@ -157,9 +157,9 @@ class Package {
   constructor(id) { this.id = id; this.entries = new Map(); }
   add(name, entry) {
     if (this.entries.has(name)) throw Error(`${this.id}: duplicate entry ${name}`);
-    // The voice language packs' folder belongs to their own zips (docs/VOICE_LANGUAGE_PACKS.md): the Runtime and the Scripts never ship a file in it.
+    // The multilingual packs' folder belongs to their own zips (docs/VOICE_LANGUAGE_PACKS.md): the Runtime and the Scripts never ship a file in it.
     if (['scripts', 'runtime'].includes(this.id) && name.toLowerCase().startsWith(LANGUAGE_PACK_TREE.toLowerCase())) {
-      throw Error(`${this.id}: ${name} is in the voice language packs' folder, which only their own zips write`);
+      throw Error(`${this.id}: ${name} is in the multilingual packs' folder, which only their own zips write`);
     }
     // The PocketTTS models' folder is theirs alone in the same way (docs/POCKET_LANGUAGE_MODELS.md).
     if (['scripts', 'runtime'].includes(this.id) && name.toLowerCase().startsWith(POCKET_MODEL_TREE.toLowerCase())) {

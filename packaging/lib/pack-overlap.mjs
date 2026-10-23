@@ -36,11 +36,11 @@ export const RUNTIME_OMNI_LISTS_FOLDER = 'app/defaults';
 // Trees only the OmniVoice pack writes: far too many files to list, and the Runtime must never put a file in them.
 export const PACK_OWN_TREES = Object.freeze([`${PLUGIN}/app/omni/python/`, `${PLUGIN}/app/omni/voicestudio/`, `${PLUGIN}/app/omni/model/`]);
 
-// The voice language packs (docs/VOICE_LANGUAGE_PACKS.md) extract into voices/multilingual/<lang>/, one zip per language, hosted beside the other packs. The tree is
+// The multilingual packs (docs/VOICE_LANGUAGE_PACKS.md) extract into voices/multilingual/<lang>/, one zip per language, hosted beside the other packs. The tree is
 // theirs alone, whichever languages exist: the Runtime and the Scripts never put a file in it (a file of theirs there would be a "Replace or skip?" against a pack, and a
 // Runtime update must never touch a pack's clips), and nothing deletes in it (packaging/runtime/apply-removals.mjs protects it).
 export const LANGUAGE_PACK_TREE = `${PLUGIN}/voices/multilingual/`;
-export const LANGUAGE_PACK_NAME = 'Voice language packs';
+export const LANGUAGE_PACK_NAME = 'Multilingual packs';
 // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md) extract into voices/multilingual-pocket/<lang>/, one optional zip per language: their tree is theirs alone in the same way.
 export const POCKET_MODEL_TREE = `${PLUGIN}/voices/multilingual-pocket/`;
 export const POCKET_MODEL_NAME = 'PocketTTS models';
@@ -102,7 +102,7 @@ export function validateListing(listing) {
 // Returns {identical, different, inPackTrees}: each a list of {pack, path, ...}; `different` carries both sides' size and crc.
 export function compareWithPacks(files, listing) {
   const identical = [], different = [], inPackTrees = [];
-  // The voice language packs' tree is pack-owned whether or not the listing knows a pack that writes there: any file of a Runtime or Scripts zip in it is refused.
+  // The multilingual packs' tree is pack-owned whether or not the listing knows a pack that writes there: any file of a Runtime or Scripts zip in it is refused.
   for (const file of files) { const tree = packTreeOf(file.path); if (tree) inPackTrees.push({pack: tree.name, path: file.path}); }
   for (const pack of listing.packs) {
     const known = new Map(pack.files.map(([path, size, crc]) => [path.toLowerCase(), {size, crc}]));

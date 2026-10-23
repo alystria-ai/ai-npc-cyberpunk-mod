@@ -60,7 +60,7 @@ export function multilingualTwins(document, {ordinaryIds = {}} = {}) {
 // ---- The Reply language setting (Settings, Voices; runtime/settings.json `replyLanguage`) -----------------------------------
 /**
  * The choices, in the order of the row: English (the default), Automatic ('auto', the detection below), then the mod's other languages (the
- * interface languages: the ones the voice language packs, the Pocket language models and the cloud voices speak). mod/manager.lua holds the same list.
+ * interface languages: the ones the multilingual packs, the Pocket language models and the cloud voices speak). mod/manager.lua holds the same list.
  */
 export const REPLY_LANGUAGES = Object.freeze(['en', 'auto', ...MOD_LANGUAGES.filter(code => code !== 'en')]);
 export const DEFAULT_REPLY_LANGUAGE = 'en';

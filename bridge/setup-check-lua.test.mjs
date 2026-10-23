@@ -332,7 +332,7 @@ test('mod managers are a note with the one thing that matters for each', () => r
   installFiles(); serviceRunning()
   answer({['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}); check.run()
   assert(lineOf('mod-manager').state == 'note' and lineOf('mod-manager').value == 'Note')
-  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
+  assert(lineOf('mod-manager').description == 'Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.')
   -- Mod Organizer 2 runs the service from the Runtime's own mod: a version or update-step problem there says where update zips go; elsewhere it does not
   local mo2 = {['mod-manager'] = {id = 'mod-manager', state = 'note', code = 'mo2', managers = {'mo2'}}}
   local hint = 'Mod Organizer 2: extract update zips into the Runtime’s own mod folder, not as new mods.'

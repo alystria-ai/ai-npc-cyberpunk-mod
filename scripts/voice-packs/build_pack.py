@@ -1,4 +1,4 @@
-"""Build one voice language pack from the game's dubbed voice-over (docs/VOICE_LANGUAGE_PACKS.md).
+"""Build one multilingual pack from the game's dubbed voice-over (docs/VOICE_LANGUAGE_PACKS.md).
 
     python -I scripts/voice-packs/build_pack.py --lang zh-cn [--only key,key] [--no-speaker] [--threads 4] [--stage-name NAME]
 

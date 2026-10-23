@@ -44,7 +44,7 @@ ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
 # shipped references: a descriptor naming this fixed second namespace resolves only inside that folder.
 PLAYER_PREFIX = 'runtime/player-voices'
 PLAYER_REFERENCE = re.compile(r'runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav')
-# A voice language pack's clip (docs/VOICE_LANGUAGE_PACKS.md) is a reference of the shipped namespace, in a folder of its own: a request may name one to clone from
+# A multilingual pack's clip (docs/VOICE_LANGUAGE_PACKS.md) is a reference of the shipped namespace, in a folder of its own: a request may name one to clone from
 # in place of its profile's English reference (`languageReference`). Nothing else is accepted by that field.
 LANGUAGE_REFERENCE = re.compile(r'runtime/voice-references/multilingual/[a-z]{2}(?:-[a-z]{2})?/(?:picked|archetypes|v-voice)/[a-z0-9][a-z0-9._-]{0,79}\.wav')
 MAX_LANGUAGE_REFERENCES = 32
@@ -446,14 +446,14 @@ class ProfileSession:
         self.prepared_snapshot = prepared_snapshot
         self.evict = evict
         self.prepared = OrderedDict()
-        # Voice language pack clips that requests named: (reference, sha256, transcript) -> (file, words, file size, file time), at most MAX_LANGUAGE_REFERENCES.
+        # Multilingual pack clips that requests named: (reference, sha256, transcript) -> (file, words, file size, file time), at most MAX_LANGUAGE_REFERENCES.
         self.language_references = OrderedDict()
 
     def language_reference(self, descriptor):
         """The clip a request wants to clone from in place of the profile's English reference, as (file, words), or None for the English one.
 
         The descriptor is checked like any reference (the same `validate_reference`: the file inside the references folder, its hash, its length of at most
-        20 s) and must name a voice language pack clip. A refused clip is not an error: the request is spoken from the English reference and the answer says
+        20 s) and must name a multilingual pack clip. A refused clip is not an error: the request is spoken from the English reference and the answer says
         so. A clip that was checked is not read again until its file changes. Its prompt enters the prompt cache under its own file and words, so an English
         and a Mandarin reference of one character never share a prepared state.
         """
@@ -586,7 +586,7 @@ class ProfileSession:
                     or not isinstance(key, str) or key not in self.registry['refs']):
                 raise ValueError('Invalid local voice selection')
             if request.get('op') == 'prepare' and request.get('languageReference') is not None:
-                # A voice language pack's clip, prepared ahead of the reply that will be cloned from it (no render, no prepared-list change): its checks,
+                # A multilingual pack's clip, prepared ahead of the reply that will be cloned from it (no render, no prepared-list change): its checks,
                 # its conditioning prompt in the cache. 'fallback' when the clip was refused (the English reference speaks that reply).
                 reference = self.language_reference(request['languageReference'])
                 elapsed = 0
@@ -614,7 +614,7 @@ class ProfileSession:
                     raise ValueError('Invalid local speech text/quality')
                 if language is not None and (not isinstance(language, str) or not re.fullmatch(r'[a-z]{2,3}', language)):
                     raise ValueError('Invalid local speech language')
-                # A voice language pack's clip in place of the profile's English one (docs/VOICE_LANGUAGE_PACKS.md): 'used', or 'fallback' when the clip
+                # A multilingual pack's clip in place of the profile's English one (docs/VOICE_LANGUAGE_PACKS.md): 'used', or 'fallback' when the clip
                 # was refused and the English reference spoke.
                 reference = outcome = None
                 if request.get('languageReference') is not None:

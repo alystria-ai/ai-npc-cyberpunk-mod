@@ -139,7 +139,7 @@ test('a reply cannot be the second detection of the player\'s own line, but a re
 test('the choices: English first (the default), Automatic, then the mod\'s other languages, including every voice pack and Pocket model language', () => {
   assert.deepEqual(REPLY_LANGUAGES.slice(0, 2), ['en', 'auto']);
   assert.deepEqual(REPLY_LANGUAGES.slice(2), MOD_LANGUAGES.filter(code => code !== 'en'));
-  for (const code of Object.values(LANGUAGE_PACKS)) assert.ok(REPLY_LANGUAGES.includes(code), `voice language pack ${code}`);
+  for (const code of Object.values(LANGUAGE_PACKS)) assert.ok(REPLY_LANGUAGES.includes(code), `multilingual pack ${code}`);
   for (const {tag} of Object.values(POCKET_LANGUAGES)) assert.ok(REPLY_LANGUAGES.includes(tag), `Pocket model ${tag}`);
   assert.equal(new Set(REPLY_LANGUAGES).size, REPLY_LANGUAGES.length);
 });

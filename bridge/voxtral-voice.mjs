@@ -445,7 +445,7 @@ export class VoxtralVoice {
   }
 
   /**
-   * The voice language pack's entry for this voice in a reply language (bridge/voice-language-packs.mjs), or null: English, no pack, a voice the pack lacks, or a
+   * The multilingual pack's entry for this voice in a reply language (bridge/voice-language-packs.mjs), or null: English, no pack, a voice the pack lacks, or a
    * voice the player gave a clip of their own (their choice is not replaced), or one whose reference `keepsReference` says a pack clip must not replace (V with a V voice mod's reference).
    */
   languageEntry(key, language) {
@@ -487,7 +487,7 @@ export class VoxtralVoice {
   }
 
   /**
-   * The reference of a voice from a voice language pack entry: the clip (checked against the pack's hash when the manifest has one), cut and encoded like any
+   * The reference of a voice from a multilingual pack entry: the clip (checked against the pack's hash when the manifest has one), cut and encoded like any
    * reference, the pack's own prepared slot (<pack>/prepared/<key>.json + .ogg) used when it fits (same signature) and made, and kept there, when it is missing.
    * An archetypes/ clip is an ordinary NPC's and speaks from one clip of the joined reference (singleClip), like the English archetype references. The release
    * builder of the packs calls this too, so the slots it ships are the ones read here. Returns {base64, bytes, source, format, ...} or null.

@@ -1,4 +1,4 @@
-# The voice language pack builder (`scripts/voice-packs/`, 2026-10-21)
+# The multilingual pack builder (`scripts/voice-packs/`, 2026-10-21)
 
 Builds the packs of `docs/VOICE_LANGUAGE_PACKS.md` (the contract) from the game's dubbed voice-over. Run everything with `vendor/reference-voicestudio/.venv/Scripts/python.exe -I` (numpy, scipy, soundfile, torch, torchaudio, speechbrain).
 

@@ -42,11 +42,11 @@ const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
 // The ids are repeated here because this file imports nothing from the bridge (packaging/mic-packs.test.mjs checks them against release.config.json).
 export const MIC_PACKS = Object.freeze({'parakeet-tdt-0.6b-v3-int8': 'MicPack-European', 'sense-voice-int8': 'MicPack-Asian'});
 const MIC_MARKER = 'mic-pack.json';
-// The language packs: voices/multilingual/<code>/manifest.json (voice language pack, scripts/voice-packs/package_pack.mjs) and
+// The language packs: voices/multilingual/<code>/manifest.json (multilingual pack, scripts/voice-packs/package_pack.mjs) and
 // voices/multilingual-pocket/<code>/pocket-model.json (PocketTTS model, packaging/build-pocket-models.mjs). The folder names are the language codes
 // (fr, it, de, es-es, pt-br ...).
 export const LANGUAGE_PACKS = Object.freeze([
-  {folder: 'multilingual', marker: 'manifest.json', label: 'Voice language pack'},
+  {folder: 'multilingual', marker: 'manifest.json', label: 'Multilingual pack'},
   {folder: 'multilingual-pocket', marker: 'pocket-model.json', label: 'PocketTTS model'},
 ]);
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/i;
