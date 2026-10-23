@@ -125,6 +125,8 @@ import {LocalStt} from './local-stt.mjs';
 import {SpeechLanguage, LOCAL_PACKS, planRecording, PLAYER_LANGUAGE_FILE, parsePlayerLanguage, playerLanguageText} from './speech-language.mjs';
 import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
+import {MicTap, TapCapture, TAP} from './mic-tap.mjs';
+import {describeThresholds} from './voice-activity.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {SlowTurnWatch} from './slow-turns.mjs';
@@ -1032,9 +1034,38 @@ async function routeRecording() {
   if (plan.mode === 'voxtral') plan.warm = () => { void warmConnection({provider: 'mistral'}).catch(() => {}); };
   return plan;
 }
+// The microphone tap (bridge/mic-tap.mjs): one open device whose audio is kept from the key press (hold-to-talk) or from the moment speech is
+// detected (Voice activation), so nothing said while a connection, the recogniser or a turn is still starting is lost. The local recogniser,
+// Mistral's transcription and Convai's page all take their audio from it. The game's microphone-live.json says when to open and close it.
+// What the game reads: microphone-state.json carries `vad` (the detector's latest start or end, with an id) beside the turn's own state.
+const BOOT_ID = Date.now().toString(36);
+let micStateLast = {state: 'off', requestId: ''}, micVad = null;
+const micVadBody = status => status ? {id: BOOT_ID + ':' + status.seq, phase: status.phase, at: Date.now()} : null;
+function publishMicState(options) {
+  return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), updated: Date.now()}), options);
+}
+const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
+let liveListen = false, listenAllowed = false, listenTimer = null;
+const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
+  onVad: status => { micVad = micVadBody(status); void publishMicState().catch(() => {}); },
+  // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
+  onRelease: () => { clearTimeout(listenTimer); listenTimer = setTimeout(() => reconsiderListening(), 400); listenTimer.unref?.(); }});
+realtime.micTap = micTap;
+realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); };
+function reconsiderListening() {
+  if (stopped) return;
+  const want = liveListen && listenAllowed;
+  if (want && micTap.state === 'closed') {
+    console.error('[CyberpunkConvai] Microphone: voice activation listens (' + describeThresholds() + ')');
+    micTap.open('vad', {listen: true}).catch(error => {
+      console.error('[CyberpunkConvai] Microphone: voice activation could not open the microphone: ' + String(error?.message ?? error).slice(0, 160));
+      micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {});
+    });
+  } else if (!want && micTap.listening) void micTap.release('vad', 'voice activation is off');
+}
 const mistralSpeech = createLocalSpeech({
   stt: englishStt,
-  capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)}),
+  capture: new TapCapture({tap: micTap}),
   route: routeRecording, transcriber: voxtralStt, packs: [...packStts.values()],
   onLanguage: code => { if (speechLanguage.observeVoice(code)) console.error('[CyberpunkConvai] Microphone: the speech language is now ' + String(code).replace(/[^\w-]/g, '').slice(0, 12)); },
   alternatives: () => (mistral.route === 'mistral' && voxtralStt.ready) || installedPackIds().length > 0,
@@ -2210,9 +2241,15 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key) 
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
+  // The key's own length is the recording: the audio since the press is already kept (bridge/mic-tap.mjs), so no minimum recording is waited out.
+  minRecordMs: 0,
   // `note`: the recording's channel says something the game should tell the player once ('english-only', bridge/local-stt-capture.mjs).
-  onState: (state, input, opened) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId,
-    ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24)} : {}), updated: Date.now()})),
+  onState: (state, input, opened) => {
+    micStateLast = {state, requestId: input.requestId, ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24)} : {})};
+    // Whatever ends the recording ends the tap with it (a no-op when a channel or the key already did).
+    if (state === 'off') void micTap.release(input.requestId, 'the recording is over');
+    return publishMicState();
+  },
   prepareReply: async (input, signal) => {
     if (addonVoice.voice(input) || localVoice.playbackEnabled === false) return;
     const prepared = microphoneKnowledge.get(input.requestId);
@@ -2288,7 +2325,8 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     if (!await current()) return;
     const {state, ...fields} = microphoneErrorState(error);
     const noSpeech = state === 'no-speech', silent = state === 'silent', language = fields.reason === 'language';
-    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, ...fields, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+    micStateLast = {state, requestId: input.requestId, ...fields};
+    await publishMicState({isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
     if (!noSpeech && !silent && !language) noteTurnFailure(error, input, {microphone: true});
@@ -2411,8 +2449,17 @@ async function pollMicrophone() {
       // it arrived, so a recording that does not stop shows whether the stop ever got here.
       const ranMs = mic.current?.requestId === input.requestId && mic.current.opened ? Date.now() - mic.current.opened : null;
       markBridgeStage('microphone.' + command.action);
+      const holdId = typeof command.hold === 'string' && /^[\w.-]{1,40}$/.test(command.hold) ? command.hold : null;
       console.error('[CyberpunkConvai] Microphone: ' + command.action + ' command, source ' + String(command.source ?? 'unknown').replace(/[^\w.-]/g, '').slice(0, 24)
-        + (ranMs === null ? '' : ', ' + ranMs + ' ms into the recording'));
+        + (holdId ? ', key hold ' + holdId : '') + (ranMs === null ? '' : ', ' + ranMs + ' ms into the recording'));
+      // The microphone tap (bridge/mic-tap.mjs) first, before any preparation: the audio from the key press (or from the detected start of speech)
+      // is already being kept; this only names its owner. A start the tap does not know (no hold signal arrived) opens it here.
+      if (command.action === 'start') {
+        const voiceTurn = command.source === 'vad';
+        const onset = voiceTurn && micTap.listening ? micTap.vadStatus?.onsetMs : undefined;
+        micTap.open(input.requestId, {holdId, vad: voiceTurn, ...(Number.isFinite(onset) ? {sinceMs: onset - TAP.prerollMs} : {})}).catch(() => {});
+      } else if (command.action === 'finish') void micTap.stop(input.requestId);
+      else void micTap.release(input.requestId, 'cancelled by the game');
       if (command.action === 'finish') {
         // The stop is the moment the recording ends: close the device now, not after the context refresh below.
         const stopAt = Date.now();
@@ -3464,6 +3511,8 @@ async function pollSettings(checkShutdown = true) {
         if (settings.voiceProvider === 'convai') settings = {...settings, voiceProvider: 'pocket'};
       }
     }
+    // Voice activation (Settings > Voices, off by default): without it the game's listen request is not honoured and a listening tap is released.
+    if (settings) { listenAllowed = settings.voiceActivation === true; reconsiderListening(); }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
@@ -3625,6 +3674,27 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 // interval costs little and removes up to 150 ms from every turn's start.
 const timer = setInterval(tick, 50);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
+// The key's down and up edges and the "listen for speech" request (microphone-live.json, mod/microphone-live.lua): read the moment the game writes it.
+const livePath = resolve(runtime, 'microphone-live.json');
+let liveObserved = '', liveHold = null;
+async function pollLive() {
+  if (stopped) return;
+  const raw = await readFile(livePath, 'utf8').catch(() => '');
+  if (raw === liveObserved) return;
+  liveObserved = raw;
+  let value; try { value = JSON.parse(raw); } catch { return; }
+  if (!value || typeof value !== 'object') return;
+  const holdId = typeof value.holdId === 'string' && /^[\w.-]{1,40}$/.test(value.holdId) ? value.holdId : null;
+  if (holdId && value.down === true && holdId !== liveHold) {
+    liveHold = holdId;
+    micTap.hold(holdId).catch(error => console.error('[CyberpunkConvai] Microphone: the key press could not open the microphone: ' + String(error?.message ?? error).slice(0, 160)));
+  } else if (holdId && value.down === false && holdId === liveHold) {
+    void micTap.released(holdId);
+  }
+  const listen = value.listen === true;
+  if (listen !== liveListen) { liveListen = listen; reconsiderListening(); }
+}
+const liveTimer = setInterval(() => { void pollLive().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)); }, 500);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => pollLog('[CyberpunkConvai] Preparation poll:', error)); }, 150);
 const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => pollLog('[CyberpunkConvai] Look-ahead poll:', error)); }, 60);
 // Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
@@ -3649,6 +3719,8 @@ const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(erro
 watchFiles(runtime, {
   'last-input.json': tick,
   'microphone-command.json': () => pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)),
+  // The key press opens the microphone tap with no wait for the 150 ms poll above.
+  'microphone-live.json': () => pollLive().catch(error => pollLog('[CyberpunkConvai] Microphone live poll:', error)),
   'phone-chat-input.json': () => pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
@@ -3675,7 +3747,7 @@ async function shutdown() {
   clearInterval(setupTimer); setupCheck.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
-  clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
+  clearInterval(timer); clearInterval(micTimer); clearInterval(liveTimer); clearTimeout(listenTimer); void micTap.release(undefined, 'the service stops'); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);
   if (stockTimer) { clearInterval(stockTimer); stockTimer = null; }
   stockCancel?.();
   await invitations.clear('service-stopped');

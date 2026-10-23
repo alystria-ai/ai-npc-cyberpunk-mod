@@ -816,6 +816,8 @@ export class RealtimeHost {
     return {beginVoice: config => this.beginVoice(config, {owner, signal: controller.signal}),
       finishVoice: (config, options) => this.finishVoice(owner, config, {...options, signal: controller.signal}),
       heard: () => this.voiceHeard(owner),
+      // The key was let go: the microphone tap stops now and what it caught reaches the page before the finish (bridge/mic-tap.mjs).
+      endCapture: () => this.endVoiceCapture(owner),
       close: async () => { controller.abort(); await this.cancelVoice(owner); }};
   }
   // The recognised words of the running microphone turn (empty when none): one cheap read of the voice page.
@@ -857,23 +859,78 @@ export class RealtimeHost {
       if (this.voiceLease) throw Error('Microphone connection is already running');
       lease.owner = owner; lease.config = config; lease.epoch = epoch; this.voiceLease = lease;
       this.connectOwners.set(lease.value, connectOwner(config));
-      // This is the only code path that grants microphone permission.
+      // The page's own microphone path (the fallback) is the only code that grants the Convai page microphone permission.
       await lease.value.context().grantPermissions(['microphone'], {origin: new URL(lease.value.url()).origin});
       throwIfCancelled(signal);
       const credentialed = this.audioRates.forConfig(this.withVision(this.credential ? await abortable(Promise.resolve(this.credential(config)), signal) : config));
       throwIfCancelled(signal);
-      const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), credentialed);
+      // Instant push-to-talk: when the microphone tap already listens for this request (bridge/mic-tap.mjs), the page takes its audio from
+      // the tap instead of opening the device itself, so what the player said while this connection opened is not lost.
+      const tap = this.micTap, tapOwner = typeof config.requestId === 'string' ? config.requestId : null;
+      const relay = process.env.CYBERPUNK_CONVAI_MIC_RELAY !== '0' && tap && tapOwner !== null && tap.isOwner(tapOwner);
+      lease.tapOwner = relay ? tapOwner : null;
+      const beginning = lease.value.evaluate(([config, options]) => window.convaiRealtime.beginVoice(config, options),
+        [credentialed, {relay: !!relay, device: ''}]);
+      beginning.catch(() => {});
+      if (relay) lease.pump = this.startRelayPump(lease, tap, tapOwner);
+      const result = await beginning;
+      if (lease.pump) lease.pump.started = true;
       throwIfCancelled(signal);
       if (epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
+      if (relay) {
+        // The page used its own microphone after all (the relay could not open): the tap is not needed.
+        if (result?.relay !== true) { lease.pump?.close(); lease.pump = null; tap.release(tapOwner, 'the page opened its own microphone'); lease.tapOwner = null; }
+        else {
+          // The device itself must have opened (a missing or blocked microphone fails the turn here, as it does on the other routes).
+          const info = await tap.whenReady(tapOwner);
+          throwIfCancelled(signal);
+          if (info?.device) result.device = info.device;
+        }
+      }
       this.sessions.accept(config);
       this.sessions.bind(config, result.sessionID);
       lease.sessionID = result.sessionID;
       return result;
     } catch (error) {
+      lease.pump?.close(); lease.pump = null;
+      if (lease.tapOwner) this.micTap?.release(lease.tapOwner, 'the voice turn failed');
       try { await lease.release({discard: true}); } finally { lease.unpin(); }
       if (this.voiceLease === lease) this.voiceLease = null;
       throw error;
     }
+  }
+  // Hands the tap's audio (the kept part first, then every live chunk) to the page's relay in order, one call at a time. Never throws.
+  startRelayPump(lease, tap, owner) {
+    // `started`: the page's beginVoice has answered. Until then a refusal only means its relay is not created yet (the calls are issued in order, but
+    // the page may run the first push a moment before beginVoice), so the same chunk is offered again.
+    const pump = {chain: Promise.resolve(), closed: false, started: false, failed: 0, pushed: 0,
+      idle() { return this.chain; },
+      close() { this.closed = true; tap.detach(owner); }};
+    const send = async encoded => {
+      for (let attempt = 0; attempt < 150 && !pump.closed && !lease.value.isClosed(); attempt++) {
+        const accepted = await lease.value.evaluate(text => window.convaiRealtime.pushAudio(text), encoded);
+        if (accepted !== false) return true;
+        if (pump.started) return false;
+        await new Promise(done => setTimeout(done, 20));
+      }
+      return false;
+    };
+    const push = chunk => {
+      if (pump.closed) return;
+      const encoded = chunk.toString('base64');
+      pump.chain = pump.chain.then(() => pump.closed ? true : send(encoded))
+        .then(accepted => { if (accepted === false) pump.failed++; else pump.pushed += chunk.length; }, () => { pump.failed++; });
+    };
+    const attached = tap.attach(owner, push, {mode: 'speech'});
+    if (!attached.ok) pump.closed = true;
+    return pump;
+  }
+  // The key was let go on a relayed turn: stop the tap (its last block is flushed) and wait until the page has every chunk.
+  async endVoiceCapture(owner) {
+    const lease = this.voiceLease;
+    if (!lease || lease.owner !== owner || !lease.pump || !lease.tapOwner) return;
+    await this.micTap.stop(lease.tapOwner);
+    await lease.pump.idle();
   }
   finishVoice(owner = this, config, options = {}) { return this.observe(this.finishVoiceOnce(owner, config, options)); }
   async finishVoiceOnce(owner = this, config, {signal, liveSpeech} = {}) {
@@ -892,6 +949,8 @@ export class RealtimeHost {
         this.sessions.check(config);
       }
       // "Companions can see": the frame staged while V talked is already on the page; only queued pictures go with the finish.
+      // Everything the player said is in the page before it finishes (the tap stops when the key is let go; this covers a finish that arrives first).
+      if (lease.pump && lease.tapOwner) { await this.micTap.stop(lease.tapOwner); await lease.pump.idle(); }
       let finishConfig = config || lease.config;
       const images = this.withVision(finishConfig).vision ? await this.turnImages(finishConfig, 'finish') : null;
       if (images) finishConfig = {...finishConfig, visionImages: images};
@@ -904,6 +963,8 @@ export class RealtimeHost {
       failed = false; return this.transformReply(result);
     }
     finally {
+      lease.pump?.close(); lease.pump = null;
+      if (lease.tapOwner) this.micTap?.release(lease.tapOwner, 'the voice turn ended');
       await lease.value.context().clearPermissions().catch(() => {});
       try { await lease.release({discard: failed}); } finally { lease.unpin?.(); }
       if (this.voiceLease === lease) this.voiceLease = null;
@@ -913,12 +974,16 @@ export class RealtimeHost {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner) return;
     this.voiceLease = null;
+    lease.pump?.close(); lease.pump = null;
+    if (lease.tapOwner) this.micTap?.release(lease.tapOwner, 'the voice turn was cancelled');
     await lease.value.context().clearPermissions().catch(() => {});
     try { await lease.release({discard: true}); } finally { lease.unpin?.(); }
   }
   close() {
     if (this.closing) return this.closing;
     this.epoch++;
+    // The microphone tap's device lives in this browser (bridge/mic-tap.mjs): it goes with it.
+    try { this.onClosed?.(); } catch { /* an observer never breaks the close */ }
     this.connectOwners = new WeakMap();
     const pool = this.pool, local = this.localPcm, voiceLine = this.vPcm, browser = this.browser, server = this.server, starting = this.starting;
     this.closing = (async () => {

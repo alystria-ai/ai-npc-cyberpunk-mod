@@ -6,8 +6,11 @@ import {AnalysisPcm} from './analysis-pcm.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
 import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';
+import {PcmRelay} from './pcm-relay.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
+// "Instant push-to-talk": the current voice turn's PcmRelay (the bridge pushes the microphone it captured from the key press into it), or null.
+let relay = null;
 // "Companions can see" (docs/COMPANION_VISION.md): the current connection's picture handler, null without vision.
 let vision = null;
 const PRESTAGE_TTL_MS = 60000;
@@ -174,7 +177,10 @@ function diagnostics() {
     vision: vision && client && vision.connection === client ? vision.diagnostics() : null};
 }
 
-async function close(reason = 'Conversation cancelled') {
+async function close(reason = 'Conversation cancelled') { return shutdown(reason, false); }
+
+// keepRelay: connect() retires the previous connection while this very beginVoice already holds its fresh relay.
+async function shutdown(reason, keepRelay) {
   companionActions.clear(); actionContextConfigured = false;
   const previous = {client, turn};
   const microphones = previous.client ? [...previous.client.room.localParticipant.audioTrackPublications.values()]
@@ -196,6 +202,7 @@ async function close(reason = 'Conversation cancelled') {
   }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
   vision?.close(); vision = null;
+  if (!keepRelay) releaseRelay();
   client = identity = turn = verifiedProvider = audioParticipant = lateEmotion = null;
   retiredAudioOwners = [];
   retiredExpressionOwners = [];
@@ -230,7 +237,7 @@ async function connect(config) {
     sessions.accept(config);
     return {connectionMs: performance.now() - started, connectionReused: true, ...receipt};
   }
-  await close();
+  await shutdown('Conversation cancelled', true);
   const connectionEpoch = epoch;
   identity = desired;
   ttsEnabled = config.ttsEnabled !== false;
@@ -827,28 +834,95 @@ async function disableMic() {
   }
 }
 
-async function beginVoice(config) {
+// Closes a relay (the current one by default); the AudioContext and the track never outlive their turn.
+function releaseRelay(own = relay) {
+  if (!own) return;
+  if (relay === own) relay = null;
+  try { own.close(); } catch {}
+}
+
+// Stops and unpublishes whatever microphone publication a failed attempt left, without the end-of-input path of disableAudio.
+async function dropMicrophone(connection) {
+  const pubs = [...connection.room.localParticipant.audioTrackPublications.values()].filter(pub => pub.source === 'microphone' && pub.track);
+  for (const pub of pubs) {
+    try { pub.track.mediaStreamTrack.stop(); } catch {}
+    await connection.room.localParticipant.unpublishTrack(pub.track, true).catch(() => {});
+  }
+}
+
+// enableAudio() with the SDK's getUserMedia answered by the relay's stream (audio-only requests), restored in every case.
+async function enableAudioFrom(connection, own) {
+  const devices = navigator.mediaDevices;
+  const saved = Object.getOwnPropertyDescriptor(devices, 'getUserMedia'), original = devices.getUserMedia;
+  devices.getUserMedia = function (constraints, ...rest) {
+    if (constraints && constraints.audio && !constraints.video) return Promise.resolve(own.stream);
+    return original.call(this, constraints, ...rest);
+  };
+  try { await connection.audioControls.enableAudio(); }
+  finally {
+    if (saved) Object.defineProperty(devices, 'getUserMedia', saved); else delete devices.getUserMedia;
+  }
+}
+
+function liveMicrophone(connection) {
+  const pub = [...connection.room.localParticipant.audioTrackPublications.values()].find(p => p.source === 'microphone');
+  if (!pub?.track || pub.isMuted || pub.track.mediaStreamTrack.readyState !== 'live') throw Error('No live microphone track');
+  return pub;
+}
+
+// options.relay: the microphone comes from a PcmRelay the bridge pushes into (pushAudio) instead of the SDK opening the device.
+// options.device: the real microphone's name, for the log. Any relay failure falls back once to the SDK's own microphone.
+async function beginVoice(config, options = {}) {
   if (turn || admitting) throw Error('A conversation turn is already active');
   const admission = admitting = {};
-  let current;
+  let current, mine = null, opening = null;
   try {
+    if (options?.relay === true && typeof PcmRelay === 'function') {
+      mine = relay = new PcmRelay();
+      opening = mine.open().then(() => true, () => false);
+    }
     const timing = await connect(config);
     await updateContext(config, false);
     const connection = client;
     current = beginTurn(timing, config);
     current.recording = true; current.microphone = true; current.contextConfig = config;
     client.toggleStt(true);
-    await client.audioControls.enableAudio();
-    if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
-    const pub = [...client.room.localParticipant.audioTrackPublications.values()].find(p => p.source === 'microphone');
-    if (!pub?.track || pub.isMuted || pub.track.mediaStreamTrack.readyState !== 'live') throw Error('No live microphone track');
+    let pub, viaRelay = false;
+    if (mine) {
+      try {
+        if (!await opening || relay !== mine) throw Error('PCM relay unavailable');
+        await enableAudioFrom(connection, mine);
+        if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
+        pub = liveMicrophone(connection); viaRelay = true; current.relay = mine;
+      } catch (error) {
+        if (turn !== current || current.epoch !== epoch || client !== connection) throw error;
+        releaseRelay(mine); mine = null;
+        await dropMicrophone(connection);
+      }
+    }
+    if (!viaRelay) {
+      await client.audioControls.enableAudio();
+      if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
+      pub = liveMicrophone(client);
+    }
     micTimer = setTimeout(() => {
       if (turn !== current || client !== connection || current.epoch !== epoch || !current.recording) return;
       void close('Microphone recording expired without a current game finish').catch(() => {});
     }, MICROPHONE_CANCEL_AFTER_MS);
-    return {device: pub.track.mediaStreamTrack.label, sessionID: client.characterSessionId};
-  } catch (error) { if (current && turn === current) await close('Microphone startup failed'); throw error; }
+    return {device: (viaRelay && options.device) || pub.track.mediaStreamTrack.label, sessionID: client.characterSessionId, relay: viaRelay};
+  } catch (error) { if (current && turn === current) await close('Microphone startup failed'); releaseRelay(mine); throw error; }
   finally { if (admitting === admission) admitting = null; }
+}
+
+// The bridge's captured microphone (base64 of 16 kHz mono Int16 little-endian), queued into the turn's relay. False without one.
+function pushAudio(base64) {
+  try {
+    return relay ? relay.pushBase64(base64) === true : false;
+  } catch { return false; }
+}
+// Resolves once everything pushed has played into the published track (at once without a relay).
+async function drainAudio(timeoutMs) {
+  return relay ? await relay.drain(timeoutMs) : {drained: true, waitedMs: 0};
 }
 
 async function updateContext(config, allowActions = false, seen = false) {
@@ -905,6 +979,8 @@ async function finishVoice(config) {
   }
   await verifyProviderIdentity(current.providerIdentity, client);
   if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
+  // Let the relay's backlog and its silent tail play out while the picture and the context are prepared (never rejects).
+  const draining = current.relay ? current.relay.drain() : null;
   // The picture staged while V talked is normally buffered already; one handed over only now waits at most visionWaitMs.
   const seen = await stageTurnVision(config);
   if (seen) await awaitTurnVision(config);
@@ -917,9 +993,13 @@ async function finishVoice(config) {
   catch (error) { await close('Microphone playback admission failed'); throw error; }
   current.recording = false;
   try {
+    // The player's last words must reach Convai before the track is disabled: they are still in the relay's FIFO.
+    if (current.relay) { await draining; await current.relay.drain(); }
+    if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
     await disableMic();
     if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
-  } catch (error) { retireStandby(current.live, 'Microphone finish failed'); throw error; }
+  } catch (error) { retireStandby(current.live, 'Microphone finish failed'); releaseRelay(current.relay); throw error; }
+  releaseRelay(current.relay);
   try { return await collect(current); } finally { await retireVision(); }
 }
 
@@ -956,6 +1036,6 @@ function partialReply(key) {
     && typeof current.text === 'string' ? current.text : '';
 }
 
-window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics, stageVision, prestageVision, unstageVision,
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, pushAudio, drainAudio, close, diagnostics, stageVision, prestageVision, unstageVision,
   heard: () => heardText(turn), partialReply,
   continuousSnapshot, continuousControl, lateEmotion: readLateEmotion};
