@@ -66,6 +66,9 @@ local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 -- Lip sync delay (Bluetooth), in ms; 'auto' lets the bridge detect a Bluetooth
 -- output device (bridge/audio-delay.mjs). The bridge reads it from settings.json.
 local audioDelays = {'auto', 0, 50, 100, 150, 200, 250}
+-- Reply language (Settings > Voices, bridge/multilingual.mjs REPLY_LANGUAGES): the language the characters speak in. English (the default), Automatic
+-- (the bridge detects it from what you write), then the mod's other languages. A voice setting: with Voice playback off it does nothing.
+local replyLanguages = {'en', 'auto', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh'}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
 -- Voice volume, in percent (Settings > Voices): a slider. 100 is the unchanged level; the bridge turns it into gain behind a
 -- peak limiter for every voice, V's included (bridge/dialogue-level.mjs). Stored as a whole number of percent, in steps of 5.
@@ -690,6 +693,10 @@ local function loadSettings()
     if not isChoice(settings.audioDelay, audioDelays) then
         settings.audioDelay, settingsNeedSave = 'auto', settingsNeedSave or settings.audioDelay ~= nil
     end
+    -- A file without the key (every player before this setting, and a new install) reads as English; the bridge reads a missing key the same way.
+    if not isChoice(settings.replyLanguage, replyLanguages) then
+        settings.replyLanguage, settingsNeedSave = 'en', settingsNeedSave or settings.replyLanguage ~= nil
+    end
     do
         local volume = cleanVoiceVolume(settings.voiceVolume)
         if volume == nil or volume ~= settings.voiceVolume then
@@ -1254,6 +1261,7 @@ function M.gazeSettings()
 end
 
 function M.audioDelayChoices() return audioDelays end
+function M.replyLanguageChoices() return replyLanguages end
 function M.voiceVolumeRange() return voiceVolume end
 
 -- The Local AI model row's choices: every installed model the bridge reported (by its manifest name), smallest file first. No Auto entry. Each is
@@ -1819,6 +1827,7 @@ function M.snapshot(player)
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
+            replyLanguage = settings.replyLanguage,
             voiceVolume = settings.voiceVolume,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
@@ -1931,6 +1940,9 @@ function M.applySettings(player, values)
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
             nextSettings.audioDelay = value
+        elseif key == 'replyLanguage' then
+            if not isChoice(value, replyLanguages) then return false, 'Choose one of the listed reply languages.' end
+            nextSettings.replyLanguage = value
         elseif key == 'voiceVolume' then
             local volume = cleanVoiceVolume(value)
             if not volume then return false, 'Choose a voice volume from 50 to 200 percent.' end

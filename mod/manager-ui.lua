@@ -188,6 +188,9 @@ M.cutToUnits = cutToUnits
 -- The longest name of a row that ends in a button, in optionUnits (Native Settings UI draws a button row's name narrower than a switch's; the
 -- host mod/nsui.lua cuts to the same figure, LAYOUT.buttonLabelUnits).
 local BUTTON_LABEL_UNITS = 29
+-- The English names of the Voice language choices (each goes through ui.t, so every locale shows its own word for the language).
+local REPLY_LANGUAGE_NAMES = {en = 'English', auto = 'Automatic', de = 'German', fr = 'French', es = 'Spanish', it = 'Italian', pt = 'Portuguese',
+    pl = 'Polish', ru = 'Russian', uk = 'Ukrainian', tr = 'Turkish', cs = 'Czech', hu = 'Hungarian', ja = 'Japanese', ko = 'Korean', zh = 'Chinese'}
 M.BUTTON_LABEL_UNITS = BUTTON_LABEL_UNITS
 local function readonly(id, label, value, description, raw)
     raw = raw or {}
@@ -1495,6 +1498,12 @@ local function schema()
             if snapshot.settings.audioDelay == value then delayIndex = index end
         end
         local voiceRange = manager.voiceVolumeRange()
+        -- Voice language: English (the default), Automatic, then the mod's other languages, in the bridge's order (manager.replyLanguageChoices).
+        local replyCodes, replyLabels, replyIndex = manager.replyLanguageChoices(), {}, 1
+        for index, code in ipairs(replyCodes) do
+            replyLabels[index] = ui.t(REPLY_LANGUAGE_NAMES[code] or code)
+            if snapshot.settings.replyLanguage == code then replyIndex = index end
+        end
         local pack = manager.omniPack()
         -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
         local voiceName = ui.t('Companion voices')
@@ -1510,6 +1519,10 @@ local function schema()
             setting('voiceProvider', voiceName, 'select', voiceIndex, 1,
                 'Pocket: the lightest, on your CPU, about 0.2 s to the first word.\n\nOmniVoice: richer, needs a capable GPU and its pack, 1 to 2.5 s.\n\nVoxtral: cloud voices with your Mistral key. The companions’ voice loads no local model; V’s typed lines follow V’s own voice setting.\n\nConvai: its own cloud voice. A voice that cannot run shows replies as text.',
                 voiceMenuLabels(pack, snapshot.mistral, snapshot.settings.matureContent == true), {elements = true, label = true}),
+            -- Shown with Voice playback off too, greyed by its own words: the description says it only counts while voices are on.
+            setting('replyLanguage', 'Voice language', 'select', replyIndex, 1,
+                'The language the characters speak. Counts only while Voice playback is on; with it off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.',
+                replyLabels, {elements = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
@@ -1857,6 +1870,12 @@ function M.apply(changes)
             local choice = type(change.value) == 'number' and choices[change.value] or nil
             if not choice then return refused('Choose one of the listed Local AI models.') end
             values.localModel = choice.id
+        elseif key == 'replyLanguage' then
+            local choices = manager.replyLanguageChoices()
+            if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not choices[change.value] then
+                return refused('Choose one of the listed reply languages.')
+            end
+            values.replyLanguage = choices[change.value]
         elseif key == 'subtitleStyle' then
             if change.value ~= 1 and change.value ~= 2 then return refused('Choose one of the listed subtitle displays.') end
             -- Order: 1 Cinematic subtitles (stored 'dialogue'), 2 Above the speaker (stored 'overhead').

@@ -397,6 +397,37 @@ Measurement: `node scripts/Eval-LanguageDetection.mjs [--set=dev|heldout|blind] 
 lines (`bridge/reply-language.cases.mjs`, `.heldout.json`, `.blind.json`); `node scripts/Eval-LanguageCorpus.mjs [--parity=even]` runs it on the mod's own
 translated interface strings and on windows of English documentation (the English false-positive check).
 
+### Reply language (Settings > Voices > Voice language, 2026-10-23; `replyLanguage`)
+
+A row of the Voices category (MCM and Native Settings UI): **English** (the default, for everyone, new and existing), **Automatic**, then the mod's
+other languages (`REPLY_LANGUAGES` in `bridge/multilingual.mjs`, the same list as `replyLanguages` in `mod/manager.lua`: German, French, Spanish, Italian,
+Portuguese, Polish, Russian, Ukrainian, Turkish, Czech, Hungarian, Japanese, Korean, Chinese; it holds every voice language pack and every Pocket
+language model language). It is a VOICE setting: it counts only while Voice playback is on. With voices off the routing is Automatic, exactly as before
+the setting existed (the row stays visible and its description says so; the saved choice is kept).
+
+- **A fixed language** (English or any other) skips the detection. `MultilingualConversations.setFixed` makes every turn that language: the Convai route
+  goes to that language's twin (English: the ordinary character), the voice plan uses it (`planTurnVoice({fixed})`; the finished reply is not
+  re-detected), the context names it (`fixedLanguageContext`, nothing for English, so an English conversation sends the context it always did), V's typed
+  line is voiced in it unless the line is solidly English. A voice that cannot speak the language still shows the reply as text with the usual one-time
+  notice (Pocket needs the language's model and voice pack).
+- **Automatic** is the detection of this page, made harder to fool after the live finding of 2026-10-23: "hows biz" typed to Alex (Pocket voice, automatic)
+  was detected as Turkish, went to the Turkish-speaking twin, Pocket could not voice it and the reply was text only.
+  - A **short** line (fewer than 4 words or 20 letters) in Latin letters is solid evidence only when the word lists made the call (not the character model)
+    AND it holds a letter English does not write (é, ñ, ß, ı, ¿ ...). Anything else ("hows biz", "wassup", "yo choom", "nova", "preem") never moves the
+    conversation, nor does the remembered language lose to it. Other scripts are solid at once (`assessLanguage` in `bridge/reply-language.mjs`).
+  - **Hysteresis**: the conversation's language changes on a solid detection that is also a **long** line (5 words and 24 letters, or a few letters of
+    another script), or the second solid detection of that language in a row, or a line of three words or more that agrees with the prior. A different
+    language, or a line in the conversation's own language, restarts the count. The check is done by `MultilingualConversations.judge`; the state is
+    committed once the turn is published (`observeTurn`), and a reply counts only for a turn whose own text had no language (a recording).
+  - **The prior**: the language the player was heard in (the microphone's last language, the remembered `player-language.json`) and the game's own text
+    language (`runtime/ui-language.txt` or the Interface language setting, `SpeechLanguage.uiPrior`, read at most once in a few seconds).
+  - The same guard keeps the microphone's recogniser from following a short misdetected line (`SpeechLanguage.observeText`).
+- **V's own line** has its own language (`lineLanguage`): English unless solidly in another language or a fixed one is chosen, so it still plays when
+  it is English even if the reply cannot be voiced.
+
+Tests: `bridge/reply-language-setting.test.mjs` (the 36 short English and Night City lines that must stay English, real French, Spanish, German, Japanese and
+Turkish lines that must switch, the prior, the fixed routes), `bridge/manager.test.mjs` (the row), `bridge/settings-file-lua.test.mjs` (persistence).
+
 ### Routing
 
 - The bridge loads `runtime/multilingual-profiles.json` at start. A twin is used only when its entry is

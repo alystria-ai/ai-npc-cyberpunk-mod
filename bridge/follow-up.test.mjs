@@ -344,12 +344,12 @@ test('on, the block sits before the voice notes (they dilute it when they come f
   const followUp = on();
   const join = text => ['intrinsic', followUp.contextFor({sessionId: 's' + text, turn: 'o' + text, trait: 'warm', text, random: ALWAYS}),
     'natural speech block', 'expressive emotions block', language.contextFor(text)].filter(Boolean).join('\n\n');
-  const context = join('hola, cómo estás');
+  const context = join('hola, cómo estás? vamos a la tienda, que tengo mucho que hacer');
   assert.ok(context.includes(FOLLOW_UP_TEXT));
   assert.ok(context.indexOf('intrinsic') < context.indexOf(FOLLOW_UP_TEXT) && context.indexOf(FOLLOW_UP_TEXT) < context.indexOf('natural speech block'));
   assert.ok(context.indexOf(FOLLOW_UP_TEXT) < context.indexOf('Spanish'), 'the reply-language line comes after');
-  assert.ok(context.endsWith(language.contextFor('hola, cómo estás')), 'and is last');
+  assert.ok(context.endsWith(language.contextFor('hola, cómo estás? vamos a la tienda, que tengo mucho que hacer')), 'and is last');
   // The block adds exactly one paragraph and changes nothing else.
-  const withoutBlock = ['intrinsic', 'natural speech block', 'expressive emotions block', language.contextFor('hola, cómo estás')].join('\n\n');
+  const withoutBlock = ['intrinsic', 'natural speech block', 'expressive emotions block', language.contextFor('hola, cómo estás? vamos a la tienda, que tengo mucho que hacer')].join('\n\n');
   assert.equal(context.replace(`${FOLLOW_UP_TEXT}\n\n`, ''), withoutBlock);
 });

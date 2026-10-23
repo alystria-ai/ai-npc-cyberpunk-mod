@@ -41,6 +41,7 @@ const SCRIPTS = [
   ['thai', /[฀-๿]/gu],
   ['latin', new RegExp(`[${LATIN}]`, 'gu')],
 ];
+const MARKED_LETTER = /[À-ÖØ-öø-ɏḀ-ỿ¿¡]/u;
 const WORD = new RegExp(`[${LATIN}]+(?:'[${LATIN}]+)?'?`, 'gu');
 
 // ---- The lexicon and the character model, built once -------------------------------------------------------------------
@@ -162,7 +163,7 @@ function latinLanguage(clean) {
   const {words: all, englishMarks} = tokens(clean);
   // One-letter words do not count: "V" is the player's name, and a, i, o, e, y, w, z are words in several languages. Names and slang are no evidence.
   const words = all.filter(word => (word.length > 1 || word.endsWith('\'')) && !NEUTRAL.has(word));
-  if (!words.length) return {language: null, words: 0};
+  if (!words.length) return {language: null, words: 0, strength: null};
   const score = {};
   const add = (language, value) => { score[language] = (score[language] ?? 0) + value; };
   for (const word of words) {
@@ -183,14 +184,15 @@ function latinLanguage(clean) {
   const count = words.length;
   // One or two words: a single distinctive word decides ("Hola", "Danke", "Merci"), as long as English has nothing.
   if (count <= 2) {
-    if (other >= 1 && english === 0 && other - second >= 0.5) return {language: best, words: count};
-    if (english >= 1 && other < 1) return {language: 'en', words: count};
-    return {language: null, words: count};
+    if (other >= 1 && english === 0 && other - second >= 0.5) return {language: best, words: count, strength: 'lexicon'};
+    if (english >= 1 && other < 1) return {language: 'en', words: count, strength: 'lexicon'};
+    return {language: null, words: count, strength: null};
   }
   // A clear lexical win: nothing English at all, or well ahead of it.
-  if (other >= STRONG && other - second >= LEAD && other - 2 * english >= 0.5) return {language: best, words: count};
-  if (english >= 1 && english >= other && english >= second * 1.2) return {language: 'en', words: count};
-  return {language: modelLanguage(words, score, english, other), words: count};
+  if (other >= STRONG && other - second >= LEAD && other - 2 * english >= 0.5) return {language: best, words: count, strength: 'lexicon'};
+  if (english >= 1 && english >= other && english >= second * 1.2) return {language: 'en', words: count, strength: 'lexicon'};
+  const guess = modelLanguage(words, score, english, other);
+  return {language: guess, words: count, strength: guess ? 'model' : null};
 }
 
 /**
@@ -246,18 +248,20 @@ function detect(text) {
   const nonLatin = letters - counts.latin;
   // Names and loanwords in Latin letters ("V", "Night City", "Arasaka") are common in other scripts' replies.
   if (nonLatin >= 2 && nonLatin / letters >= 0.3) {
-    if (counts.kana) return {language: 'ja', script: 'kana'};
-    if (counts.hangul) return {language: 'ko', script: 'hangul'};
-    if (counts.han) return {language: 'zh', script: 'han'};
-    if (counts.cyrillic) return {language: cyrillicLanguage(clean), script: 'cyrillic'};
-    if (counts.greek) return {language: 'el', script: 'greek'};
-    if (counts.arabic) return {language: 'ar', script: 'arabic'};
-    if (counts.hebrew) return {language: 'he', script: 'hebrew'};
-    if (counts.devanagari) return {language: 'hi', script: 'devanagari'};
-    if (counts.thai) return {language: 'th', script: 'thai'};
+    if (counts.kana) return {language: 'ja', script: 'kana', strength: 'script', letters: nonLatin};
+    if (counts.hangul) return {language: 'ko', script: 'hangul', strength: 'script', letters: nonLatin};
+    if (counts.han) return {language: 'zh', script: 'han', strength: 'script', letters: nonLatin};
+    if (counts.cyrillic) return {language: cyrillicLanguage(clean), script: 'cyrillic', strength: 'script', letters: nonLatin};
+    if (counts.greek) return {language: 'el', script: 'greek', strength: 'script', letters: nonLatin};
+    if (counts.arabic) return {language: 'ar', script: 'arabic', strength: 'script', letters: nonLatin};
+    if (counts.hebrew) return {language: 'he', script: 'hebrew', strength: 'script', letters: nonLatin};
+    if (counts.devanagari) return {language: 'hi', script: 'devanagari', strength: 'script', letters: nonLatin};
+    if (counts.thai) return {language: 'th', script: 'thai', strength: 'script', letters: nonLatin};
   }
-  const {language, words} = latinLanguage(clean);
-  return {language, script: 'latin', words};
+  const {language, words, strength} = latinLanguage(clean);
+  // `letters`: the Latin letters of the line. `marked`: a letter outside a-z (an accent, ñ, ß, ı, ¿ ...), which English does not write.
+  // `strength`: how the call was made ('lexicon' from the word lists, 'model' from the character model, null for no call).
+  return {language, script: 'latin', words, strength, letters: counts.latin, tokens: (clean.match(WORD) || []).length, marked: MARKED_LETTER.test(clean)};
 }
 
 // Ukrainian and Russian share the script: the letters і ї є ґ are Ukrainian, ы э ъ ё are Russian; otherwise their word lists decide, then
@@ -280,6 +284,42 @@ function cyrillicLanguage(clean) {
   for (const word of words.slice(0, 40)) { ukModel += wordLogLikelihood(MODEL.uk, word); ruModel += wordLogLikelihood(MODEL.ru, word); }
   return ukModel - ruModel > 2 ? 'uk' : 'ru';
 }
+
+// ---- The guard for short lines ---------------------------------------------------------------------------------------------
+// A line of a few words in Latin letters is weak evidence: "hows biz" was taken for Turkish (2026-10-23). The conversation's language
+// (bridge/multilingual.mjs) never moves on such a line unless the detector is highly confident (the word lists made the call, not the
+// character model) AND the line holds a letter English does not write (é, ñ, ß, ı, ¿ ...). Other scripts (kana, Hangul, Cyrillic ...) are
+// unambiguous at once.
+export const SHORT_WORDS = 4, SHORT_LETTERS = 20;
+// A long line moves the conversation's language on its own; a shorter one needs a second confident detection in a row.
+export const LONG_WORDS = 5, LONG_LETTERS = 24;
+
+/**
+ * detectLanguage plus how much the call can be trusted: {language, script, words, short, long, solid}.
+ *   short: Latin script with fewer than 4 words or 20 letters;
+ *   long:  enough text to stand alone (5 words and 24 letters, or a few letters of another script);
+ *   solid: the call may move the conversation's language (not short, or short but highly confident with a non-English letter).
+ * `language` is the plain detection; a caller that must be careful reads `solid`.
+ */
+export function assessLanguage(text) {
+  const found = detectLanguage(text);
+  const {language, script} = found;
+  if (!language) return {...found, short: false, long: false, solid: false};
+  if (script !== 'latin') { const letters = found.letters ?? 0; return {...found, short: false, long: letters >= 3, solid: letters >= 2}; }
+  const short = found.tokens < SHORT_WORDS || found.letters < SHORT_LETTERS;
+  const long = found.tokens >= LONG_WORDS && found.letters >= LONG_LETTERS;
+  const solid = short ? (language !== 'en' && found.strength === 'lexicon' && found.marked === true) : true;
+  return {...found, short, long, solid};
+}
+
+/** The language of a text for a caller that must not be fooled by a short line: null unless the call is solid. */
+export const guardedLanguage = text => { const found = assessLanguage(text); return found.solid ? found.language : null; };
+
+/**
+ * The language a text is spoken in (a reply, a line V types): English is taken as it is, another language only when the call is solid, so a short
+ * English line the detector took for Turkish ("hows biz") keeps the voice the turn was planned with. null: no call.
+ */
+export const spokenLanguage = text => { const found = assessLanguage(text); return found.language === 'en' ? 'en' : found.solid ? found.language : null; };
 
 /** True only when the text is confidently in a language other than English. */
 export const isNonEnglish = text => { const {language} = detectLanguage(text); return !!language && language !== 'en'; };

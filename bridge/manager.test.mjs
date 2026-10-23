@@ -535,6 +535,41 @@ test('interface language persists atomically, localizes the schema and preserves
   `);
 });
 
+test('the Voice language row: English by default, then Automatic and the mod languages; it saves, survives a reload and refuses what is not listed',()=>{
+  run(`${nsuiFixture}
+    assert(invoke('tab:settings').ok)
+    local language=row('replyLanguage')
+    assert(language and language.type=='select' and language.value==1 and language.defaultValue==1, 'English is the default')
+    local expected={'English','Automatic','German','French','Spanish','Italian','Portuguese','Polish','Russian','Ukrainian','Turkish','Czech','Hungarian','Japanese','Korean','Chinese'}
+    assert(#language.elements==#expected)
+    for i,name in ipairs(expected) do assert(language.elements[i]==name, i..' '..tostring(language.elements[i])) end
+    assert(manager.snapshot(player).settings.replyLanguage=='en')
+    -- It sits in Voices, right after the companion voice: shown with Voice playback off as well, its description says it only counts while voices are on.
+    assert(language.description:find('Counts only while Voice playback is on',1,true))
+    assert(registered.applyBatch('manager',{{id='replyLanguage',value=2}}).ok)
+    assert(saved.replyLanguage=='auto')
+    assert(registered.applyBatch('manager',{{id='replyLanguage',value=14}}).ok)
+    assert(saved.replyLanguage=='ja')
+    loaded=registered.loadMod('manager')
+    assert(row('replyLanguage').value==14, 'the saved choice is the one shown')
+    assert(registered.applyBatch('manager',{{id='voice',value=false}}).ok)
+    assert(row('replyLanguage') and saved.replyLanguage=='ja', 'the choice stays while voices are off')
+    assert(not registered.applyBatch('manager',{{id='replyLanguage',value=99}}).ok and saved.replyLanguage=='ja')
+    assert(not manager.applySettings(player,{replyLanguage='klingon'}) and not manager.applySettings(player,{replyLanguage=3}))
+    assert(manager.snapshot(player).settings.replyLanguage=='ja')
+    assert(manager.applySettings(player,{replyLanguage='en'}) and saved.replyLanguage=='en')
+  `);
+});
+
+test('the Voice language choices are the bridge\'s, in the same order', async () => {
+  const {REPLY_LANGUAGES} = await import('./multilingual.mjs');
+  const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
+  const list = [...lua.match(/local replyLanguages = \{([^}]*)\}/)[1].matchAll(/'([a-z-]+)'/g)].map(match => match[1]);
+  assert.deepEqual(list, [...REPLY_LANGUAGES]);
+  const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
+  for (const code of list) assert.match(ui, new RegExp(`\\b${code} = '[A-Z][a-z]+'`), `${code} has a name in REPLY_LANGUAGE_NAMES`);
+});
+
 const invitationFixture = `
   local readiness = {jobs = {}, receipts = {}, cancellations = {}, prepareCalls = 0}
   function readiness.bind(value) readiness.owner = value end
@@ -4161,7 +4196,7 @@ test('Settings sections: Relationships is a button in Conversations, Conversatio
       table.concat(idsOf('conversation-provider'), ','))
     assert(table.concat(idsOf('development'), ',') == 'developerMode', table.concat(idsOf('development'), ','))
     local voices = idsOf('voices')
-    assert(voices[1] == 'voice' and voices[2] == 'voiceProvider' and voices[3] == 'audioDelay', table.concat(voices, ','))
+    assert(voices[1] == 'voice' and voices[2] == 'voiceProvider' and voices[3] == 'replyLanguage' and voices[4] == 'audioDelay', table.concat(voices, ','))
     for _, id in ipairs(voices) do assert(id ~= 'voice-pack' and id ~= 'voice-status', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements

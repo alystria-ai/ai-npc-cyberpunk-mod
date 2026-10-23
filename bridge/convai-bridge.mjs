@@ -95,7 +95,7 @@ import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
-import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext} from './multilingual.mjs';
+import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
@@ -1131,7 +1131,7 @@ function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
   const profile = input.profileKey;
-  const plan = planTurnVoice({textProvider: true, language: multilingual.expected(input.reaction ? '' : input.text),
+  const plan = planTurnVoice({textProvider: true, fixed: multilingual.fixed !== null, language: multilingual.expected(input.reaction ? '' : input.text),
     local: localChoice(profile)});
   if (cacheKey) {
     turnVoices.set(cacheKey, plan);
@@ -1296,7 +1296,9 @@ const startVVoiceModScan = () => {
 // Which reference V speaks from, for the log and the support report: the player's own clip, a V voice mod's ('mod:<archive file name>') or the shipped one.
 const vReferenceLabel = gender => playerVoices.has(V_VOICE_KEYS[gender]) ? 'manual' : vVoiceReferences.voices[gender]?.source ?? 'shipped';
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory, referenceLabel: vReferenceLabel,
-  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.expected(input.text)}),
+  // V's own line is spoken in its own language (English unless it is solidly another one, or a fixed Reply language says so): whatever the reply
+  // turns out to be, V's line still plays when it is English.
+  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.lineLanguage(input.text)}),
   // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
   // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
   ready: key => localVoice.vRouteSpeaks(key),
@@ -2115,7 +2117,7 @@ async function publishResult(input, profile, result, current = async () => true,
   if (!await current()) return false;
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
   // Only a turn the player had a hand in sets the conversation's language: the reply to a reaction (a bark) is short and may be in any language.
-  if (!input.reaction) { multilingual.observe(input.text); multilingual.observe(result.text); }
+  if (!input.reaction) multilingual.observeTurn(input.text, result.text, speechLanguage.evidence?.language ?? null);
   logNaturalSpeech(input, result);
   logFollowUp(input, result);
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
@@ -2651,8 +2653,7 @@ function addonTurnConfig(input, profile) {
   const base = addonHost.usesVoiceContext(input.profileKey) ? voiceConversationBlocks(input) : intrinsicConversationContext.blocks(input);
   // The reply language, last like a companion's: an add-on always answers on a text provider (Mistral, the local AI or Custom), whatever the
   // companions use, so the text provider's rule applies directly. A remark has no words of V's and follows the conversation's language.
-  const language = textProviderLanguageContext({text: input.reaction ? '' : input.text,
-    lastLanguage: multilingual.lastLanguage ?? speechLanguage.evidence?.language ?? null});
+  const language = multilingual.contextFor(input.reaction ? '' : input.text, speechLanguage.evidence?.language ?? null);
   const blocks = [...base, ...addonHost.blocks(input), ...(language ? [{tier: 'volatile', text: language}] : [])];
   return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
     context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
@@ -3429,6 +3430,13 @@ async function pollSettings(checkShutdown = true) {
     // Mature content and the saved model choice come first: the saved provider is applied below, and its first Local AI start (prepareLocal)
     // loads the model these two decide. They are the first thing this poll does with the file, so that start waits for nothing but this read.
     speechLanguage.update(settings);
+    // Reply language (Settings > Voices): a fixed language skips the detection while Voice playback is on; Automatic detects (bridge/multilingual.mjs).
+    // The game's own text language is the detection's weakest prior (read from runtime/ui-language.txt at most once in a few seconds, off this path).
+    if (settings) {
+      const reply = replyLanguageFrom(settings);
+      if (multilingual.setFixed(reply.fixed)) console.error(`[ReplyLanguage] ${reply.fixed ? 'fixed to ' + reply.fixed : 'automatic'}`);
+      void speechLanguage.refreshUi().then(code => multilingual.setPrior(code)).catch(() => {});
+    }
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
