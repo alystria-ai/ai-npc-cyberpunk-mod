@@ -693,9 +693,44 @@ def cached_profiles(adapter, registry):
     return profiles
 
 
+# A game restarted fast ends the old bridge's whole process tree and starts the new bridge a second later: the old worker's lock is released by the OS
+# only when that process has really gone, so a slot that is owned right at the start is polled for a few seconds before it counts as owned.
+# A real second worker stays alive and still gets the error after the wait.
+MODEL_SLOT_WAIT_S = 9.0
+MODEL_SLOT_POLL_S = 1.0
+
+
+def _lock_model_slot(handle):
+    """True when this handle now holds the slot, False when another process does."""
+    handle.seek(0)
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _unlock_model_slot(handle):
+    handle.seek(0)
+    if os.name == 'nt':
+        import msvcrt
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+        fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 @contextmanager
-def model_admission(root=ROOT, *, cache_root=None):
-    """One OS-owned admission slot shared by bridge and audition workers."""
+def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=MODEL_SLOT_POLL_S, sleep=time.sleep, clock=time.monotonic):
+    """One OS-owned admission slot shared by bridge and audition workers.
+
+    `wait_s` is how long an owned slot is polled (every `poll_s`) before it is reported as owned; 0 reports it at once.
+    """
     root = root.resolve()
     relative = 'resident-model.lock' if cache_root is not None else 'runtime/voice-studio-data/resident-model.lock'
     candidate = cache_root if cache_root is not None else root
@@ -711,24 +746,19 @@ def model_admission(root=ROOT, *, cache_root=None):
         if os.fstat(handle.fileno()).st_size == 0:
             handle.write(b'0')
             handle.flush()
-        handle.seek(0)
-        try:
-            if os.name == 'nt':
-                import msvcrt
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError as error:
-            raise RuntimeError('Another resident voice worker owns the shared model slot') from error
+        deadline = clock() + max(0.0, wait_s)
+        waited = False
+        while not _lock_model_slot(handle):
+            if clock() >= deadline:
+                raise RuntimeError('Another resident voice worker owns the shared model slot')
+            if not waited:
+                waited = True
+                print('The shared model slot is still owned (a worker that is exiting?): waiting for it.', file=sys.stderr, flush=True)
+            sleep(max(0.0, min(poll_s, deadline - clock())))
         try:
             yield
         finally:
-            handle.seek(0)
-            if os.name == 'nt':
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(handle, fcntl.LOCK_UN)
+            _unlock_model_slot(handle)
 
 
 def main():
@@ -748,7 +778,7 @@ def main():
     registry = validate_config(read_config(args.config), paths=paths)
     if args.skip_startup_warm:
         registry['startupProfiles'] = []
-    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None):
+    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None, wait_s=MODEL_SLOT_WAIT_S):
         run_worker(registry)
 
 
