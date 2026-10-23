@@ -23,6 +23,10 @@
 // a turn with no frame), so the border shows for a moment around a reply, never on a timer; and the player is told once, in a notice, what the
 // border is and how to stop it (takeBorderNotice, keyNotice 'vision-border').
 //
+// Turns with no composer (a group's next speaker): Convai takes a picture only if it was published about MIN_LEAD_MS (3 s) before the line (live 2026-10-23), so when a
+// group speaker's turn begins, stageForNext() puts a frame on the pages of the speakers after them (one reused if it is at most FRESH_FRAME_AGE_MS old, else one capture)
+// and imagesForTurn gives that speaker the very same frame, which the page already holds. The turn itself never waits for any of it.
+//
 // Latency: the frame is already in memory when V talks. It is published to Convai ahead of the line (stagePage when the composer
 // opens, stageVoice when the talk key is pressed), so Convai's acceptance of the frame overlaps typing or talking instead of the
 // turn. The unload rule (docs/RESOURCE_LIFECYCLE.md): the helper process exists only while it is capturing: setting on, Convai
@@ -58,6 +62,9 @@ const TURN_MEMORY = 32;
 export const ANSWER_KEEP_MS = 90_000;
 export const VOICE_KEEP_MS = 10 * 60_000;
 
+// Which conversation page a picture is on (a character and its scope: private, or a group's), for handing the turn that page serves the same frame.
+const pageKeyOf = config => JSON.stringify([config?.characterId ?? null, config?.scope ?? null]);
+
 export const visionDisabledByEnv = (env = process.env) => /^(0|off|false|no)$/i.test(String(env.CYBERPUNK_CONVAI_VISION ?? '').trim());
 
 export class CompanionVision {
@@ -81,8 +88,10 @@ export class CompanionVision {
     this.frames = []; this.lastCaptureAt = -Infinity; this.busy = 0; this.frameSerial = 0;
     this.conversing = false; this.conversationStart = null; this.lastConversationAt = -Infinity;
     this.queue = []; this.voice = new Map(); this.answered = new Map(); this.answeredAt = new Map(); this.staged = new Map(); this.stageRound = 0;
+    // The frame each idle conversation page holds ahead of its turn ({characterId, scope, frame, at}), so that turn sends that same frame and the page publishes nothing new.
+    this.pageFrames = new Map(); this.nextRound = 0;
     this.counters = {captures: 0, failed: 0, minimised: 0, covered: 0, borderCaptures: 0, queued: 0, turnsWithPicture: 0, turnsWithoutFrame: 0, turnCaptures: 0,
-      prestaged: 0, helperStarts: 0, helperReleases: 0};
+      prestaged: 0, nextStaged: 0, nextCaptures: 0, unstagedSent: 0, helperStarts: 0, helperReleases: 0};
     this.borderNoticePending = false; this.borderNoticeGiven = false; this.borderLogged = false;
   }
   // Windows is drawing its capture border around the game for these pictures: no buffer on a timer, only a picture when a turn needs one.
@@ -123,7 +132,7 @@ export class CompanionVision {
     this.tick();
     return changed;
   }
-  forget() { this.frames = []; this.stagedFrame = null; this.queue = []; this.voice.clear(); this.answered.clear(); this.answeredAt.clear(); this.closeComposer(); }
+  forget() { this.frames = []; this.stagedFrame = null; this.pageFrames.clear(); this.nextRound++; this.queue = []; this.voice.clear(); this.answered.clear(); this.answeredAt.clear(); this.closeComposer(); }
   tick() {
     let conversing = false;
     try { conversing = this.isConversing() === true; } catch {}
@@ -149,15 +158,16 @@ export class CompanionVision {
   // Every picture this object holds, bar the frame buffer (tick empties that): the staged frame, queued pictures, the recordings' and the answered turns' pictures. The
   // turns' ids stay, so a retried turn is still told it was answered. Cheap when there is nothing to release.
   releasePictures() {
-    this.stagedFrame = null;
+    this.stagedFrame = null; this.pageFrames.clear();
     if (this.queue.length) this.queue = [];
     for (const entry of this.voice.values()) { entry.images = null; entry.frame = null; }
     for (const id of this.answered.keys()) this.answered.set(id, null);
     this.answeredAt.clear();
   }
   expirePictures() {
-    if (!this.answeredAt.size && !this.voice.size) return;
+    if (!this.answeredAt.size && !this.voice.size && !this.pageFrames.size) return;
     const now = this.now();
+    for (const [key, entry] of this.pageFrames) if (now - entry.frame.at > MAX_FRAME_AGE_MS) this.pageFrames.delete(key);
     for (const [id, at] of this.answeredAt) if (now - at > ANSWER_KEEP_MS) { this.answeredAt.delete(id); if (this.answered.has(id)) this.answered.set(id, null); }
     for (const entry of this.voice.values()) if (entry.at !== undefined && (entry.images || entry.frame) && now - entry.at > VOICE_KEEP_MS) { entry.images = null; entry.frame = null; }
   }
@@ -287,20 +297,55 @@ export class CompanionVision {
     const images = [{mime: frame.mime, base64: frame.base64}];
     for (const config of configs) void this.stageAhead(round, config, images, frame);
   }
-  async stageAhead(round, config, images, frame) {
+  // Publishes `images` on the page for `config`, retried while it connects. `current()` says whether this staging is still wanted (the composer round, or the group
+  // round of stageForNext). The page's frame is remembered, so the turn that page serves sends that very frame.
+  async stageAhead(round, config, images, frame, {current = () => round === this.stageRound, how = 'staged on the page while typing', counter = 'prestaged'} = {}) {
     const until = this.now() + STAGE_RETRY_MS;
-    for (let attempt = 0; attempt <= STAGE_ATTEMPTS && round === this.stageRound && this.active; attempt++) {
+    for (let attempt = 0; attempt <= STAGE_ATTEMPTS && current() && this.active; attempt++) {
       let result;
       try { result = await this.stagePage(config, images); } catch { result = {staged: false, reason: 'failed'}; }
-      if (result?.staged) { this.staged.set(config, round); this.counters.prestaged++; this.noteSent(frame, 'staged on the page while typing'); return true; }
+      if (result?.staged) {
+        this.staged.set(config, round); this.counters[counter]++; this.noteSent(frame, how);
+        this.pageFrames.set(pageKeyOf(config), {characterId: config?.characterId ?? null, scope: config?.scope ?? null, frame, at: this.now()});
+        return true;
+      }
       if (!['no-page', 'busy', 'connecting', 'no-video-session'].includes(result?.reason) || this.now() >= until) return false;
       await this.sleep(STAGE_RETRY_EVERY_MS);
     }
     return false;
   }
+  // A group's current speaker is starting: their turn is sent without a composer, so the next speakers' turns would have no picture published 3 s ahead. The
+  // pages of the speakers after them get a frame now, while this one is written and heard: the newest frame if it is at most FRESH_FRAME_AGE_MS old (no capture),
+  // else one new capture (the helper starts, about 0.3 to 0.5 s). Never waited for by the turn that calls it. configs: the next speakers' conversation pages.
+  stageForNext(configs) {
+    if (!this.active || !Array.isArray(configs) || !configs.length) return false;
+    const round = ++this.nextRound, current = () => round === this.nextRound;
+    const publish = (frame, source) => {
+      if (!frame || !current() || !this.active || this.now() - frame.at > MAX_FRAME_AGE_MS) return;
+      const images = [{mime: frame.mime, base64: frame.base64}];
+      this.log(`next speaker: frame ${Math.round((this.now() - frame.at) / 1000)} s old (${source}), staged ahead on ${configs.length} page(s)`);
+      for (const config of configs) void this.stageAhead(round, config, images, frame, {current, how: "staged on the next speaker's page", counter: 'nextStaged'});
+    };
+    const have = this.frame();
+    if (!this.wantsFresh(have)) { publish(have, 'reused'); return true; }
+    this.counters.nextCaptures++;
+    void this.captureForTurn('next speaker').then(() => publish(this.frame(), 'taken now'));
+    return true;
+  }
+  // The frame already published on the idle page this turn runs on (composer or next-speaker staging), taken once, while it is within MAX_FRAME_AGE_MS. null when the
+  // page holds none, or the turn cannot be matched to a page (no character id).
+  takePageFrame(config) {
+    if (!this.pageFrames.size || typeof config?.characterId !== 'string') return null;
+    for (const [key, entry] of this.pageFrames) {
+      if (entry.characterId !== config.characterId || (entry.scope && config.scope && entry.scope !== config.scope)) continue;
+      this.pageFrames.delete(key);
+      return this.now() - entry.frame.at <= MAX_FRAME_AGE_MS ? entry : null;
+    }
+    return null;
+  }
   // The composer closed: pictures staged on pages that no turn took are withdrawn (each page also drops one after a minute).
   closeComposer() {
-    this.stageRound++; this.stagedFrame = null;
+    this.stageRound++; this.nextRound++; this.stagedFrame = null; this.pageFrames.clear();
     for (const config of this.staged.keys()) void Promise.resolve().then(() => this.unstagePage(config)).catch(() => {});
     this.staged.clear();
   }
@@ -347,29 +392,35 @@ export class CompanionVision {
       // The frame for the recording is still being taken (the talk key was only just pressed): wait for it, briefly.
       if (!entry.images) await Promise.race([entry.done, this.sleep(TURN_CAPTURE_WAIT_MS)]).catch(() => {});
       const age = entry.frame ? this.now() - entry.frame.at : null;
-      // V talked for so long that the staged picture is past the limit: a new one replaces it (this turn publishes it).
-      if (entry.staged && age !== null && age > MAX_FRAME_AGE_MS) {
+      // V talked for so long that the picture is past the limit: a new one replaces it (this turn publishes it).
+      if (age !== null && age > MAX_FRAME_AGE_MS) {
         const frame = await this.freshFrame();
         if (frame && this.now() - frame.at <= MAX_FRAME_AGE_MS) {
           this.noteSent(frame, 'replaced a stale staged frame at the end of the recording');
           return this.settle(id, [{mime: frame.mime, base64: frame.base64}, ...queued].slice(0, MAX_IMAGES),
-            `1 image(s), frame ${Math.round((this.now() - frame.at) / 1000)} s old (the staged one was ${Math.round(age / 1000)} s old)`);
+            `1 image(s), frame ${Math.round((this.now() - frame.at) / 1000)} s old (the ${entry.staged ? 'staged' : 'unstaged'} one was ${Math.round(age / 1000)} s old)`);
         }
         this.counters.turnsWithoutFrame++;
         return this.settle(id, queued.length ? queued : null, `${this.noPictureReason()}; the frame staged while talking was ${Math.round(age / 1000)} s old`);
       }
-      if (!queued.length) return this.settle(id, null, entry.staged ? `staged while talking${age !== null ? ` (frame ${Math.round(age / 1000)} s old)` : ''}`
-        : entry.images ? 'not staged' : this.noPictureReason());
-      return this.settle(id, [...(entry.images ?? []), ...queued].slice(0, MAX_IMAGES), 'frame and queued pictures');
+      if (entry.staged && !queued.length) return this.settle(id, null, `staged while talking${age !== null ? ` (frame ${Math.round(age / 1000)} s old)` : ''}`);
+      // Not staged on the recording (it was not running in time, or the page refused): the frame still goes with the turn, as a typed line's does when the composer was too
+      // short. Nothing waits for it; Convai takes it only sometimes with no lead, but that is better than none.
+      if (!entry.staged && entry.images) this.counters.unstagedSent++;
+      if (!entry.images && !queued.length) return this.settle(id, null, this.noPictureReason());
+      return this.settle(id, [...(entry.images ?? []), ...queued].slice(0, MAX_IMAGES),
+        entry.staged ? 'frame and queued pictures' : `${entry.images ? 'frame not staged on the recording, sent with the turn' : 'queued pictures'}${entry.images && queued.length ? ' and queued pictures' : ''}`);
     }
     // The frame staged while V typed, else a young frame, else one capture (at most TURN_CAPTURE_WAIT_MS): never one past the limit.
-    const frame = this.stagedYoung() ?? await this.freshFrame();
+    // The frame this turn's page holds already (staged while V typed, or when the speaker before began): the same frame goes, so the page publishes nothing new.
+    const held = this.takePageFrame(config);
+    const frame = held?.frame ?? this.stagedYoung() ?? await this.freshFrame();
     const usable = frame && this.now() - frame.at <= MAX_FRAME_AGE_MS ? frame : null;
     if (!usable) this.counters.turnsWithoutFrame++;
-    if (usable) this.noteSent(usable, 'sent with the turn');
+    if (usable) this.noteSent(usable, held ? 'sent with the turn, already staged on its page' : 'sent with the turn');
     const images = [...(usable ? [{mime: usable.mime, base64: usable.base64}] : []), ...queued].slice(0, MAX_IMAGES);
     return this.settle(id, images.length ? images : null,
-      images.length ? `${images.length} image(s)${usable ? `, frame ${Math.round((this.now() - usable.at) / 1000)} s old` : ''}` : this.noPictureReason());
+      images.length ? `${images.length} image(s)${usable ? `, frame ${Math.round((this.now() - usable.at) / 1000)} s old` : ''}${held && usable ? `, on its page ${Math.round((this.now() - held.at) / 1000)} s ahead` : ''}` : this.noPictureReason());
   }
   settle(id, images, what) {
     if (id) { this.remember(this.answered, id, images); this.answeredAt.delete(id); if (images) this.answeredAt.set(id, this.now()); while (this.answeredAt.size > TURN_MEMORY) this.answeredAt.delete(this.answeredAt.keys().next().value); }
@@ -424,5 +475,5 @@ export class CompanionVision {
       captureMethod: this.capture?.method ?? null, borderShown: this.borderShown, helper: this.capture?.info ?? null,
       queued: this.queue.length, ...this.counters};
   }
-  stop() { this.stageRound++; this.capture?.stop?.(); }
+  stop() { this.stageRound++; this.nextRound++; this.pageFrames.clear(); this.capture?.stop?.(); }
 }

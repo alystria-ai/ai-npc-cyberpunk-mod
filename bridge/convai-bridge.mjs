@@ -1510,6 +1510,16 @@ function composerPages(hint, config) {
     return hint.audience.filter(profile => connections.isKnown(profile)).slice(0, 3).map(profile => connections.configFor(profile, hint.scope));
   } catch { return []; }
 }
+// The conversation pages of the speakers after this group speaker, for staging the surroundings picture on them while this speaker's line is written and heard: their
+// turns have no composer, and Convai takes a picture only if it was published about 3 s before the line (docs/COMPANION_VISION.md, "What the turn waits for").
+function nextSpeakerPages(input) {
+  if (!companionVision.active || !input?.group || input.reaction || input.addon) return [];
+  try {
+    const audience = input.group.audience, at = audience.indexOf(input.profileKey), scope = conversationScope(input);
+    if (at < 0) return [];
+    return audience.slice(at + 1).filter(profile => connections.isKnown(profile)).slice(0, 2).map(profile => connections.configFor(profile, scope));
+  } catch { return []; }
+}
 // "Auto-connect nearby characters": the game lists up to two characters it is looking at or
 // standing near; their connection and local voice are prepared ahead (bridge/nearby-warm.mjs).
 const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOwn(ids, profile), routeFor: ambientWarmConfig,
@@ -2914,6 +2924,8 @@ async function runInput(request, prepared, clock) {
   const {controller} = request;
   // A conversation turn: the frame buffer stops capturing (the view is on the companion now); the turn takes a buffered frame.
   companionVision.beginTurn(input);
+  // A group speaker starts: the next speakers' pages get their picture now (a turn with no composer would publish it too late). Not awaited, and the turn waits for nothing.
+  companionVision.stageForNext(nextSpeakerPages(input));
   warmTalkTargets([input.profileKey], {persona: false});
   const ahead = request.lookahead;
   const preparationStarted = performance.now();

@@ -535,3 +535,153 @@ test('the helper client tells a capture that shows the Windows border from one t
   assert.deepEqual([oldShot.ok, oldShot.border, old.borderShown, old.info], [true, undefined, false, null]);
   old.stop();
 });
+
+// ---- a group's next speaker (no composer): the picture is staged on its page while the speaker before is written and heard ---------------------------------------------
+const settleSome = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise(done => setImmediate(done)); };
+const dax = {characterId: 'dax', scope: 'group:dax,judy'}, rex = {characterId: 'rex', scope: 'group:dax,judy'};
+
+test('group next speaker: a young frame is staged on the next pages with no capture, and their turn sends that very frame, once', async () => {
+  const calls = [];
+  const logs = [];
+  const {vision, state, run, capture} = scene({stagePage: async (config, images) => { calls.push([config.characterId, images[0].base64]); return {staged: true}; }, log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  const before = capture.calls;
+  assert.equal(vision.stageForNext([dax, rex]), true);
+  await settleSome();
+  assert.equal(capture.calls, before, 'a frame under FRESH_FRAME_AGE_MS is used as it is');
+  assert.deepEqual(calls.map(call => call[0]).sort(), ['dax', 'rex']);
+  assert.equal(calls[0][1], calls[1][1], 'the same frame on every page');
+  assert.equal(vision.diagnostics().nextStaged, 2);
+  state.now += 4000;   // the speaker before is heard for a few seconds
+  const images = await vision.imagesForTurn({visionTurn: 'turn-dax-0001', characterId: 'dax', scope: 'group:dax,judy'});
+  assert.deepEqual(images, pictureOf(calls[0][1]), 'the page already holds this frame: the turn sends the same one');
+  assert.equal(capture.calls, before, 'the turn took no capture');
+  assert.match(logs.at(-1), /1 image\(s\), frame \d+ s old, on its page 4 s ahead/);
+  await vision.imagesForTurn({visionTurn: 'turn-dax-0002', characterId: 'dax', scope: 'group:dax,judy'});
+  assert.doesNotMatch(logs.at(-1), /on its page/, 'the staged frame is taken once: a later turn is not told it has a lead');
+});
+
+test('group next speaker: with no young frame one picture is taken, then reused by the speaker after (one capture per round, not per speaker)', async () => {
+  const staged = [];
+  const {vision, state, run, capture} = scene({stagePage: async (config, images) => { staged.push([config.characterId, images[0].base64]); return {staged: true}; }});
+  await run(FRAME_INTERVAL_MS * 2);
+  state.conversing = true;
+  await run(40000);   // the buffer is gone
+  assert.equal(vision.frames.length, 0);
+  const before = capture.calls;
+  vision.stageForNext([dax, rex]);
+  await settleSome();
+  assert.equal(capture.calls, before + 1, 'one capture');
+  assert.deepEqual(staged.map(item => item[1]), [shotOf(capture.calls), shotOf(capture.calls)]);
+  // The second speaker's turn begins 3 s later: it stages the third, from the same frame.
+  state.now += 3000;
+  vision.stageForNext([rex]);
+  await settleSome();
+  assert.equal(capture.calls, before + 1, 'the frame is still young: no second capture');
+  assert.equal(vision.diagnostics().nextCaptures, 1);
+});
+
+test('group next speaker: staging is retried while the next page connects, and never makes the calling turn wait', async () => {
+  let connected = false, tries = 0;
+  const {vision, state, run} = scene({stagePage: async () => { tries++; return connected ? {staged: true} : {staged: false, reason: 'no-page'}; }});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  assert.equal(vision.stageForNext([dax]), true, 'returns at once, not a promise');
+  await settleSome(3);
+  connected = true;
+  await settleSome(8);
+  assert.ok(tries >= 2);
+  assert.equal(vision.diagnostics().nextStaged, 1);
+  // A page that never answers (hung browser) holds nothing up: the turn still gets its picture from memory.
+  const hung = scene({stagePage: () => new Promise(() => {})});
+  await hung.run(FRAME_INTERVAL_MS * 3);
+  hung.state.conversing = true;
+  hung.vision.stageForNext([dax]);
+  const images = await hung.vision.imagesForTurn({visionTurn: 'turn-hung', characterId: 'dax', scope: 'group:dax,judy'});
+  assert.equal(images.length, 1);
+});
+
+test('group next speaker: the turn sends the frame its page holds even when a newer one was taken, so nothing is republished', async () => {
+  const staged = [];
+  const {vision, state, run} = scene({stagePage: async (config, images) => { staged.push(images[0].base64); return {staged: true}; }});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  vision.stageForNext([dax]);
+  await settleSome();
+  const stagedShot = staged[0];
+  state.now += 7000;   // the buffered frame is no longer the one a turn prefers
+  await vision.captureForTurn('other');   // a newer frame is in memory now
+  assert.notEqual(vision.frame().base64, stagedShot);
+  const images = await vision.imagesForTurn({visionTurn: 'turn-dax', characterId: 'dax', scope: 'group:dax,judy'});
+  assert.equal(images[0].base64, stagedShot, 'the page already holds the staged frame; a newer one would be published too late');
+});
+
+test('group typed round: the composer frame is remembered per page, taken once, and a frame past the limit is not sent', async () => {
+  const {vision, state, run} = scene({stagePage: async () => ({staged: true})});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  vision.openComposer([dax, rex]);
+  await settleSome();
+  const frame = vision.stagedFrame;
+  assert.equal(vision.pageFrames.size, 2);
+  const first = await vision.imagesForTurn({visionTurn: 'turn-1', characterId: 'dax', scope: 'group:dax,judy'});
+  assert.equal(first[0].base64, frame.base64);
+  assert.equal(vision.pageFrames.size, 1, 'taken by the turn that page served');
+  state.now += MAX_FRAME_AGE_MS + 1000;
+  const late = await vision.imagesForTurn({visionTurn: 'turn-2', characterId: 'rex', scope: 'group:dax,judy'});
+  assert.notEqual(late?.[0]?.base64, frame.base64, 'a frame past MAX_FRAME_AGE_MS is not sent, whatever page holds it');
+  vision.closeComposer();
+  assert.equal(vision.pageFrames.size, 0);
+});
+
+test('group next speaker: a covered game, another provider or no pages stage nothing, and a turn without a picture still goes', async () => {
+  const calls = [];
+  const covered = scene({capture: fakeCapture({fail: 'covered'}), stagePage: async config => { calls.push(config.characterId); return {staged: true}; }});
+  covered.state.conversing = true;
+  assert.equal(covered.vision.stageForNext([dax]), true);
+  await settleSome();
+  assert.deepEqual(calls, [], 'menus, the phone and scenes: no picture, so nothing staged');
+  assert.equal(await covered.vision.imagesForTurn({visionTurn: 'turn-covered', characterId: 'dax', scope: 'group:dax,judy'}), null);
+  const other = scene({stagePage: async config => { calls.push(config.characterId); return {staged: true}; }});
+  other.state.convai = false;
+  assert.equal(other.vision.stageForNext([dax]), false, 'Mistral and Local AI get no picture');
+  assert.equal(scene().vision.stageForNext([]), false);
+  assert.equal(scene().vision.stageForNext(undefined), false);
+  assert.deepEqual(calls, []);
+});
+
+test('group next speaker: a cancelled round withdraws the staged pictures', async () => {
+  const log = [];
+  const {vision, state, run} = scene({stagePage: async config => { log.push(['stage', config.characterId]); return {staged: true}; }, unstagePage: async config => log.push(['unstage', config.characterId])});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  vision.stageForNext([dax]);
+  await settleSome();
+  vision.closeComposer();
+  await settleSome();
+  assert.deepEqual(log, [['stage', 'dax'], ['unstage', 'dax']]);
+  assert.equal(vision.pageFrames.size, 0);
+});
+
+test('talk key: a picture that could not be staged on the recording still goes with the finish (no wait), and a stale one is replaced', async () => {
+  const logs = [];
+  const {vision, run, state, capture} = scene({stageVoice: async () => ({staged: false, reason: 'no-recording'}), log: line => logs.push(line)});
+  await run(FRAME_INTERVAL_MS * 3);
+  state.conversing = true;
+  vision.beginVoice('mic-late');
+  await vision.voice.get('mic-late').done;
+  assert.equal(vision.voice.get('mic-late').staged, false);
+  const images = await vision.imagesForTurn({visionTurn: 'mic-late'}, {phase: 'finish'});
+  assert.equal(images.length, 1, 'before, a recording that did not take the picture went without one');
+  assert.match(logs.at(-1), /not staged on the recording, sent with the turn/);
+  assert.equal(vision.diagnostics().unstagedSent, 1);
+  vision.beginVoice('mic-old');
+  await vision.voice.get('mic-old').done;
+  await run(20000);
+  const calls = capture.calls;
+  const replaced = await vision.imagesForTurn({visionTurn: 'mic-old'}, {phase: 'finish'});
+  assert.equal(capture.calls, calls + 1);
+  assert.equal(replaced[0].base64, shotOf(capture.calls));
+  assert.match(logs.at(-1), /the unstaged one was/);
+});
