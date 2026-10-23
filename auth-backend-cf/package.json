@@ -1,0 +1,12 @@
+{
+  "name": "cyberpunk-convai-auth-backend-cf",
+  "private": true,
+  "type": "module",
+  "description": "Backup sign-in backend for the AI NPC Cyberpunk Mod on Cloudflare Workers (free plan): the same API as auth-backend/, for players who cannot reach the Vercel one.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

@@ -15,7 +15,7 @@ import {EXCLUDE, collectTestFiles} from './run-tests.mjs';
 const run = promisify(execFile);
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const runner = resolve(project, 'scripts/run-tests.mjs');
-const SEARCH_DIRS = ['bridge', 'packaging', 'scripts', 'auth-backend', 'addons'];
+const SEARCH_DIRS = ['bridge', 'packaging', 'scripts', 'auth-backend', 'auth-backend-cf', 'addons'];
 const pkg = JSON.parse(await readFile(resolve(project, 'package.json'), 'utf8'));
 
 // Directories that hold developer-only or third-party material and are not part of the repository (the root .gitignore names them).
@@ -42,7 +42,7 @@ test('the runner finds test files by location: sorted, unique, slash-separated, 
   assert.deepEqual(files, [...files].sort());
   assert.equal(new Set(files).size, files.length);
   for (const file of files) {
-    assert.match(file, /^(?:bridge|packaging|scripts|auth-backend|addons)\/.+\.test\.mjs$/, file);
+    assert.match(file, /^(?:bridge|packaging|scripts|auth-backend|auth-backend-cf|addons)\/.+\.test\.mjs$/, file);
     assert(!file.includes('\\') && !file.includes('node_modules'), file);
     assert(!EXCLUDE.has(file), `${file} is excluded`);
   }
@@ -55,7 +55,7 @@ test('the runner finds test files by location: sorted, unique, slash-separated, 
 test('every EXCLUDE entry names a real test file in a searched folder, so a rename cannot leave a stale entry that hides a new test', () => {
   for (const file of EXCLUDE) {
     assert(existsSync(resolve(project, file)), `${file} does not exist: remove it from EXCLUDE in scripts/run-tests.mjs`);
-    assert.match(file, /^(?:bridge|packaging|scripts|auth-backend|addons)\/.+\.test\.mjs$/, file);
+    assert.match(file, /^(?:bridge|packaging|scripts|auth-backend|auth-backend-cf|addons)\/.+\.test\.mjs$/, file);
   }
 });
 
@@ -66,13 +66,13 @@ test('every test file in the repository is run by npm test, is excluded on purpo
   const runByScript = JSON.stringify(pkg.scripts);
   const collected = new Set(collectTestFiles());
   const orphans = found.filter(file => !collected.has(file) && !EXCLUDE.has(file) && !runByScript.includes(file));
-  assert.deepEqual(orphans, [], 'no runner looks here: move the file under bridge/, packaging/, scripts/, auth-backend/ or addons/, or add it to a package.json script');
+  assert.deepEqual(orphans, [], 'no runner looks here: move the file under bridge/, packaging/, scripts/, auth-backend/, auth-backend-cf/ or addons/, or add it to a package.json script');
 });
 
 test('every file a package.json script names exists, so a renamed test cannot leave a script that fails on its first line', async () => {
   const missing = [];
   for (const [name, command] of Object.entries(pkg.scripts)) {
-    for (const match of command.matchAll(/(?:^|\s)((?:bridge|packaging|scripts|research|auth-backend|addons)\/[A-Za-z0-9_./-]+\.(?:mjs|py|js))\b/g)) {
+    for (const match of command.matchAll(/(?:^|\s)((?:bridge|packaging|scripts|research|auth-backend|auth-backend-cf|addons)\/[A-Za-z0-9_./-]+\.(?:mjs|py|js))\b/g)) {
       if (!existsSync(resolve(project, match[1]))) missing.push(`${name}: ${match[1]}`);
     }
   }

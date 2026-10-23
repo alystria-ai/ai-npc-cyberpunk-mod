@@ -406,13 +406,13 @@ const authSettings = await readAuthSettings({path: resolve(stateDirectory, AUTH_
 let backendDailyLimit = null, turnGuardRef = null;
 if (authSettings.problem) console.error(`[CyberpunkConvai] Sign-in backend is off: ${authSettings.problem}`);
 const modVersion = await readFile(resolve(project, 'package.json'), 'utf8').then(text => JSON.parse(text).version, () => undefined);
-const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, secret: authSettings.secret,
+const tokenSource = authSettings.enabled ? new TokenSource({url: authSettings.url, backupUrl: authSettings.backupUrl, secret: authSettings.secret,
   installId: await loadInstallId({path: resolve(stateDirectory, INSTALL_FILE)}),
   version: typeof modVersion === 'string' && /^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(modVersion) ? modVersion : '0.0.0-dev',
   fallback: authSettings.fallback, log: message => console.error('[CyberpunkConvai] ' + message),
   onLimit: value => { backendDailyLimit = value; if (turnGuardRef?.setLimit(value)) console.error(`[CyberpunkConvai] Shared conversation allowance changed by the sign-in backend: ${value} turns a day`); }}) : null;
 if (tokenSource) {
-  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}, developer-key fallback ${authSettings.fallback && key ? 'on' : 'off'}`);
+  console.error(`[CyberpunkConvai] Conversation sign-in: backend ${new URL(authSettings.url).host}${authSettings.backupUrl ? `, backup ${new URL(authSettings.backupUrl).host}` : ''}, developer-key fallback ${authSettings.fallback && key ? 'on' : 'off'}`);
   tokenSource.start(); // in the background, in parallel with the rest of start-up
 } else if (!key) {
   console.error('[CyberpunkConvai] No Convai sign-in and no Convai key: conversations on the shared Convai account fail with a notice (a player\'s own key, Mistral, Local AI and Custom work)');

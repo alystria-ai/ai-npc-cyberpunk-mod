@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const SEARCH_DIRS = ["bridge", "packaging", "scripts", "auth-backend", "addons"];
+const SEARCH_DIRS = ["bridge", "packaging", "scripts", "auth-backend", "auth-backend-cf", "addons"];
 const TEST_SUFFIX = ".test.mjs";
 const NODE_TEST_FLAGS = ["--test", "--test-concurrency=8"];
 

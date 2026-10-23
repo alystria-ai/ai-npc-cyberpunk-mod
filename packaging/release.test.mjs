@@ -14,7 +14,7 @@ import {sha256Buffer, walk} from './lib/files.mjs';
 import {checkLuaPartition, importClosure} from './lib/closure.mjs';
 import {chooseKeyFile, installLayout, MANAGED_FILES, OMNI_CONFIGS, pocketConfigFor, prepareState, removePackedKey, serviceEnvironment} from './runtime/prepare-state.mjs';
 import {assembleParts} from './runtime/assemble-parts.mjs';
-import {AUTH_FILE, SHIPPED_KEY_FILE, addPackagedAuth, hasKeyLine, packagedAuthSettings, readAuthInputs, validateAuthSecret, validateAuthUrl} from './lib/convai-auth.mjs';
+import {AUTH_FILE, SHIPPED_KEY_FILE, addPackagedAuth, hasKeyLine, packagedAuthSettings, readAuthInputs, validateAuthSecret, validateAuthUrl, validateBackupUrl} from './lib/convai-auth.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {readAuthSettings} from '../bridge/convai-credential.mjs';
 
@@ -279,6 +279,15 @@ test('the token backend settings the build ships: https on /api/convai/token, a 
   assert.throws(() => readAuthInputs({url, required: false}), /both/, 'one of the two is always an error');
   assert.throws(() => readAuthInputs({secret, required: false}), /both/);
   assert.throws(() => readAuthInputs({url, secret: 'tiny-value', required: true}), error => !error.message.includes('tiny-value'));
+  // The second backend (CONVAI_AUTH_BACKUP_URL) is optional, checked like the first, and never the same address.
+  const backup = 'https://worker.example.workers.dev/api/convai/token';
+  assert.deepEqual(readAuthInputs({url, backupUrl: backup, secret, required: true}), {url, backupUrl: backup, secret});
+  assert.deepEqual(readAuthInputs({url, backupUrl: '  ', secret, required: true}), {url, secret}, 'an unset repository variable is an empty string: no backup');
+  assert.equal(validateBackupUrl(undefined, url), '');
+  for (const bad of ['not a url', 'http://worker.example/api/convai/token', 'https://worker.example/', 'https://worker.example/api/convai/token?x=1', url]) {
+    assert.throws(() => readAuthInputs({url, backupUrl: bad, secret, required: true}), /backup|sign-in backend address/, bad);
+  }
+  assert.throws(() => readAuthInputs({url, backupUrl: backup, secret: 'tiny-value', required: true}), error => !error.message.includes('tiny-value'));
 });
 
 test('the Runtime package carries convai-auth.json (on, no key fallback) and no service.txt or key line; its secret is not the error reports\'', async () => {
@@ -301,7 +310,14 @@ test('the Runtime package carries convai-auth.json (on, no key fallback) and no 
   assert.notEqual(written.secret, reports.secret, 'two files, two secrets');
   // The bridge reads exactly this file as the packaged source: on, https, no fallback.
   const settings = await readAuthSettings({env: {}, readText: async () => entries.get(`${app}/defaults/convai-auth.json`), packagedPath: 'x'});
-  assert.deepEqual(settings, {enabled: true, url, secret, fallback: false, problem: null});
+  assert.deepEqual(settings, {enabled: true, url, backupUrl: '', secret, fallback: false, problem: null});
+  // With a backup (the Cloudflare Worker) the file carries it too, and the bridge reads it from the same place.
+  const workerUrl = 'https://worker.example.workers.dev/api/convai/token';
+  const withBackup = new Map();
+  addPackagedAuth({json: (name, value) => withBackup.set(name, JSON.stringify(value, null, 2))}, app, {url, backupUrl: workerUrl, secret});
+  assert.deepEqual(JSON.parse(withBackup.get(`${app}/defaults/convai-auth.json`)), {version: 1, enabled: true, url, backupUrl: workerUrl, secret, fallback: false});
+  assert.deepEqual(await readAuthSettings({env: {}, readText: async () => withBackup.get(`${app}/defaults/convai-auth.json`), packagedPath: 'x'}),
+    {enabled: true, url, backupUrl: workerUrl, secret, fallback: false, problem: null});
   assert.equal(hasKeyLine('api-key = abcdefgh12345678'), true); assert.equal(hasKeyLine('convai-key-v1 AAAAAAAAAAAAAAAAAAAAAAAAAAAA'), true);
   assert.equal(hasKeyLine(JSON.stringify(written)), false);
   // The builder writes it through this helper, refuses a key and never writes service.txt.
@@ -318,6 +334,7 @@ test('the release workflow builds the Runtime with the token backend settings an
   assert.doesNotMatch(workflow, /CONVAI_API_KEY|--key-env|--key-file/, 'no key anywhere in the workflow');
   assert.match(workflow, /CONVAI_AUTH_URL: \$\{\{ vars\.CONVAI_AUTH_URL \}\}/, 'the address is a repository variable');
   assert.match(workflow, /CONVAI_AUTH_CLIENT_SECRET: \$\{\{ secrets\.CONVAI_AUTH_CLIENT_SECRET \}\}/, 'the client secret is a secret');
+  assert.match(workflow, /CONVAI_AUTH_BACKUP_URL: \$\{\{ vars\.CONVAI_AUTH_BACKUP_URL \}\}/, 'the second backend address is an optional repository variable');
   const header = workflow.slice(0, workflow.indexOf('\nname: Release'));
   assert.match(header, /CONVAI_AUTH_CLIENT_SECRET[\s\S]*CONVAI_AUTH_URL/, 'both are documented in the header');
   assert.equal(workflow.split('CONVAI_AUTH_CLIENT_SECRET: ${{').length - 1, 1, 'only the Runtime build step gets the secret');

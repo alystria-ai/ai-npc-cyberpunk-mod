@@ -12,6 +12,8 @@
 # Variables (Settings > Secrets and variables > Actions > Variables):
 #   CONVAI_AUTH_URL  the token backend's address, https://<backend>/api/convai/token (not secret). A Runtime build without both
 #                    CONVAI_AUTH_URL and CONVAI_AUTH_CLIENT_SECRET fails: it never ships without the backend
+#   CONVAI_AUTH_BACKUP_URL  optional: the second token backend's address (the Cloudflare Worker, auth-backend-cf/),
+#                    https://<worker>/api/convai/token (not secret), shipped as "backupUrl" in convai-auth.json. Unset: the Runtime has one backend
 #
 # The Scripts and Runtime packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
 # (permission: contents: write), and the release is published immediately. While the repository
@@ -149,6 +151,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           CONVAI_AUTH_URL: ${{ vars.CONVAI_AUTH_URL }}
+          CONVAI_AUTH_BACKUP_URL: ${{ vars.CONVAI_AUTH_BACKUP_URL }}
           CONVAI_AUTH_CLIENT_SECRET: ${{ secrets.CONVAI_AUTH_CLIENT_SECRET }}
         run: |
           Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
