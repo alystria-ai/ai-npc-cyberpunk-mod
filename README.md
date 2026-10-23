@@ -100,7 +100,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 
 | You need | Details |
 |---|---|
-| Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). The mod was tested on 2.31 only. |
+| Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). Patch 2.5 is not supported yet. On Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old. |
 | Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, and either [Mod Configuration Menu](https://www.nexusmods.com/cyberpunk2077/mods/31640) 0.10.5 or newer or [Native Settings UI](https://www.nexusmods.com/cyberpunk2077/mods/3518), all from Nexus Mods. One of the two is enough; with both, the manager uses Mod Configuration Menu. RED4ext starts the mod's background service with the game. |
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice. Not needed for Local AI, or a Custom server on your own PC, with a local voice. |
