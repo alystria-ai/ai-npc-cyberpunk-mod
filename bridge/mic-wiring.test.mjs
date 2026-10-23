@@ -18,6 +18,10 @@ test('the bridge gives every start command its tap, every finish its stop, every
   assert.ok(bridge.indexOf('micTap.open(input.requestId') < bridge.indexOf("await providerForTurn(input, {mic: true})"));
 });
 
+test('what microphone-live.json held before this bridge started is never acted on', () => {
+  assert.match(bridge, /micLive\.observed = await readFile\(resolve\(runtime, 'microphone-live\.json'\), 'utf8'\)\.catch\(\(\) => ''\);/);
+});
+
 test('the local recogniser, Mistral transcription and Convai\'s page all take their audio from the one tap', () => {
   assert.match(bridge, /capture: new TapCapture\(\{tap: micTap\}\)/);
   assert.match(bridge, /realtime\.micTap = micTap;/);
@@ -106,4 +110,14 @@ test('the request id reaches the voice channel beside the config, so the tap it 
   assert.deepEqual(seen[0][0], {characterId: 'x'}, 'the config itself is not touched (it keys the connection pool)');
   const session = read('./microphone-session.mjs');
   assert.match(session, /session\.host\.beginVoice\(config, \{requestId: input\.requestId\}\)/);
+});
+
+test('the hidden browser is not closed as idle while the microphone tap is open, and may be once it is closed', async () => {
+  const capture = fakeCapture(), tap = new MicTap({capture});
+  const host = new RealtimeHost({launchBrowser: async () => { throw Error('no browser in this test'); }});
+  host.micTap = tap; host.browser = {isConnected: () => true}; host.close = async () => {};
+  await tap.open('vad', {listen: true});
+  assert.equal(await host.releaseIfIdle({idleMs: 0}), false, 'a listening microphone keeps it');
+  await tap.release('vad');
+  assert.equal(await host.releaseIfIdle({idleMs: 0}), true, 'a closed one does not');
 });

@@ -749,6 +749,8 @@ export class RealtimeHost {
   async releaseIfIdle({idleMs = 300_000, keepRenderer = false, now = Date.now()} = {}) {
     if (keepRenderer || this.closing || this.starting || !this.browser || this.running > 0) return false;
     if (this.pool?.entries.size || this.voiceLease) return false;
+    // The microphone tap's device lives in this browser (bridge/mic-tap.mjs): an open microphone is in use.
+    if (this.micTap && this.micTap.state !== 'closed') return false;
     for (const host of [this.localPcm, this.vPcm]) if (host && (host.active || host.warming || host.closing)) return false;
     if (now - (this.lastUsedAt ?? 0) < idleMs) return false;
     await this.close();

@@ -1054,6 +1054,8 @@ const micTap = new MicTap({capture: micCapture, log: line => console.error('[Cyb
   // A released tap is reopened for listening when the game still asks for it (a turn ended, the voice browser restarted).
   onRelease: () => micLive.afterRelease()});
 micLive.tap = micTap;
+// What the file held when this bridge started is from an earlier run (a key that was down, a listen request of a game that has gone): never acted on.
+micLive.observed = await readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => '');
 console.error('[CyberpunkConvai] Microphone: ' + describeThresholds());
 realtime.micTap = micTap;
 realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); };
