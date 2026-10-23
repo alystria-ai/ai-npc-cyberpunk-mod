@@ -1190,21 +1190,24 @@ local function schema()
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
     if view == 'home' then
-        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
-            {'models', 'Model browser'}, {'settings', 'Settings'}}) do
-            -- The Model browser lists every character model in the game, so it says that and what joining means.
-            local description = tab[1] == 'models'
-                and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
-                or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
-            nav[#nav + 1] = action('tab:' .. tab[1], tab[2], 'Open', description, function() return navigate(tab[1]) end)
-        end
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
-        -- the editor module loaded. Built with the page, never per frame.
-        if editor then
-            nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
-                'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
-                function() return editor.request() end)
+        -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
+        for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
+            {'models', 'Model browser'}, {'editor'}, {'settings', 'Settings'}}) do
+            if tab[1] == 'editor' then
+                if editor then
+                    nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
+                        'Edit characters’ bios, rules and memories, and the prompting for each AI option, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
+                        function() return editor.request() end)
+                end
+            else
+                -- The Model browser lists every character model in the game, so it says that and what joining means.
+                local description = tab[1] == 'models'
+                    and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
+                    or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
+                nav[#nav + 1] = action('tab:' .. tab[1], tab[2], 'Open', description, function() return navigate(tab[1]) end)
+            end
         end
     elseif BACK[view] then
         local parent = BACK[view]
@@ -1272,8 +1275,9 @@ local function schema()
                 local display = member.serial and ((member.baseName or member.name) .. ' #' .. member.serial)
                     or ui.t('{name} · invited copy', {name = member.name})
                 local problem = member.dismissError or (member.state == 'failed' and member.error) or nil
+                -- One action per state: joined (it has a serial) Dismiss, still preparing Cancel invitation, failed Remove.
                 rows[#rows + 1] = action('dismiss:' .. id, display,
-                    member.serial and 'Dismiss' or 'Cancel invitation',
+                    member.serial and 'Dismiss' or member.state == 'failed' and 'Remove' or 'Cancel invitation',
                     ui.t('Remove only this copy from your group.') .. (problem and ('\n' .. ui.t(problem)) or ''),
                     function() return queue.dismiss(id) end, nil, {description = true})
                 if problem then

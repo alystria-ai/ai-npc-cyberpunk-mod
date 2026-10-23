@@ -79,7 +79,8 @@ test('Manager dismissals free planned places, can be undone at any party size an
     queue.invite('person-2')
     queue.flush()
     assert(#members == 8 and #spawned == 9)
-    assert(queue.list()[9].state == 'failed' and queue.message():find('could not create', 1, true))
+    -- The refused spawn is reported once and the invitation leaves the list: it is no copy, and must not look pending forever.
+    assert(#queue.list() == 8 and queue.count() == 8 and queue.message():find('could not create', 1, true))
     queue.flush(); assert(#spawned == 9, 'failed request must not retry every frame')
     api.spawn = oldSpawn
     api.dismiss = oldDismiss
@@ -707,7 +708,8 @@ test('leaving the manager shows only an unresolved failure in gameplay, and keep
     popupTick(true)
     assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Private detail',
       'an unrelated footer action disabled the in-world notification')
-    assert(party.dismiss('queued:1')); popupTick(true)
+    -- The failure notice said it: the failed invitation is no longer listed as a pending one.
+    assert(party.count() == 0 and not party.dismiss('queued:1')); popupTick(true)
     assert(#popups == 1, 'cancelled progress replayed on returning to gameplay')
     assert(party.invite('person-1')); popupTick(false)
     readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false)
@@ -1020,6 +1022,31 @@ test('a player sees only joined, and Developer mode adds no joining step', () =>
   `);
 });
 
+test('Current party shows one action per state: Cancel invitation while preparing, Dismiss once joined, Remove when failed, and a failed invitation leaves after its notice', () => {
+  run(`${nsuiFixture}${invitationFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    assert(invoke('invite:person-1').ok)
+    assert(invoke('characters:back').ok and invoke('tab:party').ok)
+    -- Preparing: Cancel invitation, no Dismiss.
+    assert(row('dismiss:queued:1').value == 'Cancel invitation' and row('dismiss:queued:2').value == 'Cancel invitation')
+    -- The first becomes ready and joins; the second fails to prepare.
+    readiness.receipts['queued:1'] = {state = 'ready'}
+    readiness.receipts['queued:2'] = {state = 'error', error = 'The conversation connection did not open'}
+    managerUi.update(player, false)
+    loaded = registered.loadMod('manager')
+    -- Paused: nothing is flushed yet. The failed invitation reads as failed (Remove, with its reason), never Cancel invitation.
+    assert(#spawned == 0 and row('dismiss:queued:1').value == 'Cancel invitation')
+    assert(row('dismiss:queued:2').value == 'Remove' and row('error:queued:2').label:find('connection did not open', 1, true))
+    -- Back in gameplay the queue flush spawns the first (one row, Dismiss only) and, having said why, drops the failed one.
+    managerUi.update(player, true)
+    loaded = registered.loadMod('manager')
+    assert(#spawned == 1 and party.count() == 1)
+    assert(row('dismiss:live:1').value == 'Dismiss' and not row('dismiss:queued:1'))
+    assert(not row('dismiss:queued:2') and not row('error:queued:2'), 'the failed invitation stayed listed')
+    assert(readiness.cancellations['queued:2'], 'the failed reservation was not released')
+  `);
+});
+
 test('a preparation failure first seen in the paused menu posts exactly one gameplay notice with Developer mode off', () => {
   run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
@@ -1033,8 +1060,8 @@ test('a preparation failure first seen in the paused menu posts exactly one game
     assert(#popups == 1 and popups[1] == 'Johnny Silverhand could not prepare: Bridge unavailable')
     for _ = 1, 4 do popupTick(true); popupTick(false) end
     assert(#popups == 1 and #spawned == 0, 'the failed attempt notified again or was retried')
-    -- Cancelling and inviting again is a new attempt with its own notice.
-    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('dismiss:queued:1').ok)
+    -- The notice said it: the failed invitation left the party list. Inviting again is a new attempt with its own notice.
+    assert(invoke('characters:back').ok and invoke('tab:party').ok and not row('dismiss:queued:1') and row('empty-party'))
     assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(#popups == 1)
     readiness.receipts['queued:2'] = {state = 'error', error = 'Still unavailable'}
@@ -2789,7 +2816,8 @@ test('the manager shows no invitation progress and keeps reserved copies editabl
     loaded = registered.loadMod('manager')
     assert(row('dismiss:' .. id).description:find('Preparation service unavailable', 1, true))
     assert(row('error:' .. id).label:find('Preparation service unavailable', 1, true))
-    assert(row('dismiss:' .. id).value == 'Cancel invitation')
+    -- A failed invitation reads as failed (Remove, not Cancel invitation) while the paused menu still lists it.
+    assert(row('dismiss:' .. id).value == 'Remove')
     assert(invoke('dismiss:' .. id).ok and readiness.cancellations[id])
     assert(party.count() == 0 and not row('dismiss:' .. id) and not row('error:' .. id) and row('empty-party') and #spawned == 0)
 
@@ -5912,11 +5940,12 @@ const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorM
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
 `;
 
-test('Home offers the Character editor as a fifth row after Settings, an action with its own id, and the Settings row stays', () => {
+test('Home offers the Character editor as the fourth row, above Settings, an action with its own id, and the Settings row stays', () => {
   run(`${homeEditorFixture()}
     assert(managerUi.inspect().view == 'home')
     local nav = loaded.categories[1].settings
-    assert(#nav == 5 and nav[5].id == 'character-editor:home', 'five rows, the editor last: ' .. #nav)
+    -- The owner's order: the Character editor sits above Settings, which stays last.
+    assert(#nav == 5 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:settings', 'five rows, the editor above Settings: ' .. #nav)
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
