@@ -322,3 +322,133 @@ test('init.lua pins the focused NPC, releases on endFocus, clears on teardown an
   assert.match(between('focusedCrowd, releasedCrowd = nil, nil\n    if convaiVanillaReactions', "log('Session references released: '"), /convaiVanillaReactions\.clear/);
   assert.doesNotMatch(between("registerForEvent('onUpdate'", "registerForEvent('onShutdown'"), /VanillaReactions/);
 });
+
+// The ambient-bark window (2026-10-23): the game's own greeting, grunt and bump lines of the NPCs around V are dropped by the
+// redscript wrap of GameObject.PlayVoiceOver while this window is open. Lua only opens and closes it on conversation events.
+const barkFixture = `${fixture}
+  local calls = {}
+  local gate = {
+    hold = function(seconds) calls[#calls + 1] = 'hold:' .. seconds end,
+    release = function(seconds) calls[#calls + 1] = 'release:' .. seconds end}
+  local function opened(overrides)
+    local options = {barkGate = gate}
+    for key, value in pairs(overrides or {}) do options[key] = value end
+    return make(options)
+  end
+  local function last() return calls[#calls] end
+`;
+
+test('the talk key opens the bark window with one native call, and a repeat inside it costs none', () => {
+  run(`${barkFixture}
+    local R = opened()
+    assert(R.talkPressed() == true)
+    assert(#calls == 1 and calls[1] == 'hold:45', table.concat(calls, ','))
+    assert(count('Ambient barks held for 45 s (talk key)') == 1)
+    -- Nothing longer is asked inside the window: no native call, no log line.
+    assert(R.talkPressed() == true)
+    wall = wall + 10
+    assert(R.requestSent() == true)
+    assert(#calls == 1, 'repeat events called the game: ' .. table.concat(calls, ','))
+    -- Another talk key press later in the window asks for more time than is left, so it extends.
+    assert(R.talkPressed() == true and #calls == 2 and calls[2] == 'hold:45')
+    calls[2] = nil
+    assert(count('Ambient barks held') == 1)
+    -- A longer ask extends it (never shortens), still without a second log line while it is open.
+    assert(R.barkHold(90, 'x') and #calls == 2 and calls[2] == 'hold:90', table.concat(calls, ','))
+    assert(count('Ambient barks held') == 1)
+    -- After it ran out the next event opens it again.
+    wall = wall + 200
+    assert(R.talkPressed() and #calls == 3 and count('Ambient barks held') == 2)
+    local status = R.status().bark
+    assert(status.open == true and status.unavailable == false)
+  `);
+});
+
+test('an AI line holds the window until it ends, then a short tail; a stop with no line playing changes nothing', () => {
+  run(`${barkFixture}
+    local R = opened()
+    assert(R.speechEnded() == false and #calls == 0, 'a stop with no line released the window')
+    assert(R.talkPressed())
+    assert(R.speechStarted() and last() == 'hold:90', tostring(last()))
+    wall = wall + 7
+    assert(R.speechEnded() == true and last() == 'release:2', tostring(last()))
+    -- The same end twice is one release; a second stop is not a line.
+    assert(R.speechEnded() == false)
+    local n = #calls
+    -- A group's next speaker starts inside the tail: the window is held again.
+    wall = wall + 1
+    assert(R.speechStarted() and #calls == n + 1 and last() == 'hold:90')
+    -- The conversation ends: the grace, only while a window is open.
+    assert(R.barkRelease() == true and last() == 'release:3')
+    wall = wall + 5
+    local m = #calls
+    assert(R.barkRelease() == false and #calls == m, 'released a window that was already closed')
+    assert(R.status().bark.open == false)
+  `);
+});
+
+test('clear() closes the window; a game without the redscript part is told once and never again, and nothing else breaks', () => {
+  run(`${barkFixture}
+    local R = opened()
+    assert(R.talkPressed())
+    R.clear()
+    assert(last() == 'release:0' and R.status().bark.open == false, tostring(last()))
+    local missing = make({barkGate = {
+      hold = function() error('no such method: ConvaiBarkHold') end,
+      release = function() error('no such method') end}})
+    assert(missing.talkPressed() == false)
+    assert(missing.requestSent() == false and missing.speechStarted() == false and missing.barkRelease() == false)
+    assert(count('Ambient bark window unavailable') == 1, 'the missing redscript was logged more than once')
+    assert(missing.status().bark.unavailable == true)
+    -- A failing clock never throws into the caller.
+    local broken = opened({clock = function() error('clock') end})
+    assert(broken.talkPressed() == false)
+    -- The reaction hooks are unaffected by the window.
+    assert(R.install(override) and R.focus('e1') and not fire('TriggerFacialLookAtReaction', 'e1'))
+  `);
+});
+
+test('the bark window is opened by the talk key, the sent line and every AI line, and closed by their ends', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  // The talk key, text and voice: after the focus is begun (a focus change must not cut the window).
+  const text = init.slice(init.indexOf('local function beginTextNow'), init.indexOf('local function beginText(groupMode)'));
+  assert.ok(text.indexOf('convaiVanillaReactions.talkPressed') > text.indexOf('beginFocus(player, npc)'), 'text path: the window opens after the focus');
+  assert.match(init, /focusMode, focusEntity, focusUntil = 'chat', entity, os\.time\(\) \+ 120\n\s+if convaiVanillaReactions then pcall\(convaiVanillaReactions\.talkPressed\) end/);
+  assert.match(init, /pcall\(convaiVanillaReactions\.requestSent\)/);
+  // The conversation's end goes through one global; onUpdate gains no upvalue and still names no module.
+  assert.match(init, /convaiBarkEnd = function\(\)\n\s+if convaiVanillaReactions and not \(convaiSpeech and convaiSpeech\.requestId\) then pcall\(convaiVanillaReactions\.barkRelease\) end/);
+  const expiry = init.slice(init.indexOf('if focusUntil and not active and not pending'), init.indexOf('if focusedCrowd and not focusedCrowd.checked'));
+  assert.match(expiry, /endFocus\(player\)\n\s+if convaiBarkEnd then convaiBarkEnd\(\) end/);
+  // speech.lua: one call when a line starts, one when it ends, none per frame.
+  assert.match(speech, /function M\.stop\(reason\)\n[^\n]*\n\s+if M\.requestId and convaiVanillaReactions then pcall\(convaiVanillaReactions\.speechEnded\) end/);
+  assert.match(speech, /pcall\(convaiVanillaReactions\.speechStarted\) end\n\s+publish\(\); return true/);
+  const update = speech.slice(speech.indexOf('local function updateSpeech'));
+  assert.doesNotMatch(update, /convaiVanillaReactions/, 'the per-frame speech update must not touch the bark window');
+});
+
+// What the wrap decides, from the redscript source: the four ambient contexts and nothing else, the window first and the
+// radius second, never in combat, and everything else passes to the game's own function with every argument.
+test('Engagement.reds drops only the four ambient contexts, only inside the window and the radius, never in combat', () => {
+  const reds = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Engagement.reds', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const wrap = reds.slice(reds.indexOf('@wrapMethod(GameObject)'));
+  assert.match(wrap, /^@wrapMethod\(GameObject\)\npublic static func PlayVoiceOver\(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityId: EntityID, opt ignoreFrustumCheck: Bool\) -> Void \{/);
+  assert.match(wrap, /if ConvaiBarkGate\.Ambient\(voName\) && ConvaiBarkGate\.Muted\(self\) \{ return; \};\n\s+wrappedMethod\(self, voName, debugInitialContext, delay, answeringEntityId, ignoreFrustumCheck\);/);
+  const ambient = reds.slice(reds.indexOf('public static func Ambient'), reds.indexOf('public static func Muted'));
+  const names = [...ambient.matchAll(/n"([a-z_]+)"/g)].map(m => m[1]).sort();
+  assert.deepEqual(names, ['bump', 'fear_foll', 'greeting', 'stlh_curious_grunt']);
+  const muted = reds.slice(reds.indexOf('public static func Muted'), reds.indexOf('@wrapMethod(GameObject)'));
+  const at = pattern => { const i = muted.search(pattern); assert.ok(i >= 0, `missing ${pattern}`); return i; };
+  assert.ok(at(/ConvaiBarkOpen\(\)/) < at(/DistanceSquared/), 'the window is tested before the distance');
+  assert.ok(at(/DistanceSquared/) < at(/GetCurrentCombatState/), 'the distance is tested before the combat state');
+  assert.match(muted, /Vector4\.DistanceSquared\(npc\.GetWorldPosition\(\), player\.GetWorldPosition\(\)\) > ConvaiBarkGate\.Radius\(\) \* ConvaiBarkGate\.Radius\(\)/);
+  assert.match(reds, /public static func Radius\(\) -> Float \{\n\s+return 15\.0;/);
+  assert.match(muted, /gamePSMCombat\.InCombat/);
+  assert.match(muted, /NPCPuppet\.IsInCombat\(puppet\)/);
+  // The window is simulation time (it stops with the game's pause).
+  assert.equal((reds.match(/GameInstance\.GetSimTime/g) || []).length, 3);
+  // Combat, pain, death and dialogue contexts are never named in the gate.
+  for (const context of ['start_combat', 'combat_ended', 'danger', 'enemy_warning', 'stlh_death', 'start_dead', 'pedestrian_hit', 'fear_run', 'fear_beg', 'crowd_combat', 'vehicle_bump']) {
+    assert.ok(!reds.includes(`n"${context}"`), `${context} must not be muted`);
+  }
+});
