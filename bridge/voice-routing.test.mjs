@@ -719,8 +719,10 @@ test('Expressive emotions: Pocket\'s streaming planner is given the marks, and a
 // in another language as text and never hands it to the Convai cloud voice.
 const SPANISH_REPLY='Claro que sí, V. Vamos al bar de Lizzie esta noche y hablamos con calma de todo lo que pasó.';
 function multilingualVoice({provider='pocket'}={}){
-  const generated=[];
-  return {generated,provider,steps:provider==='omni'?16:undefined,usesProfile:()=>true,
+  const generated=[],warmed=[];
+  return {generated,warmed,provider,steps:provider==='omni'?16:undefined,usesProfile:()=>true,
+    // The pack clip of the reply's language is prepared in the worker while the reply is written (VoiceSelection.warmOmniLanguage).
+    async warmOmniLanguage(key,language){warmed.push({key,language});return true;},
     async synthesize(key,text,options){generated.push({key,text,language:options.language,steps:options.steps});
       return{audio:wavOf(),faces:[],captions:[],timing:{voiceProvider:'omnivoice'}};}};
 }
@@ -756,6 +758,8 @@ test('with OmniVoice: Spanish and Japanese turns stay local and every phrase get
     assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language===language&&value.steps===16),language);
     assert.deepEqual(voice.generated.map(value=>value.text),splitSpeechText(reply),'every phrase of the reply, once');
     assert.equal(f.multilingual.lastLanguage,language,'the exchange language predicts the next turn without text');
+    assert.deepEqual([...new Set(voice.warmed.map(value=>value.language))],[language],'the pack clip of the turn language was prepared ahead of the reply');
+    assert.equal(voice.warmed.length,1,'once for the turn');
   }
 });
 
@@ -766,6 +770,14 @@ test('with OmniVoice: an English reply to a Spanish message stays on Omni, witho
   f.remote.text='Sure thing, V. Let us grab a drink at the Afterlife and talk it over.';
   await f.api.respond(f.input,f.profile,{current:async()=>true});
   assert.ok(voice.generated.length>=1&&voice.generated.every(value=>value.language===undefined));
+});
+
+test('with OmniVoice: an English turn prepares no pack clip',async()=>{
+  const voice=multilingualVoice({provider:'omni'});
+  const f=multilingualFixture({voiceSelection:voice,continuous:true,multilingual:multilingualOn()});
+  f.input.text='Hey Judy, want to grab a drink tonight?';f.remote.text='Sure thing, V.';
+  await f.api.respond(f.input,f.profile,{current:async()=>true});
+  assert.equal(voice.warmed.length,0);
 });
 
 test('a Spanish turn answered in Spanish on Pocket is shown as text: no Convai cloud voice, no Pocket',async()=>{

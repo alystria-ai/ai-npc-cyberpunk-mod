@@ -48,6 +48,10 @@ export class ResidentVoice {
     referenceDirectory = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES,
     cacheDirectory = process.env.CYBERPUNK_CONVAI_OMNI_CACHE,
     lowPriority = false, setPriority = osSetPriority, isAlive, extraEnvironment = null,
+    // skipStartupWarm() -> boolean, asked once per worker start: true when every reply of this session is expected in a language with a voice pack, so the
+    // worker does not spend its start warming the English startup profiles (the pack's clips are what speaks). Nothing else changes: each voice still
+    // prepares when it is first asked.
+    skipStartupWarm = null,
     // gpuMemory(pid) -> {dedicatedMiB, sharedMiB} | null: one reading of the worker's graphics-memory counters when a generation or a preparation runs out of time
     // (diagnostics only). A test that supplies its own spawn gets none unless it passes this.
     gpuMemory = spawnImpl === spawn ? readGpuProcessMemory : null} = {}) {
@@ -65,6 +69,7 @@ export class ResidentVoice {
     this.prepared = new Set(); this.available = new Set(this.registry.keys);
     // "Keep prepared voices": the hidden warm-up render made while a companion joins uses the selected steps.
     this.keepPrepared = false;
+    this.skipStartupWarm = typeof skipStartupWarm === 'function' ? skipStartupWarm : null; this.startupProfiles = this.registry.preparation.startupProfiles;
     // A background (re)start loads below normal priority so it does not compete with the game for CPU; it is
     // raised to normal once ready, because rendering replies is latency-sensitive.
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
@@ -257,6 +262,9 @@ export class ResidentVoice {
     this.ready.catch(() => {});
     // A new worker reads the configuration's voices: what a player changed since is sent once it is ready.
     this.registry = this.baseRegistry; this.workerDir = this.baseDir;
+    let skipWarm = false;
+    try { skipWarm = this.skipStartupWarm?.() === true; } catch { /* the default start: warm them */ }
+    this.startupProfiles = skipWarm ? [] : this.registry.preparation.startupProfiles;
     let child;
     try {
       // pydub (a dependency of the OmniVoice package) warns at import that it found no ffmpeg; the worker never converts audio with it, and the
@@ -270,7 +278,7 @@ export class ResidentVoice {
       markBridgeStage('voice.worker-start');   // the supervisor's last-stage note (bridge/stage-marker.mjs)
       child = this.child = this.spawnImpl(this.pythonExecutable
         || resolve(this.project, 'vendor/reference-voicestudio/.venv/Scripts/python.exe'),
-        [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath],
+        [resolve(this.project, 'bridge/resident-voice-worker.py'), '--config', this.configPath, ...(skipWarm ? ['--skip-startup-warm'] : [])],
         {cwd: this.project, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
           env: environment});
     } catch (error) { this.fail(error); return this.ready; }
@@ -368,7 +376,7 @@ export class ResidentVoice {
               .update(this.registry.profiles[key].transcript, 'utf8').digest('hex'))))
           || (version === 1 && (this.registry.preparation.mode !== 'eager'
             || profiles.length !== this.registry.keys.length))
-          || (version === 2 && this.registry.preparation.startupProfiles.some(key => profiles.includes(key) && !prepared.includes(key)))) {
+          || (version === 2 && this.startupProfiles.some(key => profiles.includes(key) && !prepared.includes(key)))) {
         throw Error('Local voice worker did not warm all profiles on CUDA');
       }
       this.protocolVersion = version; this.available = new Set(profiles); this.prepared = new Set(prepared);
@@ -472,6 +480,30 @@ export class ResidentVoice {
     const operation = this.tail.then(async () => {
       await this.ensurePrepared(profile, signal);
       return {provider: 'omnivoice', ready: this.profileReady(profile), profile};
+    });
+    this.tail = operation.catch(() => {});
+    return abortable(operation, signal);
+  }
+  /**
+   * Prepares a voice language pack's clip for a reply that is about to be spoken from it: the worker checks the clip and builds its conditioning prompt into the
+   * prompt cache (no render, the profile's own prepared state is not touched), so the first line in that language does not do it. Quiet by design: a clip
+   * the worker refuses answers 'fallback' (the reply is then spoken from the English reference), and nothing here throws into a turn.
+   * Resolves {provider: 'omnivoice', profile, languageReference: 'used' | 'fallback', ms}.
+   */
+  prepareLanguage(profile, languageReference, {signal} = {}) {
+    if (!this.usesProfile(profile)) return Promise.reject(Error('This character uses its Convai voice'));
+    if (!(languageReference && typeof languageReference.reference === 'string' && /^[a-f0-9]{64}$/.test(languageReference.sha256 ?? '')
+        && typeof languageReference.transcript === 'string' && languageReference.transcript.trim())) return Promise.reject(Error('Invalid language reference'));
+    const wanted = {languageReference: {reference: languageReference.reference, sha256: languageReference.sha256, transcript: languageReference.transcript}};
+    const operation = this.tail.then(async () => {
+      await this.start();
+      throwIfCancelled(signal);
+      if (this.closing || this.failure) throw this.failure || cancelled();
+      if (!this.hasProfile(profile)) throw Error('This character uses its Convai voice');
+      if (this.protocolVersion !== 2) throw Error('Local voice worker cannot prepare this clip');
+      const frame = await this.command('prepare', profile, wanted);
+      throwIfCancelled(signal);
+      return {provider: 'omnivoice', profile, languageReference: frame.languageReference === 'used' ? 'used' : 'fallback', ms: frame.generationMs};
     });
     this.tail = operation.catch(() => {});
     return abortable(operation, signal);

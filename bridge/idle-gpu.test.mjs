@@ -119,9 +119,9 @@ function warmTalkTargetsWith(stand) {
     if (bridge[at] === '}' && --depth === 0) { end = at + 1; break; }
   }
   const source = bridge.slice(start, end);
-  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster',
+  return new Function('stopped', 'ids', 'localVoice', 'mistral', 'mistralHost', 'profileFor', 'roster', 'multilingual',
     `${source}\nreturn warmTalkTargets;`)(stand.stopped ?? false, stand.ids, stand.localVoice, stand.mistral, stand.mistralHost,
-    stand.profileFor, []);
+    stand.profileFor, [], stand.multilingual ?? {fixed: null});
 }
 
 test('warmTalkTargets prepares an OmniVoice voice and a local persona for the people V talks to, and nothing otherwise', () => {
@@ -149,6 +149,29 @@ test('warmTalkTargets prepares an OmniVoice voice and a local persona for the pe
   assert.deepEqual(log, [], 'Pocket, a cloud voice and a cloud text route have nothing of this kind to do');
   stand.localVoice.preparesOnGpu = true;
   assert.doesNotThrow(() => warm(null));
+});
+
+test('warmTalkTargets with a fixed reply language prepares the pack clip of the voice, and the English voice only when the pack has no clip of it', async () => {
+  const log = [];
+  const stand = {ids: {'judy-alvarez': 1, 'panam-palmer': 2}, multilingual: {fixed: 'pl'},
+    localVoice: {preparesOnGpu: true, usesProfile: () => true, prepareProfile: key => { log.push(['voice', key]); return Promise.resolve(); },
+      warmOmniLanguage: (key, language) => { log.push(['pack', key, language]); return Promise.resolve(key === 'judy-alvarez'); }},
+    mistral: {active: false}, mistralHost: {}, profileFor: () => null};
+  const warm = warmTalkTargetsWith(stand);
+  warm(['judy-alvarez', 'panam-palmer']);
+  await new Promise(done => setImmediate(done));
+  assert.deepEqual(log, [['pack', 'judy-alvarez', 'pl'], ['pack', 'panam-palmer', 'pl'], ['voice', 'panam-palmer']]);
+  // English fixed, or no fixed language: the English voice, as before.
+  for (const fixed of ['en', null]) {
+    log.length = 0; stand.multilingual.fixed = fixed;
+    warm(['judy-alvarez']);
+    assert.deepEqual(log, [['voice', 'judy-alvarez']], String(fixed));
+  }
+  // A pack lookup that fails prepares nothing and throws nowhere.
+  log.length = 0; stand.multilingual.fixed = 'pl'; stand.localVoice.warmOmniLanguage = () => Promise.reject(Error('x'));
+  assert.doesNotThrow(() => warm(['judy-alvarez']));
+  await new Promise(done => setImmediate(done));
+  assert.deepEqual(log, []);
 });
 
 test('the bridge asks for it at the composer, at the talk key and at the start of a turn, and nearby preparation follows the GPU', () => {

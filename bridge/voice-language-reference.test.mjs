@@ -40,13 +40,15 @@ const reference = key => ({reference: `runtime/voice-references/picked/autobest/
 const OMNI_KEYS = ['panam-palmer', 'judy-alvarez', 'resident-female', 'npc-maelstrom-male-v2', 'alex', 'v-male'];
 
 function omniSelection(packs, selectionOptions = {}) {
-  const calls = [];
+  const calls = [], prepared = [], answers = {languageReference: 'used'};
   const voices = Object.fromEntries(OMNI_KEYS.map(key => [key, reference(key)]));
   // The player gave Alex a clip of their own: it stands in his place whatever the language.
   voices.alex = {reference: 'runtime/player-voices/alex.wav', sha256: 'b'.repeat(64), transcript: 'The player\'s own words.'};
   const worker = backend => (config, {onState}) => {
     let loaded = false;
     return {get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key), profileReady: key => loaded && Object.hasOwn(config.voices, key),
+      usesProfile: key => Object.hasOwn(config.voices, key),
+      async prepareLanguage(profile, languageReference) { prepared.push({backend, profile, languageReference}); return {provider: 'omnivoice', profile, languageReference: answers.languageReference}; },
       setSteps() {}, async prepareProfile(key) { return {provider: backend, ready: true, profile: key}; },
       async start() { loaded = true; onState({state: 'ready', resident: true}); },
       async synthesize(profile, text, options) { calls.push({backend, profile, text, options}); return {audio: 'wav', timing: {}}; },
@@ -55,7 +57,7 @@ function omniSelection(packs, selectionOptions = {}) {
   };
   const voice = new VoiceSelection(pocketSettings(pocketVoices()), {languagePacks: packs, factory: worker('pocket'), omniFactory: worker('omni'), ...selectionOptions,
     omniConfigs: {short: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices}, long: {version: 2, provider: 'hybrid', engine: 'omnivoice', voices}}});
-  return {voice, calls};
+  return {voice, calls, prepared, answers};
 }
 
 test('OmniVoice: a Mandarin reply of a named character, an archetype and an archetype\'s second voice is cloned from the pack\'s clip', async () => {
@@ -414,5 +416,64 @@ test('Developer mode keeps the last reply (WAV and the reference it used); with 
     // Off again: nothing more is written.
     assert.equal(capture.update({developerMode: false}), true);
     assert.equal(capture.begin({engine: 'omni'}), undefined);
+  });
+});
+
+// A reply expected in a pack's language: the clip is prepared in the worker ahead of the reply (the worker checks it and builds its conditioning prompt).
+test('OmniVoice: the pack clip of a character is prepared ahead of the reply, once per voice, language and worker; the descriptor is the one a reply sends', async () => {
+  await folder(async root => {
+    const {packs, clips} = await installed(root);
+    const h = omniSelection(packs);
+    h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.voice.start();
+    assert.equal(await h.voice.warmOmniLanguage('panam-palmer', 'zh'), true);
+    assert.equal(h.prepared.length, 1);
+    assert.deepEqual(h.prepared[0].languageReference, {reference: 'runtime/voice-references/multilingual/zh-cn/picked/panam-palmer.wav',
+      sha256: sha256(clips['panam-palmer']), transcript: FAKE_VOICES['panam-palmer'].text});
+    assert.equal(h.prepared[0].profile, 'panam-palmer');
+    // Every turn asks again; the worker is not.
+    for (let turn = 0; turn < 5; turn++) assert.equal(await h.voice.warmOmniLanguage('panam-palmer', 'zh'), true);
+    assert.equal(h.prepared.length, 1);
+    assert.equal(await h.voice.warmOmniLanguage('resident-female', 'zh'), true);
+    assert.equal(h.prepared.length, 2, 'another voice is another preparation');
+    // The reply that follows sends the very descriptor that was prepared.
+    await h.voice.synthesize('panam-palmer', 'Hello there.', {language: 'zh'});
+    assert.deepEqual(h.calls.at(-1).options.languageReference, h.prepared[0].languageReference);
+    await h.voice.close();
+  });
+});
+
+test('OmniVoice: nothing is prepared for English, a language without a pack, a voice the pack lacks or a player-made clip; a refused clip is asked again', async () => {
+  await folder(async root => {
+    const {packs} = await installed(root);
+    const h = omniSelection(packs);
+    h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.voice.start();
+    for (const [key, language] of [['panam-palmer', undefined], ['panam-palmer', 'en'], ['panam-palmer', 'ja'], ['judy-alvarez', 'zh'], ['alex', 'zh'], ['nobody', 'zh']]) {
+      assert.equal(await h.voice.warmOmniLanguage(key, language), false, `${key} ${language}`);
+    }
+    assert.equal(h.prepared.length, 0);
+    // The worker refused the clip (it speaks the English reference): the caller prepares the English voice, and the clip is tried again next time.
+    h.answers.languageReference = 'fallback';
+    assert.equal(await h.voice.warmOmniLanguage('panam-palmer', 'zh'), false);
+    assert.equal(await h.voice.warmOmniLanguage('panam-palmer', 'zh'), false);
+    assert.equal(h.prepared.length, 2);
+    await h.voice.close();
+    // No pack at all.
+    const none = omniSelection(null);
+    none.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await none.voice.start();
+    assert.equal(await none.voice.warmOmniLanguage('panam-palmer', 'zh'), false);
+    assert.equal(none.prepared.length, 0);
+    await none.voice.close();
+  });
+});
+
+test('OmniVoice: a worker that fails to prepare the clip never throws into a turn', async () => {
+  await folder(async root => {
+    const {packs} = await installed(root);
+    const h = omniSelection(packs, {omniFactory: (config, {onState}) => ({loaded: false, hasProfile: key => Object.hasOwn(config.voices, key), usesProfile: key => Object.hasOwn(config.voices, key),
+      profileReady: () => false, setSteps() {}, prepareLanguage: async () => { throw Error('worker gone'); }, async prepareProfile(key) { return {provider: 'omni', ready: true, profile: key}; },
+      async start() { this.loaded = true; onState({state: 'ready', resident: true}); }, async close() { onState({state: 'stopped'}); }})});
+    h.voice.update({voiceProvider: 'omni', omniSteps: 16}, null, false); await h.voice.start();
+    assert.equal(await h.voice.warmOmniLanguage('panam-palmer', 'zh'), false);
+    await h.voice.close();
   });
 });
