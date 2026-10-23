@@ -41,6 +41,25 @@ The first build did not work in the game (Convai, Pocket voice): no reply on any
    a long backlog off in the middle of the words). Proof, in real Edge over a WebRTC loopback (`pcm-relay.test.mjs`, `mic-relay-e2e.test.mjs`): nothing arrives
    before `start()`, and then the whole pre-roll plus the live audio arrives.
 
+## Why the device takes so long to open (measured 2026-10-23, game closed, `scripts/Measure-ColdOpen.mjs`)
+
+Default input here: a Bluetooth headset (realme Buds Air7); the laptop's own microphone array (Realtek) is the other input. Medians, in ms:
+
+| Step | Time |
+|---|---|
+| (a) the game's write noticed by the bridge's directory watcher (the 150 ms / 500 ms interval polls only back it up) | 15 |
+| (b) `page.evaluate` to the capture page (reused) / creating the page (once per browser) / `grantPermissions` | 1.2 / 210-240 / 1 |
+| (c) `getUserMedia`, Bluetooth headset, recently used / cold (about 8 s since the last close) | 350-380 / 1,350-1,500 |
+| (c) `getUserMedia`, Realtek array, cold | 440 |
+| (d) AudioContext + worklet + first frame, after the stream | 30-100 (none with `MediaStreamTrackProcessor`) |
+
+The constraints (echo cancellation, noise suppression, gain control all on or off), the context's sample rate and `latencyHint` change nothing measurable (357 vs
+380 ms). Keeping the context and worklet alive saves 60-100 ms; reading with `MediaStreamTrackProcessor` (no AudioContext) saves about 70 ms. The cold 1.4 s is
+Windows switching the Bluetooth headset from stereo to its call (hands-free) profile when the microphone opens; the link stays in call mode for about 4-8 s after
+the last close, then a new open pays it again. It is not in the bridge, the browser or the page, and nothing in software shortens it. So on a Bluetooth input a cold
+press cannot start instantly without keeping the device open, and keeping it open is what holds the headset in call quality. A built-in microphone opens
+in 0.4 s cold.
+
 ## What it does now
 
 - **Key down**: `toggleVoice` finds the target, then writes `runtime/microphone-live.json` (`holdId`, `down: true`) *before* the preparation.
