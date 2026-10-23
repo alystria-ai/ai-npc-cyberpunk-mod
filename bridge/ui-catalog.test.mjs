@@ -69,7 +69,7 @@ const retired=['Connecting microphone - wait for Listening','Listening - press {
  'No speech was heard. Wait for Listening, then speak before you finish.','Voice input could not reach Convai. Press the voice key again, or type.'];
 test('the Voice activation and hold-to-talk strings are catalogued, and the retired press-to-finish ones are gone',()=>{
  for(const text of hold)assert(text in catalog,`missing from localization/en.json: ${text}`);
- assert(Object.keys(catalog).some(text=>text.startsWith('Talk without holding a key.')&&text.includes('Nothing leaves your PC unless speech is heard.')),'the Voice activation description');
+ assert(Object.keys(catalog).some(text=>text.startsWith('Talk without a key.')&&text.includes('Nothing leaves your PC unless speech is heard.')),'the Voice activation description');
  for(const text of retired)assert(!(text in catalog),`still catalogued: ${text}`);
  for(const code of codes){
   const source=readFileSync(new URL(`../mod/locales/${code}.lua`,import.meta.url),'utf8');

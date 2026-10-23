@@ -260,7 +260,7 @@ test('the local recogniser channel gets every byte from the key press even when 
   await tap.hold('k7');                                   // the key goes down: the device opens at once
   for (const chunk of spoken.slice(0, 6)) capture.emit(chunk);
   tap.open(input.requestId, {holdId: 'k7'});              // the start command, after the bridge's preparation
-  const starting = mic.start(input, {requestId: input.requestId});   // the model is loading: 60 ms
+  const starting = mic.start(input, {});   // the model is loading: 60 ms; the config carries no request id (the real one does not), the session passes it beside the config
   for (const chunk of spoken.slice(6, 10)) capture.emit(chunk);       // still speaking while it loads
   await starting;
   for (const chunk of spoken.slice(10)) capture.emit(chunk);

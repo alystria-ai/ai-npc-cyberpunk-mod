@@ -847,7 +847,7 @@
     "Talk to ordinary NPCs": "Talk to ordinary NPCs",
     "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.": "Talk to ordinary NPCs is off. Turn it on in Esc > Mods.",
     "Talk to story characters": "Talk to story characters",
-    "Talk without holding a key. While you face a character or a companion is near, the mod listens for your voice and answers when you pause for about a second.\n\nOff: the microphone stays closed, as it is now. On: it listens only while a conversation is possible, never during the game’s own scenes or dialogue choices, and never while a character is speaking. Nothing leaves your PC unless speech is heard.\n\nHeadphones work best: speakers can play a character’s voice back into the microphone.": "Talk without holding a key. While you face a character or a companion is near, the mod listens for your voice and answers when you pause for about a second.\n\nOff: the microphone stays closed, as it is now. On: it listens only while a conversation is possible, never during the game’s own scenes or dialogue choices, and never while a character is speaking. Nothing leaves your PC unless speech is heard.\n\nHeadphones work best: speakers can play a character’s voice back into the microphone.",
+    "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best.": "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best.",
     "Temperature": "Temperature",
     "Test": "Test",
     "Test connection": "Test connection",
@@ -1833,7 +1833,7 @@
       "Subtitles",
       "Talk to ordinary NPCs",
       "Talk to story characters",
-      "Talk without holding a key. While you face a character or a companion is near, the mod listens for your voice and answers when you pause for about a second.\n\nOff: the microphone stays closed, as it is now. On: it listens only while a conversation is possible, never during the game’s own scenes or dialogue choices, and never while a character is speaking. Nothing leaves your PC unless speech is heard.\n\nHeadphones work best: speakers can play a character’s voice back into the microphone.",
+      "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best.",
       "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.",
       "The language the characters speak. Counts only while Voice playback is on; with it off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text.",
       "Use it if companions seem to look above or below your eyes.",
@@ -9393,7 +9393,7 @@
         "mod/manager-ui.lua:1453"
       ]
     },
-    "Talk without holding a key. While you face a character or a companion is near, the mod listens for your voice and answers when you pause for about a second.\n\nOff: the microphone stays closed, as it is now. On: it listens only while a conversation is possible, never during the game’s own scenes or dialogue choices, and never while a character is speaking. Nothing leaves your PC unless speech is heard.\n\nHeadphones work best: speakers can play a character’s voice back into the microphone.": {
+    "Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best.": {
       "contexts": [
         "page.setting"
       ],

@@ -813,7 +813,7 @@ export class RealtimeHost {
   }
   voiceChannel() {
     const owner = {}, controller = new AbortController();
-    return {beginVoice: config => this.beginVoice(config, {owner, signal: controller.signal}),
+    return {beginVoice: (config, extra) => this.beginVoice(config, {owner, signal: controller.signal, requestId: extra?.requestId}),
       finishVoice: (config, options) => this.finishVoice(owner, config, {...options, signal: controller.signal}),
       heard: () => this.voiceHeard(owner),
       // The key was let go: the microphone tap stops now and what it caught reaches the page before the finish (bridge/mic-tap.mjs).
@@ -836,7 +836,7 @@ export class RealtimeHost {
     catch { return ''; }
   }
   beginVoice(config, options = {}) { return this.observe(this.beginVoiceOnce(config, options), false); }
-  async beginVoiceOnce(config, {signal, owner = this} = {}) {
+  async beginVoiceOnce(config, {signal, owner = this, requestId} = {}) {
     throwIfCancelled(signal);
     this.guard?.check();
     config = {...config};
@@ -866,7 +866,7 @@ export class RealtimeHost {
       throwIfCancelled(signal);
       // Instant push-to-talk: when the microphone tap already listens for this request (bridge/mic-tap.mjs), the page takes its audio from
       // the tap instead of opening the device itself, so what the player said while this connection opened is not lost.
-      const tap = this.micTap, tapOwner = typeof config.requestId === 'string' ? config.requestId : null;
+      const tap = this.micTap, tapOwner = typeof requestId === 'string' ? requestId : null;
       const relay = process.env.CYBERPUNK_CONVAI_MIC_RELAY !== '0' && tap && tapOwner !== null && tap.isOwner(tapOwner);
       lease.tapOwner = relay ? tapOwner : null;
       const beginning = lease.value.evaluate(([config, options]) => window.convaiRealtime.beginVoice(config, options),

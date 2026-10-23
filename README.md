@@ -114,7 +114,7 @@ Audioware and TweakXL are no longer needed. Voices play through the mod's own au
 ## First run
 
 1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each AI NPC Cyberpunk Mod action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
-2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again (or hold the key while you speak and let go).
+2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or hold **talk by voice** while you speak and let go: it records from the moment the key goes down, so you can start talking at once, and letting go sends your words. (Settings > Voices > **Voice activation** can do it with no key at all.)
 3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then Mods, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. There is no Apply button: a change is saved a moment after you make it, and a row that cannot be used goes back with a line under **Back** that says why.
 
@@ -125,7 +125,7 @@ Out of the box you get the Convai free tier for the replies and Pocket TTS for t
 | Key | What it does |
 |---|---|
 | **AI NPC Cyberpunk Mod: talk by text** (CET binding) | Opens a private text conversation with the character you face |
-| **AI NPC Cyberpunk Mod: talk by voice** (CET binding) | The microphone for a private conversation: tap to start and tap again to send, or hold it while you speak and let go |
+| **AI NPC Cyberpunk Mod: talk by voice** (CET binding) | The microphone for a private conversation: hold it while you speak and let go to send. It records from the instant the key goes down, so nothing you say is lost while the conversation connects, and it shows no popups for a normal turn |
 | **AI NPC Cyberpunk Mod: group text chat** (CET binding) | Opens a text conversation with two or three nearby characters |
 | **AI NPC Cyberpunk Mod: group voice chat** (CET binding) | The same microphone, for a group conversation |
 | **AI NPC Cyberpunk Mod: companion manager** (CET binding) | Opens the Companion Manager |
@@ -320,7 +320,7 @@ English speech is recognised on your computer by a small model that is already i
 - **Mistral as the Conversation provider:** the recording is transcribed by Mistral with your own key (nothing to install).
 - **Local AI or a Custom endpoint:** your speech never leaves your computer, so install a pack. **European languages** (Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian, Portuguese; about 0.67 GB) or **Asian languages** (Mandarin Chinese, Japanese, Korean; about 0.24 GB). Extract the zip into the Cyberpunk 2077 folder like the other packs. Nothing needs switching on: the mod uses the pack for the language you have been typing or speaking (remembered between launches, so a French player with an English game is heard in French from the first recording), else the game's language.
 - A pack runs on the processor, one thread at low priority, and is loaded only while you speak in its language; it leaves memory about a minute after your last recording. Measured on the development laptop: about 4 to 5 seconds to load (the first load after installing can take a minute while Windows checks the file), then about a quarter of a second of processing per second of speech, so a 5 second sentence is read in about 1.5 seconds after you press the key. Words appear after the second key press, not while you speak.
-- Without the pack for your language you see one notice under the Listening line, and the recording is read as English.
+- Without the pack for your language you see one notice when the recording opens, and the recording is read as English.
 
 ## Troubleshooting
 
@@ -328,7 +328,7 @@ English speech is recognised on your computer by a small model that is already i
 
 **"Today's turns are used."** The free tier's daily turns are spent and come back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local AI** (with a Local AI pack) as the Conversation provider. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
 
-**The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Press it, wait for **Listening**, speak, press it again. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
+**The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Hold it while you speak, then let go. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 
 **Voice input says it only understands English.** You spoke another language and nothing here can read it. With Mistral, check that the key row says it was accepted. With Local AI or a Custom endpoint, install a [Microphone pack](#microphone-packs) for your language (the notice names it when one exists). Typing always works in any language.
 
@@ -658,7 +658,7 @@ The voice selector (`voiceProvider`, plus `omniSteps` 16 or 32 and `omniReferenc
 
 ### Speech recognition and the microphone
 
-Two CET actions (`talk by voice`, `group voice chat`) start and finish capture; capture never starts by itself, opening a menu cancels it, and `mod/microphone.lua` finishes a recording at 30 s. Recognition depends on the route:
+Two CET actions (`talk by voice`, `group voice chat`) are hold-to-talk: the key going down starts the capture (the bridge opens the microphone and keeps what it hears, so nothing is lost while the connection opens) and the key coming up finishes it; opening a menu cancels it, a hold shorter than 0.2 s is dropped, and `mod/microphone.lua` finishes a recording at 30 s. With **Voice activation** on (Settings > Voices, off by default) the microphone also listens while a conversation is possible and starts and ends the turn by itself; with it off the microphone is closed except while the key is held. See [docs/VOICE_INPUT.md](docs/VOICE_INPUT.md). Recognition depends on the route:
 
 - **Convai:** the capture goes to Convai, which recognises speech on its servers (English, `en-US`, by default).
 - **Mistral and Local AI** (and add-on voice keys on any route): the bridge records the microphone in a hidden page (`bridge/local-stt-capture.mjs`, 16 kHz mono AudioWorklet, 100 ms Int16 blocks, default input device) and recognises it on the PC with Moonshine Tiny (English, int8, 124 MB) through sherpa-onnx 1.13.6 (`bridge/local-stt.mjs`, `local-stt-worker.py`). The worker starts on the first recording (3 to 4 s to load), exits 90 s after the last one and uses about 250 MB and up to about 15 percent of a core while listening.

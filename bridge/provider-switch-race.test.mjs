@@ -137,7 +137,7 @@ test('wiring: the request poll and the microphone start ask for the provider (th
   assert.match(source, /await adoptProviderSetting\(settings\);\n\s*await mistralControl\.poll\(\)/, 'the settings poll adopts the setting through the same function');
   // the microphone command carries the provider
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('');
-  assert.match(lua, /context\.provider = chosenProvider\(\)\n\s*if microphone\.begin\(context, targetValid, 'press'\) then/);
+  assert.match(lua, /context\.provider = chosenProvider\(\)\n\s*if microphone\.begin\(context, targetValid, source == 'vad' and 'vad' or 'press', \{hold = holdId, vadId = vadId\}\) then/);
 });
 
 test('the game writes the provider into the request and the bridge reads only the four known names', async () => {

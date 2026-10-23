@@ -96,3 +96,14 @@ test('stopping the tap at the key release flushes the last block into the pump b
   assert.equal(tap.state, 'ended');
   assert.ok(TAP.chunkMs > 0);
 });
+
+test('the request id reaches the voice channel beside the config, so the tap it owns is the one the channel takes', async () => {
+  const seen = [];
+  const host = new RealtimeHost({launchBrowser: async () => { throw Error('no browser in this test'); }});
+  host.beginVoice = (config, options) => { seen.push([config, options]); return Promise.resolve({}); };
+  await host.voiceChannel().beginVoice({characterId: 'x'}, {requestId: '7-1-9ULL'});
+  assert.equal(seen[0][1].requestId, '7-1-9ULL');
+  assert.deepEqual(seen[0][0], {characterId: 'x'}, 'the config itself is not touched (it keys the connection pool)');
+  const session = read('./microphone-session.mjs');
+  assert.match(session, /session\.host\.beginVoice\(config, \{requestId: input\.requestId\}\)/);
+});

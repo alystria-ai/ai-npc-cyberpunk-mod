@@ -1242,8 +1242,8 @@ return {
     ["Choose one of the listed reply languages."] = "選擇一種列出的回覆語言。",
     ["The language the characters speak. Counts only while Voice playback is on; with it off, replies follow what you write.\n\nAutomatic: follows what you write or say, and never changes on a short line.\n\nA voice that cannot speak the language shows the reply as text."] = "角色說話使用的語言。僅在開啟語音播放時生效；關閉時，回覆跟隨你輸入的文字。\n\n自動：跟隨你輸入或說出的內容，短句不會改變。\n\n無法說出該語言的語音時，回覆會以文字顯示。",
     ["No speech was heard. Hold the talk key while you speak."] = "沒有聽到語音。說話時請按住語音鍵。",
-    ["Talk without holding a key. While you face a character or a companion is near, the mod listens for your voice and answers when you pause for about a second.\n\nOff: the microphone stays closed, as it is now. On: it listens only while a conversation is possible, never during the game’s own scenes or dialogue choices, and never while a character is speaking. Nothing leaves your PC unless speech is heard.\n\nHeadphones work best: speakers can play a character’s voice back into the microphone."] = "無需按住按鍵即可說話。當你面向角色或有同伴在附近時，模組會聆聽你的聲音，並在你停頓約一秒後回應。\n\n關閉：麥克風保持關閉，和現在一樣。開啟：只在可能對話時聆聽，絕不在遊戲自身的場景或對話選項中聆聽，角色說話時也絕不聆聽。除非聽到語音，否則不會有任何內容離開你的電腦。\n\n最好使用耳機：喇叭可能會把角色的聲音再次傳入麥克風。",
     ["Voice activation"] = "語音啟動",
     ["Voice activation could not open the microphone. Check your Windows input device."] = "語音啟動無法開啟麥克風，請檢查 Windows 輸入裝置。",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "語音輸入無法連線到 Convai。請再按住一次語音鍵，或直接輸入。",
+    ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best."] = "無需按住按鍵即可說話。當你面向角色或有同伴在附近時，模組會聆聽你的聲音，並在你停頓約一秒後回應。\n\n絕不在遊戲自身的場景或對話選項中聆聽，角色說話時也絕不聆聽。除非聽到語音，否則不會有任何內容離開你的電腦。最好使用耳機。",
 }

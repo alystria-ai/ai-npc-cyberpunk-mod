@@ -143,7 +143,9 @@ function hostFixture() {
       isClosed() { return this.closed; },
       context: () => ({grantPermissions: async () => {}, clearPermissions: async () => {}}),
       url: () => 'http://127.0.0.1:4321/',
-      async evaluate(_fn, payload) {
+      async evaluate(_fn, argument) {
+        // beginVoice is called with [config, {relay, device}] (instant push-to-talk, docs/VOICE_INPUT.md); every other call with the config or a command.
+        const payload = Array.isArray(argument) ? argument[0] : argument;
         this.calls.push(payload);
         if (payload?.method === 'warm') return {connectionMs: 1, connectionReused: this.calls.length > 1};
         if (payload?.method === 'reply' || payload?.method === 'finishVoice') return {text: 'Reply', sessionID: this.sessionID, timing: {}};

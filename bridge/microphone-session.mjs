@@ -43,7 +43,8 @@ export class MicrophoneSession {
       host: this.hostFactory(input, config), intent: 'record', opened: 0, controller: new AbortController()};
     await this.onState('starting', input);
     if (this.current !== session || session.intent === 'cancel') return;
-    session.opening = session.host.beginVoice(config);
+    // The request id rides beside the config (never inside it: the config keys the connection pool): the microphone tap is owned by it (bridge/mic-tap.mjs).
+    session.opening = session.host.beginVoice(config, {requestId: input.requestId});
     try {
       const opened = await session.opening;
       if (this.current !== session || session.intent === 'cancel') { await session.host.close(); return; }
