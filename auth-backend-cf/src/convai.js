@@ -21,8 +21,9 @@ export function createConvaiClient({ fetchImpl, connectUrl, revokeUrl, timeoutMs
       try {
         response = await fetchImpl(connectUrl, {
           method: 'POST',
-          // A redirect to another host would carry the CONVAI-API-KEY header along: a redirect is an error.
-          redirect: 'error',
+          // A redirect to another host would carry the CONVAI-API-KEY header along, so it is never followed. Workers accept only
+          // 'follow' or 'manual' (fetch throws on 'error'): 'manual' hands the 3xx back, and response.ok is false for it.
+          redirect: 'manual',
           headers: { 'CONVAI-API-KEY': apiKey, 'Content-Type': 'application/json' },
           body: '{}',
           signal: AbortSignal.timeout(timeoutMs),
@@ -47,7 +48,7 @@ export function createConvaiClient({ fetchImpl, connectUrl, revokeUrl, timeoutMs
       try {
         const response = await fetchImpl(revokeUrl, {
           method: 'POST',
-          redirect: 'error',
+          redirect: 'manual',
           headers: { 'CONVAI-API-KEY': apiKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ apiAuthToken: token }),
           signal: AbortSignal.timeout(timeoutMs),
