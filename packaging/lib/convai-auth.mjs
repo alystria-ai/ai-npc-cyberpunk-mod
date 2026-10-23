@@ -1,13 +1,18 @@
 // The sign-in settings a Runtime package ships: app/defaults/convai-auth.json. From 0.2.9 the Runtime carries NO Convai key; the bridge reaches
 // the project's shared Convai account with short-lived tokens from the token backend (auth-backend/, bridge/convai-credential.mjs). The file is
 //
-//   {"version": 1, "enabled": true, "url": "https://<backend>/api/convai/token", "secret": "<client request secret>", "fallback": false}
+//   {"version": 1, "enabled": true, "url": "https://<backend>/api/convai/token", "backupUrl": "https://<worker>/api/convai/token", "secret": "<client request secret>", "fallback": false}
+//
+// `backupUrl` is optional: the second sign-in backend (auth-backend-cf/, Cloudflare Workers), tried when the first cannot be reached (players in Russia and China
+// cannot reach Vercel). Same API and the same client secret. Not secret. It comes from CONVAI_AUTH_BACKUP_URL (a repository variable in CI) or --auth-backup-url;
+// without it the Runtime has one backend. A value that is set but not a valid address fails the build.
 //
 // The secret is the backend's client request secret (obfuscation, not authentication: it ships inside the program, auth-backend/README.md). It
 // is NOT the error reports' secret: those go to app/defaults/error-reports.json, a file the owner adds to the Runtime by hand and the build never
 // writes. Nothing here prints a secret.
 export const AUTH_URL_ENV = 'CONVAI_AUTH_URL';
 export const AUTH_SECRET_ENV = 'CONVAI_AUTH_CLIENT_SECRET';
+export const AUTH_BACKUP_URL_ENV = 'CONVAI_AUTH_BACKUP_URL';
 export const AUTH_PATH = '/api/convai/token';
 export const AUTH_FILE = 'defaults/convai-auth.json';
 const SECRET = /^[\x21-\x7e]{32,512}$/;
@@ -22,6 +27,14 @@ export function validateAuthUrl(raw) {
   return url.href;
 }
 
+/** The validated second backend's address (same rules as the first), or '' when none is given. */
+export function validateBackupUrl(raw, primary = '') {
+  if (!String(raw ?? '').trim()) return '';
+  const url = validateAuthUrl(raw);
+  if (url === primary) throw Error('The backup sign-in backend address is the same as the first one.');
+  return url;
+}
+
 /** The validated secret (a string of at least 32 printable characters, no spaces), or throws without showing it. */
 export function validateAuthSecret(raw) {
   const secret = String(raw ?? '').trim();
@@ -33,7 +46,7 @@ export function validateAuthSecret(raw) {
  * The build's sign-in settings from its inputs ({url, secret}, each possibly empty), or null when neither is given and `required` is false.
  * `required` (a non-dry-run build of the Runtime): both must be given. Giving only one is always an error.
  */
-export function readAuthInputs({url, secret, required, urlName = AUTH_URL_ENV, secretName = AUTH_SECRET_ENV} = {}) {
+export function readAuthInputs({url, secret, backupUrl, required, urlName = AUTH_URL_ENV, secretName = AUTH_SECRET_ENV} = {}) {
   // Only a variable that is meant to hold the client secret may be shipped: a mistyped --auth-secret-env must not publish some other token.
   if (!/^[A-Z0-9_]*CONVAI[A-Z0-9_]*$/.test(String(secretName))) throw Error('--auth-secret-env must name a variable meant for the Convai sign-in client secret (its name contains CONVAI).');
   const hasUrl = !!String(url ?? '').trim(), hasSecret = !!String(secret ?? '').trim();
@@ -42,11 +55,13 @@ export function readAuthInputs({url, secret, required, urlName = AUTH_URL_ENV, s
     return null;
   }
   if (!hasUrl || !hasSecret) throw Error(`The sign-in backend needs both its address (${urlName}) and its client secret (${secretName}).`);
-  return {url: validateAuthUrl(url), secret: validateAuthSecret(secret)};
+  const checked = validateAuthUrl(url);
+  const backup = validateBackupUrl(backupUrl, checked);
+  return {url: checked, ...(backup ? {backupUrl: backup} : {}), secret: validateAuthSecret(secret)};
 }
 
 /** The settings object the bridge reads (bridge/convai-credential.mjs readAuthSettings): on, and never falling back to a key. */
-export const packagedAuthSettings = ({url, secret}) => ({version: 1, enabled: true, url, secret, fallback: false});
+export const packagedAuthSettings = ({url, backupUrl, secret}) => ({version: 1, enabled: true, url, ...(backupUrl ? {backupUrl} : {}), secret, fallback: false});
 
 /** Adds app/defaults/convai-auth.json to `pkg` (anything with json(name, value), like the builder's package object). */
 export function addPackagedAuth(pkg, app, auth) {

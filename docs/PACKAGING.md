@@ -906,8 +906,8 @@ The two optional voice-input packs are built by the `micpacks` job, a matrix of 
 
 Permissions and secrets: the workflow uses the built-in `GITHUB_TOKEN` with `contents: write`
 (no separate releases repository or token). Repository secrets: `HF_TOKEN` (bucket read, and write access to the pack repository) and
-`CONVAI_AUTH_CLIENT_SECRET` (the token backend's client request secret); repository variable: `CONVAI_AUTH_URL` (the backend's
-address). There is no Convai key secret any more. GitHub masks secrets in logs; the builder also masks the client secret (`::add-mask::`) and never
+`CONVAI_AUTH_CLIENT_SECRET` (the token backend's client request secret); repository variables: `CONVAI_AUTH_URL` (the backend's
+address) and, optional, `CONVAI_AUTH_BACKUP_URL` (the second backend, the Cloudflare Worker `auth-backend-cf/`; shipped as `backupUrl` in `convai-auth.json`, empty means one backend). There is no Convai key secret any more. GitHub masks secrets in logs; the builder also masks the client secret (`::add-mask::`) and never
 prints it. The workflow requests `contents: write` itself, so the repository's default workflow
 permission can stay read-only.
 

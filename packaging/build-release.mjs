@@ -30,6 +30,8 @@
 //   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard,micpack-european,micpack-asian (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --auth-url URL     the token backend's address (https://<backend>/api/convai/token; default: the CONVAI_AUTH_URL environment variable)
+//   --auth-backup-url URL  the second backend's address (the Cloudflare Worker, https://<worker>/api/convai/token; optional, default: the CONVAI_AUTH_BACKUP_URL
+//                      environment variable). Shipped as "backupUrl" in convai-auth.json; the bridge tries it when the first backend cannot be reached.
 //   --auth-secret-env NAME  the environment variable that holds the backend's client request secret (default CONVAI_AUTH_CLIENT_SECRET; at least
 //                      32 characters, never printed). The Runtime ships NO Convai key: it carries these two as app/defaults/convai-auth.json,
 //                      and a build of it without both fails (a --dry-run may leave them out). --key-env and --key-file are refused.
@@ -55,7 +57,7 @@ import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
-import {AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
+import {AUTH_BACKUP_URL_ENV, AUTH_SECRET_ENV, AUTH_URL_ENV, SHIPPED_KEY_FILE, addPackagedAuth, readAuthInputs} from './lib/convai-auth.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mjs';
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
@@ -108,7 +110,8 @@ function loadAuth() {
   const secretName = value('--auth-secret-env', AUTH_SECRET_ENV);
   const secret = process.env[secretName];
   if (secret && secret.trim() && process.env.GITHUB_ACTIONS === 'true') process.stdout.write(`::add-mask::${secret.trim()}\n`);
-  return readAuthInputs({url: value('--auth-url', process.env[AUTH_URL_ENV]), secret, required: packages.has('runtime') && !dryRun, secretName});
+  return readAuthInputs({url: value('--auth-url', process.env[AUTH_URL_ENV]), backupUrl: value('--auth-backup-url', process.env[AUTH_BACKUP_URL_ENV]), secret,
+    required: packages.has('runtime') && !dryRun, secretName});
 }
 
 // ---------------------------------------------------------------- source tree

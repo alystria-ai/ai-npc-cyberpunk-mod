@@ -94,7 +94,7 @@ test('a release ships the sign-in settings on, with no key fallback: the package
   const readText = filesOf({packaged: PACKAGED, state: JSON.stringify({url: 'https://state.example/api/convai/token', secret: 's'.repeat(40)}),
     off: JSON.stringify({enabled: false}), fallbackOn: JSON.stringify({fallback: true})});
   const packaged = await readAuthSettings({env: {}, readText, packagedPath: 'packaged'});
-  assert.deepEqual(packaged, {enabled: true, url: 'https://package.example/api/convai/token', secret: 'p'.repeat(40), fallback: false, problem: null});
+  assert.deepEqual(packaged, {enabled: true, url: 'https://package.example/api/convai/token', backupUrl: '', secret: 'p'.repeat(40), fallback: false, problem: null});
   // The state folder's file wins for the settings it has (the other settings come from the package).
   const mixed = await readAuthSettings({env: {}, readText, path: 'state', packagedPath: 'packaged'});
   assert.equal(mixed.enabled, true); assert.equal(mixed.url, 'https://state.example/api/convai/token'); assert.equal(mixed.secret, 's'.repeat(40)); assert.equal(mixed.fallback, false);

@@ -46,6 +46,18 @@ Limits as Cloudflare publishes them for the free plan (check the dashboard; they
 
 **Expected use:** this is a backup used by players who cannot reach Vercel, and by anyone while Vercel is down. If 300 players use it a day that is about 1,000 requests, 4,000 rows written and a handful of reports: 1% of each limit. If the free quota ever runs out, the Worker answers with errors until the next UTC day, the client falls back to its other server or to a non-Convai provider as it does for any outage, and nothing is billed (the free plan has no overage).
 
+## How the mod uses it (the client side)
+
+The mod holds two backend addresses. The Worker's is a placeholder until this is deployed; once it is, three places learn it (none holds a secret, the Worker takes the same client secret as Vercel):
+
+| Where | What to set |
+|---|---|
+| Token sign-in, players | repository variable `CONVAI_AUTH_BACKUP_URL` = `https://<worker address>/api/convai/token` (optional; the release build ships it as `backupUrl` in `app/defaults/convai-auth.json`; `--auth-backup-url` for a local build). Unset, the Runtime has one backend. |
+| Error reports, players | `"backupUrl": "https://<worker address>"` in `app/defaults/error-reports.json`, the file the owner adds to the Runtime by hand (same secret as Vercel's `ERROR_REPORT_SECRET`) |
+| A developer machine | `backupUrl` in `convai-auth.json` in the data folder, or `CYBERPUNK_CONVAI_AUTH_BACKUP_URL` |
+
+Behaviour (`bridge/convai-credential.mjs`, `bridge/error-reports.mjs`; tests `bridge/convai-backup.test.mjs`, `bridge/error-reports-backup.test.mjs`, which drive the real Worker code): the bridge asks the backend that answered last (Vercel at first). If that one **fails to answer** (the request throws: DNS, reset, timeout, TLS; or a server error; or something that is not our JSON, like a provider's block page) the other is asked at once; if it is merely silent for 6 seconds, the other is asked as well and the first real answer wins (the other request is cancelled), so a line that drops packets does not cost a full 25 s. An **answer is obeyed** and never taken to the other server: a refusal, a rate limit, the daily allowance, paused, outdated, a stale clock. At most one request per server per attempt, so the attempt budget and each server's per-install hourly limit are unchanged. The server that answered stays first for the run of the bridge. A turn never waits for any of this (at most 4 seconds in `ready()`, as before). Error reports follow the same rule, one at a time, a failure counting only when both fail.
+
 ## Setting it up
 
 ### What the owner does (once, about ten minutes, no card needed)
@@ -73,7 +85,7 @@ Limits as Cloudflare publishes them for the free plan (check the dashboard; they
 
 - First deploy and every later one, from `auth-backend-cf`: `npx wrangler deploy`.
 - Check: `curl https://<address>/api/readyz` (must say `"status":"ready"`, `secretsSeparate: true`), `curl -H "Authorization: Bearer <admin secret>" "https://<address>/api/readyz?ping=1"`, then one real token: `node auth-backend/scripts/probe.mjs https://<address>/api/convai/token --secret-file <signing secret file>`.
-- The address then goes in as the mod's second backend (the Part B change in `bridge/`, `docs/CONVAI_AUTH_BACKEND.md`).
+- The address then goes in as the mod's second backend (next section).
 
 No secret is ever written in `wrangler.toml` or anywhere in this folder (`.gitignore` also keeps `.dev.vars`, `*.secret` and `secrets/` out). `wrangler.toml` `[vars]` holds only public settings.
 

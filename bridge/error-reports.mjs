@@ -13,7 +13,9 @@
 // Throttles: one report per error signature per installation per UTC day; twenty reports per installation per UTC day (the backend allows more,
 // auth-backend/api/_lib/config.js errorInstallPerDay, so the day's edges never refuse one); every request
 // has a 10 s timeout; a failed send waits 15 minutes and three failures stop it for the session; a 404 (a backend without this
-// endpoint), a 401 or a 429 stops it for the session. Nothing is retried in a loop.
+// endpoint), a 401 or a 429 stops it for the session. Nothing is retried in a loop. With a second backend (the Cloudflare Worker, for
+// players who cannot reach the first) a send that the first does not answer goes to the second in the same flush (a failure counts only
+// when both fail), and the one that answered is tried first for the rest of the session.
 //
 // What a report holds (buildErrorPayload): the signature, the error's kind, message and top frames; versions (Scripts, Runtime, game,
 // CET, RED4ext, redscript, Codeware, ArchiveXL, Node, Windows); the provider, voice and Local AI model choices;
@@ -33,7 +35,7 @@ export {accountNames};
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards, cachedMemoryFacts} from './setup-check.mjs';
 import {checkRuntimeFiles} from './runtime-integrity.mjs';
-import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
+import {AUTH_CONFIG_FILE, INSTALL_FILE, cleanBackupUrl, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {GAME_EVENTS_FILE, QUEUE_FOLDER, attachLogs, cleanSlow, clearQueue, errorReportsEnabled, errorReportsSetting, parseGameEvents, readQueue, recordErrorEvent,
   removeQueued, sentPath} from './error-events.mjs';
 
@@ -73,11 +75,12 @@ export const hashInstall = installId => createHash('sha256').update(`error-repor
 // ------------------------------------------------------------------ the address
 
 // The backend's address and signing secret as a release ships them: app/defaults/error-reports.json in the Runtime package,
-// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's ERROR_REPORT_SECRET>"} (never the token signing secret, which ships in
-// convai-auth.json). Added to the Runtime by hand, not by the release build; the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
+// {"version": 1, "url": "https://<deployment>", "backupUrl": "https://<worker>", "secret": "<the deployment's ERROR_REPORT_SECRET>"} (never the token signing
+// secret, which ships in convai-auth.json). Added to the Runtime by hand, not by the release build; the repository has none. Only the origins of url and of the optional
+// backupUrl (the Cloudflare Worker, auth-backend-cf/, which takes the same secret) are used. The secret is obfuscation, not authentication (auth-backend/README.md).
 export const PACKAGED_TARGET_FILE = join('defaults', 'error-reports.json');
 
-/** The packaged address, {url, secret}, or null when the file is missing, damaged, not https (or a local address) or its secret is short. */
+/** The packaged address, {url, secret[, backupUrl]}, or null when the file is missing, damaged, not https (or a local address) or its secret is short. */
 export async function packagedTarget({project, readText = path => readFile(path, 'utf8')} = {}) {
   if (!project) return null;
   try {
@@ -86,7 +89,8 @@ export async function packagedTarget({project, readText = path => readFile(path,
     const url = new URL(typeof value?.url === 'string' ? value.url.trim() : '');
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
     if (secret.length < 16 || !(url.protocol === 'https:' || (url.protocol === 'http:' && local))) return null;
-    return {url: url.href, secret};
+    const backup = cleanBackupUrl(typeof value?.backupUrl === 'string' ? value.backupUrl : '', url.href);
+    return {url: url.href, secret, ...(backup ? {backupUrl: backup} : {})};
   } catch { return null; }
 }
 
@@ -96,7 +100,9 @@ export async function packagedTarget({project, readText = path => readFile(path,
  *      mode does not have to be on): a developer's machine;
  *   2. app/defaults/error-reports.json (packagedTarget): a released Runtime.
  * CYBERPUNK_CONVAI_ERRORS_URL replaces the address (not the secret). null when no source has both: then nothing is sent and events
- * wait in the queue (for at most a week).
+ * wait in the queue (for at most a week). With a second backend (backupUrl in either source) the result also carries `backupUrl`, the second
+ * server's report address: a report that the first server does not answer is sent to the second (ErrorReporter #send). An explicit
+ * CYBERPUNK_CONVAI_ERRORS_URL has no backup.
  */
 export async function reportTarget({env = process.env, stateDirectory, project, readText} = {}) {
   const configured = await readBackendAddress({env, ...(readText ? {readText} : {}), ...(stateDirectory ? {path: join(stateDirectory, AUTH_CONFIG_FILE)} : {})});
@@ -109,7 +115,12 @@ export async function reportTarget({env = process.env, stateDirectory, project, 
   if (!url) return null;
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
   if (!(url.protocol === 'https:' || (url.protocol === 'http:' && local))) return null;
-  return {url: url.href, secret: address.secret};
+  let backupUrl = '';
+  if (!explicit && address.backupUrl) {
+    try { backupUrl = new URL(REPORT_PATH, new URL(address.backupUrl).origin).href; } catch { backupUrl = ''; }
+    if (backupUrl === url.href) backupUrl = '';
+  }
+  return {url: url.href, secret: address.secret, ...(backupUrl ? {backupUrl} : {})};
 }
 
 // ------------------------------------------------------------------ redaction
@@ -416,7 +427,7 @@ export class ErrorReporter {
     this.targetOverride = target;
     this.startedAt = now();
     this.timer = null; this.repeat = null; this.flushing = null; this.closed = false; this.chain = Promise.resolve();
-    this.stopped = null; this.failures = 0; this.retryAt = 0; this.clockOffsetMs = 0; this.gameInfo = {};
+    this.stopped = null; this.failures = 0; this.retryAt = 0; this.clockOffsetMs = 0; this.gameInfo = {}; this.preferBackup = false;
     this.announced = new Set();
   }
 
@@ -579,24 +590,47 @@ export class ErrorReporter {
     return reportTarget({env: this.env, stateDirectory: this.stateDirectory, project: this.project});
   }
 
+  /**
+   * One report to the first server and, if it gives no answer (the request failed, a server error, or something that is not our backend's
+   * JSON, like a block page), to the second (target.backupUrl). The server that answered last is tried first next time. An answer is
+   * obeyed: a 429, a 401 or a 404 from a backend that speaks is never taken to the other one. At most one request per server per report.
+   */
   async #send(target, body) {
+    const urls = target.backupUrl ? (this.preferBackup ? [target.backupUrl, target.url] : [target.url, target.backupUrl]) : [target.url];
+    let first = null;
+    for (const url of urls) {
+      const result = await this.#sendTo(url, target.secret, body);
+      first ??= result;
+      if (result.kind === 'failed' || (urls.length > 1 && result.foreign)) continue;
+      if (urls.length > 1 && (url === target.backupUrl) !== this.preferBackup) {
+        this.preferBackup = url === target.backupUrl;
+        this.#note(`using-${this.preferBackup ? 'backup' : 'main'}`, `the ${this.preferBackup ? 'backup' : 'main'} backend answers; reports go there first`);
+      }
+      return result;
+    }
+    return urls.length > 1 ? {kind: 'failed'} : first;
+  }
+
+  async #sendTo(url, secret, body) {
     const timestamp = String(Math.floor((this.now() + this.clockOffsetMs) / 1000));
     let response;
     try {
-      response = await this.fetchImpl(target.url, {method: 'POST', redirect: 'error', cache: 'no-store',
+      response = await this.fetchImpl(url, {method: 'POST', redirect: 'error', cache: 'no-store',
         headers: {'content-type': 'text/plain; charset=utf-8', accept: 'application/json', 'x-convai-timestamp': timestamp,
-          'x-convai-signature': signRequest(target.secret, timestamp, body)},
+          'x-convai-signature': signRequest(secret, timestamp, body)},
         body, signal: AbortSignal.timeout(this.timings.timeoutMs)});
     } catch { return {kind: 'failed'}; }
     let data = {};
     try { const text = await response.text(); if (text.length <= 16384) data = JSON.parse(text) ?? {}; } catch {}
     const status = response.status;
+    // Our backends always send {"error": ...} with a refusal; without it the answer is a proxy's or an ISP's (matters only with a second server).
+    const foreign = status !== 200 && typeof data?.error !== 'string';
     if (status === 200 && data?.ok === true) return {kind: 'ok', stored: data.stored === true};
-    if (status === 404) return {kind: 'not-found'};
+    if (status === 404) return {kind: 'not-found', foreign};
     if (status === 401 && data?.error === 'stale' && Number.isFinite(data.serverTime)) return {kind: 'stale', serverTime: data.serverTime};
-    if (status === 401 || status === 403) return {kind: 'unauthorized'};
-    if (status === 429) return {kind: 'rate'};
-    if (status === 400 || status === 413 || status === 422) return {kind: 'rejected'};
+    if (status === 401 || status === 403) return {kind: 'unauthorized', foreign};
+    if (status === 429) return {kind: 'rate', foreign};
+    if (status === 400 || status === 413 || status === 422) return {kind: 'rejected', foreign};
     return {kind: 'failed'};
   }
 

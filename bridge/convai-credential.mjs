@@ -14,6 +14,15 @@
 // Failure handling: an unreachable or broken backend lets the bridge fall back to a key of the developer's own (only while the flag
 // allows it and such a key exists; a release has neither); a backend that REFUSES (daily allowance used, rate limit, paused, outdated,
 // blocked) is obeyed, never bypassed. With no token and no fallback a turn fails at once with a plain notice (unavailableError).
+//
+// Two backends (auth-backend-cf/): players whose network cannot reach the Vercel backend (Russia, China) are served by a second one with
+// the same API on Cloudflare Workers, `backupUrl` beside `url` (convai-auth.json, the release's app/defaults/convai-auth.json, or
+// CYBERPUNK_CONVAI_AUTH_BACKUP_URL). Only a FAILURE TO ANSWER switches: the request threw (DNS, reset, timeout, TLS), or the answer was
+// a server error or not our backend's JSON (a proxy's block page). An answer from the backend (a refusal, a rate limit, the daily
+// allowance, paused, outdated) is obeyed and never taken to the other one. The server that answered last is asked first from then on
+// (kept for the run of the bridge). If the first is silent for STAGGER_MS the second is asked as well, so a line that drops packets
+// does not cost a full timeout; whichever answers first wins and the other request is cancelled. At most one request per backend per
+// attempt, so the attempt budget (and the backend's per-install hourly limit, which each server counts for itself) is unchanged.
 import {createHmac, randomUUID} from 'node:crypto';
 import {readFile, writeFile, rename, rm} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -36,6 +45,8 @@ const RETRY_STEPS_MS = [5_000, 15_000, 60_000, 5 * MINUTE];
 const LEAD_MIN_MS = 8 * MINUTE, LEAD_SPAN_MS = 2 * MINUTE;
 const MIN_LIFE_SECONDS = 900;
 const NEAR_EXPIRY_MS = 15_000;
+// With a second backend: how long the first may stay silent before the second is asked as well.
+export const STAGGER_MS = 6_000;
 // A player turn (or invitation) that finds no token after a transport failure tries once at once instead of waiting for the retry
 // schedule above, so a short network blip costs one turn, not up to five minutes. Bounded: only for failures of the network or the
 // server (a refusal is obeyed), at the earliest this long after the last failure, a shorter timeout than the background fetch, at most
@@ -68,13 +79,23 @@ async function readJsonObject(readText, path) {
 }
 const asText = value => typeof value === 'string' ? value.trim() : '';
 
+/** The second backend's token address as an https (or local) href, or '' when it is not set, not an address, or the same as the first. */
+export function cleanBackupUrl(raw, primary = '') {
+  try {
+    const parsed = new URL(String(raw ?? '').trim());
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+    if (!(parsed.protocol === 'https:' || (parsed.protocol === 'http:' && local)) || parsed.username || parsed.password) return '';
+    return parsed.href === primary ? '' : parsed.href;
+  } catch { return ''; }
+}
+
 /**
  * Whether backend mode is on, and how. Per field, the first source that has it: the environment, then convai-auth.json in the state
  * folder (`path`), then the release package's app/defaults/convai-auth.json (`packagedPath`). So a developer's own state-folder file
  * with "enabled": false still switches a package's backend mode off. Off when no source switches it on: nothing changes for a
  * development checkout until a deployed backend is enabled. `usePackaged: false` leaves the package's file out (the bridge does that
- * when the state folder holds a plain developer key: that key is used directly, as it always was). Returns {enabled, url, secret,
- * fallback, problem}; `problem` says why a requested backend mode could not start (it never contains a secret).
+ * when the state folder holds a plain developer key: that key is used directly, as it always was). Returns {enabled, url, backupUrl,
+ * secret, fallback, problem} (backupUrl: the second backend's token address, '' when there is none, see cleanBackupUrl); `problem` says why a requested backend mode could not start (it never contains a secret).
  */
 export async function readAuthSettings({env = process.env, readText = path => readFile(path, 'utf8'), path, packagedPath, usePackaged = true} = {}) {
   const file = await readJsonObject(readText, path);
@@ -84,17 +105,18 @@ export async function readAuthSettings({env = process.env, readText = path => re
     : typeof file.enabled === 'boolean' ? file.enabled : packaged.enabled === true;
   const url = String(env.CYBERPUNK_CONVAI_AUTH_URL || asText(file.url) || asText(packaged.url) || '').trim();
   const secret = String(env.CYBERPUNK_CONVAI_AUTH_SECRET || asText(file.secret) || asText(packaged.secret) || EMBEDDED_SECRET || '').trim();
+  const backupRaw = env.CYBERPUNK_CONVAI_AUTH_BACKUP_URL || asText(file.backupUrl) || asText(packaged.backupUrl) || '';
   const fallback = set('CYBERPUNK_CONVAI_AUTH_FALLBACK') ? !falsy(env.CYBERPUNK_CONVAI_AUTH_FALLBACK)
     : typeof file.fallback === 'boolean' ? file.fallback : typeof packaged.fallback === 'boolean' ? packaged.fallback : true;
-  if (!asked) return {enabled: false, url: '', secret: '', fallback, problem: null};
+  if (!asked) return {enabled: false, url: '', backupUrl: '', secret: '', fallback, problem: null};
   let parsedUrl = null;
   try { parsedUrl = new URL(url); } catch { /* reported below */ }
   const local = parsedUrl && ['localhost', '127.0.0.1', '[::1]'].includes(parsedUrl.hostname);
   if (!parsedUrl || !(parsedUrl.protocol === 'https:' || (parsedUrl.protocol === 'http:' && local))) {
-    return {enabled: false, url: '', secret: '', fallback, problem: 'the sign-in backend address is missing or not https'};
+    return {enabled: false, url: '', backupUrl: '', secret: '', fallback, problem: 'the sign-in backend address is missing or not https'};
   }
-  if (secret.length < 16) return {enabled: false, url: '', secret: '', fallback, problem: 'the sign-in backend secret is not set'};
-  return {enabled: true, url: parsedUrl.href, secret, fallback, problem: null};
+  if (secret.length < 16) return {enabled: false, url: '', backupUrl: '', secret: '', fallback, problem: 'the sign-in backend secret is not set'};
+  return {enabled: true, url: parsedUrl.href, backupUrl: cleanBackupUrl(backupRaw, parsedUrl.href), secret, fallback, problem: null};
 }
 
 /**
@@ -119,7 +141,9 @@ export async function readBackendAddress({env = process.env, readText = path => 
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
     if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && local)) url = parsed.href;
   } catch { /* none set */ }
-  return {url, secret};
+  // The second backend, for the error reports to fall back to (only its origin is used there).
+  const backupUrl = cleanBackupUrl(env.CYBERPUNK_CONVAI_AUTH_BACKUP_URL || (typeof file.backupUrl === 'string' ? file.backupUrl : ''), url);
+  return {url, secret, ...(backupUrl ? {backupUrl} : {})};
 }
 
 async function writePrivate(path, text) {
@@ -171,14 +195,19 @@ const clampSeconds = (value, fallback, min, max) => Number.isFinite(value) ? Mat
 export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
   #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
-  #failedKind = ''; #failedAt = 0; #cause = ''; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
+  #failedKind = ''; #failedAt = 0; #cause = ''; #altCause = ''; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
+  #urls = []; #preferred = 0; // the backends' token addresses (the second only with a backupUrl) and the index of the one asked first
 
-  constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
-    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = REQUEST_TIMEOUT_MS, fallback = true, onLimit = () => {}} = {}) {
+  constructor({url, backupUrl = '', secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
+    clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = REQUEST_TIMEOUT_MS, fallback = true, onLimit = () => {},
+    staggerMs = STAGGER_MS} = {}) {
     if (typeof url !== 'string' || !url || typeof secret !== 'string' || !secret || !UUID_V4.test(String(installId))
         || typeof fetchImpl !== 'function') throw Error('Invalid sign-in backend configuration');
     Object.defineProperty(this, 'secret', {value: secret}); // not enumerable: never in a snapshot or a JSON dump
-    Object.assign(this, {url, installId, version, fetchImpl, now, setTimer, clearTimer, random, log, timeoutMs, fallback, onLimit});
+    Object.assign(this, {url, installId, version, fetchImpl, now, setTimer, clearTimer, random, log, timeoutMs, fallback, onLimit, staggerMs});
+    const backup = cleanBackupUrl(backupUrl, url);
+    this.backupUrl = backup;
+    this.#urls = backup ? [url, backup] : [url];
     this.dailyLimit = null; // the per-install daily limit the backend last reported (a whole number in the accepted range), or null
     this.pending = 0; this.lastKind = undefined; this.blocked = null; this.allowance = null; this.minClient = null;
     this.attempts = 0;
@@ -271,7 +300,8 @@ export class TokenSource {
   snapshot() {
     return {installTail: this.installId.slice(-4), expiresAt: this.#token?.expiresAt ?? null, lastKind: this.lastKind ?? null,
       blocked: this.blocked ? {...this.blocked} : null, allowance: this.allowance, pendingTurns: this.pending, minClient: this.minClient,
-      usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit, lastCause: this.#cause || null};
+      usingFallback: this.#usingFallback, dailyLimit: this.dailyLimit, lastCause: this.#cause || null,
+      backup: this.#urls.length > 1 ? {host: this.#host(1), usingBackup: this.#preferred === 1, lastCause: this.#altCause || null} : null};
   }
   /** The backend's daily limit travels with every token and every daily refusal: the top-level `dailyInteractionLimit`, else the
    * `allowance.limit` an older deployment sends. A value that is missing, not a whole number or out of range is ignored (the last
@@ -303,17 +333,67 @@ export class TokenSource {
     // The backend refuses a report above 1000 turns (400), which would repeat for ever; the rest follows in the next answer.
     const sent = Math.min(this.pending, 1000);
     let outcome;
-    try { outcome = await this.#post(sent, turn ? TURN_RETRY_TIMEOUT_MS : this.timeoutMs); }
+    const timeout = turn ? TURN_RETRY_TIMEOUT_MS : this.timeoutMs;
+    try { outcome = this.#urls.length > 1 ? await this.#postBoth(sent, timeout) : await this.#postTo(0, sent, timeout); }
     catch (error) { outcome = {kind: 'unreachable', cause: networkCause(error)}; }
     this.#apply(outcome, sent, turn);
   }
-  async #post(turns, timeoutMs = this.timeoutMs) {
+  /** True when the outcome is a failure to get an answer from the backend (so the other backend may be tried), not an answer of the backend. */
+  static #silent(outcome) { return outcome.kind === 'unreachable' || outcome.kind === 'server' || outcome.foreign === true; }
+  #host(index) { try { return new URL(this.#urls[index]).host; } catch { return 'unknown'; } }
+  /** One request to backend `index`, never throwing: a thrown error becomes an unreachable outcome with its cause. */
+  #postSafe(index, turns, timeoutMs, signal) {
+    return this.#postTo(index, turns, timeoutMs, signal).then(outcome => ({...outcome, via: index}),
+      error => ({kind: 'unreachable', cause: networkCause(error), via: index}));
+  }
+  /**
+   * Two backends: the one that answered last is asked first. If it fails to answer, or is silent for staggerMs, the other is asked too
+   * (at most one request each); the first real answer wins and the request still running is cancelled. When neither answers, the first
+   * one's failure is reported (with the other's cause beside it). Resolves with the outcome, `via` naming the backend that gave it.
+   */
+  #postBoth(turns, timeoutMs) {
+    const first = this.#preferred, second = 1 - this.#preferred;
+    const stop = new AbortController();
+    const results = [];
+    return new Promise(resolve => {
+      let started = 1, finished = false, timer = null;
+      const finish = outcome => {
+        if (finished) return;
+        finished = true;
+        if (timer !== null) this.clearTimer(timer);
+        timer = null;
+        stop.abort();
+        resolve(outcome);
+      };
+      const begin = index => {
+        void this.#postSafe(index, turns, timeoutMs, stop.signal).then(outcome => {
+          if (finished) return;
+          results.push(outcome);
+          if (!TokenSource.#silent(outcome)) finish(outcome);
+          else if (results.length === 2) {
+            const head = results.find(result => result.via === first) ?? results[0], other = results.find(result => result !== head);
+            finish({...head, altCause: other?.cause ?? (other ? other.kind : '')});
+          } else startSecond();
+        });
+      };
+      const startSecond = () => {
+        if (started === 2 || finished) return;
+        started = 2;
+        if (timer !== null) { this.clearTimer(timer); timer = null; }
+        begin(second);
+      };
+      begin(first);
+      if (!finished && started === 1) { timer = this.setTimer(() => { timer = null; startSecond(); }, this.staggerMs); timer?.unref?.(); }
+    });
+  }
+  async #postTo(index, turns, timeoutMs = this.timeoutMs, cancel = null) {
     const body = JSON.stringify({installId: this.installId, modVersion: this.version, turnsSinceLast: turns, minLifeSeconds: MIN_LIFE_SECONDS});
     const timestamp = String(Math.floor((this.now() + this.#clockOffsetMs) / 1000));
-    const response = await this.fetchImpl(this.url, {method: 'POST', redirect: 'error', cache: 'no-store',
+    const signal = cancel && typeof AbortSignal.any === 'function' ? AbortSignal.any([AbortSignal.timeout(timeoutMs), cancel]) : AbortSignal.timeout(timeoutMs);
+    const response = await this.fetchImpl(this.#urls[index], {method: 'POST', redirect: 'error', cache: 'no-store',
       headers: {'content-type': 'text/plain; charset=utf-8', accept: 'application/json', 'x-convai-timestamp': timestamp,
         'x-convai-signature': signRequest(this.secret, timestamp, body)},
-      body, signal: AbortSignal.timeout(timeoutMs)});
+      body, signal});
     let data = null;
     try { const text = await response.text(); if (text.length <= 16384) data = JSON.parse(text); } catch { /* not JSON: a server or proxy page */ }
     const object = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
@@ -329,17 +409,26 @@ export class TokenSource {
             : status === 429 ? (error === 'daily' ? 'daily' : 'rate')
               : status === 503 && error === 'paused' ? 'paused'
                 : status === 503 && error === 'busy' ? 'busy' : 'server';
-    return {kind, data: object};
+    // An answer that is not our backend's JSON (a proxy's or an ISP's block page, a bare gateway error) is no answer: with a second backend it is
+    // handled like an unreachable one. Our backends always send {"error": ...} with a refusal.
+    return {kind, data: object, foreign: !error};
   }
   #announce(kind, message) {
     if (this.#announced === kind) return;
     this.#announced = kind;
     this.log(message);
   }
-  #apply({kind, data, cause}, sent, turn = false) {
+  #apply(outcome, sent, turn = false) {
+    const {kind, data, cause, altCause, via} = outcome;
     const now = this.now();
     this.lastKind = kind;
     this.#cause = kind === 'unreachable' && typeof cause === 'string' ? cause : '';
+    this.#altCause = typeof altCause === 'string' && /^[A-Za-z][A-Za-z0-9_-]{1,39}$/.test(altCause) ? altCause : '';
+    // The backend that really answered (anything but a failure to answer) is asked first from now on.
+    if (via !== undefined && via !== this.#preferred && !TokenSource.#silent(outcome)) {
+      this.#preferred = via;
+      this.log(`Sign-in backend: ${this.#host(via)} is answering; asked first from now on`);
+    }
     this.#failedKind = kind === 'ok' ? '' : kind; this.#failedAt = now; // the real kind: lastKind may be turned into 'server' below
     this.#turnFails = kind === 'ok' ? 0 : turn ? this.#turnFails + 1 : this.#turnFails;
     if (typeof data?.minClient === 'string') this.minClient = data.minClient.slice(0, 20);
@@ -401,7 +490,8 @@ export class TokenSource {
     } else {
       const delay = RETRY_STEPS_MS[Math.min(this.#failures, RETRY_STEPS_MS.length - 1)];
       this.#failures += 1;
-      this.#announce(`${kind}:${this.#cause}`, `Sign-in backend ${kind === 'unreachable' ? `could not be reached${this.#cause ? ` (${this.#cause})` : ''}` : `failed (${kind})`}; retrying`);
+      const causes = this.#cause ? ` (${this.#cause}${this.#altCause ? `; backup: ${this.#altCause}` : ''})` : '';
+      this.#announce(`${kind}:${this.#cause}:${this.#altCause}`, `Sign-in backend ${kind === 'unreachable' ? `could not be reached${causes}` : `failed (${kind})`}; retrying`);
       this.#schedule(delay);
     }
   }
