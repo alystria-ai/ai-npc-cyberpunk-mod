@@ -1,14 +1,14 @@
-# Voice language packs and PocketTTS models
+# Multilingual packs and PocketTTS models
 
 This is the text for `multilingual/README.md` in `alystria-ai/ai-npc-cyberpunk-mod-packs` (written 2026-10-22; not uploaded). Everything below the line is the file.
 
 ---
 
-# Voice language packs and PocketTTS models
+# Multilingual packs and PocketTTS models
 
 Optional. Get only the languages you play in. Extract each zip into your Cyberpunk 2077 game folder (the folder with bin, archive and red4ext), like the other packs. These files are only here, on Hugging Face.
 
-## Voice language packs
+## Multilingual packs
 
 One zip per language. With a pack installed, when a character replies in that language their AI voice is cloned from the game's own dubbed voice in that language, instead of from the English actor. Works with the OmniVoice voice, the Mistral (Voxtral) voice and, with its PocketTTS model (below), the Pocket voice.
 
