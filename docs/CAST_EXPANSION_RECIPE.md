@@ -301,8 +301,8 @@ nothing else (the 15 voice rows are already in the live `runtime/` configs), res
 
 ## Third batch (2026-10-23, branch `feat/cast-batch-3`)
 
-Three characters, listed in `bridge/cast-expansion-keys.mjs` as `CAST_EXPANSION_3_KEYS`: Hasan Demir, Pedro Aimar and Mr. Blue Eyes. Text,
-knowledge, Convai original and twin are done; the game voices and the twins' language boxes are owed (below).
+Three characters, now part of `CAST_EXPANSION_KEYS` in `bridge/cast-expansion-keys.mjs`: Hasan Demir, Pedro Aimar and Mr. Blue Eyes. Text,
+knowledge, Convai original and twin, the game voices (2026-10-23, below) and the twins' language boxes are done; only the bucket upload (section 9) waits for the owner.
 
 - **Body records found (the two "no body record found" characters of batch 2 have one each).** A record name can be tested by hash, but
   guessing names found nothing for Hasan. Two reads of installed data settled both:
@@ -333,7 +333,7 @@ knowledge, Convai original and twin are done; the game voices and the twins' lan
 - **`merge.mjs profiles` and the first-person store.** `characters/first-person-profiles.json` is not uniformly indented any more, so the merge
   script rewrites the whole file with 2-space indentation (about 2,500 changed lines). Restore the file from git and append the new entries in the
   file's own style instead (a few lines of Node; the content is identical).
-- **Voices (owed).** Evidence is already attributed by the tools (read-only on the game files):
+- **Voices (built 2026-10-23, fast path; bucket upload still owed).** Evidence was attributed by the tools (read-only on the game files):
   - Hasan: `python attribute.py --key hasan-demir --prefix hasan --token sts_ep1_04 --token hasan_default`: 110 of 119 lines; scenes `sts_ep1_04_hasan`,
     `sts_ep1_04_hasan_final` (actor `hasan`, voicetag 3262303400953671680) and `sts_04_hasan_default` (actors `hasan`, `hasan_squat`); the 9 open-world
     `hasan_ow_vsets_sts_chars` lines are in no scene and stay out. 443 s of `hasan_sts_ep1_04`, 182 s of `hasan_quest_3rd_chars_defaults`.
@@ -350,3 +350,10 @@ knowledge, Convai original and twin are done; the game voices and the twins' lan
   `{character_id, workspace_id, language_hardening_mode: 'off'}`), read back `off`, `languageBoxOff: true` recorded in `runtime/multilingual-profiles.json` and the release data.
 - **Appearance.** Only Mr. Blue Eyes has a text (wiki: black hair, blue eyes, an understated expensive suit). Hasan's wiki Appearance section is
   empty and Pedro's says only grey hair; both stay `source: none` until a picture is approved for download (infobox image, step 5).
+- **Voice build, fast path (2026-10-23).** `survey.py` and `attribute.py` as above, `voice-spec.json` per key with every attributed scene actor accepted (Pedro's
+  `pedro_aimar_holocall` is not exported and not accepted), `extract.py --max 30`, `analyze.py` (all three in about 4 minutes), `build.py`, `merge_rows.mjs`, `merge.mjs release-plan`
+  (`preparedLocalProfiles` 126). The owner asked for in-person audio only, so a spectrum check ran on every extracted clip (99% of the energy sits at 7 to 9 kHz
+  and the 4 kHz-and-up band is about -10 to -13 dB; phone audio would end near 3.5 kHz); all clips used are `vo` folder lines, none from `vo_holocall`. Pedro needed
+  `"relaxPeak": true` (loud lines, peaks -2 to -3 dBFS, none clipped). Short/long set seconds: Hasan 8.5/16.6 (`hasan_sts_ep1_04`, ids ending 525848 and 094528),
+  Pedro 7.7/14.6 (`pedro_aimar`, 307200 and 784448), Mr. Blue Eyes 8.4/16.2 (`q203_05`/`q203_06` lines, 611584 and 260672). Ear-check renders (OmniVoice, long reference): the
+  owner's folder `deliverables/voice-samples-batch3/`. Upload step (section 9): the three WAVs per key plus the three config files, owner's go required.

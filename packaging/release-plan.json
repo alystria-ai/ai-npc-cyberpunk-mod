@@ -976,6 +976,7 @@
       "garry-the-prophet",
       "grayson",
       "hanako-arasaka",
+      "hasan-demir",
       "henry",
       "iris-tanner",
       "jackie-welles",
@@ -1006,6 +1007,7 @@
       "meredith-stout",
       "misty-olszewski",
       "mitch-anderson",
+      "mr-blue-eyes",
       "mr-hands",
       "muamar-reyes",
       "nancy-hartley",
@@ -1017,6 +1019,7 @@
       "padre-ibarra",
       "panam-palmer",
       "patricia",
+      "pedro-aimar",
       "pepe-najarro",
       "placide",
       "r3n0",
@@ -1069,7 +1072,7 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 123,
+      "preparedLocalProfiles": 126,
       "fallbackProfiles": 2
     },
     "startupProfiles": [
