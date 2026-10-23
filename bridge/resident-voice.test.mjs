@@ -672,3 +672,50 @@ test('recoverExit looks at the process again after an unconfirmed exit and resol
   timers.advance(12_000); assert.ok(h.child.kills > kills, 'stopped again while it still runs');
   alive = false; timers.advance(1000); assert.equal(await recovered, true); assert.equal(h.client.child, null);
 });
+
+// ---- a pack clip prepared ahead of the reply, and a start that does not warm the English voices ------------------------------------------------------
+
+test('a language pack clip is prepared ahead of its reply: one prepare command carrying the clip, the English profile untouched, a refused clip answered as a fallback', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await h.client.start();
+  const used = h.client.prepareLanguage('alex', packClip); await tick();
+  assert.equal(h.requests.length, 1);
+  assert.deepEqual(h.requests[0], {op: 'prepare', id: 1, profile: 'alex', languageReference: packClip});
+  h.reply(0, {preparedProfiles: [...LOCAL_VOICE_KEYS], languageReference: 'used'});
+  assert.deepEqual(await used, {provider: 'omnivoice', profile: 'alex', languageReference: 'used', ms: 1400});
+  assert.equal(h.client.profileReady('alex'), false, 'the English voice was not prepared by it');
+  const refused = h.client.prepareLanguage('alex', packClip); await tick();
+  h.reply(1, {preparedProfiles: [...LOCAL_VOICE_KEYS], languageReference: 'fallback'});
+  assert.equal((await refused).languageReference, 'fallback');
+  // The reply that follows is the usual one, with no hidden render of the English voice in front of it.
+  const audio = h.client.synthesize('alex', 'A reply.', {language: 'zh', languageReference: packClip}); await tick();
+  assert.equal(h.requests[2].op, 'synthesize');
+  h.reply(2, {preparedProfiles: [...LOCAL_VOICE_KEYS], languageReference: 'used'}); await audio;
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('preparing a pack clip rejects what the worker must never be sent: another character, a malformed clip', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await assert.rejects(h.client.prepareLanguage('nobody', packClip), /Convai voice/);
+  await assert.rejects(h.client.prepareLanguage('alex', {...packClip, sha256: 'nope'}), /Invalid language reference/);
+  await assert.rejects(h.client.prepareLanguage('alex', {reference: packClip.reference, sha256: packClip.sha256}), /Invalid language reference/);
+  await assert.rejects(h.client.prepareLanguage('alex', null), /Invalid language reference/);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.starts(), 0, 'nothing started the worker');
+});
+
+test('a start told to skip the English warm-up passes the flag to the worker and accepts a ready with nothing prepared; without it that ready is refused', async () => {
+  const skipping = harness({protocolVersion: 2, readyFields: {preparedProfiles: []}, workerOptions: {skipStartupWarm: () => true}});
+  await skipping.client.start();
+  assert.deepEqual(skipping.launches[0].args, [resolve(process.cwd(), 'bridge/resident-voice-worker.py'), '--config', 'local-config.json', '--skip-startup-warm']);
+  assert.equal(skipping.client.loaded, true);
+  assert.equal(skipping.client.profileReady('judy-alvarez'), false, 'not prepared yet: the first request prepares it as usual');
+  const closed = skipping.client.close(); skipping.finish(); await closed;
+  // The decision is made at each start, and a failing hook means the default start.
+  for (const hook of [() => false, () => { throw Error('x'); }, undefined]) {
+    const plain = harness({autoReady: false, protocolVersion: 2, workerOptions: {skipStartupWarm: hook}});
+    const failed = assert.rejects(plain.client.start(), /did not warm all profiles/);
+    await tick(); plain.ready({preparedProfiles: []}); await failed;
+    assert.deepEqual(plain.launches[0].args, [resolve(process.cwd(), 'bridge/resident-voice-worker.py'), '--config', 'local-config.json']);
+  }
+});

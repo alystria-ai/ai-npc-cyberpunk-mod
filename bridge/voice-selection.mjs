@@ -108,6 +108,8 @@ export class VoiceSelection {
     // The voice language packs (bridge/voice-language-packs.mjs): a reply in a language that has one is cloned from the pack's clip of the character
     // (OmniVoice here, the Mistral voice in bridge/voxtral-voice.mjs). Pocket speaks English only and never asks.
     this.languagePacks=options.languagePacks||null;
+    // Pack clips the OmniVoice worker was asked to prepare ahead of a reply (warmOmniLanguage): voice|language|hash -> the worker that has it.
+    this.omniLanguageWarm=new Map();
     // keepsReference: key => boolean (the bridge): a voice whose reference a pack's clip must not replace although it is not the player's own clip (V with a V voice mod's reference, docs/V_VOICE.md).
     this.keepsReference=typeof options.keepsReference==='function'?options.keepsReference:()=>false;
     // The PocketTTS models (bridge/pocket-language-models.mjs): with a model and the voice pack of a reply's language, the local Pocket voice speaks that language
@@ -1172,6 +1174,30 @@ export class VoiceSelection {
   hasPlayerClip(key){
     if(isPlayerReference(this.registry?.profiles?.[key]?.reference))return true;
     try{return this.keepsReference(key)===true;}catch{return false;}
+  }
+  /**
+   * OmniVoice, a reply expected in `language` (not English) and a voice language pack with a clip of this character: the worker checks the clip and builds its
+   * conditioning prompt now, while the reply is being written (or the composer is open), so the first line in that language does not do it (about half a second
+   * to a second on a fast card, more on a slow one). Resolves true when the clip was prepared, false when there is nothing to prepare (the caller then prepares the
+   * English voice as usual). Quiet: never throws, and asks the worker once per voice, language and worker.
+   */
+  async warmOmniLanguage(profile, language) {
+    try {
+      if (!language || language === 'en' || this.provider !== 'omni' || this.cloudActive || this.silent || !this.languagePacks) return false;
+      const voice = this.voiceOf(profile);
+      if (!this.usesProfile(voice) || this.hasPlayerClip(voice)) return false;
+      const descriptor = await this.languagePacks.omniDescriptor(language, voice);
+      if (!descriptor) return false;
+      await this.start();
+      const client = this.client, key = `${voice}|${language}|${descriptor.sha256}`;
+      if (!client || this.clientBackend !== 'omni' || this.provider !== 'omni' || typeof client.prepareLanguage !== 'function' || !client.usesProfile?.(voice)) return false;
+      if (this.omniLanguageWarm.get(key) === client) return true;
+      const receipt = await client.prepareLanguage(voice, descriptor);
+      if (receipt?.languageReference !== 'used') return false;
+      this.omniLanguageWarm.set(key, client);
+      while (this.omniLanguageWarm.size > 64) this.omniLanguageWarm.delete(this.omniLanguageWarm.keys().next().value);
+      return true;
+    } catch { return false; }
   }
   async prepareProfile(profile, options = {}) {
     // A character this installation does not voice locally: ready to join. Its replies use the Convai voice only when that was chosen; with any other

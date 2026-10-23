@@ -438,8 +438,10 @@ class ProfileSession:
     readiness stays bounded and is removed when that actual prompt is evicted;
     no unrequested alias is advertised merely because another key prepared it.
     """
-    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None):
+    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None, warm_prompt=None):
         self.registry, self.render, self.encode, self.send = registry, render, encode, send
+        # warm_prompt(file, words) -> milliseconds: builds a reference's conditioning prompt into the prompt cache without rendering anything.
+        self.warm_prompt = warm_prompt
         self.model_info, self.memory_info = model_info, memory_info
         self.prepared_snapshot = prepared_snapshot
         self.evict = evict
@@ -583,7 +585,19 @@ class ProfileSession:
             if (type(request_id) is not int or not 0 < request_id <= 2**53 - 1
                     or not isinstance(key, str) or key not in self.registry['refs']):
                 raise ValueError('Invalid local voice selection')
-            if request.get('op') == 'prepare':
+            if request.get('op') == 'prepare' and request.get('languageReference') is not None:
+                # A voice language pack's clip, prepared ahead of the reply that will be cloned from it (no render, no prepared-list change): its checks,
+                # its conditioning prompt in the cache. 'fallback' when the clip was refused (the English reference speaks that reply).
+                reference = self.language_reference(request['languageReference'])
+                elapsed = 0
+                if reference is not None and self.warm_prompt is not None:
+                    try:
+                        elapsed = self.warm_prompt(*reference)
+                    except Exception as error:  # noqa: BLE001 - the render builds the prompt itself, the preparation was only ahead of it
+                        print(f'Language reference preparation failed: {type(error).__name__}: {error}', file=sys.stderr, flush=True)
+                self.send({'op': 'prepared', 'id': request_id, 'profile': key, 'generationMs': elapsed, 'preparedProfiles': list(self.prepared),
+                           'languageReference': 'used' if reference is not None else 'fallback', **self.model_info, **self.memory_info()})
+            elif request.get('op') == 'prepare':
                 steps = request.get('steps', 32)
                 if type(steps) is not int or steps not in (16, 32):
                     raise ValueError('Invalid local warm-up quality')
@@ -726,9 +740,14 @@ def main():
         pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
+    # The bridge's choice for a session whose replies are all in a language with a voice pack: the English warm-up renders of the startup profiles
+    # would only delay the first line, so the worker is ready as soon as the model is loaded (every profile still prepares when it is first asked).
+    parser.add_argument('--skip-startup-warm', action='store_true')
     args = parser.parse_args()
     paths = resolve_worker_paths()
     registry = validate_config(read_config(args.config), paths=paths)
+    if args.skip_startup_warm:
+        registry['startupProfiles'] = []
     with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None):
         run_worker(registry)
 
@@ -830,6 +849,14 @@ def run_worker(registry):
                 raise ValueError('Local speech exceeded the supported audio limits')
             return values, (time.perf_counter() - started) * 1000
 
+        def warm_prompt(ref, transcript):
+            """The reference's conditioning prompt (its audio read and encoded by the codec) into the adapter's prompt cache, the call the first render would make."""
+            started = time.perf_counter()
+            with torch.inference_mode():
+                tts_backend._get_clone_prompt(backend._model, ref, transcript, True)
+            torch.cuda.synchronize()
+            return (time.perf_counter() - started) * 1000
+
         def encode(values):
             audio = io.BytesIO()
             sf.write(audio, values, backend.sample_rate, format='WAV', subtype='PCM_16')
@@ -845,7 +872,7 @@ def run_worker(registry):
                         tts_backend._prompt_cache.pop(cache_key, None)
 
         session = ProfileSession(registry, render, encode, send, model_info, memory_info,
-                                 prepared_snapshot=lambda: cached_profiles(tts_backend, registry), evict=evict)
+                                 prepared_snapshot=lambda: cached_profiles(tts_backend, registry), evict=evict, warm_prompt=warm_prompt)
         session.startup()
         while True:
             line = sys.stdin.readline(MAX_INPUT + 1)

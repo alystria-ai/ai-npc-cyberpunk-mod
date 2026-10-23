@@ -36,6 +36,16 @@ const RETRY_STEPS_MS = [5_000, 15_000, 60_000, 5 * MINUTE];
 const LEAD_MIN_MS = 8 * MINUTE, LEAD_SPAN_MS = 2 * MINUTE;
 const MIN_LIFE_SECONDS = 900;
 const NEAR_EXPIRY_MS = 15_000;
+// A player turn (or invitation) that finds no token after a transport failure tries once at once instead of waiting for the retry
+// schedule above, so a short network blip costs one turn, not up to five minutes. Bounded: only for failures of the network or the
+// server (a refusal is obeyed), at the earliest this long after the last failure, a shorter timeout than the background fetch, at most
+// this many turn-started attempts in a row without an answer, and only while the install has used fewer than this many requests in the
+// last hour (the backend allows 12 an hour per install; the schedule and bridge restarts need the rest).
+const TURN_RETRY_AFTER_MS = 3_000;
+const TURN_RETRY_TIMEOUT_MS = 6_000;
+const TURN_RETRY_MAX_FAILS = 3;
+const HOURLY_BUDGET = 8;
+const TURN_RETRY_KINDS = new Set(['unreachable', 'server']);
 // Failures that mean "the backend is not working", where the embedded key may stand in. Everything else is an answer.
 const FALLBACK_KINDS = new Set(['unreachable', 'server', 'unauthorized', 'rejected', 'stale', 'ok']);
 
@@ -130,6 +140,7 @@ const clampSeconds = (value, fallback, min, max) => Number.isFinite(value) ? Mat
 export class TokenSource {
   #token = null; #seen = []; #inflight = null; #timer = null; #stopped = false; #started = false; #usingFallback = false;
   #failures = 0; #clockOffsetMs = 0; #clockRetried = false; #announced = ''; #lastKick = 0;
+  #failedKind = ''; #failedAt = 0; #turnRetrying = false; #turnFails = 0; #attemptTimes = [];
 
   constructor({url, secret, installId, version = '0.0.0-dev', fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout,
     clearTimer = clearTimeout, random = Math.random, log = () => {}, timeoutMs = 10_000, fallback = true, onLimit = () => {}} = {}) {
@@ -162,22 +173,34 @@ export class TokenSource {
     return this.#token && this.#token.expiresAt - this.now() > NEAR_EXPIRY_MS ? {token: this.#token.value, expiresAt: this.#token.expiresAt} : null;
   }
   /** A turn found no token although the last answer was good (or there was none yet): the token expired while no renewal ran, for example
-   * after the computer slept. Starts one fetch in the background, at most every 30 s, and only then: after a failure the retry schedule
-   * (5 s, 15 s, 60 s, 5 min) already decides, so a turn never adds requests to a backend that is down. Returns at once. */
+   * after the computer slept. Starts one fetch in the background, at most every 30 s. After a failure the retry schedule (5 s, 15 s, 60 s,
+   * 5 min) decides, with one bounded exception: a network or server failure older than 3 s gets one attempt for this turn (#retryForTurn),
+   * so a short blip does not cost minutes of Convai. A refusal or rate limit is never retried by a turn. Returns at once. */
   kick() {
     if (this.#stopped || !this.#started || this.#inflight || this.current()) return;
-    if (this.lastKind !== undefined && this.lastKind !== 'ok') return;
     const now = this.now();
+    if (this.lastKind !== undefined && this.lastKind !== 'ok') { this.#retryForTurn(now); return; }
     if (now - this.#lastKick < 30_000) return;
     this.#lastKick = now;
     void this.#attempt();
   }
+  /** After a network or server failure, one attempt for this turn: the turn waits for it (ready(), four seconds at most). Not while the
+   * backend refused or rate limited (that wait is the backend's to set), not within 3 s of the last failure, not after three such
+   * attempts in a row failed, not once the hour's budget of requests is used. */
+  #retryForTurn(now) {
+    if (!TURN_RETRY_KINDS.has(this.#failedKind) || now - this.#failedAt < TURN_RETRY_AFTER_MS || this.#turnFails >= TURN_RETRY_MAX_FAILS) return;
+    this.#attemptTimes = this.#attemptTimes.filter(time => now - time < 60 * MINUTE);
+    if (this.#attemptTimes.length >= HOURLY_BUDGET) return;
+    this.#turnRetrying = true;
+    void this.#attempt();
+  }
   /** Resolves true when a token is available. It waits (at most `timeoutMs`) only while a fetch is in flight and no answer so far was a
-   * failure: the first fetch of a run, or the fetch a turn started because the token had run out after a good answer. With a token
-   * held, no fetch running, or an earlier failure (a retry runs in the background and is never waited for), it answers at once. */
+   * failure: the first fetch of a run, or the fetch a turn started (because the token had run out after a good answer, or to retry at
+   * once after a network failure, see kick()). With a token held, no fetch running, or an earlier failure (a scheduled retry runs in the
+   * background and is never waited for), it answers at once. */
   ready({timeoutMs = 4000} = {}) {
     if (this.current()) return Promise.resolve(true);
-    if (!this.#inflight || (this.lastKind !== undefined && this.lastKind !== 'ok')) return Promise.resolve(false);
+    if (!this.#inflight || (this.lastKind !== undefined && this.lastKind !== 'ok' && !this.#turnRetrying)) return Promise.resolve(false);
     return new Promise(resolve => {
       const timer = this.setTimer(() => resolve(false), timeoutMs);
       timer?.unref?.();
@@ -231,7 +254,9 @@ export class TokenSource {
     if (this.#inflight) return this.#inflight;
     if (this.#timer !== null) { this.clearTimer(this.#timer); this.#timer = null; }
     this.attempts += 1;
-    this.#inflight = this.#run().catch(() => {}).finally(() => { this.#inflight = null; });
+    this.#attemptTimes.push(this.now());
+    const turn = this.#turnRetrying;
+    this.#inflight = this.#run(turn).catch(() => {}).finally(() => { this.#inflight = null; this.#turnRetrying = false; });
     return this.#inflight;
   }
   #schedule(delayMs) {
@@ -240,20 +265,20 @@ export class TokenSource {
     this.#timer = this.setTimer(() => { this.#timer = null; void this.#attempt(); }, Math.max(0, delayMs));
     this.#timer?.unref?.();
   }
-  async #run() {
+  async #run(turn = false) {
     // The backend refuses a report above 1000 turns (400), which would repeat for ever; the rest follows in the next answer.
     const sent = Math.min(this.pending, 1000);
     let outcome;
-    try { outcome = await this.#post(sent); } catch { outcome = {kind: 'unreachable'}; }
-    this.#apply(outcome, sent);
+    try { outcome = await this.#post(sent, turn ? TURN_RETRY_TIMEOUT_MS : this.timeoutMs); } catch { outcome = {kind: 'unreachable'}; }
+    this.#apply(outcome, sent, turn);
   }
-  async #post(turns) {
+  async #post(turns, timeoutMs = this.timeoutMs) {
     const body = JSON.stringify({installId: this.installId, modVersion: this.version, turnsSinceLast: turns, minLifeSeconds: MIN_LIFE_SECONDS});
     const timestamp = String(Math.floor((this.now() + this.#clockOffsetMs) / 1000));
     const response = await this.fetchImpl(this.url, {method: 'POST', redirect: 'error', cache: 'no-store',
       headers: {'content-type': 'text/plain; charset=utf-8', accept: 'application/json', 'x-convai-timestamp': timestamp,
         'x-convai-signature': signRequest(this.secret, timestamp, body)},
-      body, signal: AbortSignal.timeout(this.timeoutMs)});
+      body, signal: AbortSignal.timeout(timeoutMs)});
     let data = null;
     try { const text = await response.text(); if (text.length <= 16384) data = JSON.parse(text); } catch { /* not JSON: a server or proxy page */ }
     const object = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
@@ -276,9 +301,11 @@ export class TokenSource {
     this.#announced = kind;
     this.log(message);
   }
-  #apply({kind, data}, sent) {
+  #apply({kind, data}, sent, turn = false) {
     const now = this.now();
     this.lastKind = kind;
+    this.#failedKind = kind === 'ok' ? '' : kind; this.#failedAt = now; // the real kind: lastKind may be turned into 'server' below
+    this.#turnFails = kind === 'ok' ? 0 : turn ? this.#turnFails + 1 : this.#turnFails;
     if (typeof data?.minClient === 'string') this.minClient = data.minClient.slice(0, 20);
     if (kind === 'ok' || kind === 'daily') this.#noteLimit(data);
     if (typeof data?.serverTime === 'number' && Number.isFinite(data.serverTime)) {

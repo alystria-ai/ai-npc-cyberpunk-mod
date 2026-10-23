@@ -356,6 +356,8 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
   voxtral:voxtralVoice,languagePacks,pocketLanguages,keepsReference:vModKeepsReference,
+  // OmniVoice's start does not warm the English startup voices when every reply is in a fixed language that a voice pack speaks (they would only delay the first line).
+  skipStartupWarm: () => { const fixed = multilingual.fixed; return !!fixed && fixed !== 'en' && languagePacks.installed; },
   // Mature content on: no cloud voice speaks (Voxtral reads as Pocket; owner decision 2026-10-20, bridge/mature-content.mjs matureAllowsCloudVoice).
   cloudBarred: () => !matureAllowsCloudVoice(matureContent.enabled),
   aliases: key => customCharacters.voiceAlias(key),
@@ -1137,6 +1139,8 @@ function turnVoice(input) {
     turnVoices.set(cacheKey, plan);
     // A reply expected in a language Pocket has a model for: the model is swapped in while the reply is being written (the worker only; nothing else waits on it).
     if (plan.reason === 'pocket-language' && plan.language && plan.engine === 'pocket' && !input.reaction) void localVoice.warmPocketLanguage(voiceKeyFor(input), plan.language);
+    // The same for OmniVoice: the reply's pack clip of this character is prepared in the worker while the reply is being written.
+    if (plan.reason === 'omni' && plan.language && plan.language !== 'en' && plan.engine === 'omni' && !input.reaction) void localVoice.warmOmniLanguage(voiceKeyFor(input), plan.language);
     while (turnVoices.size > 64) turnVoices.delete(turnVoices.keys().next().value);
   }
   return plan;
@@ -1497,7 +1501,13 @@ function warmTalkTargets(profileKeys, {persona = true} = {}) {
   let personaDone = false;
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
-    if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) void localVoice.prepareProfile(key).catch(() => {});
+    if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) {
+      // A fixed reply language with a voice pack: the pack's clip of this character is what speaks, so that is what is prepared (the English reference only
+      // when the pack has no clip of this character).
+      const fixed = multilingual.fixed;
+      if (fixed && fixed !== 'en') void localVoice.warmOmniLanguage(key, fixed).then(done => done || localVoice.prepareProfile(key)).catch(() => {});
+      else void localVoice.prepareProfile(key).catch(() => {});
+    }
     if (persona && !personaDone && mistral.active && mistral.route === 'local') {
       personaDone = true;
       const profile = profileFor({profileKey: key}, roster);
