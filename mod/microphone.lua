@@ -10,15 +10,19 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 --   hold   the talk key went down / came up. The bridge opens the microphone at the key press and keeps what it hears, so the first word is never lost
 --          while the conversation connection is still opening; the key release stops it on the spot.
 --   listen Voice activation (mod/voice-activation.lua) wants the microphone open (a conversation is possible) or closed.
--- A write happens on a change only: the key's two edges (one write each) and when listening starts or stops. Never per frame.
-local live = {holdId = nil, down = false, listen = false, writes = 0}
+--   warm   the game is being played and talking by voice is possible: the bridge keeps the device open and reads nothing from it, so a key press
+--          starts at once (opening a real device takes 0.4 s to about 2 s, and everything said meanwhile would be lost). Rewritten every 30 s
+--          while on (the bridge lets the device go after 2 minutes without a write: the game is gone).
+-- A write happens on a change only: the key's two edges (one write each), when listening or warm starts or stops, and the 30 s beat while warm.
+-- Never per frame.
+local live = {holdId = nil, down = false, listen = false, warm = false, writes = 0}
 
 local function writeLive()
     live.writes = live.writes + 1
     local f = io.open('runtime/microphone-live.json', 'wb')
     if not f then return false end
     local ok = pcall(function()
-        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen}))
+        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen, warm = live.warm}))
     end)
     f:close()
     return ok
@@ -47,6 +51,16 @@ function M.listen(on)
 end
 
 function M.listening() return live.listen end
+
+function M.warm(on)
+    on = on == true
+    if live.warm == on then return false end
+    live.warm = on
+    return writeLive()
+end
+function M.warming() return live.warm end
+-- The 30 s beat that says the game is still here.
+function M.beat() return live.warm and writeLive() or false end
 
 local function sameOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken

@@ -97,6 +97,7 @@ export class MicTap {
     this.generation = 0;
     this.chain = Promise.resolve(); // capture.begin / end / abort run one at a time
     this.vadSeq = 0;
+    this.warmWanted = false;        // the device is to be kept open (read from nowhere) between recordings
     this.timers = {};
     this._reset();
   }
@@ -171,6 +172,23 @@ export class MicTap {
 
   _claimTimer() {
     this._timer('claim', this.limits.unclaimedMs, () => { if (!this.sink && this.state !== 'closed') this.release(this.owner, 'unclaimed'); });
+  }
+
+  // Keeps the device open between recordings (the capture page's `warm`): a key press then starts at once instead of waiting for the device to open,
+  // which takes 0.4 s idle and up to about 2 s in a running game. Nothing is read from a warm device. `warm(false)` lets it go once no recording uses it.
+  warm(on = true) {
+    this.warmWanted = on === true;
+    if (typeof this.capture.warm !== 'function') return Promise.resolve(null);
+    if (!this.warmWanted) {
+      if (this.state === 'closed') return this._run(() => this.capture.cool()).catch(() => {});
+      return Promise.resolve(null);   // in use: it is cooled when the recording releases it
+    }
+    this.clearTimer(this.timers.idle); delete this.timers.idle;
+    const began = this.now();
+    return this._run(() => this.capture.warm({chunkMs: this.limits.chunkMs})).then(info => {
+      this.log('microphone kept open, reading nothing' + (info?.device ? ' (' + String(info.device).slice(0, 80) + ')' : '') + ', opened in ' + (this.now() - began) + ' ms');
+      return info;
+    }, error => { this.log('the microphone could not be kept open: ' + String(error?.message ?? error).slice(0, 120)); return null; });
   }
 
   // The key went down before the turn's request exists: the tap listens for that request, kept under the key's id.
@@ -265,8 +283,9 @@ export class MicTap {
     this.state = 'closed'; this._reset();
     const aborting = needsAbort ? this._run(() => this.capture.abort()).catch(() => {}) : Promise.resolve();
     this.log('microphone tap released (' + reason + ')' + (previous ? '' : ''));
-    // The capture page is a renderer process: it leaves after a while without a recording.
-    if (typeof this.capture.close === 'function') this._timer('idle', this.limits.idleCloseMs, () => { if (this.state === 'closed') void Promise.resolve(this.capture.close()).catch(() => {}); });
+    // A device that is not kept open is let go with its recording; the capture page (a renderer process) leaves after a while without one.
+    if (!this.warmWanted && this.capture.warmed && typeof this.capture.cool === 'function') void this._run(() => this.capture.cool()).catch(() => {});
+    if (typeof this.capture.close === 'function') this._timer('idle', this.limits.idleCloseMs, () => { if (this.state === 'closed' && !this.warmWanted) void Promise.resolve(this.capture.close()).catch(() => {}); });
     try { this.onRelease(reason); } catch { /* an observer never breaks the tap */ }
     return aborting;
   }

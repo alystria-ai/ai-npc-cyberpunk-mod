@@ -4237,6 +4237,29 @@ end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 
+-- Keeps the bridge's microphone device open, reading nothing, while the world is playable (and for MIC_WARM_LINGER_S after it stops being: a menu
+-- or a loading screen does not close and reopen a device that takes up to about 2 s to open). The talk key then starts a recording with no wait for
+-- the device (docs/VOICE_INPUT.md). Not while voice input is impossible with the chosen provider. The bridge can switch it off
+-- (CYBERPUNK_CONVAI_MIC_WARM=0). A global function, so onUpdate reaches it without a new upvalue.
+MIC_WARM_LINGER_S = 90
+function convaiMicWarmTick(ready)
+    local now = os.clock()
+    -- Whether voice input can work at all is asked every 2 s (it builds a table), not every tick.
+    if not convaiMicWarmAskedAt or now - convaiMicWarmAskedAt >= 2 then
+        convaiMicWarmAskedAt = now
+        convaiMicWarmBlocked = manager.voiceNeedsConvai() == true
+    end
+    if ready and not convaiMicWarmBlocked then convaiMicWarmAt = now end
+    local want = convaiMicWarmAt ~= nil and now - convaiMicWarmAt < MIC_WARM_LINGER_S and not convaiMicWarmBlocked
+    if want ~= microphone.warming() then
+        microphone.warm(want)
+        convaiMicWarmBeatAt = now
+    elseif want and now - (convaiMicWarmBeatAt or 0) >= 30 then
+        convaiMicWarmBeatAt = now
+        microphone.beat()
+    end
+end
+
 -- Voice activation: talk with no key (docs/VOICE_INPUT.md). A global function, so onUpdate reaches it without a new upvalue.
 -- Off (the default): one boolean per tick, no module, no microphone. On: mod/voice-activation.lua opens the bridge's microphone only while a
 -- conversation is possible and begins V's turn when the bridge's detector hears V start speaking. Private talk only.
@@ -4842,6 +4865,9 @@ registerForEvent('onUpdate', function(delta)
     -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
     local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
     if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
+    -- The microphone kept open (reading nothing) while the game is played, so the talk key starts at once: a clock compare per tick.
+    local warmOk, warmError = pcall(convaiMicWarmTick, worldReady)
+    if not warmOk then convaiLogOnce('Microphone warm-up failed: ' .. tostring(warmError)) end
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
         abandonSession('world unavailable during update')

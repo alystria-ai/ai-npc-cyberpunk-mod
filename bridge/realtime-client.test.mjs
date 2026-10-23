@@ -1935,6 +1935,7 @@ function relayFixture({openFails = false, deadTrack = false, enableFailsOnce = f
       this.stream = {id: 'relay-stream', getTracks: () => [this.track]};
     }
     async open() { events.push('relay-open'); if (openFails) throw Error('no worklets'); }
+    start() { events.push('relay-start'); }
     pushBase64(text) { this.pushed.push(text); return true; }
     async drain(timeoutMs) { events.push(['drain', timeoutMs]); return {drained: true, waitedMs: 3}; }
     close() { this.closed++; events.push('relay-close'); }
@@ -2101,5 +2102,13 @@ test('relay: true is ignored when no PcmRelay class is available', async () => {
   const {api} = fixture({allowMic: true});
   const opened = await api.beginVoice(config, {relay: true});
   assert.equal(opened.relay, false); assert.equal(opened.device, 'fixture microphone');
+  await api.close();
+});
+
+test('the relay starts playing only once the SDK has published its track, so the pre-roll is not played into a track nobody receives', async () => {
+  const {api, events} = relayFixture({onEnableAudio: undefined});
+  await api.beginVoice(config, {relay: true});
+  assert.ok(events.includes('relay-start'), JSON.stringify(events));
+  assert.ok(events.indexOf('relay-start') > events.indexOf('microphone'), 'after the microphone publication: ' + JSON.stringify(events));
   await api.close();
 });

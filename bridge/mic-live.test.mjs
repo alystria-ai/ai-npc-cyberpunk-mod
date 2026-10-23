@@ -105,3 +105,69 @@ test('a microphone that cannot open for listening is reported once to the game',
   assert.deepEqual(errors, ['NotAllowedError']);
   assert.equal(tap.state, 'closed');
 });
+
+// ---- the device kept open ------------------------------------------------------------------------------------------------------------------
+function warmSetup({warmAllowed = true} = {}) {
+  const calls = [];
+  let sink = null, warmed = false;
+  const capture = {calls, get warmed() { return warmed; },
+    emit: chunk => sink?.(chunk),
+    warm: async () => { calls.push('warm'); warmed = true; return {device: 'Fake microphone', warm: true}; },
+    cool: async () => { calls.push('cool'); warmed = false; },
+    begin: async onChunk => { calls.push(warmed ? 'begin (warm)' : 'begin (cold)'); sink = onChunk; return {device: 'Fake microphone'}; },
+    end: async () => { calls.push('end'); sink = null; },
+    abort: async () => { calls.push('abort'); sink = null; }};
+  let file = '', clock = 1_000_000;
+  const tap = new MicTap({capture});
+  const live = new MicLive({tap, read: async () => file, warmAllowed, now: () => clock, staleMs: 120_000});
+  return {capture, tap, live, write: value => { file = JSON.stringify(value); return live.poll(); }, advance: ms => { clock += ms; }, poll: () => live.poll()};
+}
+
+test('warm: true keeps the device open before any key press, and the press then finds it open', async () => {
+  const {capture, tap, write} = warmSetup();
+  await write({n: 1, warm: true}); await tick();
+  assert.deepEqual(capture.calls, ['warm']);
+  assert.equal(tap.warmWanted, true);
+  await write({n: 2, warm: true, holdId: 'k-1', down: true}); await tick();
+  assert.deepEqual(capture.calls, ['warm', 'begin (warm)'], 'the press did not have to open the device');
+  await write({n: 3, warm: true, holdId: 'k-1', down: false}); await tick();
+  await tap.release(undefined, 'done');
+  assert.equal(capture.warmed, true, 'the device stays open after the recording');
+  assert.ok(!capture.calls.includes('cool'));
+});
+
+test('warm: false, or the game gone silent for two minutes, lets the device go; a beat keeps it', async () => {
+  const {capture, tap, write, advance, poll} = warmSetup();
+  await write({n: 1, warm: true}); await tick();
+  advance(100_000); await write({n: 2, warm: true}); advance(100_000); await poll(); await tick();
+  assert.equal(tap.warmWanted, true, 'a beat 100 s ago keeps it');
+  advance(30_000); await poll(); await tick();
+  assert.equal(tap.warmWanted, false, 'no beat for 130 s: the game is gone'); assert.equal(capture.warmed, false);
+  await write({n: 3, warm: true}); await tick();
+  assert.equal(capture.warmed, true);
+  await write({n: 4, warm: false}); await tick();
+  assert.equal(capture.warmed, false);
+});
+
+test('a device that is in use is let go when the recording ends, not under it', async () => {
+  const {capture, tap, live, write} = warmSetup();
+  await write({n: 1, warm: true}); await tick();
+  await tap.open('req-1');
+  await write({n: 2, warm: false}); await tick();
+  assert.equal(capture.warmed, true, 'still open: a recording uses it');
+  await tap.release('req-1', 'the recording is over'); await tick();
+  assert.equal(capture.warmed, false);
+  assert.ok(live);
+});
+
+test('the warm device comes back after the voice browser was closed (afterRelease), and CYBERPUNK_CONVAI_MIC_WARM=0 keeps it closed', async () => {
+  const a = warmSetup();
+  await a.write({n: 1, warm: true}); await tick();
+  a.capture.warmed2 = false;
+  assert.equal(a.tap.warmWanted, true);
+  const off = warmSetup({warmAllowed: false});
+  await off.write({n: 1, warm: true}); await tick();
+  assert.deepEqual(off.capture.calls, [], 'the switch keeps the device closed between recordings');
+  await off.write({n: 2, warm: true, holdId: 'k-9', down: true}); await tick();
+  assert.deepEqual(off.capture.calls, ['begin (cold)']);
+});

@@ -18,6 +18,26 @@ turn; audio from the press on is never lost while a connection opens; Voice acti
    press-to-start / press-to-end: for most real presses the release came too early to count, so a second press ended it.
 5. A tap (up within 0.3 s) toggled. There was no separate tap mode setting.
 
+## Live test of 2026-10-23: what was wrong, and the fix (`fix/instant-ptt-live`)
+
+The first build did not work in the game (Convai, Pocket voice): no reply on any voice turn. The bridge log showed two causes.
+
+1. **The device took 1.5 to 2.5 s to open** ("microphone tap open for a turn in 2455 ms"). A real input device needs 0.4 s idle (measured here, Realtek array,
+   Edge) and several times that in a running game; the fake device used for the first tests opened in 54 ms. A hold shorter than that ended before the
+   device opened, and the first words were never heard. Fix: **the device is kept open and unread** (`LocalSttCapture.warm`, `MicTap.warm`): the page opens
+   `getUserMedia`, the AudioContext and the worklet once, and the worklet throws the samples away unconverted until a recording begins. `microphone-live.json`
+   carries `warm`: `mod/init.lua` `convaiMicWarmTick` sets it while the world is playable (and for 90 s after: a menu or a loading screen does not
+   reopen it), rewrites the file every 30 s, and drops it when voice input is impossible (Mistral without recognition). The bridge lets the device go
+   after 2 minutes without a write, and `CYBERPUNK_CONVAI_MIC_WARM=0` keeps it closed. A press then starts a recording in a few milliseconds (Edge with a fake
+   device: `mic-tap-browser.test.mjs`). **Trade-off, owner's call:** while playing, Windows shows the microphone as in use and a Bluetooth headset used as the
+   input stays in its call profile; nothing is read, stored or sent.
+2. **The relay played the pre-roll before the track existed.** `PcmRelay` consumed its FIFO from the moment it was created, so everything pushed while the
+   Convai connection opened (the whole pre-roll, and the first live seconds) was played into a track nobody had published, and Convai heard only the
+   tail ("Who are", never a final transcript, then "No speech was heard" after 15 s). Fix: the worklet collects and plays nothing until `start()`, which
+   `beginVoice` calls once the SDK has published the track (`bridge/realtime-client.mjs`); `drain()` now waits for the real backlog (its fixed 2 s limit could cut
+   a long backlog off in the middle of the words). Proof, in real Edge over a WebRTC loopback (`pcm-relay.test.mjs`, `mic-relay-e2e.test.mjs`): nothing arrives
+   before `start()`, and then the whole pre-roll plus the live audio arrives.
+
 ## What it does now
 
 - **Key down**: `toggleVoice` finds the target, then writes `runtime/microphone-live.json` (`holdId`, `down: true`) *before* the preparation.
@@ -49,12 +69,12 @@ the pump; if the relay cannot open, the page falls back to the SDK's own microph
 
 What cannot be recovered: the audio between the physical key press and the device being open (the key-down file write, the file watch
 wake, `getUserMedia`, the AudioContext). Measured with Chromium's fake device in the real capture page: 54 ms from the signal to the open device on a warm page, about 490 ms when the page has to be created first, so the capture page now stays for 10 minutes after the last recording (it used to leave after 90 s), and goes with the hidden browser when that closes. The bridge logs "microphone tap open for a turn in N ms" for each press. Voice activation has no such gap
-(the device is already open). A closed microphone is a closed microphone.
+(the device is already open). With the device kept warm (see above) the gap is the signal's file write and watch wake, tens of milliseconds.
 
 ## Voice activation (Settings > Voices, off by default)
 
-- **Off**: the microphone is closed except while the key is held. Lua loads nothing (`mod/voice-activation.lua` is not even read) and
-  runs one boolean per 10 Hz tick. The bridge ignores listen requests (`MicLive.setAllowed`), and turning the setting off releases the
+- **Off**: nothing listens. The device may be open and unread for the talk key (above), but the detector does not run and no audio is kept. Lua
+  loads nothing (`mod/voice-activation.lua` is not even read) and runs one boolean per 10 Hz tick. The bridge ignores listen requests (`MicLive.setAllowed`), and turning the setting off releases the
   device, the pre-roll buffer and the detector (`voice activation is off` in the bridge log).
 - **On**: `mod/voice-activation.lua` (10 Hz tick, the "can a conversation happen" test twice a second) writes `listen: true` to
   `microphone-live.json` only while: the world is playable, no menu or text box is open, a profiled character is faced (the existing 0.2 s gaze

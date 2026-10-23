@@ -171,3 +171,30 @@ test('the gaze scan notes the faced character without any extra game call, and a
   const code = tickFunction();
   assert.match(code, /convaiNotices\.mute\(true\)[\s\S]*toggleVoice, false, 'vad', nil, vadId[\s\S]*convaiNotices\.mute\(false\)/);
 });
+
+// ---- the warm device (the microphone kept open, reading nothing, while the game is played) ------------------------------------------------
+function warmFunction() {
+  const start = initSource.indexOf('MIC_WARM_LINGER_S = 90');
+  assert.ok(start > 0, 'init.lua has the warm tick');
+  const end = initSource.indexOf('\nend\n', initSource.indexOf('function convaiMicWarmTick(', start)) + 5;
+  return initSource.slice(start, end);
+}
+
+test('the warm tick keeps the device open while the world is playable and for a linger after, beats every 30 s, and lets go when voice input is impossible', () => {
+  check(`
+    local writes, beats, blocked, clockNow = {}, 0, false, 1000
+    manager = {voiceNeedsConvai = function() return blocked end}
+    microphone = {warming = function() return writes.on == true end, warm = function(on) writes.on = on; writes[#writes + 1] = on end, beat = function() beats = beats + 1 end}
+    os.clock = function() return clockNow end
+    ${warmFunction()}
+    convaiMicWarmTick(true); assert(#writes == 1 and writes[1] == true, 'warm as soon as the world is playable')
+    for i = 1, 50 do clockNow = clockNow + 0.1; convaiMicWarmTick(true) end
+    assert(#writes == 1 and beats == 0, 'no write while nothing changes')
+    clockNow = clockNow + 31; convaiMicWarmTick(true); assert(beats == 1, 'the 30 s beat')
+    -- a menu or a loading screen: the device stays for the linger
+    clockNow = clockNow + 60; convaiMicWarmTick(false); assert(#writes == 1, 'still warm 60 s into a menu')
+    clockNow = clockNow + 40; convaiMicWarmTick(false); assert(#writes == 2 and writes[2] == false, 'let go after the linger')
+    clockNow = clockNow + 1; convaiMicWarmTick(true); assert(writes[3] == true, 'and warm again when the world is back')
+    blocked = true; clockNow = clockNow + 3; convaiMicWarmTick(true); assert(writes[4] == false, 'voice input impossible (Mistral without recognition): the device is let go')
+  `);
+});

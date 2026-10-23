@@ -35,13 +35,19 @@ class LocalSttCapture extends AudioWorkletProcessor {
     // The chunk length comes from the page (a tap that must hand audio on quickly asks for 40 ms; the default is 100 ms).
     this.size = (options && options.processorOptions && options.processorOptions.chunkSamples) | 0 || ${CHUNK_SAMPLES};
     this.block = new Int16Array(this.size); this.used = 0;
+    // Idle until 'reset' (a recording begins) and again after 'stop': an open (warm) device is read by the graph and thrown away right here, unconverted.
+    this.active = false;
     this.port.onmessage = event => {
+      // 'reset': a recording begins on a device that has been open (warm): whatever a half block held is not part of it.
+      if (event.data === 'reset') { this.used = 0; this.active = true; return; }
+      if (event.data === 'stop') { this.active = false; this.used = 0; return; }
       if (event.data !== 'flush' || !this.used) return;
       const tail = this.block.slice(0, this.used); this.used = 0;
       this.port.postMessage(tail.buffer, [tail.buffer]);
     };
   }
   process(inputs) {
+    if (!this.active) return true;
     const channels = inputs[0];
     if (!channels || !channels.length) return true;
     const frames = channels[0].length;
@@ -62,7 +68,7 @@ registerProcessor('local-stt-capture', LocalSttCapture);
 `;
 
 const PAGE_SOURCE = `
-let stream, context, node, source, queue = Promise.resolve(), failure = null;
+let stream, context, node, source, size = 0, warm = false, info = null, queue = Promise.resolve(), failure = null;
 const toBase64 = buffer => {
   const bytes = new Uint8Array(buffer); let text = '';
   for (let i = 0; i < bytes.length; i += 0x2000) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x2000));
@@ -72,45 +78,70 @@ async function release() {
   try { node?.disconnect(); source?.disconnect(); } catch {}
   for (const track of stream?.getTracks() ?? []) track.stop();
   try { await context?.close(); } catch {}
-  stream = context = node = source = undefined;
+  stream = context = node = source = info = undefined; size = 0;
+}
+// Opens the device and builds the graph (the slow part: the device, its echo cancellation, the AudioContext and the worklet), leaving the worklet
+// IDLE: the worklet throws the device's samples away unconverted until begin() starts it. Kept as it is when it is already open for this chunk size.
+async function open(chunkSamples) {
+  const wanted = chunkSamples || 0;
+  const track = stream?.getAudioTracks()[0];
+  if (stream && track && track.readyState === 'live' && context && context.state !== 'closed' && size === wanted) return info;
+  await release();
+  stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true,
+    noiseSuppression: true, autoGainControl: true}});
+  const live = stream.getAudioTracks()[0];
+  if (!live || live.readyState !== 'live') throw Error('No live microphone track');
+  context = new AudioContext({sampleRate: ${SAMPLE_RATE}, latencyHint: 'interactive'});
+  const url = URL.createObjectURL(new Blob([${JSON.stringify(WORKLET_SOURCE)}], {type: 'text/javascript'}));
+  try { await context.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+  source = context.createMediaStreamSource(stream);
+  node = new AudioWorkletNode(context, 'local-stt-capture', {numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1,
+    channelCountMode: 'explicit', processorOptions: {chunkSamples: wanted}});
+  node.port.onmessage = event => {
+    const encoded = toBase64(event.data);
+    queue = queue.then(() => window.__localSttChunk(encoded)).catch(error => { failure = String(error?.message || error); });
+  };
+  source.connect(node);
+  size = wanted;
+  if (context.state !== 'running') await context.resume();
+  // Which input the browser chose (its default) and what else there was, for the bridge's log: a wrong device shows here.
+  let inputs = [];
+  try { inputs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId); } catch {}
+  const settings = live.getSettings ? live.getSettings() : {};
+  info = {device: live.label, sampleRate: context.sampleRate, inputs,
+    settings: {echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression,
+      autoGainControl: settings.autoGainControl, channelCount: settings.channelCount}};
+  return info;
+}
+// The recording is over: the worklet goes idle. The device itself goes too, unless it is being kept open (warm).
+async function stopCapture() {
+  try { node?.port.postMessage('stop'); } catch {}
+  if (!warm) await release();
 }
 window.localStt = {
+  // Opens the device now and keeps it open, reading nothing, so that begin() is instant. Returns the same info begin() does.
+  async warm(chunkSamples) { const opened = await open(chunkSamples); warm = true; return {...opened, warm: true}; },
+  async cool() { warm = false; await release(); },
+  isWarm() { return warm && !!stream && stream.getAudioTracks()[0]?.readyState === 'live'; },
   async begin(chunkSamples) {
-    await release(); queue = Promise.resolve(); failure = null;
-    stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true,
-      noiseSuppression: true, autoGainControl: true}});
-    const track = stream.getAudioTracks()[0];
-    if (!track || track.readyState !== 'live') throw Error('No live microphone track');
-    context = new AudioContext({sampleRate: ${SAMPLE_RATE}, latencyHint: 'interactive'});
-    const url = URL.createObjectURL(new Blob([${JSON.stringify(WORKLET_SOURCE)}], {type: 'text/javascript'}));
-    try { await context.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
-    source = context.createMediaStreamSource(stream);
-    node = new AudioWorkletNode(context, 'local-stt-capture', {numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1,
-      channelCountMode: 'explicit', processorOptions: {chunkSamples: chunkSamples || 0}});
-    node.port.onmessage = event => {
-      const encoded = toBase64(event.data);
-      queue = queue.then(() => window.__localSttChunk(encoded)).catch(error => { failure = String(error?.message || error); });
-    };
-    source.connect(node);
+    queue = Promise.resolve(); failure = null;
+    const ready = !!stream && size === (chunkSamples || 0) && stream.getAudioTracks()[0]?.readyState === 'live';
+    const started = performance.now();
+    const opened = await open(chunkSamples);
+    node.port.postMessage('reset');
     if (context.state !== 'running') await context.resume();
-    // Which input the browser chose (its default) and what else there was, for the bridge's log: a wrong device shows here.
-    let inputs = [];
-    try { inputs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput').map(d => d.label || d.deviceId); } catch {}
-    const settings = track.getSettings ? track.getSettings() : {};
-    return {device: track.label, sampleRate: context.sampleRate, inputs,
-      settings: {echoCancellation: settings.echoCancellation, noiseSuppression: settings.noiseSuppression,
-        autoGainControl: settings.autoGainControl, channelCount: settings.channelCount}};
+    return {...opened, warm: ready, openMs: Math.round(performance.now() - started)};
   },
-  // Flush the last block, wait for every chunk to reach the bridge, then release the device.
+  // Flush the last block, wait for every chunk to reach the bridge, then cut the source (and release the device unless it is kept warm).
   async end() {
     node?.port.postMessage('flush');
     await new Promise(done => setTimeout(done, 60));
     await queue;
-    await release();
+    await stopCapture();
     if (failure) throw Error(failure);
     return true;
   },
-  async abort() { await release(); },
+  async abort() { await stopCapture(); },
 };
 `;
 
@@ -119,11 +150,13 @@ const PAGE_HTML = `<!doctype html><meta charset="utf-8"><script>${PAGE_SOURCE.re
 // The hidden voice browser of a RealtimeHost: `new LocalSttCapture({getBrowser: hostBrowser(realtime)})`.
 export const hostBrowser = host => async () => { await host.start(); return host.browser; };
 
-// One page for the life of the browser; the microphone is open only between begin() and end().
+// One page for the life of the browser. The microphone is read only between begin() and end(). The device itself is open only then too, unless the
+// page was warmed (warm(), bridge/mic-tap.mjs): then it is kept open and read from nowhere until begin(), so a key press starts at once (a real device
+// takes 0.4 s to 2 s to open, and everything said meanwhile would be lost).
 export class LocalSttCapture {
   constructor({getBrowser}) {
     this.getBrowser = getBrowser;
-    this.page = null; this.opening = null; this.target = null;
+    this.page = null; this.opening = null; this.target = null; this.warmed = false;
   }
   async ensurePage() {
     if (this.page && !this.page.isClosed()) return this.page;
@@ -145,7 +178,7 @@ export class LocalSttCapture {
         await page.goto(origin + CAPTURE_PATH);
         await page.waitForFunction(() => !!window.localStt, undefined, {timeout: 5000});
         this.origin = origin;
-        page.once('close', () => { if (this.page === page) this.page = null; });
+        page.once('close', () => { if (this.page === page) { this.page = null; this.warmed = false; } });
         this.page = page;
         return page;
       } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
@@ -157,21 +190,36 @@ export class LocalSttCapture {
   async begin(onChunk, {chunkMs} = {}) {
     const page = await this.ensurePage();
     this.target = encoded => { try { onChunk(Buffer.from(encoded, 'base64')); } catch { /* a consumer fault never stops the capture */ } };
+    if (!this.warmed) await page.context().grantPermissions(['microphone'], {origin: this.origin});
+    return page.evaluate(size => window.localStt.begin(size), this.samplesFor(chunkMs));
+  }
+  samplesFor(chunkMs) { return Number.isFinite(chunkMs) && chunkMs >= 10 && chunkMs <= 200 ? Math.round(chunkMs * SAMPLE_RATE / 1000) : 0; }
+  // Opens the device and keeps it open, reading nothing (the permission stays granted); begin() then costs a few milliseconds. cool() lets it go.
+  async warm({chunkMs} = {}) {
+    const page = await this.ensurePage();
     await page.context().grantPermissions(['microphone'], {origin: this.origin});
-    const samples = Number.isFinite(chunkMs) && chunkMs >= 10 && chunkMs <= 200 ? Math.round(chunkMs * SAMPLE_RATE / 1000) : 0;
-    return page.evaluate(size => window.localStt.begin(size), samples);
+    const info = await page.evaluate(size => window.localStt.warm(size), this.samplesFor(chunkMs));
+    this.warmed = true;
+    return info;
+  }
+  async cool() {
+    this.warmed = false;
+    const page = this.page;
+    if (!page || page.isClosed()) return;
+    await page.evaluate(() => window.localStt.cool()).catch(() => {});
+    await page.context().clearPermissions().catch(() => {});
   }
   async end() {
     const page = this.page;
     if (!page || page.isClosed()) throw Error('The voice browser closed during the recording');
     try { await page.evaluate(() => window.localStt.end()); }
-    finally { this.target = null; await page.context().clearPermissions().catch(() => {}); }
+    finally { this.target = null; if (!this.warmed) await page.context().clearPermissions().catch(() => {}); }
   }
   async abort() {
     const page = this.page; this.target = null;
     if (!page || page.isClosed()) return;
     await page.evaluate(() => window.localStt.abort()).catch(() => {});
-    await page.context().clearPermissions().catch(() => {});
+    if (!this.warmed) await page.context().clearPermissions().catch(() => {});
   }
   async close() {
     const page = this.page; this.page = null; this.target = null;

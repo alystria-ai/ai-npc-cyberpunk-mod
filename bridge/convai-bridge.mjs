@@ -1048,7 +1048,8 @@ function publishMicState(options) {
   return atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({...micStateLast, ...(micVad ? {vad: micVad} : {}), updated: Date.now()}), options);
 }
 const micCapture = new LocalSttCapture({getBrowser: hostBrowser(realtime)});
-const micLive = new MicLive({tap: null, read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
+// CYBERPUNK_CONVAI_MIC_WARM=0 keeps the device closed between recordings (a key press then waits for it to open, and what is said meanwhile is lost).
+const micLive = new MicLive({tap: null, warmAllowed: process.env.CYBERPUNK_CONVAI_MIC_WARM !== '0', read: () => readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => ''),
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
   onListenError: () => { micVad = {id: BOOT_ID + ':error', phase: 'error', at: Date.now()}; void publishMicState().catch(() => {}); }});
 const micTap = new MicTap({capture: micCapture, log: line => console.error('[CyberpunkConvai] Microphone: ' + line),
@@ -1060,7 +1061,7 @@ micLive.tap = micTap;
 micLive.observed = await readFile(resolve(runtime, 'microphone-live.json'), 'utf8').catch(() => '');
 console.error('[CyberpunkConvai] Microphone: ' + describeThresholds());
 realtime.micTap = micTap;
-realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); };
+realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); micLive.afterRelease(); };
 realtime.onStarted = () => { void micCapture.ensurePage().catch(() => {}); };
 const mistralSpeech = createLocalSpeech({
   stt: englishStt,

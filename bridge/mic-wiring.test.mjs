@@ -25,7 +25,7 @@ test('what microphone-live.json held before this bridge started is never acted o
 test('the local recogniser, Mistral transcription and Convai\'s page all take their audio from the one tap', () => {
   assert.match(bridge, /capture: new TapCapture\(\{tap: micTap\}\)/);
   assert.match(bridge, /realtime\.micTap = micTap;/);
-  assert.match(bridge, /realtime\.onClosed = \(\) => \{ void micTap\.release\(undefined, 'the voice browser closed'\); \};/);
+  assert.match(bridge, /realtime\.onClosed = \(\) => \{ void micTap\.release\(undefined, 'the voice browser closed'\); micLive\.afterRelease\(\); \};/);
   assert.match(bridge, /realtime\.onStarted = \(\) => \{ void micCapture\.ensurePage\(\)\.catch\(\(\) => \{\}\); \};/);
   assert.match(bridge, /const micCapture = new LocalSttCapture\(\{getBrowser: hostBrowser\(realtime\)\}\);/);
 });
