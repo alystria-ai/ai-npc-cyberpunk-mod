@@ -23,6 +23,10 @@
 -- conversation itself, see beginFocus/endFocus in init.lua), every participant
 -- of a running group chat, and a short grace after either ends. Holds are kept
 -- by entity hash; they expire on their own, and a load or detach clears them.
+-- Ambient barks (the bark window): the game's own greeting, grunt and bump voice lines of any NPC within 15 m of V are dropped
+-- while V talks to an NPC and while an AI line plays (r6 Engagement.reds ConvaiBarkGate wraps GameObject.PlayVoiceOver). This
+-- file only opens and closes that window on conversation events (R.barkHold, R.barkRelease, R.speechStarted, R.speechEnded):
+-- one native call per event, never per frame and never a poll; the window also ends by itself. See R.barkHold.
 -- Each suppression writes "Suppressed vanilla reaction <kind> for <entity>"
 -- to the mod log (at most once every few seconds per NPC and kind), and
 -- status() counts them for the CET console:
@@ -33,6 +37,11 @@ M.DEFAULTS = {
     grace = 6,        -- seconds an NPC stays quiet after the mod stops addressing it
     maxPinned = 900,  -- a focus older than this is no longer trusted (a missed release)
     logEvery = 3,     -- seconds between two log lines for one NPC and kind
+    talkHold = 45,    -- bark window: V pressed the talk key (the composer or the microphone is open)
+    requestHold = 20, -- bark window: V's line was sent and the reply is on its way
+    speechHold = 90,  -- bark window: an AI line starts to play (its end closes the window, this only caps a missed end)
+    lineTail = 2,     -- bark window: seconds kept after an AI line ends (the next speaker of a group, a follow-up line)
+    endGrace = 3,     -- bark window: seconds kept after the conversation ends
 }
 
 -- Stimuli the reaction system turns into stare, proximity and bump reactions.
@@ -76,6 +85,14 @@ local function nativeEligible(object)
     return true
 end
 
+-- The bark window lives on the player (Engagement.reds): hold(seconds) never shortens it, release(seconds) ends it that long from now.
+local function nativeBarkGate()
+    return {
+        hold = function(seconds) Game.GetPlayer():ConvaiBarkHold(seconds) end,
+        release = function(seconds) Game.GetPlayer():ConvaiBarkRelease(seconds) end,
+    }
+end
+
 local function nativeMounted(event)
     local ok, mounted = pcall(function() return event.isMounted end)
     if not ok then return nil end
@@ -94,6 +111,7 @@ function M.new(options)
     local eligible = options.eligible or nativeEligible
     local mountedOf = options.mounted or nativeMounted
     local round = options.round
+    local barkGate = options.barkGate or nativeBarkGate()
     local log = options.log or function() end
     local holds, logged, counts, installed = {}, {}, {}, {}
     -- No hold is active after this clock value: the latest moment any hold can still count (a pinned one until maxPinned, a timed
@@ -104,6 +122,8 @@ function M.new(options)
         if last > quietAfter then quietAfter = last end
     end
     local R = {}
+    -- The bark window as the game side knows it (this clock), the line that opened it, and whether an AI line holds it.
+    local barkUntil, barkSpeaking, barkMissing, barkCalls = -math.huge, false, false, 0
 
     local function currentRound()
         if type(round) ~= 'function' then return nil end
@@ -196,6 +216,8 @@ function M.new(options)
     function R.clear()
         holds, logged = {}, {}
         quietAfter = -math.huge
+        if barkUntil > -math.huge and not barkMissing then pcall(barkGate.release, 0) end
+        barkUntil, barkSpeaking = -math.huge, false
     end
 
     local function quiet(kind, object)
@@ -232,6 +254,58 @@ function M.new(options)
         return quiet('bump', ownerOf(component))
     end
 
+    -- Opens (or extends, never shortens) the ambient-bark window for `seconds`. One native call, and none when the window already
+    -- covers the time asked for (a repeat event is a number compare). A game without the redscript part (not restarted after the
+    -- update) answers with an error once; the window is then left alone for the session and nothing else is affected.
+    function R.barkHold(seconds, reason)
+        seconds = tonumber(seconds) or cfg.talkHold
+        if barkMissing or seconds <= 0 then return false end
+        local ok, now = pcall(clock)
+        if not ok or type(now) ~= 'number' then return false end
+        local untilAt = now + seconds
+        if untilAt <= barkUntil then return true end
+        local opened = now >= barkUntil
+        local called, err = pcall(barkGate.hold, seconds)
+        if not called then
+            barkMissing = true
+            log('Ambient bark window unavailable: ' .. tostring(err))
+            return false
+        end
+        barkUntil, barkCalls = untilAt, barkCalls + 1
+        if opened then log('Ambient barks held for ' .. tostring(seconds) .. ' s (' .. tostring(reason or 'conversation') .. ')') end
+        return true
+    end
+
+    -- Ends the window `grace` seconds from now (also when it was longer), only when one is open.
+    function R.barkRelease(grace)
+        if barkMissing then return false end
+        local ok, now = pcall(clock)
+        if not ok or type(now) ~= 'number' or now >= barkUntil then barkUntil = -math.huge; return false end
+        grace = tonumber(grace) or cfg.endGrace
+        local called = pcall(barkGate.release, grace)
+        if not called then return false end
+        barkUntil, barkCalls = now + grace, barkCalls + 1
+        return true
+    end
+
+    -- V pressed the talk key (the composer or the microphone opened), and V's line was sent.
+    function R.talkPressed() return R.barkHold(cfg.talkHold, 'talk key') end
+    function R.requestSent() return R.barkHold(cfg.requestHold, 'request sent') end
+
+    -- An AI line starts to play: the window stays open until it ends.
+    function R.speechStarted()
+        barkSpeaking = true
+        return R.barkHold(cfg.speechHold, 'AI line')
+    end
+
+    -- An AI line ended (or was cut): a short tail, then the barks may play again. Only a line that held the window shortens it,
+    -- so a stop with nothing playing never ends the conversation's own window.
+    function R.speechEnded()
+        if not barkSpeaking then return false end
+        barkSpeaking = false
+        return R.barkRelease(cfg.lineTail)
+    end
+
     function R.status()
         local addressed = {}
         for hash, hold in pairs(holds) do
@@ -241,7 +315,8 @@ function M.new(options)
         end
         local copy = {}
         for kind, count in pairs(counts) do copy[kind] = count end
-        return {addressed = addressed, suppressed = copy, hooks = installed}
+        return {addressed = addressed, suppressed = copy, hooks = installed,
+            bark = {open = barkUntil > clock(), speaking = barkSpeaking, calls = barkCalls, unavailable = barkMissing}}
     end
 
     -- Registers the CET overrides (once per onInit; a CET reload registers again).

@@ -2317,6 +2317,11 @@ local function endFocus(player)
     if player then pcall(function() player:ConvaiEndFocus() end) end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.release) end
 end
+-- The conversation is over (its focus window ran out, or the manager opened): the ambient-bark window closes after a short grace
+-- (vanilla-reactions.lua). A global, so onUpdate gains no upvalue. A line that still plays keeps the window until it ends.
+convaiBarkEnd = function()
+    if convaiVanillaReactions and not (convaiSpeech and convaiSpeech.requestId) then pcall(convaiVanillaReactions.barkRelease) end
+end
 -- An ordinary NPC that reacts (walks off, attacks) first lets go of the conversation's hold and look-at, the same release.
 if convaiNpcReactions then convaiNpcReactions.options.release = function(player) endFocus(player) end end
 
@@ -2912,6 +2917,9 @@ local function beginTextNow(groupMode, waited)
         focusMode = 'chat'
         resetGaze()
         focusUntil = os.time() + 45
+        -- The talk key was pressed: the game's own greeting and grunt barks (V's target and the NPCs around V) stay silent from here
+        -- (vanilla-reactions.lua barkHold); a late one that already started cannot be taken back.
+        if convaiVanillaReactions then pcall(convaiVanillaReactions.talkPressed) end
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly,
             holocall = primary.holocall, head = primary.head}
@@ -3062,6 +3070,7 @@ local function toggleVoice(groupMode, source)
         if microphone.begin(context, targetValid, 'press') then
             if not primary.voiceOnly and not primary.holocall and not (primary.story or primary.guarded) then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
+            if convaiVanillaReactions then pcall(convaiVanillaReactions.talkPressed) end
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
         else
@@ -3120,7 +3129,11 @@ local function sendRequest(context)
     file:write(encoded); file:close()
     pending = context
     pendingKnowledgeOwner = owner
-    if not context.reaction then focusUntil = os.time() + 90 end
+    if not context.reaction then
+        focusUntil = os.time() + 90
+        -- V's line is sent: the reply is on its way, the window stays open until its own line takes over (speech.lua).
+        if convaiVanillaReactions then pcall(convaiVanillaReactions.requestSent) end
+    end
     return true
 end
 
@@ -4003,6 +4016,7 @@ local function openManager()
         log('Companion manager shortcut: press ' .. press .. ' opened (requested from the settings host)')
         gameplayActions.revoke('menu')
         endFocus(Game.GetPlayer())
+        if convaiBarkEnd then convaiBarkEnd() end
         focusMode = nil
         focusEntity = nil
         focusUntil = nil
@@ -4855,6 +4869,7 @@ registerForEvent('onUpdate', function(delta)
     end
     if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
+        if convaiBarkEnd then convaiBarkEnd() end
         focusUntil = nil
         focusMode = nil
         focusEntity = nil

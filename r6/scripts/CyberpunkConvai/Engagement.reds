@@ -146,3 +146,61 @@ private final func ConvaiTurnCivilian(npc: wref<NPCPuppet>) -> Void {
         stepIndex += 1;
     };
 }
+
+// The game's own ambient barks (the voiceset lines an NPC says when V looks at, walks up to or bumps it: 'greeting', 'fear_foll',
+// 'stlh_curious_grunt', 'bump') must not play over an AI voice line. Every one of them is sent through GameObject.PlayVoiceOver (the
+// reaction component's look-at, comfort-zone and bump handlers). While V talks to an NPC and while an AI line plays, the mod keeps a
+// window open (ConvaiBarkHold from mod/vanilla-reactions.lua, one call per conversation event, never per frame); inside it those four
+// contexts are dropped for every NPC within ConvaiBarkGate.Radius() of V, and only the sound is dropped: the look-at, the stimulus
+// and the NPC's AI are the game's own. Combat lines, pain and death sounds, quest and scene dialogue (not sent through here) and the
+// game's own NPC conversations are never touched, and nothing is muted while V or the NPC is in combat. The window ends by itself.
+@addField(PlayerPuppet)
+private let m_convaiBarkUntil: Float;
+
+@addMethod(PlayerPuppet)
+public final func ConvaiBarkHold(seconds: Float) -> Void {
+    let until: Float = EngineTime.ToFloat(GameInstance.GetSimTime(this.GetGame())) + seconds;
+    if until > this.m_convaiBarkUntil { this.m_convaiBarkUntil = until; };
+}
+
+// The window ends `seconds` from now, also when it was longer.
+@addMethod(PlayerPuppet)
+public final func ConvaiBarkRelease(seconds: Float) -> Void {
+    this.m_convaiBarkUntil = EngineTime.ToFloat(GameInstance.GetSimTime(this.GetGame())) + seconds;
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiBarkOpen() -> Bool {
+    return EngineTime.ToFloat(GameInstance.GetSimTime(this.GetGame())) < this.m_convaiBarkUntil;
+}
+
+public abstract class ConvaiBarkGate {
+    public static func Radius() -> Float {
+        return 15.0;
+    }
+
+    // The four ambient contexts, nothing else.
+    public static func Ambient(voName: CName) -> Bool {
+        return Equals(voName, n"greeting") || Equals(voName, n"fear_foll")
+            || Equals(voName, n"stlh_curious_grunt") || Equals(voName, n"bump");
+    }
+
+    // True when the NPC's ambient line is to be dropped now. Cheap order: the window first (one float compare), then the distance.
+    public static func Muted(npc: ref<GameObject>) -> Bool {
+        if !IsDefined(npc) { return false; };
+        let player: ref<PlayerPuppet> = GameInstance.GetPlayerSystem(npc.GetGame()).GetLocalPlayerMainGameObject() as PlayerPuppet;
+        if !IsDefined(player) || Equals(player, npc) || !player.ConvaiBarkOpen() { return false; };
+        if Vector4.DistanceSquared(npc.GetWorldPosition(), player.GetWorldPosition()) > ConvaiBarkGate.Radius() * ConvaiBarkGate.Radius() {
+            return false;
+        };
+        if Equals(PlayerPuppet.GetCurrentCombatState(player), gamePSMCombat.InCombat) { return false; };
+        let puppet: ref<ScriptedPuppet> = npc as ScriptedPuppet;
+        return IsDefined(puppet) && !NPCPuppet.IsInCombat(puppet);
+    }
+}
+
+@wrapMethod(GameObject)
+public static func PlayVoiceOver(self: ref<GameObject>, voName: CName, debugInitialContext: CName, opt delay: Float, opt answeringEntityId: EntityID, opt ignoreFrustumCheck: Bool) -> Void {
+    if ConvaiBarkGate.Ambient(voName) && ConvaiBarkGate.Muted(self) { return; };
+    wrappedMethod(self, voName, debugInitialContext, delay, answeringEntityId, ignoreFrustumCheck);
+}

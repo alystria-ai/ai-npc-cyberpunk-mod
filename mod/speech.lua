@@ -129,6 +129,8 @@ local function finish()
 end
 
 function M.stop(reason)
+    -- The AI line is over: the game's own ambient barks may play again after a short tail (vanilla-reactions.lua). One event.
+    if M.requestId and convaiVanillaReactions then pcall(convaiVanillaReactions.speechEnded) end
     if M.context and M.utterance and M.utterance.requestId == M.requestId then
         local delivered = M.lastDelivery
         M.utterance.finished, M.utterance.failed = true, reason ~= 'finished'
@@ -286,6 +288,8 @@ function M.start(context, reply)
     M.utterance = {requestId=context.requestId,generation=context.generation,entity=context.entity,text=reply.text,
         streamVersion=2,streamId=reply.continuous.id,textComplete=false,finished=false,failed=false,
         delivered=false,startSequence=M.deliverySequence or 0}
+    -- An AI line plays: the game's own ambient barks of the NPCs around V stay silent until it ends (vanilla-reactions.lua). One event.
+    if convaiVanillaReactions then pcall(convaiVanillaReactions.speechStarted) end
     publish(); return true
 end
 
