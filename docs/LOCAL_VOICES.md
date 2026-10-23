@@ -208,7 +208,7 @@ of failing (the companion joins; its replies are written). The pre-existing read
 Multilingual conversations are the same: Pocket speaks English only (and the five languages that have an installed PocketTTS model and voice language pack, docs/POCKET_LANGUAGE_MODELS.md), so a reply in any other
 language on Pocket is shown as text, not read by Pocket and not handed to the Convai voice.
 
-Pocket uses **float32 on CPU** (from 0.2.9 the English weights are stored as bfloat16, 219 MB, and widened to float32 when the worker loads them: docs/POCKET_BF16.md; the byte counts in this file are the float32 file the build starts from), with four inference threads, one
+Pocket uses **float32 on CPU**, with four inference threads, one
 shared model and per-character acoustic reference states. It does not load the
 teacher, allocate CUDA memory, use TensorRT or create a neural model per
 character. This trained student is English. The selected weight file is

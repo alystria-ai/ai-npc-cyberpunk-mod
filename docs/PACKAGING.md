@@ -68,7 +68,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
     characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)
-    models/pocket/           Pocket student v2 + decoder v2 export (weights stored as bfloat16 from 0.2.9, 219 MB; docs/POCKET_BF16.md) (weights stored as bfloat16 from 0.2.9, 219 MB; docs/POCKET_BF16.md)
+    models/pocket/           Pocket student v2 + decoder v2 export
     models/lipsync/          lip-sync model, text stage and lexicon
     models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
     defaults/                templates and managed defaults copied into data/ at start-up (the Pocket list, and the Runtime's own OmniVoice lists)
