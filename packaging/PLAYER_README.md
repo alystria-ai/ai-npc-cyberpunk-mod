@@ -2,6 +2,18 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.3.0
+
+- **Hold to talk, instantly**: the microphone opens the moment you press the talk binding, so your first words are not lost. Hold it while you speak and let go to send. It stays ready for 15 seconds after a voice turn, and the first press after a pause shows "Opening microphone..." and then "Speak now".
+- **Voice activation (optional, off by default)**: Settings > Voices > Voice activation lets the mod hear when you start speaking, so you can talk without holding anything.
+- **Quieter streets**: the game's own greeting, grunt and bump lines of people within 15 meters no longer play over an AI voice line, or while V is talking.
+- **Convai sign-in that holds up**: a turn that finds no sign-in after a network failure tries once more at once, the waits are longer, and a second sign-in service takes over for players who cannot reach the first one.
+- **OmniVoice**: a quick restart waits for the old voice process to let go of the model instead of failing, and a reply in a fixed language skips the English warm-up.
+- **Local AI**: a model that spilled onto your processor and has nothing to replace it stays loaded instead of being unloaded.
+- **Companions can see in groups**: the picture is prepared early for the next speaker, and no turn waits more than 15 seconds for a picture.
+- **Setup check**: a "service never started" row left over from before this service started is dropped, and a row that stays says why the service never started.
+- **Multilingual packs**: notices, Help and the setup check now say "multilingual pack" in all 15 languages.
+
 ## What's new in 0.2.9
 
 - **Fewer mods needed**: Audioware and TweakXL are no longer needed. Voices play through the mod's own audio, so game patches that break Audioware no longer silence the mod. If you still have either installed, nothing changes for you.
