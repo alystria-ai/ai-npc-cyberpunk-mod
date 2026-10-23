@@ -24,6 +24,7 @@ export const TAP = Object.freeze({
   speechTailMs: 300,      // ... and, when the kept audio holds no speech yet, only its newest this much
   unclaimedMs: 20_000,    // a turn's tap that no channel attached to is released
   heldGraceMs: 2_500,     // a key let go whose turn never began (no target, no service) releases the tap after this
+  lingerMs: 15_000,       // after a voice turn the device stays open this long, so the next press of a conversation starts at once; then it closes
   idleCloseMs: 600_000,   // the capture page (a small blank renderer) is closed this long after the last recording; a new one costs about half a second, which the first word of the next press would pay
   prerollMs: 300,         // a voice-activation turn starts this long before the detected onset
 });
@@ -97,6 +98,8 @@ export class MicTap {
     this.generation = 0;
     this.chain = Promise.resolve(); // capture.begin / end / abort run one at a time
     this.vadSeq = 0;
+    this.lingerAllowed = true;      // false: the device closes with each recording (CYBERPUNK_CONVAI_MIC_LINGER=0)
+    this.blocked = false;           // the game is in a menu, a loading screen, a scene or a choice list: no linger, and a lingering device closes at once
     this.timers = {};
     this._reset();
   }
@@ -172,6 +175,19 @@ export class MicTap {
   _claimTimer() {
     this._timer('claim', this.limits.unclaimedMs, () => { if (!this.sink && this.state !== 'closed') this.release(this.owner, 'unclaimed'); });
   }
+
+  // The game says it is in a menu, a loading screen, a scene or a dialogue with choices (or not any more): a device that is lingering closes at once, and
+  // none lingers while it lasts.
+  setBlocked(on) {
+    this.blocked = on === true;
+    if (!this.blocked) return;
+    this.clearTimer(this.timers.linger); delete this.timers.linger;
+    if (this.state === 'closed' && this.capture.deviceOpen === true && typeof this.capture.cool === 'function') {
+      this.log('microphone closed at once (the game is busy)');
+      void this._run(() => this.capture.cool()).catch(() => {});
+    }
+  }
+  get lingering() { return this.state === 'closed' && this.timers.linger !== undefined; }
 
   // The key went down before the turn's request exists: the tap listens for that request, kept under the key's id.
   hold(holdId) { return this.open('hold:' + holdId, {holdId}); }
@@ -259,13 +275,20 @@ export class MicTap {
 
   _drop(reason) {
     const needsAbort = this.state !== 'ended';
+    const wasTurn = this.mode === 'turn';
     const previous = this.owner;
     this.generation++;
     this._cancelTimers();
     this.state = 'closed'; this._reset();
     const aborting = needsAbort ? this._run(() => this.capture.abort()).catch(() => {}) : Promise.resolve();
     this.log('microphone tap released (' + reason + ')' + (previous ? '' : ''));
-    // The capture page is a renderer process: it leaves after a while without a recording.
+    // The device after a voice turn stays open and unread for lingerMs (the next press of a conversation then starts at once), then closes. After anything else
+    // (listening, a replaced or unclaimed tap) or while the game is busy it closes with the recording. The capture page (a renderer process) leaves later.
+    if (typeof this.capture.cool === 'function' && this.capture.deviceOpen === true) {
+      if (wasTurn && this.lingerAllowed && !this.blocked && reason !== 'replaced') {
+        this._timer('linger', this.limits.lingerMs, () => { delete this.timers.linger; if (this.state === 'closed') void this._run(() => this.capture.cool()).catch(() => {}); });
+      } else void this._run(() => this.capture.cool()).catch(() => {});
+    }
     if (typeof this.capture.close === 'function') this._timer('idle', this.limits.idleCloseMs, () => { if (this.state === 'closed') void Promise.resolve(this.capture.close()).catch(() => {}); });
     try { this.onRelease(reason); } catch { /* an observer never breaks the tap */ }
     return aborting;
@@ -294,6 +317,6 @@ export class TapCapture {
   }
   async end() { await this.tap.stop(this.owner); }
   async abort() { await this.tap.release(this.owner, 'channel closed'); }
-  // The recogniser's own idle release must not close the page: the tap keeps it warm for the next key press (and closes it itself, idleCloseMs).
+  // The recogniser's own idle release must not close the page: the tap keeps it for the next key press (and closes it itself, idleCloseMs).
   close() { return Promise.resolve(); }
 }

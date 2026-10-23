@@ -4237,44 +4237,62 @@ end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
 
+-- The talk key's microphone device is opened by the key press and stays open, unread, for about 15 s after a voice turn so the next press of a
+-- conversation starts at once (docs/VOICE_INPUT.md; the bridge times it, bridge/mic-tap.mjs). This tick tells the bridge when the game is BUSY (a menu, a
+-- loading screen, a scene, a dialogue with choices, a call): the device then closes at once and does not linger. It looks only while a voice turn
+-- is in flight or ended less than MIC_LINGER_WATCH_S ago, so a player who never uses the voice key pays one clock compare per tick. A global function,
+-- so onUpdate reaches it without a new upvalue.
+MIC_LINGER_WATCH_S = 17
+function convaiMicLingerTick(player, ready)
+    local now = os.clock()
+    if microphone.context ~= nil or microphone.holding() then convaiMicLingerUntil = now + MIC_LINGER_WATCH_S end
+    if convaiMicLingerUntil == nil or now > convaiMicLingerUntil then return end
+    local _, blocked = convaiVoiceActivationModule().sample(player, ready)
+    microphone.block(blocked)
+end
+
 -- Voice activation: talk with no key (docs/VOICE_INPUT.md). A global function, so onUpdate reaches it without a new upvalue.
 -- Off (the default): one boolean per tick, no module, no microphone. On: mod/voice-activation.lua opens the bridge's microphone only while a
 -- conversation is possible and begins V's turn when the bridge's detector hears V start speaking. Private talk only.
+-- The module and its dependencies (loaded on first use: the warm-up tick below and Voice activation both ask it whether a conversation is possible).
+function convaiVoiceActivationModule()
+    if convaiVoiceActivation then return convaiVoiceActivation end
+    convaiVoiceActivation = dofile('voice-activation.lua')
+    convaiVoiceActivation.deps = {
+        enabled = function() return manager.voiceActivation() end,
+        listen = function(on) return microphone.listen(on) end,
+        gameplay = function(who) return gameplayCanAcquire(who) end,
+        -- A profiled character faced (the gaze scan, every 0.2 s) or one of V's companions near.
+        conversation = function(who)
+            if convaiLookSeenAt and os.clock() - convaiLookSeenAt < 1.2 then return true end
+            return companions.conversationCandidates(who, 8)[1] ~= nil
+        end,
+        voiceReady = function() return not manager.voiceNeedsConvai() end,
+        busy = function()
+            return microphone.context ~= nil or pending ~= nil or active ~= nil or automatic ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil
+        end,
+        speaking = function() return speech.requestId ~= nil or speech.context ~= nil end,
+        -- The same start as the talk key's, with every notice held back: a sound that was not for anyone says nothing.
+        begin = function(vadId)
+            convaiNotices.mute(true)
+            local ran = pcall(toggleVoice, false, 'vad', nil, vadId)
+            convaiNotices.mute(false)
+            return ran and microphone.context ~= nil
+        end,
+        errorNotice = function()
+            convaiNotices.send(Game.GetPlayer(), 'mic-vad-error', ui.t('Voice activation could not open the microphone. Check your Windows input device.'))
+        end,
+    }
+    return convaiVoiceActivation
+end
+
 function convaiVoiceActivationTick(player, elapsed, ready)
     if not manager.voiceActivation() then
         -- Turned off after being on: the bridge releases the device and the detector (one write, once).
         if convaiVoiceActivation then convaiVoiceActivation.off() end
         return
     end
-    if not convaiVoiceActivation then
-        convaiVoiceActivation = dofile('voice-activation.lua')
-        convaiVoiceActivation.deps = {
-            enabled = function() return manager.voiceActivation() end,
-            listen = function(on) return microphone.listen(on) end,
-            gameplay = function(who) return gameplayCanAcquire(who) end,
-            -- A profiled character faced (the gaze scan, every 0.2 s) or one of V's companions near.
-            conversation = function(who)
-                if convaiLookSeenAt and os.clock() - convaiLookSeenAt < 1.2 then return true end
-                return companions.conversationCandidates(who, 8)[1] ~= nil
-            end,
-            voiceReady = function() return not manager.voiceNeedsConvai() end,
-            busy = function()
-                return microphone.context ~= nil or pending ~= nil or active ~= nil or automatic ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil
-            end,
-            speaking = function() return speech.requestId ~= nil or speech.context ~= nil end,
-            -- The same start as the talk key's, with every notice held back: a sound that was not for anyone says nothing.
-            begin = function(vadId)
-                convaiNotices.mute(true)
-                local ran = pcall(toggleVoice, false, 'vad', nil, vadId)
-                convaiNotices.mute(false)
-                return ran and microphone.context ~= nil
-            end,
-            errorNotice = function()
-                convaiNotices.send(Game.GetPlayer(), 'mic-vad-error', ui.t('Voice activation could not open the microphone. Check your Windows input device.'))
-            end,
-        }
-    end
-    convaiVoiceActivation.update(player, elapsed, ready)
+    convaiVoiceActivationModule().update(player, elapsed, ready)
 end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
 local worldSuspended, sessionHasState = false, false
@@ -4842,6 +4860,9 @@ registerForEvent('onUpdate', function(delta)
     -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
     local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
     if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
+    -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
+    local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
+    if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
         abandonSession('world unavailable during update')

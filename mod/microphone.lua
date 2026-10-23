@@ -10,15 +10,17 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 --   hold   the talk key went down / came up. The bridge opens the microphone at the key press and keeps what it hears, so the first word is never lost
 --          while the conversation connection is still opening; the key release stops it on the spot.
 --   listen Voice activation (mod/voice-activation.lua) wants the microphone open (a conversation is possible) or closed.
--- A write happens on a change only: the key's two edges (one write each) and when listening starts or stops. Never per frame.
-local live = {holdId = nil, down = false, listen = false, writes = 0}
+--   blocked  the game is in a menu, a loading screen, a scene, a dialogue with choices or a call. After a voice turn the bridge keeps the device open for about
+--          15 s (the linger, bridge/mic-tap.mjs) so the next press of a conversation starts at once; while blocked it closes it at once and does not linger.
+-- A write happens on a change only: the key's two edges (one write each), when listening or blocked changes. Never per frame.
+local live = {holdId = nil, down = false, listen = false, blocked = false, writes = 0}
 
 local function writeLive()
     live.writes = live.writes + 1
     local f = io.open('runtime/microphone-live.json', 'wb')
     if not f then return false end
     local ok = pcall(function()
-        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen}))
+        f:write(json.encode({n = live.writes, at = os.clock(), holdId = live.holdId, down = live.down, listen = live.listen, blocked = live.blocked}))
     end)
     f:close()
     return ok
@@ -29,7 +31,7 @@ function M.newHoldId() return tostring(os.time()) .. '-' .. tostring(math.floor(
 
 function M.holdKey(holdId)
     if type(holdId) ~= 'string' or holdId == '' then return false end
-    live.holdId, live.down = holdId, true
+    live.holdId, live.down, live.blocked = holdId, true, false
     return writeLive()
 end
 
@@ -47,6 +49,15 @@ function M.listen(on)
 end
 
 function M.listening() return live.listen end
+
+function M.block(on)
+    on = on == true
+    if live.blocked == on then return false end
+    live.blocked = on
+    return writeLive()
+end
+function M.blocked() return live.blocked end
+function M.holding() return live.down and live.holdId or nil end
 
 local function sameOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken

@@ -274,6 +274,7 @@ end
 modules = {
     ['companions.lua'] = companions, ['subtitles.lua'] = subtitles, ['speech.lua'] = speech,
     ['microphone.lua'] = microphone, ['group-chat.lua'] = group, ['phone-chat.lua'] = phone,
+    ['voice-activation.lua'] = {sample = function() return false, true end, update = noOp, off = noOp},
     ['manager.lua'] = manager, ['nsui.lua'] = managerUi, ['phone-layout.lua'] = {install = noOp, refresh = noOp},
     ['phone-chat-style.lua'] = {install = noOp, refresh = noOp},
     ['character-catalog.lua'] = {build = function() return {records = {}} end},

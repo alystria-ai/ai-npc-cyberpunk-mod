@@ -2,6 +2,8 @@
 // (bridge/mic-tap.mjs):
 //   hold    {holdId, down}  the talk key went down or came up: the tap opens at once and keeps what it hears / stops on the spot
 //   listen  true | false    Voice activation wants the microphone open (a conversation is possible) or closed
+//   blocked true | false    the game is in a menu, a loading screen, a scene, a dialogue with choices or a call: a device that is lingering after a voice
+//                           turn (bridge/mic-tap.mjs, about 15 s) closes at once, and none lingers while it lasts
 // A listen request is honoured only while the Voice activation setting is on (settings.json "voiceActivation", read by the settings poll):
 // without it nothing opens, and a listening tap is released at once, so nothing stays open or running when the setting is off.
 const HOLD_ID = /^[\w.-]{1,40}$/;
@@ -10,6 +12,7 @@ export class MicLive {
   constructor({tap, read, log = () => {}, onListenError = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, reopenMs = 400}) {
     Object.assign(this, {tap, read, log, onListenError, setTimer, clearTimer, reopenMs});
     this.observed = ''; this.holdId = null; this.listen = false; this.allowed = false; this.stopped = false; this.timer = null;
+    this.blocked = false;
   }
 
   // Reads the file; acts on a change only.
@@ -29,6 +32,8 @@ export class MicLive {
     }
     const listen = value.listen === true;
     if (listen !== this.listen) { this.listen = listen; this.reconsider(); }
+    const blocked = value.blocked === true;
+    if (blocked !== this.blocked) { this.blocked = blocked; this.tap.setBlocked(blocked); }
   }
 
   // The Voice activation setting, as the settings poll reads it.

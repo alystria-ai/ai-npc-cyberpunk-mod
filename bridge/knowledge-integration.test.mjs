@@ -151,6 +151,7 @@ local modules={
   return (function()${historySource}end)().new(options)
  end},
  ['microphone.lua']=microphone,['group-chat.lua']=group,
+ ['voice-activation.lua']={sample=function()return false,true end,update=noop,off=noop,deps=nil},
  ['companions.lua']={beginSpatialFrame=noop,connectionProfiles=function()return{}end,abandon=function()record('companions')end,
   dismissAll=function()record('dismiss-all')end,conversationCandidates=function()
    local result={};for _,npc in ipairs(people)do result[#result+1]=person(npc)end;return result

@@ -894,6 +894,8 @@ async function beginVoice(config, options = {}) {
         await enableAudioFrom(connection, mine);
         if (turn !== current || current.epoch !== epoch || client !== connection) throw Error('Microphone startup cancelled');
         pub = liveMicrophone(connection); viaRelay = true; current.relay = mine;
+        // The track is published: the pre-roll and the live audio behind it start playing into it now (not before: nobody received it).
+        mine.start();
       } catch (error) {
         if (turn !== current || current.epoch !== epoch || client !== connection) throw error;
         releaseRelay(mine); mine = null;

@@ -19,7 +19,7 @@ local MISS_COOLDOWN_S = 3      -- after a start that found nobody to talk to (a 
 local MIN_START_GAP_S = 2      -- two turns by voice activation are never started closer than this
 
 local state = {
-    listening = false, checkedAt = -100, polledAt = -100, possible = false,
+    listening = false, checkedAt = -100, polledAt = -100, possible = false, blocked = true,
     seen = nil,            -- the detector id last handled
     quietUntil = 0, wasVoiced = false, startedAt = -100, errorNoted = nil,
 }
@@ -63,6 +63,27 @@ M.deps = nil
 
 local function clockNow() return M.clock() end
 
+-- Whether a conversation is possible now, for the voice-activation listening AND for keeping the device warm (convaiMicWarmTick in init.lua): one
+-- shared answer, asked at most every CHECK_S, from the game's 10 Hz tick. Returns possible, blocked:
+--   possible  a character who can be talked to is faced or aimed at, or a companion is near, and voice input can work
+--   blocked   the game is in a menu, a loading screen, a scene, a dialogue with choices or a call (or the world is not playable): never warm, never listening
+function M.sample(player, ready)
+    local deps = M.deps
+    if not deps then return false, true end
+    local now = clockNow()
+    if now - state.checkedAt < CHECK_S then return state.possible, state.blocked end
+    state.checkedAt = now
+    if not ready or not player then state.possible, state.blocked = false, true; return false, true end
+    local ok, blocked, possible = pcall(function()
+        if not deps.gameplay(player) or M.sceneBusy(player) then return true, false end
+        if not deps.voiceReady() then return true, false end
+        return false, deps.conversation(player) == true
+    end)
+    if not ok then blocked, possible = true, false end
+    state.blocked, state.possible = blocked == true, possible == true
+    return state.possible, state.blocked
+end
+
 -- Called every 0.1 s tick by the game. `elapsed` is the tick's length, `ready` the world is playable.
 function M.update(player, elapsed, ready)
     local deps = M.deps
@@ -75,17 +96,7 @@ function M.update(player, elapsed, ready)
     local busy = deps.busy() == true
     local want = false
     if ready and player and not speaking and not busy and now >= state.quietUntil then
-        if now - state.checkedAt >= CHECK_S then
-            state.checkedAt = now
-            local ok, possible = pcall(function()
-                return deps.gameplay(player) and deps.voiceReady() and deps.conversation(player) and not M.sceneBusy(player)
-            end)
-            state.possible = ok and possible == true
-        end
-        want = state.possible
-    else
-        state.possible = false
-        state.checkedAt = -100     -- the next chance asks again at once
+        want = M.sample(player, ready) == true
     end
     if want ~= state.listening then
         state.listening = want

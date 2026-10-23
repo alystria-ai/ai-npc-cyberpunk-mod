@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {PcmRelay, RELAY_SAMPLE_RATE, RELAY_TAIL_MS, WORKLET_SOURCE} from './pcm-relay.mjs';
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -233,6 +234,10 @@ test('real muted Edge: a pushed sine arrives on the track, drain waits for it, t
           await delay(20);
         }
       })();
+      // Nothing plays before start(): the pre-roll waits for the published track instead of playing into a track nobody receives.
+      await delay(300);
+      const heldBack = {consumed: relay.consumed, loud: frames.filter(f => f.peak > 0.05).length, backlogMs: relay.backlogMs};
+      relay.start();
       // The second half arrives while the first plays (order across the boundary must hold).
       for (let at = half; at < total; at += chunk) { relay.push(sine.subarray(at, at + chunk)); await delay(10); }
       const backlogAtPush = relay.backlogMs;
@@ -248,12 +253,14 @@ test('real muted Edge: a pushed sine arrives on the track, drain waits for it, t
       const stateBeforeClose = track.readyState;
       relay.close(); relay.close();
       await delay(100);
-      const out = {before, drained, backlogAtPush, playingFrames: playing.length, playingPeak: Math.max(0, ...playing.map(f => f.peak)),
+      const out = {before, heldBack, drained, backlogAtPush, playingFrames: playing.length, playingPeak: Math.max(0, ...playing.map(f => f.peak)),
         hz: mid.sort((a, b) => a - b)[Math.floor(mid.length / 2)], tail, stateBeforeClose, stateAfterClose: track.readyState,
         backlogAfter: relay.backlogMs, pushAfterClose: relay.push(new Int16Array(10))};
       await reader.close();
       return out;
     });
+    assert.equal(result.heldBack.consumed, 0, 'before start() nothing is consumed: ' + JSON.stringify(result.heldBack));
+    assert.equal(result.heldBack.loud, 0); assert.ok(result.heldBack.backlogMs >= 280);
     assert.equal(result.before.state, 'live'); assert.equal(result.before.kind, 'audio'); assert.equal(result.before.tracks, 1);
     assert.equal(result.drained.drained, true, JSON.stringify(result));
     assert.ok(result.playingFrames >= 8, 'the sine reached the track: ' + JSON.stringify(result));
@@ -265,4 +272,56 @@ test('real muted Edge: a pushed sine arrives on the track, drain waits for it, t
   } finally {
     await browser?.close(); await new Promise(resolve => server.close(resolve));
   }
+});
+
+// The real thing a Convai room does with the track: it goes over a WebRTC peer connection (Opus) to a far end that records what arrives. Audio pushed BEFORE
+// the track was published (the pre-roll) must reach the far end whole once start() is called, and none of it before.
+test('real Edge, WebRTC loopback: the pre-roll pushed before start() reaches the far end whole, in order, after it and not before', {timeout: 180000}, async t => {
+  let chromium;
+  try { ({chromium} = await import('playwright')); } catch { t.skip('playwright is not installed'); return; }
+  let browser;
+  try { browser = await chromium.launch({channel: 'msedge', headless: true, args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required']}); }
+  catch (error) { t.skip('Edge cannot run here: ' + error.message); return; }
+  try {
+    const page = await browser.newPage();
+    await page.route('**/*', route => route.fulfill({status: 200, contentType: 'text/html', body: '<!doctype html><title>t</title>'}));
+    await page.goto('http://127.0.0.1:1/');
+    const source = readFileSync(new URL('./pcm-relay.mjs', import.meta.url), 'utf8');
+    const result = await page.evaluate(async source => {
+      const {PcmRelay} = await import(URL.createObjectURL(new Blob([source], {type: 'text/javascript'})));
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+      const relay = new PcmRelay(); await relay.open();
+      const pc1 = new RTCPeerConnection(), pc2 = new RTCPeerConnection();
+      pc1.onicecandidate = e => e.candidate && pc2.addIceCandidate(e.candidate); pc2.onicecandidate = e => e.candidate && pc1.addIceCandidate(e.candidate);
+      const track = relay.stream.getAudioTracks()[0];
+      pc1.addTrack(track, relay.stream);
+      const far = new AudioContext(), levels = []; let t0 = performance.now();
+      pc2.ontrack = e => {
+        const sink = new Audio(); sink.srcObject = new MediaStream([e.track]); sink.muted = true; sink.play().catch(() => {});
+        const analyser = far.createAnalyser(); analyser.fftSize = 1024; far.createMediaStreamSource(new MediaStream([e.track])).connect(analyser);
+        const buffer = new Float32Array(1024);
+        setInterval(() => { analyser.getFloatTimeDomainData(buffer); let sum = 0; for (const v of buffer) sum += v * v; levels.push([performance.now() - t0, Math.sqrt(sum / buffer.length)]); }, 20);
+      };
+      const offer = await pc1.createOffer(); await pc1.setLocalDescription(offer); await pc2.setRemoteDescription(offer);
+      const answer = await pc2.createAnswer(); await pc2.setLocalDescription(answer); await pc1.setRemoteDescription(answer);
+      await delay(800);
+      const samples = 16000 * 1.5, tone = new Int16Array(samples);
+      for (let i = 0; i < samples; i++) tone[i] = Math.round(8000 * Math.sin(2 * Math.PI * 220 * i / 16000));
+      t0 = performance.now(); levels.length = 0;
+      relay.push(tone);
+      await delay(1200);                                   // the connection is still opening: nothing may play
+      const loudBeforeStart = levels.filter(([, v]) => v > 0.02).length;
+      const startedAt = performance.now() - t0;
+      relay.start();
+      const drained = await relay.drain();
+      await delay(400);
+      const loud = levels.filter(([, v]) => v > 0.02);
+      track.stop();
+      return {loudBeforeStart, startedAt, drained, loudMs: loud.length * 20, firstLoud: loud[0]?.[0] - startedAt, lastLoud: loud.at(-1)?.[0] - startedAt};
+    }, source);
+    assert.equal(result.loudBeforeStart, 0, 'nothing played before start(): ' + JSON.stringify(result));
+    assert.equal(result.drained.drained, true);
+    assert.ok(result.loudMs >= 1350 && result.loudMs <= 1700, 'the whole 1.5 s arrived: ' + JSON.stringify(result));
+    assert.ok(result.firstLoud < 400, 'and promptly after start(): ' + JSON.stringify(result));
+  } finally { await browser.close(); }
 });

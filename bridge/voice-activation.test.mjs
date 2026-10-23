@@ -131,15 +131,16 @@ test('off() closes the microphone once and never listens again until the conditi
   `);
 });
 
-// ---- the gate in init.lua: off by default, nothing loaded --------------------------------------------------------------------------------
+// ---- the gate in init.lua: the detector runs only with the setting on ---------------------------------------------------------------------
 function tickFunction() {
-  const start = initSource.indexOf('function convaiVoiceActivationTick(');
-  assert.ok(start > 0, 'init.lua has the tick');
-  const end = initSource.indexOf('\nend\n', start) + 5;
+  const start = initSource.indexOf('function convaiVoiceActivationModule(');
+  assert.ok(start > 0, 'init.lua has the module loader');
+  const tick = initSource.indexOf('function convaiVoiceActivationTick(', start);
+  const end = initSource.indexOf('\nend\n', tick) + 5;
   return initSource.slice(start, end);
 }
 
-test('with the setting off the module is never loaded, with it on it is loaded once and updated', () => {
+test('with the setting off the detector is never updated, with it on it is updated each tick, and turning it off closes the microphone once', () => {
   const code = tickFunction();
   assert.match(code, /manager\.voiceActivation\(\)/);
   check(`
@@ -156,7 +157,7 @@ test('with the setting off the module is never loaded, with it on it is loaded o
       return {update = function() updates = updates + 1 end, off = function() offs = offs + 1 end} end
     ${code}
     convaiVoiceActivationTick(player, 0.1, true); convaiVoiceActivationTick(player, 0.1, true)
-    assert(loaded == 0 and updates == 0 and convaiVoiceActivation == nil, 'off: nothing is loaded and nothing runs')
+    assert(updates == 0 and offs == 0, 'off: the detector never runs')
     on = true
     convaiVoiceActivationTick(player, 0.1, true); convaiVoiceActivationTick(player, 0.1, true)
     assert(loaded == 1 and updates == 2, 'on: loaded once, updated each tick')
@@ -170,4 +171,54 @@ test('the gaze scan notes the faced character without any extra game call, and a
   assert.match(initSource, /if lookKey then convaiLookSeenAt = os\.clock\(\) end/);
   const code = tickFunction();
   assert.match(code, /convaiNotices\.mute\(true\)[\s\S]*toggleVoice, false, 'vad', nil, vadId[\s\S]*convaiNotices\.mute\(false\)/);
+});
+
+// ---- the shared "a conversation is possible" answer ---------------------------------------------------------------------------------------
+test('sample: possible near someone, blocked in menus, loading screens, scenes and when voice input is impossible, asked at most twice a second', () => {
+  check(`
+    local asked = 0
+    local counted = va.deps.conversation
+    va.deps.conversation = function(...) asked = asked + 1; return counted(...) end
+    local possible, blocked = va.sample(player, true); assert(possible == true and blocked == false, 'somebody is faced')
+    va.sample(player, true); va.sample(player, true); assert(asked == 1, 'cached inside 0.5 s')
+    clock = clock + 0.6; flags.conversation = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == false, 'nobody near: not possible, but not blocked either')
+    clock = clock + 0.6; flags.conversation = true; flags.scene = true
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'a scene, a dialogue with choices or a call blocks')
+    clock = clock + 0.6; flags.scene = false; flags.gameplay = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'a menu or an open text box blocks')
+    clock = clock + 0.6; flags.gameplay = true
+    possible, blocked = va.sample(player, false); assert(possible == false and blocked == true, 'a world that is not playable (loading) blocks')
+    clock = clock + 0.6; flags.voiceReady = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'voice input impossible with this provider')
+  `);
+});
+
+// ---- the linger check: the game tells the bridge when it is busy --------------------------------------------------------------------------
+function lingerFunction() {
+  const start = initSource.indexOf('MIC_LINGER_WATCH_S = 17');
+  assert.ok(start > 0, 'init.lua has the linger tick');
+  const end = initSource.indexOf('\nend\n', initSource.indexOf('function convaiMicLingerTick(', start)) + 5;
+  return initSource.slice(start, end);
+}
+
+test('the linger tick looks only while a voice turn runs or ended less than 17 s ago, and tells the bridge whether the game is busy', () => {
+  check(`
+    local blocks, asked, clockNow, answer = {}, 0, 1000, false
+    microphone = {context = nil, holding = function() return nil end, block = function(on) blocks[#blocks + 1] = on end}
+    function convaiVoiceActivationModule() return {sample = function() asked = asked + 1; return false, answer end} end
+    os.clock = function() return clockNow end
+    ${lingerFunction()}
+    for i = 1, 20 do clockNow = clockNow + 0.1; convaiMicLingerTick(player, true) end
+    assert(asked == 0 and #blocks == 0, 'no voice turn yet: nothing is looked at')
+    microphone.context = {}
+    convaiMicLingerTick(player, true); assert(asked == 1 and blocks[1] == false, 'a turn runs: the game is not busy')
+    microphone.context = nil
+    answer = true; clockNow = clockNow + 5; convaiMicLingerTick(player, true); assert(blocks[2] == true, 'a menu or a scene during the linger: busy at once')
+    answer = false; clockNow = clockNow + 5; convaiMicLingerTick(player, true); assert(blocks[3] == false)
+    local before = asked
+    clockNow = clockNow + 20; convaiMicLingerTick(player, true); assert(asked == before, 'past the linger window nothing is looked at again')
+    microphone.holding = function() return 'k' end
+    convaiMicLingerTick(player, true); assert(asked == before + 1, 'a held key opens the window again')
+  `);
 });

@@ -8,16 +8,18 @@ export const RELAY_SAMPLE_RATE = 16000;
 export const RELAY_TAIL_MS = 120;
 
 const PROCESSOR_NAME = 'pcm-relay';
-// One FIFO of Int16 chunks, played in order, silence when empty. Reports the cumulative consumed sample count every 8 render
+// One FIFO of Int16 chunks, played in order once the relay is started (until then it only collects: the track is not published yet and nobody
+// would hear what plays), silence when empty. Reports the cumulative consumed sample count every 8 render
 // quanta while audio plays, and at once when the FIFO runs dry. Nothing is posted or allocated while idle.
 export const WORKLET_SOURCE = `
 class PcmRelayProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.queue = []; this.head = 0; this.offset = 0; this.consumed = 0; this.reported = 0; this.quanta = 0;
+    this.queue = []; this.head = 0; this.offset = 0; this.consumed = 0; this.reported = 0; this.quanta = 0; this.playing = false;
     this.port.onmessage = event => {
       const data = event.data;
-      if (data && data.length) this.queue.push(data);
+      if (data === 'play') this.playing = true;
+      else if (data && data.length) this.queue.push(data);
     };
   }
   process(inputs, outputs) {
@@ -25,7 +27,7 @@ class PcmRelayProcessor extends AudioWorkletProcessor {
     if (!out) return true;
     const frames = out.length;
     let written = 0;
-    while (written < frames && this.head < this.queue.length) {
+    while (this.playing && written < frames && this.head < this.queue.length) {
       const chunk = this.queue[this.head];
       let at = this.offset;
       const take = Math.min(frames - written, chunk.length - at);
@@ -36,7 +38,7 @@ class PcmRelayProcessor extends AudioWorkletProcessor {
     }
     if (written < frames) out.fill(0, written);
     for (let c = 1; c < output.length; c++) output[c].set(out);
-    const dry = this.head >= this.queue.length;
+    const dry = this.playing && this.head >= this.queue.length;
     if (dry && this.head) { this.queue.length = 0; this.head = 0; }
     if (this.consumed !== this.reported && (dry || ++this.quanta >= 8)) {
       this.reported = this.consumed; this.quanta = 0;
@@ -62,7 +64,7 @@ export class PcmRelay {
   constructor(classes = {}) {
     this.classes = classes;
     this.context = null; this.node = null; this.destination = null; this._stream = null;
-    this.pushed = 0; this.consumed = 0; this.lastPlayedAt = -Infinity;
+    this.pushed = 0; this.consumed = 0; this.lastPlayedAt = -Infinity; this.started = false;
     this.pending = []; this.ready = false; this.closed = false; this.opening = null;
     this.waiters = new Set();
   }
@@ -94,7 +96,9 @@ export class PcmRelay {
       if (context.state !== 'running') await context.resume();
       if (this.closed) throw Error('PCM relay closed');
       this.ready = true;
-      for (const [samples, transfer] of this.pending.splice(0)) this._send(samples, transfer);
+      for (const [samples, transfer] of this.pending.splice(0)) {
+        if (samples === 'play') this.node.port.postMessage('play'); else this._send(samples, transfer);
+      }
     } catch (error) { this.close(); throw error; }
     return this;
   }
@@ -103,6 +107,14 @@ export class PcmRelay {
     if (!data || typeof data.consumed !== 'number') return;
     if (data.consumed > this.consumed) { this.consumed = data.consumed; this.lastPlayedAt = now(); }
     if (data.empty) this._wake();
+  }
+
+  // The track is published: what was pushed so far (the pre-roll) and everything after it now plays out, in order, at the real-time rate.
+  // Before this call nothing is consumed, so audio pushed while the connection opened is not played into a track nobody receives.
+  start() {
+    if (this.closed || this.started) return;
+    this.started = true; this.startedAt = now();
+    if (this.ready) this.node.port.postMessage('play'); else this.pending.push(['play']);
   }
 
   _send(samples, transfer) {
@@ -145,8 +157,10 @@ export class PcmRelay {
 
   // Resolves {drained, waitedMs} once everything pushed has played out and RELAY_TAIL_MS of silence followed, or at the timeout.
   // Never rejects. After close() it resolves {drained: false} (nothing more can play).
-  drain(timeoutMs = 2000) {
+  drain(timeoutMs) {
     const started = now();
+    // The default fits what is queued (it plays in real time) plus a margin; a fixed 2 s cut a longer backlog off in the middle of the player's words.
+    if (!(timeoutMs > 0)) timeoutMs = Math.max(3000, this.backlogMs + 2000);
     return new Promise(resolve => {
       let timer = null, done = false;
       const finish = drained => {
