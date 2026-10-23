@@ -1,4 +1,4 @@
-"""Subtitle text of a game line in any language (the transcripts of a voice language pack).
+"""Subtitle text of a game line in any language (the transcripts of a multilingual pack).
 
 The English subtitle index (the installed game's localization lookup.sqlite3) tells which subtitle file holds a string id; the same
 file in lang_<lang>_text.archive (read from the game's archive folder, read-only) holds the line in the other language. The files are

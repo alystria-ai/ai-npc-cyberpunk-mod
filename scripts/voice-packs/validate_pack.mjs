@@ -1,4 +1,4 @@
-// Check a built voice language pack with the bridge's own all-or-none loader (bridge/voice-language-packs.mjs loadPack), and that every voice has its
+// Check a built multilingual pack with the bridge's own all-or-none loader (bridge/voice-language-packs.mjs loadPack), and that every voice has its
 // Voxtral slot (prepared/<key>.json + .ogg) and no stray file.
 //
 //   node scripts/voice-packs/validate_pack.mjs <pack folder (.../voices/multilingual/<lang>)> <language folder name, e.g. zh-cn> [--bridge <bridge folder>]

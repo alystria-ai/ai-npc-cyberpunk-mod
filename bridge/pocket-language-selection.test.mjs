@@ -148,7 +148,7 @@ test('the routing line names the PocketTTS model and the pack clip it cloned fro
   assert.match(english, /used="Pocket"/);
   const none = describeVoiceRoute({voice, input: {profileKey: 'panam-palmer'}, profile: {key: 'panam-palmer'}, plan: {engine: 'pocket', language: 'de', reason: 'pocket-language-pack-missing'},
     reply: {engine: 'none', language: 'de', reason: 'pocket-language-pack-missing'}, now: () => 0});
-  assert.match(none.fallback, /PocketTTS model for this language is installed but its voice language pack is not/);
+  assert.match(none.fallback, /PocketTTS model for this language is installed but its multilingual pack is not/);
 });
 
 // ---- the bridge's wiring and the support report ------------------------------------------------------------------------------------------
@@ -176,7 +176,7 @@ test('a reply written because the voice pack is missing says so once per languag
 test('the game maps the notice to a sentence in the menu language, with the language name translated, for each of the five languages', () => {
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8'), notices = readFileSync(new URL('../mod/notices.lua', import.meta.url), 'utf8');
   assert.match(lua, /reply\.keyNotice == 'pocket-language-pack'/);
-  assert.match(lua, /ui\.t\('\{language\} replies show as text: the \{language\} voice language pack is missing\.', \{language = language\}\)/);
+  assert.match(lua, /ui\.t\('\{language\} replies show as text: the \{language\} multilingual pack is missing\.', \{language = language\}\)/);
   for (const tag of ['fr', 'it', 'de', 'es', 'pt']) {
     assert.ok(lua.includes(`keyId == 'pocket-pack-${tag}' then convaiNotices.send(player, 'pocket-pack-${tag}', keyText)`), tag);
     assert.ok(notices.includes(`['pocket-pack-${tag}'] = {class = PLAYER, repeatS = 86400}`), tag);

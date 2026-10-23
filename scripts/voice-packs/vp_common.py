@@ -1,4 +1,4 @@
-"""Shared pieces of the voice language pack builder (docs/VOICE_LANGUAGE_PACKS.md).
+"""Shared pieces of the multilingual pack builder (docs/VOICE_LANGUAGE_PACKS.md).
 
 Everything large lives on E: (OUT / WORK); nothing game-derived is ever written inside the repository.
 

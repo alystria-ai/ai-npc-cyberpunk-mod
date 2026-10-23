@@ -503,7 +503,7 @@ def checked_config(assets, yaml_load=None):
 
 # ---- language models (docs/POCKET_LANGUAGE_MODELS.md) ----------------------------------------------------------------------------
 # A PocketTTS model is a folder <referenceDirectory>/multilingual-pocket/<language>/ (model.safetensors, tokenizer.json, inference.yaml) the bridge has
-# checked; the worker checks the files against the hashes the bridge sends before it loads them, and a language's voices are clips of the voice language pack of
+# checked; the worker checks the files against the hashes the bridge sends before it loads them, and a language's voices are clips of the multilingual pack of
 # the same language (<referenceDirectory>/multilingual/<language>/), named like every other reference.
 LANGUAGE_FOLDER = "multilingual-pocket"
 LANGUAGES = ("fr", "it", "de", "es-es", "pt-br")

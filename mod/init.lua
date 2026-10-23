@@ -3773,12 +3773,12 @@ local function keyReplyNotice(reply)
     if reply.keyNotice == 'voice-language' then
         return 'voice-language', ui.t('Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.')
     end
-    -- The PocketTTS model for a language is installed, but the voice language pack it clones from is not: that language's replies show as text. Said once per language per game session.
+    -- The PocketTTS model for a language is installed, but the multilingual pack it clones from is not: that language's replies show as text. Said once per language per game session.
     if reply.keyNotice == 'pocket-language-pack' then
         local names = {fr = ui.t('French'), it = ui.t('Italian'), de = ui.t('German'), es = ui.t('Spanish'), pt = ui.t('Portuguese')}
         local language = names[reply.keyNoticeLanguage]
         if language then
-            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} voice language pack is missing.', {language = language})
+            return 'pocket-pack-' .. reply.keyNoticeLanguage, ui.t('{language} replies show as text: the {language} multilingual pack is missing.', {language = language})
         end
     end
     if reply.keyNotice == 'mistral-no-key' then

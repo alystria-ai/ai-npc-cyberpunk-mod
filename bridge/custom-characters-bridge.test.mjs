@@ -175,7 +175,7 @@ test('the bridge opens the store before the voices, gives it to the prompt, the 
   // Voxtral reads a player clip from the data folder and keeps its prepared slot there; the shipped clips keep their own cache.
   assert.match(bridge, /referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices\.folder,/);
   assert.match(bridge, /player: createReferencePreparer\(\{cacheDirectory: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\),/);
-  // A player's clip keeps its slot in the data folder, a voice language pack's in its own prepared/ folder, every other clip in the shared one.
+  // A player's clip keeps its slot in the data folder, a multilingual pack's in its own prepared/ folder, every other clip in the shared one.
   assert.match(bridge, /prepare: voxtralPreparers \? \(bytes, options = \{\}\) => voxtralPreparer\(options\)\(bytes, options\) : undefined,/);
   assert.match(bridge, /return options\.player \? voxtralPreparers\.player : voxtralPreparers\.shipped;/);
   assert.match(bridge, /onRemoved: key => releasePreparedSlots\(\{folder: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\), key\}\)/);

@@ -642,7 +642,7 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   Node's `stat` cannot see a file that exists only in a mod folder. So: (a) a Runtime update installed as its own mod whose zip does not hold `start-service.mjs` (the
   usual case) leaves the base Runtime's `bridge/` and `launcher/` in use and the update's changed files are never read: the Scripts and Runtime versions then disagree
   (`release.json` is read from the base Runtime) and the setup check shows the mismatch; (b) an update that does hold `start-service.mjs` makes the service run from the
-  update mod's folder, where the unchanged siblings do not exist: `install-incomplete`; (c) the voice language packs and PocketTTS models are read from the Runtime
+  update mod's folder, where the unchanged siblings do not exist: `install-incomplete`; (c) the multilingual packs and PocketTTS models are read from the Runtime
   mod's own `voices/` folder (`referenceDirectory`, the real folder), so a pack in a mod of its own is not found and that language silently stays English. The Local AI, Mature,
   OmniVoice and microphone packs ARE looked up at their virtual place and used from their real one, so they can be separate mods. What is done about it: the setup
   check's Mod manager note and the versions row tell a Mod Organizer 2 player to extract update zips (and language packs) into the Runtime's own mod folder (`mo2Hint` in

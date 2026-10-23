@@ -546,7 +546,7 @@ export async function conversationSection({runtime, settings}) {
 }
 
 /**
- * The voice language packs as the service reports them (bridge/voice-language-packs.mjs report()): which packs it uses (language, number of voices, version)
+ * The multilingual packs as the service reports them (bridge/voice-language-packs.mjs report()): which packs it uses (language, number of voices, version)
  * and which installed pack it ignores and why. Only those fields, at most 12 packs, short strings: no path, no clip, no text. null when the report was made
  * without the service (it does not know).
  */
@@ -562,7 +562,7 @@ export function voiceLanguagePacksSection(value) {
 
 /**
  * The PocketTTS models as the service reports them (bridge/pocket-language-models.mjs report()): which model is installed (language, size, version), whether the
- * voice language pack it clones from is installed and whether Pocket may speak the language, and which installed model it ignores and why. No path. null when the report
+ * multilingual pack it clones from is installed and whether Pocket may speak the language, and which installed model it ignores and why. No path. null when the report
  * was made without the service.
  */
 export function pocketLanguageModelsSection(value) {
@@ -710,7 +710,7 @@ export async function collectReport(options) {
     conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
     voiceClips,
-    // The voice language packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
+    // The multilingual packs the service found (docs/VOICE_LANGUAGE_PACKS.md): language, voices, version, and why a pack that is installed is not used.
     voiceLanguagePacks: voiceLanguagePacksSection(languagePackFacts),
     // The PocketTTS models the service found (docs/POCKET_LANGUAGE_MODELS.md): language, size, whether their voice pack is installed, and why an installed model is not used.
     pocketLanguageModels: pocketLanguageModelsSection(pocketModelFacts),

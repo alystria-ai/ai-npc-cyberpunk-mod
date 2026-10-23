@@ -400,7 +400,7 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertEqual(frames[-1]['op'], 'error')
         self.assertEqual(registry['playerRoot'], self.player.resolve())
 
-    # ---- voice language packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip beside its profile's English reference ----
+    # ---- multilingual packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip beside its profile's English reference ----
 
     def pack_clip(self, name='johnny-silverhand', language='zh-cn', kind='picked', seconds=1, rate=24000):
         folder = self.paths['referenceDirectory'] / 'multilingual' / language / kind
@@ -513,6 +513,70 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertFalse((self.app / 'runtime').exists())
         with worker.model_admission(other_app, cache_root=cache):
             pass
+
+    def hold_slot_then_release(self, cache, hold_s):
+        """Another worker that owns the slot and exits `hold_s` later (a worker of the old bridge, still going down)."""
+        import threading
+        owned, release = threading.Event(), threading.Event()
+        def owner():
+            with worker.model_admission(self.app, cache_root=cache):
+                owned.set()
+                release.wait(timeout=30)
+        thread = threading.Thread(target=owner, daemon=True)
+        thread.start()
+        self.assertTrue(owned.wait(timeout=10))
+        timer = threading.Timer(hold_s, release.set)
+        timer.start()
+        self.addCleanup(release.set)
+        self.addCleanup(timer.cancel)
+        self.addCleanup(thread.join, 10)
+
+    def test_a_slot_owned_by_a_worker_that_is_exiting_is_waited_for_and_then_taken(self):
+        cache = self.paths['cacheDirectory']
+        other_app = self.root / 'restarted application'
+        other_app.mkdir()
+        self.hold_slot_then_release(cache, 0.4)
+        naps = []
+        real_sleep = worker.time.sleep
+        def nap(seconds):
+            naps.append(seconds)
+            real_sleep(seconds)
+        with worker.model_admission(other_app, cache_root=cache, wait_s=8, poll_s=0.1, sleep=nap):
+            pass
+        self.assertTrue(naps, 'the slot was owned at the start, so it polled')
+        self.assertLessEqual(max(naps), 0.1)
+
+    def test_a_slot_owned_by_a_worker_that_stays_alive_is_reported_after_the_wait(self):
+        cache = self.paths['cacheDirectory']
+        other_app = self.root / 'second application'
+        other_app.mkdir()
+        self.hold_slot_then_release(cache, 20)
+        clock = {'now': 0.0}
+        naps = []
+        def nap(seconds):
+            naps.append(seconds)
+            clock['now'] += seconds
+        with self.assertRaisesRegex(RuntimeError, 'shared model slot'):
+            with worker.model_admission(other_app, cache_root=cache, wait_s=worker.MODEL_SLOT_WAIT_S, sleep=nap, clock=lambda: clock['now']):
+                self.fail('A live second worker must not be admitted')
+        self.assertEqual(sum(naps), worker.MODEL_SLOT_WAIT_S)
+        self.assertEqual(len(naps), 9)
+        self.assertTrue(8 <= worker.MODEL_SLOT_WAIT_S <= 10 and worker.MODEL_SLOT_POLL_S == 1.0)
+
+    def test_a_free_slot_never_waits_and_the_default_reports_an_owned_one_at_once(self):
+        cache = self.paths['cacheDirectory']
+        other_app = self.root / 'third application'
+        other_app.mkdir()
+        def forbidden(seconds):
+            self.fail('a free slot must not sleep')
+        with worker.model_admission(self.app, cache_root=cache, wait_s=8, sleep=forbidden):
+            with self.assertRaisesRegex(RuntimeError, 'shared model slot'):
+                with worker.model_admission(other_app, cache_root=cache, sleep=forbidden):
+                    self.fail('The default does not wait')
+
+    def test_the_worker_start_waits_for_the_slot(self):
+        main_source = SOURCE.read_text(encoding='utf-8').split('def main():', 1)[1].split('def voice_environment', 1)[0]
+        self.assertIn('wait_s=MODEL_SLOT_WAIT_S', main_source)
 
     def test_copied_worker_main_derives_the_relocated_app_and_never_uses_the_checkout(self):
         copied = self.app / 'bridge/resident-voice-worker.py'

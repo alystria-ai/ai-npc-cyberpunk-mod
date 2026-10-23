@@ -1,4 +1,4 @@
-// Zip a built voice language pack like the release packs: Voices-<Language>.zip, its .files.json (no loose checksum file). Published in the multilingual/ folder of the Hugging Face repository.
+// Zip a built multilingual pack like the release packs: Voices-<Language>.zip, its .files.json (no loose checksum file). Published in the multilingual/ folder of the Hugging Face repository.
 //
 //   node scripts/voice-packs/package_pack.mjs <lang> <stage folder (holds red4ext/...)> <output folder>
 //

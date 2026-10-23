@@ -1,4 +1,4 @@
-// Build the Voxtral (Mistral voice) prepared slots of a voice language pack with the bridge's own code: no network, no key, no Mistral call.
+// Build the Voxtral (Mistral voice) prepared slots of a multilingual pack with the bridge's own code: no network, no key, no Mistral call.
 //
 //   node scripts/voice-packs/prepare_slots.mjs <pack folder (.../voices/multilingual/<lang>)> [--bridge <bridge folder>] [--report <file>]
 //
@@ -7,7 +7,7 @@
 // clip (singleClip, like the English archetype references), the reference is cut at a pause to about 8.5 s and encoded as Ogg Vorbis q2 with
 // ffmpeg, and the slot is written to <pack>/prepared/<key>.json + <key>.ogg (found by the same signature the bridge looks for).
 // ffmpeg must be on PATH (or CYBERPUNK_CONVAI_FFMPEG).
-// --bridge: the bridge folder to take the code from (default: this repository's). buildFromPack comes with the voice language pack branch.
+// --bridge: the bridge folder to take the code from (default: this repository's). buildFromPack comes with the multilingual pack branch.
 import {readFile, writeFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -22,7 +22,7 @@ if (!args[0]) throw Error('usage: node prepare_slots.mjs <pack folder> [--bridge
 const load = name => import(pathToFileURL(resolve(bridgeDirectory, name)).href);
 const {VoxtralVoice} = await load('voxtral-voice.mjs');
 const {createReferencePreparer, findFfmpeg} = await load('voxtral-reference.mjs');
-if (typeof VoxtralVoice.prototype.buildFromPack !== 'function') throw Error(`${bridgeDirectory}: VoxtralVoice has no buildFromPack (the voice language pack bridge code is needed)`);
+if (typeof VoxtralVoice.prototype.buildFromPack !== 'function') throw Error(`${bridgeDirectory}: VoxtralVoice has no buildFromPack (the multilingual pack bridge code is needed)`);
 if (!await findFfmpeg()) throw Error('ffmpeg is needed to build the compressed references');
 
 const manifest = JSON.parse((await readFile(resolve(packDirectory, 'manifest.json'), 'utf8')).replace(/^﻿/, ''));

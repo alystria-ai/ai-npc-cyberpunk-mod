@@ -336,12 +336,12 @@ local function names(list, field, limit)
     return out
 end
 
--- The names the setup check sends for the language packs ("Voice language pack (fr)", bridge/setup-check.mjs) in the menu language; every other pack name is a
+-- The names the setup check sends for the language packs ("Multilingual pack (fr)", bridge/setup-check.mjs) in the menu language; every other pack name is a
 -- product name and stays as it is.
 local function packName(value)
     if type(value) ~= 'string' then return value end
-    local code = value:match('^Voice language pack %(([%w-]+)%)$')
-    if code then return ui.t('Voice language pack ({code})', {code = code}) end
+    local code = value:match('^Multilingual pack %(([%w-]+)%)$')
+    if code then return ui.t('Multilingual pack ({code})', {code = code}) end
     code = value:match('^PocketTTS model %(([%w-]+)%)$')
     if code then return ui.t('PocketTTS model ({code})', {code = code}) end
     return value
@@ -456,7 +456,7 @@ local function runtimeIsOlder(versions)
     return nil
 end
 
--- Mod Organizer 2 runs the service from the real folder of the Runtime's own mod, so a Runtime update zip (or a voice language pack) installed as a
+-- Mod Organizer 2 runs the service from the real folder of the Runtime's own mod, so a Runtime update zip (or a multilingual pack) installed as a
 -- separate mod is never read: the lines about versions and update steps then say where the files go (docs/PACKAGING.md, "Mod Organizer 2").
 local function mo2Hint()
     local manager = bridgeCheck('mod-manager')
@@ -566,7 +566,7 @@ local function bridgeLines(out)
     local manager = bridgeCheck('mod-manager')
     if manager and type(manager.code) == 'string' then
         local label = ui.t('Mod manager')
-        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and voice language packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.'))
+        if manager.code == 'mo2' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Extract Runtime update zips and multilingual packs into the Runtime’s own mod folder, not as new mods. Mention Mod Organizer 2 when you send a report.'))
         elseif manager.code == 'vortex' then out[#out + 1] = line('mod-manager', label, 'note', ui.t('Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.'))
         else out[#out + 1] = line('mod-manager', label, 'ok', ui.t('None found: installed by hand.')) end
     end

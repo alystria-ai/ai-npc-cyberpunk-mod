@@ -46,7 +46,7 @@ def main() -> int:
             f"<td><audio controls preload='none' src='{key}.{lang}.wav'></audio><p>{html.escape(entry['text'])}</p></td></tr>")
     page = ("<!doctype html><meta charset='utf-8'><title>Voice pack " + lang + "</title>"
             "<style>body{font:15px system-ui;margin:24px}td{vertical-align:top;padding:8px 12px;border-bottom:1px solid #ccc}p{max-width:46ch}</style>"
-            f"<h1>Voice language pack {html.escape(lang)}: English reference vs the dub</h1>"
+            f"<h1>Multilingual pack {html.escape(lang)}: English reference vs the dub</h1>"
             "<table><tr><th>Voice</th><th>English reference</th><th>New (" + html.escape(lang) + ")</th></tr>" + "".join(rows) + "</table>")
     (out / "index.html").write_text(page, encoding="utf-8")
     print(f"listening sheet: {out / 'index.html'}")

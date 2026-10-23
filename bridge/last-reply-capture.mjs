@@ -1,5 +1,5 @@
 // Developer mode: keeps the audio of the last spoken reply and which reference voice spoke it, so a test can compare the speaker with the reference offline
-// (the in-game check of the voice language packs: the Mandarin reply must sound like the character, not like another one).
+// (the in-game check of the multilingual packs: the Mandarin reply must sound like the character, not like another one).
 //
 //   <state>/debug/last-reply-<engine>.wav    the reply, 24 kHz mono 16-bit (engine: omni | voxtral | pocket); every phrase of the reply, in order
 //   <state>/debug/last-reply-<engine>.json   {version, engine, voiceKey, language, reference, referenceUsed, seconds, sampleRate, phrases, updated}

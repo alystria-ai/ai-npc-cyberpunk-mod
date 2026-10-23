@@ -221,7 +221,7 @@ let audioRatesWriting = Promise.resolve();
 // voice. They only sit in the configurations; nothing is prepared or loaded for them until a typed line is spoken in V's voice.
 const referenceRoots = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES]
   : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')];
-// The voice language packs (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs): the game's own dub of a character in the language of a reply, as the
+// The multilingual packs (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs): the game's own dub of a character in the language of a reply, as the
 // reference OmniVoice and the Mistral voice clone from. Found and checked once here (a few file headers; nothing at all without a pack), looked at again by the
 // settings poll, and asked for from memory per reply. A broken pack is ignored with one log line, and the reason goes in the support report.
 const languagePacks = new VoiceLanguagePacks({roots: referenceRoots, log: line => console.error('[VoiceLanguagePacks] ' + line),
@@ -319,7 +319,7 @@ const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || res
 const voxtralPreparers = process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? null : {
   shipped: createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   player: createReferencePreparer({cacheDirectory: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
-  // A voice language pack keeps its Mistral slots in its own prepared/ folder (options.slots), found by the same signature as every other slot.
+  // A multilingual pack keeps its Mistral slots in its own prepared/ folder (options.slots), found by the same signature as every other slot.
   slots: new Map(),
 };
 const voxtralPreparer = (options = {}) => {
@@ -329,7 +329,7 @@ const voxtralPreparer = (options = {}) => {
   }
   return options.player ? voxtralPreparers.player : voxtralPreparers.shipped;
 };
-// V's reference built from a V voice mod is the player's own making: a voice language pack's V clip (the game's own dub in that language) does not replace it, in any language
+// V's reference built from a V voice mod is the player's own making: a multilingual pack's V clip (the game's own dub in that language) does not replace it, in any language
 // (docs/V_VOICE.md: the player's clip, then the mod's reference, then the pack's clip, then the shipped one). Read from memory per reply.
 const vModKeepsReference = key => { const gender = vGenderOfKey(key); return gender !== null && String(vVoiceReferences.voices[gender]?.source ?? '').startsWith('mod:'); };
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
@@ -593,7 +593,7 @@ const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.single
 // A text provider answered in a language the chosen voice cannot speak (Pocket speaks English only, Voxtral the languages its model lists): the reply is shown as text, and
 // the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
 const voiceLanguageNotice = new VoiceLanguageNotice();
-// The Pocket model of a language is installed but the voice language pack it clones from is not: that language's replies are text, said once per language per game session.
+// The Pocket model of a language is installed but the multilingual pack it clones from is not: that language's replies are text, said once per language per game session.
 const pocketLanguageNotice = new PocketLanguageNotice();
 let pocketNotice;
 const keyNotice = () => {
@@ -1200,7 +1200,7 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, ...extra}));
   } catch {}
 }
-// The voice language pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
+// The multilingual pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
 // a voice the pack lists, and not a voice the player gave a clip of their own. Pocket (English only) and the Convai voice never use one. In-memory lookups.
 function languagePackFor(engine, language, voiceKey) {
   if (!language || language === 'en' || !voiceKey || !languagePacks.installed) return null;
@@ -1781,16 +1781,16 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: unavailable ? 'The selected voice is unavailable right now; showing the written reply.'
         : voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
-        : voice.reason === 'pocket-language-pack-missing' ? 'The voice language pack for this language is missing; showing the written reply.'
+        : voice.reason === 'pocket-language-pack-missing' ? 'The multilingual pack for this language is missing; showing the written reply.'
         : 'The selected voice speaks English only; showing the written reply.'};
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   const voiceKey = voiceKeyFor(input);
   // Pocket in another language needs a clip of this character in the language's voice pack (or the player's own clip): without one the reply is written.
   if (voice.engine === 'pocket' && language && !localVoice.cloudActive && !localVoice.hasPlayerClip(voiceKey) && !pocketLanguages.entry(language, voiceKey)) {
-    logVoiceRoute(input, profile, {engine: 'none', language}, {reason: 'the voice language pack has no clip of this character'});
+    logVoiceRoute(input, profile, {engine: 'none', language}, {reason: 'the multilingual pack has no clip of this character'});
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
-      audioError: 'The voice language pack has no clip of this character; showing the written reply.'};
+      audioError: 'The multilingual pack has no clip of this character; showing the written reply.'};
   }
   markStage('voiceStart');
   throwIfCancelled(signal);
@@ -3541,7 +3541,7 @@ async function pollSettings(checkShutdown = true) {
       dropPrefetch(); prefetchObserved = '';
     }
     if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
-    // Voice language packs installed (or removed) while the game runs are noticed within 30 s: one folder listing and a stat per manifest, never awaited by a reply.
+    // Multilingual packs installed (or removed) while the game runs are noticed within 30 s: one folder listing and a stat per manifest, never awaited by a reply.
     void languagePacks.refresh().catch(() => {});
     void pocketLanguages.refresh().catch(() => {});
     // Developer mode: the last reply's audio and reference are kept (bridge/last-reply-capture.mjs).

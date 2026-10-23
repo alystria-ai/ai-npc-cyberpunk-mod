@@ -1,4 +1,4 @@
-// The voice language packs (docs/VOICE_LANGUAGE_PACKS.md) extract into voices/multilingual/<lang>/ and are theirs alone: the Runtime and the Scripts never ship
+// The multilingual packs (docs/VOICE_LANGUAGE_PACKS.md) extract into voices/multilingual/<lang>/ and are theirs alone: the Runtime and the Scripts never ship
 // a file there, the pack-overlap check treats the folder as pack-owned, and no removal list ever deletes in it. The bridge modules that read the packs are part
 // of the Runtime's file list.
 import {test} from 'node:test';

@@ -44,7 +44,7 @@ ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
 # shipped references: a descriptor naming this fixed second namespace resolves only inside that folder.
 PLAYER_PREFIX = 'runtime/player-voices'
 PLAYER_REFERENCE = re.compile(r'runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav')
-# A voice language pack's clip (docs/VOICE_LANGUAGE_PACKS.md) is a reference of the shipped namespace, in a folder of its own: a request may name one to clone from
+# A multilingual pack's clip (docs/VOICE_LANGUAGE_PACKS.md) is a reference of the shipped namespace, in a folder of its own: a request may name one to clone from
 # in place of its profile's English reference (`languageReference`). Nothing else is accepted by that field.
 LANGUAGE_REFERENCE = re.compile(r'runtime/voice-references/multilingual/[a-z]{2}(?:-[a-z]{2})?/(?:picked|archetypes|v-voice)/[a-z0-9][a-z0-9._-]{0,79}\.wav')
 MAX_LANGUAGE_REFERENCES = 32
@@ -446,14 +446,14 @@ class ProfileSession:
         self.prepared_snapshot = prepared_snapshot
         self.evict = evict
         self.prepared = OrderedDict()
-        # Voice language pack clips that requests named: (reference, sha256, transcript) -> (file, words, file size, file time), at most MAX_LANGUAGE_REFERENCES.
+        # Multilingual pack clips that requests named: (reference, sha256, transcript) -> (file, words, file size, file time), at most MAX_LANGUAGE_REFERENCES.
         self.language_references = OrderedDict()
 
     def language_reference(self, descriptor):
         """The clip a request wants to clone from in place of the profile's English reference, as (file, words), or None for the English one.
 
         The descriptor is checked like any reference (the same `validate_reference`: the file inside the references folder, its hash, its length of at most
-        20 s) and must name a voice language pack clip. A refused clip is not an error: the request is spoken from the English reference and the answer says
+        20 s) and must name a multilingual pack clip. A refused clip is not an error: the request is spoken from the English reference and the answer says
         so. A clip that was checked is not read again until its file changes. Its prompt enters the prompt cache under its own file and words, so an English
         and a Mandarin reference of one character never share a prepared state.
         """
@@ -586,7 +586,7 @@ class ProfileSession:
                     or not isinstance(key, str) or key not in self.registry['refs']):
                 raise ValueError('Invalid local voice selection')
             if request.get('op') == 'prepare' and request.get('languageReference') is not None:
-                # A voice language pack's clip, prepared ahead of the reply that will be cloned from it (no render, no prepared-list change): its checks,
+                # A multilingual pack's clip, prepared ahead of the reply that will be cloned from it (no render, no prepared-list change): its checks,
                 # its conditioning prompt in the cache. 'fallback' when the clip was refused (the English reference speaks that reply).
                 reference = self.language_reference(request['languageReference'])
                 elapsed = 0
@@ -614,7 +614,7 @@ class ProfileSession:
                     raise ValueError('Invalid local speech text/quality')
                 if language is not None and (not isinstance(language, str) or not re.fullmatch(r'[a-z]{2,3}', language)):
                     raise ValueError('Invalid local speech language')
-                # A voice language pack's clip in place of the profile's English one (docs/VOICE_LANGUAGE_PACKS.md): 'used', or 'fallback' when the clip
+                # A multilingual pack's clip in place of the profile's English one (docs/VOICE_LANGUAGE_PACKS.md): 'used', or 'fallback' when the clip
                 # was refused and the English reference spoke.
                 reference = outcome = None
                 if request.get('languageReference') is not None:
@@ -693,9 +693,44 @@ def cached_profiles(adapter, registry):
     return profiles
 
 
+# A game restarted fast ends the old bridge's whole process tree and starts the new bridge a second later: the old worker's lock is released by the OS
+# only when that process has really gone, so a slot that is owned right at the start is polled for a few seconds before it counts as owned.
+# A real second worker stays alive and still gets the error after the wait.
+MODEL_SLOT_WAIT_S = 9.0
+MODEL_SLOT_POLL_S = 1.0
+
+
+def _lock_model_slot(handle):
+    """True when this handle now holds the slot, False when another process does."""
+    handle.seek(0)
+    try:
+        if os.name == 'nt':
+            import msvcrt
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _unlock_model_slot(handle):
+    handle.seek(0)
+    if os.name == 'nt':
+        import msvcrt
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+        fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 @contextmanager
-def model_admission(root=ROOT, *, cache_root=None):
-    """One OS-owned admission slot shared by bridge and audition workers."""
+def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=MODEL_SLOT_POLL_S, sleep=time.sleep, clock=time.monotonic):
+    """One OS-owned admission slot shared by bridge and audition workers.
+
+    `wait_s` is how long an owned slot is polled (every `poll_s`) before it is reported as owned; 0 reports it at once.
+    """
     root = root.resolve()
     relative = 'resident-model.lock' if cache_root is not None else 'runtime/voice-studio-data/resident-model.lock'
     candidate = cache_root if cache_root is not None else root
@@ -711,24 +746,19 @@ def model_admission(root=ROOT, *, cache_root=None):
         if os.fstat(handle.fileno()).st_size == 0:
             handle.write(b'0')
             handle.flush()
-        handle.seek(0)
-        try:
-            if os.name == 'nt':
-                import msvcrt
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError as error:
-            raise RuntimeError('Another resident voice worker owns the shared model slot') from error
+        deadline = clock() + max(0.0, wait_s)
+        waited = False
+        while not _lock_model_slot(handle):
+            if clock() >= deadline:
+                raise RuntimeError('Another resident voice worker owns the shared model slot')
+            if not waited:
+                waited = True
+                print('The shared model slot is still owned (a worker that is exiting?): waiting for it.', file=sys.stderr, flush=True)
+            sleep(max(0.0, min(poll_s, deadline - clock())))
         try:
             yield
         finally:
-            handle.seek(0)
-            if os.name == 'nt':
-                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                fcntl.flock(handle, fcntl.LOCK_UN)
+            _unlock_model_slot(handle)
 
 
 def main():
@@ -748,7 +778,7 @@ def main():
     registry = validate_config(read_config(args.config), paths=paths)
     if args.skip_startup_warm:
         registry['startupProfiles'] = []
-    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None):
+    with model_admission(cache_root=paths['cacheDirectory'] if paths['portable'] else None, wait_s=MODEL_SLOT_WAIT_S):
         run_worker(registry)
 
 

@@ -485,7 +485,7 @@ export class ResidentVoice {
     return abortable(operation, signal);
   }
   /**
-   * Prepares a voice language pack's clip for a reply that is about to be spoken from it: the worker checks the clip and builds its conditioning prompt into the
+   * Prepares a multilingual pack's clip for a reply that is about to be spoken from it: the worker checks the clip and builds its conditioning prompt into the
    * prompt cache (no render, the profile's own prepared state is not touched), so the first line in that language does not do it. Quiet by design: a clip
    * the worker refuses answers 'fallback' (the reply is then spoken from the English reference), and nothing here throws into a turn.
    * Resolves {provider: 'omnivoice', profile, languageReference: 'used' | 'fallback', ms}.
@@ -522,7 +522,7 @@ export class ResidentVoice {
   }
   // `language`: the reply's ISO 639-1 code when it is not English (Multilingual conversations). OmniVoice clones
   // the English reference into that language. Absent or 'en' sends nothing, so English requests are unchanged.
-  // `languageReference` {reference, sha256, transcript}: a voice language pack's clip of this character (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs
+  // `languageReference` {reference, sha256, transcript}: a multilingual pack's clip of this character (docs/VOICE_LANGUAGE_PACKS.md, bridge/voice-language-packs.mjs
   // omniDescriptor) to clone from instead of the profile's English reference. The worker checks it like any reference and answers 'used', or 'fallback' when it
   // spoke from the English one (the result's timing says which: voiceLanguageReference). The profile is not prepared for it: the clip's prompt is its own.
   synthesize(profile, text, {signal, steps: chosenSteps, language, languageReference} = {}) {

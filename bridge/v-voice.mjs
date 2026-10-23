@@ -582,7 +582,7 @@ export class VVoice {
         // The cloud voice shares no worker with anyone: nothing stops it, it is simply dropped if it is not audible when the reply is.
         const problem = this.cloud ? this.cloud.problem(voice.key) : 'not available';
         if (problem !== null) { this.once('cloud:' + problem, `V's voice skipped: the Voxtral voice cannot speak it now (${problem})`); return this.skip('cloud-unavailable'); }
-        // A line in another language is cloned from the voice language pack's V clip (v-voice/v-male.wav, v-female.wav) when that language has a pack: the
+        // A line in another language is cloned from the multilingual pack's V clip (v-voice/v-male.wav, v-female.wav) when that language has a pack: the
         // options carry the language, and the log names the clip as the routing line does for a companion.
         const packSet = spoken !== 'en' ? this.cloud.languageSet?.(voice.key, spoken) ?? null : null;
         if (packSet) this.log(`V's line in ${spoken} is cloned from ${packSet}`);

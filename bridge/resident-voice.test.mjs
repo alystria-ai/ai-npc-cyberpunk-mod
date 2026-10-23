@@ -585,7 +585,7 @@ test('a reading that fails or never arrives does not hold up or change the failu
   const closed = slow.client.close(); slow.finish(); await closed;
 });
 
-// ---- voice language packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip to clone from --------------------------------------------
+// ---- multilingual packs (docs/VOICE_LANGUAGE_PACKS.md): a request may name a pack clip to clone from --------------------------------------------
 
 const packClip = {reference: 'runtime/voice-references/multilingual/zh-cn/picked/alex.wav', sha256: 'c'.repeat(64), transcript: 'Words in the clip.'};
 

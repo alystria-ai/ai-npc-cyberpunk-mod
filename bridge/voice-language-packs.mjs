@@ -1,4 +1,4 @@
-// Voice language packs (docs/VOICE_LANGUAGE_PACKS.md): optional packs that give OmniVoice and the Mistral voice (Voxtral) the game's own dub of a
+// Multilingual packs (docs/VOICE_LANGUAGE_PACKS.md): optional packs that give OmniVoice and the Mistral voice (Voxtral) the game's own dub of a
 // character in the language of the reply, as the reference to clone, instead of the English actor's clips.
 //
 // A pack is a folder <references>/multilingual/<lang>/ with a manifest.json and the clips it names (picked/, archetypes/, v-voice/, and the Voxtral
@@ -225,14 +225,14 @@ export class VoiceLanguagePacks {
         problems.set(language, result.problem);
         // One notice per pack and reason, however many times it is looked at.
         const notice = `${language}|${result.problem}`;
-        if (!this.noticed.has(notice)) { this.noticed.add(notice); try { this.log(`voice language pack ${language} is not used: ${result.problem}`); } catch {} }
+        if (!this.noticed.has(notice)) { this.noticed.add(notice); try { this.log(`multilingual pack ${language} is not used: ${result.problem}`); } catch {} }
       }
     }
     const before = this.describe();
     this.packs = packs; this.problems = problems; this.signature = JSON.stringify(seen.map(({language, stamp}) => [language, stamp]));
     this.scannedAt = this.now();
     if (before !== this.describe()) {
-      for (const [tag, pack] of packs) try { this.log(`voice language pack ${pack.language} ready: ${pack.entries.size} voices`); } catch {}
+      for (const [tag, pack] of packs) try { this.log(`multilingual pack ${pack.language} ready: ${pack.entries.size} voices`); } catch {}
       if (this.hadScan) try { this.onChange(this.report()); } catch {}
     }
     this.hadScan = true;

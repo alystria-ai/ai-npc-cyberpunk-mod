@@ -87,7 +87,7 @@ test('a pack with a missing file is ignored as a whole, with one notice, and the
     // One notice, however many times the folder is looked at.
     await found.scan(); await found.scan();
     assert.equal(lines.filter(line => line.includes('not used')).length, 1);
-    assert.match(lines[0], /voice language pack zh-cn is not used/);
+    assert.match(lines[0], /multilingual pack zh-cn is not used/);
   });
 });
 

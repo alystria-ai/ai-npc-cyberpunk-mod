@@ -67,7 +67,7 @@ Now there is no setting and no twin: while a text provider answers, the reply-la
   from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
 - the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Voxtral (Mistral cloud, Voxtral TTS 3,
   2026-10-21) speaks it for the languages its model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
-  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their PocketTTS model and voice language pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
+  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only (and French, Italian, German, Spanish and Portuguese when their PocketTTS model and multilingual pack are installed: `local.pocket`, docs/POCKET_LANGUAGE_MODELS.md), and Voxtral for an
   unlisted language keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`, reason `english-only-voice` or
   `voice-language-unsupported`), with one `voice-language` notice per game session ("Replies in some languages show as text: this voice does not speak
   them. OmniVoice speaks them all, and Voxtral most of them."). No voice model is loaded for it. An English conversation keeps the chosen voice untouched.
@@ -401,7 +401,7 @@ translated interface strings and on windows of English documentation (the Englis
 
 A row of the Voices category (MCM and Native Settings UI): **English** (the default, for everyone, new and existing), **Automatic**, then the mod's
 other languages (`REPLY_LANGUAGES` in `bridge/multilingual.mjs`, the same list as `replyLanguages` in `mod/manager.lua`: German, French, Spanish, Italian,
-Portuguese, Polish, Russian, Ukrainian, Turkish, Czech, Hungarian, Japanese, Korean, Chinese; it holds every voice language pack and every Pocket
+Portuguese, Polish, Russian, Ukrainian, Turkish, Czech, Hungarian, Japanese, Korean, Chinese; it holds every multilingual pack and every Pocket
 language model language). It is a VOICE setting: it counts only while Voice playback is on. With voices off the routing is Automatic, exactly as before
 the setting existed (the row stays visible and its description says so; the saved choice is kept).
 

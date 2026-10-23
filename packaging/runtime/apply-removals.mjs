@@ -44,7 +44,7 @@ export const ALLOWED_ROOTS = Object.freeze([
 export const PROTECTED = Object.freeze([
   `${PLUGIN}/launcher.ini`, `${PLUGIN}/launcher.log`, `${PLUGIN}/browser.txt`, `${PLUGIN}/app/release.json`, `${PLUGIN}/app/${REMOVALS_FILE}`,
   `${PLUGIN}/app/omni/`, `${PLUGIN}/app/local-ai/`, `${PLUGIN}/data/`, `${PLUGIN}/state/`,
-  // The voice language packs (docs/VOICE_LANGUAGE_PACKS.md): their own zips write this folder, and no Runtime's list ever deletes in it.
+  // The multilingual packs (docs/VOICE_LANGUAGE_PACKS.md): their own zips write this folder, and no Runtime's list ever deletes in it.
   `${PLUGIN}/voices/multilingual/`,
   // The PocketTTS models (docs/POCKET_LANGUAGE_MODELS.md): the same, one optional zip per language.
   `${PLUGIN}/voices/multilingual-pocket/`,
