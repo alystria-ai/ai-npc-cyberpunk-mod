@@ -63,7 +63,7 @@ test('microphone keeps mode and never carries the retired follow-up field while 
  assert(mic.begin(context)and #commands==1 and commands[1].action=='start')
  assert(commands[1].input.followUpQuestions==nil)
  state('recording');mic.update(player)
- assert(mic.state=='recording'and feedback[1]=='Listening - press the same voice chat shortcut again to finish')
+ assert(mic.state=='recording'and #feedback==0,'a normal turn is not announced')
  local previous=files['runtime/microphone-command.json']
  assert(mic.finish('private')==nil and files['runtime/microphone-command.json']==previous)
  now=103;assert(mic.finish('group')==context)
@@ -76,7 +76,7 @@ test('microphone keeps mode and never carries the retired follow-up field while 
  assert(mic.received('voice-1')and not mic.context and not mic.targetValid and #commands==2)
  assert(#cancellations==0)
  context=input(false);assert(mic.begin(context));state('recording');mic.update(player)
- assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
+ assert(#feedback==0)
 `));
 
 test('stale state files cannot start capture and the owned microphone auto-finishes exactly once', () => check(`
@@ -124,14 +124,19 @@ test('a spoken turn that is waiting for its reply survives a menu and a target o
  world=world+1;assert(mic.update(player)==nil and not mic.context)
 `));
 
-test('failed writes and opening timeout cannot leave a recording owner alive', () => check(`
+test('failed writes cannot leave a recording owner alive, and a recording the bridge never opened is finished by the 30 s cap counted from the press', () => check(`
  available=false;assert(not mic.begin(input(true))and not mic.context)
  available=true;assert(mic.begin(input(true)))
  available=false;assert(mic.finish('group')==nil and not mic.context and not mic.knowledgeOwner)
- available=true;assert(mic.begin(input(false)))
- now=136;mic.update(player)
- assert(not mic.context and commands[#commands].action=='cancel')
- assert(feedback[#feedback]:find('timed out',1,true))
+ available=true;assert(mic.begin(input(false),nil,'press'))
+ local sent=#commands
+ now=129;assert(mic.update(player)==nil and mic.state=='starting' and #commands==sent,'not yet')
+ now=130;local done=mic.update(player)
+ assert(done and mic.state=='reply' and commands[#commands].action=='finish' and commands[#commands].source=='cap' and #commands==sent+1,'the cap runs in the starting state too, from the press')
+ now=500;assert(mic.update(player)==nil and mic.state=='reply' and #commands==sent+1,'the cap never fires on a reply that is already on its way')
+ -- a finish whose write fails retires the owner
+ mic.cancel();assert(mic.begin(input(false)));available=false;now=now+31
+ assert(mic.update(player)==nil and not mic.context and not mic.knowledgeOwner)
 `));
 
 test('private action capture follows old-owner cancellation and precedes start, while finish keeps the original offer', () => check(`
@@ -154,38 +159,110 @@ test('private action capture follows old-owner cancellation and precedes start, 
  assert(order[#order]=='cancel:voice-1:start-write-failed')
 `));
 
-test('the voice key is spam-safe: connecting and bounce presses are ignored, a good press finishes, an overdue reply can be retried', () => check(`
+test('the voice key is spam-safe: a press while recording changes nothing, release finishes even while the bridge is still opening, an overdue reply can be retried', () => check(`
  local clock=50;mic.clock=function()return clock end
  assert(mic.press()=='idle')
  local context=input(false);assert(mic.begin(context))
- assert(mic.press()=='connecting','a press while the device opens must not finish an empty recording')
- assert(mic.press()=='connecting' and #commands==1 and commands[1].action=='start')
+ assert(mic.press()=='busy','a press while the device opens changes nothing')
+ assert(mic.press()=='busy' and #commands==1 and commands[1].action=='start')
  state('recording');mic.update(player)
- assert(mic.state=='recording' and mic.press()=='bounce','a double tap right after Listening is ignored')
- clock=50.3;assert(mic.press()=='bounce')
- clock=50.9;assert(mic.press()=='finish')
- assert(mic.finish('private')==context and mic.state=='reply' and commands[#commands].action=='finish')
+ assert(mic.state=='recording' and mic.press()=='busy','a key repeat or a second key while recording changes nothing')
+ clock=50.3;assert(mic.press()=='busy');clock=60;assert(mic.press()=='busy' and #commands==1 and #feedback==0,'no minimum, no bounce result, no notice')
+ assert(mic.finish('private','release')==context and mic.state=='reply' and commands[#commands].action=='finish')
  assert(mic.press()=='waiting','pressing while the reply is on its way changes nothing')
  now=now+7;assert(mic.press()=='waiting')
  now=now+1;assert(mic.press()=='retry','an overdue reply may be dropped by the next press')
  mic.cancel('voice-retry')
  assert(mic.press()=='idle' and not mic.context and not mic.recordingAt and not mic.finishedAt)
  assert(commands[#commands].action=='cancel' and cancellations[#cancellations].reason=='voice-retry')
+ -- Release while the bridge has not reported 'recording' yet: the finish is written at once, in the starting state.
+ local early=input(false);early.requestId='early';assert(mic.begin(early))
+ assert(mic.state=='starting' and mic.finish('private','release')==early and mic.state=='reply')
+ assert(commands[#commands].action=='finish' and commands[#commands].source=='release' and commands[#commands].input.requestId=='early')
+ assert(mic.finish('private','release')==nil and commands[#commands].action=='finish','a second release writes nothing more')
+ mic.cancel('again')
  -- Rapid start, cancel, start: every owner is retired once and the last one is clean.
- for i=1,5 do local c=input(false);c.requestId='rapid-'..i;assert(mic.begin(c));assert(mic.press()=='connecting');mic.cancel('again')end
- assert(not mic.context and #cancellations==6)
+ for i=1,5 do local c=input(false);c.requestId='rapid-'..i;assert(mic.begin(c));assert(mic.press()=='busy');mic.cancel('again')end
+ assert(not mic.context and #cancellations==7)
  local last=input(false);last.requestId='rapid-last';assert(mic.begin(last))
- state('recording','rapid-last');mic.update(player);clock=60;assert(mic.press()=='finish')
+ state('recording','rapid-last');mic.update(player);clock=60;assert(mic.press()=='busy' and mic.finish('private','release')==last)
+`));
+
+test('the key press id travels with the start command and the live file shows the key down then up', () => check(`
+ local function live()return json.decode(files['runtime/microphone-live.json'])end
+ assert(mic.holdKey('h-1')==true and live().down==true and live().holdId=='h-1')
+ assert(mic.holdKey('')==false and mic.holdKey(nil)==false)
+ local context=input(false);assert(mic.begin(context,nil,'press',{hold='h-1'}))
+ assert(commands[1].action=='start' and commands[1].hold=='h-1' and commands[1].source=='press')
+ assert(mic.releaseKey('other')==false and live().down==true,'another press id cannot release this key')
+ assert(mic.releaseKey('h-1')==true and live().down==false and live().holdId=='h-1')
+ assert(mic.releaseKey('h-1')==false,'a second release writes nothing')
+ -- release arrives before the bridge reported recording: start then finish, in that order, source press then release
+ assert(mic.state=='starting' and mic.finish('private','release')==context)
+ assert(#commands==2 and commands[1].action=='start' and commands[2].action=='finish' and commands[2].source=='release')
+ assert(#feedback==0)
+`));
+
+test('a very short hold is dropped silently: the start is followed by a cancel, never a finish, with no notice', () => check(`
+ assert(mic.holdKey('h-2'));local context=input(false);assert(mic.begin(context,nil,'press',{hold='h-2'}))
+ assert(mic.releaseKey('h-2'))
+ mic.cancel('tap')
+ assert(#commands==2 and commands[1].action=='start' and commands[2].action=='cancel' and commands[2].source=='tap')
+ assert(not mic.context and cancellations[#cancellations].reason=='tap' and #feedback==0)
+ for _,command in ipairs(commands)do assert(command.action~='finish')end
+`));
+
+test('a normal turn (press, recording, release, reply) sends no notice at all, apart from the live words', () => check(`
+ local clock=10;mic.clock=function()return clock end
+ local context=input(false);assert(mic.begin(context,nil,'press',{hold='h-3'}))
+ state('recording');mic.update(player);now=now+2;mic.update(player)
+ assert(mic.finish('private','release')==context)
+ mic.update(player);now=now+2;mic.update(player)
+ assert(mic.received('voice-1') and #feedback==0,'no connecting, listening, finish or hint notice: '..tostring(feedback[1]))
 `));
 
 test('a recording with no speech says so, retires the turn and leaves no stuck state', () => check(`
  local context=input(false);assert(mic.begin(context))
  state('recording');mic.update(player);now=now+3;assert(mic.finish('private')==context and mic.state=='reply')
  state('no-speech');assert(mic.update(player)==nil)
- assert(feedback[#feedback]=='No speech was heard. Wait for Listening, then speak before you finish.')
+ assert(#feedback==1 and feedback[#feedback]=='No speech was heard. Hold the talk key while you speak.')
  assert(not mic.context and mic.state==nil and commands[#commands].action=='cancel')
  assert(cancellations[#cancellations].reason=='no-speech')
  assert(mic.press()=='idle' and mic.begin(input(false)) and mic.state=='starting')
+`));
+
+test('a recording begun by Voice activation that heard no speech ends quietly: no notice', () => check(`
+ local context=input(false);assert(mic.begin(context,nil,'vad',{vadId='b:1'}))
+ assert(commands[1].source=='vad' and mic.source=='vad' and mic.vadId=='b:1')
+ state('no-speech');assert(mic.update(player)==nil)
+ assert(#feedback==0,'a sound that was not for anyone says nothing: '..tostring(feedback[1]))
+ assert(not mic.context and commands[#commands].action=='cancel' and cancellations[#cancellations].reason=='no-speech')
+ -- the same state after a key press does speak
+ assert(mic.begin(input(false),nil,'press',{hold='h-4'}));state('no-speech');assert(mic.update(player)==nil)
+ assert(#feedback==1 and feedback[1]=='No speech was heard. Hold the talk key while you speak.')
+`));
+
+test('Voice activation ends its own turn: speech in the same utterance does not finish it, the detector ending a new one does, once', () => check(`
+ local context=input(false);assert(mic.begin(context,nil,'vad',{vadId='b:1'}))
+ local function detector(id,phase,value)files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state=value or 'recording',vad={id=id,phase=phase}})end
+ detector('b:1','speech');assert(mic.update(player)==nil and mic.state=='recording' and #commands==1 and not mic.finishPending)
+ detector('b:1','ended');assert(mic.update(player)==nil and #commands==1 and not mic.finishPending,'the end of the utterance that began the turn is not a finish')
+ detector('b:2','speech');assert(mic.update(player)==nil and #commands==1)
+ detector('b:2','ended');now=now+1
+ local done=mic.update(player)
+ assert(done==context and mic.state=='reply' and commands[#commands].action=='finish')
+ assert(commands[#commands].source=='vad-end-delayed',commands[#commands].source)
+ assert(mic.update(player)==nil and #commands==2 and #feedback==0)
+ -- also while the bridge has only said 'starting' (the detector rides on the state file)
+ mic.received('voice-1')
+ context=input(false);context.requestId='voice-2';assert(mic.begin(context,nil,'vad',{vadId='c:1'}))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-2',state='starting',vad={id='c:2',phase='ended'}})
+ assert(mic.update(player)==context and commands[#commands].action=='finish')
+ -- a key-press turn ignores the detector entirely
+ mic.received('voice-2')
+ context=input(false);context.requestId='voice-3';assert(mic.begin(context,nil,'press',{hold='h-5'}))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-3',state='recording',vad={id='d:1',phase='ended'}})
+ assert(mic.update(player)==nil and mic.state=='recording' and not mic.finishPending)
 `));
 
 test('every command carries what caused it, so a stop that never arrives can be told from a stop that was ignored', () => check(`
@@ -224,7 +301,7 @@ test('a device that sends no sound is named in the game; an ordinary empty recor
 test('nothing the mod speaks can play into a recording: the voice key silences it, and automatic, add-on and reaction turns wait', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   // a recording begins by stopping every voice and clearing the subtitle (the hands-free headset microphone would hear it)
-  assert.match(init, /cancelAutomatic\('microphone'\)[^]*?speech\.stop\('microphone'\); subtitles\.clear\(\)[^]*?microphone\.begin\(context, targetValid, 'press'\)/);
+  assert.match(init, /cancelAutomatic\('microphone'\)[^]*?speech\.stop\('microphone'\); subtitles\.clear\(\)[^]*?microphone\.begin\(context, targetValid, source == 'vad' and 'vad' or 'press', \{hold = holdId, vadId = vadId\}\)/);
   // while it runs: no automatic add-on remark, and no battle or loot reaction, may start a voice
   assert.match(init, /seams\.submit = function\(context, anchor\)\n\s+if active or pending or automatic or microphone\.context or groupChat\.round then return false end/);
   assert.match(init, /local manual = active ~= nil or groupChat\.round ~= nil\n\s+or \(microphone\.context ~= nil and microphone\.state ~= 'reply'\)/);
@@ -256,18 +333,20 @@ test('the bridge reports a no-speech recording to the game as its own microphone
   assert.match(source, /value\.state == 'no-speech'/);
 });
 
-test('what Convai has heard is shown as a notice on the existing poll: throttled, only for this recording, until the reply starts', () => check(`
+test('what Convai has heard is shown as a notice on the existing poll: throttled, only for this recording, from the key press until the reply starts', () => check(`
  local clock=10;mic.clock=function()return clock end
  local context=input(false);assert(mic.begin(context))
  local function heard(text,id)files['runtime/microphone-heard.json']=json.encode({requestId=id or 'voice-1',text=text})end
- heard('too early');mic.update(player);assert(#feedback==0,'nothing is shown before Listening');heard('')
- state('recording');mic.update(player);assert(feedback[#feedback]:find('Listening',1,true))
+ heard('too early');mic.update(player)
+ assert(mic.state=='starting' and #feedback==1 and feedback[1]=='You: too early','words are shown already while the bridge is still opening (starting)')
+ heard('');clock=10.4;mic.update(player)
+ state('recording');mic.update(player);assert(#feedback==1,'the recording state adds no Listening line')
  local shown=#feedback
  heard('what do');mic.update(player)
  assert(#feedback==shown+1 and feedback[#feedback]=='You: what do')
  mic.update(player);assert(#feedback==shown+1,'an unchanged file costs no notice')
  heard('what do you think');mic.update(player);assert(#feedback==shown+1,'throttled inside 0.3 s')
- clock=10.4;mic.update(player)
+ clock=10.8;mic.update(player)
  assert(#feedback==shown+2 and feedback[#feedback]=='You: what do you think','the held text shows on a later poll')
  heard('someone else',"another");clock=11;mic.update(player);assert(#feedback==shown+2,'words of another recording are ignored')
  heard('');clock=12;mic.update(player);assert(#feedback==shown+2,'empty words show nothing')
@@ -360,36 +439,53 @@ test('the microphone command file is rewritten in place for every command, never
  assert(#removed==0 and #renamed==0)
 `));
 
-test('a recording in a language nothing here hears says so under the Listening line', () => check(`
+test('a recording in a language nothing here hears says so: one English-only notice, no Listening line, shown once per recording note', () => check(`
  local context=input(false);assert(mic.begin(context))
  files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='english-only'})
  mic.update(player)
  assert(mic.state=='recording')
- local want='Listening - press the same voice chat shortcut again to finish'..string.char(10)..'Voice input only understands English for now. Typing works in any language.'
- assert(feedback[#feedback]==want,feedback[#feedback])
+ local want='Voice input only understands English for now. Typing works in any language.'
+ assert(#feedback==1 and feedback[1]==want,tostring(feedback[1]))
+ mic.update(player);now=now+1;mic.update(player);assert(#feedback==1,'the note is told once')
 `));
 
-test('a recording in a language an optional pack hears (not installed) names the pack under the Listening line', () => check(`
+test('a recording in a language an optional pack hears (not installed) names the pack, alone', () => check(`
  local context=input(false);assert(mic.begin(context))
  files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='pack-available'})
  mic.update(player)
  assert(mic.state=='recording')
- local want='Listening - press the same voice chat shortcut again to finish'..string.char(10)..'Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'
- assert(feedback[#feedback]==want,feedback[#feedback])
+ local want='Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'
+ assert(#feedback==1 and feedback[1]==want,tostring(feedback[1]))
+ mic.update(player);assert(#feedback==1)
+`));
+
+test('the language note is still shown once when the recording state arrives after the key was already let go', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ assert(mic.finish('private','release')==context and mic.state=='reply')
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='english-only'})
+ mic.update(player);mic.update(player)
+ assert(#feedback==1 and feedback[1]=='Voice input only understands English for now. Typing works in any language.',tostring(feedback[1]))
+ assert(mic.state=='reply','a late recording state does not move a finished turn back')
+ -- a new recording has its own note, but the notice gate tells this one once per game session (mic-english-only repeats after 86400 s)
+ mic.received('voice-1')
+ context=input(false);context.requestId='voice-2';assert(mic.begin(context))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-2',state='recording',note='english-only'})
+ now=now+60;mic.update(player)
+ assert(#feedback==1)
 `));
 
 test('Convai did not answer at the start of the turn: the connection notice, not the Windows input device one', () => check(`
  assert(mic.begin(input(false)));files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='starting'});mic.update(player)
  files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='error',reason='connection'})
  assert(mic.update(player)==nil)
- assert(feedback[#feedback]=='Voice input could not reach Convai. Press the voice key again, or type.',feedback[#feedback])
+ assert(feedback[#feedback]=='Voice input could not reach Convai. Hold the voice key again, or type.',feedback[#feedback])
  assert(not mic.context and cancellations[#cancellations].reason=='microphone-connection')
 `));
 
-test('an unknown note adds no English-only line', () => check(`
+test('an unknown note adds no English-only line, and the recording itself adds none either', () => check(`
  assert(mic.begin(input(false)));files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='something-else'})
  mic.update(player)
- assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish',feedback[#feedback])
+ assert(mic.state=='recording' and #feedback==0,tostring(feedback[1]))
 `));
 
 test('Mistral failed and no local engine could read the recording: the same sentence, alone; a plain device error is still a device error', () => check(`

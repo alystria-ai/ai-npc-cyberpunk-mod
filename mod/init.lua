@@ -2440,6 +2440,8 @@ local function updateGaze(player, elapsed)
     end
     -- Auto-connect counts how long V keeps facing one profiled character.
     if autoConnect then pcall(autoConnect.look, lookKey, lookEntity, lookName, step, lookSpawned) end
+    -- Voice activation (mod/voice-activation.lua) asks whether somebody is faced: one clock read on this scan, nothing more.
+    if lookKey then convaiLookSeenAt = os.clock() end
     if focusMode == 'gaze' then
         if identity == focusEntity then gazeLost = 0; return end
         gazeLost = gazeLost + step
@@ -2971,8 +2973,12 @@ function convaiTalkGate.update(delta, worldReady)
     beginTextNow(waiting.group, waiting.waited)
 end
 
--- source: 'press' (the key went down: begin, or finish a recording) or 'release' (the key came back up after a hold: finish only).
-local function toggleVoice(groupMode, source)
+-- Hold to talk: the voice key records from the moment it goes down until it comes up, and V's turn ends there (docs/VOICE_INPUT.md).
+-- source: 'press' (the key went down: begin a recording), 'release' (the key came back up: finish it, even while the bridge is still opening)
+-- or 'vad' (Voice activation heard V start speaking: begin, with no key; mod/voice-activation.lua).
+-- holdId: this key press's id, already told to the bridge (mod/microphone.lua holdKey) so its microphone tap is open. vadId: the detector's id for the start.
+-- No notice is shown for a normal turn: no "connecting", no "listening", no "finished". Only a real failure speaks (no microphone, no connection).
+local function toggleVoice(groupMode, source, holdId, vadId)
     source = source or 'press'
     local player = Game.GetPlayer()
     if not player then return end
@@ -2980,38 +2986,19 @@ local function toggleVoice(groupMode, source)
         local mode = groupMode and 'group' or 'private'
         if microphone.context then
             local recordingMode = microphone.context.group and 'group' or 'private'
-            if recordingMode ~= mode then
-                if source == 'release' then return end
-                local shortcut = ui.boundKey(recordingMode == 'group'
-                    and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
-                convaiNotices.send(player, 'mic-finish-hint', shortcut
-                    and ui.t('Use {key} to finish this recording.', {key = shortcut})
-                    or (recordingMode == 'group'
-                        and ui.t('Press your Group voice chat shortcut to finish recording.')
-                        or ui.t('Press your Talk by voice shortcut to finish recording.')))
-                return
-            end
+            -- The other voice key's recording: this key does nothing to it.
+            if recordingMode ~= mode then return end
             local press = microphone.press()
             if source == 'release' then
-                -- A held key that began this recording ends it when let go. Anything else about the recording is left alone.
-                if press == 'finish' and gameplayCanAcquire(player) and not (microphone.targetValid and not microphone.targetValid(microphone.context)) then
+                -- The key that began this recording is let go: V's turn ends now, whether the bridge is still opening or already recording.
+                -- Anything else about the recording is left alone.
+                if press == 'busy' and gameplayCanAcquire(player) and not (microphone.targetValid and not microphone.targetValid(microphone.context)) then
                     acceptVoiceSubmission(microphone.finish(mode, 'release'))
                 end
                 return
             end
-            if press ~= 'retry' then
-                -- Spamming the key is safe: a press while the device is still opening, right after
-                -- "Listening", or while a reply is on its way changes nothing (mod/microphone.lua press).
-                if press == 'connecting' then
-                    convaiNotices.send(player, 'mic-connecting', ui.t('Connecting microphone - wait for Listening'))
-                elseif press == 'finish' then
-                    if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
-                        cancelVoice('microphone-unavailable'); return
-                    end
-                    acceptVoiceSubmission(microphone.finish(mode, 'press'))
-                end
-                return
-            end
+            -- A press while a recording runs (a key repeat, a second key) or while a reply is on its way changes nothing (mod/microphone.lua press).
+            if press ~= 'retry' then return end
             -- The reply is overdue: drop it and fall through to begin a fresh recording.
             cancelVoice('voice-retry')
         end
@@ -3028,8 +3015,10 @@ local function toggleVoice(groupMode, source)
         local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
+        -- The target is known: the bridge opens the microphone now and keeps what it hears, before the preparation below and the connection
+        -- behind it. Whatever V says from here on is not lost, however long they take.
+        if holdId then microphone.holdKey(holdId) end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
-        local connectNote = autoConnect and not participants and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         cancelAutomatic('microphone')
         gameplayActions.revoke('new-conversation')
@@ -3067,12 +3056,10 @@ local function toggleVoice(groupMode, source)
             return voiceTargetValid(npc, context)
         end
         context.provider = chosenProvider()
-        if microphone.begin(context, targetValid, 'press') then
+        if microphone.begin(context, targetValid, source == 'vad' and 'vad' or 'press', {hold = holdId, vadId = vadId}) then
             if not primary.voiceOnly and not primary.holocall and not (primary.story or primary.guarded) then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             if convaiVanillaReactions then pcall(convaiVanillaReactions.talkPressed) end
-            local micNote = ui.t('Connecting microphone - wait for Listening')
-            convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
         else
             groupChat.cancel(); warmConversation(nil, nil)
         end
@@ -4204,11 +4191,11 @@ end
 registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() beginText(true) end)
 -- The talk keys are inputs, not hotkeys: a hotkey runs its function only when the key comes back UP (docs/COMPANION_HOTKEY_INPUT.md), so a held
--- key did nothing until it was let go, and a press meant to stop a recording was only seen a moment late. An input reports both edges:
---   tap (up within HOLD_S)  toggles: the press began the recording, the next press finishes it
---   hold (up after HOLD_S)  when this very press began the recording, letting go finishes it (hold to talk)
--- Every edge and what it did is logged.
-local HOLD_S = 0.3
+-- key did nothing until it was let go. An input reports both edges, which is what hold-to-talk needs (docs/VOICE_INPUT.md):
+--   down  the recording begins at once (the bridge's microphone opens for the press, the connection follows, nothing said is lost)
+--   up    V's turn ends and the reply is asked for
+-- A hold shorter than HOLD_S is a bounce or an accidental tap: the recording is dropped without a word. Every edge and what it did is logged.
+local HOLD_S = 0.2
 local voiceKeys = {}
 local function voiceKeyEdge(id, groupMode, isDown)
     local now = os.clock()
@@ -4217,10 +4204,10 @@ local function voiceKeyEdge(id, groupMode, isDown)
         if isDown then
             -- Key repeat while held repeats the down; a release that never came (focus lost) is forgotten after a quiet moment.
             if key and now - key.seen < 3 then key.seen = now; return end
-            key = {at = now, seen = now}
+            key = {at = now, seen = now, holdId = microphone.newHoldId()}
             voiceKeys[id] = key
             local before = microphone.context and tostring(microphone.state) or 'idle'
-            toggleVoice(groupMode, 'press')
+            toggleVoice(groupMode, 'press', key.holdId)
             local after = microphone.context and tostring(microphone.state) or 'idle'
             key.began = before ~= 'starting' and after == 'starting'
             log('Voice key ' .. id .. ' down: recording ' .. before .. ' -> ' .. after .. (key.began and ' (this press began it)' or ''))
@@ -4228,13 +4215,18 @@ local function voiceKeyEdge(id, groupMode, isDown)
             if not key then log('Voice key ' .. id .. ' up without a down'); return end
             voiceKeys[id] = nil
             local held = now - key.at
-            local result = 'tap'
-            if held >= HOLD_S and key.began then
-                if microphone.context and microphone.state == 'recording' then
+            local result = 'nothing to end'
+            -- The bridge closes its microphone at this very moment, also for a press that never began a recording.
+            microphone.releaseKey(key.holdId)
+            if key.began then
+                if held < HOLD_S then
+                    if microphone.context and microphone.state ~= 'reply' then cancelVoice('tap') end
+                    result = 'tap: dropped'
+                elseif microphone.context and microphone.state ~= 'reply' then
                     toggleVoice(groupMode, 'release')
                     result = 'hold: finish'
                 else
-                    result = 'hold: the device is still opening, press again to finish'
+                    result = 'hold: already ended'
                 end
             end
             log(string.format('Voice key %s up after %d ms: %s', id, math.floor(held * 1000 + 0.5), result))
@@ -4244,6 +4236,46 @@ local function voiceKeyEdge(id, groupMode, isDown)
 end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
+
+-- Voice activation: talk with no key (docs/VOICE_INPUT.md). A global function, so onUpdate reaches it without a new upvalue.
+-- Off (the default): one boolean per tick, no module, no microphone. On: mod/voice-activation.lua opens the bridge's microphone only while a
+-- conversation is possible and begins V's turn when the bridge's detector hears V start speaking. Private talk only.
+function convaiVoiceActivationTick(player, elapsed, ready)
+    if not manager.voiceActivation() then
+        -- Turned off after being on: the bridge releases the device and the detector (one write, once).
+        if convaiVoiceActivation then convaiVoiceActivation.off() end
+        return
+    end
+    if not convaiVoiceActivation then
+        convaiVoiceActivation = dofile('voice-activation.lua')
+        convaiVoiceActivation.deps = {
+            enabled = function() return manager.voiceActivation() end,
+            listen = function(on) return microphone.listen(on) end,
+            gameplay = function(who) return gameplayCanAcquire(who) end,
+            -- A profiled character faced (the gaze scan, every 0.2 s) or one of V's companions near.
+            conversation = function(who)
+                if convaiLookSeenAt and os.clock() - convaiLookSeenAt < 1.2 then return true end
+                return companions.conversationCandidates(who, 8)[1] ~= nil
+            end,
+            voiceReady = function() return not manager.voiceNeedsConvai() end,
+            busy = function()
+                return microphone.context ~= nil or pending ~= nil or active ~= nil or automatic ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil
+            end,
+            speaking = function() return speech.requestId ~= nil or speech.context ~= nil end,
+            -- The same start as the talk key's, with every notice held back: a sound that was not for anyone says nothing.
+            begin = function(vadId)
+                convaiNotices.mute(true)
+                local ran = pcall(toggleVoice, false, 'vad', nil, vadId)
+                convaiNotices.mute(false)
+                return ran and microphone.context ~= nil
+            end,
+            errorNotice = function()
+                convaiNotices.send(Game.GetPlayer(), 'mic-vad-error', ui.t('Voice activation could not open the microphone. Check your Windows input device.'))
+            end,
+        }
+    end
+    convaiVoiceActivation.update(player, elapsed, ready)
+end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
@@ -4807,6 +4839,9 @@ registerForEvent('onUpdate', function(delta)
     -- This frame's V (the session check above found it attached): the tick does not ask the game a second time.
     local player = menuPlayer
     local voiceSubmission = microphone.update(player)
+    -- Voice activation (Settings > Voices, off by default): one boolean while it is off; the module is not even loaded then.
+    local vaOk, vaError = pcall(convaiVoiceActivationTick, player, elapsedPoll, worldReady)
+    if not vaOk then convaiLogOnce('Voice activation failed: ' .. tostring(vaError)) end
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
         abandonSession('world unavailable during update')
@@ -5176,6 +5211,7 @@ registerForEvent('onShutdown', function()
     warmConversation(nil, nil)
     if autoConnect then pcall(autoConnect.reset) end
     microphone.cancel()
+    if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end
     active = nil

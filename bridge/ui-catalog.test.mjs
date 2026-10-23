@@ -59,3 +59,21 @@ for(const code of ['pl','cs','hu','tr','it','uk'])test(`${code} is translated, n
  const same=rows.filter(([,k,v])=>k===v).length;
  assert(same<rows.length*0.2,`${code}: ${same} strings are still identical to English`);
 });
+
+// Instant push-to-talk and Voice activation (2026-10-23): the new strings are in the catalogue and in every dictionary, and the notices of the old
+// press-to-start / press-to-end flow are gone from both, so no dictionary keeps a sentence nothing shows any more.
+const hold=['Voice activation','Voice activation could not open the microphone. Check your Windows input device.',
+ 'No speech was heard. Hold the talk key while you speak.','Voice input could not reach Convai. Hold the voice key again, or type.'];
+const retired=['Connecting microphone - wait for Listening','Listening - press {key} again to finish','Listening - press the same voice chat shortcut again to finish',
+ 'Use {key} to finish this recording.','Press your Group voice chat shortcut to finish recording.','Press your Talk by voice shortcut to finish recording.',
+ 'No speech was heard. Wait for Listening, then speak before you finish.','Voice input could not reach Convai. Press the voice key again, or type.'];
+test('the Voice activation and hold-to-talk strings are catalogued, and the retired press-to-finish ones are gone',()=>{
+ for(const text of hold)assert(text in catalog,`missing from localization/en.json: ${text}`);
+ assert(Object.keys(catalog).some(text=>text.startsWith('Talk without a key.')&&text.includes('Nothing leaves your PC unless speech is heard.')),'the Voice activation description');
+ for(const text of retired)assert(!(text in catalog),`still catalogued: ${text}`);
+ for(const code of codes){
+  const source=readFileSync(new URL(`../mod/locales/${code}.lua`,import.meta.url),'utf8');
+  for(const text of hold)assert(source.includes(`["${text}"] =`),`${code} lacks ${text}`);
+  for(const text of retired)assert(!source.includes(`["${text}"] =`),`${code} still translates ${text}`);
+ }
+});

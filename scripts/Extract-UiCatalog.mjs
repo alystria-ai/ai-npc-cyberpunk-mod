@@ -347,8 +347,6 @@ const templates = [
   ['phone.feedback', '{name}: preparation failed. Cancel and invite again.', 'mod/manager-party.lua', ': preparation failed. Cancel and invite again.'],
   ['world.conversation', '{name} does not have a conversation profile configured yet.', 'mod/init.lua', ' does not have a conversation profile configured yet.'],
   ['world.conversation', 'Group chat needs two characters nearby. Use {key} for one person.', 'mod/init.lua', 'Group chat needs two characters nearby. Use ', ' for one person.'],
-  ['world.microphone', 'Use {key} to finish this recording.', 'mod/init.lua', 'Use ', ' to finish this recording.'],
-  ['world.microphone', 'Listening - press {key} again to finish', 'mod/microphone.lua', 'Listening - press ', ' again to finish'],
   ['world.composer.native', 'TALK TO {character}', 'r6/scripts/CyberpunkConvai/Composer.reds', 'TALK TO '],
   ['phone.native-feedback', '{name}: invite queued.', 'r6/scripts/CyberpunkConvai/PhoneContacts.reds', ': invite queued.'],
   ['phone.native-feedback', '{name}: dismiss queued.', 'r6/scripts/CyberpunkConvai/PhoneContacts.reds', ': dismiss queued.'],

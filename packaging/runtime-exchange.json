@@ -40,6 +40,7 @@
     "memory-status.json",
     "microphone-command.json",
     "microphone-heard.json",
+    "microphone-live.json",
     "microphone-state.json",
     "mistral-key-command.json",
     "mistral-state.json",

@@ -96,14 +96,12 @@ M.catalog = {
     ['holocall-live-fallback'] = {class = PLAYER, repeatS = 60}, -- the experimental live picture could not be shown: the portrait is used
     ['message-lost'] = {class = PLAYER, repeatS = 5},         -- a typed message was dropped (empty text box confirmed, box closed without a result, request not written)
     ['voice-needs-convai'] = {class = PLAYER, repeatS = 15},   -- the voice key is pressed while Mistral is in use and this computer cannot recognise speech
-    ['mic-connecting'] = {class = PLAYER},
-    ['mic-listening'] = {class = PLAYER},
-    ['mic-finish-hint'] = {class = PLAYER, repeatS = 10},
     ['mic-error'] = {class = PLAYER, repeatS = 15},
     ['mic-timeout'] = {class = PLAYER, repeatS = 15},
     ['mic-connection'] = {class = PLAYER, repeatS = 15},
     ['mic-no-speech'] = {class = PLAYER, repeatS = 15},
     ['mic-silent'] = {class = PLAYER, repeatS = 15},
+    ['mic-vad-error'] = {class = PLAYER, repeatS = 120}, -- Voice activation could not open the microphone (mod/voice-activation.lua)
     ['mic-english-only'] = {class = PLAYER, repeatS = 86400}, -- voice input in another language that nothing on this setup recognises (Mistral transcription refused or not used, no multilingual pack): once per game session
     ['mic-heard'] = {class = PLAYER},
     -- Voices and companion actions
@@ -276,6 +274,8 @@ end
 -- shown in the same call (the board offers them again).
 function M.sendLines(player, lines)
     if not player then return 0 end
+    -- A caller that probes quietly (Voice activation choosing a target for a sound that may not be speech) mutes every notice around the call.
+    if M.muted and M.muted > 0 then return 0 end
     local texts, loading, loadingCount, instant, mask, sig, showS = {}, nil, 0, false, nil, nil, nil
     for _, line in ipairs(lines) do
         if M.permit(line.id, line.text) then
@@ -302,6 +302,11 @@ function M.sendLines(player, lines)
     end
     if loading then return hold(player, loading, instant, mask, sig) and loadingCount or 0 end
     return 0
+end
+
+-- mute(true) ... mute(false): nothing is shown in between (counted, so nested calls are fine).
+function M.mute(on)
+    M.muted = math.max(0, (M.muted or 0) + (on and 1 or -1))
 end
 
 -- One notice. Returns true when it was shown.

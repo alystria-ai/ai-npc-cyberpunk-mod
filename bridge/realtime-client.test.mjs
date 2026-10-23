@@ -19,7 +19,8 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {AnalysisPcm} from './analysis-pcm.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
-  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '');
+  .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE} from './convai-vision.mjs';", '')
+  .replace("import {PcmRelay} from './pcm-relay.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 // Waits for a state to hold. The ceiling is reached only by a hung test (a fixed count of short polls is a wall-clock limit in disguise).
 async function until(predicate, label) {
@@ -56,8 +57,8 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player, clock, visionClass = ConvaiVision} = {}) {
-  const clients = [], events = [];
+function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player, clock, visionClass = ConvaiVision, events = [], onEnableAudio, relayClass, navigator} = {}) {
+  const clients = [];
   class Client {
     constructor(options) {
       this.options = options; this.characterId = options.characterId;
@@ -77,6 +78,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
         await onDisableAudio?.(this);
       }, enableAudio: async () => {
         events.push('microphone');
+        if (onEnableAudio) { await onEnableAudio(this); return; }
         if (allowMic) {
           const track = {readyState: 'live', label: 'fixture microphone', stop() {
             if (this.readyState !== 'ended') events.push('microphone-stop');
@@ -116,7 +118,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ConvaiVision: visionClass, visionConnectOptions, visionIdentity, visionWaitCap, VISION_NOTE,
-    ContinuousPcmPlayer: player || ForbiddenAudio,
+    ContinuousPcmPlayer: player || ForbiddenAudio, PcmRelay: relayClass, navigator,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
@@ -1920,5 +1922,184 @@ test('partialReply gives the text so far of the turn that asked for it, and noth
   streamingRows(client, 'Second reply.', {id: 'two'});
   assert.equal(api.partialReply('turn-key-1'), '');
   streamingRows(client, 'Second reply.', {id: 'two', done: true}); await second;
+  await api.close();
+});
+
+// ---- instant push-to-talk: the microphone comes from a PcmRelay the bridge pushes into ----
+function relayFixture({openFails = false, deadTrack = false, enableFailsOnce = false, ...rest} = {}) {
+  const events = [], relays = [];
+  class FakeRelay {
+    constructor() {
+      relays.push(this); this.pushed = []; this.closed = 0;
+      this.track = {readyState: deadTrack ? 'ended' : 'live', label: 'MediaStreamAudioDestinationNode', stop() { this.readyState = 'ended'; }};
+      this.stream = {id: 'relay-stream', getTracks: () => [this.track]};
+    }
+    async open() { events.push('relay-open'); if (openFails) throw Error('no worklets'); }
+    pushBase64(text) { this.pushed.push(text); return true; }
+    async drain(timeoutMs) { events.push(['drain', timeoutMs]); return {drained: true, waitedMs: 3}; }
+    close() { this.closed++; events.push('relay-close'); }
+  }
+  const original = async constraints => ({id: 'native', constraints});
+  const navigator = {mediaDevices: {getUserMedia: original}};
+  const seen = {streams: [], videoAnswers: [], enableCalls: 0, duringOverride: []};
+  let failed = !enableFailsOnce;
+  const onEnableAudio = async client => {
+    seen.enableCalls++;
+    seen.duringOverride.push(navigator.mediaDevices.getUserMedia !== original);
+    if (!failed) { failed = true; throw Error('publish failed'); }
+    const stream = await navigator.mediaDevices.getUserMedia({audio: {deviceId: 'default'}});
+    seen.videoAnswers.push(await navigator.mediaDevices.getUserMedia({video: true}));
+    seen.streams.push(stream);
+    const track = stream.getTracks ? stream.getTracks()[0]
+      : {readyState: 'live', label: 'MediaStreamAudioDestinationNode', stop() { this.readyState = 'ended'; }};
+    client.room.localParticipant.audioTrackPublications.set('mic', {source: 'microphone', isMuted: false, track: {mediaStreamTrack: track}});
+  };
+  const made = fixture({allowMic: true, events, onEnableAudio, relayClass: FakeRelay, navigator, ...rest});
+  return {...made, events, relays, navigator, original, seen};
+}
+
+test('relay voice: the SDK publishes the relay stream through a getUserMedia override that exists only during enableAudio', async () => {
+  const {api, clients, events, relays, navigator, original, seen} = relayFixture();
+  const opened = JSON.parse(JSON.stringify(await api.beginVoice(config, {relay: true, device: 'Real Microphone'})));
+  assert.deepEqual(opened, {device: 'Real Microphone', sessionID: clients[0].characterSessionId, relay: true});
+  assert.equal(relays.length, 1);
+  assert.equal(seen.streams[0], relays[0].stream, 'the audio request was answered with the relay stream');
+  assert.equal(seen.videoAnswers[0].id, 'native', 'anything but an audio-only request goes to the real device API');
+  assert.deepEqual([...seen.duringOverride], [true]);
+  assert.equal(navigator.mediaDevices.getUserMedia, original, 'restored right after enableAudio');
+  assert.equal(Object.hasOwn(navigator.mediaDevices, 'getUserMedia'), true);
+  assert.equal(clients[0].room.localParticipant.audioTrackPublications.get('mic').track.mediaStreamTrack, relays[0].track);
+  assert.ok(events.indexOf('relay-open') < events.indexOf('microphone'));
+  await api.close();
+  assert.equal(relays[0].closed, 1); assert.equal(relays[0].track.readyState, 'ended', 'close() ends the track');
+});
+
+test('relay voice: the override is removed again when getUserMedia was only on the prototype', async () => {
+  const proto = {getUserMedia: async () => ({id: 'proto'})};
+  const {api, navigator, seen} = relayFixture();
+  navigator.mediaDevices = Object.create(proto);
+  await api.beginVoice(config, {relay: true});
+  assert.equal(Object.hasOwn(navigator.mediaDevices, 'getUserMedia'), false);
+  assert.equal(navigator.mediaDevices.getUserMedia, proto.getUserMedia);
+  assert.equal(seen.streams.length, 1);
+  await api.close();
+});
+
+test('relay voice: the device name falls back to the track label when the bridge gives none', async () => {
+  const {api} = relayFixture();
+  const opened = await api.beginVoice(config, {relay: true});
+  assert.equal(opened.device, 'MediaStreamAudioDestinationNode'); assert.equal(opened.relay, true);
+  await api.close();
+});
+
+test('pushAudio forwards to the turn\'s relay, drainAudio asks it to drain, neither does anything without one', async () => {
+  const {api, relays} = relayFixture();
+  assert.equal(api.pushAudio('AAAA'), false);
+  assert.deepEqual({...await api.drainAudio(100)}, {drained: true, waitedMs: 0});
+  await api.beginVoice(config, {relay: true});
+  assert.equal(api.pushAudio('AAAA'), true); assert.equal(api.pushAudio('BBBB'), true);
+  assert.deepEqual([...relays[0].pushed], ['AAAA', 'BBBB'], 'order preserved');
+  assert.deepEqual({...await api.drainAudio(321)}, {drained: true, waitedMs: 3});
+  await api.close();
+  assert.equal(api.pushAudio('CCCC'), false, 'a closed turn takes no more audio');
+  assert.deepEqual([...relays[0].pushed], ['AAAA', 'BBBB']);
+});
+
+test('audio pushed while the connection is still starting reaches the relay (it is created first)', async () => {
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const {api, relays} = relayFixture({onConnect: () => gate});
+  const starting = api.beginVoice(config, {relay: true}); await flush();
+  assert.equal(relays.length, 1);
+  assert.equal(api.pushAudio('EARLY'), true);
+  release(); await starting;
+  assert.deepEqual([...relays[0].pushed], ['EARLY']);
+  await api.close();
+});
+
+test('finishing a relay turn drains the relay before the microphone is disabled, then releases it', async () => {
+  const {api, clients, events, relays} = relayFixture();
+  await api.beginVoice(config, {relay: true}); const client = clients[0];
+  const pending = api.finishVoice(config); await flush(); await flush();
+  const lastDrain = events.map((event, i) => Array.isArray(event) && event[0] === 'drain' ? i : -1).filter(i => i >= 0).at(-1);
+  const disable = events.indexOf('microphone-disable');
+  assert.ok(lastDrain >= 0 && disable > lastDrain, 'the last drain is before the track is disabled: ' + JSON.stringify(events));
+  assert.equal(relays[0].closed, 1, 'released once the microphone is disabled');
+  assert.ok(events.lastIndexOf('relay-close') > disable);
+  sendAudio(client); finalText(client); await pending; await api.close();
+  assert.equal(relays[0].closed, 1, 'never closed twice');
+});
+
+test('a failing disable still releases the relay', async () => {
+  const {api, relays} = relayFixture({onDisableAudio: () => { throw Error('disable failed'); }});
+  await api.beginVoice(config, {relay: true});
+  await assert.rejects(api.finishVoice(config), /disable failed/);
+  assert.ok(relays[0].closed >= 1);
+  await api.close();
+});
+
+test('a relay that cannot open falls back once to the SDK microphone and never touches getUserMedia', async () => {
+  const {api, clients, relays, navigator, original, seen} = relayFixture({openFails: true});
+  const opened = await api.beginVoice(config, {relay: true, device: 'Real Microphone'});
+  assert.equal(opened.relay, false); assert.equal(opened.device, 'MediaStreamAudioDestinationNode');
+  assert.equal(seen.enableCalls, 1); assert.deepEqual([...seen.duringOverride], [false]);
+  assert.equal(navigator.mediaDevices.getUserMedia, original);
+  assert.ok(relays[0].closed >= 1); assert.equal(api.pushAudio('X'), false);
+  assert.equal(clients[0].room.localParticipant.audioTrackPublications.size, 1);
+  await api.close();
+});
+
+test('a failing relay publish restores getUserMedia, closes the relay and falls back to native enableAudio once', async () => {
+  const {api, clients, events, relays, navigator, original, seen} = relayFixture({enableFailsOnce: true});
+  const opened = await api.beginVoice(config, {relay: true, device: 'Real Microphone'});
+  assert.equal(opened.relay, false);
+  assert.equal(seen.enableCalls, 2); assert.deepEqual([...seen.duringOverride], [true, false]);
+  assert.equal(navigator.mediaDevices.getUserMedia, original);
+  assert.equal(relays.length, 1); assert.ok(relays[0].closed >= 1);
+  assert.equal(events.filter(event => event === 'microphone').length, 2);
+  assert.equal(api.pushAudio('X'), false);
+  const pending = api.finishVoice(config); await flush(); sendAudio(clients[0]); finalText(clients[0]); await pending;
+  await api.close();
+});
+
+test('a relay track that is not live falls back to the SDK microphone', async () => {
+  const {api, relays} = relayFixture({deadTrack: true});
+  const opened = await api.beginVoice(config, {relay: true});
+  assert.equal(opened.relay, false); assert.ok(relays[0].closed >= 1);
+  await api.close();
+});
+
+test('a startup that fails before the microphone releases the relay', async () => {
+  const {api, relays} = relayFixture({onConnect: () => { throw Error('connect failed'); }});
+  await assert.rejects(api.beginVoice(config, {relay: true}), /connect failed/);
+  assert.equal(relays.length, 1); assert.ok(relays[0].closed >= 1);
+  assert.equal(api.pushAudio('X'), false);
+});
+
+test('a cancelled relay startup is not retried on the native microphone', async () => {
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const {api, events, relays} = relayFixture({onConnect: () => gate});
+  const starting = api.beginVoice(config, {relay: true}); starting.catch(() => {}); await flush();
+  const closing = api.close(); release(); await closing;
+  await assert.rejects(starting);
+  assert.equal(events.filter(event => event === 'microphone').length, 0);
+  assert.ok(relays[0].closed >= 1);
+});
+
+test('without options.relay the microphone path is the old one: no relay, no getUserMedia override', async () => {
+  const {api, clients, events, relays, navigator, original} = relayFixture();
+  const opened = JSON.parse(JSON.stringify(await api.beginVoice(config)));
+  assert.deepEqual(opened, {device: 'MediaStreamAudioDestinationNode', sessionID: clients[0].characterSessionId, relay: false});
+  assert.equal(relays.length, 0); assert.equal(navigator.mediaDevices.getUserMedia, original);
+  assert.equal(api.pushAudio('X'), false);
+  assert.deepEqual({...await api.drainAudio(50)}, {drained: true, waitedMs: 0});
+  const pending = api.finishVoice(config); await flush();
+  assert.equal(events.some(event => Array.isArray(event) && event[0] === 'drain'), false);
+  sendAudio(clients[0]); finalText(clients[0]); await pending; await api.close();
+});
+
+test('relay: true is ignored when no PcmRelay class is available', async () => {
+  const {api} = fixture({allowMic: true});
+  const opened = await api.beginVoice(config, {relay: true});
+  assert.equal(opened.relay, false); assert.equal(opened.device, 'fixture microphone');
   await api.close();
 });

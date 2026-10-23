@@ -32,9 +32,8 @@ const translations = {
   '{name} dismissed.': '{name} renvoyé.',
   '{name} could not prepare: {reason}': 'Préparation impossible pour {name} : {reason}',
   '{name} could not join: {reason}': 'Arrivée impossible pour {name} : {reason}',
-  'Listening - press {key} again to finish': 'Écoute — appuyez encore sur {key} pour terminer',
   'Microphone unavailable. Check your Windows input device.': 'Microphone indisponible. Vérifiez votre entrée Windows.',
-  'Microphone connection timed out. Please try again.': 'Délai de connexion du microphone dépassé. Réessayez.',
+  'Voice input only understands English for now. Typing works in any language.': 'La saisie vocale ne comprend que l’anglais pour l’instant. Écrire fonctionne dans toutes les langues.',
 };
 const dictionary = '{' + Object.entries(translations).map(([key, value]) =>
   `[${JSON.stringify(key)}]=${JSON.stringify(value)}`).join(',\n') + '}';
@@ -219,14 +218,24 @@ test('English readiness, failures and microphone notices preserve original wordi
   for _, group in ipairs({false, true}) do
     local context = microphoneInput(group); assert(mic.begin(context))
     microphoneState('recording'); mic.update(player)
-    assert(feedback[#feedback] == 'Listening - press ' .. (group and 'Ctrl + H' or 'Alt + J') .. ' again to finish')
+    assert(mic.state == 'recording' and #feedback == 0, 'a normal recording is not announced')
     mic.cancel()
   end
   assert(mic.begin(microphoneInput(false))); microphoneState('error'); mic.update(player)
   assert(feedback[#feedback] == 'Microphone unavailable. Check your Windows input device.')
   files['runtime/microphone-state.json'] = nil
-  assert(mic.begin(microphoneInput(false))); now = now + 36; mic.update(player)
-  assert(feedback[#feedback] == 'Microphone connection timed out. Please try again.')
+  assert(feedback[#feedback] == 'Microphone unavailable. Check your Windows input device.')
+  files['runtime/microphone-state.json'] = nil
+  assert(mic.begin(microphoneInput(false)))
+  files['runtime/microphone-state.json'] = json.encode({requestId = 'voice-1', state = 'error', reason = 'connection'}); mic.update(player)
+  assert(feedback[#feedback] == 'Voice input could not reach Convai. Hold the voice key again, or type.')
+  assert(not mic.context and commands[#commands].action == 'cancel')
+  files['runtime/microphone-state.json'] = nil
+  assert(mic.begin(microphoneInput(false))); microphoneState('no-speech'); mic.update(player)
+  assert(feedback[#feedback] == 'No speech was heard. Hold the talk key while you speak.')
+  files['runtime/microphone-state.json'] = nil
+  assert(mic.begin(microphoneInput(false))); now = now + 36
+  assert(mic.update(player) ~= nil and commands[#commands].action == 'finish' and commands[#commands].source == 'cap', 'the 30 s cap counts from the press')
 `));
 
 test('French party events translate templates while preserving names, profile names and queue identity', () => run(`
@@ -319,7 +328,7 @@ test('French microphone prompts preserve shortcut codes, input text and request 
     microphoneState('recording', 'stale'); mic.update(player)
     assert(mic.state == 'starting')
     microphoneState('recording'); mic.update(player)
-    assert(feedback[#feedback] == 'Écoute — appuyez encore sur ' .. (group and 'Ctrl + H' or 'Alt + J') .. ' pour terminer')
+    assert(#feedback == 0, 'a normal recording is not announced')
     assert(mic.finish(group and 'group' or 'private') == context)
     local command = commands[#commands]
     assert(command.action == 'finish' and command.input.name == actorName)
@@ -330,7 +339,16 @@ test('French microphone prompts preserve shortcut codes, input text and request 
   assert(feedback[#feedback] == 'Microphone indisponible. Vérifiez votre entrée Windows.')
   assert(not mic.context and commands[#commands].action == 'cancel')
   files['runtime/microphone-state.json'] = nil
-  assert(mic.begin(microphoneInput(false))); now = now + 36; mic.update(player)
-  assert(feedback[#feedback] == 'Délai de connexion du microphone dépassé. Réessayez.')
+  files['runtime/microphone-state.json'] = nil
+  assert(mic.begin(microphoneInput(false)))
+  files['runtime/microphone-state.json'] = json.encode({requestId = 'voice-1', state = 'error', reason = 'connection'}); mic.update(player)
+  assert(feedback[#feedback] == 'Voice input could not reach Convai. Hold the voice key again, or type.', 'the new wording is not translated yet, so it shows in English')
   assert(not mic.context and commands[#commands].action == 'cancel')
+  assert(mic.begin(microphoneInput(false)))
+  files['runtime/microphone-state.json'] = json.encode({requestId = 'voice-1', state = 'recording', note = 'english-only'}); mic.update(player)
+  assert(feedback[#feedback] == 'La saisie vocale ne comprend que l’anglais pour l’instant. Écrire fonctionne dans toutes les langues.')
+  mic.cancel()
+  files['runtime/microphone-state.json'] = nil
+  assert(mic.begin(microphoneInput(false))); microphoneState('no-speech'); mic.update(player)
+  assert(feedback[#feedback] == 'No speech was heard. Hold the talk key while you speak.', 'English until the next catalog update')
 `, 'fr'));

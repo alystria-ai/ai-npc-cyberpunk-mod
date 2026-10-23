@@ -30,9 +30,11 @@ const CHUNK_SAMPLES = 1600; // 100 ms
 // Runs on the audio rendering thread: downmix, convert to Int16, post 100 ms blocks. Nothing else.
 const WORKLET_SOURCE = `
 class LocalSttCapture extends AudioWorkletProcessor {
-  constructor() {
+  constructor(options) {
     super();
-    this.block = new Int16Array(${CHUNK_SAMPLES}); this.used = 0;
+    // The chunk length comes from the page (a tap that must hand audio on quickly asks for 40 ms; the default is 100 ms).
+    this.size = (options && options.processorOptions && options.processorOptions.chunkSamples) | 0 || ${CHUNK_SAMPLES};
+    this.block = new Int16Array(this.size); this.used = 0;
     this.port.onmessage = event => {
       if (event.data !== 'flush' || !this.used) return;
       const tail = this.block.slice(0, this.used); this.used = 0;
@@ -48,8 +50,8 @@ class LocalSttCapture extends AudioWorkletProcessor {
       for (let c = 0; c < channels.length; c++) sum += channels[c][i] || 0;
       const value = Math.round(sum / channels.length * 32767);
       this.block[this.used++] = value > 32767 ? 32767 : value < -32768 ? -32768 : value;
-      if (this.used === ${CHUNK_SAMPLES}) {
-        const full = this.block; this.block = new Int16Array(${CHUNK_SAMPLES}); this.used = 0;
+      if (this.used === this.size) {
+        const full = this.block; this.block = new Int16Array(this.size); this.used = 0;
         this.port.postMessage(full.buffer, [full.buffer]);
       }
     }
@@ -73,7 +75,7 @@ async function release() {
   stream = context = node = source = undefined;
 }
 window.localStt = {
-  async begin() {
+  async begin(chunkSamples) {
     await release(); queue = Promise.resolve(); failure = null;
     stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true,
       noiseSuppression: true, autoGainControl: true}});
@@ -84,7 +86,7 @@ window.localStt = {
     try { await context.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
     source = context.createMediaStreamSource(stream);
     node = new AudioWorkletNode(context, 'local-stt-capture', {numberOfInputs: 1, numberOfOutputs: 0, channelCount: 1,
-      channelCountMode: 'explicit'});
+      channelCountMode: 'explicit', processorOptions: {chunkSamples: chunkSamples || 0}});
     node.port.onmessage = event => {
       const encoded = toBase64(event.data);
       queue = queue.then(() => window.__localSttChunk(encoded)).catch(error => { failure = String(error?.message || error); });
@@ -151,11 +153,13 @@ export class LocalSttCapture {
     try { return await this.opening; } finally { this.opening = null; }
   }
   // Opens the microphone. Chunks arrive at onChunk(Buffer of Int16 little-endian samples) until end() or abort().
-  async begin(onChunk) {
+  // chunkMs (default 100): how often a chunk is posted; the microphone tap (bridge/mic-tap.mjs) asks for 40 ms.
+  async begin(onChunk, {chunkMs} = {}) {
     const page = await this.ensurePage();
     this.target = encoded => { try { onChunk(Buffer.from(encoded, 'base64')); } catch { /* a consumer fault never stops the capture */ } };
     await page.context().grantPermissions(['microphone'], {origin: this.origin});
-    return page.evaluate(() => window.localStt.begin());
+    const samples = Number.isFinite(chunkMs) && chunkMs >= 10 && chunkMs <= 200 ? Math.round(chunkMs * SAMPLE_RATE / 1000) : 0;
+    return page.evaluate(size => window.localStt.begin(size), samples);
   }
   async end() {
     const page = this.page;
@@ -233,7 +237,7 @@ export function describeRemote(heard, device) {
 // the game's "No speech was heard" notice (microphone-state.json "no-speech").
 export function createLocalSttChannel({stt, capture, reply, now = Date.now, speculate = () => false, log = () => {}, route = null, transcriber = null, onLanguage = () => {}, track = null}) {
   return () => {
-    let requestId = null, closed = false, begun = false, device = '', ending = null;
+    let requestId = null, tapOwner = null, closed = false, begun = false, device = '', ending = null;
     let plan = {mode: 'english'}, engine = stt, kept = [], keptBytes = 0, activity = null, counted = false;
     // The speech hook counts open recordings so the microphone page is released only when none is open (createLocalSpeech).
     const countOn = () => { if (!counted) { counted = true; try { track?.begin?.(); } catch { /* never breaks */ } } };
@@ -324,8 +328,10 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
       throw Object.assign(Error('No speech recogniser could read the recording' + (failure ? ' (' + clip(failure.message, 120) + ')' : '')), {code: STT_LANGUAGE_CODE});
     };
     return {
-      async beginVoice(config) {
+      // extra.requestId: the request the recording belongs to; the microphone tap (bridge/mic-tap.mjs) is owned by it (the recogniser's own id stays a UUID).
+      async beginVoice(config, extra = {}) {
         if (closed) throw Error('Microphone connection is closed');
+        tapOwner = typeof extra?.requestId === 'string' ? extra.requestId : null;
         // Which recogniser hears this recording (English: Moonshine, as always). A route that cannot decide never blocks the recording.
         plan = {mode: 'english'}; engine = stt; kept = []; keptBytes = 0; activity = null;
         if (route) { try { plan = (await route(config)) ?? plan; } catch (error) { try { log('language route failed (' + clip(error?.message, 80) + '); English recogniser'); } catch { /* never breaks */ } } }
@@ -335,7 +341,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
           // The connection to Mistral opens while the player speaks (an unauthenticated request, no quota): the answer finds it ready.
           try { plan.warm?.(); } catch { /* best effort */ }
           let info;
-          try { info = await capture.begin(pass); }
+          try { info = await capture.begin(pass, {requestId: tapOwner ?? requestId}); }
           catch (error) { requestId = null; kept = []; throw error; }
           begun = true; device = info?.device || ''; countOn();
           try {
@@ -355,7 +361,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         // The model loads while the device opens; chunks are held until it is ready.
         await engine.start(requestId);
         let info;
-        try { info = await capture.begin(pass); }
+        try { info = await capture.begin(pass, {requestId: tapOwner ?? requestId}); }
         catch (error) { await engine.cancel(requestId); requestId = null; throw error; }
         begun = true; countOn();
         device = info?.device || '';

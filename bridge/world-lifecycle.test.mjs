@@ -102,7 +102,8 @@ end
 print = function(value) stats.logs[#stats.logs + 1] = tostring(value) end
 registerForEvent = function(name, callback) assert(not events[name]); events[name] = callback end
 registerHotkey = function(name, _, callback) hotkeys[name] = callback end
-registerInput = function(name, _, callback) hotkeys[name] = function() callback(true); callback(false) end end -- one tap: the down, then the up
+inputs = {}
+registerInput = function(name, _, callback) inputs[name] = callback end -- the talk keys are held: inputs.name(true) is the key down, inputs.name(false) the key up
 ObserveBefore = function(class, method, callback) before[class .. '.' .. method] = callback end
 ObserveAfter = function(class, method, callback) after[class .. '.' .. method] = callback end
 
@@ -1162,7 +1163,7 @@ events.onInit();events.onUpdate(0);privateConversation()
 local nativeMic=(function() ${microphoneSource} end)()
 for _,key in ipairs({'captureKnowledge','currentKnowledgeOwner','captureJournal','captureBattle','captureFollowUpQuestions',
     'captureActions','onCancelled'})do nativeMic[key]=microphone[key] end
-for _,key in ipairs({'begin','finish','cancel','update','received','press'})do
+for _,key in ipairs({'begin','finish','cancel','update','received','press','newHoldId','holdKey','releaseKey','listen','listening'})do
     local operation=nativeMic[key]
     microphone[key]=function(...)
         local result=operation(...)
@@ -1170,11 +1171,11 @@ for _,key in ipairs({'begin','finish','cancel','update','received','press'})do
         return result
     end
 end
-hotkeys.cyberpunk_convai_voice()
+inputs.cyberpunk_convai_voice(true)
 local started=json.decode(assert(files['runtime/microphone-command.json']))
 assert(started.action=='start' and started.input.chauffeurOffer and convaiGameplayActions.inspect().pending)
 files['runtime/microphone-state.json']=json.encode({requestId=started.input.requestId,state='recording'});events.onUpdate(0.1);clock=clock+1
-hotkeys.cyberpunk_convai_voice()
+inputs.cyberpunk_convai_voice(false)
 local finished=json.decode(files['runtime/microphone-command.json'])
 assert(finished.action=='finish' and finished.input.chauffeurOffer and stats.driveOffers==1)
 replyFor(finished.input);events.onUpdate(0.1)
@@ -1188,7 +1189,7 @@ events.onInit();events.onUpdate(0);privateConversation()
 local nativeMic=(function() ${microphoneSource} end)()
 for _,key in ipairs({'captureKnowledge','currentKnowledgeOwner','captureJournal','captureBattle','captureFollowUpQuestions',
     'captureActions','onCancelled'})do nativeMic[key]=microphone[key] end
-for _,key in ipairs({'begin','finish','cancel','update','received','press'})do
+for _,key in ipairs({'begin','finish','cancel','update','received','press','newHoldId','holdKey','releaseKey','listen','listening'})do
     local operation=nativeMic[key]
     microphone[key]=function(...)
         local result=operation(...)
@@ -1202,18 +1203,20 @@ local function feedback()
     return out
 end
 stats.voiceNeedsConvai = true
-hotkeys.cyberpunk_convai_voice()
+inputs.cyberpunk_convai_voice(true); inputs.cyberpunk_convai_voice(false)
 assert(files['runtime/microphone-command.json'] == nil, 'no recording starts while voice needs Convai')
 assert(#feedback() == 1, 'one notice, found ' .. #feedback())
 assert(feedback()[1]:find('Convai', 1, true), 'the player is told why')
 -- Local speech recognition (or the Convai provider) makes the same key work again.
 stats.voiceNeedsConvai = false
 clock = clock + 20
-hotkeys.cyberpunk_convai_voice()
+inputs.cyberpunk_convai_voice(true)
 assert(files['runtime/microphone-command.json'], 'the key records again')
 assert(json.decode(files['runtime/microphone-command.json']).action == 'start')
-for _, text in ipairs(feedback()) do assert(text:find('Connecting microphone', 1, true) or text:find('needs Convai', 1, true)) end
-assert(feedback()[#feedback()]:find('Connecting microphone', 1, true), 'the second press connects the microphone instead')
+assert(#feedback() == 1 and feedback()[1]:find('needs Convai', 1, true), 'the recording that begins now is not announced')
+clock = clock + 1; inputs.cyberpunk_convai_voice(false)
+assert(json.decode(files['runtime/microphone-command.json']).action == 'finish', 'letting go of the key ends it')
+assert(#feedback() == 1)
 `));
 
 test('native AutoDrive callbacks observe only an active live trip and detach shutdown performs no native reads', () => run(`

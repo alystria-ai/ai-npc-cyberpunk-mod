@@ -208,7 +208,7 @@ test('redscript tracks only the MoveX and MoveY axes, from change events, with n
 const gateSource = () => {
   const text = normalize(initLua);
   const start = text.indexOf('local TALK_WAIT_MAX = 1.5');
-  const end = text.indexOf('local function toggleVoice(groupMode, source)');
+  const end = text.indexOf('local function toggleVoice(groupMode, source, holdId, vadId)');
   assert.ok(start > 0 && end > start);
   const code = text.slice(start, end);
   // beginTextNow itself needs the whole game adapter; the gate tests replace it with a recorder

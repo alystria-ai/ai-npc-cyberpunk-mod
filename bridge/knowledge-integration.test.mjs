@@ -106,7 +106,10 @@ TargetSearchQuery={new=function()return {}end}
 registerForEvent=function(key,fn)events[key]=fn end
 registerHotkey=function(key,label,fn)hotkeys[key]=fn;hotkeyLabels[key]=label end
 rawInputs={}
-registerInput=function(key,label,fn)rawInputs[key]=fn;hotkeys[key]=function()fn(true);fn(false)end;hotkeyLabels[key]=label end -- hotkeys[key]() is one tap: the down, then the up
+registerInput=function(key,label,fn)rawInputs[key]=fn;hotkeyLabels[key]=label end -- the talk keys are held, not tapped: talkDown / talkUp
+local VOICE,GROUP='cyberpunk_convai_voice','cyberpunk_convai_group_voice'
+local function talkDown(key)rawInputs[key](true)end
+local function talkUp(key,held)now=now+(held or 1);rawInputs[key](false)end -- the key is held for 'held' seconds (1 by default), then let go
 ObserveBefore=function(_,key,fn)hooks[key]=fn end
 ObserveAfter=ObserveBefore
 local phoneOptions,worldOptions,historyOptions
@@ -158,7 +161,7 @@ local modules={
  ['speech.lua']={clearEntity=noop,update=noop,stop=noop,abandon=function()record('speech')end},
  ['character-catalog.lua']={build=function()return {records={}}end,resolve=function(_,value)return value.managedKey,value.name end},
  ['manager.lua']={configure=noop,interfaceLanguage=function()return'auto'end,subtitleStyle=function()return'dialogue'end,profileEnabled=function()return true end,
-  voiceNeedsConvai=function()return false end,reset=noop,update=noop,developerMode=function()return false end,battleReactions=function()return false end,lootReactions=function()return false end},
+  voiceNeedsConvai=function()return false end,voiceActivation=function()return false end,reset=noop,update=noop,developerMode=function()return false end,battleReactions=function()return false end,lootReactions=function()return false end},
  ['nsui.lua']={configure=noop,install=noop,update=noop,resetSession=noop,shutdown=noop},
  ['phone-layout.lua']={install=noop,refresh=noop},['phone-chat-style.lua']={install=noop,refresh=noop},
  ['phone-chat.lua']={configure=function(_,_,options)phoneOptions=options end,update=noop,abandon=function()record('phone')end},
@@ -502,26 +505,26 @@ test('temporary collector unavailability preserves the Lua world and omits old f
 test('real group voice hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
  start();looked=resident;people={judy,actor('judy-alvarez',4,'Judy copy'),alex,resident}
  assert(hotkeyLabels.cyberpunk_convai_group_voice=='AI NPC Cyberpunk Mod: group voice chat')
- hotkeys.cyberpunk_convai_group_voice()
+ talkDown(GROUP)
  local context=microphone.context;local first=stored('runtime/microphone-command.json').input
  assert(context and group.round.stage=='recording'and runtime.pending()==nil)
  assert(first.profileKey=='resident-male'and first.group.index==1 and first.group.total==3)
  assert(table.concat(first.group.audience,',')=='resident-male,judy-alvarez,alex')
  assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==nil)
  tick();assert(files['runtime/last-input.json']==nil and #commands==1)
- micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
+ micState('recording');tick();assert(#feedback==0,'a normal voice turn shows no notice: '..tostring(feedback[1]))
  looked=judy;people={alex};hooks.OnJournalUpdate();now=1002;journalVersion=2;factValue=2;runtime.step(0)
- hotkeys.cyberpunk_convai_voice()
- assert(microphone.context==context and #commands==1 and group.round.stage=='recording')
- assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')
- hotkeys.cyberpunk_convai_group_voice()
+ talkDown(VOICE);talkUp(VOICE)
+ assert(microphone.context==context and #commands==1 and group.round.stage=='recording','the other mode key does nothing to a recording')
+ assert(#feedback==0,'and says nothing: '..tostring(feedback[1]))
+ talkUp(GROUP)
  local finish=commands[#commands]
- assert(#commands==2 and finish.action=='finish'and finish.input.requestId==first.requestId)
+ assert(#commands==2 and finish.action=='finish'and finish.source=='release'and finish.input.requestId==first.requestId)
  assert(finish.input.profileKey=='resident-male'and #finish.input.group.audience==3)
  assert(finish.input.followUpQuestions==nil and finish.input.journal.serial==2 and finish.input.battle.serial==2)
  assert(finish.input.worldKnowledge.facts.observed_fact.value==2)
  assert(group.round.stage=='waiting'and runtime.pending()==context and not files['runtime/last-input.json'])
- hotkeys.cyberpunk_convai_group_voice();assert(#commands==2)
+ talkDown(GROUP);talkUp(GROUP);assert(#commands==2,'a press while the reply is on its way changes nothing')
  respond(context,'What would you all like to do tonight?');tick()
  assert(#playbacks==1 and playbacks[1].input.entity==resident.entity and not microphone.context)
  assert(group.round.stage=='playing'and group.round.text=='What would you all like to do tonight?')
@@ -541,55 +544,83 @@ test('real group voice hotkey freezes three distinct speakers, uses the first mi
  assertHotkeyClean()
 `));
 
-test('the talk key is an input with press and release: a tap toggles, a hold records until it is let go, every edge is logged with its source', () => run(`
+test('the talk key is hold to talk: down begins at once, up finishes at once even while the bridge is still opening, a short hold is dropped silently, every edge is logged', () => run(`
  start();looked=judy;people={judy,alex}
  local checks=0;local function A(ok,message)checks=checks+1;if not ok then error('check '..checks..': '..tostring(message),2)end end
- local key=rawInputs.cyberpunk_convai_voice;A(key,'the talk key reports its press and release')
+ local key=rawInputs[VOICE];A(key,'the talk key reports its press and release')
  local function lastCommand()return commands[#commands]end
- -- a tap begins the recording; the key coming up quickly changes nothing
- key(true);A(microphone.context and microphone.state=='starting' and lastCommand().action=='start' and lastCommand().source=='press')
- now=now+0.1;key(false);A(microphone.context and microphone.state=='starting' and #commands==1)
- micState('recording');tick();A(microphone.state=='recording')
- -- the second tap finishes on its PRESS, at once (not on its release); the release afterwards does nothing
- now=now+2;key(true)
- A(#commands==2 and lastCommand().action=='finish' and lastCommand().source=='press','the stop reached the command file on the press: '..tostring(#commands))
- A(microphone.state=='reply');now=now+0.1;key(false);A(#commands==2)
- respond(microphone.context);tick();A(not microphone.context)
- -- a hold that began the recording ends it on release
+ local function live()return stored('runtime/microphone-live.json')end
+ -- key down then up before the bridge ever reports 'recording': start, then finish, in that order
+ key(true)
+ A(microphone.context and microphone.state=='starting' and #commands==1 and lastCommand().action=='start' and lastCommand().source=='press')
+ A(type(lastCommand().hold)=='string' and lastCommand().hold~='','the start command carries the key press id')
+ A(live().down==true and live().holdId==lastCommand().hold,'the live file shows the key down')
+ local hold=lastCommand().hold
+ now=now+1.5;key(false)
+ A(#commands==2 and commands[1].action=='start' and lastCommand().action=='finish' and lastCommand().source=='release','release finished it while the bridge was still opening: '..#commands)
+ A(live().down==false and live().holdId==hold,'the live file shows the key up')
+ A(microphone.state=='reply' and #feedback==0,'no notice')
+ respond(microphone.context);tick();A(not microphone.context and #feedback==0)
+ -- a normal hold: down, the bridge says recording, up. Not one notice.
  now=now+3;key(true);A(microphone.state=='starting' and #commands==3)
- micState('recording');tick();now=now+2.5;key(false)
- A(#commands==4 and lastCommand().action=='finish' and lastCommand().source=='release','releasing a hold finished it')
- respond(microphone.context);tick();A(not microphone.context)
- -- a hold released while the device is still opening cannot finish an empty recording: it stays a toggle, the next press finishes
- now=now+3;key(true);A(microphone.state=='starting' and #commands==5)
- now=now+1.5;key(false);A(microphone.state=='starting' and #commands==5,'no finish while the device opens')
- micState('recording');tick();now=now+1;key(true);key(false)
- A(#commands==6 and lastCommand().action=='finish' and lastCommand().source=='press')
- respond(microphone.context);tick()
- -- key repeat while held is one press; a release without a press is harmless
+ A(lastCommand().hold~=hold,'a new press has its own id')
+ micState('recording');tick();A(microphone.state=='recording')
+ now=now+2.5;key(false)
+ A(#commands==4 and lastCommand().action=='finish' and lastCommand().source=='release','releasing the hold finished it')
+ A(microphone.state=='reply' and #feedback==0,'a normal turn sends no notice at all: '..tostring(feedback[1]))
+ respond(microphone.context);tick();A(not microphone.context and #feedback==0)
+ -- a 100 ms hold is a bounce: start, then cancel, never a finish, no notice
+ now=now+3;key(true);A(microphone.state=='starting' and #commands==5 and lastCommand().action=='start')
+ now=now+0.1;key(false)
+ A(#commands==6 and lastCommand().action=='cancel' and lastCommand().source=='tap' and not microphone.context,'the bounce was cancelled')
+ A(#feedback==0,'silently: '..tostring(feedback[1]))
+ A(live().down==false)
+ -- key repeat while held is one press, a press while recording changes nothing, a release without a press is harmless
  now=now+3;key(true);key(true);key(true);A(#commands==7 and lastCommand().action=='start')
- now=now+0.05;key(false);key(false)
- micState('recording');tick();now=now+1;key(true);key(false);A(lastCommand().action=='finish')
+ micState('recording');tick();A(microphone.state=='recording')
+ local other=rawInputs[GROUP];other(true);other(false);A(#commands==7 and microphone.context and not microphone.context.group,'the other mode key does nothing')
+ now=now+1;key(false);key(false);A(#commands==8 and lastCommand().action=='finish' and lastCommand().source=='release')
+ A(#feedback==0)
  local logged=table.concat(logs,' | ')
  A(logged:find('Voice key voice down: recording idle -> starting (this press began it)',1,true))
- A(logged:find('Voice key voice up after 2500 ms: hold: finish',1,true),logged)
- A(logged:find('Voice key voice up after 1500 ms: hold: the device is still opening',1,true))
+ A(logged:find('Voice key voice up after 1500 ms: hold: finish',1,true),logged)
+ A(logged:find('Voice key voice up after 2500 ms: hold: finish',1,true))
+ A(logged:find('Voice key voice up after 100 ms: tap: dropped',1,true))
  A(logged:find('Microphone command: finish source=release',1,true))
+ A(logged:find('Microphone command: cancel source=tap',1,true))
 `));
 
-test('registered action names and recording hints respect arbitrary live CET chords', () => run(`
+test('a recording that is already running keeps its owner when the same key is pressed again, and an overdue reply is dropped by the next press', () => run(`
+ start();looked=judy;people={judy,alex}
+ local key=rawInputs[VOICE]
+ key(true);local context=microphone.context
+ -- the key is lost (focus change) and comes down again after a quiet moment: still one recording
+ now=now+1;key(true);assert(microphone.context==context and #commands==1)
+ micState('recording');tick();now=now+1;key(false)
+ assert(microphone.state=='reply' and #commands==2)
+ -- a press while the reply is on its way changes nothing, a press once it is overdue starts a fresh recording
+ now=now+3;key(true);key(false);assert(microphone.context==context and #commands==2 and #feedback==0)
+ now=now+8;key(true)
+ assert(microphone.context and microphone.context~=context and microphone.state=='starting')
+ assert(commands[#commands].action=='start' and commands[#commands-1].action=='cancel' and commands[#commands-1].input.requestId==context.requestId)
+ now=now+1;key(false);assert(commands[#commands].action=='finish')
+ assertHotkeyClean()
+`));
+
+test('registered action names respect live CET chords and no recording hint names a key', () => run(`
  start();looked=judy;people={judy,alex}
  local bindings={cyberpunk_convai_group_voice='Ctrl + H',cyberpunk_convai_voice='Alt + Num 5'}
  IsBound=function(id)return bindings[id]~=nil end
  GetBind=function(id)return bindings[id]or'Unbound'end
  for _,label in pairs(hotkeyLabels)do assert(not label:match('F%d+'),'hardcoded function key in an action label')end
- hotkeys.cyberpunk_convai_group_voice();micState('recording');tick()
- assert(feedback[#feedback]=='Listening - press Ctrl + H again to finish')
+ talkDown(GROUP);micState('recording');tick()
+ assert(#feedback==0,'no Listening line, whatever the chord: '..tostring(feedback[1]))
  bindings.cyberpunk_convai_group_voice='Shift + K'
- hotkeys.cyberpunk_convai_voice()
- assert(feedback[#feedback]=='Use Shift + K to finish this recording.')
- bindings.cyberpunk_convai_group_voice=nil;hotkeys.cyberpunk_convai_voice()
- assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')
+ talkDown(VOICE);talkUp(VOICE)
+ assert(#feedback==0,'no finish hint from the other mode key: '..tostring(feedback[1]))
+ bindings.cyberpunk_convai_group_voice=nil;talkDown(VOICE);talkUp(VOICE)
+ assert(#feedback==0 and #commands==1,'nothing at all: '..tostring(feedback[1]))
+ talkUp(GROUP);assert(commands[#commands].action=='finish')
 `));
 
 test('private and group text/voice share the explicitly addressed primary and unsupported targets never redirect', () => run(`
@@ -599,21 +630,22 @@ test('private and group text/voice share the explicitly addressed primary and un
  hotkeys.cyberpunk_convai_group_text();assert(player.composerName=='Alex')
  player.submission='Text group';player.composer=false;tick();tick()
  local input=stored('runtime/last-input.json');assert(input.profileKey=='alex'and input.group.index==1)
- hotkeys.cyberpunk_convai_voice();assert(microphone.context.profileKey=='alex'and not microphone.context.group)
- local original=microphone.context;local count=#commands
- hotkeys.cyberpunk_convai_group_voice()
- assert(microphone.context==original and #commands==count and feedback[#feedback]=='Press your Talk by voice shortcut to finish recording.')
- micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
- now=now+1;hotkeys.cyberpunk_convai_voice();respond(microphone.context);tick();assert(not microphone.context)
+ talkDown(VOICE);assert(microphone.context.profileKey=='alex'and not microphone.context.group)
+ local original=microphone.context;local count=#commands;local shown=#feedback
+ talkDown(GROUP);talkUp(GROUP)
+ assert(microphone.context==original and #commands==count and #feedback==shown,'the other mode key does nothing and shows no hint')
+ micState('recording');tick();assert(#feedback==shown,'no Listening line')
+ talkUp(VOICE);respond(microphone.context);tick();assert(not microphone.context)
  looked=actor('not-configured',4,'Unconfigured');count=#commands
  for _,key in ipairs({'cyberpunk_convai_text','cyberpunk_convai_group_text','cyberpunk_convai_voice','cyberpunk_convai_group_voice'})do
-  hotkeys[key]();assert(#commands==count and not player.composer)
+  if rawInputs[key]then talkDown(key);talkUp(key)else hotkeys[key]()end
+  assert(#commands==count and not player.composer)
   assert(feedback[#feedback]:find('Unconfigured does not have',1,true))
  end
  looked=judy;people={judy,actor('judy-alvarez',4,'Second Judy')}
- hotkeys.cyberpunk_convai_group_voice();assert(#commands==count and not microphone.context)
+ talkDown(GROUP);talkUp(GROUP);assert(#commands==count and not microphone.context)
  assert(feedback[#feedback]=='Group chat needs two characters nearby. Use private chat for one person.')
- looked=nil;people={alex,judy};hotkeys.cyberpunk_convai_group_voice()
+ looked=nil;people={alex,judy};talkDown(GROUP)
  assert(microphone.context.profileKey=='alex'and microphone.context.group.index==1)
  assertHotkeyClean()
 `));
@@ -621,8 +653,8 @@ test('private and group text/voice share the explicitly addressed primary and un
 test('group voice missing transcript, first error and stale recognized replies never submit later speakers', () => run(`
  start();looked=judy;people={judy,alex}
  for _,kind in ipairs({'missing','empty','placeholder','error'})do
-  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  settle();hotkeys.cyberpunk_convai_group_voice()
+  talkDown(GROUP);local context=microphone.context
+  settle();talkUp(GROUP)
   local recognized=kind=='empty'and ''or kind=='placeholder'and '[Microphone]'or nil
   respond(context,recognized,kind=='error');tick()
   assert(not group.round and not microphone.context and not files['runtime/last-input.json'])
@@ -638,24 +670,24 @@ test('group voice pause cancels at zero delta, save callbacks cancel ownership a
  start();looked=judy;people={judy,alex}
  -- A menu ends a recording that is still opening or running. A turn already sent (waiting for its reply) completes like a typed one.
  do
-  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
+  talkDown(GROUP);local context=microphone.context
   local plays=#playbacks
   paused=true;tick(0)
   assert(not group.round and not microphone.context and runtime.pending()==nil and not speech.requestId)
-  paused=false;respond(context,'Late reply');tick();tick()
+  paused=false;talkUp(GROUP);respond(context,'Late reply');tick();tick()
   assert(#playbacks==plays and not files['runtime/last-input.json'])
  end
  do
-  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  settle();hotkeys.cyberpunk_convai_group_voice()
+  talkDown(GROUP);local context=microphone.context
+  settle();talkUp(GROUP)
   paused=true;tick(0)
   assert(group.round and group.round.stage=='waiting' and microphone.context==context and runtime.pending()==context, 'a sent turn survives the menu')
   paused=false;respond(context,'Spoken while the menu was open');tick();tick()
   assert(#playbacks==1 and group.round and group.round.text=='Spoken while the menu was open', 'the reply plays when V is back')
   group.cancel();speech.requestId=nil
  end
- hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
- settle();hotkeys.cyberpunk_convai_group_voice();hooks.OnGameRestored()
+ talkDown(GROUP);local context=microphone.context
+ settle();talkUp(GROUP);hooks.OnGameRestored()
  assert(not microphone.context and not group.round and not runtime.pending())
  local plays=#playbacks;respond(context,'Old save message');tick();tick()
  assert(#playbacks==plays and not group.round and not files['runtime/last-input.json'])
@@ -666,25 +698,26 @@ test('group voice losing the frozen primary cancels at every stage and never sub
  start();people={judy,alex,resident}
  for _,stage in ipairs({'recording','waiting','playing'})do
   judy.attached=true;looked=judy
-  hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
-  if stage~='recording'then settle();hotkeys.cyberpunk_convai_group_voice()end
+  talkDown(GROUP);local context=microphone.context
+  if stage~='recording'then settle();talkUp(GROUP)end
   if stage=='playing'then respond(context,'Recognized question');tick()end
   local plays=#playbacks
   judy.attached=false;looked=alex;tick()
   assert(not group.round and not microphone.context and not runtime.pending())
   respond(context,'Late question');tick();tick()
   assert(#playbacks==plays and not files['runtime/last-input.json'])
+  if stage=='recording'then talkUp(GROUP)end
  end
  assertHotkeyClean()
 `));
 
 test('group voice microphone device failure and automatic 30 second finish keep exact request ownership', () => run(`
  start();looked=judy;people={judy,alex}
- hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
- micState('error');tick()
+ talkDown(GROUP);local first=microphone.context
+ micState('error');tick();talkUp(GROUP)
  assert(not microphone.context and not group.round and not runtime.pending())
  respond(first,'Stale device request');tick();assert(#playbacks==0)
- hotkeys.cyberpunk_convai_group_voice();local second=microphone.context
+ talkDown(GROUP);local second=microphone.context
  micState('recording');tick();now=now+30;tick()
  assert(runtime.pending()==second and group.round.stage=='waiting')
  assert(commands[#commands].action=='finish'and commands[#commands].input.requestId==second.requestId)
@@ -695,8 +728,8 @@ test('group voice microphone device failure and automatic 30 second finish keep 
 
 test('group voice retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
  start();looked=judy;people={judy,alex}
- hotkeys.cyberpunk_convai_group_voice();local expired=microphone.context
- settle();hotkeys.cyberpunk_convai_group_voice()
+ talkDown(GROUP);local expired=microphone.context
+ settle();talkUp(GROUP)
  assert(microphone.state=='reply'and group.round.stage=='waiting'and runtime.pending()==expired)
  now=expired.sentAt+89;tick()
  assert(runtime.pending()==expired and microphone.context==expired and group.round.stage=='waiting')
@@ -708,10 +741,10 @@ test('group voice retires microphone and group exactly at the reply deadline bef
  assert(files['runtime/group-prefetch.json']=='{}')
  now=now+1;respond(expired,'Late recognized text');tick();tick()
  assert(#playbacks==0 and not runtime.pending()and not group.round and #commands==3)
- hotkeys.cyberpunk_convai_group_voice();local fresh=microphone.context
+ talkDown(GROUP);local fresh=microphone.context
  assert(fresh and fresh.requestId~=expired.requestId and group.round.stage=='recording')
  assert(commands[#commands].action=='start'and commands[#commands].input.requestId==fresh.requestId)
- settle();hotkeys.cyberpunk_convai_group_voice();tick()
+ settle();talkUp(GROUP);tick()
  assert(runtime.pending()==fresh and #playbacks==0 and group.round.stage=='waiting')
  respond(fresh,'The current spoken question');tick()
  assert(#playbacks==1 and playbacks[1].input.requestId==fresh.requestId)
@@ -721,15 +754,15 @@ test('group voice retires microphone and group exactly at the reply deadline bef
 
 test('group voice later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
  start();looked=judy;people={judy,alex}
- hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
- settle();hotkeys.cyberpunk_convai_group_voice();respond(first,'Actual group question');tick()
+ talkDown(GROUP);local first=microphone.context
+ settle();talkUp(GROUP);respond(first,'Actual group question');tick()
  speech.requestId=nil;tick();local expired=runtime.pending()
  assert(expired and expired.profileKey=='alex'and not microphone.context and #playbacks==1)
  now=expired.sentAt+90;respond(expired,'Late text from another speaker');tick()
  assert(not runtime.pending()and not group.round and not microphone.context and #playbacks==1)
  assert(#commands==2 and not speech.requestId and files['runtime/group-prefetch.json']=='{}')
  now=now+1;tick();assert(#playbacks==1)
- hotkeys.cyberpunk_convai_group_voice()
+ talkDown(GROUP)
  assert(microphone.context and group.round.stage=='recording'and #commands==3)
  assertHotkeyClean()
 `));
