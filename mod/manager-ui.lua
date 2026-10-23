@@ -1533,7 +1533,7 @@ local function schema()
                 {ui.t('Off'), ui.t('Pocket · On your PC'), snapshot.settings.matureContent == true and ui.t('Voxtral · not with Mature')
                     or (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key'),
                     vOmniBlock == 'pack' and ui.t('OmniVoice · needs Omni pack') or vOmniBlock == 'voice' and ui.t('OmniVoice · needs Omni voice')
-                    or ui.t('OmniVoice · short wait')},
+                    or ui.t('OmniVoice')},
                 {elements = true}),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do

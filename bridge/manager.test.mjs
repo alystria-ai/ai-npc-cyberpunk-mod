@@ -3819,7 +3819,7 @@ test('V’s voice on OmniVoice (fourth entry): it needs the OmniVoice pack (name
     assert(manager.vVoiceEngine() == 'omni' and manager.snapshot(player).settings.vVoiceEngine == 'omni')
     loaded = registered.loadMod('manager')
     engine = row('vVoice')
-    assert(engine.value == 4 and engine.elements[4] == 'OmniVoice · short wait' and (engine.disabledElements or {})[4] == nil, tostring(engine.value))
+    assert(engine.value == 4 and engine.elements[4] == 'OmniVoice' and (engine.disabledElements or {})[4] == nil, tostring(engine.value))
     -- A batch that moves the companions away and keeps V on OmniVoice is refused, nothing is saved.
     result = registered.applyBatch('manager', {{id = 'voiceProvider', value = POCKET}, {id = 'vVoice', value = 4}})
     assert(result.ok == false and result.error == NEEDS_VOICE and saved.voiceProvider == 'omni' and saved.vVoiceEngine == 'omni', tostring(result.error))

@@ -149,7 +149,7 @@ test('an MCM that loads after this mod is found by the once-a-second look, and t
 test('the home page: one category with the four destinations, explicit apply, no MCM internals touched', () => withScreen(`
   assert(mcm.config().applyPolicy == 'explicit')
   assert(table.concat(mcm.categories(), ',') == 'Companion Manager', table.concat(mcm.categories(), ','))
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
@@ -170,13 +170,13 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   press('Memory')
   assert(mcm.config().navigation.backActionId == 'memory:settings', 'the memory page goes back to settings')
   press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor')
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
   -- Closing the screen and opening it again starts on the first page.
   press('Settings')
   mcm.closeScreen(); frames(3)
   assert(managerUi.inspect().view == 'home', 'closeMod puts the page back on Home')
   mcm.openScreen()
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor')
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
 `));
 
 test('every kind of row is one MCM can take: switches, selects, sliders, buttons and text, with ids, defaults and capabilities', () => withScreen(`
@@ -797,7 +797,7 @@ test('the shortcut opens MCM straight on the manager page with its public open c
   mcm.update()
   local context = mcm.api.ui.getContext()
   assert(context.open == true and context.modKey == 'cyberpunk-convai:manager', 'MCM opened on the manager page')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor', 'on the first page: ' .. labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', 'on the first page: ' .. labels())
   assert(#notices == 0, 'no notice: the page is opened for the player')
   -- Pressed again while it is open: nothing more to do (MCM has no public close call).
   assert(managerUi.open() == true)
@@ -1086,7 +1086,7 @@ test('MCM 0.10.5 keeps working exactly as today: the base presentation only, no 
   assert(mcm.config().actionVisibility == nil)
   for _, name in ipairs(mcm.calls) do assert(name ~= 'ui.close' and name ~= 'ui.setActionVisibility', 'called ' .. name) end
   -- Home: no footer, no Back; Settings: Defaults and Back, five buttons with changes pending.
-  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor')
+  assert(#mcm.config().footerActions == 0 and labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings')
   press('Settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.set('Subtitles', false))
@@ -1158,7 +1158,7 @@ test('MCM 0.10.6: Home has a Back in the footer that asks MCM to close, Escape s
   assert(config.navigation.backActionId == nil and config.navigation.escapeBack == true, 'Escape stays the close of MCM')
   local back = mcm.row('Back')
   assert(back and back.type == 'action' and back.value == 'Back' and back.description ~= '' and back.capabilities.action == true)
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor | Back', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings | Back', labels())
   -- The sub-pages keep their own Back, and Home's is only on Home.
   press('Settings')
   assert(footerLabels() == 'Restore defaults | Back' and mcm.config().navigation.backActionId == 'settings:back')
@@ -1194,7 +1194,7 @@ test('MCM 0.10.6: a close MCM refuses (no renderer) is answered with MCM\'s reas
   local lines = 0
   for _, line in ipairs(logged) do if line:find('would not close the page', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one console line for three presses: ' .. lines)
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor | Back', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings | Back', labels())
 `));
 
 test('MCM 0.10.6 by version but refusing the new presentation options: the base ones are sent instead, Add to favorites is still hidden, and the old names are used', () => run(`${harness({screen: false, nsui: false, hideMcm: true, mcm: {version: '0.10.6'}})}
@@ -1374,7 +1374,7 @@ test('Custom endpoint is a page of its own: one button on Settings where the fou
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil)
   press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
 `));
 
 test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
@@ -1496,7 +1496,7 @@ test('the OmniVoice entry of V’s voice is a normal choice with the pack instal
   press('Settings')
   frames(6)
   local name = 'V’s voice for typed lines'
-  assert(mcm.row(name).elements[4] == 'OmniVoice · short wait', mcm.row(name).elements[4])
+  assert(mcm.row(name).elements[4] == 'OmniVoice', mcm.row(name).elements[4])
   local states = mcm.config().choices
   assert(states == nil or states.vVoice == nil or states.vVoice.states[4].enabled ~= false, 'OmniVoice is a normal choice')
   assert(mcm.set(name, 4) and mcm.apply())
@@ -1579,7 +1579,7 @@ test('MCM: the Character editor row of Home writes one editor command, the page 
   assert(mcm.status() == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.', mcm.status())
   frames(40)
   assert(commandWrites() == before + 1, 'nothing more is sent by the frames that follow')
-  assert(labels() == 'Characters to invite | Current party | Model browser | Settings | Character editor', labels())
+  assert(labels() == 'Characters to invite | Current party | Model browser | Character editor | Settings', labels())
 `));
 
 test('MCM: the Character editor row says the service is not running and writes nothing; without the module it is not on Home', () => {

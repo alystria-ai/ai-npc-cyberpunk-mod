@@ -29,7 +29,7 @@ const STATIC_OPTIONS = [
   'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'On', 'Speaks up rarely', 'Speaks up often', 'Pocket · On your PC',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
-  'OmniVoice · short wait', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
+  'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
 ];
 
 function localeTable(code) {

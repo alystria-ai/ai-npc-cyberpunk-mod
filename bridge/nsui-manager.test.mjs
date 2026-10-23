@@ -50,7 +50,7 @@ test('every page builds on the tab and the tab always starts with the way back, 
   -- Home: the five destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
   assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 5)
-  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Settings', 'Character editor'}) do
+  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
   for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Current party', 'Current party'}, {'Model browser', 'Installed character models'},
@@ -1030,7 +1030,7 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   ns.verify()
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
   local open = assert(ns.find('Character editor'), 'the row is on Home')
-  assert(open.buttonText == 'Open' and ns.sections()[1].options[5] == open, 'the fifth row of Home, a button')
+  assert(open.buttonText == 'Open' and ns.sections()[1].options[4] == open, 'the fourth row of Home, a button')
   local before = commandWrites()
   press('Character editor')
   assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
