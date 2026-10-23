@@ -459,7 +459,7 @@ test('wiring: refusal on the key press, private talk only, no gaze, the guard on
   assert.match(speech, /local storyGuard = M\.storyGuard\s+if storyGuard and storyGuard\(M\.actor, M\.context\) == true then return end/);
   // The face writer judges the story speaker without the broad scene flag, and only that one speaker.
   const facial = read('../mod/facial-playback.lua');
-  assert.match(facial, /if entity~=nil and entity==M\.storyEntity then\s+local ok,ready=pcall\(luaActorSafe,actor,true\)/);
+  assert.match(facial, /if entity~=nil and entity==M\.storyEntity then\s+local ok,ready=pcall\(luaActorSafe,actor,true,M\.storyProjection==true\)/);
   assert.match(facial, /\(not sceneAllowed and scene:IsEntityInScene\(id\)\)/);
   assert.match(facial, /return service:SetStoryTalk\(enabled==true\)/);
   // Started where a session starts and ends, and the setting is handed over then.
@@ -500,7 +500,7 @@ test('the face service: named characters are prepared at spawn on any graph, gua
   // Talk time: a dialogue refuses (first check), then only a commanded AI; the quest flag and quest-named record do not.
   const refusal = between('public func TalkRefusal', 'private func PrepareSpawnedFace', face);
   assert.ok(refusal.indexOf('IsEntityInDialogue') < refusal.indexOf('m_storyTalk'));
-  assert.match(refusal, /if this\.m_storyTalk && ArrayContains\(this\.m_named, npc\.GetRecordID\(\)\) \{\s+if !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};\s+return "";/);
+  assert.match(refusal, /if this\.m_storyTalk && ArrayContains\(this\.m_named, npc\.GetRecordID\(\)\) \{(?:\s+\/\/[^\n]*)*\s+if !npc\.ConvaiFaceIsProjection\(\) && !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};\s+return "";/);
   // Without the setting everything is as before: the named roster stays skipped.
   assert.match(face, /if named \{ return "skipped:named"; \};/);
 });

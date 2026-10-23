@@ -90,7 +90,8 @@ test('busy: V sits in an ordinary seat (scene tier 3 with the dialogue and choic
   end
   assert(J.busy(sample()) == nil, 'a couch sit')
   assert(J.busy(sample({sitting = false})) == 'dialogue', 'the same flags in a cutscene (no plain sit)')
-  assert(J.busy(sample({sitting = false, dialogue = false})) == 'scene')
+  assert(J.busy(sample({sitting = false, dialogue = false})) == 'choices', 'the choice list is the game\\'s: outside a plain sit it holds him back')
+  assert(J.busy(sample({sitting = false, dialogue = false, choices = false}), false, true) == 'scene', 'tier 3 with a game line just now')
   local noInfo = sample(); noInfo.sitting = nil
   assert(J.busy(noInfo) == 'dialogue', 'no sit information: as before')
   assert(J.busy(sample({call = true})) == 'call' and J.busy(sample({combat = true})) == 'combat' and J.busy(sample({replacer = true})) == 'replacer')
@@ -105,18 +106,21 @@ test('busy: the game has the floor in a scene, a call, a quest conversation, a f
   end
   assert(J.busy(sample()) == nil, 'open gameplay')
   assert(J.busy(sample({vehicle = true})) == nil, 'a drive is fine: he talks in the car')
-  assert(J.busy(sample({choices = true})) == nil, 'a choice at tier 1 is the Talk prompt on a vendor, not a conversation')
+  assert(J.busy(sample({choices = true})) == 'choices', 'the game\\'s choice list at tier 1: never talk over it (2026-10-23; the car, with the list of the game\\'s Johnny)')
+  assert(J.busy(sample({choices = true, vehicle = true})) == 'choices', 'in a vehicle too')
+  assert(J.busy(sample({choices = true}), true) == 'choices' and J.busy(sample({choices = true, combat = true})) == 'choices', 'before the fight and his own line')
+  assert(J.busy(sample({choices = true, dialogue = true})) == 'dialogue', 'the quest conversation keeps its own reason')
   assert(J.busy(sample({tier = 2})) == nil, 'staged gameplay (the clinic, the shop) is open, as for story characters')
-  assert(J.busy(sample({tier = 2, choices = true})) == nil, 'a Talk prompt in staged gameplay')
+  assert(J.busy(sample({tier = 2, choices = true})) == 'choices', 'a choice list in staged gameplay')
   assert(J.busy(sample({tier = 2}), true) == 'johnny-speaking', 'the staged game Johnny keeps him quiet through his line')
   assert(J.busy(sample({tier = 3})) == nil and J.busy(sample({tier = 4})) == nil, 'a lift ride or an FPP interaction (tier 3 or 4) alone is not a scene')
   assert(J.busy(sample({tier = 3}), false, true) == 'scene' and J.busy(sample({tier = 4}), false, true) == 'scene', 'with a game voice line just now it is')
-  assert(J.busy(sample({tier = 4, choices = true})) == 'scene', 'with a dialogue choice on screen it is')
+  assert(J.busy(sample({tier = 4, choices = true})) == 'choices', 'with a dialogue choice on screen he waits')
   assert(J.busy(sample({tier = 3, dialogue = true})) == 'dialogue')
   assert(J.busy(sample({tier = 4, call = true})) == 'call')
   assert(J.busy(sample({tier = 5})) == 'scene', 'a full cinematic alone')
   assert(J.busy(sample({tier = 2}), false, true) == nil, 'a line at tier 2 is not a scene by itself')
-  assert(J.busy(sample({tier = false, choices = true})) == 'scene', 'a choice with the tier unknown fails closed')
+  assert(J.busy(sample({tier = false, choices = true})) == 'choices', 'a choice with the tier unknown fails closed')
   assert(J.busy(sample({tier = false})) == nil)
   assert(J.busy(sample({dialogue = true})) == 'dialogue')
   assert(J.busy(sample({call = true})) == 'call')
@@ -214,8 +218,8 @@ test('refusal facts: the log line names V\'s scene facts and the age of his last
   assert(S:refusal('V') == nil, 'tier 3 alone (a lift, a ride) no longer refuses')
   tick(0.5)
   state.sample.choices = true
-  assert(S:refusal('V') == 'scene')
-  assert(S:detail() == 'tier=3 dialogue=false choices=true call=false replacer=false combat=false sitting=? vehicle=true scene=? workspot=true lastLine=none', S:detail())
+  assert(S:refusal('V') == 'choices')
+  assert(S:detail() == 'tier=3 dialogue=false choices=true call=false replacer=false combat=false sitting=? vehicle=true scene=? workspot=? lastLine=none', S:detail())
   state.sample.choices = nil
   tick(0.5)
   rows[1] = {profileKey = 'judy-alvarez', at = wall - 2}
@@ -225,11 +229,11 @@ test('refusal facts: the log line names V\'s scene facts and the age of his last
   assert(S:refusal('V') == nil, 'the line is older than six seconds: the lift ride is open again')
   state.sample.choices = true
   tick(0.5)
-  assert(S:refusal('V') == 'scene')
+  assert(S:refusal('V') == 'choices')
   state.sample.choices = nil
   rows[1] = nil
   tick(0.1)
-  assert(S:refusal('V') == 'scene' and S:detail():find('tier=3', 1, true), 'held: the same basis')
+  assert(S:refusal('V') == 'choices' and S:detail():find('tier=3', 1, true), 'held: the same basis')
   tick(0.5)
   state.sample.tier = 1; state.sample.vehicle = nil
   rows[1] = {profileKey = 'johnny-silverhand', at = wall - 4}

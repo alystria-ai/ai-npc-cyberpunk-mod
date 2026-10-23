@@ -119,12 +119,14 @@ end
 --   call             a phone call is incoming or running
 --   dialogue         V is in a quest conversation
 --   scene            tier 5 (a full cinematic), or tier 3 or 4 (limited gameplay, an FPP interaction: a lift, a seat, a ride) TOGETHER WITH
---                    another sign of a scene: a game voice line of any character in the last ANY_LINE_SECONDS (anyLine: true), or a dialogue
---                    choice. Tier 3 or 4 alone is ordinary life, not a scene: a lift ride refused Johnny for nothing (report 931d4563, 2026-10-22).
---                    A dialogue choice while the tier is unknown also refuses (fails closed). The dialogue and call flags have their own
---                    reasons. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and does not refuse by itself; where the game stages its
---                    own Johnny there, his game line keeps Johnny quiet (johnny-speaking). A choice at tier 1 or 2 is the game's "Talk" prompt
---                    on a vendor or a fixer, not a conversation
+--                    a game voice line of any character in the last ANY_LINE_SECONDS (anyLine: true). Tier 3 or 4 alone is ordinary life, not a
+--                    scene: a lift ride refused Johnny for nothing (report 931d4563, 2026-10-22). The dialogue, choices and call flags have their
+--                    own reasons. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and does not refuse by itself; where the game stages
+--                    its own Johnny there, his game line keeps Johnny quiet (johnny-speaking)
+--   choices          the game's own dialogue choice list is on screen, at any scene tier and in a vehicle too (2026-10-23, the owner's 0.2.9 test: the
+--                    choice list of the game's Johnny was gone with this setting on). Johnny, typed or on the voice key, and every remark of his
+--                    wait until the list is answered: nothing of ours (the text box, a reply, his subtitle line) is ever put over the game's own
+--                    choices. The one exception is V's plain sit (sample.sitting), where the sit's own scene flags keep the choice flag up
 --   combat           V is in a fight
 --   johnny-speaking  the game gave Johnny a line in the last LINE_SECONDS (spoken: true)
 function M.busy(sample, spoken, anyLine)
@@ -135,12 +137,15 @@ function M.busy(sample, spoken, anyLine)
     -- up, and no cutscene (no game line since V sat, no call, no fight): Johnny may talk to V there.
     local seated = sample.sitting == true
     if sample.dialogue == true and not seated then return 'dialogue' end
+    -- The game's choice list wins over everything below, whatever the scene tier says: tier 1 or 2 with a list on screen was read as a vendor's
+    -- Talk prompt and let Johnny speak (or the text box open) over a conversation the game had with V, in the car above all.
+    if sample.choices == true and not seated then return 'choices' end
     local tier = tonumber(sample.tier)
     if not seated then
-        if tier == nil then
-            if sample.choices == true then return 'scene' end
-        elseif tier >= 5 then return 'scene'
-        elseif tier >= 3 and (sample.choices == true or anyLine == true) then return 'scene' end
+        if tier ~= nil then
+            if tier >= 5 then return 'scene' end
+            if tier >= 3 and anyLine == true then return 'scene' end
+        end
     end
     if sample.combat == true then return 'combat' end
     if spoken == true then return 'johnny-speaking' end
