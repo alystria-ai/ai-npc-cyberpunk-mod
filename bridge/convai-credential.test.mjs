@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ConvaiKeys} from './convai-key.mjs';
-import {PACKAGED_AUTH_FILE, TokenSource, loadInstallId, readAuthSettings, readBackendAddress, signRequest} from './convai-credential.mjs';
+import {PACKAGED_AUTH_FILE, TokenSource, loadInstallId, networkCause, readAuthSettings, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {TurnLimitError, LIMIT_MARKER} from './shared-key-guard.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
@@ -651,6 +651,7 @@ function scripted(steps, extra = {}) {
     calls.push({at: clock.now, signal: init.signal});
     const step = steps[Math.min(calls.length - 1, steps.length - 1)];
     if (step === 'fail') throw new TypeError('fetch failed');
+    if (step instanceof Error) throw step;
     if (step === 'ok') return Response.json({authToken: `fake-token-${calls.length}`, expiresAt: new Date(clock.now + 3_600_000).toISOString()});
     return Response.json(step.body ?? {}, {status: step.status});
   };
@@ -727,7 +728,10 @@ test('a turn never retries a refusal or a rate limit: the backend\'s own wait st
   assert.equal(calls.length, 2, 'the rate limit holds: no turn attempt');
 });
 
-test('a turn attempt gives up sooner than the background fetch', async () => {
+// What undici throws for a network failure: a TypeError "fetch failed" whose cause carries the code.
+const fetchFailed = (code, extra = {}) => Object.assign(new TypeError('fetch failed'), {cause: Object.assign(new Error(`connect failed to host.example.invalid 203.0.113.9:443`), {code, ...extra})});
+
+test('the request and the attempt a turn starts are both given 25 s (a slow or filtered line), and the turn itself still waits four seconds at most', async () => {
   const timeouts = [];
   const real = AbortSignal.timeout;
   AbortSignal.timeout = ms => { timeouts.push(ms); return real.call(AbortSignal, ms); };
@@ -738,7 +742,91 @@ test('a turn attempt gives up sooner than the background fetch', async () => {
     clock.now = 5_000;
     await keys.credentialFor({characterId: 'alex'});
   } finally { AbortSignal.timeout = real; }
-  assert.deepEqual(timeouts, [10_000, 6_000]);
+  assert.deepEqual(timeouts, [25_000, 25_000]);
+  // A turn whose attempt is still running (a line that needs 20 s) is not held for it: it waits four seconds, fails with the plain notice,
+  // and the attempt goes on to serve the next turn.
+  const timers = fakeTimers();
+  let calls = 0, release, at = 0;
+  const tokens = new TokenSource({url: 'https://auth.example.invalid/t', secret: SIGNING_SECRET, installId: INSTALL, fallback: false, now: () => at,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer,
+    fetchImpl: () => { calls += 1; return calls === 1 ? Promise.reject(new TypeError('fetch failed'))
+      : new Promise(resolve => { release = () => resolve(Response.json({authToken: 'fake-token-slow', expiresAt: new Date(3_600_000).toISOString()})); }); }});
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  at = 4_000;
+  const turn = assert.rejects(keys.credentialFor({characterId: 'alex'}), /\[convai-auth:unreachable\]/);
+  await flush();
+  const limit = timers.live.find(timer => timer.delay === 4000);
+  assert.ok(limit, 'the turn waits for its own attempt, four seconds at most');
+  limit.callback();
+  await turn;
+  release(); await flush();
+  assert.equal((await keys.credentialFor({characterId: 'alex'})).authToken, 'fake-token-slow', 'the slow attempt served the next turn');
+});
+
+test('networkCause names a failure by its code and nothing else: no host, no address, no message', () => {
+  assert.equal(networkCause(fetchFailed('ENOTFOUND')), 'ENOTFOUND');
+  assert.equal(networkCause(fetchFailed('ECONNRESET')), 'ECONNRESET');
+  assert.equal(networkCause(fetchFailed('UND_ERR_CONNECT_TIMEOUT')), 'UND_ERR_CONNECT_TIMEOUT');
+  assert.equal(networkCause(fetchFailed('ERR_TLS_CERT_ALTNAME_INVALID')), 'ERR_TLS_CERT_ALTNAME_INVALID');
+  assert.equal(networkCause(fetchFailed('CERT_HAS_EXPIRED')), 'CERT_HAS_EXPIRED');
+  // happy eyeballs: the code is on the inner errors of an AggregateError
+  assert.equal(networkCause(Object.assign(new TypeError('fetch failed'), {cause: new AggregateError([Object.assign(new Error('x'), {code: 'ETIMEDOUT'})])})), 'ETIMEDOUT');
+  // our own timer ended the request
+  assert.equal(networkCause(new DOMException('The operation was aborted due to timeout', 'TimeoutError')), 'TimeoutError');
+  assert.equal(networkCause(Object.assign(new TypeError('fetch failed'), {cause: new DOMException('timeout', 'TimeoutError')})), 'TimeoutError');
+  // no code: a refused redirect, a bare fetch failure, anything else
+  assert.equal(networkCause(Object.assign(new TypeError('fetch failed'), {cause: new Error('unexpected redirect')})), 'redirect');
+  assert.equal(networkCause(new TypeError('fetch failed')), 'fetch-failed');
+  assert.equal(networkCause(new Error('something odd')), 'unknown');
+  assert.equal(networkCause(undefined), 'unknown');
+  assert.equal(networkCause('text'), 'unknown');
+  // a code that is not a code (lower case, a sentence, a path, a host) is never passed on
+  for (const code of ['auth.example.invalid', 'connect to 203.0.113.9', 'C:\\Users\\someone', 'ab', 'enotfound']) {
+    const result = networkCause(fetchFailed(code));
+    assert.ok(['fetch-failed', 'unknown'].includes(result), `${code} -> ${result}`);
+    assert.ok(!/example|203|Users|enotfound/.test(result));
+  }
+  // a cycle in the causes ends
+  const loop = new Error('loop'); loop.cause = loop;
+  assert.equal(networkCause(loop), 'unknown');
+});
+
+test('a failed sign-in logs why (the code only), carries it on the turn\'s error and the snapshot, and forgets it once a token arrives', async () => {
+  const logs = [];
+  const {tokens, clock, timers} = scripted([fetchFailed('ENOTFOUND'), fetchFailed('ENOTFOUND'), fetchFailed('ECONNRESET'), 'ok'], {log: message => logs.push(message)});
+  const keys = await releaseKeys(tokens);
+  tokens.start(); await flush();
+  assert.deepEqual(logs, ['Sign-in backend could not be reached (ENOTFOUND); retrying']);
+  assert.ok(!logs.join('\n').match(/example|203\.0/), 'no host and no address in the log');
+  assert.equal(tokens.snapshot().lastCause, 'ENOTFOUND');
+  await assert.rejects(keys.credentialFor({characterId: 'alex'}), error => {
+    assert.match(error.message, /^Convai sign-in is unavailable \(unreachable\) \[convai-auth:unreachable\]$/, 'the message (the report signature) does not change with the cause');
+    assert.equal(error.authKind, 'unreachable');
+    assert.equal(error.authCause, 'ENOTFOUND');
+    return true;
+  });
+  // the same cause again says nothing new; another cause is one new line
+  clock.now = 10_000; await timers.fire();
+  assert.equal(logs.length, 1);
+  clock.now = 40_000; await timers.fire();
+  assert.deepEqual(logs.slice(1), ['Sign-in backend could not be reached (ECONNRESET); retrying']);
+  assert.equal(tokens.snapshot().lastCause, 'ECONNRESET');
+  clock.now = 120_000; await timers.fire();
+  assert.equal(tokens.snapshot().lastKind, 'ok');
+  assert.equal(tokens.snapshot().lastCause, null);
+  assert.ok(!('authCause' in tokens.unavailableError()), 'no cause on an error that is not a network failure');
+});
+
+test('a refusal or a server answer has no network cause', async () => {
+  const {tokens} = scripted([{status: 429, body: {error: 'daily', resetAt: new Date(86_400_000).toISOString()}}]);
+  tokens.start(); await flush();
+  assert.equal(tokens.snapshot().lastCause, null);
+  const {tokens: broken} = scripted([{status: 502, body: {error: 'convai_unavailable'}}]);
+  broken.start(); await flush();
+  assert.equal(broken.snapshot().lastKind, 'server');
+  assert.equal(broken.snapshot().lastCause, null);
+  assert.ok(!('authCause' in broken.unavailableError()));
 });
 
 test('retrying for a turn adds no notice: the log line for a failure is written once', async () => {

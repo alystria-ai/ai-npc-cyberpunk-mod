@@ -10,7 +10,7 @@ import {gzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {PLANTED, plantedInstall, fakeInstall} from './support-report-fixture.mjs';
 import {MistralError, newTrace} from './mistral-client.mjs';
-import {ErrorEvents, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
+import {ErrorEvents, authCauseDetail, emptyAnswerDetail, errorReportStatus, errorReportsEnabled, errorReportsEnabledSync, errorReportsMaySend, errorReportsSetting, errorSignature, eventFromError, frameKey, normaliseMessage, parseGameEvents, queueDirectory,
   readQueue, recordErrorEvent, recordErrorEventSync, reportableTurnFailure, stackFrames, QUEUE_MAX} from './error-events.mjs';
 import {DAILY_LIMIT, ErrorReporter, MAX_BODY_BYTES, MAX_LOG_LINES, buildErrorPayload, hashInstall, luaErrorsIn, reportCleaner, reportTarget,
   withoutConversation} from './error-reports.mjs';
@@ -580,6 +580,60 @@ test('the game\'s events are read once, and their versions go into the reports',
     assert.deepEqual(parseGameEvents('{"version":2}'), {game: {}, events: []});
     assert.deepEqual(parseGameEvents('not json'), {game: {}, events: []});
   } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('the game\'s setup row "service never" from before this service started is dropped; one from after it, and every other row, is kept', async () => {
+  const f = await folders();
+  const clock = {now: START};
+  const logs = [];
+  const backend = fakeBackend({clock});
+  const reporter = reporterFor(f, backend, clock, {log: line => logs.push(line)});
+  try {
+    await writeFile(join(f.runtime, 'error-events.json'), JSON.stringify({version: 1, updated: START,
+      game: {game: '2.31'},
+      events: [
+        {kind: 'setup-problem', code: 'service never', detail: 'plugin-not-loaded', frame: 'game-setup', at: START - 3_600_000},
+        {kind: 'setup-problem', code: 'red4ext missing', frame: 'game-setup', at: START - 3_600_000},
+        {kind: 'setup-problem', code: 'service never', detail: 'no-launcher-trace', frame: 'game-setup', at: START + 500}]}));
+    await reporter.look({flush: false});
+    const queue = await readQueue(f.state, {now: clock.now});
+    assert.deepEqual(queue.map(record => [record.message, record.detail?.detail]).sort(), [['red4ext missing', undefined], ['service never', 'no-launcher-trace']],
+      'the older "service never" is dropped; the newer one stays and carries its reason');
+    assert.equal(logs.filter(line => /service never/.test(line)).length, 1, 'said once in the service log');
+    await reporter.look({flush: false});
+    assert.equal((await readQueue(f.state, {now: clock.now})).length, 2, 'read once: the dropped row does not come back');
+  } finally { reporter.close(); await f.cleanup(); }
+});
+
+test('a sign-in failure report carries the network cause code in its detail, not in its message, and nothing but a code', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    const failure = cause => Object.assign(Error('Convai sign-in is unavailable (unreachable) [convai-auth:unreachable]'), {authKind: 'unreachable', ...(cause ? {authCause: cause} : {})});
+    events.turnFailed(failure('ENOTFOUND'), {provider: 'convai'});
+    await untilQueued(f, 1);
+    const [record] = await readQueue(f.state, {now: START});
+    assert.equal(record.detail.authCause, 'ENOTFOUND');
+    assert.ok(!/ENOTFOUND/.test(record.message), 'the signature stays one for every cause');
+    // The same message with another cause (or none) is the same signature
+    const other = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    other.turnFailed(failure('ECONNRESET'), {provider: 'convai'});
+    await new Promise(done => setTimeout(done, 100));
+    const queue = await readQueue(f.state, {now: START});
+    assert.equal(queue.length, 1);
+    assert.equal(queue[0].signature, record.signature);
+    assert.equal(queue[0].detail.authCause, 'ECONNRESET', 'the latest occurrence says its cause');
+    // Not a code: dropped (a host name or a sentence never goes in)
+    assert.deepEqual(authCauseDetail(failure('api.example.com')), {});
+    assert.deepEqual(authCauseDetail(failure('connect to 10.0.0.1 failed')), {});
+    assert.deepEqual(authCauseDetail(failure()), {});
+    assert.deepEqual(authCauseDetail(failure('UND_ERR_CONNECT_TIMEOUT')), {authCause: 'UND_ERR_CONNECT_TIMEOUT'});
+    assert.deepEqual(authCauseDetail(failure('TimeoutError')), {authCause: 'TimeoutError'});
+    // and it reaches the payload
+    const payload = await buildErrorPayload({record: queue[0], game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, gameInfo: {}, secrets: [], graphics: () => [], environment: {}, now: () => START});
+    assert.equal(JSON.parse(payload.body).report.detail.authCause, 'ECONNRESET');
+  } finally { await f.cleanup(); }
 });
 
 test('Lua errors in the mod\'s logs are found from where the last look stopped; older lines and ordinary lines are not', async () => {

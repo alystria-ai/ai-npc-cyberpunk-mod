@@ -47,7 +47,13 @@ const LINE_LIMIT = 300;
 // `engine` and the graphics-memory numbers are what ErrorEvents.voiceFailed records (they never reached a report before: the voice reports of 2026-10-22 all had an empty detail), the `empty*` ones
 // how a server the player runs ended an answer with no text (emptyAnswerDetail in bridge/error-events.mjs): a short word and counts, never text.
 const DETAIL_KEYS = new Set(['provider', 'errorCode', 'localReason', 'microphone', 'log', 'context', 'scripts', 'runtime', 'detail',
-  'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs']);
+  'engine', 'gpuDedicatedMiB', 'gpuSharedMiB', 'emptyFinish', 'emptyEvents', 'emptyPieces', 'emptyThinking', 'emptyTokens', 'emptyMs',
+  // Why the sign-in backend could not be reached: one network code (ENOTFOUND, ECONNRESET, UND_ERR_CONNECT_TIMEOUT, TimeoutError ...), bridge/error-events.mjs authCauseDetail.
+  'authCause']);
+// The game's setup row "service never" says that, when the game loaded its save, nothing of this game session had started the conversation service (the Runtime or its
+// RED4ext plugin was missing or not loaded). A reporter that reads it is a running service, so the row is about an earlier game session or a recovered setup problem: 6 of 12
+// installs sent it on the first day of 0.2.9 (triage 2026-10-24) with the service up. It is dropped, with a line in the service log, not sent as a report of its own.
+const STALE_WHEN_RUNNING = new Set(['setup-problem|service never']);
 const VERSION = /^\d{1,6}(?:\.\d{1,6}){1,3}(?:[-+][0-9A-Za-z.-]{1,30})?$/;
 // Log sources, in the order they appear in a report, with their share of the 150 lines. `anchor`: the lines around the error's own
 // message are taken when it is found in the file (else the end of the file); `errors`: only error lines.
@@ -512,6 +518,10 @@ export class ErrorReporter {
     for (const event of events) {
       if (event.at <= seen) continue;
       newest = Math.max(newest, event.at);
+      if (STALE_WHEN_RUNNING.has(`${event.kind}|${event.message}`) && event.at < this.startedAt) {
+        this.#note('stale-service-never', 'the setup row "service never" is from before this service started, so it is dropped (the service is running now)');
+        continue;
+      }
       if (enabled && this.now() - event.at < 7 * 24 * 3600_000) await recordErrorEvent(this.stateDirectory, event, {now: this.now()});
     }
     state.gameSeenAt = newest;
