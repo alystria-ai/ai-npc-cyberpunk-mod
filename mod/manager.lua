@@ -790,6 +790,9 @@ local function loadSettings()
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
+    -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
+    -- and the redscript listener is not registered.
+    if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
@@ -961,6 +964,13 @@ end
 function M.voiceActivation()
     loadSettings()
     return settings.voiceActivation == true
+end
+
+-- Controller talk button (Settings > Voices): hold the left stick click to talk by voice. Off by default. Read on the game's 10 Hz tick (one boolean),
+-- never per frame.
+function M.padTalk()
+    loadSettings()
+    return settings.padTalk == true
 end
 
 -- Street reputation (docs/REPUTATION_DESIGN.md): ordinary NPCs' standing with V shapes how they talk to V. Off by default. Read when a
@@ -1853,6 +1863,7 @@ function M.snapshot(player)
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
+            padTalk = settings.padTalk == true,
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
@@ -1936,6 +1947,9 @@ function M.applySettings(player, values)
         elseif key == 'voiceActivation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.voiceActivation = value
+        elseif key == 'padTalk' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.padTalk = value
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value

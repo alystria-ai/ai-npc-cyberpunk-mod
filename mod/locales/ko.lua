@@ -1248,4 +1248,6 @@ return {
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "키를 누르고 있지 않아도 말할 수 있습니다. 캐릭터를 마주 보고 있거나 동료가 가까이 있으면, 모드가 목소리를 듣고 약 1초 동안 말을 멈추면 대답합니다.\n\n게임 자체의 장면이나 대화 선택지 중, 캐릭터가 말하는 동안에는 절대 듣지 않습니다. 음성이 감지되지 않으면 PC에서 아무것도 나가지 않습니다. 헤드폰이 가장 좋고, 블루투스 헤드셋 마이크는 듣는 동안 통화 음질로 바뀝니다.",
     ["Opening microphone…"] = "마이크 여는 중…",
     ["Speak now"] = "지금 말하세요",
+    ["Controller talk button"] = "컨트롤러 대화 버튼",
+    ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "컨트롤러로 대화하려면 캐릭터를 향한 상태에서 왼쪽 스틱 누르기(L3)를 누른 채 말하고, 손을 떼면 전송됩니다. 스틱을 움직이지 않은 상태로 누르고 있으세요.\n\n도보 중에만 가능하며 메뉴, 장면, 대화 선택지, 통화, 전투, 차량 탑승 중에는 불가능합니다. 이 클릭은 여전히 스프린트를 켜고 끄지만, 멈춰 서 있을 때는 아무 효과가 없습니다.",
 }

@@ -134,6 +134,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-activation.lua"
     },
     {
+      "source": "mod/pad-binding.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
+    },
+    {
       "source": "mod/player-gear.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
     },
@@ -188,6 +192,10 @@
     {
       "source": "r6/scripts/CyberpunkConvai/Holocall.reds",
       "target": "r6/scripts/CyberpunkConvai/Holocall.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/PadTalk.reds",
+      "target": "r6/scripts/CyberpunkConvai/PadTalk.reds"
     },
     {
       "source": "mod/phone-chat.lua",
