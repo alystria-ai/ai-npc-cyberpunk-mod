@@ -26,11 +26,14 @@ The first build did not work in the game (Convai, Pocket voice): no reply on any
    Edge) and several times that in a running game; the fake device used for the first tests opened in 54 ms. A hold shorter than that ended before the
    device opened, and the first words were never heard. Fix: **the device is kept open and unread** (`LocalSttCapture.warm`, `MicTap.warm`): the page opens
    `getUserMedia`, the AudioContext and the worklet once, and the worklet throws the samples away unconverted until a recording begins. `microphone-live.json`
-   carries `warm`: `mod/init.lua` `convaiMicWarmTick` sets it while the world is playable (and for 90 s after: a menu or a loading screen does not
-   reopen it), rewrites the file every 30 s, and drops it when voice input is impossible (Mistral without recognition). The bridge lets the device go
+   carries `warm`: `mod/init.lua` `convaiMicWarmTick` sets it **only near someone** (the owner's choice, 2026-10-23): while a character who can be talked to
+   is faced or aimed at or a companion is near (the conditions Voice activation listens under, `mod/voice-activation.lua` `sample`, one answer cached 0.5 s on
+   the 10 Hz tick), and for 90 s after the last such moment. A menu, a loading screen, a scene, a dialogue with choices, a call, or voice input being
+   impossible (Mistral without recognition) releases it at once. It rewrites the file every 30 s while on. The bridge lets the device go
    after 2 minutes without a write, and `CYBERPUNK_CONVAI_MIC_WARM=0` keeps it closed. A press then starts a recording in a few milliseconds (Edge with a fake
-   device: `mic-tap-browser.test.mjs`). **Trade-off, owner's call:** while playing, Windows shows the microphone as in use and a Bluetooth headset used as the
-   input stays in its call profile; nothing is read, stored or sent.
+   device: `mic-tap-browser.test.mjs`). **Trade-off (accepted by the owner):** the Windows microphone icon and a Bluetooth headset's call mode appear only around
+   conversations, not all the time; nothing is read, stored or sent. A first press the instant V turns to a stranger can still wait for the device (the
+   gaze scan and the 0.5 s answer come first).
 2. **The relay played the pre-roll before the track existed.** `PcmRelay` consumed its FIFO from the moment it was created, so everything pushed while the
    Convai connection opened (the whole pre-roll, and the first live seconds) was played into a track nobody had published, and Convai heard only the
    tail ("Who are", never a final transcript, then "No speech was heard" after 15 s). Fix: the worklet collects and plays nothing until `start()`, which
@@ -73,8 +76,8 @@ wake, `getUserMedia`, the AudioContext). Measured with Chromium's fake device in
 
 ## Voice activation (Settings > Voices, off by default)
 
-- **Off**: nothing listens. The device may be open and unread for the talk key (above), but the detector does not run and no audio is kept. Lua
-  loads nothing (`mod/voice-activation.lua` is not even read) and runs one boolean per 10 Hz tick. The bridge ignores listen requests (`MicLive.setAllowed`), and turning the setting off releases the
+- **Off**: nothing listens. The device may be open and unread near someone for the talk key (above), but the detector does not run and no audio is kept.
+  The module is loaded for the shared "conversation possible" answer; the detector's tick runs one boolean. The bridge ignores listen requests (`MicLive.setAllowed`), and turning the setting off releases the
   device, the pre-roll buffer and the detector (`voice activation is off` in the bridge log).
 - **On**: `mod/voice-activation.lua` (10 Hz tick, the "can a conversation happen" test twice a second) writes `listen: true` to
   `microphone-live.json` only while: the world is playable, no menu or text box is open, a profiled character is faced (the existing 0.2 s gaze

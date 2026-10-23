@@ -131,15 +131,16 @@ test('off() closes the microphone once and never listens again until the conditi
   `);
 });
 
-// ---- the gate in init.lua: off by default, nothing loaded --------------------------------------------------------------------------------
+// ---- the gate in init.lua: the detector runs only with the setting on ---------------------------------------------------------------------
 function tickFunction() {
-  const start = initSource.indexOf('function convaiVoiceActivationTick(');
-  assert.ok(start > 0, 'init.lua has the tick');
-  const end = initSource.indexOf('\nend\n', start) + 5;
+  const start = initSource.indexOf('function convaiVoiceActivationModule(');
+  assert.ok(start > 0, 'init.lua has the module loader');
+  const tick = initSource.indexOf('function convaiVoiceActivationTick(', start);
+  const end = initSource.indexOf('\nend\n', tick) + 5;
   return initSource.slice(start, end);
 }
 
-test('with the setting off the module is never loaded, with it on it is loaded once and updated', () => {
+test('with the setting off the detector is never updated, with it on it is updated each tick, and turning it off closes the microphone once', () => {
   const code = tickFunction();
   assert.match(code, /manager\.voiceActivation\(\)/);
   check(`
@@ -156,7 +157,7 @@ test('with the setting off the module is never loaded, with it on it is loaded o
       return {update = function() updates = updates + 1 end, off = function() offs = offs + 1 end} end
     ${code}
     convaiVoiceActivationTick(player, 0.1, true); convaiVoiceActivationTick(player, 0.1, true)
-    assert(loaded == 0 and updates == 0 and convaiVoiceActivation == nil, 'off: nothing is loaded and nothing runs')
+    assert(updates == 0 and offs == 0, 'off: the detector never runs')
     on = true
     convaiVoiceActivationTick(player, 0.1, true); convaiVoiceActivationTick(player, 0.1, true)
     assert(loaded == 1 and updates == 2, 'on: loaded once, updated each tick')
@@ -172,7 +173,28 @@ test('the gaze scan notes the faced character without any extra game call, and a
   assert.match(code, /convaiNotices\.mute\(true\)[\s\S]*toggleVoice, false, 'vad', nil, vadId[\s\S]*convaiNotices\.mute\(false\)/);
 });
 
-// ---- the warm device (the microphone kept open, reading nothing, while the game is played) ------------------------------------------------
+// ---- the shared "a conversation is possible" answer ---------------------------------------------------------------------------------------
+test('sample: possible near someone, blocked in menus, loading screens, scenes and when voice input is impossible, asked at most twice a second', () => {
+  check(`
+    local asked = 0
+    local counted = va.deps.conversation
+    va.deps.conversation = function(...) asked = asked + 1; return counted(...) end
+    local possible, blocked = va.sample(player, true); assert(possible == true and blocked == false, 'somebody is faced')
+    va.sample(player, true); va.sample(player, true); assert(asked == 1, 'cached inside 0.5 s')
+    clock = clock + 0.6; flags.conversation = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == false, 'nobody near: not possible, but not blocked either')
+    clock = clock + 0.6; flags.conversation = true; flags.scene = true
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'a scene, a dialogue with choices or a call blocks')
+    clock = clock + 0.6; flags.scene = false; flags.gameplay = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'a menu or an open text box blocks')
+    clock = clock + 0.6; flags.gameplay = true
+    possible, blocked = va.sample(player, false); assert(possible == false and blocked == true, 'a world that is not playable (loading) blocks')
+    clock = clock + 0.6; flags.voiceReady = false
+    possible, blocked = va.sample(player, true); assert(possible == false and blocked == true, 'voice input impossible with this provider')
+  `);
+});
+
+// ---- the warm device: kept open, reading nothing, only near someone ----------------------------------------------------------------------
 function warmFunction() {
   const start = initSource.indexOf('MIC_WARM_LINGER_S = 90');
   assert.ok(start > 0, 'init.lua has the warm tick');
@@ -180,21 +202,28 @@ function warmFunction() {
   return initSource.slice(start, end);
 }
 
-test('the warm tick keeps the device open while the world is playable and for a linger after, beats every 30 s, and lets go when voice input is impossible', () => {
+test('the warm tick keeps the device open only near someone to talk to: 90 s after the last such moment, never in a menu, a loading screen, a scene or a choice list', () => {
   check(`
-    local writes, beats, blocked, clockNow = {}, 0, false, 1000
-    manager = {voiceNeedsConvai = function() return blocked end}
+    local writes, beats, clockNow = {}, 0, 1000
+    local answer = {possible = true, blocked = false}
     microphone = {warming = function() return writes.on == true end, warm = function(on) writes.on = on; writes[#writes + 1] = on end, beat = function() beats = beats + 1 end}
+    function convaiVoiceActivationModule() return {sample = function() return answer.possible, answer.blocked end} end
     os.clock = function() return clockNow end
     ${warmFunction()}
-    convaiMicWarmTick(true); assert(#writes == 1 and writes[1] == true, 'warm as soon as the world is playable')
-    for i = 1, 50 do clockNow = clockNow + 0.1; convaiMicWarmTick(true) end
+    convaiMicWarmTick(player, true); assert(#writes == 1 and writes[1] == true, 'warm as soon as somebody is near or faced')
+    for i = 1, 50 do clockNow = clockNow + 0.1; convaiMicWarmTick(player, true) end
     assert(#writes == 1 and beats == 0, 'no write while nothing changes')
-    clockNow = clockNow + 31; convaiMicWarmTick(true); assert(beats == 1, 'the 30 s beat')
-    -- a menu or a loading screen: the device stays for the linger
-    clockNow = clockNow + 60; convaiMicWarmTick(false); assert(#writes == 1, 'still warm 60 s into a menu')
-    clockNow = clockNow + 40; convaiMicWarmTick(false); assert(#writes == 2 and writes[2] == false, 'let go after the linger')
-    clockNow = clockNow + 1; convaiMicWarmTick(true); assert(writes[3] == true, 'and warm again when the world is back')
-    blocked = true; clockNow = clockNow + 3; convaiMicWarmTick(true); assert(writes[4] == false, 'voice input impossible (Mistral without recognition): the device is let go')
+    clockNow = clockNow + 31; convaiMicWarmTick(player, true); assert(beats == 1, 'the 30 s beat')
+    -- V walks away from everybody: the device stays for the linger, then goes
+    answer.possible = false
+    clockNow = clockNow + 60; convaiMicWarmTick(player, true); assert(#writes == 1, 'still warm 60 s after the last moment')
+    clockNow = clockNow + 40; convaiMicWarmTick(player, true); assert(#writes == 2 and writes[2] == false, 'let go 90 s after it')
+    answer.possible = true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[3] == true, 'and warm again near someone')
+    -- a menu, a loading screen, a scene or a choice list: released at once, no linger
+    answer.possible, answer.blocked = false, true
+    clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[4] == false, 'blocked: let go at once')
+    answer.blocked = false; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(#writes == 4, 'and the linger does not come back by itself')
+    answer.possible = true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[5] == true)
+    answer.possible, answer.blocked = true, true; clockNow = clockNow + 1; convaiMicWarmTick(player, true); assert(writes[6] == false, 'blocked wins over possible')
   `);
 });
