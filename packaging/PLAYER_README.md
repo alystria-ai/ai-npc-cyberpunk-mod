@@ -10,9 +10,14 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Vortex installs the Local AI packs**: they hold no files Vortex mistakes for a different kind of mod, so adding them works. The Runtime now carries the engine they used to carry.
 - **Microphone notice**: when the connection to Convai fails at the start of a turn, the notice says so instead of telling you to check your Windows input device.
 - **Quest memory is on by default**: characters remember the choices you made in quests and what they saw you do.
-- **Three new characters** join the cast: Mr. Blue Eyes, Hasan Demir and Pedro Aimar.
+- **Three new characters** join the cast with their own voices: Mr. Blue Eyes, Hasan Demir and Pedro Aimar.
+- **Voice language**: Settings > Voices > Voice language is English by default, or Automatic, or a fixed language. Short lines like "hows biz" no longer switch the language.
+- **Invitations follow your provider**: inviting a companion no longer opens a Convai connection when you use Mistral, Local AI or Custom, and a refused Convai sign-in gets its own message.
+- **Party list**: a failed invitation leaves the list after its notice, each row shows one action for its state, and the Character editor button sits above Settings on Home.
+- **Johnny**: Johnny in your head waits for the game's own choice list instead of talking over it, and his lips move when he rides as a passenger.
+- **Models that must reason** get room to think from the first request, and an empty reply is asked again with more room.
 - **Street reputation (optional, off by default)**: gangs, police, corporations and ordinary residents can remember what V did, which quests V finished and how famous V is. Switch it on in the settings.
-- **A smaller Runtime**: the Pocket voice model is stored at half the size and files that nothing used were removed. The optional packs are smaller too (the OmniVoice pack is about 1.2 GB smaller, and the Local AI packs lose the engine copy).
+- **Smaller downloads**: the Runtime no longer carries files nothing loads (test folders, duplicate libraries and the old audio bank), and the OmniVoice pack is about 1.2 GB smaller. The Local AI packs no longer carry a copy of the engine, which the Runtime has.
 - **A safer Convai sign-in**: the Runtime no longer contains the shared Convai login. It signs in to the shared account through a small online service instead, and tells you once if it cannot.
 - **Prompting page**: the character editor has a Prompting page that edits how each conversation option (Mistral, Local AI Lite and Standard, Custom models) is worded, with a live preview and a reset for each piece of wording. Every option now ships with wording tuned and measured for its model.
 - **Dynamic info**: Settings > Conversations > Dynamic info has nine switches for the live game information a reply carries, so you decide what the characters may know about the moment.
