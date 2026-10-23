@@ -1246,4 +1246,6 @@ return {
     ["Voice activation could not open the microphone. Check your Windows input device."] = "语音激活无法打开麦克风，请检查 Windows 输入设备。",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "语音输入无法连接到 Convai。请再按住一次语音键，或直接输入。",
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "无需按住按键即可说话。当你面向角色或有同伴在附近时，模组会聆听你的声音，并在你停顿约一秒后回应。\n\n绝不在游戏自身的场景或对话选项中聆听，角色说话时也绝不聆听。除非听到语音，否则不会有任何内容离开你的电脑。最好使用耳机；蓝牙耳机的麦克风会在聆听时切换为通话音质。",
+    ["Opening microphone…"] = "正在打开麦克风…",
+    ["Speak now"] = "请现在说话",
 }

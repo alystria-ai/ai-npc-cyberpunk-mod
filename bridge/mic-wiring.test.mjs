@@ -32,7 +32,7 @@ test('the local recogniser, Mistral transcription and Convai\'s page all take th
 
 test('Voice activation is read from the settings file, honoured only while on, and the detector state rides on the microphone state file', () => {
   assert.match(bridge, /if \(settings\) micLive\.setAllowed\(settings\.voiceActivation === true\);/);
-  assert.match(bridge, /\{\.\.\.micStateLast, \.\.\.\(micVad \? \{vad: micVad\} : \{\}\), updated: Date\.now\(\)\}/);
+  assert.match(bridge, /\{\.\.\.micStateLast, \.\.\.\(micVad \? \{vad: micVad\} : \{\}\), \.\.\.\(micCue \? \{cue: micCue\} : \{\}\), updated: Date\.now\(\)\}/);
   assert.match(bridge, /'microphone-live\.json': \(\) => micLive\.poll\(\)/);
   assert.match(bridge, /if \(state === 'off'\) void micTap\.release\(input\.requestId, 'the recording is over'\);/);
 });
@@ -121,4 +121,9 @@ test('the hidden browser is not closed as idle while the microphone tap is open,
   assert.equal(await host.releaseIfIdle({idleMs: 0}), false, 'a listening microphone keeps it');
   await tap.release('vad');
   assert.equal(await host.releaseIfIdle({idleMs: 0}), true, 'a closed one does not');
+});
+
+test('the cold-start cue travels in microphone-state.json beside the vad field, keyed by the key press', () => {
+  assert.match(bridge, /\.\.\.\(micCue \? \{cue: micCue\} : \{\}\)/);
+  assert.match(bridge, /onCue: cue => \{ micCue = \{id: BOOT_ID \+ ':cue:' \+ \(\+\+micCueSeq\), hold: cue\.hold, phase: cue\.phase, cold: true\}/);
 });

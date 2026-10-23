@@ -104,6 +104,7 @@ M.catalog = {
     ['mic-vad-error'] = {class = PLAYER, repeatS = 120}, -- Voice activation could not open the microphone (mod/voice-activation.lua)
     ['mic-english-only'] = {class = PLAYER, repeatS = 86400}, -- voice input in another language that nothing on this setup recognises (Mistral transcription refused or not used, no multilingual pack): once per game session
     ['mic-heard'] = {class = PLAYER},
+    ['mic-cue'] = {class = PLAYER},                    -- the talk key pressed with the microphone cold: "Opening microphone…", then "Speak now" in place, gone after 1.5 s or at the key release (mod/microphone.lua)
     -- Voices and companion actions
     ['voice-fallback'] = {class = PLAYER, repeatS = 600},
     ['action-rejected'] = {class = PLAYER, repeatS = 15},
@@ -308,6 +309,29 @@ end
 function M.mute(on)
     M.muted = math.max(0, (M.muted or 0) + (on and 1 or -1))
 end
+
+-- The talk key's cue (mod/microphone.lua): one short notice held on the warning line, changed in place by the next cue text (the same instant line, no
+-- intro, no blink) and taken down by cueEnd. It is not the loading notice's held line: that board takes down any held notice when nothing is loading.
+local cueShown
+function M.cue(player, id, text)
+    if not player or not M.permit(id, text) then return false end
+    local ok, mode = pcall(M.screen.post, player, text, true)
+    if not ok or not mode then return false end
+    local now = M.clock()
+    cueShown = {text = text, at = now, mode = mode}
+    M.lastSentAt, M.lastSentWait = now, nil
+    return true
+end
+
+-- Takes the cue down, unless another notice has replaced it since (never hide someone else's).
+function M.cueEnd(player)
+    local was = cueShown
+    cueShown = nil
+    if not was or was.mode ~= 'native' or M.lastSentAt > was.at then return false end
+    pcall(M.screen.clear, player)
+    return true
+end
+function M.cueActive() return cueShown ~= nil end
 
 -- One notice. Returns true when it was shown.
 function M.send(player, id, text)

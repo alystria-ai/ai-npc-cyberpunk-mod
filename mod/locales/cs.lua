@@ -1246,4 +1246,6 @@ return {
     ["Voice activation could not open the microphone. Check your Windows input device."] = "Hlasová aktivace nemohla otevřít mikrofon. Zkontroluj vstupní zařízení ve Windows.",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "Hlasový vstup se nepodařilo spojit s Convai. Podrž znovu hlasovou klávesu, nebo napiš.",
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "Mluv bez držení klávesy. Když stojíš tváří k postavě nebo je poblíž společník, mod poslouchá a odpoví, když na asi sekundu zmlkneš.\n\nNikdy během vlastních scén hry, výběru dialogových možností ani když postava mluví. Z tvého PC nic neodchází, dokud se neozve řeč. Nejlépe fungují sluchátka, ale mikrofon Bluetooth sluchátek přepne na kvalitu hovoru, dokud tohle poslouchá.",
+    ["Opening microphone…"] = "Otevírám mikrofon…",
+    ["Speak now"] = "Mluv teď",
 }

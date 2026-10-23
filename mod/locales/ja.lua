@@ -1246,4 +1246,6 @@ return {
     ["Voice activation could not open the microphone. Check your Windows input device."] = "音声起動でマイクを開けませんでした。Windowsの入力デバイスを確認してください。",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "音声入力は Convai に接続できませんでした。音声キーをもう一度押し続けるか、入力してください。",
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "キーを押し続けなくても話せます。キャラクターの方を向いているとき、またはコンパニオンが近くにいるとき、MODは声を聞き、約1秒の間を置くと応答します。\n\nゲーム自身のシーンや選択肢の最中、キャラクターが話している間は聞き取りません。音声が検出されるまでPCから何も送信されません。ヘッドホン推奨。Bluetoothヘッドセットのマイクは聞き取り中、通話品質になります。",
+    ["Opening microphone…"] = "マイクを開いています…",
+    ["Speak now"] = "今話してください",
 }

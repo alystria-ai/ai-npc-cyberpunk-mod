@@ -1246,4 +1246,6 @@ return {
     ["Voice activation could not open the microphone. Check your Windows input device."] = "Голосовій активації не вдалося відкрити мікрофон. Перевір пристрій введення в Windows.",
     ["Voice input could not reach Convai. Hold the voice key again, or type."] = "Голосовий ввід не зміг з’єднатися з Convai. Утримуй клавішу голосу ще раз або введи текст.",
     ["Talk without a key. While you face a character or a companion is near, the mod listens and answers when you pause for about a second.\n\nNever during the game’s own scenes or choices, or while a character speaks. Nothing leaves your PC unless speech is heard. Headphones work best, but a Bluetooth headset’s microphone drops it to call quality while this listens."] = "Говори, не утримуючи клавішу. Коли ти дивишся на персонажа або поруч супутник, мод слухає і відповідає, коли ти робиш паузу приблизно на секунду.\n\nНіколи під час власних сцен і вибору реплік або поки говорить персонаж. Нічого не виходить із твого ПК, доки не почуто мовлення. Найкраще навушники; мікрофон Bluetooth-гарнітури переводить їх у режим дзвінка під час прослуховування.",
+    ["Opening microphone…"] = "Відкриття мікрофона…",
+    ["Speak now"] = "Говори зараз",
 }
