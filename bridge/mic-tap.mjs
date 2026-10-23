@@ -24,7 +24,7 @@ export const TAP = Object.freeze({
   speechTailMs: 300,      // ... and, when the kept audio holds no speech yet, only its newest this much
   unclaimedMs: 20_000,    // a turn's tap that no channel attached to is released
   heldGraceMs: 2_500,     // a key let go whose turn never began (no target, no service) releases the tap after this
-  idleCloseMs: 90_000,    // the capture page is closed this long after the last recording
+  idleCloseMs: 600_000,   // the capture page (a small blank renderer) is closed this long after the last recording; a new one costs about half a second, which the first word of the next press would pay
   prerollMs: 300,         // a voice-activation turn starts this long before the detected onset
 });
 
@@ -294,5 +294,6 @@ export class TapCapture {
   }
   async end() { await this.tap.stop(this.owner); }
   async abort() { await this.tap.release(this.owner, 'channel closed'); }
-  close() { return this.tap.closeIfIdle(); }
+  // The recogniser's own idle release must not close the page: the tap keeps it warm for the next key press (and closes it itself, idleCloseMs).
+  close() { return Promise.resolve(); }
 }

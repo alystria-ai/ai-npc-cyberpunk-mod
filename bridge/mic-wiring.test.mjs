@@ -26,6 +26,7 @@ test('the local recogniser, Mistral transcription and Convai\'s page all take th
   assert.match(bridge, /capture: new TapCapture\(\{tap: micTap\}\)/);
   assert.match(bridge, /realtime\.micTap = micTap;/);
   assert.match(bridge, /realtime\.onClosed = \(\) => \{ void micTap\.release\(undefined, 'the voice browser closed'\); \};/);
+  assert.match(bridge, /realtime\.onStarted = \(\) => \{ void micCapture\.ensurePage\(\)\.catch\(\(\) => \{\}\); \};/);
   assert.match(bridge, /const micCapture = new LocalSttCapture\(\{getBrowser: hostBrowser\(realtime\)\}\);/);
 });
 

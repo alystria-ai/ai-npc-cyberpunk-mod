@@ -1059,6 +1059,7 @@ micLive.observed = await readFile(resolve(runtime, 'microphone-live.json'), 'utf
 console.error('[CyberpunkConvai] Microphone: ' + describeThresholds());
 realtime.micTap = micTap;
 realtime.onClosed = () => { void micTap.release(undefined, 'the voice browser closed'); };
+realtime.onStarted = () => { void micCapture.ensurePage().catch(() => {}); };
 const mistralSpeech = createLocalSpeech({
   stt: englishStt,
   capture: new TapCapture({tap: micTap}),

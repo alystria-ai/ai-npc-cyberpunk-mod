@@ -425,6 +425,8 @@ export class RealtimeHost {
         } catch (error) { await page.close().catch(() => {}); throw error; }
       }, dispose: page => this.disposePage(page)});
       if (this.retained) await this.pool.retain(this.keepKeys(), this.retained.options);
+      // The microphone tap's capture page is opened ahead (a blank page, no device): the first key press then pays no page start (bridge/mic-tap.mjs).
+      try { this.onStarted?.(); } catch { /* an observer never breaks the start */ }
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
   /**

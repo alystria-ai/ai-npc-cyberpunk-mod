@@ -48,7 +48,7 @@ the pump; if the relay cannot open, the page falls back to the SDK's own microph
 `CYBERPUNK_CONVAI_MIC_RELAY=0` switches the relay off. The backlog drains before the track is disabled at the release, so the last words reach Convai.
 
 What cannot be recovered: the audio between the physical key press and the device being open (the key-down file write, the file watch
-wake, `getUserMedia`, the AudioContext). The bridge logs "microphone tap open for a turn in N ms" for each press. Voice activation has no such gap
+wake, `getUserMedia`, the AudioContext). Measured with Chromium's fake device in the real capture page: 54 ms from the signal to the open device on a warm page, about 490 ms when the page has to be created first, so the capture page now stays for 10 minutes after the last recording (it used to leave after 90 s), and goes with the hidden browser when that closes. The bridge logs "microphone tap open for a turn in N ms" for each press. Voice activation has no such gap
 (the device is already open). A closed microphone is a closed microphone.
 
 ## Voice activation (Settings > Voices, off by default)
