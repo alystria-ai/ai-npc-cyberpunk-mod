@@ -621,6 +621,10 @@ const providerFailureCode = code => mistral.failureCode(code);
 const turnFailure = (error, input) => {
   const failure = keyFailure(error, input), errorCode = providerFailureCode(failure.errorCode);
   const corrected = errorCode === failure.errorCode ? failure : {...failure, errorCode};
+  // Mistral or Custom is chosen but cannot be used (no key, no address) and Convai answered instead: the failed turn carries that one-time notice
+  // too (the game shows it once per session), so a setting that did not take effect is never silent. An automatic reaction just stops.
+  const fallback = mistral.applied === 'convai' && !input?.reaction ? mistral.fallbackReason : null;
+  if (fallback && !corrected.keyNotice) return {...corrected, keyNotice: fallback};
   // Local AI could not start (or would not start again after it stopped working): the game's sentence says that, and these few words say why
   // (the pack is missing, no graphics card, the model server stopped working), shown after it like a local turn's detail.
   if ((errorCode === 'local-unavailable' || errorCode === 'local-no-memory' || errorCode === 'local-fallback') && !corrected.errorDetail) {
@@ -1632,7 +1636,13 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     return receipt;
   }
 }
-const invitations = new CompanionInvitations({memory: relationshipRoutes.invitationMemory(playerMemory, currentBoundary, () => mistral.active), connections,
+// An invitation follows the provider the player has CHOSEN (mistral.requested), not the one in use (mistral.active): the switch itself waits for
+// an idle boundary (a phone call, a talk, memory saving), and an invitation made in that wait must not ask Convai for memory, a token or a
+// connection (a refused sign-in would fail it). While the switch is pending no connection is opened at all (connectionWanted).
+const invitationTextProvider = () => mistral.requested !== 'convai';
+const invitations = new CompanionInvitations({memory: relationshipRoutes.invitationMemory(playerMemory, currentBoundary, invitationTextProvider), connections,
+  textProvider: invitationTextProvider, connectionWanted: () => !mistral.pending, provider: () => mistral.requested,
+  log: line => console.error('[CyberpunkConvai] ' + line),
   prepareVoice: prepareInvitedVoice,
   voiceCurrent: invitedVoiceCurrent,
   routeCurrent: (profile, guard) => !relationshipRouteReservation && !relationshipRoutePending.size
@@ -3393,6 +3403,8 @@ async function adoptProviderSetting(settings) {
   // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
   if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
   if (!mistral.setPreference(settings.conversationProvider)) return false;
+  // Said once per change, so a setting that did not take effect (Mistral without a key answers with Convai) shows in the log.
+  console.error(`[CyberpunkConvai] Conversation provider setting: ${mistral.preference}${mistral.fallbackReason ? ` (${mistral.fallbackReason === 'mistral-no-key' ? 'no Mistral key is saved' : 'the custom provider has no address or model ID'}, so Convai answers)` : ''}`);
   if (mistral.preference === 'local') prepareLocal();
   // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
   // never applied, or the player changed their mind); when it is answering, applyProviderChoice unloads it at the next idle boundary.

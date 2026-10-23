@@ -391,7 +391,9 @@ test('a bridge failure is worded by its kind: what failed and what to do; an unk
 local reasons = {
     {'voice', 'The voice model did not load. Check the voice in Settings or choose another one, then invite again.'},
     {'memory', 'The memory service did not respond. Check your connection, then invite again.'},
-    {'connection', 'The conversation connection did not open. Check your connection, then invite again.'}}
+    {'connection', 'The conversation connection did not open. Check your connection, then invite again.'},
+    {'signin', 'Convai sign-in is busy right now. Wait a few minutes, then invite again.'},
+    {'daily', 'The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.'}}
 for _, case in ipairs(reasons) do
     assert(queue.invite('judy'))
     local id = queue.list()[1].id

@@ -672,6 +672,8 @@ return {
     ["The voice model did not load. Check the voice in Settings or choose another one, then invite again."] = "音声モデルを読み込めませんでした。設定で音声を確認するか別の音声を選んでから、もう一度招待してください。",
     ["The memory service did not respond. Check your connection, then invite again."] = "記憶サービスが応答しませんでした。接続を確認してから、もう一度招待してください。",
     ["The conversation connection did not open. Check your connection, then invite again."] = "会話接続を開けませんでした。接続を確認してから、もう一度招待してください。",
+    ["Convai sign-in is busy right now. Wait a few minutes, then invite again."] = "Convai のサインインが混み合っています。数分待ってから、もう一度招待してください。",
+    ["The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow."] = "Convai の1日の上限に達しました。設定で別のプロバイダーを選ぶか、明日もう一度招待してください。",
     ["Calls are not available during combat."] = "戦闘中は通話できません。",
     ["Calls are not available right now."] = "現在は通話できません。",
     ["Holocall ended: combat started."] = "ホロコール終了：戦闘が始まりました。",

@@ -116,6 +116,10 @@ local function failureText(kind, fallback)
         return ui.t('The memory service did not respond. Check your connection, then invite again.')
     elseif kind == 'connection' then
         return ui.t('The conversation connection did not open. Check your connection, then invite again.')
+    elseif kind == 'signin' then
+        return ui.t('Convai sign-in is busy right now. Wait a few minutes, then invite again.')
+    elseif kind == 'daily' then
+        return ui.t('The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.')
     end
     return fallback
 end

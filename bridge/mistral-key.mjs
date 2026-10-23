@@ -111,6 +111,12 @@ export class MistralProvider {
     return code;
   }
   get pending() { return this.requested !== this.applied; }
+  /** Why the chosen provider cannot be used and Convai answers instead: 'mistral-no-key', 'custom-no-setup', else null. The game's notice codes. */
+  get fallbackReason() {
+    if (this.preference === 'mistral' && !this.key) return 'mistral-no-key';
+    if (this.preference === 'custom' && !this.custom?.ready) return 'custom-no-setup';
+    return null;
+  }
   /**
    * Neither the setting nor the provider in use is the local AI, so its model server has no job: the bridge unloads it (its graphics memory and RAM
    * go back to the game). False while the local AI answers turns, even when the player has just chosen another provider: the switch waits for an

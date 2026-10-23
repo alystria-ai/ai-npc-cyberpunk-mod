@@ -18,7 +18,10 @@ const ERRORS = Object.freeze({
   guard: 'The player memory changed. Invite the copy again.',
   voice: 'Voice preparation could not become ready. Cancel the invitation or choose another voice provider.',
   connection: 'The companion connection could not become ready. Choose a profile or cancel the invitation.',
-  capacity: 'The party has no free conversation connection.'
+  capacity: 'The party has no free conversation connection.',
+  // Convai's sign-in backend refused or is limiting this installation (bridge/convai-credential.mjs), or its daily allowance is used up.
+  signin: 'Convai sign-in is busy right now. Wait a few minutes, then invite again.',
+  daily: 'The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.'
 });
 // The game turns a failure into its own wording from this kind (mod/manager-party.lua); the English text above stays the
 // fallback for a game that does not know a kind.
@@ -34,7 +37,21 @@ const PREPARATION_CODES = new Set(['CANCELLED', 'TIMEOUT', 'DISABLED', 'NOT_MOD_
   'CHARACTER_MISMATCH', 'INVALID_RESPONSE', 'CONFIGURATION_DRIFT', 'HTTP_ERROR',
   'NETWORK_ERROR', 'RESPONSE_TOO_LARGE', 'ENABLE_UNVERIFIED', 'MEMORY_UNAVAILABLE',
   'STALE_TURN', 'MEMORY_CLEAR_PENDING', 'CLOSED', 'STORAGE_FAILURE', 'REGISTRY_CHANGED',
-  'IDENTITY_CHANGED']);
+  'IDENTITY_CHANGED', 'INVITATION_CONNECTION_REPLACED', 'SIGNIN_RATE', 'SIGNIN_BUSY', 'SIGNIN_PAUSED', 'SIGNIN_DAILY',
+  'SIGNIN_OUTDATED', 'SIGNIN_REFUSED', 'SIGNIN_UNREACHABLE', 'SIGNIN_OTHER', 'CAPACITY', 'GUARD', 'QUOTA_DAILY', 'QUOTA_RATE',
+  'PREPARATION_FAILED']);
+const AUTH_KINDS = new Set(['rate', 'busy', 'paused', 'daily', 'outdated', 'refused', 'unreachable']);
+// A failed Convai sign-in (bridge/convai-credential.mjs unavailableError: "[convai-auth:<kind>]") or the daily allowance
+// ("[convai-quota:daily]") reaches the connection lane as an error. Only the bounded kind is read, never the text.
+export function preparationFailure(error) {
+  const text = typeof error?.message === 'string' ? error.message : '';
+  const auth = typeof error?.authKind === 'string' ? error.authKind : /\[convai-auth:(\w+)\]/.exec(text)?.[1];
+  const quota = error?.name === 'TurnLimitError' ? error.kind : /\[convai-quota:(daily|rate)\]/.exec(text)?.[1];
+  if (auth === 'daily' || quota === 'daily') return {code: auth ? 'SIGNIN_DAILY' : 'QUOTA_DAILY', kind: 'daily'};
+  if (auth) return {code: AUTH_KINDS.has(auth) ? 'SIGNIN_' + auth.toUpperCase() : 'SIGNIN_OTHER', kind: 'signin'};
+  if (quota === 'rate') return {code: 'QUOTA_RATE', kind: null};
+  return {code: PREPARATION_CODES.has(error?.code) ? error.code : 'PREPARATION_FAILED', kind: null};
+}
 
 export function parseCompanionInvitations(value, now = Date.now(), staleMs = 6500) {
   if (!object(value) || value.version !== 1 || !token(value.worldToken) || !integer(value.generation) || value.generation < 1
@@ -58,8 +75,15 @@ export class CompanionInvitations {
   constructor({memory, connections, currentWorld, isKnown, isCurrentGuard = guard => memory.isCurrent(guard),
     prepareVoice = async () => ({provider: 'convai', ready: true}),
     voiceCurrent = () => true, routeCurrent = () => true,
-    publish = async () => {}, now = Date.now, staleMs = 6500, bridgePid = process.pid}) {
-    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, prepareVoice, voiceCurrent, routeCurrent, publish, now, staleMs, bridgePid});
+    publish = async () => {}, now = Date.now, staleMs = 6500, bridgePid = process.pid,
+    // textProvider(): the conversation provider the player has chosen is not Convai (Mistral, Local AI, Custom). It is read when a preparation
+    // starts, so a provider switched in Settings applies to the very next invitation even while the switch itself waits for an idle
+    // boundary. Such an invitation needs no Convai memory and no Convai token. connectionWanted(): false while a provider switch is
+    // still pending, when a connection opened now would be on the provider about to be left; the invitation then needs none.
+    // provider(): the chosen provider's name, for the log line only. log(line): one line for each failed preparation.
+    textProvider = () => false, connectionWanted = () => true, provider = () => 'convai', log = () => {}}) {
+    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, prepareVoice, voiceCurrent, routeCurrent, publish, now, staleMs, bridgePid,
+      textProvider, connectionWanted, provider, log});
     this.rows = new Map(); this.lanes = new Map(); this.retired = new Map();
     this.owner = this.request = null; this.epoch = this.version = 0; this.stopped = false;
     this.reservations = []; this.retention = Promise.resolve(); this.publication = null; this.lastClear = null;
@@ -201,13 +225,31 @@ export class CompanionInvitations {
     void this.syncReservations().catch(() => {});
     this.prepare(lane);
   }
-  fail(lane, error) {
+  flag(read) { try { return read() === true; } catch { return false; } }
+  // The provider facts a lane was prepared for; a change while the invitation still waits to spawn prepares it again.
+  routeFacts() {
+    const text = this.flag(this.textProvider);
+    return {text, connectionless: !this.flag(this.connectionWanted)};
+  }
+  routeChanged(lane) {
+    const facts = this.routeFacts();
+    return facts.text !== lane.textRoute || facts.connectionless !== lane.connectionless;
+  }
+  // One bounded line per failed preparation: the character key (a validated token), the lane, the code and the provider name.
+  report(lane, code) {
+    try {
+      const provider = String(this.provider());
+      this.log(`Invitation preparation failed: character=${lane.profileKey} lane=${lane.stage} code=${code} provider=${/^[a-z]{1,16}$/.test(provider) ? provider : 'unknown'}`);
+    } catch { /* a log line never fails an invitation */ }
+  }
+  fail(lane, error, code = lane.errorCode ?? 'PREPARATION_FAILED') {
     if (this.lanes.get(lane.profileKey) !== lane || lane.controller.signal.aborted) return;
+    lane.errorCode = code; this.report(lane, code);
     lane.state = 'error'; lane.error = error; lane.controller.abort(); this.touch();
     void this.syncReservations().catch(() => {});
   }
   syncReservations() {
-    const desired = [...this.lanes.values()].filter(lane => lane.prepared && lane.state !== 'error' && this.current(lane))
+    const desired = [...this.lanes.values()].filter(lane => lane.prepared && !lane.connectionless && lane.state !== 'error' && this.current(lane))
       .map(lane => lane.profileKey);
     if (JSON.stringify(desired) === JSON.stringify(this.reservations)) return this.retention;
     this.reservations = desired;
@@ -217,7 +259,7 @@ export class CompanionInvitations {
     const captured = [...this.lanes.values()].filter(lane => desired.includes(lane.profileKey));
     this.retention = Promise.resolve(result);
     void this.retention.catch(() => {
-      for (const lane of captured) if (this.current(lane)) this.fail(lane, ERRORS.capacity);
+      for (const lane of captured) if (this.current(lane)) this.fail(lane, ERRORS.capacity, 'CAPACITY');
     });
     return this.retention;
   }
@@ -233,6 +275,8 @@ export class CompanionInvitations {
     if (lane.preparing) return;
     if (this.preparingCount() >= PREPARATION_LIMIT) { lane.queued = true; return; }
     lane.queued = false; lane.stage = 'memory';
+    // The route this preparation is for. The memory facade reads the same provider at its call, right after this line.
+    const facts = this.routeFacts(); lane.textRoute = facts.text; lane.connectionless = facts.connectionless;
     lane.preparing = (async () => {
       try {
         const prepared = await this.memory.prepareCharacter({profileKey: lane.profileKey,
@@ -259,27 +303,43 @@ export class CompanionInvitations {
         // gone away. The memory owner keeps that retirement obligation until
         // a current caller proves disposal. Re-read it here: another caller
         // may already have retired the old scopes after this receipt issued.
-        if (this.memory.connectionRefreshRequired({profileKey: lane.profileKey, guard: lane.guard})
-            || this.connections.needsRetirement(lane.profileKey)) {
+        // A text provider has no Convai pages to retire and no Convai memory to acknowledge (nothing is marked verified for it).
+        if (!lane.textRoute && (this.memory.connectionRefreshRequired({profileKey: lane.profileKey, guard: lane.guard})
+            || this.connections.needsRetirement(lane.profileKey))) {
           await this.connections.retireInvitation(lane.profileKey, {signal: lane.controller.signal});
           if (!this.current(lane)) return;
           await this.memory.acknowledgeConnectionRefresh({profileKey: lane.profileKey, guard: lane.guard});
           if (!this.current(lane)) return;
         }
-        lane.prepared = true; lane.state = 'connecting'; this.touch();
+        lane.prepared = true;
+        if (lane.connectionless) {
+          // Nothing to open: a provider switch is pending (or the chosen provider is a text one), so no Convai token is asked for.
+          lane.state = 'ready'; lane.readyAt ??= this.now(); lane.warmMs ??= this.now() - (lane.voiceReadyAt ?? lane.memoryReadyAt);
+          lane.verifiedAt = this.now(); this.touch();
+          void this.syncReservations().catch(() => {});
+          return;
+        }
+        lane.state = 'connecting'; this.touch();
         await abortable(this.syncReservations(), lane.controller.signal);
         if (this.current(lane)) this.warm(lane);
       } catch (error) {
         if (this.current(lane)) {
-          lane.errorCode = PREPARATION_CODES.has(error?.code) ? error.code : 'PREPARATION_FAILED';
-          this.fail(lane, lane.stage === 'voice' ? ERRORS.voice
-            : lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory);
+          // The provider changed while this preparation ran: it ran for the old one, so it runs again for the new one (once).
+          if (this.routeChanged(lane) && !lane.reran) { lane.rerun = lane.reran = true; return; }
+          const {code, kind} = preparationFailure(error);
+          if (lane.stage === 'voice') this.fail(lane, ERRORS.voice, code);
+          else if (kind) this.fail(lane, ERRORS[kind], code);
+          else this.fail(lane, lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory, code);
         }
-      } finally { lane.preparing = null; this.startQueued(); }
+      } finally {
+        lane.preparing = null;
+        if (lane.rerun) { lane.rerun = false; if (this.current(lane)) this.prepare(lane); }
+        this.startQueued();
+      }
     })();
   }
   warm(lane) {
-    if (!this.current(lane) || !lane.prepared || lane.state === 'error' || lane.warming || lane.probing
+    if (!this.current(lane) || !lane.prepared || lane.connectionless || lane.state === 'error' || lane.warming || lane.probing
         || this.now() < lane.nextWarm) return;
     lane.nextWarm = this.now() + 500;
     lane.warming = (async () => {
@@ -293,7 +353,11 @@ export class CompanionInvitations {
           if (error?.code === 'INVITATION_CONNECTION_REPLACED' || !this.voiceValid(lane)) {
             lane.state = 'connecting'; this.touch();
             if (!this.voiceValid(lane) && this.waitingToSpawn(lane)) this.refreshVoice(lane);
-          } else this.fail(lane, ERRORS.connection);
+          } else {
+            const {code, kind} = preparationFailure(error);
+            lane.stage = 'connection';
+            this.fail(lane, kind ? ERRORS[kind] : ERRORS.connection, code);
+          }
         }
       }
       finally { lane.warming = null; }
@@ -319,6 +383,9 @@ export class CompanionInvitations {
       this.prepare(lane); return;
     }
     if (!['ready', 'connecting'].includes(lane.state)) return;
+    // The chosen provider changed since this lane was prepared and the copy has not spawned: prepare it for the new one.
+    if (lane.prepared && !lane.preparing && this.waitingToSpawn(lane) && this.routeChanged(lane)) { this.refreshVoice(lane); return; }
+    if (lane.connectionless) return;
     // A pending ticket is a promise about preparation before world appearance.
     // Already-spawned copies use bounded lazy reconditioning at speech time;
     // eagerly restoring every evicted active voice would thrash the LRU.

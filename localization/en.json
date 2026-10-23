@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1231,
+    "strings": 1233,
     "dynamicTemplates": 54,
     "contexts": 37
   },
@@ -261,6 +261,7 @@
     "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.": "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
     "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.",
     "Convai paid tier": "Convai paid tier",
+    "Convai sign-in is busy right now. Wait a few minutes, then invite again.": "Convai sign-in is busy right now. Wait a few minutes, then invite again.",
     "Convai voice": "Convai voice",
     "Convai · Cloud voice": "Convai · Cloud voice",
     "Convai: Local AI is not ready": "Convai: Local AI is not ready",
@@ -868,6 +869,7 @@
     "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI": "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI",
     "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.": "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.",
     "The Convai cloud voice cannot use Natural speech, so it was turned off.": "The Convai cloud voice cannot use Natural speech, so it was turned off.",
+    "The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.": "The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.",
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
     "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.": "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.",
@@ -2045,6 +2047,7 @@
       "Convai free tier: {left} of {limit} left today",
       "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
       "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.",
+      "Convai sign-in is busy right now. Wait a few minutes, then invite again.",
       "Convai voice",
       "Convai · Cloud voice",
       "Convai: Local AI is not ready",
@@ -2436,6 +2439,7 @@
       "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI",
       "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.",
       "The Convai cloud voice cannot use Natural speech, so it was turned off.",
+      "The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.",
       "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
       "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
       "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: installed.",
@@ -3891,7 +3895,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:663"
+        "mod/manager-party.lua:667"
       ]
     },
     "Choose an eye contact option.": {
@@ -4272,7 +4276,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:396"
+        "mod/manager-party.lua:400"
       ]
     },
     "Companion preparation is unavailable.": {
@@ -4282,7 +4286,7 @@
       ],
       "references": [
         "mod/companions.lua:419",
-        "mod/manager-party.lua:389"
+        "mod/manager-party.lua:393"
       ]
     },
     "Companion preparation returned an invalid state.": {
@@ -4291,7 +4295,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:393"
+        "mod/manager-party.lua:397"
       ]
     },
     "Companion voices": {
@@ -4484,6 +4488,14 @@
         "mod/manager-ui.lua:930",
         "mod/manager-ui.lua:953",
         "mod/manager-ui.lua:955"
+      ]
+    },
+    "Convai sign-in is busy right now. Wait a few minutes, then invite again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:120"
       ]
     },
     "Convai voice": {
@@ -6239,7 +6251,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:520"
+        "mod/manager-party.lua:524"
       ]
     },
     "Load a save first": {
@@ -7886,7 +7898,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:296"
+        "mod/manager-party.lua:300"
       ]
     },
     "Preparing {name}: waiting for the conversation connection to open…": {
@@ -9165,7 +9177,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:565"
+        "mod/manager-party.lua:569"
       ]
     },
     "Stop trip": {
@@ -9191,7 +9203,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:703"
+        "mod/manager-party.lua:707"
       ]
     },
     "Story characters": {
@@ -9381,7 +9393,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:522"
+        "mod/manager-party.lua:526"
       ]
     },
     "That character was not found.": {
@@ -9433,8 +9445,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:561",
-        "mod/manager-party.lua:592",
+        "mod/manager-party.lua:565",
+        "mod/manager-party.lua:596",
         "mod/manager.lua:1735",
         "mod/manager.lua:1757"
       ]
@@ -9444,7 +9456,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:654"
+        "mod/manager-party.lua:658"
       ]
     },
     "That file is not a recording the voices can read. Use a WAV, MP3, OGG or FLAC file.": {
@@ -9527,6 +9539,14 @@
       ],
       "references": [
         "mod/manager.lua:1197"
+      ]
+    },
+    "The Convai daily limit is used up. Choose another provider in Settings, or invite again tomorrow.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:122"
       ]
     },
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": {
@@ -9706,7 +9726,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:724"
+        "mod/manager-party.lua:728"
       ]
     },
     "The car is now in use. The companion trip was cancelled.": {
@@ -9730,7 +9750,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:759"
+        "mod/manager-party.lua:763"
       ]
     },
     "The character was removed before joining.": {
@@ -9739,8 +9759,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:759",
-        "mod/manager-party.lua:791"
+        "mod/manager-party.lua:763",
+        "mod/manager-party.lua:795"
       ]
     },
     "The clip is mostly silence. Use a clip where somebody is talking most of the time.": {
@@ -10062,7 +10082,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:772",
+        "mod/manager-party.lua:776",
         "mod/manager.lua:1737"
       ]
     },
@@ -10156,7 +10176,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:704"
+        "mod/manager-party.lua:708"
       ]
     },
     "The driving request could not be queued.": {
@@ -10777,7 +10797,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:500"
+        "mod/manager-party.lua:504"
       ]
     },
     "The voice model did not load. Check the voice in Settings or choose another one, then invite again.": {
@@ -10817,7 +10837,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:498"
+        "mod/manager-party.lua:502"
       ]
     },
     "Things they always know": {
@@ -11097,7 +11117,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:702"
+        "mod/manager-party.lua:706"
       ]
     },
     "Trip cancelled.": {
@@ -12218,7 +12238,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:720"
+        "mod/manager-party.lua:724"
       ]
     },
     "Your companion is ready. Get in the passenger seat to start the trip.": {
@@ -12226,7 +12246,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:722"
+        "mod/manager-party.lua:726"
       ]
     },
     "Your companion must step out before taking the driver seat.": {
@@ -12509,7 +12529,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:228"
+        "mod/manager-party.lua:232"
       ]
     },
     "{count} of them can talk.": {
@@ -12591,7 +12611,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:218"
+        "mod/manager-party.lua:222"
       ]
     },
     "{name} (custom · too large)": {
@@ -12665,9 +12685,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:757",
-        "mod/manager-party.lua:793",
-        "mod/manager-party.lua:814"
+        "mod/manager-party.lua:761",
+        "mod/manager-party.lua:797",
+        "mod/manager-party.lua:818"
       ]
     },
     "{name} could not prepare: {reason}": {
@@ -12676,9 +12696,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:550",
-        "mod/manager-party.lua:684",
-        "mod/manager-party.lua:821"
+        "mod/manager-party.lua:554",
+        "mod/manager-party.lua:688",
+        "mod/manager-party.lua:825"
       ]
     },
     "{name} dismissed.": {
@@ -12687,7 +12707,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:775"
+        "mod/manager-party.lua:779"
       ]
     },
     "{name} does not have a conversation profile configured yet.": {
@@ -12818,7 +12838,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:751"
+        "mod/manager-party.lua:755"
       ]
     },
     "{name} joined your party.": {
@@ -12852,7 +12872,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:570"
+        "mod/manager-party.lua:574"
       ]
     },
     "{name} will say one of their game lines when you return to the game.": {
@@ -12860,7 +12880,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:596"
+        "mod/manager-party.lua:600"
       ]
     },
     "{name} will stay in the party.": {
@@ -12869,7 +12889,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:657"
+        "mod/manager-party.lua:661"
       ]
     },
     "{name} · invited copy": {
@@ -12903,7 +12923,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:692"
+        "mod/manager-party.lua:696"
       ]
     },
     "{name}: conversation set to {profile}.": {
@@ -12912,7 +12932,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:691"
+        "mod/manager-party.lua:695"
       ]
     },
     "{name}: dismiss queued.": {
@@ -12929,7 +12949,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:579"
+        "mod/manager-party.lua:583"
       ]
     },
     "{name}: invite queued.": {
@@ -12946,7 +12966,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-party.lua:413"
+        "mod/manager-party.lua:417"
       ]
     },
     "{name}: {reason}": {
@@ -13484,9 +13504,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:757",
-        "mod/manager-party.lua:793",
-        "mod/manager-party.lua:814"
+        "mod/manager-party.lua:761",
+        "mod/manager-party.lua:797",
+        "mod/manager-party.lua:818"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13499,9 +13519,9 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:550",
-        "mod/manager-party.lua:684",
-        "mod/manager-party.lua:821"
+        "mod/manager-party.lua:554",
+        "mod/manager-party.lua:688",
+        "mod/manager-party.lua:825"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13513,7 +13533,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:775"
+        "mod/manager-party.lua:779"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13562,7 +13582,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:751"
+        "mod/manager-party.lua:755"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13598,7 +13618,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:570"
+        "mod/manager-party.lua:574"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13610,7 +13630,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:657"
+        "mod/manager-party.lua:661"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13647,7 +13667,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:692"
+        "mod/manager-party.lua:696"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13660,7 +13680,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:691"
+        "mod/manager-party.lua:695"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13684,7 +13704,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:579"
+        "mod/manager-party.lua:583"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -13708,7 +13728,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/manager-party.lua:413"
+        "mod/manager-party.lua:417"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     }

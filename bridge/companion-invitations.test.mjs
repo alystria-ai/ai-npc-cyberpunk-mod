@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {CompanionInvitations, parseCompanionInvitations, PREPARATION_LIMIT} from './companion-invitations.mjs';
+import {CompanionInvitations, parseCompanionInvitations, preparationFailure, PREPARATION_LIMIT} from './companion-invitations.mjs';
 import {PartyConnections, CONNECTION_LIMIT} from './party-connections.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {abortable, transportKey} from './transport-pool.mjs';
@@ -22,7 +22,7 @@ async function until(predicate) {
   while (!predicate()) { if (Date.now() > deadline) throw Error('Expected event was not reached'); await flush(); }
 }
 
-function fixture(t, {memory: actualMemory, prepareVoice, voiceCurrent} = {}) {
+function fixture(t, {memory: actualMemory, prepareVoice, voiceCurrent, options = {}} = {}) {
   let time = 100000, world = {worldToken: 'world-1', generation: 1}, allowed = true;
   const memoryCalls = [], warmCalls = [], refreshes = [], retentions = [], publications = [], acknowledgements = [], live = new Map();
   const memoryGates = new Map(), warmGates = new Map(), epochs = new Map();
@@ -97,7 +97,7 @@ function fixture(t, {memory: actualMemory, prepareVoice, voiceCurrent} = {}) {
     isKnown: key => Object.hasOwn(ids, key), canWarm: () => allowed});
   const invitations = new CompanionInvitations({memory, connections, now: () => time, currentWorld: () => world,
     ...(prepareVoice ? {prepareVoice} : {}),
-    ...(voiceCurrent ? {voiceCurrent} : {}),
+    ...(voiceCurrent ? {voiceCurrent} : {}), ...options,
     isKnown: key => Object.hasOwn(ids, key), publish: async (value, options) => {
       assert.equal(options.isCurrentSync(), true); publications.push(value); return true;
     }});
@@ -635,4 +635,98 @@ test('a failed state-file write never rejects the poll, keeps stage progress and
   f.invitations.publish = async (value, options) => { writes.push(value); return options.isCurrentSync(); };
   await f.invitations.poll();
   assert.equal(writes.at(-1).invitations.length, 0);
+});
+
+// ---- Provider-aware preparation (2026-10-23): a text provider needs no Convai memory, token or connection ----
+const signInRefused = (kind = 'rate') => Object.assign(Error(`Convai sign-in is rate limited by the sign-in backend [convai-auth:${kind}]`), {authKind: kind});
+
+test('preparationFailure reads only bounded kinds: sign-in refusals, the daily allowance, or a whitelisted code', () => {
+  assert.deepEqual(preparationFailure(signInRefused('rate')), {code: 'SIGNIN_RATE', kind: 'signin'});
+  assert.deepEqual(preparationFailure(Error('Convai sign-in is unavailable (busy) [convai-auth:busy]')), {code: 'SIGNIN_BUSY', kind: 'signin'});
+  assert.deepEqual(preparationFailure(Error('x [convai-auth:weirdnewkind]')), {code: 'SIGNIN_OTHER', kind: 'signin'});
+  assert.deepEqual(preparationFailure(Error('Daily conversation limit reached [convai-quota:daily]')), {code: 'QUOTA_DAILY', kind: 'daily'});
+  assert.deepEqual(preparationFailure(Error('Conversation turns are coming too quickly [convai-quota:rate]')), {code: 'QUOTA_RATE', kind: null});
+  assert.deepEqual(preparationFailure(Object.assign(Error('char-1234-secret session abc'), {code: 'NETWORK_ERROR'})), {code: 'NETWORK_ERROR', kind: null});
+  assert.deepEqual(preparationFailure(Object.assign(Error('whatever'), {code: 'SOME_PROVIDER_STRING_WITH_ids_9f3'})), {code: 'PREPARATION_FAILED', kind: null});
+});
+
+test('a refused or rate-limited Convai sign-in fails the connection lane with its own kind, not "check your connection", and logs one bounded line', async t => {
+  const logs = [];
+  const f = fixture(t, {options: {log: line => logs.push(line), provider: () => 'convai'}});
+  f.host.warm = async () => { throw signInRefused('rate'); };
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'error');
+  const row = f.invitations.snapshot().invitations[0];
+  assert.equal(row.errorKind, 'signin'); assert.match(row.error, /^Convai sign-in is busy right now\. Wait a few minutes/);
+  assert.equal(row.errorCode, 'SIGNIN_RATE'); assert.equal(row.errorStage, 'connection');
+  assert.deepEqual(logs, ['Invitation preparation failed: character=judy lane=connection code=SIGNIN_RATE provider=convai']);
+  // The daily allowance has its own kind and sentence.
+  const daily = fixture(t);
+  daily.host.warm = async () => { throw Object.assign(Error('Daily conversation limit reached [convai-quota:daily]'), {name: 'TurnLimitError', kind: 'daily'}); };
+  daily.ingest([ticket()]); await until(() => daily.invitations.snapshot().invitations[0].state === 'error');
+  assert.equal(daily.invitations.snapshot().invitations[0].errorKind, 'daily');
+  // An ordinary connection failure keeps the connection kind.
+  const plain = fixture(t);
+  plain.host.warm = async () => { throw Error('page crashed'); };
+  plain.ingest([ticket()]); await until(() => plain.invitations.snapshot().invitations[0].state === 'error');
+  assert.equal(plain.invitations.snapshot().invitations[0].errorKind, 'connection');
+});
+
+test('every failed lane logs the character, lane, bounded code and provider; provider text never reaches the line', async t => {
+  const logs = [];
+  const f = fixture(t, {options: {log: line => logs.push(line), provider: () => 'mistral'}});
+  f.memory.prepareCharacter = async () => { throw Object.assign(Error('offline owned-judy private-session'), {code: 'NETWORK_ERROR'}); };
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'error');
+  assert.deepEqual(logs, ['Invitation preparation failed: character=judy lane=memory code=NETWORK_ERROR provider=mistral']);
+  logs.length = 0;
+  const voice = fixture(t, {prepareVoice: async () => null, options: {log: line => logs.push(line), provider: () => 'Bad Provider!'}});
+  voice.ingest([ticket()]); await until(() => voice.invitations.snapshot().invitations[0].state === 'error');
+  assert.deepEqual(logs, ['Invitation preparation failed: character=judy lane=voice code=PREPARATION_FAILED provider=unknown']);
+});
+
+test('a chosen text provider needs no Convai memory acknowledgement, connection, token or reservation, even with a pending switch', async t => {
+  const logs = [];
+  const f = fixture(t, {options: {textProvider: () => true, connectionWanted: () => false, log: line => logs.push(line)}});
+  f.host.warm = async () => { throw signInRefused('rate'); };
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(f.warmCalls.length, 0, 'no Convai page was opened'); assert.equal(f.acknowledgements.length, 0);
+  assert.equal(f.refreshes.length, 0); assert.deepEqual(f.connections.invitations, []);
+  assert.deepEqual(logs, []);
+  // Polling and probing keep it ready without touching the connection layer.
+  await f.poll(1000); await f.poll(1000);
+  assert.equal(f.invitations.snapshot().invitations[0].state, 'ready'); assert.equal(f.warmCalls.length, 0);
+});
+
+test('a provider switched while an invitation waits re-prepares it for the new provider; a cached sign-in failure does not keep the old route', async t => {
+  let text = false;
+  const f = fixture(t, {options: {textProvider: () => text, connectionWanted: () => !text}});
+  f.host.warm = async () => { throw signInRefused('rate'); };
+  f.ingest([ticket('queued:1')]); await until(() => f.invitations.snapshot().invitations[0].state === 'error');
+  assert.equal(f.invitations.snapshot().invitations[0].errorKind, 'signin');
+  // The player switches to Mistral and invites again (a new reservation): it is prepared on the new route and is ready.
+  text = true;
+  f.ingest([ticket('queued:2', 'judy', {revision: 2})]);
+  await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(f.invitations.snapshot().invitations[0].id, 'queued:2');
+  // A lane prepared on Convai that has not spawned yet follows a switch made after it became ready.
+  let later = false;
+  const g = fixture(t, {options: {textProvider: () => later, connectionWanted: () => !later}});
+  g.ingest([ticket('queued:1')]); await until(() => g.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(g.warmCalls.length, 1); assert.deepEqual(g.connections.invitations, ['judy']);
+  later = true;
+  await g.poll(1000);
+  await until(() => g.invitations.lanes.get('judy')?.connectionless === true && g.invitations.snapshot().invitations[0].state === 'ready');
+  assert.deepEqual(g.connections.invitations, [], 'the Convai reservation was released');
+  assert.equal(g.invitations.lanes.get('judy').textRoute, true);
+});
+
+test('a provider switch during memory preparation re-runs it once for the new provider instead of failing', async t => {
+  let text = false, attempts = 0;
+  const f = fixture(t, {options: {textProvider: () => text, connectionWanted: () => !text}});
+  f.memory.prepareCharacter = async input => {
+    attempts++;
+    if (attempts === 1) { text = true; throw Object.assign(Error('Convai refused'), {code: 'NETWORK_ERROR'}); }
+    return {endUserId: input.guard.endUserId, guard: input.guard, memoryEnabled: true};
+  };
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(attempts, 2); assert.equal(f.warmCalls.length, 0);
 });

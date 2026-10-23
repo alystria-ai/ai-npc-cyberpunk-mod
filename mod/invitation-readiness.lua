@@ -8,7 +8,7 @@ local RECEIPT_AGE, SERVICE_TIMEOUT = 2500, 60000
 -- What the bridge says a memory-state invitation is waiting for (companion-invitations.mjs snapshot `stage`), and the
 -- failure kinds the game words itself (manager-party.lua). Anything else is ignored.
 local WAIT_STAGES = {queued = true, memory = true, voice = true, connection = true}
-local ERROR_KINDS = {voice = true, memory = true, connection = true, capacity = true}
+local ERROR_KINDS = {voice = true, memory = true, connection = true, capacity = true, signin = true, daily = true}
 -- A receipt row is a few hundred bytes. The allowance for a receipt file grows with the reservations
 -- in flight, so a larger party is never rejected for its size.
 local RECEIPT_BYTES_BASE, RECEIPT_BYTES_PER_ROW = 64 * 1024, 1024
