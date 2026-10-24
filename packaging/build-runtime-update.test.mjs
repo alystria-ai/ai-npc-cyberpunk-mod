@@ -50,7 +50,7 @@ function fixture(directory) {
     [`${PLUGIN}/voices/pack-owned.wav`]: 'pack file',
     [`${PLUGIN}/voices/empty.txt`]: '',
     [`${PLUGIN}/launcher.ini`]: 'ini',
-    [RELEASE_ENTRY]: release('0.2.2'),
+    [RELEASE_ENTRY]: release('0.2.2', {game: '2.5'}),
     [BASE_ENTRY]: baseText('0.2.2'),
     'archive/pc/mod/convai_old.archive': 'archive v1',
     'r6/audioware/CyberpunkConvai/reply-0.wav': 'reply',
@@ -61,7 +61,7 @@ function fixture(directory) {
     [`${APP}/bridge/new-module.mjs`]: 'new module',
     [`${APP}/launcher/apply-removals.mjs`]: 'step',
     [`${PLUGIN}/voices/renamed-to.wav`]: 'clip',
-    [RELEASE_ENTRY]: release('0.2.3'),
+    [RELEASE_ENTRY]: release('0.2.3', {game: '2.5'}),
     [BASE_ENTRY]: baseText('0.2.3'),
     [REMOVALS_ENTRY]: removalListText('0.2.3', [`${PLUGIN}/voices/declared-gone.wav`]),
   };
@@ -284,6 +284,7 @@ test('a switch update takes a Runtime of one game to the next version of the oth
     const {old, next} = fixture(dir);
     const dll = 'red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll';
     old[dll] = 'native for 2.31';
+    old[RELEASE_ENTRY] = release('0.2.2'); // no "game" field: a Runtime from before there was a build per game is a 2.31 one, whatever the default is now
     next[dll] = 'native for 2.5';
     next[RELEASE_ENTRY] = release('0.2.3', {game: '2.5'});
     const oldZip = await makeZip(join(dir, 'old.zip'), old), newZip = await makeZip(join(dir, 'new.zip'), next);
@@ -293,8 +294,8 @@ test('a switch update takes a Runtime of one game to the next version of the oth
     const summary = await buildRuntimeUpdate({oldZips: [oldZip], newZips: [newZip], out: join(dir, 'out'), listing: packListing, switchGame: true, log: quiet});
     assert.equal(summary.game, '2.5');
     assert.equal(summary.switchedFrom, '2.31');
-    assert.deepEqual((await readdir(join(dir, 'out'))).sort(), ['Runtime-Update-0.2.2-to-0.2.3-for-2.5.files.json', 'Runtime-Update-0.2.2-to-0.2.3-for-2.5.zip']);
-    const held = await entriesOf(join(dir, 'out', 'Runtime-Update-0.2.2-to-0.2.3-for-2.5.zip'));
+    assert.deepEqual((await readdir(join(dir, 'out'))).sort(), ['Runtime-Update-0.2.2-to-0.2.3.files.json', 'Runtime-Update-0.2.2-to-0.2.3.zip']);
+    const held = await entriesOf(join(dir, 'out', 'Runtime-Update-0.2.2-to-0.2.3.zip'));
     assert.equal(held[dll], 'native for 2.5');
     assert.equal(JSON.parse(held[RELEASE_ENTRY]).game, '2.5');
     assert.deepEqual(JSON.parse(held[STEP_ENTRY]), {from: '0.2.2', to: '0.2.3'});

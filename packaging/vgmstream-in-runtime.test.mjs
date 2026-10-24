@@ -154,7 +154,7 @@ test('addRuntimeVgmstream packs the pinned files and stops on a missing or chang
 test('a Runtime update from a Runtime without vgmstream delivers the 11 files and the licences, and never lists them for removal', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'vgmstream update test '));
   try {
-    const stamp = version => JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version, commit: `c-${version}`});
+    const stamp = version => JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version, game: '2.5', commit: `c-${version}`});
     const makeZip = async (path, files) => { const writer = await ZipWriter.create(path); for (const name of Object.keys(files).sort()) await writer.add(name, {buffer: Buffer.from(files[name])}); await writer.close(); return path; };
     const shipped = Object.fromEntries([...EXPECTED.map(name => `${APP}/vgmstream/${name}`), `${APP}/licenses/vgmstream/COPYING`, `${APP}/licenses/vgmstream/NOTICE-bundled-libraries.txt`].map(name => [name, `bytes of ${name}`]));
     const old = {[`${APP}/bridge/convai-bridge.mjs`]: 'bridge v1', [RELEASE_ENTRY]: stamp('0.2.7')};

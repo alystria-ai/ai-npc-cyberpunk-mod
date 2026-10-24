@@ -4,7 +4,7 @@ param(
     [switch]$LuaOnly,
     # The game version the install is for: 2.5 lays the files of packaging/game-variants/2.5/ over the project's (docs/GAME_VERSIONS.md).
     [ValidateSet('2.31', '2.5')]
-    [string]$GameVersion = '2.31'
+    [string]$GameVersion = '2.5'
 )
 
 $ErrorActionPreference = 'Stop'

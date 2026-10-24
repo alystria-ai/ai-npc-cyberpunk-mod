@@ -68,7 +68,7 @@ async function makeZip(path, files) {
 test('the update zip from a Runtime without the engine delivers it (and a pack\'s copy is neither in the update nor in its removal list)', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'engine update test '));
   try {
-    const stamp = version => JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version, commit: `c-${version}`});
+    const stamp = version => JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version, game: '2.5', commit: `c-${version}`});
     const engine = Object.fromEntries([...ENGINE_FILES, 'llama-fit-params.exe', 'llama-fit-params-impl.dll', 'LICENSE-LLVM-OpenMP'].map(name => [`${APP}/${RUNTIME_ENGINE_FOLDER}/${name}`, `bytes of ${name}`]));
     const old = {[`${APP}/bridge/convai-bridge.mjs`]: 'bridge v1', [RELEASE_ENTRY]: stamp('0.2.6')};
     const next = {...old, ...engine, [`${APP}/licenses/llama.cpp-MIT.txt`]: 'MIT', [`${APP}/bridge/convai-bridge.mjs`]: 'bridge v2', [RELEASE_ENTRY]: stamp('0.2.7'),

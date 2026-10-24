@@ -35,10 +35,10 @@
 //   --auth-secret-env NAME  the environment variable that holds the backend's client request secret (default CONVAI_AUTH_CLIENT_SECRET; at least
 //                      32 characters, never printed). The Runtime ships NO Convai key: it carries these two as app/defaults/convai-auth.json,
 //                      and a build of it without both fails (a --dry-run may leave them out). --key-env and --key-file are refused.
-//   --game 2.31|2.5    the game version this build is for (default 2.31; packaging/game-variants.json, docs/GAME_VERSIONS.md). The Scripts and
-//                      Runtime of a variant carry a suffix in their file names (-for-2.5), a "game" field in both release.json files, the native
+//   --game 2.5|2.31    the game version this build is for (default 2.5, the current game, 2.31 is the older option; packaging/game-variants.json, docs/GAME_VERSIONS.md). The Scripts and
+//                      Runtime of a variant carry a suffix in their file names (-for-2.31, none for the default 2.5), a "game" field in both release.json files, the native
 //                      plugin built against that game's RED4ext.SDK, and the files of packaging/game-variants/<game>/ laid over the source's.
-//                      The optional packs are the same for both games, so only scripts and runtime are built for a variant other than 2.31.
+//                      The optional packs are the same for both games, so only scripts and runtime are built for a variant other than 2.5.
 //   --launcher PATH    use a prebuilt launcher DLL instead of compiling native/autostart with MSVC
 //   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
 //   --no-native        leave the native plugin out (the Lua keeps its own path)
@@ -67,7 +67,7 @@ import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mj
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
-import {GAME_VARIANTS, gameOverlay} from './lib/game-variants.mjs';
+import {DEFAULT_GAME, GAME_VARIANTS, gameOverlay} from './lib/game-variants.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
@@ -89,7 +89,7 @@ if (!isReleaseVersion(version)) {
 const dryRun = flag('--dry-run');
 // The game version this build is for (two variants from one source tree, docs/GAME_VERSIONS.md). Everything that differs is in
 // packaging/game-variants.json and the overlay folder packaging/game-variants/<game>/.
-const game = value('--game', '2.31');
+const game = value('--game', DEFAULT_GAME);
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
 // 'mature-lite' and 'mature-standard' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
 // when asked for, never in the default set. 'micpack-european' and 'micpack-asian' are the two voice-input packs (docs/LOCAL_STT.md), opt-in the same way.
@@ -346,7 +346,7 @@ async function scriptsPackage(source, config) {
     if (rel.endsWith('.reds') && !retired.has(rel)) pkg.file(`r6/scripts/CyberpunkConvai/${rel}`, resolve(source.root, 'r6/scripts/CyberpunkConvai', rel));
   }
   // The game variant's own files (packaging/game-variants/<game>/, laid out like the game folder) replace the same-named files above:
-  // for 2.5 only r6/scripts/CyberpunkConvai/GameVariant.reds. A file with no counterpart in the source is refused.
+  // for 2.5 only r6/scripts/CyberpunkConvai/GameVariant.reds (the source tree itself is the 2.31 one, which has no overlay). A file with no counterpart in the source is refused.
   for (const [target, from] of await gameOverlay(source.root, game)) {
     if (!pkg.entries.has(target)) throw Error(`The ${game} overlay file ${target} replaces nothing in the Scripts package.`);
     pkg.entries.set(target, {source: from});

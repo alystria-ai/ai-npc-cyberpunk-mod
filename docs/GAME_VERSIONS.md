@@ -1,16 +1,19 @@
-# One mod, two game versions (2.31 and 2.5)
+# One mod, two game versions (2.5 and 2.31)
 
-The mod is maintained for two Cyberpunk 2077 versions from ONE source tree. A release is built once per game (`--game 2.31` or `--game 2.5`). The two
-builds are separate downloads with different names, so a player cannot mix them without the setup check saying so.
+The mod is maintained for two Cyberpunk 2077 versions from ONE source tree. **Game 2.5 is the default** (the current game, the normal download, no suffix in any
+file name) and **game 2.31 is the older option** for players who stay on it (`-for-2.31` in the file names, its own `game-2.31/` folder on Hugging Face, its own
+optional file on Nexus Mods). A release is built once per game (`--game 2.5`, the default, or `--game 2.31`). The two builds are separate downloads with different
+names, so a player cannot mix them without the setup check saying so. (Until release 0.3.1 was restructured on 2026-10-24 the names were the other way round: 2.31 was the
+unsuffixed default and 2.5 the `-for-2.5` option. The source tree is still the 2.31 one: the 2.5 build lays `packaging/game-variants/2.5/` over it.)
 
-| | 2.31 build | 2.5 build |
+| | 2.5 build (default) | 2.31 build (older game) |
 |---|---|---|
-| Game exe | 3.0.80.51928 | 3.0.88.46235 |
-| Version of the first release | 0.3.1 | 0.3.1 |
-| Native plugin SDK | RED4ext.SDK `ad727771` (WopsS) | RED4ext.SDK `b139fcbd` (KelpHect/RED4ext.SDK-psiberx: official #227 plus the #228 layouts) |
-| Native plugin declares | `RED4EXT_V1_RUNTIME_VERSION_2_31` | `RED4EXT_V1_RUNTIME_VERSION_2_50` |
-| File names | `…-Scripts-<v>.zip`, `Runtime-<v>.zip` | `…-Scripts-<v>-for-2.5.zip`, `Runtime-<v>-for-2.5.zip` |
-| release.json `game` | `2.31` (a release.json without the field is a 2.31 build) | `2.5` |
+| Game exe | 3.0.88.46235 | 3.0.80.51928 |
+| Version of the first release | 0.3.1 | 0.3.1 (0.3.0 and older were 2.31 only) |
+| Native plugin SDK | RED4ext.SDK `b139fcbd` (KelpHect/RED4ext.SDK-psiberx: official #227 plus the #228 layouts) | RED4ext.SDK `ad727771` (WopsS) |
+| Native plugin declares | `RED4EXT_V1_RUNTIME_VERSION_2_50` | `RED4EXT_V1_RUNTIME_VERSION_2_31` |
+| File names | `…-Scripts-<v>.zip`, `Runtime-<v>.zip` | `…-Scripts-<v>-for-2.31.zip`, `Runtime-<v>-for-2.31.zip` |
+| release.json `game` | `2.5` | `2.31` (a release.json without the field is a 2.31 build, `LEGACY_GAME` in `packaging/lib/game-variants.mjs`) |
 
 ## What differs between the builds (and nothing else)
 
@@ -18,7 +21,7 @@ builds are separate downloads with different names, so a player cannot mix them 
    `kGameLabel` change. No source line changed for the 2.5 SDK: the plugin only goes through RTTI, `ExecuteFunction` and the SDK's own types, and it built
    and passed its headless tests against the 2.5 SDK as is. It still needs the in-game check (below).
 2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds three helpers the rest of the scripts call
-   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`). The 2.5 build replaces the file with
+   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`). The source tree holds the 2.31 file, and the 2.5 build (the default) replaces it with
    `packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds`, which differs in ONE function: Codeware 2.31's
    `InputTarget.Key(key, action)` filters by the key's action, 2.5's own `InputTarget.Key(key, <Float>)` has no action parameter, so the 2.5 target
    passes only the key and the three key handlers (Manager, PhoneChat, PhoneContacts) check `evt.GetAction()` themselves (a compare per key event of
@@ -37,33 +40,33 @@ file and are shared.
 ## Building
 
 ```
-node packaging/build-release.mjs --version 0.3.1 --game 2.5 --packages scripts,runtime     (2.5)
-node packaging/build-release.mjs --version 0.3.1 --packages scripts,runtime,omni,...        (2.31, as before)
-python packaging/upload-packs.py --version 0.3.1 --pack runtime --packages DIR --game 2.5   (uploads to game-2.5/Runtime.zip)
-node packaging/build-runtime-update.mjs --old <2.5 Runtime> --new <2.5 Runtime> --out DIR   (-> Runtime-Update-<a>-to-<b>-for-2.5.zip)
-powershell scripts/Build-NativeCore.ps1 -Game 2.5 -SdkDirectory <RED4ext.SDK checkout at b139fcbd>
-powershell scripts/Install-DevelopmentMod.ps1 -GameVersion 2.5 / scripts/Compile-Redscript.ps1 -GameVersion 2.5
+node packaging/build-release.mjs --version 0.3.1 --packages scripts,runtime,omni,...        (2.5, the default)
+node packaging/build-release.mjs --version 0.3.1 --game 2.31 --packages scripts,runtime     (2.31, the older game)
+python packaging/upload-packs.py --version 0.3.1 --pack runtime --packages DIR --game 2.31  (uploads to game-2.31/Runtime.zip, the default goes to Runtime.zip)
+node packaging/build-runtime-update.mjs --old <2.31 Runtime> --new <2.31 Runtime> --out DIR (-> Runtime-Update-<a>-to-<b>-for-2.31.zip, a 2.5 step has no suffix)
+powershell scripts/Build-NativeCore.ps1 -Game 2.5 -SdkDirectory <RED4ext.SDK checkout at b139fcbd>     (the script's own default is still 2.31)
+powershell scripts/Install-DevelopmentMod.ps1 -GameVersion 2.31 / scripts/Compile-Redscript.ps1 -GameVersion 2.31     (both default to 2.5)
 ```
 
-`--game 2.5` builds only `scripts` and `runtime` (the other packs are refused). An update zip is built within one game (two Runtimes of different games are
+`--game 2.31` builds only `scripts` and `runtime` (the other packs are refused). An update zip is built within one game (two Runtimes of different games are
 refused), and the update chains of the two games are independent (`app/defaults/runtime-steps`).
 
-## Names (decided by the owner: one Nexus page, two main files, 0.3.1 for both)
+## Names (decided by the owner on 2026-10-24: game 2.5 is the default, 2.31 the older option, one Nexus page, 0.3.1 for both)
 
-Same version number for both builds (0.3.1 is 0.3.1 for 2.31 and for 2.5), so the packs' "needs the Runtime of 0.2.7 or newer" rules and the step chains
+Same version number for both builds (0.3.1 is 0.3.1 for 2.5 and for 2.31), so the packs' "needs the Runtime of 0.2.7 or newer" rules and the step chains
 keep working.
 
-Hugging Face (`alystria-ai/ai-npc-cyberpunk-mod-packs`): the root stays the 2.31 build; the 2.5 build has its own folder.
+Hugging Face (`alystria-ai/ai-npc-cyberpunk-mod-packs`): the root is the 2.5 build (the default), the older 2.31 build has its own folder.
 ```
-Scripts.zip   Runtime.zip   updates/Runtime-Update-<a>-to-<b>.zip              2.31 (unchanged)
-game-2.5/Scripts.zip   game-2.5/Runtime.zip   game-2.5/updates/Runtime-Update-<a>-to-<b>-for-2.5.zip
+Scripts.zip   Runtime.zip   updates/Runtime-Update-<a>-to-<b>.zip              2.5 (the default). updates/ holds Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip, the switch step
+game-2.31/Scripts.zip   game-2.31/Runtime.zip   game-2.31/updates/Runtime-Update-<a>-to-<b>.zip    2.31: the whole chain 0.2.2 to 0.3.1 as it was published (no suffix),
+                                                                                                   later 2.31 steps are named ...-for-2.31.zip
 local-ai/  mature/  mic/  voice/  multilingual/                                 shared by both
 ```
-Nexus Mods (one page, decided): two Main files, named so the game is the first thing read, `AI NPC Cyberpunk Mod - Scripts - for game 2.31` (the existing zip) and
-`AI NPC Cyberpunk Mod - Scripts - for game 2.5` (`…-Scripts-<v>-for-2.5.zip`), each with its own requirement list in the description.
+Nexus Mods (one page): the Main file is the 2.5 build, `AI NPC Cyberpunk Mod - Scripts` (`Scripts.zip`). The 2.31 build is an Optional file,
+`AI NPC Cyberpunk Mod - Scripts - for game 2.31 (older game version)` (`Scripts-for-game-2.31.zip`), and the description lists the requirements of 2.5 first and those of 2.31 as the alternative.
 
-A player who moves from 2.31 to 2.5 downloads the 2.5 Scripts and Runtime (the 2.5 Runtime is a full zip). A small "switch" zip (the two files that differ)
-is possible later if wanted.
+A player who moves from 2.31 to 2.5 downloads the 2.5 Scripts and Runtime (the 2.5 Runtime is a full zip), or on 0.3.0 applies the one switch zip (below).
 
 ## Wrong build
 
@@ -87,14 +90,14 @@ RED4ext itself differs per game: v1.30.0 for 2.31, master (minimum game 2.50) fo
 
 ## Requirements per game
 
-| | 2.31 build | 2.5 build |
+| | 2.5 build (default) | 2.31 build (older game) |
 |---|---|---|
-| Cyber Engine Tweaks | 1.37.1 | 1.38.0 (official, "Game version 2.5") |
-| RED4ext | 1.30.0 | the build of wopss/RED4ext master 47ac01c ("RED4ext 1.30.0 Master 47ac01c 2.5 Unofficial", Nexus 35697: `bin/x64/winmm.dll`, `red4ext/RED4ext.dll`; its log says `v1.30.0+master.1.47ac01c`). 2.5 support is merged upstream and unreleased (latest official release v1.30.0 of 2026-03-09, for 2.31). The Codeware 2.5 zip holds only the Codeware plugin. |
-| redscript | 0.5.31 | 0.5.32 |
-| Codeware | 1.20.5 | 1.20.6 "2.5 Unofficial" (Nexus 35697) |
-| Native Settings UI | 1.96 | 1.97 |
-| Mod Configuration Menu | 0.10.5 | 0.10.6-hf1 was in the owner's install and loaded on 2.5 (main menu entry, Companion Manager registered); not otherwise tested |
+| Cyber Engine Tweaks | 1.38.0 (official, "Game version 2.5") | 1.37.1 |
+| RED4ext | the build of wopss/RED4ext master 47ac01c ("RED4ext 1.30.0 Master 47ac01c 2.5 Unofficial", Nexus 35697: `bin/x64/winmm.dll`, `red4ext/RED4ext.dll`; its log says `v1.30.0+master.1.47ac01c`). 2.5 support is merged upstream and unreleased (latest official release v1.30.0 of 2026-03-09, for 2.31). The Codeware 2.5 zip holds only the Codeware plugin. | 1.30.0 |
+| redscript | 0.5.32 | 0.5.31 |
+| Codeware | 1.20.6 "2.5 Unofficial" (Nexus 35697) | 1.20.5 |
+| Native Settings UI | 1.97 | 1.96 |
+| Mod Configuration Menu | 0.10.6-hf1 was in the owner's install and loaded on 2.5 (main menu entry, Companion Manager registered); not otherwise tested | 0.10.5 |
 
 2.5 caveats from the modder notes: CET 1.38.0 hangs a NEW game (start the new game without CET, save once, put CET back); the mirror customisation list is empty
 in vanilla 2.5; redscript 0.5.32 needs `GetGameInstance()` passed to 2.5's optional-parameter getters (done in the overlay).
@@ -241,6 +244,6 @@ Built with `%TEMP%/release-u4` as for 0.3.0 (the Runtime is the carried base pat
 * **Switch update (`--switch-game`)**: `node packaging/build-runtime-update.mjs --old <0.3.0 Runtime of game 2.31> --new <0.3.1 Runtime for game 2.5> --out DIR --switch-game` builds
   `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip`: the files that differ between the old 2.31 Runtime and the new 2.5 one (24 files, 1.7 MiB, the 2.5 DLL among them) and the step marker
   `step-0.3.0-to-0.3.1.json`. A player on 0.3.0 for game 2.31 who moved to 2.5 applies it with the 2.5 Scripts instead of downloading the full 2.5 Runtime. Without `--switch-game` an update
-  across games is refused. The zip belongs in `game-2.5/updates/`. Only a step like this one is possible: the chain after it (`0.3.1-to-0.3.2-for-2.5`) is a plain 2.5 step.
-* **Install test**: `node packaging/test-release-install.mjs --packages DIR --version 0.3.1 --game 2.5 [--update-from <0.3.0 Runtime> --update-from-scripts <0.3.0 Scripts>]` expects the `-for-2.5` names and
+  across games is refused. The zip belongs in `updates/` (the 2.5 default's folder). Only a step like this one is possible: the chain after it (`0.3.1-to-0.3.2`, no suffix) is a plain 2.5 step.
+* **Install test**: `node packaging/test-release-install.mjs --packages DIR --version 0.3.1 [--game 2.31] [--update-from <0.3.0 Runtime> --update-from-scripts <0.3.0 Scripts>]` expects the names of the game (`-for-2.31` for 2.31) and
   checks that the Scripts and the Runtime both say the game.

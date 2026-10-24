@@ -3,10 +3,10 @@
 ## 1. Page description (Nexus BBCode)
 
 ```text
-[size=4][b]Two downloads: the Scripts from this page AND the Runtime from Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip]game 2.5[/url]). Pick both for your game version, and keep both on the same mod version.[/b][/size]
+[size=4][b]Two downloads: the Scripts from this page AND the Runtime from [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]Hugging Face[/url]. Keep both on the same mod version.[/b][/size]
 
-[size=4][b]Game version 2.31 or 2.5.[/b][/size]
-This page has two main files, [b]Scripts for game 2.31[/b] and [b]Scripts for game 2.5[/b], both mod version 0.3.1. Take the one for your game, and the Runtime for your game too (the 2.5 Runtime is in the game-2.5 folder on Hugging Face). To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
+[size=4][b]Game version 2.5, or the older 2.31.[/b][/size]
+The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2.5[/b], the current game. Still on the older game [b]2.31[/b]? Take the optional file [b]Scripts - for game 2.31 (older game version)[/b] from this page, and the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip]Runtime for game 2.31[/url] from the game-2.31 folder on Hugging Face. Both are mod version 0.3.1. To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -92,9 +92,10 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 
 [size=4][b]Install[/b][/size]
 [b]Requirements[/b][list]
-[*]Cyberpunk 2077 version 2.31 or 2.5 on Windows 10 or 11 (64-bit). The Scripts and the Runtime must both be the build for your game version.
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], and either [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer or [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] (one of the two is enough, and with both the manager uses Mod Configuration Menu). Versions for game 2.31: Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
-[*][b]Game 2.5 needs other versions:[/b] Cyber Engine Tweaks 1.38.0, redscript 0.5.32, Native Settings UI 1.97, and the unofficial 2.5 builds of RED4ext (1.30.0 Master 47ac01c) and Codeware (1.20.6) from [url=https://www.nexusmods.com/cyberpunk2077/mods/35697]this Nexus page[/url] instead of the official ones. Cyber Engine Tweaks 1.38.0 can hang a NEW game on 2.5: start the new game without it, save once, then put it back.
+[*]Cyberpunk 2077 version 2.5 (or the older 2.31) on Windows 10 or 11 (64-bit). The Scripts and the Runtime must both be the build for your game version.
+[*]These mods from Nexus Mods, installed first. For game 2.5: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url] 1.38.0, [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url] 0.5.32, the unofficial 2.5 builds of RED4ext (1.30.0 Master 47ac01c) and Codeware (1.20.6) from [url=https://www.nexusmods.com/cyberpunk2077/mods/35697]this Nexus page[/url], and either [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer or [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] 1.97 (one of the two is enough, and with both the manager uses Mod Configuration Menu).
+[*][b]Game 2.31 needs other versions:[/b] Cyber Engine Tweaks 1.37.1, redscript 0.5.31, the official [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url] 1.30.0 and [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url] 1.20.5, Mod Configuration Menu 0.10.5 or Native Settings UI 1.96. The unofficial 2.5 builds are not for 2.31.
+[*]Cyber Engine Tweaks 1.38.0 (game 2.5) can hang a NEW game: start the new game without it, save once, then put it back.
 [*]Audioware and TweakXL are no longer needed. Voices play through the mod's own audio, so game patches that break Audioware no longer silence the mod. Having them installed does no harm.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs. The Local AI and Mature packs need the Runtime of version 0.2.7 or newer.
@@ -105,7 +106,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
-[*]Download [b]Scripts 0.3.1[/b] from this page (the file for your game, Vortex or by hand) and the Runtime 0.3.1 from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]game 2.31[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip][b]game 2.5[/b][/url]. Use the same version and the same game for both.
+[*]Download [b]Scripts 0.3.1[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, Vortex or by hand) and the Runtime 0.3.1 from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]Runtime for game 2.5[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip][b]Runtime for game 2.31[/b][/url]. Use the same version and the same game for both.
 [*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
@@ -116,15 +117,15 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]The warning sign in Vortex's Version column only means the mod was added from a file and not downloaded from Nexus. It is harmless.
 [*]Local AI and Mature packs: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
 [*]The OmniVoice pack (Voice models): extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
-[*]Updating: drop the new Scripts zip, then the Runtime update zips one by one, oldest first, onto the Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime and the game 2.5 switch zip work the same way, with the Scripts for game 2.5.
+[*]Updating: drop the new Scripts zip, then the Runtime update zips one by one, oldest first, onto the Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime and the switch zip (for moving from game 2.31 to 2.5) work the same way.
 [*]The mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
 [/list][b]Mod Organizer 2[/b]
 Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
 
-[b]Keep the Scripts and the Runtime together.[/b] Both must be for your game version (2.31 or 2.5) and both on the same mod version (for example both 0.3.1). Settings > Help shows the version of each. Mixing them gives odd errors.
+[b]Keep the Scripts and the Runtime together.[/b] Both must be for your game version (2.5 or 2.31) and both on the same mod version (for example both 0.3.1). Settings > Help shows the version of each. Mixing them gives odd errors.
 
 [b]Updating[/b]
-Updating? Download the new Scripts (the file for your game), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. Moved your game from 2.31 to 2.5? Take the Scripts for game 2.5 and the zips from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5 updates folder[/url], they switch your Runtime to 2.5 too.
+Updating? Download the new Scripts (the main file for game 2.5, or the optional file for 2.31), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates]game 2.31[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. Moved your game from 2.31 to 2.5 and your Runtime is from the last release? Take the main Scripts file and the switch zip from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5 updates folder[/url], it switches your Runtime to 2.5 too.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the Runtime.[list]
@@ -152,8 +153,8 @@ This runs on the mod's own engine, so a Local AI or Mature pack must be installe
 Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 
 [size=4][b]Help and FAQ[/b][/size]
-[b]Is the 2.5 build the same mod?[/b]
-Yes, the same mod from the same source, built once for each game version.
+[b]Is the 2.31 build the same mod?[/b]
+Yes, the same mod from the same source, built once for each game version. Game 2.5 is the normal build, and the 2.31 build is kept for players who stay on the older game.
 
 [b]A new game hangs on game 2.5.[/b]
 That is Cyber Engine Tweaks 1.38.0, not this mod. Start the new game without Cyber Engine Tweaks installed, save once, then install it again.
@@ -208,18 +209,18 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 
 ## 2. File descriptions (the two Scripts uploads)
 
-One main file per game version, the same version number. Each at most 255 characters.
+Game 2.5 is the default and the main file, game 2.31 is an optional file ("Optional files", not "Old versions"), the same version number. Each at most 255 characters.
 
-Scripts for game 2.31 (AI NPC Cyberpunk Mod - Scripts - for game 2.31):
+Scripts (the main file, game 2.5, zip Scripts.zip):
 
 ```text
-Game version 2.31. Get the Runtime from Hugging Face. Controller talk button, V speaks your microphone lines, no local model started for Convai users, clearer setup check.
+Game version 2.5. Get the Runtime from Hugging Face. New: game 2.5 support, relationships and world knowledge included. Also controller talk button, V speaks your microphone lines, steadier hold to talk, clearer setup check.
 ```
 
-Scripts for game 2.5 (AI NPC Cyberpunk Mod - Scripts - for game 2.5):
+Scripts - for game 2.31 (older game version) (optional file, zip Scripts-for-game-2.31.zip):
 
 ```text
-Game version 2.5. Get the Runtime from Hugging Face. New: game 2.5 support. Also controller talk button, V speaks your microphone lines, no local model started for Convai users, clearer setup check.
+Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. Controller talk button, V speaks your microphone lines, steadier hold to talk, OmniVoice starts more reliably, no local model started for Convai users, clearer setup check.
 ```
 
 ## 3. Short summary (brief overview field)

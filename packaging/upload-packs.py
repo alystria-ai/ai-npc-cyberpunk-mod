@@ -10,7 +10,9 @@ commit message), and there are NO checksum files:
     mic/MicPack-European.zip        mic/MicPack-Asian.zip
     voice/OmniPack.zip              (OmniVoice is the only downloadable voice model)
     updates/Runtime-Update-<from>-to-<to>.zip   and   multilingual/Voices-<Language>.zip, PocketTTS-Model-<Language>.zip   (published by their own tools)
-    game-2.5/Scripts.zip   game-2.5/Runtime.zip   game-2.5/updates/Runtime-Update-<from>-to-<to>.zip    (the build for game 2.5, --game 2.5; docs/GAME_VERSIONS.md)
+    game-2.31/Scripts.zip   game-2.31/Runtime.zip   game-2.31/updates/Runtime-Update-<from>-to-<to>-for-2.31.zip    (the build for the older game 2.31, --game 2.31; docs/GAME_VERSIONS.md)
+
+The files at the top (Scripts.zip, Runtime.zip, updates/) are the build for game 2.5, the default game.
 
 The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs; the Scripts are AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip).
 
@@ -49,7 +51,7 @@ LAYOUT = {
 PACKS = tuple(LAYOUT)
 PRODUCT = "AI-NPC-Cyberpunk-Mod"
 # The game versions the mod is built for (packaging/game-variants.json, docs/GAME_VERSIONS.md): the Scripts and Runtime of a game other than
-# the default carry a suffix in the file name of a build and sit in a folder of their own, game-<version>/. The other packs are shared.
+# the default (2.5) carry a suffix in the file name of a build and sit in a folder of their own, game-<version>/. The other packs are shared.
 GAME_VARIANTS = json.loads((Path(__file__).with_name("game-variants.json")).read_text(encoding="utf-8"))["variants"]
 GAME_PACKS = ("scripts", "runtime")
 
@@ -118,16 +120,16 @@ def variant_of(game: str, pack: str) -> dict:
     return variant
 
 
-def built_name(pack: str, version: str, game: str = "2.31") -> str:
+def built_name(pack: str, version: str, game: str = "2.5") -> str:
     """The name of the zip a build writes for the pack (packaging/build-release.mjs)."""
     title = LAYOUT[pack][1]
     name = f"{PRODUCT}-{title}-{version}" if pack == "scripts" else f"{title}-{version}"
     return f"{name}{variant_of(game, pack)['suffix']}.zip"
 
 
-def remote_path(pack: str, game: str = "2.31") -> str:
+def remote_path(pack: str, game: str = "2.5") -> str:
     """Where the pack lives in the repository: <folder>/<title>.zip, no product prefix, no version. The Scripts and Runtime of
-    another game version sit in that game's folder (game-2.5/Runtime.zip)."""
+    another game version sit in that game's folder (game-2.31/Runtime.zip)."""
     folder, title = LAYOUT[pack]
     game_folder = variant_of(game, pack)["hfFolder"]
     if game_folder:
@@ -135,7 +137,7 @@ def remote_path(pack: str, game: str = "2.31") -> str:
     return f"{folder}/{title}.zip" if folder else f"{title}.zip"
 
 
-def plan(version: str, pack: str, packages: Path, game: str = "2.31") -> list[tuple[Path, str]]:
+def plan(version: str, pack: str, packages: Path, game: str = "2.5") -> list[tuple[Path, str]]:
     """The (local file, path in the repository) pair of one pack: its one zip, in the pack's folder. No checksum file goes with it."""
     if pack not in LAYOUT:
         raise SystemExit(f"Unknown pack {pack}; expected one of {', '.join(PACKS)}.")
@@ -189,7 +191,7 @@ def main() -> int:
     parser.add_argument("--version")
     parser.add_argument("--pack", choices=PACKS)
     parser.add_argument("--packages", type=Path, help="folder with the built zip")
-    parser.add_argument("--game", default="2.31", help="the game version a Scripts or Runtime zip is built for (2.5 is uploaded to game-2.5/)")
+    parser.add_argument("--game", default="2.5", help="the game version a Scripts or Runtime zip is built for (2.5 is the default and goes to the top, 2.31 is uploaded to game-2.31/)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.check:

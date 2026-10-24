@@ -30,7 +30,7 @@ function Get-DevelopmentManifest([string]$ProjectDirectory) {
 }
 
 # The source of one manifest file for a game version: the file of packaging/game-variants/<game>/ (laid out like the game folder) when that game's
-# build replaces it (2.5: GameVariant.reds, docs/GAME_VERSIONS.md), else the project's own. 2.31 has no overlay.
+# build replaces it (2.5: GameVariant.reds, docs/GAME_VERSIONS.md), else the project's own. 2.31 (the project's own files) has no overlay.
 function Resolve-DevelopmentSource([string]$ProjectDirectory, $File, [string]$Game) {
     if ($Game -and $Game -ne '2.31') {
         $overlay = Resolve-DevelopmentPath $ProjectDirectory ('packaging/game-variants/' + $Game + '/' + $File.target)
@@ -39,7 +39,7 @@ function Resolve-DevelopmentSource([string]$ProjectDirectory, $File, [string]$Ga
     return (Resolve-DevelopmentPath $ProjectDirectory $File.source)
 }
 
-function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory, [switch]$LuaOnly, [string]$Game = '2.31') {
+function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory, [switch]$LuaOnly, [string]$Game = '2.5') {
     $manifest = Get-DevelopmentManifest $ProjectDirectory
     foreach ($file in $manifest.files) {
         if ($LuaOnly -and [IO.Path]::GetExtension($file.source) -notin @('.lua', '.json')) { continue }
@@ -52,7 +52,7 @@ function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory,
     }
 }
 
-function Copy-DevelopmentNativeStage([string]$ProjectDirectory, [string]$ScriptsDirectory, [string]$Game = '2.31') {
+function Copy-DevelopmentNativeStage([string]$ProjectDirectory, [string]$ScriptsDirectory, [string]$Game = '2.5') {
     $manifest = Get-DevelopmentManifest $ProjectDirectory
     $prefix = 'r6/scripts/CyberpunkConvai/'
     $stage = Resolve-DevelopmentPath $ScriptsDirectory 'CyberpunkConvai'

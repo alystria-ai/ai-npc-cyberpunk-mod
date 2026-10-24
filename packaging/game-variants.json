@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "notes": "The game versions the mod is built for (docs/GAME_VERSIONS.md). One source tree, one build per game: `node packaging/build-release.mjs --game <id>`. A variant's Scripts and Runtime carry its suffix in their file names and a `game` field in both release.json files; the files of packaging/game-variants/<id>/ (laid out like the game folder) replace the same-named files of the Scripts package. The optional packs (Local AI, Mature, microphone, OmniVoice, language packs) hold no game-dependent file and are shared. `requirements` is what the player installs for that game (documentation and the Nexus page; the in-game setup check names the Native Settings UI version from the translated text in mod/setup-check.lua, which carries the same number).",
+  "notes": "The game versions the mod is built for (docs/GAME_VERSIONS.md). Game 2.5 is the default and game 2.31 the older option. One source tree (it is the 2.31 one), one build per game: `node packaging/build-release.mjs --game <id>` (default 2.5). A variant's Scripts and Runtime carry its suffix in their file names and a `game` field in both release.json files; the files of packaging/game-variants/<id>/ (laid out like the game folder) replace the same-named files of the Scripts package. The optional packs (Local AI, Mature, microphone, OmniVoice, language packs) hold no game-dependent file and are shared. `requirements` is what the player installs for that game (documentation and the Nexus page; the in-game setup check names the Native Settings UI version from the translated text in mod/setup-check.lua, which carries the same number).",
   "variants": {
     "2.31": {
       "label": "2.31",
       "exeVersion": "3.0.80.51928",
-      "suffix": "",
-      "hfFolder": "",
+      "suffix": "-for-2.31",
+      "hfFolder": "game-2.31",
       "requirements": {
         "cyberEngineTweaks": "1.37.1 (1.37.0 also supports 2.31)",
         "red4ext": "1.30.0 (official release)",
@@ -19,8 +19,8 @@
     "2.5": {
       "label": "2.5",
       "exeVersion": "3.0.88.46235",
-      "suffix": "-for-2.5",
-      "hfFolder": "game-2.5",
+      "suffix": "",
+      "hfFolder": "",
       "requirements": {
         "cyberEngineTweaks": "1.38.0 (official release, game version 2.5)",
         "red4ext": "wopss/RED4ext master 47ac01c or newer (2.5 support merged, no official release yet)",

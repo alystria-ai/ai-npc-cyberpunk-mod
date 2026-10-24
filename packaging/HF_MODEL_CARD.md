@@ -21,26 +21,26 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 
 | Folder | What is in it |
 |---|---|
-| top of the repository | The two files everyone needs: the Scripts and the Runtime, for **game version 2.31**. |
-| [`game-2.5/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5) | The same two files for **game version 2.5** (`Scripts.zip` and `Runtime.zip`), and the Runtime updates for 2.5 in `game-2.5/updates/`. |
+| top of the repository | The two files everyone needs: the Scripts and the Runtime, for **game version 2.5** (the current game). |
+| [`game-2.31/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31) | The same two files for the **older game version 2.31** (`Scripts.zip` and `Runtime.zip`), and the Runtime updates for 2.31 in `game-2.31/updates/`. Only for players who stay on 2.31. |
 | [`local-ai/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/local-ai) | The Local AI packs, standard and lite. |
 | [`mature/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mature) | The Mature packs, lite and standard (adults only). |
 | [`mic/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/mic) | The microphone packs, European and Asian languages. |
 | [`voice/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/voice) | The OmniVoice pack. |
-| [`updates/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) | The Runtime updates: small zips that bring a Runtime you already have up to date. |
+| [`updates/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) | The Runtime updates for game 2.5: small zips that bring a Runtime you already have up to date. |
 | [`multilingual/`](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual) | The multilingual packs and the PocketTTS models. |
 
 ## Which files do I need?
 
-The mod comes in two builds, one for game version 2.31 and one for game version 2.5. Take the Scripts and the Runtime made for your game, both from the same build. Everything else below is the same for both games.
+The mod comes in two builds, one for game version 2.5 (the current game, and the normal download) and one for the older game version 2.31. Take the Scripts and the Runtime made for your game, both from the same build. Most players need the files at the top of the repository. The files for 2.31 are in `game-2.31/`. To play 2.31 on Steam, right-click the game in your Library, then Properties, Game Versions & Betas, and pick `2_31_old`. Everything else below is the same for both games.
 
 | File | Size | What it is | Need it? |
 |---|---|---|---|
-| `Scripts.zip` | 3 MB | The mod itself, the in-game part, for game 2.31. Also on Nexus Mods. | **Yes** (game 2.31) |
-| `game-2.5/Scripts.zip` | 3 MB | The mod itself for game 2.5. Also on Nexus Mods, as the file for game 2.5. | **Yes** (game 2.5, instead of the one above) |
-| `Runtime.zip` | 1.1 GB | The background service: voices, lip sync, speech recognition, memory, the Local AI engine, and (new in 0.2.8) the decoder that lets V's voice follow a V voice-over mod. | **Yes** (game 2.31) |
-| `game-2.5/Runtime.zip` | 1.1 GB | The same background service built for game 2.5. It differs from the one above only in the native plugin. | **Yes** (game 2.5, instead of the one above) |
-| `updates/` (folder) | 1.7 MB for the newest | The Runtime updates: small zips that bring a Runtime you already have up to date, instead of downloading the full Runtime. Every step is kept, one zip per release, named `Runtime-Update-<from version>-to-<to version>.zip`. Apply the update zips from the [updates folder](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) one by one, starting from your version, each extracted over your Runtime (choose Replace if Windows asks). Files a version no longer needs are removed by the mod at the next start. | Optional: only if you have a Runtime installed |
+| `Scripts.zip` | 3 MB | The mod itself, the in-game part, for game 2.5. Also on Nexus Mods. | **Yes** (game 2.5) |
+| `game-2.31/Scripts.zip` | 3 MB | The mod itself for the older game 2.31. Also on Nexus Mods, as the optional file for game 2.31. | **Yes** (game 2.31, instead of the one above) |
+| `Runtime.zip` | 1.1 GB | The background service: voices, lip sync, speech recognition, memory, the Local AI engine, and (new in 0.2.8) the decoder that lets V's voice follow a V voice-over mod. | **Yes** (game 2.5) |
+| `game-2.31/Runtime.zip` | 1.1 GB | The same background service built for the older game 2.31. It differs from the one above only in the native plugin. | **Yes** (game 2.31, instead of the one above) |
+| `updates/` (folder) | 1.7 MB | The Runtime updates for game 2.5: small zips that bring a Runtime you already have up to date, instead of downloading the full Runtime. Apply the update zips from the [updates folder](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates) one by one, starting from your version, each extracted over your Runtime (choose Replace if Windows asks). Files a version no longer needs are removed by the mod at the next start. For game 2.31 the steps are in `game-2.31/updates/`, every one since 0.2.2, with their own [README](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates). | Optional: only if you have a Runtime installed |
 | `local-ai/LocalAI-Standard.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `local-ai/LocalAI-Lite.zip` | 1.3 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. Needs the Runtime of version 0.2.7 or newer. | Optional |
 | `voice/OmniPack.zip` | 5.3 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |

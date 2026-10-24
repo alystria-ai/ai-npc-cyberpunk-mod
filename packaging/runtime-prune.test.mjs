@@ -97,7 +97,7 @@ test('a Runtime update carries every pruned path in its removal list and the sta
       [`${PY}/${SITE}/sherpa_onnx/lib/onnxruntime.dll`]: 'ort', [`${PY}/${SITE}/sherpa_onnx/lib/sherpa-onnx-c-api.dll`]: 'c api',
       [`${APP}/pocket-tts/LICENSE`]: 'MIT', [`${APP}/pocket-tts/pocket_tts/__init__.py`]: 'pocket', [`${APP}/pocket-tts/pocket_tts/config/english.yaml`]: 'a: 1',
       [`${APP}/node_modules/playwright-core/index.js`]: 'playwright', [`${APP}/bridge/convai-bridge.mjs`]: 'bridge',
-      [RELEASE_ENTRY]: JSON.stringify({package: 'runtime', version: '0.2.8'}), [`${APP}/${STEPS_DIR}/${BASE_FILE}`]: baseText('0.2.8')};
+      [RELEASE_ENTRY]: JSON.stringify({package: 'runtime', version: '0.2.8', game: '2.5'}), [`${APP}/${STEPS_DIR}/${BASE_FILE}`]: baseText('0.2.8')};
     const pruned = {
       [`${PY}/${SITE}/Scripts/onnxruntime.dll`]: 'ort', [`${PY}/${SITE}/Scripts/sherpa-onnx-c-api.dll`]: 'c api', [`${PY}/${SITE}/Scripts/sherpa-onnx-cxx-api.lib`]: 'cxx lib',
       [`${PY}/${SITE}/torch/bin/fbgemm.dll`]: 'fbgemm', [`${PY}/${SITE}/torch/bin/asmjit.dll`]: 'asmjit',
@@ -112,7 +112,7 @@ test('a Runtime update carries every pruned path in its removal list and the sta
       const pocket = name.startsWith(`${APP}/pocket-tts/`) ? name.slice(`${APP}/pocket-tts/`.length) : null;
       const node = /^.*\/node_modules\/(playwright(?:-core)?)\/(.*)$/.exec(name);
       if ((rel && pythonPruned(rel)) || (pocket !== null && !pocketShipped(pocket)) || (node && nodePackagePruned(node[1], node[2]))) continue;
-      next[name] = name === RELEASE_ENTRY ? JSON.stringify({package: 'runtime', version: '0.2.9'}) : name.endsWith(`/${BASE_FILE}`) ? baseText('0.2.9') : text;
+      next[name] = name === RELEASE_ENTRY ? JSON.stringify({package: 'runtime', version: '0.2.9', game: '2.5'}) : name.endsWith(`/${BASE_FILE}`) ? baseText('0.2.9') : text;
     }
     assert.deepEqual(Object.keys(next).filter(name => name in pruned), [], 'every pruned file is out of the new Runtime');
     assert.deepEqual(Object.keys(kept).filter(name => !(name in next)), [], 'no kept file is out of the new Runtime');

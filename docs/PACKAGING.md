@@ -39,8 +39,8 @@ Runtime one.
 
 ## Two game versions
 
-The Scripts and Runtime are built once per game (`--game 2.31`, the default, or `--game 2.5`), from one source tree; the 2.5 build's files carry `-for-2.5`, its
-`release.json` files say `"game": "2.5"`, and it sits in `game-2.5/` on Hugging Face. The optional packs are shared. See `docs/GAME_VERSIONS.md`.
+The Scripts and Runtime are built once per game (`--game 2.5`, the default, or `--game 2.31`, the older game), from one source tree; the 2.31 build's files carry `-for-2.31`, its
+`release.json` files say `"game": "2.31"`, and it sits in `game-2.31/` on Hugging Face (the 2.5 build is at the top). The optional packs are shared. See `docs/GAME_VERSIONS.md`.
 
 ## Version numbers
 

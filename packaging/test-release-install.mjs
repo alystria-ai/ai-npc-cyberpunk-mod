@@ -41,15 +41,15 @@ import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
 
 // The names the build gives its packages (build-release.mjs): the Scripts keep the long name (the file for Nexus Mods), the others have no product prefix.
-// --game 2.5 tests the build for that game: its Scripts and Runtime (and the update zip) carry the variant's suffix (packaging/game-variants.json).
+// --game 2.31 tests the build for that game (default 2.5): its Scripts and Runtime (and the update zip) carry the variant's suffix (packaging/game-variants.json).
 const gameArgument = process.argv.slice(2).indexOf('--game');
-const gameId = gameArgument >= 0 && process.argv.slice(2)[gameArgument + 1] ? process.argv.slice(2)[gameArgument + 1] : '2.31';
+const gameId = gameArgument >= 0 && process.argv.slice(2)[gameArgument + 1] ? process.argv.slice(2)[gameArgument + 1] : DEFAULT_GAME;
 if (!Object.hasOwn(GAME_VARIANTS, gameId)) throw Error(`--game must be one of ${Object.keys(GAME_VARIANTS).join(', ')}, not ${gameId}`);
 const gameSuffix = GAME_VARIANTS[gameId].suffix;
 const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}${gameSuffix}` : id === 'Runtime' ? `Runtime-${version}${gameSuffix}` : `${id}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
-import {GAME_VARIANTS} from './lib/game-variants.mjs';
+import {DEFAULT_GAME, GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
@@ -405,7 +405,7 @@ async function main() {
     // service.txt; a --dry-run build may carry neither.
     const runtimeRelease = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
     const scriptsRelease = JSON.parse(await readFile(join(mod, 'release.json'), 'utf8'));
-    check(`the Scripts and the Runtime are both the build for game ${gameId}`, (scriptsRelease.game ?? '2.31') === gameId && (runtimeRelease.game ?? '2.31') === gameId,
+    check(`the Scripts and the Runtime are both the build for game ${gameId}`, (scriptsRelease.game ?? LEGACY_GAME) === gameId && (runtimeRelease.game ?? LEGACY_GAME) === gameId,
       `Scripts ${scriptsRelease.game ?? '(none)'}, Runtime ${runtimeRelease.game ?? '(none)'}`);
     const signIn = runtimeRelease.convaiSignIn === 'backend';
     check('the Runtime ships no Convai key file (no defaults/service.txt)', !existsSync(join(app, 'defaults/service.txt')) && runtimeRelease.convaiKey === 'none');

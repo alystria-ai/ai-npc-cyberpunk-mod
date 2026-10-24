@@ -6,10 +6,10 @@
 //        [--remove <path>]...                 (a file to remove besides those found by the comparison; relative to the game folder)
 //        [--listing <pack listing json> | --no-listing]
 //        [--switch-game]                      (the old Runtime is for another game than the new one: the zip moves a player from one game's build to the other,
-//                                              named with the new game's suffix. Only meaningful from a Runtime of the same version line, e.g. 0.3.0 (2.31) to 0.3.1 for 2.5.)
+//                                              named with the new game's suffix. Only meaningful from a Runtime of the same version line, e.g. 0.3.0 (2.31) to 0.3.1 for 2.5, or the other way round.)
 //
 // It writes, into the folder:
-//   Runtime-Update-<from>-to-<to>[-for-<game>].zip   (the suffix only for a game other than 2.31: packaging/game-variants.json; both Runtimes must be for the same game unless --switch-game is given)
+//   Runtime-Update-<from>-to-<to>[-for-<game>].zip   (the suffix only for a game other than the default 2.5: packaging/game-variants.json; both Runtimes must be for the same game unless --switch-game is given)
 //                                             every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json, and app/defaults/runtime-steps/step-<from>-to-<to>.json
@@ -35,7 +35,7 @@ import {PLUGIN} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {validateListing} from './lib/pack-overlap.mjs';
 import {STEPS_DIR, stepFileName, stepText} from '../bridge/runtime-steps.mjs';
-import {DEFAULT_GAME, GAME_VARIANTS} from './lib/game-variants.mjs';
+import {GAME_VARIANTS, LEGACY_GAME} from './lib/game-variants.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
@@ -85,12 +85,12 @@ async function releaseVersion(files, label) {
   return release.version;
 }
 
-// The game a Runtime was built for (release.json "game"); a Runtime from before there was a build per game is the default game's.
+// The game a Runtime was built for (release.json "game"); a Runtime from before there was a build per game (no "game" field) is a 2.31 one.
 async function releaseGame(files) {
   const found = files.get(RELEASE_ENTRY.toLowerCase());
-  if (!found) return DEFAULT_GAME;
+  if (!found) return LEGACY_GAME;
   const game = JSON.parse((await readEntry(found.zip, found.entry)).toString('utf8')).game;
-  return typeof game === 'string' && game ? game : DEFAULT_GAME;
+  return typeof game === 'string' && game ? game : LEGACY_GAME;
 }
 
 // The paths of every file the optional packs ship (any case), so that the update never deletes one a pack put there.
@@ -128,7 +128,7 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
   const work = await mkdtemp(join(tmpdir(), 'runtime update '));
   try {
     await mkdir(out, {recursive: true});
-    // The name of a game other than the default carries its suffix (Runtime-Update-0.3.1-to-0.3.2-for-2.5.zip), so the zips cannot be mixed up.
+    // The name of a game other than the default carries its suffix (Runtime-Update-0.3.1-to-0.3.2-for-2.31.zip), so the zips cannot be mixed up.
     const base = `Runtime-Update-${from}-to-${to}${GAME_VARIANTS[game].suffix}`;
     const zipPath = resolve(out, `${base}.zip`), temporary = `${zipPath}.tmp`;
     const writer = await ZipWriter.create(temporary);

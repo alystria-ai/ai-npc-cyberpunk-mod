@@ -3,7 +3,7 @@ param(
     [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
     # The game version the scripts are compiled for (2.5 uses packaging/game-variants/2.5/ over the project's files, docs/GAME_VERSIONS.md).
     [ValidateSet('2.31', '2.5')]
-    [string]$GameVersion = '2.31'
+    [string]$GameVersion = '2.5'
 )
 
 $ErrorActionPreference = 'Stop'

@@ -135,3 +135,35 @@ test('the player texts link the files at their folders and new names, say nothin
   for (const path of ['Scripts.zip', 'Runtime.zip', 'local-ai/', 'mature/', 'mic/', 'voice/', 'updates/', 'multilingual/']) assert(card.includes(path), `the model card lists ${path}`);
   assert.doesNotMatch(card, /Pocket language model/i, 'the Pocket language models are PocketTTS models in the texts players read');
 });
+
+test('game 2.5 is the default and sits at the top of the repository, game 2.31 is the older option in game-2.31/ with -for-2.31 in its file names', {skip: !python && 'no Python'}, async () => {
+  const variants = JSON.parse(await read('packaging/game-variants.json')).variants;
+  assert.deepEqual([variants['2.5'].suffix, variants['2.5'].hfFolder], ['', '']);
+  assert.deepEqual([variants['2.31'].suffix, variants['2.31'].hfFolder], ['-for-2.31', 'game-2.31']);
+  const directory = await mkdtemp(join(tmpdir(), 'hf games '));
+  try {
+    for (const name of ['AI-NPC-Cyberpunk-Mod-Scripts-0.3.1.zip', 'Runtime-0.3.1.zip', 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1-for-2.31.zip', 'Runtime-0.3.1-for-2.31.zip']) await writeFile(join(directory, name), 'x');
+    const plan = (pack, ...game) => py(['packaging/upload-packs.py', '--version', '0.3.1', '--pack', pack, '--packages', directory, '--dry-run', ...game]);
+    for (const [pack, zip, remote] of [['scripts', 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1.zip', 'Scripts.zip'], ['runtime', 'Runtime-0.3.1.zip', 'Runtime.zip']]) {
+      const byDefault = plan(pack), explicit = plan(pack, '--game', '2.5');
+      assert.equal(byDefault.status, 0, byDefault.stderr);
+      assert.equal(byDefault.stdout.trim(), `${join(directory, zip)} -> alystria-ai/ai-npc-cyberpunk-mod-packs/${remote}`);
+      assert.equal(explicit.stdout, byDefault.stdout, 'no --game means 2.5');
+    }
+    const older = plan('runtime', '--game', '2.31');
+    assert.equal(older.status, 0, older.stderr);
+    assert.equal(older.stdout.trim(), `${join(directory, 'Runtime-0.3.1-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/Runtime.zip`);
+    assert.equal(plan('scripts', '--game', '2.31').stdout.trim(), `${join(directory, 'AI-NPC-Cyberpunk-Mod-Scripts-0.3.1-for-2.31.zip')} -> alystria-ai/ai-npc-cyberpunk-mod-packs/game-2.31/Scripts.zip`);
+    assert.notEqual(plan('omni', '--game', '2.31').status, 0, 'a shared pack is never uploaded for a game');
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the model card and both updates READMEs make game 2.5 the default and 2.31 the older option in game-2.31/, with the 2_31_old note, and no text names the game-2.5 folder', async () => {
+  const card = await read('packaging/HF_MODEL_CARD.md');
+  for (const needle of ['game-2.31/Scripts.zip', 'game-2.31/Runtime.zip', '2_31_old', 'older game version 2.31']) assert(card.includes(needle), `the model card has ${needle}`);
+  assert.match(await read('packaging/HF_UPDATES_README.md'), /Runtime-Update-0\.3\.0-to-0\.3\.1-for-2\.5\.zip/);
+  assert.match(await read('packaging/HF_UPDATES_README_2_31.md'), /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip/);
+  for (const rel of ['README.md', 'packaging/PLAYER_README.md', 'packaging/HF_MODEL_CARD.md', 'packaging/HF_UPDATES_README.md', 'packaging/HF_UPDATES_README_2_31.md', 'docs/NEXUS_PAGE.md']) {
+    assert.doesNotMatch(await read(rel), /game-2\.5\//, `${rel}: the game-2.5 folder is gone`);
+  }
+});
