@@ -188,6 +188,65 @@ test('the Companion Manager finds a renamed character by the new and by the old 
   `);
 });
 
+test('summaries: the pack short description replaces the shipped one while the pack is on, the shipped one comes back when it is off, a name-only or old-format file changes nothing', () => {
+  lua(`
+    local function sumRoster()
+      local rows = roster()
+      rows[1].summary = 'Judy Alvarez is a braindance editor.'; rows[2].summary = 'Panam Palmer is a nomad.'
+      return rows
+    end
+    names({{id = 'a-medieval', names = {['judy-alvarez'] = 'Judith'}, summaries = {['judy-alvarez'] = 'Judith keeps the guild.\\n\\nShe edits dreams.', ['npc-maelstrom-male'] = 'A reaver.'}},
+      {id = 'b-saga', summaries = {['judy-alvarez'] = 'Jodis sings the old songs.', ['panam-palmer'] = 7, ['x'] = '   '}}})
+    local cn = dofile('content-names.lua')
+    local rows = sumRoster()
+    local _, changed = cn.applyRows(rows)
+    eq(rows[1].summary, 'Jodis sings the old songs.', 'a later pack wins per key'); eq(rows[1].shippedSummary, 'Judy Alvarez is a braindance editor.')
+    eq(rows[1].name, 'Judith', 'the name still comes from the pack that names her')
+    eq(rows[2].summary, 'Panam Palmer is a nomad.', 'a wrong type and a blank text are ignored'); eq(rows[2].shippedSummary, nil)
+    eq(rows[3].summary, 'A reaver.', 'a row that had no summary gets one'); eq(rows[3].shippedSummary, false)
+    eq(cn.summaryFor('judy-alvarez'), 'Jodis sings the old songs.'); eq(cn.summaryFor('panam-palmer'), nil); eq(cn.summaryFor(nil), nil)
+    local _, again = cn.applyRows(rows); eq(again, 0, 'idempotent'); eq(rows[1].shippedSummary, 'Judy Alvarez is a braindance editor.', 'the shipped text is kept, not the pack text')
+    -- The second pack off: the first one's text (paragraphs stay).
+    switch({['b-saga'] = {contentEnabled = false}}); cn.reset(); rows = sumRoster(); cn.applyRows(rows)
+    eq(rows[1].summary, 'Judith keeps the guild.\\n\\nShe edits dreams.')
+    -- Both off, rows already changed: the shipped text comes back, and the row that had none has none again.
+    local live = rows; live[3].summary, live[3].shippedSummary = 'A reaver.', false
+    switch({['b-saga'] = {contentEnabled = false}, ['a-medieval'] = {contentEnabled = false}}); cn.reset(); cn.applyRows(live)
+    eq(live[1].summary, 'Judy Alvarez is a braindance editor.'); eq(live[1].shippedSummary, nil); eq(live[1].name, 'Judy Alvarez'); eq(live[3].summary, nil); eq(live[3].shippedSummary, nil)
+    -- An older file (names only) leaves every summary alone; so does no add-on module (the pack is on).
+    switch({}); names({{id = 'medieval', names = {['judy-alvarez'] = 'Judith'}}}); cn.reset(); rows = sumRoster(); cn.applyRows(rows)
+    eq(rows[1].summary, 'Judy Alvarez is a braindance editor.'); eq(rows[1].shippedSummary, nil); eq(rows[1].name, 'Judith')
+    -- Control characters are dropped, and a text beyond the cap is ignored.
+    names({{id = 'medieval', summaries = {['judy-alvarez'] = 'Line' .. string.char(1) .. 'one' .. string.char(127), ['panam-palmer'] = string.rep('x', 2001)}}}); cn.reset(); rows = sumRoster(); cn.applyRows(rows)
+    eq(rows[1].summary, 'Line one'); eq(rows[2].summary, 'Panam Palmer is a nomad.')
+  `);
+});
+
+test('the Companion Manager shows the pack summary in the character details, and the shipped one when the pack is off', () => {
+  run(`${managerFixture}
+    local originalDofile = dofile
+    local contentSource = function() ${contentSource}
+    end
+    dofile = function(path) if path == 'content-names.lua' then return contentSource() end return originalDofile(path) end
+    jsonFixtures.names = {version = 1, packs = {{id = 'medieval', names = {['person-3'] = 'Maple Quill'}, summaries = {['person-3'] = 'Maple Quill is a scribe of the old keep.'}}}}
+    files['runtime/content-names.json'] = 'names'
+    local rows = {}
+    for _, profile in ipairs(profiles) do rows[#rows + 1] = profile end
+    assert(rows[5].key == 'person-3' and rows[5].summary == 'A distinct person.')
+    dofile('content-names.lua').applyRows(rows)
+    manager.configure(api, rows); manager.prepare(player)
+    request('tab:characters'); request('search:Maple Quill')
+    assert(#player.rows == 1)
+    assert(player.detail[2]:find('Maple Quill is a scribe of the old keep.', 1, true), 'the pack text: ' .. tostring(player.detail[2]))
+    assert(not player.detail[2]:find('A distinct person.', 1, true), 'not the shipped text')
+    -- Off: the same rows go back to the shipped text.
+    files['runtime/content-names.json'] = nil
+    dofile('content-names.lua').reset(); dofile('content-names.lua').applyRows(rows)
+    request('search:Person 03'); assert(#player.rows == 1)
+    assert(player.detail[2]:find('A distinct person.', 1, true), 'the shipped text: ' .. tostring(player.detail[2]))
+  `);
+});
+
 test('name pools: the last enabled pack that has some replaces the shipped pools; blocked names are folded as the build does', () => {
   lua(`
     local function pool(prefix)

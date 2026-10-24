@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {resolve} from 'node:path';
 import {AddonHost, discoverAddons, validateManifest} from './addons.mjs';
 import {AddonContent, CONTENT_NAMES_FILE, CONTENT_POOLS_FILE, validateContent} from './addon-content.mjs';
-import {DATA_LIMITS, insideFolder, loadContentFiles, poolProblems, validateCharacters, validateConvai, validateNamePools} from './addon-content-data.mjs';
+import {DATA_LIMITS, deriveSummary, insideFolder, loadContentFiles, poolProblems, validateCharacters, validateConvai, validateNamePools} from './addon-content-data.mjs';
 import {PersonaBook, systemHead} from './mistral-prompt.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {RelationshipRouting} from './relationship-routing.mjs';
@@ -63,6 +63,36 @@ test('characters: the three texts and the name are checked with the limits of a 
   // The same through a manifest: inline, and a bad one skips the pack.
   assert.deepEqual(validateManifest(medieval(), dirOf('medieval')).content.characters['npc-ncpd-male'], {backstory: 'A watchman of the city gate, stern and tired, who keeps the peace with a staff and a loud voice.'});
   assert.throws(() => validateManifest(pack('medieval', {characters: {'judy-alvarez': {gender: 'MALE'}}}), dirOf('medieval')), /gender cannot be changed/);
+});
+
+test('summary: an optional pack text with its own cap, kept as given; one is made from the backstory when a pack gives none, and published next to the names', async () => {
+  assert.deepEqual(validateCharacters({'judy-alvarez': {summary: '  Judith,   keeper of the\nDreamweavers.  '}}), {'judy-alvarez': {summary: 'Judith, keeper of the\nDreamweavers.'}}, 'a summary alone changes something');
+  const bad = (value, pattern) => assert.throws(() => validateCharacters(value), pattern);
+  bad({'judy-alvarez': {summary: ' '}}, /summary is empty/);
+  bad({'judy-alvarez': {summary: 5}}, /summary must be a text/);
+  bad({'judy-alvarez': {summary: 's'.repeat(DATA_LIMITS.summary + 1)}}, /summary is longer than 1300/);
+  assert.equal(validateCharacters({'judy-alvarez': {summary: 's'.repeat(DATA_LIMITS.summary)}})['judy-alvarez'].summary.length, DATA_LIMITS.summary);
+  // Derived: the first one or two sentences, without the profile marker and bracketed tags, capped.
+  const text = "I am Aaron of Dogtown, a boxer. Fighting offers a road [fight]. A third sentence stays out.\n\n[CyberpunkConvai profile v2:aaron-waines]";
+  assert.equal(deriveSummary(text), 'I am Aaron of Dogtown, a boxer. Fighting offers a road.');
+  assert.equal(deriveSummary('Dr. Smith went home with Mr. Jones. He slept. And more.'), 'Dr. Smith went home with Mr. Jones. He slept.');
+  assert.equal(deriveSummary('[CyberpunkConvai profile v2:x]'), '');
+  const long = deriveSummary('Word '.repeat(300));
+  assert.ok(Array.from(long).length <= DATA_LIMITS.derivedSummary && long.endsWith('Word...'), long.slice(-20));
+  assert.equal(deriveSummary(`A${'a'.repeat(299)}. B${'b'.repeat(299)}. Tail.`), `A${'a'.repeat(299)}.`, 'the second sentence only while both fit');
+  // Published: the pack's own summary wins over a derived one; a pack with a summary only is listed.
+  const dir = await mkdtemp(resolve(tmpdir(), 'convai-publish-'));
+  try {
+    const own = pack('own', {characters: {'judy-alvarez': {name: 'Judith', summary: 'Judith keeps the guild.', backstory: BACKSTORY}, 'jackie-welles': {name: 'Jack'}}});
+    const only = pack('only', {characters: {'jackie-welles': {summary: 'A knight of the road.'}}});
+    await new AddonContent({host: hostOf(own, only)}).publish(dir);
+    assert.deepEqual(JSON.parse(await readFile(resolve(dir, CONTENT_NAMES_FILE), 'utf8')), {version: 1, packs: [
+      {id: 'only', names: {}, summaries: {'jackie-welles': 'A knight of the road.'}},
+      {id: 'own', names: {'judy-alvarez': 'Judith', 'jackie-welles': 'Jack'}, summaries: {'judy-alvarez': 'Judith keeps the guild.'}}]});
+    // A name-only pack keeps the old file format: no summaries field.
+    await new AddonContent({host: hostOf(pack('names', {characters: {'jackie-welles': {name: 'Jack'}}}))}).publish(dir);
+    assert.deepEqual(JSON.parse(await readFile(resolve(dir, CONTENT_NAMES_FILE), 'utf8')), {version: 1, packs: [{id: 'names', names: {'jackie-welles': 'Jack'}}]});
+  } finally { await rm(dir, {recursive: true, force: true}); }
 });
 
 test('characters in a file: the path stays inside the pack folder, the file is checked whole before anything is used, a bad one skips the pack cleanly', async () => {
@@ -266,7 +296,11 @@ test('the files for the game: new names and name pools of every installed pack, 
     const content = new AddonContent({host});
     await content.publish(dir);
     const names = JSON.parse(await readFile(resolve(dir, CONTENT_NAMES_FILE), 'utf8'));
-    assert.deepEqual(names, {version: 1, packs: [{id: 'medieval', names: {'judy-alvarez': 'Judith of the Dreamweavers'}}]});
+    // The summaries ride along: no pack summary here, so each is made from the pack's backstory (one sentence each).
+    assert.deepEqual(names, {version: 1, packs: [{id: 'medieval', names: {'judy-alvarez': 'Judith of the Dreamweavers'}, summaries: {'judy-alvarez': BACKSTORY,
+      'npc-ncpd-male': 'A watchman of the city gate, stern and tired, who keeps the peace with a staff and a loud voice.',
+      'addon-skippy-gun': 'This line must never be used because add-on speakers are not touched by a pack.',
+      'nobody-here': 'A character that the mod does not have, so this entry is left out and logged once.'}}]});
     const pools = JSON.parse(await readFile(resolve(dir, CONTENT_POOLS_FILE), 'utf8'));
     assert.deepEqual(pools.packs.map(item => item.id), ['pools']);
     assert.equal(pools.packs[0].pools.cultures.latino.male.length, shipped.cultures.latino.male.length);

@@ -1,7 +1,8 @@
 -- Content packs (add-on API 1.1, docs/ADDON_API.md "Content packs"), the game's half of the names: a pack may give a named character a new
 -- name (content.characters[<profile key>].name) and replace the name pools of the nameless pedestrians (content.namePools). The bridge applies
 -- them to its own roster rows (prompt, editor) and publishes two files at its start (bridge/addon-content.mjs publish):
---   runtime/content-names.json       {version = 1, packs = {{id, names = {profileKey = name}}}}   every installed pack that renames
+--   runtime/content-names.json       {version = 1, packs = {{id, names = {profileKey = name}, summaries = {profileKey = text}}}}   every installed pack that
+--                                    renames or rewrites (summaries, optional: the short description the Companion Manager and the details panels show)
 --   runtime/content-name-pools.json  {version = 1, packs = {{id, pools = {cultures, handleStyles, blockedFullNames}}}}
 -- Empty or missing without a pack. This module is the one place the game reads them; the player's switch of each pack is
 -- convaiAddons.contentEnabledFor(id) (mod/addons.lua), on by default, so only an enabled pack applies and a later pack wins per key.
@@ -9,7 +10,7 @@
 -- WHEN IT APPLIES: the catalogs are loaded once, at game start, and the new names are laid over their rows right there (applyRows, called from
 -- the few load sites: init.lua's roster, companions.lua's phone contacts, holocall.lua's contacts, manager.lua's manager-characters.json). Every
 -- consumer after that sees the new name, so a switch flipped in Settings counts from the next game start or save load, not live. The shipped
--- name stays on the row as `shippedName` and in `aliases`, so the old name still finds the character everywhere a name is recognised
+-- name stays on the row as `shippedName` and in `aliases`, and the shipped description as `shippedSummary` (row.summary is the pack's, same timing), so the old name still finds the character everywhere a name is recognised
 -- (character-catalog build() indexes name + aliases; the Companion Manager's search reads aliases too). Idempotent and cheap: one table
 -- lookup per row, nothing per frame and nothing per tick; with no pack the files are read once (a missing or empty one is "no packs") and
 -- the rows come back untouched.
@@ -24,7 +25,7 @@ if type(convaiContentNames) == 'table' and convaiContentNames.isContentNames == 
 local M = {version = 1, isContentNames = true}
 
 local NAMES_FILE, POOLS_FILE = 'runtime/content-names.json', 'runtime/content-name-pools.json'
-local MAX_PACKS, MAX_NAME, MAX_LIST = 16, 400, 5000
+local MAX_PACKS, MAX_NAME, MAX_LIST, MAX_SUMMARY = 16, 400, 5000, 2000
 
 local function normalized(value)
     return (tostring(value or ''):lower():gsub('%s+', ' '):gsub('^ ', ''):gsub(' $', ''))
@@ -51,7 +52,7 @@ M.fold = fold
 function M.new(options)
     options = options or {}
     local N = {}
-    local names, merged, poolsValue, poolsLoaded
+    local names, merged, mergedSummaries, poolsValue, poolsLoaded
 
     local function readJson(path)
         local jsonLib = options.json or json
@@ -84,23 +85,37 @@ function M.new(options)
 
     -- {profileKey = new name} of the packs that are on, a later pack winning. Made once (the switch is read once: the catalogs load once).
     local function active()
-        if merged then return merged end
-        merged = {}
+        if merged then return merged, mergedSummaries end
+        merged, mergedSummaries = {}, {}
         for _, pack in ipairs(packsOf(options.namesPath or NAMES_FILE)) do
-            if type(pack.names) == 'table' and enabled(pack.id) then
-                for key, name in pairs(pack.names) do
-                    if type(key) == 'string' and type(name) == 'string' then
-                        name = name:gsub('[%c]', ' '):gsub('^%s+', ''):gsub('%s+$', '')
-                        if name ~= '' and #name <= MAX_NAME then merged[key] = name end
+            if enabled(pack.id) then
+                if type(pack.names) == 'table' then
+                    for key, name in pairs(pack.names) do
+                        if type(key) == 'string' and type(name) == 'string' then
+                            name = name:gsub('[%c]', ' '):gsub('^%s+', ''):gsub('%s+$', '')
+                            if name ~= '' and #name <= MAX_NAME then merged[key] = name end
+                        end
+                    end
+                end
+                -- The short descriptions (a line break stays: the shipped ones have two paragraphs); a later pack wins per key.
+                if type(pack.summaries) == 'table' then
+                    for key, text in pairs(pack.summaries) do
+                        if type(key) == 'string' and type(text) == 'string' then
+                            text = text:gsub('[\1-\8\11\12\14-\31\127]', ' '):gsub('^%s+', ''):gsub('%s+$', '')
+                            if text ~= '' and #text <= MAX_SUMMARY then mergedSummaries[key] = text end
+                        end
                     end
                 end
             end
         end
-        return merged
+        return merged, mergedSummaries
     end
 
     --- Forgets what was read (the next call reads the files and the switches again). The rows already changed are changed again by applyRows.
-    function N.reset() merged, poolsValue, poolsLoaded = nil, nil, false end
+    function N.reset() merged, mergedSummaries, poolsValue, poolsLoaded = nil, nil, nil, false end
+
+    --- The pack's short description for a profile key, or nil.
+    function N.summaryFor(key) if type(key) ~= 'string' then return nil end; local _, summaries = active(); return summaries[key] end
 
     --- The pack's name for a profile key, or nil.
     function N.nameFor(key) return type(key) == 'string' and active()[key] or nil end
@@ -113,12 +128,21 @@ function M.new(options)
     --- name. Returns rows and the number changed. Idempotent: a second call changes nothing.
     function N.applyRows(rows)
         if type(rows) ~= 'table' then return rows, 0 end
-        local map = active()
+        local map, summaries = active()
         local changed = 0
         for _, row in ipairs(rows) do
             if type(row) == 'table' and row.kind ~= 'addon' and row.kind ~= 'custom' then
                 local key = row.profileKey or row.key
                 local new = type(key) == 'string' and map[key] or nil
+                -- The short description: the pack's text, the shipped one kept in shippedSummary (false: the row had none) and put back when no pack is on.
+                local text = type(key) == 'string' and summaries[key] or nil
+                if text then
+                    if row.shippedSummary == nil then row.shippedSummary = row.summary or false end
+                    if row.summary ~= text then row.summary = text; changed = changed + 1 end
+                elseif row.shippedSummary ~= nil then
+                    row.summary, row.shippedSummary = row.shippedSummary or nil, nil
+                    changed = changed + 1
+                end
                 if new and type(row.name) == 'string' and row.name ~= '' then
                     local shipped = row.shippedName or row.name
                     if shipped ~= new then
@@ -189,7 +213,7 @@ end
 
 -- The shared instance every load site uses: M.applyRows(rows), M.nameFor(key), M.label(key, fallback), M.pools(), M.reset().
 local shared
-for _, name in ipairs({'applyRows', 'nameFor', 'label', 'pools', 'reset'}) do
+for _, name in ipairs({'applyRows', 'nameFor', 'summaryFor', 'label', 'pools', 'reset'}) do
     M[name] = function(...)
         shared = shared or M.new()
         return shared[name](...)

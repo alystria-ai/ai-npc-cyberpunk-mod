@@ -9,6 +9,8 @@ import {EDIT_LIMITS, cleanBlock, cleanLine} from './character-overrides.mjs';
 export const DATA_LIMITS = Object.freeze({
   characters: 512,                    // keys in one pack (the shipped roster has 128 named and about 80 archetype profiles)
   name: 80,                           // a character's display name
+  summary: 1300,                      // the short description the Companion Manager shows (the longest shipped summary is 1,270)
+  derivedSummary: 450,                // a summary made from a backstory (the shipped ones have a median of about 440)
   style: EDIT_LIMITS.style, bio: EDIT_LIMITS.bio, bioMin: EDIT_LIMITS.bioMin,
   samples: 20, sample: 600, samplesTotal: 6000,
   persona: EDIT_LIMITS.total,         // backstory + style + samples of one character
@@ -22,7 +24,7 @@ const FORBIDDEN = new Set(['__proto__', 'constructor', 'prototype']);
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const count = text => Array.from(text).length;
 /** The fields of a character a pack may change (name, gender, records and voice stay the game's, except the display name). */
-export const CHARACTER_FIELDS = Object.freeze(['name', 'backstory', 'speakingStyleDescription', 'speakingStyleSampleDialogues']);
+export const CHARACTER_FIELDS = Object.freeze(['name', 'summary', 'backstory', 'speakingStyleDescription', 'speakingStyleSampleDialogues']);
 
 /** A relative path of a .json file inside the folder `dir`: the absolute path, or null. Never a drive, a leading slash or a '..'. */
 export function insideFolder(dir, value) {
@@ -55,7 +57,7 @@ export function validateCharacters(value, where = 'content.characters') {
     if (!plain(given)) throw Error(`${at} must be an object`);
     const entry = {};
     for (const field of Object.keys(given)) {
-      if (!CHARACTER_FIELDS.includes(field)) throw Error(`${at}.${field} cannot be changed by a pack (name, backstory, speakingStyleDescription and speakingStyleSampleDialogues can)`);
+      if (!CHARACTER_FIELDS.includes(field)) throw Error(`${at}.${field} cannot be changed by a pack (name, summary, backstory, speakingStyleDescription and speakingStyleSampleDialogues can)`);
       if (typeof given[field] !== 'string') throw Error(`${at}.${field} must be a text`);
     }
     if (given.name !== undefined) {
@@ -63,6 +65,12 @@ export function validateCharacters(value, where = 'content.characters') {
       if (!name) throw Error(`${at}.name is empty`);
       if (count(name) > DATA_LIMITS.name) throw Error(`${at}.name is longer than ${DATA_LIMITS.name} characters`);
       entry.name = name;
+    }
+    if (given.summary !== undefined) {
+      const text = cleanBlock(given.summary);
+      if (!text) throw Error(`${at}.summary is empty`);
+      if (count(text) > DATA_LIMITS.summary) throw Error(`${at}.summary is longer than ${DATA_LIMITS.summary} characters`);
+      entry.summary = text;
     }
     if (given.backstory !== undefined) {
       const text = cleanBlock(given.backstory);
@@ -91,6 +99,22 @@ export function validateCharacters(value, where = 'content.characters') {
     out[key] = entry;
   }
   return out;
+}
+
+/**
+ * A short description made from a pack's backstory, for a pack that rewrites a character without giving a `summary`: the first one or two sentences (the second only while both
+ * fit), without the `[CyberpunkConvai profile v2:...]` marker and any other bracketed tag, at most DATA_LIMITS.derivedSummary characters (a longer first sentence is cut at a word
+ * and ends in "..."). Empty when nothing is left.
+ */
+export function deriveSummary(backstory, max = DATA_LIMITS.derivedSummary) {
+  const text = String(backstory ?? '').replace(/\[[^\]\n]{0,200}\]/g, ' ').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
+  if (!text) return '';
+  const sentences = text.split(/(?<!\b(?:Mr|Mrs|Ms|Dr|St|Jr|Sr|Mt)\.)(?<=[.!?…]['"’”)]*)\s+(?=['"‘“(]*[\p{Lu}\d])/u);
+  let out = sentences[0];
+  if (sentences[1] && count(`${out} ${sentences[1]}`) <= max) out = `${out} ${sentences[1]}`;
+  if (count(out) <= max) return out;
+  const cut = Array.from(out).slice(0, max - 3).join('');
+  return `${cut.replace(/\s+\S*$/, '').replace(/[\s,;:\-]+$/, '')}...`;
 }
 
 /** The Convai twins of a pack: {profileKey: character id}. */

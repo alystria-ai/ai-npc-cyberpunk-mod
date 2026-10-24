@@ -13,7 +13,7 @@
 import {BUILT_IN_IDS, isCustomProfileId, matureCapable, readOverride, validateOverride, deepFreeze} from './prompt-profiles.mjs';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {basename, resolve} from 'node:path';
-import {insideFolder, validateCharacters, validateConvai, validateNamePools} from './addon-content-data.mjs';
+import {insideFolder, validateCharacters, validateConvai, validateNamePools, deriveSummary} from './addon-content-data.mjs';
 
 export const CONTENT_LIMITS = Object.freeze({
   rules: 24, ruleText: 600, rulesTotal: 4000,      // one pack's world rules: lines, characters per line, characters in all
@@ -244,13 +244,19 @@ export class AddonContent {
 
   // ---- Files for the game: the new names and the name pools (the game applies them with its own switches) ------------------------------
   /**
-   * Writes runtime/content-names.json ({version: 1, packs: [{id, names: {profileKey: name}}]}) and runtime/content-name-pools.json ({version: 1, packs: [{id, pools}]}) for the game
+   * Writes runtime/content-names.json ({version: 1, packs: [{id, names: {profileKey: name}, summaries?: {profileKey: text}}]}) and runtime/content-name-pools.json ({version: 1, packs: [{id, pools}]}) for the game
    * (mod/content-names.lua). Every installed pack is listed, switched on or off: the game applies the ones its own settings have on. With nothing to say a file an earlier run
    * left is emptied, and a missing or empty one is left alone (under Mod Organizer 2 only a file that exists is written in place). Never throws.
    */
   async publish(runtime, {write = (path, data) => writeFile(path, data), read = path => readFile(path, 'utf8')} = {}) {
-    const names = this.#all().map(addon => ({id: addon.id, names: Object.fromEntries(Object.entries(addon.content.characters ?? {})
-      .filter(([, entry]) => entry.name).map(([key, entry]) => [key, entry.name]))})).filter(pack => Object.keys(pack.names).length);
+    // Per pack: the new names, and the short descriptions the Companion Manager shows (the pack's own `summary`, else the first sentences of the backstory it rewrites).
+    const names = this.#all().map(addon => {
+      const entries = Object.entries(addon.content.characters ?? {});
+      const pack = {id: addon.id, names: Object.fromEntries(entries.filter(([, entry]) => entry.name).map(([key, entry]) => [key, entry.name]))};
+      const summaries = Object.fromEntries(entries.map(([key, entry]) => [key, entry.summary ?? (entry.backstory ? deriveSummary(entry.backstory) : '')]).filter(([, text]) => text));
+      if (Object.keys(summaries).length) pack.summaries = summaries;
+      return pack;
+    }).filter(pack => Object.keys(pack.names).length || pack.summaries);
     const pools = this.#all().filter(addon => addon.content.namePools).map(addon => ({id: addon.id, pools: addon.content.namePools}));
     const put = async (file, packs) => {
       const path = resolve(runtime, file);
