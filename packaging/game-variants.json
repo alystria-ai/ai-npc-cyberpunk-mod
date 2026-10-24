@@ -27,7 +27,7 @@
         "redscript": "0.5.32",
         "codeware": "1.20.6 2.5 Unofficial (Nexus Mods 35697)",
         "nativeSettingsUi": "1.97",
-        "modConfigurationMenu": "unknown for 2.5 (not checked)"
+        "modConfigurationMenu": "0.10.5 or newer (0.10.6-hf1 tested live on 2.5 by the owner, 24 Oct: the Companion Manager opens and settings apply; alternative to Native Settings UI)"
       }
     }
   }

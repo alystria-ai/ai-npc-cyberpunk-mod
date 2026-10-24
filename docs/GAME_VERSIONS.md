@@ -97,7 +97,7 @@ RED4ext itself differs per game: v1.30.0 for 2.31, master (minimum game 2.50) fo
 | redscript | 0.5.32 | 0.5.31 |
 | Codeware | 1.20.6 "2.5 Unofficial" (Nexus 35697) | 1.20.5 |
 | Native Settings UI | 1.97 | 1.96 |
-| Mod Configuration Menu | 0.10.6-hf1 was in the owner's install and loaded on 2.5 (main menu entry, Companion Manager registered); not otherwise tested | 0.10.5 |
+| Mod Configuration Menu | 0.10.6-hf1, tested live on 2.5 by the owner (24 Oct): the Companion Manager opens, a setting changed and applied | 0.10.5 |
 
 2.5 caveats from the modder notes: CET 1.38.0 hangs a NEW game (start the new game without CET, save once, put CET back); the mirror customisation list is empty
 in vanilla 2.5; redscript 0.5.32 needs `GetGameInstance()` passed to 2.5's optional-parameter getters (done in the overlay).
