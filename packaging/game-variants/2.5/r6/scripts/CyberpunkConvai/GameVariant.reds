@@ -1,16 +1,23 @@
 // No module line: Face.reds is in the global module, and a global function is visible from every module.
 // The 2.5 build's GameVariant.reds (it replaces r6/scripts/CyberpunkConvai/GameVariant.reds when the release is built with --game 2.5).
 //
-// Cyberpunk 2077 2.5 ships its own CallbackSystem and ScriptableServiceContainer (Codeware 2.5 binds its types to them). Their getters
-// take an optional game instance, and redscript 0.5.32 cannot resolve a call that leaves out an optional parameter of these
-// natives (a redscript bug fixed after 0.5.32), so the instance is passed. See docs/GAME_VERSIONS.md.
+// Cyberpunk 2077 2.5 ships its own CallbackSystem and ScriptableServiceContainer (Codeware 2.5 binds its types to them). The getters work without an
+// argument here (redscript 0.5.32 compiled the no-argument calls against the 2.5 scripts), so they are the same as in the 2.31 file. The one
+// difference is the key target: InputTarget.Key of 2.5 takes a Float where Codeware 2.31 takes an EInputAction. See docs/GAME_VERSIONS.md.
 
 @if(ModuleExists("Codeware"))
 public func ConvaiCallbackSystem() -> ref<CallbackSystem> {
-    return GameInstance.GetCallbackSystem(GetGameInstance());
+    return GameInstance.GetCallbackSystem();
+}
+
+// A key callback target. 2.5's InputTarget.Key has no action parameter, so every action of the key arrives and the handlers check the action
+// themselves (Manager.reds, PhoneChat.reds, PhoneContacts.reds).
+@if(ModuleExists("Codeware"))
+public func ConvaiKeyTarget(key: EInputKey, action: EInputAction) -> ref<InputTarget> {
+    return InputTarget.Key(key);
 }
 
 @if(ModuleExists("Codeware"))
 public func ConvaiServiceContainer() -> ref<ScriptableServiceContainer> {
-    return GameInstance.GetScriptableServiceContainer(GetGameInstance());
+    return GameInstance.GetScriptableServiceContainer();
 }

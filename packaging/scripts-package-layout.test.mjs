@@ -317,12 +317,11 @@ test('the 2.5 build: suffixed file name, game 2.5 in release.json, only GameVari
   assert.deepEqual(differing, [`${MOD}/release.json`, 'r6/scripts/CyberpunkConvai/GameVariant.reds']);
   const variant = await readFile(join(dir25, 'r6', 'scripts', 'CyberpunkConvai', 'GameVariant.reds'), 'utf8');
   assert.equal(variant, await readFile(resolve(project, 'packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds'), 'utf8'));
-  assert.match(variant, /GetCallbackSystem\(GetGameInstance\(\)\)/);
-  assert.match(variant, /GetScriptableServiceContainer\(GetGameInstance\(\)\)/);
+  assert.match(variant, /return InputTarget\.Key\(key\);/);
   // The 2.31 file is the one in the source tree, and the callers name only the two helpers.
-  assert.match(await text('r6/scripts/CyberpunkConvai/GameVariant.reds'), /GameInstance\.GetCallbackSystem\(\);/);
+  assert.match(await text('r6/scripts/CyberpunkConvai/GameVariant.reds'), /return InputTarget\.Key\(key, action\);/);
   for (const rel of names().filter(name => name.endsWith('.reds') && !name.endsWith('GameVariant.reds'))) {
-    assert.doesNotMatch(await text(rel), /GameInstance\.(?:GetCallbackSystem|GetScriptableServiceContainer)\(/, `${rel} calls an engine getter itself`);
+    assert.doesNotMatch(await text(rel), /GameInstance\.(?:GetCallbackSystem|GetScriptableServiceContainer)\(|InputTarget\.Key\(/, `${rel} calls an engine function that GameVariant.reds owns`);
   }
 });
 

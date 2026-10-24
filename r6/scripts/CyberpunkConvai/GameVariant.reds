@@ -1,16 +1,22 @@
 // No module line: Face.reds is in the global module, and a global function is visible from every module.
 // The game-version-specific engine accessors, the only place this mod's scripts differ between the two game builds it ships for.
 //
-// The mod is built twice from one source tree, once per game version (docs/GAME_VERSIONS.md). This is the 2.31 file. The 2.5 build
-// replaces it with packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds: 2.5 has its own CallbackSystem and
-// ScriptableServiceContainer getters with an optional game-instance parameter, and redscript 0.5.32 refuses a call that leaves it out,
-// while 2.31 only has Codeware's getters without one.
+// The mod is built twice from one source tree, once per game version (docs/GAME_VERSIONS.md). This is the 2.31 file. The 2.5 build replaces it with
+// packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds, which differs in one function: Codeware 2.31's InputTarget.Key takes the
+// key's action, 2.5's own InputTarget.Key does not.
 //
-// Callers use ConvaiCallbackSystem() and ConvaiServiceContainer(); nothing else in the folder names the getters.
+// Callers use ConvaiCallbackSystem(), ConvaiServiceContainer() and ConvaiKeyTarget(); nothing else in the folder names those engine functions.
 
 @if(ModuleExists("Codeware"))
 public func ConvaiCallbackSystem() -> ref<CallbackSystem> {
     return GameInstance.GetCallbackSystem();
+}
+
+// A key callback target. 2.31's Codeware target filters by the key's action; the target of 2.5 has no action parameter, so every action of the key arrives and
+// the handlers check the action themselves.
+@if(ModuleExists("Codeware"))
+public func ConvaiKeyTarget(key: EInputKey, action: EInputAction) -> ref<InputTarget> {
+    return InputTarget.Key(key, action);
 }
 
 @if(ModuleExists("Codeware"))
