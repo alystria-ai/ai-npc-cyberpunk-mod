@@ -10,7 +10,7 @@
 // Nothing here is read per turn from disk: the merged results are made when a pack is switched on or off and kept (a plain Map lookup per turn), so the prompt
 // is byte-stable within a profile and the prompt caches stay warm. A pack never touches the facts the character gets, the hard-limit guard or the Mature layer: they are
 // not part of a profile or of the world rules.
-import {BUILT_IN_IDS, isCustomProfileId, validateOverride, deepFreeze} from './prompt-profiles.mjs';
+import {BUILT_IN_IDS, isCustomProfileId, matureCapable, readOverride, validateOverride, deepFreeze} from './prompt-profiles.mjs';
 import {basename} from 'node:path';
 
 export const CONTENT_LIMITS = Object.freeze({
@@ -68,7 +68,10 @@ export function validateContent(raw) {
     if (keys.length > CONTENT_LIMITS.profiles) throw Error(`content.prompting names more than ${CONTENT_LIMITS.profiles} profiles`);
     for (const key of keys) {
       if (!validProfileKey(key)) throw Error(`content.prompting.${key.slice(0, 40)} is not a profile id ("*", ${BUILT_IN_IDS.join(', ')} or a Custom profile)`);
-      const checked = validateOverride(raw.prompting[key], {}, {});
+      // A specific profile is checked as a player's change to it is (Mistral takes no top-K, min-P or extra fields; only the Mature and Custom options have a Mature layer). "*" is
+      // checked as the widest option, and each profile it reaches keeps only the parts that profile accepts (AddonContent.layerFor).
+      const options = key === ALL_PROFILES ? {mistral: false, matureOk: true} : {mistral: key === 'mistral', matureOk: matureCapable(key)};
+      const checked = validateOverride(raw.prompting[key], {}, {}, options);
       if (!checked.ok) {
         const first = checked.errors[0];
         throw Error(`content.prompting.${key}: ${first.field || 'the change'}${first.key ? '.' + first.key : ''}${first.index !== undefined ? `[${first.index}]` : ''} is not valid (${first.code})`);
@@ -145,7 +148,9 @@ export class AddonContent {
     let merged = null;
     for (const addon of this.applied) {
       const mine = addon.content.prompting;
-      for (const key of [ALL_PROFILES, profileId]) if (mine[key]) merged = layer(merged ?? {}, mine[key]);
+      // "*" keeps for this profile only what a player's change to it could set (readOverride drops the rest, as a damaged file's invalid parts are dropped).
+      if (mine[ALL_PROFILES]) merged = layer(merged ?? {}, readOverride(mine[ALL_PROFILES], {}, {mistral: profileId === 'mistral', matureOk: matureCapable(profileId)}));
+      if (mine[profileId]) merged = layer(merged ?? {}, mine[profileId]);
     }
     const result = merged && Object.keys(merged).length ? deepFreeze(merged) : null;
     this.layers.set(profileId, result);
