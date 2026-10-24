@@ -585,7 +585,7 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(await page.locator('.profiles .profile .chip').count(), 1, 'no other badge yet');
   assert.deepEqual(await page.locator('#main h2').allTextContents(), ['Prompting', 'Local AI, Standard']);
   const text = await page.locator('#main').textContent();
-  assert.match(text, /The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here\. Convai’s prompting lives on Convai’s side\./);
+  assert.match(text, /The facts the characters get from the game and a short list of safety filters cannot be edited here\. Convai’s prompting lives on Convai’s side\./);
   assert.match(text, /Your Custom models and APIs/);
   assert.equal(await page.locator('#list .pick.on').count(), 0);
   await previewHas(page, 'OUTPUT RULES (they outrank everything above about format)');
@@ -788,6 +788,24 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await picks.nth(3).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Local AI, Lite, Mature on');
   assert.equal(await page.locator('#p-sample-mature').isChecked(), true);
+  // The Mature layer's wording: its own section on this option (not on Mistral's), shown in the preview, saved, reset.
+  assert.equal(await page.locator('section[data-field=matureLayer] textarea').count(), 11);
+  assert.equal(await page.inputValue('#p-mature-tone'), defaultProfile('mature-lite').matureLayer.tone);
+  assert.equal(await page.locator('label[for=p-mature-speechFull]').textContent(), 'Speech line, for models that allow explicit sex');
+  await previewHas(page, 'MATURE CONTENT IS ON (adults 18+ only)');
+  await page.fill('#p-mature-tone', 'MY TONE LINE.');
+  await previewHas(page, 'MY TONE LINE.');
+  await saveBar(page).getByRole('button', {name: 'Save'}).click();
+  await savedToast(page);
+  assert.equal(e.profiles.getOverride('mature-lite').matureLayer.tone, 'MY TONE LINE.');
+  await page.fill('#p-mature-tone', 'x'.repeat(1501));
+  await page.waitForSelector('section[data-field=matureLayer] .err');
+  assert.equal(await page.locator('section[data-field=matureLayer] .err').textContent(), 'Tone line: This text is too long. Keep it under 1500 characters.');
+  await saveBar(page).getByRole('button', {name: 'Revert changes'}).click();
+  e.dialogs.length = 0;
+  await page.locator('section[data-field=matureLayer] .phead').getByRole('button', {name: 'Reset to default'}).click();
+  await page.waitForFunction(value => document.querySelector('#p-mature-tone')?.value === value, defaultProfile('mature-lite').matureLayer.tone);
+  assert.equal(e.profiles.getOverride('mature-lite'), null);
   await picks.nth(5).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Custom: qwen3-8b at openrouter.ai');
   const custom = defaultProfile(customProfileId('https://openrouter.ai', 'qwen3-8b'), {family: 'qwen'}), penalty = differs(custom.sampling.repeatPenalty, 1.1, 1.15);

@@ -542,6 +542,7 @@ export function editorClient() {
     sampling: {temperature: numText(eff.sampling.temperature), maxTokens: numText(eff.sampling.maxTokens), extra: eff.sampling.extra ? JSON.stringify(eff.sampling.extra, null, 2) : '',
       ...Object.fromEntries(OPTIONAL_SAMPLING.flatMap(key => [[key, numText(eff.sampling[key])], [key + 'Off', eff.sampling[key] === null]]))},
     limits: {persona: numText(eff.limits.persona), turns: numText(eff.limits.turns)},
+    matureLayer: {...eff.matureLayer},
   });
   // The change the draft makes to the saved profile `eff`, in the shape the server takes: whole lists, and only the sub-fields of an object that differ.
   const patchOf = (draft, eff) => {
@@ -550,7 +551,7 @@ export function editorClient() {
     if (!same(rules, eff.rules.map(ruleOut))) patch.rules = rules;
     if (!same(draft.examples, eff.examples)) patch.examples = [...draft.examples];
     if (!same(draft.stop, eff.stop)) patch.stop = [...draft.stop];
-    for (const field of ['intro', 'closing', 'labels', 'layout']) {
+    for (const field of ['intro', 'closing', 'labels', 'layout', 'matureLayer']) {
       const out = {};
       for (const key of Object.keys(draft[field])) if (!same(draft[field][key], eff[field][key])) out[key] = draft[field][key];
       if (Object.keys(out).length) patch[field] = out;
@@ -583,7 +584,13 @@ export function editorClient() {
     'sampling.temperature': T('Temperature'), 'sampling.topP': T('Top P'), 'sampling.topK': T('Top K'), 'sampling.minP': T('Min P'), 'sampling.repeatPenalty': T('Repeat penalty'),
     'sampling.presencePenalty': T('Presence penalty'), 'sampling.frequencyPenalty': T('Frequency penalty'), 'sampling.maxTokens': T('Longest reply (in tokens)'), 'sampling.extra': T('Advanced parameters (JSON)'),
     'limits.persona': T('Longest character description, in characters'), 'limits.turns': T('Earlier turns kept'), 'layout.youNow': T('Right-now sentence'), 'layout.volatile': T('Notes for this turn'),
-    ...Object.fromEntries(Object.entries(labelNames()).map(([key, name]) => ['labels.' + key, name]))});
+    ...Object.fromEntries(Object.entries(labelNames()).map(([key, name]) => ['labels.' + key, name])), ...matureNames()});
+  // The parts of the Mature layer: four lines have a version for models that allow explicit sex and one for models that keep it suggestive.
+  const MATURE_LINES = ['speech', 'words', 'romance', 'closing'];
+  const matureNames = () => ({
+    ...Object.fromEntries(Object.entries({speech: T('Speech line'), words: T('Word bank'), romance: T('Romance line'), closing: T('Closing clause')}).flatMap(([key, part]) => [
+      ['matureLayer.' + key + 'Full', T('{part}, for models that allow explicit sex', {part})], ['matureLayer.' + key + 'Suggestive', T('{part}, for models that keep sex suggestive', {part})]])),
+    'matureLayer.tone': T('Tone line'), 'matureLayer.use': T('Partner paragraph: affection and desire'), 'matureLayer.limits': T('Partner paragraph: nothing invented')});
   const errorKey = item => item.field + (item.index !== undefined ? '#' + item.index : '') + (item.key ? ':' + item.key : '');
   // One problem as a sentence in the player's language. A problem about one box says which box.
   const EXTRA_EXAMPLE = '{"typical_p": 0.9, "mirostat": 2}';
@@ -600,9 +607,10 @@ export function editorClient() {
       case 'examples-many': text = T('Too many example lines. Keep {max} or fewer.', values); break;
       case 'examples-long': text = T('An example line is too long. Keep each one under {max} characters.', values); break;
       case 'examples-total': text = T('The example lines are too long together. Keep them under {max} characters in all.', values); break;
-      case 'intro-long': case 'closing-long': case 'labels-long': text = T('This text is too long. Keep it under {max} characters.', values); break;
+      case 'intro-long': case 'closing-long': case 'labels-long': case 'matureLayer-long': text = T('This text is too long. Keep it under {max} characters.', values); break;
       case 'empty': text = T('This text cannot be empty.'); break;
       case 'out-of-range': text = T('Use a number from {min} to {max}.', values); break;
+      case 'no-mature-layer': text = T('This option does not get the Mature layer.'); break;
       case 'not-for-mistral': text = T('Mistral does not take this setting.'); break;
       case 'extra-json': text = T('That is not valid JSON.'); break;
       case 'extra-type': text = T('This must be a JSON object, for example {example}.', {example: EXTRA_EXAMPLE}); break;
@@ -632,7 +640,7 @@ export function editorClient() {
     const builtIn = p.profiles.filter(item => item.provider !== 'custom'), custom = p.profiles.filter(item => item.provider === 'custom');
     const top = h('div', {},
       h('p', {class: 'help'}, T('How each conversation option is told to answer. Every option has its own prompting. A change counts from the next reply, and nothing needs restarting.')),
-      h('p', {class: 'help'}, T('The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.')),
+      h('p', {class: 'help'}, T('The facts the characters get from the game and a short list of safety filters cannot be edited here. Convai’s prompting lives on Convai’s side.')),
       h('h3', {class: 'group'}, T('Mistral and Local AI')), pickers(builtIn),
       h('p', {class: 'help'}, T('Lite and Standard are the two Local AI model sizes. “Mature on” is used while Mature content is on.')),
       h('h3', {class: 'group'}, T('Your Custom models and APIs')),
@@ -809,6 +817,14 @@ export function editorClient() {
       input.addEventListener('input', () => { d.labels[key] = input.value; promptingChanged(); });
       return h('div', {class: 'field'}, h('label', {for: 'p-labels-' + key}, label), input);
     });
+    // The Mature layer's wording: on the Mature options and the Custom ones (the options whose turns get the layer while Mature content is on).
+    const mature = () => {
+      const row = p.profiles.find(item => item.id === p.id);
+      if (!(row.id.startsWith('mature-') || row.provider === 'custom')) return null;
+      const box = key => textBox('p-mature-' + key, names['matureLayer.' + key], d.matureLayer[key], L.matureText, 'matureLayer:' + key, value => { d.matureLayer[key] = value; });
+      const keys = [...MATURE_LINES.flatMap(key => [key + 'Full', key + 'Suggestive']), 'tone', 'use', 'limits'];
+      return section('matureLayer', T('Mature layer'), T('The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.'), ...keys.map(box));
+    };
     return [
       section('rules', T('Output rules'), T('The numbered rules the model reads before every reply. Use {name} for the character’s name and {words} for the reply length of a speaker that has one.', tokens), ...rulesField()),
       section('examples', T('Example replies'), T('Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.'),
@@ -824,7 +840,8 @@ export function editorClient() {
       section('sampling', T('Sampling'), T('How freely the model words its reply. Leave a box empty to use the shipped value.'), ...sampling()),
       section('limits', T('Length limits'), T('Shorten what the model reads, which makes replies faster. The mod’s own limits still apply, so these can only make things shorter.'), ...limits()),
       section('stop', T('Stop texts'), T('A reply ends when the model writes one of these. Line breaks count. Up to {max}.', {max: L.stops}),
-        ...linesField('stop', T('Add a stop text'), T('A text that ends the reply'), L.stops, L.stop, 2, n => T('Stop text {n}', {n})))];
+        ...linesField('stop', T('Add a stop text'), T('A text that ends the reply'), L.stops, L.stop, 2, n => T('Stop text {n}', {n}))),
+      mature()];
   };
 
   // The preview: the rules, the example replies and the closing line as the prompt builder writes them for a sample speaker.
@@ -856,7 +873,8 @@ export function editorClient() {
     if (!shown) { p.ui.preview.replaceChildren(); return; }
     const block = (title, text, empty) => [h('h4', {}, title), text ? h('pre', {}, text) : h('p', {class: 'empty'}, empty)];
     p.ui.preview.replaceChildren(...[p.stale ? h('p', {class: 'help stale', role: 'status'}, T('The preview waits until the problems in the form are fixed.')) : null,
-      ...block(T('Output rules'), shown.rules, ''), ...block(T('Example replies'), shown.examples, T('No example replies.')), ...block(T('Closing line'), shown.closing, T('No closing line.'))].filter(node => node));
+      ...block(T('Output rules'), shown.rules, ''), ...block(T('Example replies'), shown.examples, T('No example replies.')), ...block(T('Closing line'), shown.closing, T('No closing line.')),
+      ...(shown.mature ? [...block(T('Mature layer and closing line, for models that allow explicit sex'), shown.mature.full, ''), ...block(T('Mature layer and closing line, for models that keep sex suggestive'), shown.mature.suggestive, '')] : [])].filter(node => node));
   };
   // The unsaved edits are rendered by the server a moment after the last key press (and an older answer never replaces a newer one). The same answer carries the problems found
   // in the form, which are shown at once in the sections they belong to.

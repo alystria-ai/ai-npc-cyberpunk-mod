@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1269,
+    "strings": 1283,
     "dynamicTemplates": 52,
     "contexts": 37
   },
@@ -234,6 +234,7 @@
     "Close editor": "Close editor",
     "Close the phone to finish the pending companion requests.": "Close the phone to finish the pending companion requests.",
     "Close this menu.": "Close this menu.",
+    "Closing clause": "Closing clause",
     "Closing line": "Closing line",
     "Closing line for a speaker with a reply length of its own": "Closing line for a speaker with a reply length of its own",
     "Codeware is too old. Update it from Nexus Mods, then restart the game.": "Codeware is too old. Update it from Nexus Mods, then restart the game.",
@@ -516,6 +517,9 @@
     "Manage or cancel plan": "Manage or cancel plan",
     "Mature content": "Mature content",
     "Mature content is on": "Mature content is on",
+    "Mature layer": "Mature layer",
+    "Mature layer and closing line, for models that allow explicit sex": "Mature layer and closing line, for models that allow explicit sex",
+    "Mature layer and closing line, for models that keep sex suggestive": "Mature layer and closing line, for models that keep sex suggestive",
     "Memories": "Memories",
     "Memories can be managed here.": "Memories can be managed here.",
     "Memory": "Memory",
@@ -659,6 +663,8 @@
     "Page": "Page",
     "Page {page} / {pages}": "Page {page} / {pages}",
     "Page {page} of {pages}  |  {count} results": "Page {page} of {pages}  |  {count} results",
+    "Partner paragraph: affection and desire": "Partner paragraph: affection and desire",
+    "Partner paragraph: nothing invented": "Partner paragraph: nothing invented",
     "Parts of the character": "Parts of the character",
     "Party: {count}": "Party: {count}",
     "Paste": "Paste",
@@ -747,6 +753,7 @@
     "Revert changes": "Revert changes",
     "Review the memory clear below, then choose Confirm or Cancel.": "Review the memory clear below, then choose Confirm or Cancel.",
     "Right-now sentence": "Right-now sentence",
+    "Romance line": "Romance line",
     "Romantic": "Romantic",
     "Rule {n}": "Rule {n}",
     "Rule {n} is empty. Write the rule or delete it.": "Rule {n} is empty. Write the rule or delete it.",
@@ -825,6 +832,7 @@
     "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.": "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
     "Speaks up often": "Speaks up often",
     "Speaks up rarely": "Speaks up rarely",
+    "Speech line": "Speech line",
     "Speech: {list}": "Speech: {list}",
     "Stand near one of your owned cars, or summon one.": "Stand near one of your owned cars, or summon one.",
     "Stand near your owned car.": "Stand near your owned car.",
@@ -955,6 +963,7 @@
     "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.": "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.",
     "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}": "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}",
     "The copy could not be dismissed.": "The copy could not be dismissed.",
+    "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": "The custom provider did not accept your key. Check it in Settings > Conversation provider.",
     "The custom provider did not answer. Check its address in Settings, or try again.": "The custom provider did not answer. Check its address in Settings, or try again.",
     "The custom provider does not know that model ID. Check it in Settings.": "The custom provider does not know that model ID. Check it in Settings.",
@@ -978,7 +987,7 @@
     "The endpoint reported an error on its side. Try again in a moment.": "The endpoint reported an error on its side. Try again in a moment.",
     "The endpoint took too long to answer.": "The endpoint took too long to answer.",
     "The example lines are too long together. Keep them under {max} characters in all.": "The example lines are too long together. Keep them under {max} characters in all.",
-    "The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.": "The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.",
+    "The facts the characters get from the game and a short list of safety filters cannot be edited here. Convai’s prompting lives on Convai’s side.": "The facts the characters get from the game and a short list of safety filters cannot be edited here. Convai’s prompting lives on Convai’s side.",
     "The first line of the character text. Use {name} for the character’s name.": "The first line of the character text. Use {name} for the character’s name.",
     "The free daily limit for this model was reached. It resets at {time}.": "The free daily limit for this model was reached. It resets at {time}.",
     "The free daily limit for this model was reached. Try again after it resets.": "The free daily limit for this model was reached. Try again after it resets.",
@@ -1065,12 +1074,14 @@
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": "This model spends its reply on thinking. Choose a non-reasoning model in Settings.",
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.": "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.",
     "This must be a JSON object, for example {example}.": "This must be a JSON object, for example {example}.",
+    "This option does not get the Mature layer.": "This option does not get the Mature layer.",
     "This setting must be on or off.": "This setting must be on or off.",
     "This text cannot be empty.": "This text cannot be empty.",
     "This text is too long. Keep it under {max} characters.": "This text is too long. Keep it under {max} characters.",
     "Time and weather": "Time and weather",
     "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+    "Tone line": "Tone line",
     "Too many display names. Keep {max} or fewer.": "Too many display names. Keep {max} or fewer.",
     "Too many example lines. Keep {max} or fewer.": "Too many example lines. Keep {max} or fewer.",
     "Too many keys. Keep {max} or fewer.": "Too many keys. Keep {max} or fewer.",
@@ -1196,6 +1207,7 @@
     "Whose memories": "Whose memories",
     "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.": "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
     "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.": "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
+    "Word bank": "Word bank",
     "Words said in the clip": "Words said in the clip",
     "World rules": "World rules",
     "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
@@ -1311,6 +1323,8 @@
     "{name}: {reason}": "{name}: {reason}",
     "{other} already has a profile in the mod, and that profile always wins. Use another record or name.": "{other} already has a profile in the mod, and that profile always wins. Use another record or name.",
     "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.": "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.",
+    "{part}, for models that allow explicit sex": "{part}, for models that allow explicit sex",
+    "{part}, for models that keep sex suggestive": "{part}, for models that keep sex suggestive",
     "{plan}, {price} a month": "{plan}, {price} a month",
     "{plan}, {price} a year": "{plan}, {price} a year",
     "{requested} is not ready yet. Companions are using {voice} for now.": "{requested} is not ready yet. Companions are using {voice} for now.",
@@ -2093,6 +2107,7 @@
       "Clip removed.",
       "Close editor",
       "Close this menu.",
+      "Closing clause",
       "Closing line",
       "Closing line for a speaker with a reply length of its own",
       "Codeware is too old. Update it from Nexus Mods, then restart the game.",
@@ -2263,6 +2278,9 @@
       "Longest reply (in tokens)",
       "Male",
       "Mature content is on",
+      "Mature layer",
+      "Mature layer and closing line, for models that allow explicit sex",
+      "Mature layer and closing line, for models that keep sex suggestive",
       "Memories",
       "Memory",
       "Memory clear confirmed for {target}.",
@@ -2368,6 +2386,8 @@
       "Other versions of this rule",
       "Output rules",
       "Page {page} / {pages}",
+      "Partner paragraph: affection and desire",
+      "Partner paragraph: nothing invented",
       "Parts of the character",
       "Paste",
       "Paste API key",
@@ -2426,6 +2446,7 @@
       "Restore defaults",
       "Revert changes",
       "Right-now sentence",
+      "Romance line",
       "Rule {n}",
       "Rule {n} is empty. Write the rule or delete it.",
       "Rule {n} is too long. Keep each one under {max} characters.",
@@ -2476,6 +2497,7 @@
       "Speaking rules",
       "Speaking style",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
+      "Speech line",
       "Speech: {list}",
       "Stand up to open the Companion Manager",
       "Starting",
@@ -2566,6 +2588,7 @@
       "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.",
       "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}",
       "The copy could not be dismissed.",
+      "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.",
       "The custom provider did not accept your key. Check it in Settings > Conversation provider.",
       "The custom provider did not answer. Check its address in Settings, or try again.",
       "The custom provider does not know that model ID. Check it in Settings.",
@@ -2585,7 +2608,7 @@
       "The endpoint reported an error on its side. Try again in a moment.",
       "The endpoint took too long to answer.",
       "The example lines are too long together. Keep them under {max} characters in all.",
-      "The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.",
+      "The facts the characters get from the game and a short list of safety filters cannot be edited here. Convai’s prompting lives on Convai’s side.",
       "The first line of the character text. Use {name} for the character’s name.",
       "The free daily limit for this model was reached. It resets at {time}.",
       "The free daily limit for this model was reached. Try again after it resets.",
@@ -2643,10 +2666,12 @@
       "This model spends its reply on thinking. Choose a non-reasoning model in Settings.",
       "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.",
       "This must be a JSON object, for example {example}.",
+      "This option does not get the Mature layer.",
       "This text cannot be empty.",
       "This text is too long. Keep it under {max} characters.",
       "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
       "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).",
+      "Tone line",
       "Too many display names. Keep {max} or fewer.",
       "Too many example lines. Keep {max} or fewer.",
       "Too many keys. Keep {max} or fewer.",
@@ -2708,6 +2733,7 @@
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
       "Windows ran out of memory for the voice. A larger paging file or closing other apps helps.",
+      "Word bank",
       "Words said in the clip",
       "World rules",
       "You are already on a call.",
@@ -2803,6 +2829,8 @@
       "{name}: {reason}",
       "{other} already has a profile in the mod, and that profile always wins. Use another record or name.",
       "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.",
+      "{part}, for models that allow explicit sex",
+      "{part}, for models that keep sex suggestive",
       "{plan}, {price} a month",
       "{plan}, {price} a year",
       "{requested} is not ready yet. Companions are using {voice} for now.",
@@ -3027,7 +3055,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:279"
+        "mod/character-editor.lua:293"
       ]
     },
     "A report is already being created.": {
@@ -3075,7 +3103,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:286"
+        "mod/character-editor.lua:300"
       ]
     },
     "A stop text is too long. Keep each one under {max} characters.": {
@@ -3091,7 +3119,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:281"
+        "mod/character-editor.lua:295"
       ]
     },
     "AI NPC Cyberpunk Mod: companion manager": {
@@ -3212,7 +3240,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:280"
+        "mod/character-editor.lua:294"
       ]
     },
     "Add an endpoint URL and a model ID first.": {
@@ -3501,7 +3529,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:294"
+        "mod/character-editor.lua:308"
       ]
     },
     "Back to the shipped text.": {
@@ -4333,6 +4361,14 @@
       ],
       "references": [
         "mod/mcm-host.lua:301"
+      ]
+    },
+    "Closing clause": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:284"
       ]
     },
     "Closing line": {
@@ -5875,7 +5911,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:293"
+        "mod/character-editor.lua:307"
       ]
     },
     "Go back to the shipped prompting for {name}? Your changes to this part are removed.": {
@@ -5883,7 +5919,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:292"
+        "mod/character-editor.lua:306"
       ]
     },
     "Go back to the shipped text for {name}? All your changes to this character are removed.": {
@@ -6676,7 +6712,31 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:288"
+        "mod/character-editor.lua:302"
+      ]
+    },
+    "Mature layer": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:279"
+      ]
+    },
+    "Mature layer and closing line, for models that allow explicit sex": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:291"
+      ]
+    },
+    "Mature layer and closing line, for models that keep sex suggestive": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:292"
       ]
     },
     "Memories": {
@@ -7216,7 +7276,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:291"
+        "mod/character-editor.lua:305"
       ]
     },
     "No conversation profile. This model joins as a follower without AI conversations.": {
@@ -7249,7 +7309,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:290"
+        "mod/character-editor.lua:304"
       ]
     },
     "No key added": {
@@ -7770,7 +7830,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:328"
+        "mod/character-editor.lua:342"
       ]
     },
     "Opening the page in your browser…": {
@@ -7879,6 +7939,22 @@
       ],
       "references": [
         "mod/manager.lua:1727"
+      ]
+    },
+    "Partner paragraph: affection and desire": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:286"
+      ]
+    },
+    "Partner paragraph: nothing invented": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:287"
       ]
     },
     "Parts of the character": {
@@ -8186,7 +8262,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:283"
+        "mod/character-editor.lua:297"
       ]
     },
     "Previous page": {
@@ -8242,7 +8318,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:295"
+        "mod/character-editor.lua:309"
       ]
     },
     "Puts every setting on Settings, Relationships and Dynamic info back to its default. Press the button twice to confirm.": {
@@ -8481,7 +8557,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:287"
+        "mod/character-editor.lua:301"
       ]
     },
     "Report for the developer": {
@@ -8617,6 +8693,14 @@
         "mod/character-editor.lua:208"
       ]
     },
+    "Romance line": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:283"
+      ]
+    },
     "Romantic": {
       "contexts": [
         "page.relationships"
@@ -8711,7 +8795,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:285"
+        "mod/character-editor.lua:299"
       ]
     },
     "Sampling": {
@@ -9260,6 +9344,14 @@
         "mod/manager-ui.lua:1503"
       ]
     },
+    "Speech line": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:281"
+      ]
+    },
     "Speech: {list}": {
       "contexts": [
         "ui.localized"
@@ -9380,7 +9472,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:282"
+        "mod/character-editor.lua:296"
       ]
     },
     "Stop texts": {
@@ -10273,7 +10365,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:313"
+        "mod/character-editor.lua:327"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -10343,6 +10435,14 @@
       "references": [
         "mod/manager-party.lua:776",
         "mod/manager.lua:1773"
+      ]
+    },
+    "The crude, forward wording added while Mature content is on. The mod picks the explicit or the suggestive version of a line from what the loaded model allows, so edit the version your model uses. An emptied box leaves that line out. The adults-only line and the hard limits are always added last and cannot be edited.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:280"
       ]
     },
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": {
@@ -10452,7 +10552,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:327"
+        "mod/character-editor.lua:341"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -10551,7 +10651,7 @@
         "mod/character-editor.lua:32"
       ]
     },
-    "The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here. Convai’s prompting lives on Convai’s side.": {
+    "The facts the characters get from the game and a short list of safety filters cannot be edited here. Convai’s prompting lives on Convai’s side.": {
       "contexts": [
         "ui.localized"
       ],
@@ -10864,7 +10964,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:289"
+        "mod/character-editor.lua:303"
       ]
     },
     "The profile could not be assigned.": {
@@ -10888,7 +10988,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:284"
+        "mod/character-editor.lua:298"
       ]
     },
     "The provider said: {detail}": {
@@ -11274,6 +11374,14 @@
         "mod/character-editor.lua:220"
       ]
     },
+    "This option does not get the Mature layer.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:290"
+      ]
+    },
     "This setting must be on or off.": {
       "contexts": [
         "manager.validation",
@@ -11331,6 +11439,14 @@
       ],
       "references": [
         "mod/init.lua:3669"
+      ]
+    },
+    "Tone line": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:285"
       ]
     },
     "Too many display names. Keep {max} or fewer.": {
@@ -12372,6 +12488,14 @@
         "mod/setup-check.lua:567"
       ]
     },
+    "Word bank": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:282"
+      ]
+    },
     "Words said in the clip": {
       "contexts": [
         "ui.localized"
@@ -13343,6 +13467,22 @@
       ],
       "references": [
         "mod/setup-check.lua:544"
+      ]
+    },
+    "{part}, for models that allow explicit sex": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:288"
+      ]
+    },
+    "{part}, for models that keep sex suggestive": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:289"
       ]
     },
     "{plan}, {price} a month": {

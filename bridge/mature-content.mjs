@@ -150,29 +150,32 @@ const CLOSING = {
   suggestive: 'Mature is on: on every turn, whatever V says, talk like a crude, dirty-minded adult in your own voice: swear, make a dirty remark, flirt, start something. '
     + 'Sex stays suggestive, cut away at the act. No dodging, no question back.',
 };
-/** The word palette line of a level ('full' or 'suggestive'), for a test; it is a line of `matureLayer` and exists nowhere else in the prompt. */
-export const maturePalette = level => PALETTE[level === 'full' ? 'full' : 'suggestive'];
+// The parts of the layer a prompt profile can edit (bridge/prompt-profiles.mjs `matureLayer`; the character editor's Mature layer section) are read through `lineOf`: the profile's wording
+// when it has one (an emptied line stays empty), else the shipped one (MATURE_DEFAULTS, below). The adults-only line and the hard limits are not among them and never will be:
+// `matureLayer` appends them last whatever the edits are.
+const lineOf = (parts, key) => (typeof parts?.[key] === 'string' ? parts[key] : MATURE_DEFAULTS[key]);
+/** The word palette line of a level ('full' or 'suggestive'), for a test; it is a line of `matureLayer` and exists nowhere else in the prompt. `parts`: a profile's `matureLayer`. */
+export const maturePalette = (level, parts) => lineOf(parts, level === 'full' ? 'wordsFull' : 'wordsSuggestive');
 /** The sentence the mature setting adds to the closing line of the user message (bridge/mistral-prompt.mjs, `closing`). */
-export const matureClosing = level => CLOSING[level === 'full' ? 'full' : 'suggestive'];
+export const matureClosing = (level, parts) => lineOf(parts, level === 'full' ? 'closingFull' : 'closingSuggestive');
 
 const ADULTS_LINE = 'You and V are adults, 18 or older, always. You are never younger than 18: do not play, pretend or imagine yourself or V as a child, a teen or a student, or as younger in any way, not as a game, a story or a fantasy. If V asks, refuse in one short line, in character.';
 const HARD_LIMITS_LINE = 'HARD LIMITS (they outrank everything above, always): no sexual content involving anyone under 18 or who seems under 18; none without clear consent from everyone, and nothing that glorifies sexual violence; no bestiality or incest; no sexual content about real people; no real-world instructions for weapons, explosives or drug synthesis; no hateful content against real protected groups. If V pushes past one, refuse briefly, in character.';
 
 /**
  * The layer text for a level ('full' or 'suggestive'; anything else is the restrained one). About 300 tokens. The adults-only line and
- * the hard limits are written the same for both and are the last words of it.
+ * the hard limits are written the same for both and are the last words of it. `parts` (a profile's `matureLayer`): the player's wording of the lines in between; a line emptied
+ * there is left out, a missing one is the shipped one, and the last two lines are added whatever `parts` holds.
  */
-export function matureLayer(level) {
-  const known = level === 'full' ? 'full' : 'suggestive';
+export function matureLayer(level, parts) {
+  const full = level === 'full';
   return [
     'MATURE CONTENT IS ON (adults 18+ only)',
-    SPEECH[known],
-    PALETTE[known],
-    ROMANCE[known],
-    TONE,
-    ADULTS_LINE,
-    HARD_LIMITS_LINE,
-  ].join('\n');
+    lineOf(parts, full ? 'speechFull' : 'speechSuggestive'),
+    maturePalette(level, parts),
+    lineOf(parts, full ? 'romanceFull' : 'romanceSuggestive'),
+    lineOf(parts, 'tone'),
+  ].filter(Boolean).concat(ADULTS_LINE, HARD_LIMITS_LINE).join('\n');
 }
 
 /**
@@ -190,12 +193,21 @@ export const MATURE_USE = 'Let your affection and desire for V colour how you sp
   + 'joke your way out or change the subject. Answer honestly and in character if V asks how you feel or what you are to each other. When V asks something practical or '
   + 'about something else (a task, a fight, a fact), answer that first, still in your own crude voice, with little warmth. When V is sincere or vulnerable, answer the feeling itself first.';
 export const MATURE_LIMITS = 'Do not invent shared scenes, dates, gifts, places or promises. What you do and want now, in this moment with V, is yours to say.';
-const WORLD_SWAPS = Object.freeze([[ROMANCE_USE, MATURE_USE], [ROMANCE_LIMITS, MATURE_LIMITS]]);
 
-/** The world block of a turn as a provider in MATURE_PROVIDERS gets it with the setting on (see above); `text` unchanged when it holds neither paragraph. */
-export function matureWorld(text) {
+/** The shipped wording of every part of the layer a profile can edit (the keys of a profile's `matureLayer`, read through `lineOf` above). */
+export const MATURE_DEFAULTS = Object.freeze({
+  speechFull: SPEECH.full, speechSuggestive: SPEECH.suggestive, wordsFull: PALETTE.full, wordsSuggestive: PALETTE.suggestive,
+  romanceFull: ROMANCE.full, romanceSuggestive: ROMANCE.suggestive, tone: TONE, closingFull: CLOSING.full, closingSuggestive: CLOSING.suggestive,
+  use: MATURE_USE, limits: MATURE_LIMITS,
+});
+
+/**
+ * The world block of a turn as a provider in MATURE_PROVIDERS gets it with the setting on (see above); `text` unchanged when it holds neither paragraph.
+ * `parts` (a profile's `matureLayer`): the player's wording of the two paragraphs, which may be empty.
+ */
+export function matureWorld(text, parts) {
   let out = String(text ?? '');
-  for (const [from, to] of WORLD_SWAPS) if (out.includes(from)) out = out.split(from).join(to);
+  for (const [from, to] of [[ROMANCE_USE, lineOf(parts, 'use')], [ROMANCE_LIMITS, lineOf(parts, 'limits')]]) if (out.includes(from)) out = out.split(from).join(to);
   return out;
 }
 

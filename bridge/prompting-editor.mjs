@@ -5,7 +5,7 @@
 //
 // What the page needs per profile (`details`): the label data, the shipped default, the effective profile (default with the player's change), the stored change and whether
 // the profile is the one the next reply would use. Nothing here runs per turn: the prompt builder reads the store with a plain lookup (PromptProfiles.resolve).
-import {PROFILE_LIMITS, PROFILE_FIELDS, LABEL_KEYS, VOLATILE_PLACES, mergeProfile, renderRules, renderClosing, renderExamples} from './prompt-profiles.mjs';
+import {PROFILE_LIMITS, PROFILE_FIELDS, LABEL_KEYS, VOLATILE_PLACES, mergeProfile, renderRules, renderClosing, renderExamples, renderMature, matureCapable} from './prompt-profiles.mjs';
 import {EditorError} from './character-editor.mjs';
 
 const ID = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -92,6 +92,7 @@ export class PromptingEditor {
     const checked = this.profiles.validate(id, this.#body(patch));
     if (!checked.ok) return {ok: false, errors: checked.errors};
     const profile = mergeProfile(this.profiles.getDefault(id), checked.value);
-    return {ok: true, rules: renderRules(profile, {name, talkWords, mature}), closing: renderClosing(profile, {name, talkWords}), examples: renderExamples(profile)};
+    return {ok: true, rules: renderRules(profile, {name, talkWords, mature}), closing: renderClosing(profile, {name, talkWords}), examples: renderExamples(profile),
+      mature: mature && matureCapable(id) ? renderMature(profile, {name, talkWords}) : null};
   }
 }

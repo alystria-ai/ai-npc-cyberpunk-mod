@@ -19,7 +19,7 @@ import {readFile, readdir, rename, rm, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 import {PROFILE_FIELDS, PROFILE_LIMITS, builtInRows, defaultProfile, familyOf, customProfileId, isCustomProfileId, mergeProfile, profileIdFor,
-  validateOverride, readOverride, renderRules, renderClosing, renderExamples} from './prompt-profiles.mjs';
+  validateOverride, readOverride, renderRules, renderClosing, renderExamples, renderMature, matureCapable} from './prompt-profiles.mjs';
 
 export {PROFILE_LIMITS, PROFILE_FIELDS};
 
@@ -70,7 +70,7 @@ export class PromptProfiles {
         const value = JSON.parse(raw);
         if (plain(value) && value.version === 1 && value.id === id && (builtInRows().some(row => row.id === id) || isCustomProfileId(id))) {
           const family = isCustomProfileId(id) ? (typeof value.meta?.family === 'string' ? value.meta.family : 'generic') : undefined;
-          const row = readOverride(value, defaultProfile(id, {family}), {mistral: id === 'mistral'});
+          const row = readOverride(value, defaultProfile(id, {family}), {mistral: id === 'mistral', matureOk: matureCapable(id)});
           if (isCustomProfileId(id)) this.meta.set(id, {host: String(value.meta?.host ?? '').slice(0, 80), model: String(value.meta?.model ?? '').slice(0, 200), family: family ?? 'generic'});
           if (Object.keys(row).length) this.rows.set(id, Object.freeze(row));
           continue;
@@ -154,7 +154,7 @@ export class PromptProfiles {
   validate(id, patch) {
     const defaults = this.getDefault(id);
     if (!defaults) return {ok: false, errors: [{field: '', code: 'unknown-profile'}]};
-    return validateOverride(patch, defaults, this.rows.get(id) ?? {}, {mistral: id === 'mistral'});
+    return validateOverride(patch, defaults, this.rows.get(id) ?? {}, {mistral: id === 'mistral', matureOk: matureCapable(id)});
   }
 
   /**
@@ -198,6 +198,7 @@ export class PromptProfiles {
     if (!profile) return null;
     const talkWords = Number.isInteger(sample.talkWords) ? sample.talkWords : 0;
     return {rules: renderRules(profile, {name: sample.name ?? 'Judy', talkWords, mature: sample.mature === true}),
-      closing: renderClosing(profile, {name: sample.name ?? 'Judy', talkWords}), examples: renderExamples(profile)};
+      closing: renderClosing(profile, {name: sample.name ?? 'Judy', talkWords}), examples: renderExamples(profile),
+      mature: sample.mature === true && matureCapable(id) ? renderMature(profile, {name: sample.name ?? 'Judy', talkWords}) : null};
   }
 }

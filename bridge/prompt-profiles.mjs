@@ -12,6 +12,8 @@
 //   sampling   {temperature, topP, topK, minP, repeatPenalty, presencePenalty, frequencyPenalty, maxTokens, extra} (null: not sent). `extra`: the player's own request fields, an object (bridge/sampler-extras.mjs);
 //              topK, minP and extra are for Local AI and Custom only (Mistral's API does not take them)
 //   limits     {persona, turns} (null: the shipped limit); stop: extra strings that end a reply
+//   matureLayer  the wording of the Mature layer's lines, its closing clause and the two relationship paragraphs (MATURE_DEFAULTS), per level where the layer has two; the adults-only line, the hard
+//              limits and the input screening are not part of it and cannot be edited. Only the "Mature on" options and the Custom ones take it
 // Tokens in a text: {name} (the character's name; "yourself" in a rule, "this person" in the closing) and {words} (the reply length of a speaker that has one).
 //
 // What a profile can never change, because it is not part of it: the facts the character gets (the world block, the right-now block, the memory), the hard-limit guard and the Mature
@@ -19,6 +21,7 @@
 // by the player the profile is its shipped default and the prompt is byte for byte what that default builds, so the prompt cache and the pinned hashes hold.
 import {createHash} from 'node:crypto';
 import {checkExtra, EXTRA_LIMITS} from './sampler-extras.mjs';
+import {MATURE_DEFAULTS, matureLayer, matureClosing} from './mature-content.mjs';
 
 // ---- Field limits (what the editor enforces) -------------------------------------------------------------------------------------------
 export const PROFILE_LIMITS = Object.freeze({
@@ -28,11 +31,11 @@ export const PROFILE_LIMITS = Object.freeze({
   stops: 4, stop: 32,
   temperature: Object.freeze([0, 2]), topP: Object.freeze([0, 1]), topK: Object.freeze([0, 1000]), minP: Object.freeze([0, 1]), repeatPenalty: Object.freeze([1, 2]),
   presencePenalty: Object.freeze([-2, 2]), frequencyPenalty: Object.freeze([-2, 2]), maxTokens: Object.freeze([16, 2000]),
-  persona: Object.freeze([2000, 16000]), turns: Object.freeze([0, 11]), extra: EXTRA_LIMITS.chars,
+  persona: Object.freeze([2000, 16000]), turns: Object.freeze([0, 11]), extra: EXTRA_LIMITS.chars, matureText: 1500,
 });
 export const LABEL_KEYS = Object.freeze(['rules', 'examples', 'formatNotes', 'world', 'remember', 'knowledge', 'rightNow', 'youNow', 'thisTurn', 'things']);
 export const VOLATILE_PLACES = Object.freeze(['before', 'after']);
-export const PROFILE_FIELDS = Object.freeze(['rules', 'examples', 'intro', 'closing', 'labels', 'layout', 'sampling', 'limits', 'stop']);
+export const PROFILE_FIELDS = Object.freeze(['rules', 'examples', 'intro', 'closing', 'labels', 'layout', 'sampling', 'limits', 'stop', 'matureLayer']);
 
 // ---- The shipped base: the one prompt wording every text provider had before profiles --------------------------------------------------
 // The output rules, written for a small model (ministral-8b): a short numbered list in priority order, each rule one plain instruction. There are deliberately no example replies: the
@@ -86,6 +89,8 @@ const BASE = {
   sampling: {temperature: 0.65, topP: null, topK: null, minP: null, repeatPenalty: null, presencePenalty: null, frequencyPenalty: null, maxTokens: 600, extra: null},
   limits: {persona: null, turns: null},
   stop: [],
+  // The Mature layer's own wording (bridge/mature-content.mjs MATURE_DEFAULTS). Used only while the Mature setting is on, by Local AI and Custom; the editor offers it on the "Mature on" options and the Custom ones.
+  matureLayer: {...MATURE_DEFAULTS},
 };
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -311,7 +316,10 @@ function text(given, field, key, max, errors, {empty = false} = {}) {
 const SUBFIELDS = {
   intro: ['named', 'ambient'], closing: ['text', 'talk'], labels: LABEL_KEYS,
   layout: ['youNow', 'volatile'], sampling: ['temperature', 'topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty', 'maxTokens', 'extra'], limits: ['persona', 'turns'],
+  matureLayer: Object.keys(MATURE_DEFAULTS),
 };
+/** Does this option's turn get the Mature layer when the setting is on? The Mature Local AI options and every Custom one (Mistral never does, and the other Local AI options run with the setting off). */
+export const matureCapable = id => (typeof id === 'string' && id.startsWith('mature-')) || isCustomProfileId(id);
 // The sampling fields that can be switched off (stored as null: not sent) where the default has a value, and the ones Mistral's API does not take.
 const SWITCHABLE = new Set(['topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty']);
 const NOT_FOR_MISTRAL = new Set(['topK', 'minP', 'extra']);
@@ -321,7 +329,7 @@ const NOT_FOR_MISTRAL = new Set(['topK', 'minP', 'extra']);
  * a sub-field back to the default. `current` is the override stored now (fields the patch does not mention are kept). Returns {ok: true, value} with the fields to store (a field equal to its default
  * is dropped), or {ok: false, errors: [{field, key?, index?, code, max?}]}; the codes are stable words the page turns into sentences.
  */
-export function validateOverride(patch, defaults, current = {}, {mistral = false} = {}) {
+export function validateOverride(patch, defaults, current = {}, {mistral = false, matureOk = true} = {}) {
   const errors = [], next = copy(current ?? {});
   if (!plain(patch)) return {ok: false, errors: [{field: '', code: 'bad-request'}]};
   for (const field of Object.keys(patch)) if (!PROFILE_FIELDS.includes(field)) errors.push({field, code: 'unknown-field'});
@@ -333,6 +341,7 @@ export function validateOverride(patch, defaults, current = {}, {mistral = false
     if (field === 'examples') { const list = lineList(given, 'examples', PROFILE_LIMITS.examples, PROFILE_LIMITS.example, PROFILE_LIMITS.examplesTotal, errors); if (list) next.examples = list; continue; }
     if (field === 'stop') { const list = stopList(given, errors); if (list) next.stop = list; continue; }
     if (!plain(given)) { errors.push({field, code: 'bad-type'}); continue; }
+    if (field === 'matureLayer' && !matureOk) { errors.push({field, code: 'no-mature-layer'}); continue; }
     const keys = SUBFIELDS[field];
     const row = {...(next[field] ?? {})};
     for (const key of Object.keys(given)) {
@@ -342,6 +351,8 @@ export function validateOverride(patch, defaults, current = {}, {mistral = false
       if (field === 'intro') { const line = text(value, field, key, PROFILE_LIMITS.intro, errors); if (line !== null) row[key] = line; }
       else if (field === 'closing') { const line = text(value, field, key, PROFILE_LIMITS.closing, errors, {empty: true}); if (line !== null) row[key] = line; }
       else if (field === 'labels') { const line = text(value, field, key, PROFILE_LIMITS.label, errors); if (line !== null) row[key] = line; }
+      // An emptied line is kept (the line is left out of the layer); the adults-only line and the hard limits are not in this list and are always added after it.
+      else if (field === 'matureLayer') { const line = text(value, field, key, PROFILE_LIMITS.matureText, errors, {empty: true}); if (line !== null) row[key] = line; }
       else if (field === 'layout') {
         if (key === 'youNow' && typeof value === 'boolean') row[key] = value;
         else if (key === 'volatile' && VOLATILE_PLACES.includes(value)) row[key] = value;
@@ -431,6 +442,15 @@ export function renderClosing(profile, {name = '', talkWords = 0, extra = ''} = 
   const body = fill(talkWords && profile.closing.talk ? profile.closing.talk : profile.closing.text, name, 'this person', talkWords);
   const inside = [body, extra].filter(Boolean).join(' ');
   return inside ? `(${inside})` : '';
+}
+
+/**
+ * The Mature layer and the closing line with its Mature clause, as a turn on a model of each level reads them: {full, suggestive}. For the editor's preview of an option that gets the layer.
+ * The layer is the one `systemHead` appends (the adults-only line and the hard limits last).
+ */
+export function renderMature(profile, {name = '', talkWords = 0} = {}) {
+  const one = level => `${matureLayer(level, profile.matureLayer)}\n\n${renderClosing(profile, {name, talkWords, extra: matureClosing(level, profile.matureLayer)})}`;
+  return {full: one('full'), suggestive: one('suggestive')};
 }
 
 /** The shipped limits with the profile's own persona length and number of turns laid over them (a null keeps the shipped one; a profile can only shorten). */

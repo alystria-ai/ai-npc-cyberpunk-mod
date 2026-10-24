@@ -6,7 +6,7 @@ import {TextProviderHost, localRoute, customRoute, mistralRoute, samplingBody, L
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, buildMessages, LIMITS} from './mistral-prompt.mjs';
-import {MatureContent} from './mature-content.mjs';
+import {MatureContent, MATURE_DEFAULTS, guardLayer} from './mature-content.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
 import {BASE_PROFILE, defaultProfile, customProfileId, profileSignature} from './prompt-profiles.mjs';
 
@@ -286,4 +286,27 @@ test('Custom: a server that refuses with no field named drops the sampling field
     const last = t.llama.requests.at(-1);
     assert.equal('typical_p' in last, false); assert.equal('top_k' in last, false);
   } finally { await t.close(); }
+});
+
+// ---- The Mature layer's wording (bridge/mature-layer-edit.test.mjs has the rest) ----------------------------------------------------------------------------------
+
+test('Mature Local AI: an edited layer line and closing clause are in the request, the hard limits still end the layer; Mistral with the setting on gets no layer at all', async () => {
+  const t = await setup('local', {tier: 'standard', mature: true});
+  try {
+    const saved = await t.profiles.set('mature-standard', {matureLayer: {speechSuggestive: 'MY SPEECH.', speechFull: 'MY SPEECH.', closingFull: 'MY CLOSING.', closingSuggestive: 'MY CLOSING.', tone: ''}});
+    assert.equal(saved.ok, true);
+    await t.host.reply(turn('hello'));
+    const body = t.llama.requests[0];
+    assert(systemOf(body).includes('MY SPEECH.'));
+    assert(body.messages.at(-1).content.includes('MY CLOSING.'));
+    assert.equal(systemOf(body).includes(MATURE_DEFAULTS.tone), false);
+    assert(systemOf(body).includes(guardLayer()), 'the adults-only line and the hard limits are in the prompt');
+    assert(systemOf(body).indexOf('MY SPEECH.') < systemOf(body).indexOf(guardLayer()));
+  } finally { await t.close(); }
+  const mistral = await setup('mistral', {mature: true});
+  try {
+    assert.equal((await mistral.profiles.set('mistral', {matureLayer: {tone: 'x'}})).ok, false);
+    await mistral.host.reply(turn('hello'));
+    assert.equal(systemOf(mistral.llama.requests[0]).includes('MATURE CONTENT IS ON'), false);
+  } finally { await mistral.close(); }
 });
