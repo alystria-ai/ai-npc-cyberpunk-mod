@@ -8,6 +8,11 @@
 -- call while V stands). Seats are searched once per sit, with a bounded number
 -- of raycasts spread over two updates. Nothing here runs per frame or touches
 -- files. Vehicles are excluded (companion-vehicles.lua owns them).
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local workspot = dofile('gesture-workspot.lua')
 local M = {}
 M.TAG = 'CyberpunkConvaiSeatDevice'
@@ -397,7 +402,7 @@ native.exit = workspot.exit -- native fast exit only; never StopNpcInWorkspot
 native.stopInDevice = workspot.stopInDevice
 function native.lookingAt(player, point, cone)
     local ok, looking = pcall(function()
-        local okView, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+        local okView, _, view = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
         local f = okView and view or player:GetWorldForward()
         local at = player:GetWorldPosition()
         local bx, by = point.x - at.x, point.y - at.y
@@ -479,7 +484,7 @@ function native.openness(spot, toward, forward, reach, heights)
 end
 function native.hiddenFrom(player, point, cone)
     local ok, hidden = pcall(function()
-        local okView, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+        local okView, _, view = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
         local f = okView and view or player:GetWorldForward()
         local at = player:GetWorldPosition()
         local bx, by = point.x - at.x, point.y - at.y

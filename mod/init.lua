@@ -24,6 +24,18 @@ pcall(function()
     trim('runtime/mcm.log', 262144, 65536)
 end)
 -- LOG-TRIM-END
+-- Game 2.5 changed TargetingSystem.GetCrosshairData(owner) into GetCrosshairData(ownerID, owner). Every caller goes through this: it tries the 2.31
+-- form once and keeps whichever form answers (both return the crosshair position and direction).
+local crosshairForm = nil
+function ConvaiCrosshairData(targeting, player)
+    if crosshairForm == '2.5' then return targeting:GetCrosshairData(player:GetEntityID(), player) end
+    if crosshairForm == '2.31' then return targeting:GetCrosshairData(player) end
+    local ok, position, forward = pcall(targeting.GetCrosshairData, targeting, player)
+    if ok then crosshairForm = '2.31'; return position, forward end
+    position, forward = targeting:GetCrosshairData(player:GetEntityID(), player)
+    crosshairForm = '2.5'
+    return position, forward
+end
 -- Optional native core plugin: routes the bridge mailbox files through its worker thread when
 -- present (native-core.lua). Without the plugin, io and os stay unchanged.
 pcall(function() dofile('native-core.lua').install() end)
@@ -2221,7 +2233,9 @@ local function targetAtCrosshair(gathered)
     local targeting = Game.GetTargetingSystem()
     local gather = gathered or gatherTargets(player)
     local candidates, seated, onFoot, lookedOk, looked = gather.candidates, gather.seated, gather.onFoot, gather.lookedOk, gather.looked
-    local playerPos, forward = targeting:GetCrosshairData(player)
+    -- ConvaiCrosshairData is nil only where this function runs without the top of init.lua (tests): the plain 2.31 call then.
+    local playerPos, forward
+    if ConvaiCrosshairData then playerPos, forward = ConvaiCrosshairData(targeting, player) else playerPos, forward = targeting:GetCrosshairData(player) end
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
     -- Measure every candidate once: its best aim point (torso, or the actual
     -- Head slot for a close face-to-face talk), the angle to the crosshair and

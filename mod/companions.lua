@@ -2,6 +2,11 @@
 -- A world character asked to follow joins as a managed copy placed where it
 -- stood (invitation.adoption, docs/WORLD_COMPANIONS.md); the original is only
 -- hidden and shown again by companion-adoption.lua, never given a role.
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local M = {}
 local behavior = dofile('companion-behavior.lua')
 local space = dofile('companion-space.lua')
@@ -428,7 +433,7 @@ local function spawnCopy(key, invitation, returning)
     local typeOk, character = pcall(function() return record:IsA('gamedataCharacter_Record') end)
     if not typeOk or not character then return nil, 'This record is not a character model.' end
     if not groupFrame then
-        local ok, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+        local ok, _, view = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
         local forward = ok and view or player:GetWorldForward()
         if not forward then forward = player:GetWorldForward() end
         groupFrame = travel.new(space.copy(player:GetWorldPosition()), forward)
@@ -1390,7 +1395,7 @@ local function stopPace(entry)
     end)
 end
 local function cameraForward(player)
-    local ok,_,view=pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+    local ok,_,view=pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
     local forward=ok and view or player:GetWorldForward()
     return forward and space.unit(forward.x,forward.y) or nil
 end

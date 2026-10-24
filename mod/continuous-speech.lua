@@ -6,6 +6,11 @@
 -- inline `face` from an older bridge is still accepted.
 -- faceSegments: that file may use the segmented layout (bridge/continuous-face-file.mjs):
 -- the game then decodes only the segments that changed since its last read.
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local M = {version = 1, available = true, faceFile = true, faceSegments = true}
 local owner, sequence, poll, wait, previous, lastUpdated, volumePoll, volume = nil, 0, 0, 0, nil, nil, 0, nil
 local readSequence, acceptedSequence = 0, 0
@@ -134,7 +139,7 @@ local function spatial(player, actor)
     -- A holocall reply comes through the phone: full level, centred, no distance (the live picture's copy is far away). Johnny in V's
     -- head (docs/JOHNNY_IN_YOUR_HEAD.md) is heard the same way: a voice with no place in the world.
     if owner and (owner.holocall or owner.head) then speakerDistance = 0; return volume or 0, 0 end
-    local origin, forward = Game.GetTargetingSystem():GetCrosshairData(player)
+    local origin, forward = crosshairData(Game.GetTargetingSystem(), player)
     local position = voicePosition(actor, origin)
     local dx, dy, dz = position.x-origin.x, position.y-origin.y, position.z-origin.z
     assert(finite(dx) and finite(dy) and finite(dz) and finite(forward.x) and finite(forward.y))
