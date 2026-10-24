@@ -170,3 +170,15 @@ It is a full copy with RED4ext 1.30.0, CET 1.37.1 and the 0.3.0 Runtime. It has 
 relaunch the game it knows (the Steam folder, now 2.5). Starting it needs `bin/x64/steam_appid.txt` containing `1091500` (a file add in the keeper, with Steam running),
 or a Steam shortcut to the keeper's `Cyberpunk2077.exe`. Both installs share the saves in `Saved Games` and the mod's state in `%LOCALAPPDATA%/AiNpcCyberpunkMod`.
 Not done: the keeper was not touched.
+
+## The 0.3.1 build (2026-10-24, both games from main 4df5a8d8)
+
+Built with `%TEMP%/release-u4` as for 0.3.0 (the Runtime is the carried base patched with the commit's files, `patch-zip-031.mjs` takes `RELEASE_GAME`), once per game. The two Runtimes differ in exactly two files
+(`CyberpunkConvaiNative.dll` and `app/release.json`), the two Scripts in `GameVariant.reds` and `release.json`. Both Runtimes carry the same cumulative removal list.
+
+* **Switch update (`--switch-game`)**: `node packaging/build-runtime-update.mjs --old <0.3.0 Runtime of game 2.31> --new <0.3.1 Runtime for game 2.5> --out DIR --switch-game` builds
+  `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip`: the files that differ between the old 2.31 Runtime and the new 2.5 one (15 files, 0.7 MiB, the 2.5 DLL among them) and the step marker
+  `step-0.3.0-to-0.3.1.json`. A player on 0.3.0 for game 2.31 who moved to 2.5 applies it with the 2.5 Scripts instead of downloading the full 2.5 Runtime. Without `--switch-game` an update
+  across games is refused. The zip belongs in `game-2.5/updates/`. Only a step like this one is possible: the chain after it (`0.3.1-to-0.3.2-for-2.5`) is a plain 2.5 step.
+* **Install test**: `node packaging/test-release-install.mjs --packages DIR --version 0.3.1 --game 2.5 [--update-from <0.3.0 Runtime> --update-from-scripts <0.3.0 Scripts>]` expects the `-for-2.5` names and
+  checks that the Scripts and the Runtime both say the game.
