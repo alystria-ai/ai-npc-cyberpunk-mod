@@ -296,6 +296,15 @@ test('a Convai or LiveKit connection failure is told apart from a microphone fau
   assert.deepEqual(microphoneErrorState(Object.assign(Error('x'), {code: 'STT_LANGUAGE'})), {state: 'error', reason: 'language'});
 });
 
+// Live 2026-10-24: the game stalled, the bridge read "no world", and the next press failed with "Conversation world changed". The game turned that into
+// "Microphone unavailable. Check your Windows input device." although nothing was wrong with the microphone.
+test('a turn ended because its world changed is a connection state, not a microphone fault', () => {
+  for (const message of ['Conversation world changed', 'Conversation memory changed', 'Phone world changed']) {
+    assert.deepEqual(microphoneErrorState(Error(message)), {state: 'error', reason: 'connection'}, message);
+  }
+  assert.deepEqual(microphoneErrorState(Error('The world changed under the cursor')), {state: 'error'}, 'only the bridge own wording');
+});
+
 test('a start that fails with the LiveKit publication timeout closes the host and reaches onError as a connection failure', async () => {
   const f = fixture();
   const start = f.session.start(recording(), configuration());

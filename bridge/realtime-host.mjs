@@ -79,6 +79,8 @@ export const PCM_MODULES = Object.freeze([
 ]);
 
 const pageKey = transportKey;
+// A recording with less audio than this (from the moment the microphone opened to the key release) holds no word.
+const MIN_CAPTURED_MS = 120;
 // This is the installed SDK 1.7 default, also used by the captured live trial.
 // The documentation's example uses live.convai.com; do not redirect the SDK.
 const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
@@ -954,7 +956,12 @@ export class RealtimeHost {
       }
       // "Companions can see": the frame staged while V talked is already on the page; only queued pictures go with the finish.
       // Everything the player said is in the page before it finishes (the tap stops when the key is let go; this covers a finish that arrives first).
-      if (lease.pump && lease.tapOwner) { await this.micTap.stop(lease.tapOwner); await lease.pump.idle(); }
+      if (lease.pump && lease.tapOwner) {
+        await this.micTap.stop(lease.tapOwner); await lease.pump.idle();
+        // A key let go before the microphone had opened (a Bluetooth headset takes 1.5 to 2.5 s) captured nothing: there is nothing to recognise, so say so now
+        // instead of after Convai's 15 s recognition window (live 2026-10-24). The words of a hold this short do not exist; the player is told to speak and try again.
+        if (this.micTap.streamMs < MIN_CAPTURED_MS) throw Error('No speech was heard');
+      }
       let finishConfig = config || lease.config;
       const images = this.withVision(finishConfig).vision ? await this.turnImages(finishConfig, 'finish') : null;
       if (images) finishConfig = {...finishConfig, visionImages: images};

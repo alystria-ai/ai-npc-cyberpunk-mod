@@ -93,7 +93,7 @@ import {startConvaiSignIn} from './convai-signin.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
-import {readWorldSession} from './world-session.mjs';
+import {readWorldSession, lateWorld, worldBoundary, MIC_LEASE_MS} from './world-session.mjs';
 import {RelationshipRouting, retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
@@ -663,9 +663,10 @@ if (intrinsicHistory.unavailable.length) console.error('[CyberpunkConvai] Option
 // One local player ID is shared across all characters and saves. No save facts,
 // branch IDs, manual memory archive or provider-ID pool participates in routing.
 let worldSession = null, knowledgePolling = false, memoryQuiescing = 0;
-const currentBoundary = () => worldSession?.ready === true
-  && Date.now() - worldSession.updated < 5000
-  ? {worldToken: worldSession.token, generation: worldSession.generation} : null;
+// A voice turn that is running (the key is held, a recording or its reply is under way) rides out a game that stalls for up to MIC_LEASE_MS: the heartbeat is only late,
+// and ending the turn for it left the player with a subtitle and no reply (bridge/world-session.mjs). Assigned once the microphone exists, below.
+let micTurnRunning = () => false;
+const currentBoundary = () => worldBoundary(worldSession, micTurnRunning());
 const worldCurrent = boundary => {
   const current = currentBoundary();
   return !!current && current.worldToken === boundary.worldToken && current.generation === boundary.generation;
@@ -784,6 +785,16 @@ async function cancelKnowledgeTurn(prepared) {
   }
   if (entry) entry.cancelled = true;
   await knowledgeRouter.activity(prepared, 'cancelled-turn').catch(() => {});
+}
+// The bridge ends a running voice turn because its world or the game's speech service is gone for good. The game is told, as an error that says "could not reach" and
+// not "check your Windows input device": otherwise it waits in silence for a reply that cannot come (mod/microphone.lua retries only after 8 s, on the next press).
+async function abandonMicrophone(why) {
+  const current = mic.current;
+  await cancelMicrophone();
+  if (!current || stopped) return;
+  console.error('[CyberpunkConvai] Microphone: the voice turn ended (' + why + ')');
+  micStateLast = {state: 'error', reason: 'connection', requestId: current.requestId};
+  await publishMicState().catch(() => {});
 }
 async function cancelMicrophone() {
   micV.dropAll('turn-ended');   // V's line for a spoken turn ends with the turn (bridge/mic-v-line.mjs)
@@ -2368,6 +2379,8 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
 // microphone channel on a text provider, and by the recognised words in the stream on the Convai provider (convaiHooks above). An add-on's or a made
 // character's voice turn starts it itself.
 mic.prepareReply = micV.wrapPrepare(mic.prepareReply, {own: input => addonVoice.voice(input)});
+// A voice turn is running from the key press (the tap is held for a turn) until its reply is published or it is cancelled (world lease, above).
+micTurnRunning = () => mic.current !== null || (micTap.state !== 'closed' && micTap.mode === 'turn');
 
 async function resetLiveRoutes({cancelTurns = true} = {}) {
   await companionActions.revoke();
@@ -2513,11 +2526,11 @@ async function pollMicrophone() {
       }
       else if (command.action === 'finish') {
         const prior = microphoneKnowledge.get(input.requestId);
-        if (!prior || !await knowledgeRouter.current(prior)) { await cancelMicrophone(); return; }
+        if (!prior || !await knowledgeRouter.current(prior)) { await abandonMicrophone('the world is gone'); return; }
         const refreshed = await knowledgeRouter.prepare({...input, source: 'microphone'},
           {worldToken: worldSession?.token, generation: worldSession?.generation});
         if (!await knowledgeRouter.current(prior) || !await knowledgeRouter.current(refreshed)
-            || refreshed.sessionKey !== prior.sessionKey) { await cancelMicrophone(); return; }
+            || refreshed.sessionKey !== prior.sessionKey) { await abandonMicrophone('the world changed'); return; }
         // The same submitted turn retains its receipt owner; only the context
         // snapshot and native input data refresh at microphone completion.
         preparedInputs.set(refreshed.input, refreshed);
@@ -2586,7 +2599,7 @@ async function pollMicrophone() {
         if (recording.opened && Date.now() - recording.opened >= 32000 && recording.intent !== 'finish') await cancelMicrophone();
         else await publishHeard(recording);
       }
-      else if (!owner || !await knowledgeRouter.current(owner) || !await audioReady(runtime)) await cancelMicrophone();
+      else if (!owner || !await knowledgeRouter.current(owner) || !await audioReady(runtime, MIC_LEASE_MS)) await abandonMicrophone('the world or the speech service of the game is gone');
       // Lua's 30-second finish captures fresh native context. Never let the
       // bridge timeout submit the old start snapshot first. Allow its command
       // two seconds to arrive; a missing command cancels the recording.
@@ -3236,8 +3249,12 @@ async function pollKnowledge() {
   if (knowledgePolling || stopped) return;
   knowledgePolling = true;
   try {
-    const session = await readWorldSession(resolve(runtime, 'world-session.json'), {held: worldSession?.ready === true});
+    const lapse = {};
+    let session = await readWorldSession(resolve(runtime, 'world-session.json'), {held: worldSession?.ready === true, lapse});
     const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
+    // A game that stalls stops rewriting its heartbeat; the file still names the world we follow, only late. That is not a world change: no route is reset and no
+    // turn cancelled for it. Every ordinary check still refuses the late world (the 5 s lease), so nothing new starts on it until the game writes again.
+    if (!session) session = lateWorld(lapse.value, worldSession);
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     if (priorWorld && priorWorld !== nextWorld) {
@@ -3258,7 +3275,7 @@ async function pollKnowledge() {
       bound: playerMemory.status().available === true, identifiedMemory: true,
       memoryMode: 'natural-conversations', providerIdLimit: 1,
       rules: knowledgePack.rules.filter(rule => rule.reviewed && /verified$/.test(rule.status)).length,
-      worldGeneration: worldSession?.generation, currentWorld: !!nextWorld}));
+      worldGeneration: worldSession?.generation, currentWorld: !!nextWorld && worldBoundary(worldSession) !== null}));
   } finally { knowledgePolling = false; }
 }
 

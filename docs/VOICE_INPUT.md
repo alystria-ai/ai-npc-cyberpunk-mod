@@ -39,6 +39,35 @@ The first build did not work in the game (Convai, Pocket voice): no reply on any
    a long backlog off in the middle of the words). Proof, in real Edge over a WebRTC loopback (`pcm-relay.test.mjs`, `mic-relay-e2e.test.mjs`): nothing arrives
    before `start()`, and then the whole pre-roll plus the live audio arrives.
 
+## Live test of 2026-10-24: about 2 of 6 turns lost (Convai, game 2.31, Bluetooth headset, keyboard key and controller L3)
+
+The player's words showed as a subtitle, no reply came, and the game said "Microphone unavailable" (`bridge.stderr.log` and `runtime/probe.log`, 08:26 to 08:28 UTC). Four turns, four findings (the first is what the logs prove, the second was found in the code and reproduced, the third and fourth are the visible results).
+
+1. **A stalled game was read as a world change.** The game's own movement trace (`runtime/movement-trace.ndjson`, a sample every 0.5 s of game time) has no sample for 5.3 s after the second turn's
+   release and none for 17 s after the retry press, and `probe.log` is silent in the same spans. `world-session.json` (the game's heartbeat, rewritten every 2 s) and `speech-state.json` are leased
+   for 5 s, so both expired. `pollKnowledge` then read "no world", took it for a changed world and ran `resetLiveRoutes`: every route reset, the hidden browser closed, and the running voice turn
+   cancelled with nothing said to the game ("the voice turn was cancelled", then "No current world for conversation warmup"). The game waited 8 s for a reply, the next press (the retry) found the bridge
+   still resetting and failed with "Conversation world changed", which the game showed as "Microphone unavailable. Check your Windows input device." although nothing was wrong with the microphone.
+   Why the game stalled is not known (the Bluetooth profile switch of a cold open, the vision capture and Windows suspending a process of a sandboxed launch are the candidates; the cold opens of the second turn and of the
+   retry stalled, those of the first and the third turn did not). **Fix** (`bridge/world-session.mjs`, `bridge/convai-bridge.mjs`): a heartbeat that is only late (valid, the same ready
+   world, less than 2 minutes old) is that world, not a change: nothing is reset (`lateWorld`). Every ordinary check still refuses it after 5 s, so nothing new starts on a stalled game; a voice
+   turn that is running (key held, recording or reply under way, `micTurnRunning`) accepts it for 30 s (`MIC_LEASE_MS`, `worldBoundary`, and `audioReady(runtime, MIC_LEASE_MS)` for the speech service),
+   so it rides out a stall of the game instead of being ended. When the bridge does end a turn for its world it now tells the game (`abandonMicrophone`: an error with reason `connection`,
+   "Voice input could not reach Convai. Hold the voice key again, or type."), and a start or finish that fails with "Conversation/Phone world/memory changed" is the same reason instead of a plain
+   microphone error (`microphoneErrorState`). `audioReady` reads a torn `speech-state.json` once more after 15 ms.
+2. **The key's hold signal could take the microphone back from the turn.** The game writes `microphone-live.json` (the hold) and then, after it has captured the turn's context, the start command.
+   The bridge reads the first every 500 ms and the second every 150 ms, so the start command is often read first and the request opens the tap. The hold that followed called `open('hold:...')`
+   on a tap whose `holdId` matched, which handed the tap to `hold:...`: the request no longer owned it, `whenReady` rejected with "The microphone was released before it opened", the relay
+   could not attach and the key release did not stop the tap. The log cannot show which order a turn took, so this may not have hit these turns; it is a real race that the 150/500 ms polls make common. Fix: `MicTap.hold` does nothing when the tap is already open for that key press.
+3. **A release before the device opened waited 15 s.** A Bluetooth headset opens in 1.5 to 2.5 s; a 2.2 s hold ended before it, nothing was captured, and Convai waited out its 15 s recognition
+   window before "No speech was heard". A recording with less than 120 ms of audio now fails at once with that same notice, without asking Convai (`RealtimeHost.finishVoiceOnce`, `MIN_CAPTURED_MS`).
+4. **Words heard, no final transcript.** The turn with a 2.5 s open and 4.7 s of recording had its first words in the live transcript (Convai's recogniser heard it) and then nothing: no final
+   transcript, no reply, "No speech was heard" after the 15 s window. This is the symptom of the 2026-10-23 relay bug ("Who are", never a final one), but the relay is correct here (the pump,
+   the track and the drain are the ones the tests prove) and the log has no sign of lost audio, so the cause on Convai's side is not known. Fix: when words were heard (the interim transcript) and
+   no final transcript or reply exists 4 s after the finish (`HEARD_WITHOUT_FINAL_MS`, `bridge/realtime-client.mjs`), the heard words are sent to the character once as the player's line, and the turn goes
+   on. They are not recorded as `userText` (a partial transcript is still never taken for what V said). Nothing changes when the final transcript arrives in time, and a recording with no heard words
+   still fails as no speech after 15 s.
+
 ## Why the device takes so long to open (measured 2026-10-23, game closed, `scripts/Measure-ColdOpen.mjs`)
 
 Default input here: a Bluetooth headset (realme Buds Air7); the laptop's own microphone array (Realtek) is the other input. Medians, in ms:

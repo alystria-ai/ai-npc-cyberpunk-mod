@@ -5,13 +5,14 @@ import {microphoneConnectionFailure} from './realtime-host.mjs';
  * What the game reads from runtime/microphone-state.json for a failed microphone start or turn: {state, reason?, device?}.
  * A recording that held no speech is not a device fault ('no-speech'). A device that sends no sound at all is named ('silent', so the player knows which Windows input to look at).
  * No engine could recognise a recording in another language: reason 'language' (voice is English only for now). Convai's media server or the network did not answer: reason 'connection'
- * (the microphone is fine, the next press opens a fresh connection). Everything else is a plain 'error'.
+ * (the microphone is fine, the next press opens a fresh connection). A turn the bridge ended because its world changed or went away is the same kind (the microphone is fine; live 2026-10-24
+ * it was shown as "Microphone unavailable. Check your Windows input device."). Everything else is a plain 'error'.
  */
 export function microphoneErrorState(error) {
   if (error?.code === 'MIC_SILENT') return {state: 'silent', device: String(error.device ?? '').slice(0, 80)};
   if (/No speech was heard/.test(error?.message || '')) return {state: 'no-speech'};
   if (error?.code === 'STT_LANGUAGE') return {state: 'error', reason: 'language'};
-  if (microphoneConnectionFailure(error)) return {state: 'error', reason: 'connection'};
+  if (microphoneConnectionFailure(error) || /^(Conversation|Phone) (world|memory) changed/.test(error?.message || '')) return {state: 'error', reason: 'connection'};
   return {state: 'error'};
 }
 

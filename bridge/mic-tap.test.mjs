@@ -119,6 +119,26 @@ test('a key released before the channel is ready ends the recording on the spot,
   assert.equal(capture.log.includes('abort'), false, 'an ended recording is not aborted again');
 });
 
+// The game writes the key's hold signal (runtime/microphone-live.json) and then, after the turn is set up, the start command. The bridge reads the first every
+// 500 ms and the second every 150 ms, so the start command is often seen FIRST. The hold signal that follows must not take the tap back from the request that
+// already owns it (live 2026-10-24: the turn lost its microphone and failed with "released before it opened").
+test('a hold signal that arrives after the start command leaves the tap with the request', async () => {
+  const capture = fakeCapture({openMs: 30}), tap = new MicTap({capture});
+  const opening = tap.open('req-first', {holdId: 'k-late'}); opening.catch(() => {});
+  const late = tap.hold('k-late');
+  assert.equal(tap.isOwner('req-first'), true, 'the request still owns the tap');
+  assert.equal(tap.isOwner('hold:k-late'), false);
+  await late;
+  const got = [];
+  assert.equal(tap.attach('req-first', chunk => got.push(chunk)).ok, true, 'the request can attach its channel');
+  await assert.doesNotReject(tap.whenReady('req-first'));
+  capture.emit(Buffer.alloc(1280, 3));
+  assert.equal(got.length, 1, 'live audio reaches the request');
+  assert.equal(capture.log.filter(line => line.startsWith('begin')).length, 1, 'one device open for hold and turn');
+  await tap.released('k-late');
+  assert.deepEqual(capture.log.slice(-1), ['end'], 'the key release still stops the recording');
+});
+
 test('a key press that never becomes a turn gives the microphone back after the grace', async () => {
   const timers = [], capture = fakeCapture();
   const tap = new MicTap({capture, setTimer: (fn, ms) => { const t = {fn, ms, unref() {}}; timers.push(t); return t; }, clearTimer: t => { if (t) t.cancelled = true; }});

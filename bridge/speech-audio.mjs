@@ -68,10 +68,20 @@ export async function removeAudioDepot(game) {
   return removed;
 }
 
-/** True when the game's speech adapter has answered recently: speech-state.json `available`, which mod/speech.lua sets once its playback adapter loaded. */
-export async function audioReady(runtime) {
-  try {
-    const state = JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8'));
-    return state.available === true && Date.now() - state.updated < 5000;
-  } catch { return false; }
+/**
+ * True when the game's speech adapter has answered recently: speech-state.json `available`, which mod/speech.lua sets once its playback adapter loaded.
+ * `maxAgeMs`: how old the heartbeat may be (a running voice turn passes a longer one so a stalled game does not end it, bridge/world-session.mjs).
+ * The game rewrites the file in place, so a read can land on a half-written (or empty) file: that is read once more 15 ms later before it counts as "not ready".
+ */
+export async function audioReady(runtime, maxAgeMs = 5000) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const state = JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8'));
+      return state.available === true && Date.now() - state.updated < maxAgeMs;
+    } catch (error) {
+      if (attempt === 0 && error instanceof SyntaxError) { await new Promise(done => setTimeout(done, 15)); continue; }
+      return false;
+    }
+  }
+  return false;
 }

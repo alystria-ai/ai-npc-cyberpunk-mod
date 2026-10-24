@@ -37,6 +37,9 @@ const MICROPHONE_CANCEL_AFTER_MS = 35000;
 // transcript and no reply text exist this long after the finish (and the character is not working on one), the
 // recording held no speech: fail at once with a clear reason instead of waiting out the 60 s reply ceiling.
 const NO_SPEECH_AFTER_MS = 15000;
+// Convai's recogniser normally finalises what it heard within a moment of the finish. Words that were heard (the interim transcript) but still have no final transcript, and no
+// reply, this long after the finish are sent to the character as the player's line, once, instead of failing the turn (live 2026-10-24: the player's words were on screen and no reply came).
+const HEARD_WITHOUT_FINAL_MS = 4000;
 const NO_SPEECH_ERROR = 'No speech was heard';
 const COLLECT_TIMEOUT_ERROR = 'Convai did not finish the reply';
 const USER_TRANSCRIPT_LIMIT = 1200;
@@ -668,8 +671,16 @@ async function collect(current) {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch || turn !== current) throw Error('Conversation cancelled');
       if (current.dataAudio?.error && current.audioLost === undefined) throw current.dataAudio.error;
-      if (current.microphone && !current.userText && !current.text && !client.state.isThinking
-          && performance.now() - started > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
+      if (current.microphone && !current.userText && !current.text && !client.state.isThinking) {
+        const waited = performance.now() - started;
+        if (waited > HEARD_WITHOUT_FINAL_MS && !current.heardSent && typeof current.interim === 'string' && current.interim.trim()) {
+          // Sent once. The words stay a guess: they are not recorded as userText (the bridge never takes a partial transcript for what V said).
+          current.heardSent = true;
+          try { client.sendUserTextMessage(current.interim.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, USER_TRANSCRIPT_LIMIT)); }
+          catch (error) { current.heardSent = false; throw error; }
+        }
+        if (waited > NO_SPEECH_AFTER_MS) throw Error(NO_SPEECH_ERROR);
+      }
       if (current.live) {
         const state = current.live.player.snapshot();
         if (state.error || state.state === 'stopped') throw Error(state.error || 'Continuous speech stopped before completion');

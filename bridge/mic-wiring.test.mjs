@@ -127,3 +127,36 @@ test('the cold-start cue travels in microphone-state.json beside the vad field, 
   assert.match(bridge, /\.\.\.\(micCue \? \{cue: micCue\} : \{\}\)/);
   assert.match(bridge, /onCue: cue => \{ micCue = \{id: BOOT_ID \+ ':cue:' \+ \(\+\+micCueSeq\), hold: cue\.hold, phase: cue\.phase, cold: true\}/);
 });
+
+// ---- a key let go before the microphone opened --------------------------------------------------------------------------------------------------
+// Live 2026-10-24 (a Bluetooth headset opens in 1.5 to 2.5 s): a hold of 2.2 s ended before the device opened, so nothing at all was captured; Convai
+// then waited out its 15 s recognition window before saying "No speech was heard". The turn has no audio to recognise: it says so at once.
+function finishFixture({captured}) {
+  const capture = fakeCapture(), tap = new MicTap({capture});
+  const host = new RealtimeHost({launchBrowser: async () => { throw Error('no browser in this test'); }});
+  const pageCalls = [];
+  const lease = {value: {isClosed: () => false, context: () => ({clearPermissions: async () => {}}),
+    evaluate: async (fn, text) => { pageCalls.push(text); return true; }},
+    release: async () => {}, unpin: () => {}, owner: 'o', epoch: host.epoch, config: {characterId: 'x'}, tapOwner: 'req-f'};
+  host.voiceLease = lease; host.micTap = tap;
+  host.evaluateSpeech = async () => { pageCalls.push('finishVoice'); throw Error('the page was asked to finish'); };
+  return {capture, tap, host, lease, pageCalls, async run() {
+    await tap.open('req-f');
+    lease.pump = host.startRelayPump(lease, tap, 'req-f');
+    for (let ms = 0; ms < captured; ms += TAP.chunkMs) capture.emit(Buffer.alloc(1280, 5));
+    return host.finishVoice('o', undefined, {});
+  }};
+}
+
+test('a recording that captured nothing (the key was let go before the device opened) fails as no speech without asking Convai', async () => {
+  const f = finishFixture({captured: 0});
+  await assert.rejects(f.run(), /^Error: No speech was heard$/);
+  assert.equal(f.pageCalls.includes('finishVoice'), false, 'the page is never asked to finish, so nothing waits for Convai');
+  assert.equal(f.tap.state, 'closed', 'the tap is given back');
+  assert.equal(f.host.voiceLease, null);
+});
+
+test('a recording of a real length still goes to the page', async () => {
+  const f = finishFixture({captured: 400});
+  await assert.rejects(f.run(), /the page was asked to finish/);
+});

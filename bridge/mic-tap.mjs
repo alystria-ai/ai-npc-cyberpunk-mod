@@ -193,7 +193,12 @@ export class MicTap {
   get lingering() { return this.state === 'closed' && this.timers.linger !== undefined; }
 
   // The key went down before the turn's request exists: the tap listens for that request, kept under the key's id.
-  hold(holdId) { return this.open('hold:' + holdId, {holdId}); }
+  // The start command can be read before this signal (it is polled every 150 ms, this every 500 ms): the request then already owns the tap for
+  // this key press, and the late signal must not hand it back to "hold:" (the turn would lose its microphone).
+  hold(holdId) {
+    if (this.state !== 'closed' && holdId === this.holdId) return this.ready;
+    return this.open('hold:' + holdId, {holdId});
+  }
 
   // The key came up. A turn that began adopts the tap by request id (open with holdId); this stops whichever owns it.
   released(holdId) {

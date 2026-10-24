@@ -145,3 +145,18 @@ test('the speech adapter counts as ready only while its state is fresh and says 
     await writeFile(join(runtime, 'speech-state.json'), '{broken'); assert.equal(await audioReady(runtime), false);
   } finally { await rm(runtime, {recursive: true, force: true}); }
 });
+
+test('a voice turn that is running tolerates a stalled game: the heartbeat may be older when the caller says so, and a torn read is read again', async () => {
+  const runtime = await mkdtemp(join(tmpdir(), 'convai-runtime-'));
+  try {
+    const path = join(runtime, 'speech-state.json');
+    await writeFile(path, JSON.stringify({available: true, updated: Date.now() - 17000}));
+    assert.equal(await audioReady(runtime), false, 'the ordinary lease is 5 s');
+    assert.equal(await audioReady(runtime, 30000), true, 'a running recording keeps going through a 17 s stall of the game');
+    assert.equal(await audioReady(runtime, 10000), false);
+    // CET rewrites the file in place: a read that lands between the truncate and the write sees nothing, and 15 ms later the whole file.
+    await writeFile(path, '');
+    setTimeout(() => { void writeFile(path, JSON.stringify({available: true, updated: Date.now()})); }, 5);
+    assert.equal(await audioReady(runtime), true, 'an empty or half-written read is repeated once');
+  } finally { await rm(runtime, {recursive: true, force: true}); }
+});

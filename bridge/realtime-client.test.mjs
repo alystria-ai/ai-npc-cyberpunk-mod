@@ -1659,6 +1659,55 @@ test('a voice recording that produced no transcript and no reply fails as no spe
   await api.close();
 });
 
+// Live 2026-10-24: Convai's recogniser heard the words (the interim transcript reached the game as the subtitle) but never finalised them, so no reply came and the turn
+// failed 15 s later as "No speech was heard" with the player's words on screen. Words that were heard are sent as the line after a short wait.
+test('words Convai heard but never finalised are sent as the line of V after 4 s, not failed as no speech after 15 s', async () => {
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients, events} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  clients[0].handlers.get('userTranscriptionChange')('Tell me about the job');
+  const pending = api.finishVoice(request); pending.catch(() => {}); await flush();
+  offset = 3500; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.some(event => event[0] === 'message'), false, 'the final transcript may still be on its way');
+  offset = 4500; await new Promise(done => setTimeout(done, 120));
+  assert.deepEqual(events.filter(event => event[0] === 'message'), [['message', 'Tell me about the job']]);
+  offset = 5500; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.filter(event => event[0] === 'message').length, 1, 'sent once');
+  clients[0].handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Which job?', isStreaming: false}]);
+  const result = await pending;
+  assert.equal(result.text, 'Which job?');
+  assert.equal(Object.hasOwn(result, 'userText'), false, 'a partial guess is still never reported as what V said');
+  await api.close();
+});
+
+test('a recording whose final transcript arrives in time sends nothing extra, and one with no heard words still fails as no speech', async () => {
+  let offset = 0;
+  const clock = {now: () => performance.now() + offset};
+  const {api, clients, events} = fixture({allowMic: true, clock});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  clients[0].handlers.get('userTranscriptionChange')('Hello');
+  const pending = api.finishVoice(request); await flush();
+  offset = 1500;
+  clients[0].handlers.get('messagesChange')([{id: 'speech', type: 'user-transcription', content: 'Hello there', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'Hi.', isStreaming: false}]);
+  assert.equal((await pending).userText, 'Hello there');
+  offset = 9000; await new Promise(done => setTimeout(done, 120));
+  assert.equal(events.some(event => event[0] === 'message'), false);
+  await api.close();
+  // nothing heard at all: unchanged
+  offset = 0;
+  const silent = fixture({allowMic: true, clock});
+  await silent.api.beginVoice(request);
+  const quiet = silent.api.finishVoice(request); quiet.catch(() => {}); await flush();
+  offset = 16000;
+  await assert.rejects(quiet, /No speech was heard/);
+  assert.equal(silent.events.some(event => event[0] === 'message'), false);
+  await silent.api.close();
+});
+
 test('the no-speech failure never cuts off a recognised or still-thinking voice turn, and the 60 s timeout says what arrived', async () => {
   for (const mode of ['transcript', 'thinking']) {
     let offset = 0;
