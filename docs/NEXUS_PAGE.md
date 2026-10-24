@@ -1,9 +1,12 @@
-# Nexus Mods page: AI NPC Cyberpunk Mod (launch 18 Oct 2026)
+# Nexus Mods page: AI NPC Cyberpunk Mod (launch 18 Oct 2026, 0.3.1 with two game versions)
 
 ## 1. Page description (Nexus BBCode)
 
 ```text
-[size=4][b]Two downloads: the Scripts from this page AND the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]Runtime from Hugging Face[/url], same version.[/b][/size]
+[size=4][b]Two downloads: the Scripts from this page AND the Runtime from Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip]game 2.5[/url]), same version, same game.[/b][/size]
+
+[size=4][b]Game version 2.31 or 2.5.[/b][/size]
+This page has two main files with the same version number, [b]Scripts for game 2.31[/b] and [b]Scripts for game 2.5[/b]. Take the one for your game, and the Runtime for your game too (the 2.5 Runtime is in the game-2.5 folder on Hugging Face). To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old. On game 2.5 a few features that read the game's quest history stay off until they are checked on that version: the world knowledge rules, and the relationship facts behind the automatic romantic style and Johnny's remarks.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -13,6 +16,7 @@
 [b]Talk to anyone[/b][list]
 [*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak and let go to send, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
 [*][b]Hold to talk, instantly.[/b] The microphone opens the moment you press the talk key, so your first words are not lost, and it stays ready for 15 seconds after a voice turn. After a pause the first press shows Opening microphone and then Speak now. Prefer to leave your hands free? Turn on Voice activation in Settings > Voices (off by default) and the mod hears when you start speaking.
+[*][b]Controller talk button.[/b] Turn on Settings > Voices > Controller talk button (off by default), then hold the left stick click while you look at someone, speak and let go to send. It does nothing in menus, scenes, calls, combat or vehicles.
 [*][b]The game's named cast.[/b] 126 named characters: Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
 [*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person (everyone you can aim at, receptionists and quest extras included): 40 kinds of people, with 80 personalities (a woman's and a man's for each, MaxTac, NUSA and joytoys included), and shopkeepers you come back to remember you. Every nameless passer-by gets their own Night City name that fits who they are (a Valentino gets a Latino name, a Tyger Claw a Japanese one), from about 13,000 names in 16 cultures, shown on the scanner and in the subtitles. Quest crowds such as the patrons of the Afterlife answer too, with a speaking face.
 [*][b]Talk has consequences.[/b] Threaten an ordinary pedestrian and they react: they walk or run off, call the police, or, if they are a ganger, merc or guard, fight back. It depends on who they are and where you are. Story and quest characters are never affected.
@@ -33,7 +37,7 @@
 [*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
 [*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral 3 makes each voice in the cloud with a Mistral key (one steady voice per passer-by), and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
-[*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket. OmniVoice for V is offered only while your companions use OmniVoice (Settings > Voices), so it never loads just for V. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
+[*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, with Pocket. Turn on Settings > Voices > V speaks your microphone lines (off by default) and the lines you speak are repeated in V's voice too, with the reply following V's line. OmniVoice for V is offered only while your companions use OmniVoice (Settings > Voices), so it never loads just for V. Use a mod that replaces V's voice? V's lines follow it by themselves, or give V your own clip in the character editor.
 [*][b]Voices that hold up.[/b] The voice workers recover from a stuck start, a Pocket line that breaks up refills with more audio each time, a stalled Voxtral request is asked again in parallel, and V's lines are no longer dropped. If a voice fails after a reply has started, you still get the whole reply as text, even with Subtitles off.
 [/list][b]Story and memory[/b][list]
 [*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
@@ -88,8 +92,9 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 
 [size=4][b]Install[/b][/size]
 [b]Requirements[/b][list]
-[*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], and either [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer or [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] (one of the two is enough, and with both the manager uses Mod Configuration Menu). Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
+[*]Cyberpunk 2077 version 2.31 or 2.5 on Windows 10 or 11 (64-bit). The Scripts and the Runtime must both be the build for your game version.
+[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], and either [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer or [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] (one of the two is enough, and with both the manager uses Mod Configuration Menu). Versions for game 2.31: Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
+[*][b]Game 2.5 needs other versions:[/b] Cyber Engine Tweaks 1.38.0, redscript 0.5.32, Native Settings UI 1.97, and the unofficial 2.5 builds of RED4ext (1.30.0 Master 47ac01c) and Codeware (1.20.6) from [url=https://www.nexusmods.com/cyberpunk2077/mods/35697]this Nexus page[/url] instead of the official ones. Cyber Engine Tweaks 1.38.0 can hang a NEW game on 2.5: start the new game without it, save once, then put it back.
 [*]Audioware and TweakXL are no longer needed. Voices play through the mod's own audio, so game patches that break Audioware no longer silence the mod. Having them installed does no harm.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs. The Local AI and Mature packs need the Runtime of version 0.2.7 or newer.
@@ -100,18 +105,18 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
-[*]Download [b]Scripts 0.3.0[/b] from this page (Vortex or by hand) and the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]Runtime 0.3.0[/b][/url] from Hugging Face. Use the same version for both.
+[*]Download [b]Scripts 0.3.1[/b] from this page (the file for your game, Vortex or by hand) and the Runtime 0.3.1 from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]game 2.31[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip][b]game 2.5[/b][/url]. Use the same version and the same game for both.
 [*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
 
 [b]Updating[/b]
-Updating? Download the new Scripts, and instead of the full Runtime get the small [b]Runtime update[/b] zips from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]updates folder on Hugging Face[/url] and extract them over your install one by one, starting from your version. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime.
+Updating? Download the new Scripts (the file for your game), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. On 0.3.0 and moved your game to 2.5? Take the Scripts for game 2.5 and the one zip Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5 updates folder[/url].
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the Runtime.[list]
-[*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack.zip][b]OmniVoice[/b][/url] (about 7.4 GB installed): a richer voice that can laugh and sigh, for NVIDIA cards with at least 12 GB of video memory. Choose it in Settings > Voices.
+[*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack.zip][b]OmniVoice[/b][/url] (about 7.4 GB installed): a richer voice that can laugh and sigh, for NVIDIA cards with at least 12 GB of video memory. Choose it in Settings > Voices. Extract this pack by hand, Vortex can't install it.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Standard.zip][b]Local AI standard[/b][/url] (about 5.3 GB): the local language model with the best replies.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Lite.zip][b]Local AI lite[/b][/url] (about 1.3 GB): the same kind of model for smaller graphics cards.
 [*][url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/mature/Mature-Lite.zip][b]Mature lite[/b][/url] (about 2.8 GB) and [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/mature/Mature-Standard.zip][b]Mature standard[/b][/url] (about 5.5 GB): uncensored local models. Each works on its own, so no Local AI pack is needed. The Mature content setting is off by default.
@@ -135,6 +140,12 @@ This runs on the mod's own engine, so a Local AI or Mature pack must be installe
 Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 
 [size=4][b]Help and FAQ[/b][/size]
+[b]Is the 2.5 build the same mod?[/b]
+Yes, the same mod from the same source, built once for each game version. On game 2.5 a few features that read the game's quest history stay off until they are checked on that version: the world knowledge rules, and the relationship facts behind the automatic romantic style and Johnny's remarks.
+
+[b]A new game hangs on game 2.5.[/b]
+That is Cyber Engine Tweaks 1.38.0, not this mod. Start the new game without Cyber Engine Tweaks installed, save once, then install it again.
+
 [b]Will it slow my game down?[/b]
 The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory. See How much video memory? above for the other options.
 
@@ -183,11 +194,20 @@ Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord ser
 [url=https://discord.gg/p4pxQhAvJ][img]https://img.icons8.com/color/64/discord-logo.png[/img][/url]
 ```
 
-## 2. File description (Scripts upload)
+## 2. File descriptions (the two Scripts uploads)
+
+One main file per game version, the same version number. Each at most 255 characters.
+
+Scripts for game 2.31 (AI NPC Cyberpunk Mod - Scripts - for game 2.31):
 
 ```text
-AI NPC Cyberpunk Mod, the Scripts file for version 0.3.0 (Cyberpunk 2077 2.31). Small and text only. Install it with Vortex or by hand, after the mods listed on this page.
-The Runtime for version 0.3.0 is also needed. Get it from https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip (its version is shown on that page). It holds the voice service and the Pocket TTS voices. Updating? Apply the small Runtime update zips from https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates one by one, starting from your version.
+Game version 2.31. Get the Runtime from Hugging Face. Controller talk button, V speaks your microphone lines, no local model started for Convai users, clearer setup check.
+```
+
+Scripts for game 2.5 (AI NPC Cyberpunk Mod - Scripts - for game 2.5):
+
+```text
+Game version 2.5. Get the Runtime from Hugging Face. New: game 2.5 support. Also controller talk button, V speaks your microphone lines, no local model started for Convai users, clearer setup check.
 ```
 
 ## 3. Short summary (brief overview field)
