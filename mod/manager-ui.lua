@@ -1557,7 +1557,7 @@ local function schema()
                 {elements = true}),
             -- Under V's voice. Off by default (push-to-talk never replayed V: you had just said it yourself); only meaningful while V's voice is on.
             setting('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot.settings.vVoiceMic == true, false,
-                'After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider.'),
+                'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself.'),
         })
         for _, voiceRow in ipairs(voicesCategory.settings) do
             if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then

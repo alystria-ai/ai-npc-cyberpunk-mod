@@ -1387,7 +1387,7 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       void measure(input, {vVoice: summary}).catch(() => {});
     } catch { /* a log line never affects a reply */ }
   }});
-// V's voice for what the player said (setting vVoiceMic, off by default): the soft line of each voice turn (bridge/mic-v-line.mjs, docs/V_VOICE.md).
+// V's voice for what the player said (setting vVoiceMic, off by default): the line of each voice turn, handled like a typed line (bridge/mic-v-line.mjs, docs/V_VOICE.md).
 const micV = new MicVLines({vVoice, stopped: () => stopped});
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
@@ -1973,11 +1973,13 @@ async function status(state, detail = '', turn = null) {
 const cloudPace = new SpeechPace(), pocketPace = new SpeechPace(), convaiPace = new SpeechPace(), omniPace = new SpeechPace();
 const paceOf = (local, cloud) => local ? (cloud ? cloudPace : pocketPace) : convaiPace;
 function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input), local = false, marks,
-  {player = input.text, late, engine} = {}) {
+  {player = input.text, late, engine, mic} = {}) {
   const options = {signal, isCurrent: current, isCurrentSync: current.sync};
   const ahead = current.ahead;
   const pace = engine === 'omni' ? omniPace : paceOf(local, localVoice.cloudActive);
   const speech = new ConvaiContinuousSpeech({input, profile, current, signal,
+    // V speaks your microphone lines, on the Convai provider: the recognised words arrive in the stream, V's line starts from them and holds the reply (bridge/mic-v-line.mjs).
+    ...(mic ? {onTranscript: mic.onTranscript, awaitTranscript: mic.awaitTranscript} : {}),
     planExpression: emotionSelection.planner({player, profile: input.profileKey, marks, late}),
     onTimeline: timeline => logEmotionTimeline(input, profile, {provider: local ? 'pocket' : 'convai', ...timeline}),
     ...(local ? {faceBuilder: ownedPocketFace} : {jaliFace}),
@@ -2286,7 +2288,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     };
     current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
       && prepared && knowledgeRouter.currentSync(prepared);
-    // V's soft line for this spoken turn, if one was started: the reply never holds for it, it asks and the line yields (bridge/mic-v-line.mjs).
+    // V's line for this spoken turn, if one was started: the reply's audio is held behind it like a typed line's (bridge/mic-v-line.mjs).
     current.vLine = () => micV.lineOf(input.requestId);
     // A local voice on a text route (Mistral, the local AI): the reply is voiced while it is still being written, as a typed turn's
     // is (bridge/voice-key-stream.mjs). Without a safe first sentence, another voice or no continuous playback it is voiced whole, as before.
@@ -2300,7 +2302,8 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
       return streamed.options;
     }
     if ((await readSpeechStateCached()).continuousAvailable !== true) return;
-    const speech = continuousSpeech(input, profileFor(input, roster), current, signal, prepared);
+    const speech = continuousSpeech(input, profileFor(input, roster), current, signal, prepared, false, undefined,
+      {mic: micV.convaiHooks(input, signal, () => speech.wakeUp()) ?? undefined});
     microphoneSpeech.set(input.requestId, speech);
     return {liveSpeech: speech.options};
   },
@@ -2361,10 +2364,10 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
   },
 });
 
-// V repeats what the player said (setting vVoiceMic): started by the transcript callback of the microphone channel on a text provider, soft (the reply never
-// waits for it), skipped on the Convai provider whose transcript only arrives with the reply. An add-on's or a made character's voice turn starts it itself.
-mic.prepareReply = micV.wrapPrepare(mic.prepareReply, {own: input => addonVoice.voice(input), textRoute: () => mistral.active});
-mic.onReply = micV.wrapReply(mic.onReply);
+// V repeats what the player said (setting vVoiceMic): exactly like a typed line (spoken in full, the reply follows it). Started by the transcript callback of the
+// microphone channel on a text provider, and by the recognised words in the stream on the Convai provider (convaiHooks above). An add-on's or a made
+// character's voice turn starts it itself.
+mic.prepareReply = micV.wrapPrepare(mic.prepareReply, {own: input => addonVoice.voice(input)});
 
 async function resetLiveRoutes({cancelTurns = true} = {}) {
   await companionActions.revoke();

@@ -27,54 +27,50 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
 Any failure (a clone that cannot be made, a voice error, no audio in time) skips V's line, writes one `[VVoice]` log line and
 never touches the conversation.
 
-## Microphone lines (2026-10-24, branch `feat/v-voice-mic`, setting `vVoiceMic`, off by default)
+## Microphone lines (2026-10-24, setting `vVoiceMic`, off by default; reworked the same day to behave like a typed line)
 
 A player asked for V to speak what they say over the microphone, not only what they type. **Settings > Voices > V speaks your microphone lines**, right under
 V's voice, off by default, only meaningful while V's voice is on (the saved choice is kept when V's voice goes off).
 
 **Why push-to-talk never replayed V (found 2026-10-24).** The first version of the feature (29234fb4, 2026-10-14) wrote it into the setting's description and the docs
-in one phrase: "push-to-talk is never replayed (you already spoke it)". There is no other written reason (`git log -S"never replays V"` finds only that commit, the
-TODO and the older notes say the same). The reasoning that follows from it: a typed line is silent, so V's voice is the only way it is heard; a spoken line has
-been heard in the player's own voice a moment ago, so a second voice is an echo, and a spoken line has its recognised words on screen as V's live subtitle already
-(`subtitles.showLive`). So the default stays off, and the setting's description gives the reason ("Off by default, because you just said it yourself").
+in one phrase: "push-to-talk is never replayed (you already spoke it)". There is no other written reason. The reasoning that follows from it: a typed line is silent,
+so V's voice is the only way it is heard; a spoken line has been heard in the player's own voice a moment ago, so a second voice is an echo, and its recognised words
+already show as V's live subtitle (`subtitles.showLive`). So the default stays off, and the setting's description gives the reason ("Off by default, because you just
+said it yourself"). The player who turns it on has chosen the echo.
 
-**What it does.** After a voice turn (the hold-to-talk release, or the end of speech of Voice activation) V's voice speaks the **final transcript**, with the same
-engine choice (Pocket or Voxtral), volume (the game's Dialogue volume and Voice volume), V's gender and reference, language rules (a language the engine cannot speak
-is skipped, as for a typed line) and the same gates (no reaction, no phone Chat, only the first speaker of a group round). The subtitle is the live caption the
-microphone already shows. An empty recording (no speech), a cancelled turn and a transcript with nothing to say start no line.
+**It behaves exactly like a typed line (owner, 2026-10-24: "it's fine to wait, we should respect player choice").** A first version made the line "soft": the reply never
+waited for it and a line still going when the reply was ready was cut short (branch `feat/v-voice-mic`). That was reversed (branch `fix/v-mic-like-typed`): the
+spoken line is a normal `VLine`, spoken in full, and the reply follows it with the same ordering as a typed line ("What you hear, and in which order": V's first audio
+is waited for, 30 s at most; the reply's audio is held, published shortly before V's end and started when V has ended). Same engine choice (Pocket, Voxtral or
+OmniVoice), volume (the game's Dialogue volume and Voice volume), V's gender and reference, language rules (a language the engine cannot speak is skipped) and gates (no
+reaction, no phone Chat, only the first speaker of a group round). The subtitle is the live caption the microphone already shows. An empty recording (no speech), a
+cancelled turn and a transcript with nothing to say start no line. On OmniVoice the reply waits behind V's render and playback, as for a typed line.
 
-**Ordering against the reply, and why it differs from a typed line.** A typed line is **waited for**: the reply's audio is held until V has finished (30 s at most
-without audio, "What you hear, and in which order"). That rule is wrong for a spoken line: the player has just said it, and every millisecond the reply spends behind
-an echo is latency for nothing. So a spoken line is **soft** (`VLine` `soft`, `bridge/v-voice.mjs`): it never holds the reply, there is no grace, no hand-off and no wait.
+**When the line starts.** As soon as the final transcript exists, so it is synthesized beside the reply's text request, where a typed line starts beside it
+(`bridge/mic-v-line.mjs`):
 
-1. The final transcript exists before the reply is asked for on a text provider (`options.onTranscript`, `bridge/local-stt-capture.mjs`, called after the
-   recognition and before the model request). `bridge/mic-v-line.mjs` starts V's line there, so it is synthesized beside the reply's text request, exactly where a
-   typed line starts beside it. Nothing is added to the path of the reply (the callback is synchronous and starts a background job).
-2. **When the reply asks, V yields. If V is not yet audible it is dropped (`reply-ready`); if V is audible and not finished it is cut short (`cut-for-reply`).**
-   "Asks" is the same place a typed line is held: `hold`/`holdPeek` of the continuous speech (the reply's audio is ready), `waitClear` for a reply published as a
-   whole, and the companion's voice request going out on a worker V shares with it (the Pocket worker when the companions use Pocket too: `ttsSent` on the turn's
-   small clock, the old "step aside" rule). A line on V's own Pocket worker or on the cloud does not share a worker with the reply, but is still cut when the reply's
-   audio is ready, so the two voices never overlap. A line that is over before the reply is ready is simply heard in full.
-3. There is no typed-line rule to follow in this case, because the typed rule is the one that delays the reply. The choice made here is **cut short or skip, never wait**.
-   A short sentence (about 1 to 3 s of speech) usually ends before a reply's first sentence is ready (about 1.1 s of model plus the voice's start).
+- **Mistral, Local AI, Custom:** the microphone channel's transcript callback (`options.onTranscript`, `bridge/local-stt-capture.mjs`) runs after the recognition and before
+  the model request. The turn's `current.vLine` is the lookup the reply's holds already use (`hold`/`holdPeek`/`holdSound` of the continuous speech, `waitClear`).
+- **The Convai provider (included since the rework):** Convai recognises the speech inside its realtime stream, so the transcript is in the renderer's snapshots
+  (`userText`), not before the reply. The reply's audio is already buffered silently and the continuous speech can hold it (the typed-line path on the Convai provider is
+  the same hold, no realtime stream is interrupted: the renderer just gets the quiet control). `ConvaiContinuousSpeech` gets two hooks: `onTranscript(userText)` fires
+  once when the words first appear, before the hold is asked, and starts V's line; `awaitTranscript()` keeps a reply that has audio but no words yet quiet for at most
+  `TRANSCRIPT_WAIT_MS` (1.5 s from its first audio), and never once the whole reply is in, then it goes on without V (the existing group-voice wait for the transcript is
+  the precedent). That bounded wait is the one cost of the feature on Convai: a turn whose words arrive late waits up to 1.5 s for nothing if V cannot speak them.
+  When the line starts, the speech is woken as V nears its end and when it clears, like a typed turn's.
+- **A spoken line to an add-on's voice (Delamain, Skippy) or a made character:** `runAddonTurn`/`runCustomTurn` start V with `spoken: true` (they know the recognised
+  words up front).
 
-**Where it works.** Mistral, Local AI and Custom providers (any microphone engine: the local recogniser or Voxtral speech-to-text), and a spoken line to an add-on's voice
-or a character the player made. **Not with the Convai provider:** Convai recognises the speech together with the reply, so the final transcript only exists
-after the reply has started and there is nothing to start from (the bridge logs `[VVoice] V's microphone line skipped: the Convai provider ...` once, the setting does
-nothing there). **Not with OmniVoice:** its render would sit in front of the companion's on the one GPU worker and the reply would wait for it, so the line is skipped
-(`mic-omni`, logged once). Both are in the setting's description.
+**A leak found and closed on the way (still true).** A voice turn to an add-on's voice or to a character the player made carried no `source` mark, so the typed-line
+gate let V speak it, and the reply waited for it, with the setting never asked. Those turns now follow the new setting (off by default).
 
-**A leak found and closed on the way.** A voice turn to an add-on's voice (the Delamain cab, Skippy) or to a character the player made carried no `source`
-mark, so the typed-line gate let V speak it, and the reply waited for it. Those turns now start V as spoken lines: off by default like every microphone line, soft when
-the setting is on.
+**Log.** `[VVoice] profile=... result=... source=microphone` for each spoken line, `[VVoice] setting is now on, engine pocket, microphone lines on` when the setting
+changes, and the session totals count these lines with the typed ones. V's voice is prepared while the player talks (`warmUp` at the start of a recording). Nothing
+runs per frame.
 
-**Log.** `[VVoice] profile=... result=... source=microphone` for each spoken line (`reason=cut-for-reply` or `reply-ready` when the reply came first),
-`[VVoice] setting is now on, engine pocket, microphone lines on` when the setting changes, and the session totals count these lines with the typed ones.
-V's voice is prepared while the player talks (`warmUp` at the start of a recording), so the line is not the cold one. Nothing runs per frame.
-
-**Tests.** `bridge/mic-v-line.test.mjs` (setting default off, the transcript reaching V's path, language and gender rules, an empty or cancelled turn, the reply never
-held, the shared worker, the wiring), `bridge/manager.test.mjs` (the setting persists off by default, the row), `bridge/ui-catalog.test.mjs` and
-`bridge/description-fit.test.mjs` (the strings in all 15 languages).
+**Tests.** `bridge/mic-v-line.test.mjs` (setting default off, the transcript reaching V's path, language and gender rules, an empty or cancelled turn, the reply held
+and not cut, OmniVoice, the Convai hooks and the bounded wait, the wiring), `bridge/manager.test.mjs` (the setting persists off by default, the row),
+`bridge/ui-catalog.test.mjs` and `bridge/description-fit.test.mjs` (the strings in all 15 languages).
 
 ## The grace, the warm voice and the totals (2026-10-19, branch `fix/v-voice-typed`)
 
@@ -175,7 +171,7 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 - **Cleared before the reply.** The reply's caption (`show` or `beginTimed`) clears the line first, so the companion's subtitle never
   starts beneath it. V's subtitle owns no utterance, so it never holds a reply back.
 - **Typed and spoken.** It shows for every typed line, whether or not V's voice is on or can speak (the Convai cloud voice, or the
-  setting off): the subtitle is what V says, the voice is optional. The voice of a microphone turn is not replayed by default (setting V speaks your microphone lines, above), but its recognised
+  setting off): the subtitle is what V says, the voice is optional. The voice of a microphone turn is not replayed by default (setting V speaks your microphone lines, above, which then speaks it like a typed line), but its recognised
   words already showed as V's live line (`subtitles.showLive`, `mod/init.lua` `microphone.onHeard`), so mic turns are covered the same way.
 - **Settings.** With the game's subtitles off (`player:ConvaiManagerSubtitles()`, the same switch replies use) nothing is shown. No phone
   Chat text, reaction or add-on remark gets it (those never pass the composer's submission); no per-frame work beyond a caption's own.
@@ -588,7 +584,7 @@ libraries is the slow part and is made slower by a virus scanner looking at the 
 | Simulated measurement | `scripts/Measure-VVoice.mjs` (`--legacy`, `--runs`, `--prep`, `--json`) |
 | V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
 | Grace, totals, remembered gender | `bridge/v-voice.mjs` (`V_GRACE_MS`, `VLine.startGrace`, `VVoice.count`, `VVoice.know`), `bridge/convai-bridge.mjs` (`vGenderMemory`, `onVHelperReady`) |
-| Microphone lines | `bridge/mic-v-line.mjs`, `VLine` `soft` and `VVoice.startSpoken` in `bridge/v-voice.mjs`, the wrappers in `bridge/convai-bridge.mjs` (`micV`), `mod/manager.lua` (`vVoiceMic`) |
+| Microphone lines | `bridge/mic-v-line.mjs`, `VVoice.startSpoken` in `bridge/v-voice.mjs`, the Convai hooks in `bridge/convai-continuous-speech.mjs` (`onTranscript`, `awaitTranscript`), the wrappers in `bridge/convai-bridge.mjs` (`micV`), `mod/manager.lua` (`vVoiceMic`) |
 | Tests | `bridge/mic-v-line.test.mjs`, `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check

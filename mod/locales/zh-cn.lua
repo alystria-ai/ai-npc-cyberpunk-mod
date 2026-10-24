@@ -1251,5 +1251,5 @@ return {
     ["Controller talk button"] = "手柄说话键",
     ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "用手柄说话：在角色身上按住左摇杆按下（L3），说话，松开即发送。摇杆保持不动时按住。\n\n仅限步行时使用，菜单、场景、对话选项、通话、战斗或载具中都不可用。按下时仍会切换冲刺，站着时不会有任何效果。",
     ["V speaks your microphone lines"] = "V 朗读你的麦克风台词",
-    ["After you speak (hold to talk or Voice activation), V repeats your words out loud in V’s voice. Needs V’s voice on. Off by default, because you just said it yourself.\n\nThe reply never waits for V: if the reply is ready first, V is cut short. Not available with OmniVoice or the Convai provider."] = "你说完后（按住语音键或语音激活），V 会用 V 的声音大声重复你的话。需要开启 V 的语音。默认关闭，因为这些话你自己刚说过。\n\n回复永远不会等 V：如果回复先准备好，V 会被提前打断。不适用于 OmniVoice 或 Convai 提供方。",
+    ["After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself."] = "你说完后（按住语音键或语音激活），V 会用 V 的声音把你的话完整说出来，回复排在 V 的台词之后。需要开启 V 的语音。默认关闭，因为这些话你自己刚说过。",
 }

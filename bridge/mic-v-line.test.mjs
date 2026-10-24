@@ -1,11 +1,12 @@
-// V speaks your microphone lines (setting vVoiceMic, off by default; bridge/mic-v-line.mjs, the soft VLine in bridge/v-voice.mjs, docs/V_VOICE.md).
-// Nothing here plays a sound: the renderer, the Pocket voice and the microphone channel are stand-ins.
+// V speaks your microphone lines (setting vVoiceMic, off by default; bridge/mic-v-line.mjs, docs/V_VOICE.md): a spoken line behaves exactly like a typed one
+// (owner, 2026-10-24: "it's fine to wait, we should respect player choice"). Nothing here plays a sound: the renderer, the Pocket voice and the microphone
+// channel are stand-ins.
 import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {VVoice, VLine} from './v-voice.mjs';
 import {MicVLines} from './mic-v-line.mjs';
-import {TurnClock, markStage} from './turn-clock.mjs';
+import {ConvaiContinuousSpeech, TRANSCRIPT_WAIT_MS} from './convai-continuous-speech.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 async function until(predicate, label = 'condition') {
@@ -32,11 +33,11 @@ function openRenderer() {
   const play = async (config, producer, options) => {
     state.played++; state.config = config;
     options.signal.addEventListener('abort', () => { state.aborted = true; }, {once: true});
-    let produced = false;
-    const producing = producer(async () => {}, {signal: options.signal}).then(() => { produced = true; }, () => {});
+    let produced = false, emitted = 0;
+    const producing = producer(async () => { emitted++; }, {signal: options.signal}).then(() => { produced = true; }, () => {});
     for (let poll = 0; poll < 3000 && await options.current(); poll++) {
       const ended = produced && state.end;
-      options.onFrame({receivedFrames: 4800, sampleRate: 24000, sourceComplete: produced, positionSeconds: ended ? 1 : 0.1, ended});
+      options.onFrame({receivedFrames: emitted ? 120000 : 0, sampleRate: 24000, sourceComplete: produced, positionSeconds: ended ? 5 : 0.1, ended});
       if (ended) break;
       await sleep(1);
     }
@@ -83,19 +84,23 @@ test('the setting is off by default and only an explicit true turns it on; it me
   assert.equal(bare.micWanted, false, 'no clips: nothing to say');
 });
 
-test('Settings > Voices carries the setting under V\'s voice, off by default, with the reason push-to-talk never replayed V in its description, in all 15 languages', () => {
+test('Settings > Voices carries the setting under V\'s voice, off by default, with the reason push-to-talk never replayed V and the reply following V\'s line, in all 15 languages', () => {
   const ui = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
-  const row = /setting\('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot\.settings\.vVoiceMic == true, false,\s*\n\s*'([^\n]*)'\)/.exec(ui);
+  const row = /setting\('vVoiceMic', 'V speaks your microphone lines', 'bool', snapshot\.settings\.vVoiceMic == true, false,\s*\r?\n\s*'([^\r\n]*)'\)/.exec(ui);
   assert(row, 'the row exists, default false');
   assert(ui.indexOf("setting('vVoice', ") < ui.indexOf("setting('vVoiceMic', "), 'under V\'s voice');
+  const NEW = 'After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself.';
+  assert.equal(row[1], NEW);
   assert.match(row[1], /Needs V’s voice on/);
   assert.match(row[1], /Off by default, because you just said it yourself/, 'the reason for the default');
-  assert.match(row[1], /reply never waits for V/);
+  assert.match(row[1], /the reply follows V’s line/);
+  for (const dropped of [/never waits/i, /cut short/i, /OmniVoice/, /Convai/, /Not available/]) assert.doesNotMatch(row[1], dropped, 'the old promise and exclusions are gone: ' + dropped);
   assert(row[1].length < 420, 'fits the description area without being cut');
   for (const code of ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko']) {
     const file = readFileSync(new URL(`../mod/locales/${code}.lua`, import.meta.url), 'utf8');
     assert(file.includes('["V speaks your microphone lines"] = "'), code + ' label');
-    assert(file.includes('["After you speak (hold to talk or Voice activation)'), code + ' description');
+    assert(file.includes('["' + NEW + '"] = "'), code + ' description');
+    assert(!file.includes('V repeats your words out loud'), code + ': no old description left');
   }
   const lua = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
   assert.match(lua, /if type\(settings\.vVoiceMic\) ~= 'boolean' then settings\.vVoiceMic, settingsNeedSave = false, true end/, 'saved off by default');
@@ -110,16 +115,16 @@ test('with the setting off a spoken turn gets no V line and nothing is loaded; t
   assert.equal(voice.start(spokenInput({text: 'Hey Judy, how are you?'}), {spoken: true}), null);
   assert.equal(host.state.played, 0); assert.deepEqual(calls.stream, []);
   const typed = voice.start(typedInput()); await typed.finished;
-  assert.equal(typed.soft, false); assert.equal(calls.stream.length, 1, 'a typed line is spoken as before');
+  assert.equal(typed.spoken, false); assert.equal(calls.stream.length, 1, 'a typed line is spoken as before');
   voice.update({vVoice: true, ...micOn});
   const typedAgain = voice.start(typedInput()); await typedAgain.finished;
-  assert.equal(typedAgain.soft, false, 'a typed line is never soft');
+  assert.equal(typedAgain.spoken, false, 'a typed line is never a spoken one');
 });
 
 test('with the setting on, the final transcript reaches V\'s voice path: the same engine, volume and voice as a typed line', async () => {
   const {voice, calls, host} = feature({settings: micOn});
   const made = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
-  assert(made, 'a line was started'); assert.equal(made.soft, true);
+  assert(made, 'a line was started'); assert.equal(made.spoken, true);
   await until(() => made.state === 'playing' || made.settled, 'the line to play');
   assert.deepEqual(calls.stream, [['v-male', 'Hey Judy, how are you doing tonight?']], 'the transcript, not the placeholder, in V\'s male voice');
   assert.equal(host.state.config.text, 'Hey Judy, how are you doing tonight?');
@@ -128,7 +133,6 @@ test('with the setting on, the final transcript reaches V\'s voice path: the sam
   host.state.end = true; await made.finished;
   assert.equal(calls.reports.at(-1).spoken, true, 'the record says it was a spoken line');
   assert.equal(calls.reports.at(-1).result, 'played');
-  // The female V, and the cloud engine, follow the turn exactly as a typed line does.
   const female = voice.startSpoken(spokenInput({turnContext: {version: 1, status: 'ready', gender: 'female', dialogueVolume: 0.5}}), 'Hi.');
   host.state.end = true; await female.finished;
   assert.equal(calls.stream.at(-1)[0], 'v-female');
@@ -159,16 +163,19 @@ test('language rules are the typed line\'s: Pocket skips a language it cannot sp
   assert.equal(french.voice.startSpoken(spokenInput(), 'Comment vas-tu ce soir ?'), null, 'a language it does not list is skipped');
 });
 
-test('OmniVoice never speaks a spoken line: its render would sit in front of the reply\'s on the one GPU worker. The reason is logged once', () => {
-  const omni = {problem: () => null, render: async () => ({audio: ''}), prepare: async () => {}};
-  const {voice, calls, host} = feature({settings: {...micOn, vVoiceEngine: 'omni'}, omni, planFor: () => ({engine: 'omni', language: 'en'})});
-  assert.equal(voice.startSpoken(spokenInput(), 'Hey Judy, how are you?'), null);
-  assert.equal(voice.startSpoken(spokenInput(), 'Hey Judy, how are you?'), null);
-  assert.equal(host.state.played, 0);
-  assert.equal(calls.logs.filter(line => /OmniVoice would make the reply wait/.test(line)).length, 1);
-  // A typed line on OmniVoice is still the waited-for one.
+test('OmniVoice speaks a spoken line like a typed one: queued on the worker at once, waited for, the reply follows it', async () => {
+  const rendered = [];
+  const omni = {problem: () => null, render: async (key, text) => { rendered.push([key, text]); return {audio: ''}; }, prepare: async () => {}};
+  const {voice} = feature({settings: {...micOn, vVoiceEngine: 'omni'}, omni, planFor: () => ({engine: 'omni', language: 'en'})});
+  const spoken = voice.startSpoken(spokenInput(), 'Hey Judy, how are you?');
   const typed = voice.start(typedInput());
-  assert(typed && typed.patient === true && typed.soft === false); typed.drop('test over');
+  assert(spoken && typed, 'both start');
+  assert.equal(spoken.patient, true, 'waited for, with no grace and no budget, exactly as a typed line');
+  assert.equal(spoken.patient, typed.patient);
+  assert.equal(spoken.holds(), true, 'the reply waits behind V\'s render');
+  await until(() => rendered.length > 0, 'the render to be queued');
+  assert.deepEqual(rendered[0], ['v-male', 'Hey Judy, how are you?'], 'the transcript was queued on the Omni worker at once');
+  spoken.drop('test over'); typed.drop('test over');
 });
 
 test('an empty transcript, or one with nothing to say, produces no V line', () => {
@@ -177,87 +184,84 @@ test('an empty transcript, or one with nothing to say, produces no V line', () =
   assert.equal(host.state.played, 0);
 });
 
-// ---- the reply is never delayed -------------------------------------------------------------------------------------------
+// ---- the reply follows V, exactly as for a typed line -------------------------------------------------------------------
 
-test('a spoken line never holds the reply: no hold, no publish hold, no sound hold, no wait, whatever state it is in', async () => {
-  const { voice, host } = feature({settings: micOn});
-  const made = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
-  await until(() => made.state === 'playing', 'V to be audible');
-  // Audible and long: a typed line would hold the reply here. This one does not.
-  assert.equal(made.blocking, false); assert.equal(made.waiting, false);
-  assert.equal(made.holdsPublishPeek(), false, 'peeking costs the line nothing');
-  assert.equal(made.state, 'playing');
-  const started = performance.now();
-  assert.equal(made.holdsPublish(), false);
-  await made.waitClear();
-  assert(performance.now() - started < 50, 'the reply did not wait for V');
-  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'cut-for-reply', 'an audible line is cut short');
-  await made.clear; await made.finished;
-  assert.equal(host.state.aborted, true, 'the renderer stopped playing it');
-  assert.equal(made.holds(), false);
+test('an audible spoken line holds the reply until it has ended, and is never cut: the same states as a typed line', async () => {
+  const {voice, host} = feature({settings: micOn});
+  const spoken = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
+  // A typed line on a voice of its own (one line at a time per voice: a second waits for the first).
+  const other = feature({settings: micOn});
+  const typed = other.voice.start(typedInput({requestId: 'r2'}));
+  await until(() => spoken.state === 'playing' && typed.state === 'playing', 'both audible');
+  for (const made of [spoken, typed]) {
+    assert.equal(made.holds(), true, 'the reply waits while V is audible');
+    assert.equal(made.holdsPublish(), true, 'V\'s end is not known yet: the reply waits');
+    assert.equal(made.holdsPublishPeek(), true);
+    assert.equal(made.blocking, true, 'and its sound too');
+  }
+  // The reply asks to be published as a whole: it waits for V, it does not cut it.
+  let released = false;
+  const waiting = spoken.waitClear().then(() => { released = true; });
+  await sleep(30);
+  assert.equal(released, false, 'the reply is still waiting');
+  assert.equal(spoken.state, 'playing', 'V was not cut');
+  assert.equal(host.state.aborted, false);
+  host.state.end = true;
+  await waiting;
+  assert.equal(released, true, 'the reply follows once V has finished');
+  assert.equal(spoken.state, 'done'); assert.equal(spoken.reason, null);
+  assert.equal(spoken.holds(), false);
+  other.host.state.end = true;
+  await typed.finished;
 });
 
-test('the contrast: the same audible line as a typed one holds the reply for as long as it plays', async () => {
-  const host = openRenderer();
-  const typed = new VLine({input: typedInput(), key: 'v-male', text: 'Hello Judy.', plan: {engine: 'pocket', language: 'en'}, volume: 0.6, play: host.play,
-    stream: async (key, text, options) => { await options.onPcm(packet()); return {}; }, graceMs: 0});
-  await until(() => typed.state === 'playing', 'audible');
-  assert.equal(typed.holds(), true); assert.equal(typed.blocking, true);
-  host.state.end = true; await typed.finished;
-});
-
-test('the reply ready before V is audible drops a spoken line at once (reply-ready), however slow its synthesis is', async () => {
+test('the reply ready before V is audible waits for V\'s first audio and follows V\'s end, as for a typed line; only a stuck line is given up', async () => {
   let release;
   const gate = new Promise(done => { release = done; });
-  const {voice, calls} = feature({settings: micOn, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  const slowStream = async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; };
+  const {voice, host} = feature({settings: micOn, graceMs: 5000, stream: slowStream});
+  const spoken = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
+  assert.equal(spoken.state, 'synth');
+  assert.equal(spoken.holds(), true, 'not audible yet: the reply waits for the first audio (the grace)');
+  assert.equal(spoken.state, 'synth', 'and the line is not dropped');
+  release();
+  await until(() => spoken.state === 'playing', 'V to become audible');
+  assert.equal(spoken.holds(), true);
+  host.state.end = true; await spoken.clear;
+  assert.equal(spoken.state, 'done');
+  assert.equal(spoken.holds(), false);
+  // A line that never gives audio is given up after the grace, as a typed line is (here 60 ms).
+  const stuck = feature({settings: micOn, graceMs: 60, stream: async (key, text, options) => { await new Promise(done => options.signal.addEventListener('abort', done, {once: true})); }});
+  const stuckLine = stuck.voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
+  assert.equal(stuckLine.holds(), true);
+  await stuckLine.clear;
+  assert.equal(stuckLine.state, 'dropped'); assert.equal(stuckLine.reason, 'slower-than-reply');
+  assert.equal(stuckLine.holds(), false, 'the reply goes on without it');
+});
+
+test('the companion\'s voice request does not stop a spoken line: it plays on and the reply follows it', async () => {
+  const {voice, host} = feature({settings: micOn, isLocal: () => true});
   const made = voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
-  assert.equal(made.state, 'synth');
-  const started = performance.now();
-  await made.waitClear();
-  assert(performance.now() - started < 50);
-  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'reply-ready');
-  assert.equal(made.graceStarted, false, 'no grace is ever started for it');
-  release(); await made.finished;
-  assert.equal(calls.reports.at(-1).reason, 'reply-ready');
-});
-
-test('a line that is already over when the reply asks is left alone, and the reply is not held either', async () => {
-  const { voice, host } = feature({settings: micOn});
-  const made = voice.startSpoken(spokenInput(), 'Yes.');
   await until(() => made.state === 'playing', 'audible');
-  host.state.end = true; await made.clear;
+  made.companionVoiceStarted();
+  assert.equal(made.state, 'playing'); assert.equal(host.state.aborted, false);
+  host.state.end = true; await made.finished;
   assert.equal(made.state, 'done');
-  assert.equal(made.holdsPublish(), false); assert.equal(made.state, 'done', 'a finished line is not turned into a drop');
-});
-
-test('the companion\'s voice request on the worker V shares ends a spoken line at once (it would queue behind V); a worker of its own or the cloud is left to play', async () => {
-  const shared = feature({settings: micOn, isLocal: () => true});
-  const sharedLine = shared.voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
-  await until(() => sharedLine.state === 'playing', 'audible');
-  sharedLine.companionVoiceStarted();
-  assert.equal(sharedLine.state, 'dropped'); assert.equal(sharedLine.reason, 'cut-for-reply');
-  await sharedLine.finished;
-  const own = feature({settings: micOn, isLocal: () => true, helper: {speaks: () => true, ready: () => true, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; }, prepare: async () => {}}});
-  const ownLine = own.voice.startSpoken(spokenInput(), 'Hey Judy, how are you doing tonight?');
-  await until(() => ownLine.state === 'playing', 'audible');
-  ownLine.companionVoiceStarted();
-  assert.equal(ownLine.state, 'playing', 'V\'s own worker shares nothing with the reply');
-  own.host.state.end = true; await ownLine.finished;
 });
 
 // ---- the turn: transcript callback, cancel, no speech ---------------------------------------------------------------------
 
 // The microphone channel stand-in: prepareReply -> options (with onTranscript like the streamed route), then finishVoice calls onTranscript with the recognised words.
-function turn(voiceOptions = {}, {textRoute = true, own = false, prepare} = {}) {
+function turn(voiceOptions = {}, {own = false, prepare} = {}) {
   const made = feature({settings: micOn, ...voiceOptions});
   const micV = new MicVLines({vVoice: made.voice});
   const asked = [];
   const base = prepare ?? (async () => ({stream: {}, onTranscript: text => asked.push(text)}));
-  const wrapped = micV.wrapPrepare(base, {own: () => own, textRoute: () => textRoute});
+  const wrapped = micV.wrapPrepare(base, {own: () => own});
   return {...made, micV, wrapped, asked};
 }
 
-test('the transcript callback starts V\'s line beside the reply and passes the transcript on to the reply\'s own listener', async () => {
+test('the transcript callback starts V\'s line beside the reply and passes the transcript on to the reply\'s own listener; the reply\'s lookup holds for it', async () => {
   const t = turn();
   const controller = new AbortController();
   const input = spokenInput();
@@ -267,14 +271,16 @@ test('the transcript callback starts V\'s line beside the reply and passes the t
   options.onTranscript('  Hey Judy, how are you doing tonight?  ');
   assert.deepEqual(t.asked, ['  Hey Judy, how are you doing tonight?  '], 'the reply\'s listener still gets the words');
   const line = t.micV.lineOf(input.requestId);
-  assert(line && line.soft, 'a soft line exists for the turn');
+  assert(line && line.spoken, 'a line exists for the turn');
   await until(() => line.state === 'playing', 'audible');
   assert.deepEqual(t.calls.stream, [['v-male', 'Hey Judy, how are you doing tonight?']]);
   options.onTranscript('a second call changes nothing');
   assert.equal(t.micV.lineOf(input.requestId), line); assert.equal(t.calls.stream.length, 1);
-  // The reply asks (current.vLine is this lookup): the line yields, nothing waits.
-  assert.equal(t.micV.lineOf(input.requestId).holds(), false);
+  // The reply asks (current.vLine is this lookup): it waits for V.
+  assert.equal(t.micV.lineOf(input.requestId).holds(), true);
+  t.host.state.end = true;
   await line.finished;
+  assert.equal(line.state, 'done');
   assert.equal(t.micV.lineOf(input.requestId), null, 'a settled line is forgotten');
 });
 
@@ -306,61 +312,130 @@ test('a cancelled turn, or a recording that ended with no speech, produces no V 
   assert.equal(speaking.reason, 'turn-ended'); assert.equal(next.micV.lineOf('1-2-3ULL'), null);
 });
 
-test('nothing changes with the setting off, for an add-on\'s voice turn (it starts V itself) or on the Convai provider (no transcript before the reply, logged once)', async () => {
+test('nothing changes with the setting off, or for an add-on\'s voice turn (it starts V itself)', async () => {
   const base = async () => ({stream: {}});
   const off = turn({settings: {vVoiceMic: false}}, {prepare: base});
   assert.deepEqual(await off.wrapped(spokenInput(), new AbortController().signal), {stream: {}}, 'the very same options');
+  assert.equal(off.micV.convaiHooks(spokenInput(), new AbortController().signal), null, 'and no hooks for the Convai provider');
   const addon = turn({}, {own: true, prepare: base});
   assert.deepEqual(await addon.wrapped(spokenInput(), new AbortController().signal), {stream: {}});
-  const convai = turn({}, {textRoute: false, prepare: base});
-  assert.deepEqual(await convai.wrapped(spokenInput(), new AbortController().signal), {stream: {}});
-  await convai.wrapped(spokenInput({requestId: '9-9-9ULL'}), new AbortController().signal);
-  assert.equal(convai.calls.logs.filter(line => /Convai provider recognises speech together with the reply/.test(line)).length, 1, 'said once');
-  assert.equal(convai.host.state.played, 0);
+  assert.equal(addon.micV.convaiHooks(spokenInput(), new AbortController().signal), null);
 });
 
-test('the reply is made inside the turn\'s clock, so its voice request marks ttsSent there and a V line on the shared worker steps aside (never delaying the reply)', async () => {
-  let inside = null;
-  const t = turn({}, {prepare: async () => { inside = true; markStage('ttsSent'); return {}; }});
+// ---- the Convai provider: the transcript arrives in the stream, the buffered reply is held behind V like a typed line's -------------
+
+test('Convai hooks: the reply waits for the transcript until V\'s line starts from it, and the speech is woken when the line nears its end or clears', async () => {
+  const t = turn({}, {prepare: async () => undefined});
   const input = spokenInput();
-  await t.wrapped(input, new AbortController().signal);
-  const clock = t.micV.clockOf(input.requestId);
-  assert(clock instanceof TurnClock); assert.equal(inside, true);
-  assert('ttsSent' in clock.snapshot().marks, 'the reply\'s voice request marked the turn\'s clock');
-  // The companion's voice request that went out BEFORE V's line exists (a fast reply) ends the line the moment it starts: it would queue behind it.
-  const fast = await t.wrapped(spokenInput({requestId: '6-6-6ULL'}), new AbortController().signal);
-  fast.onTranscript('Hey Judy, how are you doing tonight?');
-  assert.equal(t.micV.lineOf('6-6-6ULL'), null, 'the line was ended at once and is forgotten');
-  assert.equal(t.calls.reports.at(-1).reason, 'reply-ready');
-  // After the words: the voice request of the companion goes out later, the V line is cut.
-  const quiet = turn({}, {prepare: async () => ({})});
-  const options = await quiet.wrapped(spokenInput({requestId: '5-5-5ULL'}), new AbortController().signal);
-  options.onTranscript('Hey Judy, how are you doing tonight?');
-  const line = quiet.micV.lineOf('5-5-5ULL'); await until(() => line.state === 'playing', 'audible');
-  quiet.micV.clockOf('5-5-5ULL').mark('ttsSent');
-  assert.equal(line.state, 'dropped'); assert.equal(line.reason, 'cut-for-reply');
+  const signal = new AbortController().signal;
+  await t.wrapped(input, signal);
+  let woken = 0;
+  const hooks = t.micV.convaiHooks(input, signal, () => { woken++; });
+  assert(hooks, 'the turn has hooks');
+  assert.equal(hooks.awaitTranscript(), true, 'no transcript yet: the reply waits');
+  hooks.onTranscript('Hey Judy, how are you doing tonight?');
+  assert.equal(hooks.awaitTranscript(), false, 'the line started: nothing more to wait for');
+  const line = t.micV.lineOf(input.requestId);
+  assert(line);
+  await until(() => line.state === 'playing', 'audible');
+  t.host.state.end = true;
   await line.finished;
-  // The non-streamed reply is made inside the clock as well.
-  let seen = null;
-  await t.micV.wrapReply(async () => { seen = true; })({requestId: input.requestId}, {}, undefined);
-  assert.equal(seen, true);
+  assert(woken >= 1, 'the speech was woken when the line cleared');
+  // A transcript V cannot speak (a language Pocket does not speak) ends the wait too: nothing to hold for.
+  const german = turn({planFor: () => ({engine: 'pocket', language: 'de'})}, {prepare: async () => undefined});
+  await german.wrapped(input, signal);
+  const germanHooks = german.micV.convaiHooks(input, signal);
+  assert.equal(germanHooks.awaitTranscript(), true);
+  germanHooks.onTranscript('Wie geht es dir heute Abend?');
+  assert.equal(germanHooks.awaitTranscript(), false);
+  assert.equal(german.micV.lineOf(input.requestId), null);
 });
 
-test('the bridge wires it: a spoken turn\'s two currents look the line up, a new turn drops it, an add-on or made character\'s voice turn starts V as spoken, and the reply path was not changed', () => {
+function convaiSpeech(hooks, vLineOf, clock) {
+  const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
+  const events = [];
+  const speech = new ConvaiContinuousSpeech({input: owner, profile: {key: 'judy-alvarez'}, token: 'continuous-1', now: () => clock.now,
+    signal: new AbortController().signal, current: async () => true,
+    hold: () => vLineOf()?.holdsPublish() === true, holdPeek: () => vLineOf()?.holdsPublishPeek() === true, holdSound: () => vLineOf()?.blocking === true,
+    onTranscript: hooks.onTranscript, awaitTranscript: hooks.awaitTranscript,
+    readControl: async () => JSON.stringify({version: 1, id: 'continuous-1', ...owner, sequence: 1, updated: clock.now, allow: true, paused: false, volume: 0.8, pan: 0}),
+    writeState: async () => true,
+    writeReply: async () => { events.push('reply'); return true; }});
+  return {speech, events};
+}
+const replySnapshot = (extra = {}) => ({version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1, receivedFrames: 12000, positionSeconds: 0,
+  text: 'Hey V.', textComplete: false, sourceComplete: false, ended: false, underruns: 0, state: 'buffering', ...extra});
+
+test('Convai: the buffered reply stays quiet until the transcript is in, V\'s line starts from it, and the reply is published only after V has ended', async () => {
+  const t = turn({graceMs: 5000}, {prepare: async () => undefined});
+  const input = spokenInput();
+  const signal = new AbortController().signal;
+  await t.wrapped(input, signal);
+  const clock = {now: 10000};
+  const hooks = t.micV.convaiHooks(input, signal);
+  const {speech, events} = convaiSpeech(hooks, () => t.micV.lineOf(input.requestId), clock);
+  // Audio is already buffering but the words are not here: quiet, nothing published.
+  assert.deepEqual(await speech.frame(replySnapshot()), {allow: false, paused: true, volume: 0, pan: 0});
+  clock.now += 400;
+  assert.deepEqual(await speech.frame(replySnapshot()), {allow: false, paused: true, volume: 0, pan: 0});
+  assert.deepEqual(events, []);
+  // The words arrive: V's line starts from them and holds the reply.
+  const withWords = replySnapshot({userText: 'Hey Judy, how are you doing tonight?'});
+  assert.deepEqual(await speech.frame(withWords), {allow: false, paused: true, volume: 0, pan: 0});
+  const line = t.micV.lineOf(input.requestId);
+  assert(line, 'V\'s line started from the transcript in the stream');
+  await until(() => line.state === 'playing', 'V to be audible');
+  assert.deepEqual(await speech.frame(withWords), {allow: false, paused: true, volume: 0, pan: 0}, 'held while V is audible');
+  assert.deepEqual(events, [], 'nothing published while V is audible');
+  t.host.state.end = true; await line.clear;
+  const control = await speech.frame(withWords);
+  assert.equal(control.allow, true, 'the reply starts once V has ended');
+  assert.ok(events.includes('reply'));
+});
+
+test('Convai: the wait for the transcript is bounded, and never once the whole reply is in: then the reply goes on without V', async () => {
+  const quietControl = {allow: false, paused: true, volume: 0, pan: 0};
+  const make = () => {
+    const t = turn({}, {prepare: async () => undefined});
+    return t.wrapped(spokenInput(), new AbortController().signal).then(() => {
+      const hooks = t.micV.convaiHooks(spokenInput(), new AbortController().signal);
+      const clock = {now: 10000};
+      return {t, clock, ...convaiSpeech(hooks, () => t.micV.lineOf('1-2-3ULL'), clock)};
+    });
+  };
+  const bounded = await make();
+  assert.deepEqual(await bounded.speech.frame(replySnapshot()), quietControl);
+  bounded.clock.now += TRANSCRIPT_WAIT_MS - 100;
+  assert.deepEqual(await bounded.speech.frame(replySnapshot()), quietControl, 'still inside the bound');
+  bounded.clock.now += 200;
+  assert.equal((await bounded.speech.frame(replySnapshot())).allow, true, 'the bound passed: the reply goes on without V');
+  assert.equal(bounded.t.host.state.played, 0);
+  const complete = await make();
+  assert.equal((await complete.speech.frame(replySnapshot({textComplete: true, sourceComplete: true}))).allow, true, 'a reply that is entirely in does not wait');
+  // A turn that wants no V line waits for nothing.
+  const none = convaiSpeech({onTranscript: () => {}, awaitTranscript: () => false}, () => null, {now: 10000});
+  assert.equal((await none.speech.frame(replySnapshot())).allow, true);
+});
+
+// ---- the wiring ------------------------------------------------------------------------------------------------------------
+
+test('the bridge wires it: a spoken turn\'s two currents look the line up, a new turn drops it, the Convai speech gets the hooks, an add-on or made character\'s voice turn starts V as spoken, and the reply path was not changed', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
-  assert.match(bridge, /mic\.prepareReply = micV\.wrapPrepare\(mic\.prepareReply, \{own: input => addonVoice\.voice\(input\), textRoute: \(\) => mistral\.active\}\);/);
-  assert.match(bridge, /mic\.onReply = micV\.wrapReply\(mic\.onReply\);/);
+  assert.match(bridge, /mic\.prepareReply = micV\.wrapPrepare\(mic\.prepareReply, \{own: input => addonVoice\.voice\(input\)\}\);/);
+  assert.doesNotMatch(bridge, /micV\.wrapReply|mic\.onReply = |textRoute: \(\) => mistral\.active/, 'no clock plumbing and no provider exclusion any more');
   assert.equal(bridge.split('current.vLine = () => micV.lineOf(input.requestId);').length - 1, 2, 'prepareReply\'s current and onReply\'s current');
   const cancel = bridge.slice(bridge.indexOf('async function cancelMicrophone()'));
   assert(cancel.indexOf("micV.dropAll('turn-ended')") > 0 && cancel.indexOf("micV.dropAll('turn-ended')") < cancel.indexOf('await mic.cancel()'), 'a new turn ends the previous line');
+  assert.match(bridge, /\{mic: micV\.convaiHooks\(input, signal, \(\) => speech\.wakeUp\(\)\) \?\? undefined\}/, 'the Convai provider\'s continuous speech');
+  assert.match(bridge, /\.\.\.\(mic \? \{onTranscript: mic\.onTranscript, awaitTranscript: mic\.awaitTranscript\} : \{\}\),/);
   assert.equal(bridge.split('vLine = vVoice.start(input, {signal, clock, spoken: Boolean(userText)});').length - 1, 2, 'add-on and made-character voice turns');
   assert.match(bridge, /if \(vVoice\.micWanted\) \{ vVoice\.noteGender\(prepared\.input\); vVoice\.warmUp\(\); \}/, 'V\'s voice is warmed while the player talks');
-  // Nothing about how the reply is held or ordered changed: the holds still read current.vLine, a line that yields returns false.
+  // The reply is held by the very same lookups as a typed turn's.
   assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holdsPublish\(\) === true,/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\);/);
-  // The typed turn is untouched: V starts at the top of runInput, not soft.
-  assert.match(bridge, /if \(!ahead\) vLine = vVoice\.start\(input, \{signal: controller\.signal, clock\}\);/);
-  // The new module does no work per frame and touches no file or network.
+  assert.match(bridge, /if \(!ahead\) vLine = vVoice\.start\(input, \{signal: controller\.signal, clock\}\);/, 'the typed turn is untouched');
+  const voice = readFileSync(new URL('./v-voice.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(voice, /soft|yieldToReply|cut-for-reply|reply-ready|mic-omni|micUnavailable/, 'the cut-short rule is gone');
   const module = readFileSync(new URL('./mic-v-line.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(module, /setInterval|requestAnimationFrame|readFile|writeFile|fetch\(/);
+  assert.doesNotMatch(module, /setInterval|requestAnimationFrame|readFile|writeFile|fetch\(/, 'no per-frame work, no file or network');
 });
