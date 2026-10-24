@@ -31,7 +31,6 @@ Install state: the dev game is a player install of 0.2.9 from the release zips (
 - **Late logs on queued error reports:** a report waiting for the daily limit is built at send time with the next session's log tail. Decide: keep a short scrubbed excerpt in the queue record, or label such reports as late.
 - **Clean-PC check (VC++ runtime):** `MSVCP140.dll` is not shipped and a clean Windows PC or VM was never tried. If Pocket or the local microphone fail to import there, add `msvcp140.dll` to `app/python`.
 - **Native systems the owner skipped:** the second lift ride and the FPS A/Bs with each system off in `native-off.txt`, only if a player reports FPS or a stuck companion.
-- **GitHub account:** `github.com/alystria-ai` answers 404 to everyone but the account itself (since 2026-10-19; only GitHub Support can lift it). Owner's call; downloads are on Hugging Face.
 
 ### Ideas and features
 
@@ -97,6 +96,8 @@ The features below shipped between 0.2.2 and 0.2.7 and players have used them si
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph.
 
 ## Captain's log
+
+**2026-10-24 (GitHub account reinstated):** `github.com/alystria-ai` and the repository answer 200 to everyone again (the repo is public); the open item about the 404 is closed.
 
 **2026-10-24 (V speaks your microphone lines, like a typed line, branch `fix/v-mic-like-typed` from main af1f1039, NOT merged, NOT pushed, NOT installed, game not touched; Lua needs a CET reload, bridge a restart):** owner decision after the first version: "it's fine to wait, we should respect player choice". (1) A spoken line is now a normal V line: spoken in full, the reply's audio is held until V finishes (30 s guard for a stuck line, the hand-off 300 ms before V's end, exactly the typed rule). The soft line and the cut-short rule are removed from `bridge/v-voice.mjs`. (2) OmniVoice is allowed: V's render is queued on the Omni worker at once and the reply waits behind it, as for a typed line. (3) **Convai provider: included.** The reply's audio is buffered silently and the continuous speech can hold it behind V (the typed-line path on the Convai provider is the same hold). The transcript only appears in the stream's snapshots (`userText`), so `ConvaiContinuousSpeech` has two new hooks: `onTranscript` starts V's line the first time the words are in, and `awaitTranscript` keeps a buffered reply quiet until then, at most `TRANSCRIPT_WAIT_MS` = 1.5 s from its first audio and never once the whole reply is in. (4) The setting's description is rewritten in all 15 locales (Haiku): V says your words, the reply follows V's line, off by default because you just said it yourself; `localization/en.json` regenerated. (5) Tests: `bridge/mic-v-line.test.mjs` (18, rewritten), the setting test in `bridge/manager.test.mjs`, ui-catalog, description-fit, nsui-labels, v-voice and continuous-speech suites pass. **Live checks** (setting on, V on Pocket):
   1. Voices page: the description reads "...V says your words out loud in V's voice, and the reply follows V's line...", no mention of cut short or OmniVoice.
