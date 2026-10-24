@@ -111,6 +111,18 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
 
+[b]Vortex[/b][list]
+[*]Add the Scripts with Vortex's download button on this page, or drop the Scripts zip onto Vortex's Mods page. Drop the Runtime zip from Hugging Face onto the Mods page too, then click Deploy. Every file lands in the right place. Vortex moves only the HOW TO INSTALL text file to its mod-extra-files folder, which is harmless.
+[*]The warning sign in Vortex's Version column only means the mod was added from a file and not downloaded from Nexus. It is harmless.
+[*]Local AI and Mature packs: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
+[*]The OmniVoice pack (Voice models): extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
+[*]Updating: drop the new Scripts zip, then the Runtime update zips one by one, oldest first, onto the Mods page. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime and the game 2.5 switch zip work the same way, with the Scripts for game 2.5.
+[*]The mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
+[/list][b]Mod Organizer 2[/b]
+Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
+
+[b]Same version for both.[/b] The Scripts and the Runtime must be the same version, and the same game. Settings > Help shows both. A mix of versions gives odd errors.
+
 [b]Updating[/b]
 Updating? Download the new Scripts (the file for your game), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. On 0.3.0 and moved your game to 2.5? Take the Scripts for game 2.5 and the one zip Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates]game 2.5 updates folder[/url].
 

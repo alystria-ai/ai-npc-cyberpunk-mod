@@ -178,6 +178,20 @@ The optional packs are on the same Hugging Face page, https://huggingface.co/aly
 
 7. **PocketTTS models (optional)**: the Pocket voice, which runs on your processor, speaks English. With the PocketTTS model of a language it also speaks French, Italian, German, Spanish (Spain) and Portuguese (Brazil), in the character's own dubbed voice. Get the multilingual pack for your language (item 6), and if you use the Pocket voice, also get the PocketTTS model for that language: `PocketTTS-Model-<language>.zip`, about 219 MB each, from the same multilingual folder, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/multilingual. Extract it after the voice pack. The PocketTTS model needs the voice pack of the same language, because it copies the voice from the pack's clips; with the model but not the pack, replies in that language show as text, and the game tells you once. OmniVoice and the Mistral voice need only the voice pack.
 
+### Vortex
+
+- **Scripts**: use Vortex's download button on the Nexus page, or drop the Scripts zip onto Vortex's Mods page.
+- **Runtime**: download the zip from Hugging Face and drop it onto the Mods page too. Then click Deploy. Every file lands in the right place. Vortex moves only the "HOW TO INSTALL" text file to its mod-extra-files folder, which is harmless.
+- **The warning sign in the Version column** only means the mod was added from a file and not downloaded from Nexus. It is harmless.
+- **Local AI packs and the other model packs**: Vortex shows "You Have Reached The Fallback Installer". Choose "Yes, Install To Staging Anyway" and every file lands correctly. With two of these packs Vortex reports "unresolved file conflicts" because they share identical files (the licences and the embedding model). Pick either one to load after the other, it makes no difference.
+- **The OmniVoice pack**: extract it into the game folder by hand. Vortex can't install it, because it holds DLLs.
+- **External changes**: the mod writes its state files inside its own folders, so Vortex may report "external changes" at the next deploy. Keeping the changes is fine.
+- **Same version for both**: the Scripts and the Runtime must be the same version, and the same game. Settings > Help shows both. A mix of versions gives odd errors.
+
+### Mod Organizer 2
+
+Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
+
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
@@ -257,6 +271,8 @@ Close the game and extract the new Scripts and Runtime over the old ones (the sa
 **A smaller download for the Runtime.** If you already have a Runtime installed, you can skip the full Runtime and download the small **Runtime update** zips instead, from the updates folder on the Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates): `Runtime-Update-<from version>-to-<to version>.zip`. Each one holds only the files that changed. The folder keeps every update: apply the update zips one by one, starting from your version. Extract each into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime (the Scripts and any optional packs are extracted as usual). If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself (never delete the mod's folders to update: the optional packs live inside them): files that the new version no longer needs are removed by the mod the next time the game starts. If you do not have a Runtime yet, or are not sure which version you have, use the full Runtime; it works for new installs and for any update.
 
 **Game 2.5.** The update zips for game 2.5 are in their own folder, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.5/updates, named `Runtime-Update-<from version>-to-<to version>-for-2.5.zip`. They belong to the 2.5 build only: never extract them over a Runtime for game 2.31, or the other way round. Already on 0.3.0 and moved your game to 2.5? `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip` in that folder brings your Runtime to 0.3.1 for game 2.5 in one step, together with the 2.5 Scripts. Any other version, or going back to 2.31, needs the full Runtime of your game.
+
+**Updating with Vortex.** Drop the new Scripts zip onto Vortex's Mods page, then the Runtime update zips one by one, oldest first. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. The full Runtime works the same way: choose Replace. The game 2.5 switch zip uses the same steps, with the Scripts for game 2.5. With Mod Organizer 2, extract each update zip into the Runtime mod's folder.
 
 ## Uninstall
 

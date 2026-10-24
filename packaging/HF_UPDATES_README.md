@@ -10,6 +10,8 @@ Small zips that bring a Runtime you already have up to date, instead of download
 
 **Apply the update zips from this folder one by one, starting from your version.** Extract each one into your Cyberpunk 2077 folder over your existing Runtime, in the place of the full Runtime, then the next one, until you reach the newest. If Windows asks about files that already exist, choose **Replace**: that is always safe. You do not delete anything yourself: files a version no longer needs are removed by the mod the next time the game starts. The Scripts and any optional packs are downloaded as usual.
 
+With Vortex, drop each update zip onto the Mods page one by one, oldest first, together with the new Scripts. When Vortex asks, choose "Replace the existing mod" (it may first ask to replace the file, say yes), then click Deploy. With Mod Organizer 2, extract each one into the Runtime mod's folder.
+
 Every step is kept here. If you are not sure which version you have, use the full Runtime instead. It works for new installs and for any update.
 
 Each file is named `Runtime-Update-<from version>-to-<to version>.zip`. The steps, in the order you apply them:
