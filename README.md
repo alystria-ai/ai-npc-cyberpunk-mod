@@ -5,7 +5,7 @@ Speak to Cyberpunk 2077's characters in your own voice and hear them answer in t
 
 <p align="center">
   <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main"><img alt="Version 0.3.0" src="https://img.shields.io/badge/VERSION-0.3.0-FCEE0A?style=for-the-badge&labelColor=000000"></a>
-  <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="#requirements"><img alt="Cyberpunk 2077 2.31 and 2.5" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31_and_2.5-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
   <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
 </p>
@@ -44,8 +44,8 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
-| 1 | **Scripts** | Nexus Mods, or [Scripts.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Scripts.zip) | small, text only | Yes |
-| 2 | **Runtime** | [Runtime.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
+| 1 | **Scripts** | Nexus Mods, or [Scripts.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Scripts.zip) for game 2.31 and [game-2.5/Scripts.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Scripts.zip) for game 2.5 | small, text only | Yes |
+| 2 | **Runtime** | [Runtime.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip) for game 2.31 and [game-2.5/Runtime.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip) for game 2.5, same version and same game as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
 | 3 | **OmniVoice pack** | [voice/OmniPack.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/voice/OmniPack.zip) | about 13 GB free while installing, 7.4 GB installed | Optional: a richer voice for NVIDIA cards |
 | 4 | **Local AI standard** | [local-ai/LocalAI-Standard.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Standard.zip) | about 5.3 GB | Optional: fully local conversations, best replies. Needs the Runtime of version 0.2.7 or newer |
 | 5 | **Local AI lite** | [local-ai/LocalAI-Lite.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/local-ai/LocalAI-Lite.zip) | about 1.3 GB | Optional: fully local conversations on smaller cards |
@@ -100,7 +100,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 
 | You need | Details |
 |---|---|
-| Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). Patch 2.5 is not supported yet. On Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old. |
+| Game | Cyberpunk 2077 version 2.31 or version 2.5 on Windows 10 or 11 (64-bit). The mod comes in two builds, one for each game version: take the Scripts and the Runtime made for yours (the 2.5 files have "-for-2.5" in their names, and the 2.5 Runtime is in the game-2.5 folder on Hugging Face). Versions tested: for 2.31 Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5 and Native Settings UI 1.96. For 2.5 Cyber Engine Tweaks 1.38.0, the unofficial 2.5 build of RED4ext (1.30.0 Master 47ac01c), redscript 0.5.32, the unofficial 2.5 Codeware 1.20.6 and Native Settings UI 1.97. |
 | Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, and either [Mod Configuration Menu](https://www.nexusmods.com/cyberpunk2077/mods/31640) 0.10.5 or newer or [Native Settings UI](https://www.nexusmods.com/cyberpunk2077/mods/3518), all from Nexus Mods. One of the two is enough; with both, the manager uses Mod Configuration Menu. RED4ext starts the mod's background service with the game. |
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice. Not needed for Local AI, or a Custom server on your own PC, with a local voice. |

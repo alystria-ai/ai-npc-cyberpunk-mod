@@ -5,9 +5,11 @@
 //        [--from 0.2.2 --to 0.2.3]            (default: the version in each Runtime's app/release.json)
 //        [--remove <path>]...                 (a file to remove besides those found by the comparison; relative to the game folder)
 //        [--listing <pack listing json> | --no-listing]
+//        [--switch-game]                      (the old Runtime is for another game than the new one: the zip moves a player from one game's build to the other,
+//                                              named with the new game's suffix. Only meaningful from a Runtime of the same version line, e.g. 0.3.0 (2.31) to 0.3.1 for 2.5.)
 //
 // It writes, into the folder:
-//   Runtime-Update-<from>-to-<to>[-for-<game>].zip   (the suffix only for a game other than 2.31: packaging/game-variants.json; both Runtimes must be for the same game)
+//   Runtime-Update-<from>-to-<to>[-for-<game>].zip   (the suffix only for a game other than 2.31: packaging/game-variants.json; both Runtimes must be for the same game unless --switch-game is given)
 //                                             every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json, and app/defaults/runtime-steps/step-<from>-to-<to>.json
@@ -94,16 +96,21 @@ async function releaseGame(files) {
 // The paths of every file the optional packs ship (any case), so that the update never deletes one a pack put there.
 export const packPaths = listing => new Set(listing.packs.flatMap(pack => pack.files.map(([path]) => path.toLowerCase())));
 
-export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remove = [], listing = null, log = console.log}) {
+export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remove = [], listing = null, switchGame = false, log = console.log}) {
   if (!oldZips.length || !newZips.length) throw Error('Name the previous full Runtime (--old) and the new one (--new).');
   const before = await runtimeFiles(oldZips), after = await runtimeFiles(newZips);
   from ??= await releaseVersion(before, 'old');
   to ??= await releaseVersion(after, 'new');
   if (!/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(from) || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(to)) throw Error(`Unusable version names: "${from}", "${to}".`);
   if (from === to) throw Error(`Both Runtimes are version ${from}.`);
-  // An update step never crosses games: a 2.31 Runtime and a 2.5 Runtime differ in the native plugin and are two separate update chains.
-  const game = await releaseGame(after);
-  if (await releaseGame(before) !== game) throw Error(`The old Runtime is for game ${await releaseGame(before)} and the new one for game ${game}; an update zip is built within one game.`);
+  // An update step stays within one game unless a switch is asked for: a 2.31 Runtime and a 2.5 Runtime differ in the native plugin and are two separate update
+  // chains. A switch step (--switch-game) is the one zip that takes a Runtime of one game to the next version of the other game's build.
+  const game = await releaseGame(after), oldGame = await releaseGame(before);
+  if (switchGame ? oldGame === game : oldGame !== game) {
+    throw Error(switchGame ? `Both Runtimes are for game ${game}; a switch update is built from a Runtime of another game.`
+      : `The old Runtime is for game ${oldGame} and the new one for game ${game}; an update zip is built within one game (--switch-game builds the step from one game to the other).`);
+  }
+  if (!Object.hasOwn(GAME_VARIANTS, oldGame)) throw Error(`The old Runtime is for game ${oldGame}, which packaging/game-variants.json does not list.`);
   if (!Object.hasOwn(GAME_VARIANTS, game)) throw Error(`The Runtime is for game ${game}, which packaging/game-variants.json does not list.`);
   const diff = compareRuntimes(before, after);
 
@@ -149,7 +156,7 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     await rename(temporary, zipPath);
     const sha256 = await sha256File(zipPath);
     await writeFile(resolve(out, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-    const summary = {from, to, game, zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
+    const summary = {from, to, game, ...(switchGame ? {switchedFrom: oldGame} : {}), zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
       unchanged: diff.unchanged, removals: checked.ok.length, leftInPlace};
     log(`${base}.zip: ${(closed.bytes / 1024 ** 2).toFixed(1)} MiB, ${closed.entries} files (${diff.added.length} added, ${diff.changed.length} changed, ${diff.unchanged} unchanged and left out), `
       + `${checked.ok.length} file(s) in the removal list.`);
@@ -165,12 +172,12 @@ async function main(argv) {
   const one = name => all(name)[0];
   const out = one('--out');
   if (!out || !all('--old').length || !all('--new').length) {
-    console.error('Usage: build-runtime-update.mjs --old <full Runtime zip> --new <full Runtime zip> --out <folder> [--from V --to V] [--remove PATH]... [--listing FILE | --no-listing]');
+    console.error('Usage: build-runtime-update.mjs --old <full Runtime zip> --new <full Runtime zip> --out <folder> [--from V --to V] [--remove PATH]... [--listing FILE | --no-listing] [--switch-game]');
     return 2;
   }
   const listing = argv.includes('--no-listing') ? null : validateListing(JSON.parse(await readFile(resolve(one('--listing') ?? DEFAULT_LISTING), 'utf8')));
   await buildRuntimeUpdate({oldZips: all('--old').map(path => resolve(path)), newZips: all('--new').map(path => resolve(path)), out: resolve(out),
-    from: one('--from'), to: one('--to'), remove: all('--remove'), listing});
+    from: one('--from'), to: one('--to'), remove: all('--remove'), listing, switchGame: argv.includes('--switch-game')});
   return 0;
 }
 

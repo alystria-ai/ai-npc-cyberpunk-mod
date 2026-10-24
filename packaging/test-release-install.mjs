@@ -41,9 +41,15 @@ import {listZip} from './lib/zip.mjs';
 import {readEntry} from './lib/zip-entry.mjs';
 
 // The names the build gives its packages (build-release.mjs): the Scripts keep the long name (the file for Nexus Mods), the others have no product prefix.
-const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}` : `${id}-${version}`;
+// --game 2.5 tests the build for that game: its Scripts and Runtime (and the update zip) carry the variant's suffix (packaging/game-variants.json).
+const gameArgument = process.argv.slice(2).indexOf('--game');
+const gameId = gameArgument >= 0 && process.argv.slice(2)[gameArgument + 1] ? process.argv.slice(2)[gameArgument + 1] : '2.31';
+if (!Object.hasOwn(GAME_VARIANTS, gameId)) throw Error(`--game must be one of ${Object.keys(GAME_VARIANTS).join(', ')}, not ${gameId}`);
+const gameSuffix = GAME_VARIANTS[gameId].suffix;
+const packageBase = (id, version) => id === 'Scripts' ? `AI-NPC-Cyberpunk-Mod-Scripts-${version}${gameSuffix}` : id === 'Runtime' ? `Runtime-${version}${gameSuffix}` : `${id}-${version}`;
 import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
+import {GAME_VARIANTS} from './lib/game-variants.mjs';
 import {STEPS_DIR, checkRuntimeSteps} from '../bridge/runtime-steps.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
@@ -285,11 +291,11 @@ async function main() {
       || (parts && new RegExp(`^${packageBase(prefix, escaped(version))}-part\\d+of\\d+\\.zip$`).test(name))).sort();
     const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
     // The update test extracts the previous version and the update zip instead of the new full Runtime (see the header).
-    const updateZips = names.filter(name => new RegExp(`^Runtime-Update-.+-to-${escaped(version)}\\.zip$`).test(name));
+    const updateZips = names.filter(name => new RegExp(`^Runtime-Update-.+-to-${escaped(version)}${escaped(gameSuffix)}\\.zip$`).test(name));
     const updateZip = updateFrom.length ? (updateZipArgument ?? (updateZips.length === 1 ? join(packagesDir, updateZips[0]) : null)) : null;
     const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)]
       : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
-    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `Runtime-${version}.files.json`))
+    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `${packageBase('Runtime', version)}.files.json`))
       : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('OmniPack').length === 1) && localIds.every(id => pick(id).length === 1),
     updateFrom.length ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
@@ -354,7 +360,7 @@ async function main() {
       check('the start removed the files the update names, refusing and failing on none', removals.state === 'done' && removals.removed === update.present.length
         && removals.refused === 0 && removals.failed === 0 && update.present.every(rel => !existsSync(join(game, rel))),
       JSON.stringify(removals));
-      const newList = JSON.parse(await readFile(join(packagesDir, `Runtime-${version}.files.json`), 'utf8'));
+      const newList = JSON.parse(await readFile(join(packagesDir, `${packageBase('Runtime', version)}.files.json`), 'utf8'));
       const shippedNow = new Set(newList.map(file => file.path.toLowerCase()));
       const dropped = [...update.previous].filter(name => !shippedNow.has(name.toLowerCase())).sort();
       // What the previous Runtime had and the new one has not: gone, or left on purpose (a path the removal step may not delete, or an optional pack's file).
@@ -398,6 +404,9 @@ async function main() {
     // The Runtime ships no Convai key: a build with the token backend carries its settings (app/defaults/convai-auth.json, enabled, no fallback) and no
     // service.txt; a --dry-run build may carry neither.
     const runtimeRelease = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
+    const scriptsRelease = JSON.parse(await readFile(join(mod, 'release.json'), 'utf8'));
+    check(`the Scripts and the Runtime are both the build for game ${gameId}`, (scriptsRelease.game ?? '2.31') === gameId && (runtimeRelease.game ?? '2.31') === gameId,
+      `Scripts ${scriptsRelease.game ?? '(none)'}, Runtime ${runtimeRelease.game ?? '(none)'}`);
     const signIn = runtimeRelease.convaiSignIn === 'backend';
     check('the Runtime ships no Convai key file (no defaults/service.txt)', !existsSync(join(app, 'defaults/service.txt')) && runtimeRelease.convaiKey === 'none');
     if (signIn) {

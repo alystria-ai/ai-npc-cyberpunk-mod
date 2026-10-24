@@ -277,3 +277,30 @@ test('the command line: usage with no arguments, and the same result as the func
     assert.equal(await stat(join(dir, 'out2')).then(() => true, () => false), false, 'a failed run leaves no output folder');
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
+
+test('a switch update takes a Runtime of one game to the next version of the other game, and only when asked for', async () => {
+  const dir = await temporary();
+  try {
+    const {old, next} = fixture(dir);
+    const dll = 'red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll';
+    old[dll] = 'native for 2.31';
+    next[dll] = 'native for 2.5';
+    next[RELEASE_ENTRY] = release('0.2.3', {game: '2.5'});
+    const oldZip = await makeZip(join(dir, 'old.zip'), old), newZip = await makeZip(join(dir, 'new.zip'), next);
+    await assert.rejects(buildRuntimeUpdate({oldZips: [oldZip], newZips: [newZip], out: join(dir, 'refused'), listing: packListing, log: quiet}),
+      /for game 2\.31 and the new one for game 2\.5; an update zip is built within one game/);
+    assert.equal((await readdir(dir)).includes('refused'), false);
+    const summary = await buildRuntimeUpdate({oldZips: [oldZip], newZips: [newZip], out: join(dir, 'out'), listing: packListing, switchGame: true, log: quiet});
+    assert.equal(summary.game, '2.5');
+    assert.equal(summary.switchedFrom, '2.31');
+    assert.deepEqual((await readdir(join(dir, 'out'))).sort(), ['Runtime-Update-0.2.2-to-0.2.3-for-2.5.files.json', 'Runtime-Update-0.2.2-to-0.2.3-for-2.5.zip']);
+    const held = await entriesOf(join(dir, 'out', 'Runtime-Update-0.2.2-to-0.2.3-for-2.5.zip'));
+    assert.equal(held[dll], 'native for 2.5');
+    assert.equal(JSON.parse(held[RELEASE_ENTRY]).game, '2.5');
+    assert.deepEqual(JSON.parse(held[STEP_ENTRY]), {from: '0.2.2', to: '0.2.3'});
+    // Two Runtimes of the same game are not a switch.
+    const same = await makeZip(join(dir, 'same.zip'), {...next, [RELEASE_ENTRY]: release('0.2.4', {game: '2.5'})});
+    await assert.rejects(buildRuntimeUpdate({oldZips: [newZip], newZips: [same], out: join(dir, 'same-out'), listing: packListing, switchGame: true, log: quiet}),
+      /Both Runtimes are for game 2\.5; a switch update is built from a Runtime of another game/);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
