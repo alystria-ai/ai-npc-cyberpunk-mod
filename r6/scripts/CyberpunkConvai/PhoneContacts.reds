@@ -79,7 +79,7 @@ public func EnableContactsInput() -> Void {
 @if(ModuleExists("Codeware"))
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiStartPhoneKeys() -> Void {
-    this.m_convaiPhoneKeys = GameInstance.GetCallbackSystem()
+    this.m_convaiPhoneKeys = ConvaiCallbackSystem()
         .RegisterCallback(n"Input/Key", this, n"OnConvaiPhoneKey")
         .AddTarget(InputTarget.Key(EInputKey.IK_J, EInputAction.IACT_Press))
         .AddTarget(InputTarget.Key(EInputKey.IK_L, EInputAction.IACT_Press));

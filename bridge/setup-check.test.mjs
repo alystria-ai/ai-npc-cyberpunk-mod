@@ -299,11 +299,11 @@ test('reachability: a name that does not resolve, a refused connection, silence 
 
 // ---------------------------------------------------------------- the document
 
-async function install(root, {scripts = '0.2.0', runtime = '0.2.0', pocket = true, packageVersion = null} = {}) {
+async function install(root, {scripts = '0.2.0', runtime = '0.2.0', pocket = true, packageVersion = null, scriptsGame, runtimeGame} = {}) {
   const game = join(root, 'game'), modRoot = join(game, ...MOD), project = join(root, 'app'), stateDirectory = join(root, 'state');
   await mkdir(modRoot, {recursive: true}); await mkdir(project, {recursive: true}); await mkdir(stateDirectory, {recursive: true});
-  if (scripts !== null) await put(join(modRoot, 'release.json'), JSON.stringify({product: 'ai-npc', package: 'scripts', version: scripts, commit: 'abc123'}));
-  if (runtime !== null) await put(join(project, 'release.json'), JSON.stringify({product: 'ai-npc', package: 'runtime', version: runtime, commit: 'abc123'}));
+  if (scripts !== null) await put(join(modRoot, 'release.json'), JSON.stringify({product: 'ai-npc', package: 'scripts', version: scripts, ...(scriptsGame === undefined ? {} : {game: scriptsGame}), commit: 'abc123'}));
+  if (runtime !== null) await put(join(project, 'release.json'), JSON.stringify({product: 'ai-npc', package: 'runtime', version: runtime, ...(runtimeGame === undefined ? {} : {game: runtimeGame}), commit: 'abc123'}));
   if (packageVersion !== null) await put(join(project, 'package.json'), JSON.stringify({name: 'x', version: packageVersion}));
   if (pocket) await mkdir(join(project, 'pocket-tts'), {recursive: true});
   return {game, modRoot, project, stateDirectory};
@@ -434,6 +434,24 @@ test('versions: equal, different, or unknown (a development checkout has no rele
     assert.deepEqual(byId(await collectSetupCheck(options(both))).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: '0.2.0'});
     const none = await collectSetupCheck(options(await install(join(root, 'e'), {scripts: null, runtime: null})));
     assert.deepEqual(byId(none).versions, {id: 'versions', state: 'unknown', code: 'unknown', scripts: null, runtime: null});
+  });
+});
+
+test('versions: the same version built for two games is a problem that names both games; a package with no game field is the 2.31 build', async () => {
+  await temp(async root => {
+    const both25 = await collectSetupCheck(options(await install(join(root, 'a'), {scriptsGame: '2.5', runtimeGame: '2.5'})));
+    assert.deepEqual(byId(both25).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0'});
+    const oldRuntime = await collectSetupCheck(options(await install(join(root, 'b'), {scriptsGame: '2.5'})));
+    assert.deepEqual(byId(oldRuntime).versions, {id: 'versions', state: 'problem', code: 'game-mismatch', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.5', runtimeGame: '2.31'});
+    const oldScripts = await collectSetupCheck(options(await install(join(root, 'c'), {runtimeGame: '2.5'})));
+    assert.deepEqual(byId(oldScripts).versions, {id: 'versions', state: 'problem', code: 'game-mismatch', scripts: '0.2.0', runtime: '0.2.0', scriptsGame: '2.31', runtimeGame: '2.5'});
+    const explicit = await collectSetupCheck(options(await install(join(root, 'd'), {scriptsGame: '2.31'})));
+    assert.equal(byId(explicit).versions.code, 'match');
+    // A game field that is not a version reads as the 2.31 build; the version mismatch still comes first.
+    const junk = await collectSetupCheck(options(await install(join(root, 'e'), {scriptsGame: 'banana', runtimeGame: 5})));
+    assert.equal(byId(junk).versions.code, 'match');
+    const versionFirst = await collectSetupCheck(options(await install(join(root, 'f'), {scripts: '0.2.0', runtime: '0.2.1', scriptsGame: '2.5'})));
+    assert.equal(byId(versionFirst).versions.code, 'mismatch');
   });
 });
 

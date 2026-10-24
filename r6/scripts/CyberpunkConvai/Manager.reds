@@ -568,7 +568,7 @@ public class ConvaiManagerPopup extends InGamePopup {
             super.Close();
             return;
         };
-        this.m_keys = GameInstance.GetCallbackSystem()
+        this.m_keys = ConvaiCallbackSystem()
             .RegisterCallback(n"Input/Key", this, n"OnManagerKey")
             .AddTarget(InputTarget.Key(EInputKey.IK_Up, EInputAction.IACT_Press))
             .AddTarget(InputTarget.Key(EInputKey.IK_Down, EInputAction.IACT_Press))

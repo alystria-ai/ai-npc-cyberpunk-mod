@@ -214,7 +214,7 @@ test('every sentence the requirement notices can show is a catalogued English UI
     'Missing: {names}. Install them and restart the game.',
     'Install or update: {names}. Then restart the game.',
     'Codeware is too old. Update it from Nexus Mods, then restart the game.',
-    'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.',
+    'This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.',
   ];
   for (const text of sentences) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);

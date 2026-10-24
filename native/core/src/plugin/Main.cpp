@@ -5,7 +5,7 @@
 // missing, refused or switched off, the Lua runs its original path unchanged.
 //
 // Safety rules (docs/NATIVE_REWRITE_PLAN.md, "Architecture"):
-//   - Version-pinned: Query declares game 2.31, so RED4ext refuses the DLL after a patch, and Main
+//   - Version-pinned: Query declares the game build this variant targets (2.31 or 2.5), so RED4ext refuses the DLL after a patch, and Main
 //     re-checks the product version. The Lua probe then finds no ConvaiNative class.
 //   - RTTI registration only: no hooks, no addresses, no game memory reads of our own.
 //   - Fail soft: a failure in Load logs and returns false (RED4ext unloads us); nothing here
@@ -139,10 +139,10 @@ bool Load()
         runtime ? convai::GameVersionFromSemVer(runtime->major, runtime->minor, runtime->patch) : convai::GameVersion{};
     if (!convai::IsSupportedGame(game))
     {
-        CONVAI_ERROR("Game version %d.%02d (product %d.%d.%lld) is not the supported %d.%02d; the mod keeps its Lua path",
+        CONVAI_ERROR("Game version %d.%02d (product %d.%d.%lld) is not the supported %s; this is the %s variant, the mod keeps its Lua path",
                      game.major, game.minor, runtime ? static_cast<int>(runtime->major) : -1,
                      runtime ? static_cast<int>(runtime->minor) : -1,
-                     runtime ? static_cast<long long>(runtime->patch) : -1LL, convai::kGameMajor, convai::kGameMinor);
+                     runtime ? static_cast<long long>(runtime->patch) : -1LL, convai::kGameLabel, convai::kGameLabel);
         return false;
     }
 
@@ -255,7 +255,11 @@ RED4EXT_C_EXPORT void RED4EXT_CALL Query(RED4ext::v1::PluginInfo* aInfo)
     aInfo->name = L"CyberpunkConvaiNative";
     aInfo->author = L"AI NPC Cyberpunk Mod";
     aInfo->version = RED4EXT_V1_SEMVER(convai::kPluginMajor, convai::kPluginMinor, convai::kPluginPatch);
+#if defined(CONVAI_GAME_2_5)
+    aInfo->runtime = RED4EXT_V1_RUNTIME_VERSION_2_50;
+#else
     aInfo->runtime = RED4EXT_V1_RUNTIME_VERSION_2_31;
+#endif
     aInfo->sdk = RED4EXT_V1_SDK_VERSION_CURRENT;
 }
 

@@ -1,20 +1,24 @@
 param(
     [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
     [string]$OutputDirectory,
-    # A RED4ext.SDK checkout at the commit pinned in native/core/CMakeLists.txt. Without it CMake
-    # fetches that commit itself (FetchContent, needs git and network).
-    [string]$SdkDirectory = $env:CYBERPUNK_CONVAI_RED4EXT_SDK,
+    # The game variant to build for. 2.31 and 2.5 use different RED4ext.SDK pins (native/core/CMakeLists.txt) and each DLL
+    # declares only its own game runtime. The 2.5 output goes to dist\native-core-2.5 unless -OutputDirectory says otherwise.
+    [ValidateSet('2.31', '2.5')]
+    [string]$Game = '2.31',
+    # A RED4ext.SDK checkout at the commit pinned for that game in native/core/CMakeLists.txt. Without it CMake
+    # fetches that commit itself (FetchContent, needs git and network). CYBERPUNK_CONVAI_RED4EXT_SDK_25 is the 2.5 one.
+    [string]$SdkDirectory = $(if ($Game -eq '2.5') { $env:CYBERPUNK_CONVAI_RED4EXT_SDK_25 } else { $env:CYBERPUNK_CONVAI_RED4EXT_SDK }),
     [ValidateSet('Release', 'RelWithDebInfo', 'Debug')]
     [string]$Configuration = 'Release',
     # Skip the headless tests (they run by default).
     [switch]$NoTests
 )
-# Builds CyberpunkConvaiNative.dll (the RED4ext plugin in native/core) with CMake and the
+# Builds CyberpunkConvaiNative.dll (the RED4ext plugin in native/core, for -Game 2.31 or 2.5) with CMake and the
 # installed Visual Studio 2022 C++ toolset, then runs the headless tests. Static CRT and /Brepro,
 # as for the launcher plugin. Installs nothing.
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath($ProjectDirectory)
-if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'dist\native-core' }
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot $(if ($Game -eq '2.5') { 'dist\native-core-2.5' } else { 'dist\native-core' }) }
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 $source = Join-Path $projectRoot 'native\core'
 $build = Join-Path $output 'build'
@@ -27,11 +31,12 @@ if (-not $cmake) {
 }
 $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
 
-$configure = @('-S', $source, '-B', $build, '-G', 'Visual Studio 17 2022', '-A', 'x64')
+$configure = @('-S', $source, '-B', $build, '-G', 'Visual Studio 17 2022', '-A', 'x64', "-DCONVAI_GAME=$Game")
 if ($SdkDirectory) {
     $sdk = [IO.Path]::GetFullPath($SdkDirectory)
     if (-not (Test-Path -LiteralPath (Join-Path $sdk 'include\RED4ext\RED4ext.hpp'))) { throw "Not a RED4ext.SDK checkout: $sdk" }
-    $pinned = (Select-String -LiteralPath (Join-Path $source 'CMakeLists.txt') -Pattern 'RED4EXT_SDK_COMMIT "([0-9a-f]{40})"').Matches[0].Groups[1].Value
+    $pins = @(Select-String -LiteralPath (Join-Path $source 'CMakeLists.txt') -Pattern 'RED4EXT_SDK_COMMIT "([0-9a-f]{40})"' | ForEach-Object { $_.Matches[0].Groups[1].Value })
+    $pinned = $pins[$(if ($Game -eq '2.5') { 1 } else { 0 })]
     $head = (& git -C $sdk rev-parse HEAD 2>$null)
     if ($LASTEXITCODE -ne 0 -or $head -ne $pinned) { throw "RED4ext.SDK at $sdk is at '$head', expected the pinned $pinned." }
     $configure += "-DRED4EXT_SDK_DIR=$sdk"
@@ -58,4 +63,4 @@ if (-not $NoTests) {
     $testLog = Invoke-Step $ctest @('--test-dir', $build, '-C', $Configuration, '--output-on-failure') 'Native tests'
     $testLog | Select-Object -Last 3 | Write-Output
 }
-Write-Output "Native core built: $(Join-Path $output 'CyberpunkConvaiNative.dll') (SHA-256 $hash)"
+Write-Output "Native core ($Game) built: $(Join-Path $output 'CyberpunkConvaiNative.dll') (SHA-256 $hash)"

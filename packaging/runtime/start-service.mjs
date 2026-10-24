@@ -355,6 +355,11 @@ function readVersion(path) {
   try { return JSON.parse(readFileSync(path, 'utf8')).version ?? null; } catch { return null; }
 }
 
+// The game a package was built for (release.json "game"); a release.json from before there was a build per game is the 2.31 build.
+function readGame(path) {
+  try { const game = JSON.parse(readFileSync(path, 'utf8')).game; return typeof game === 'string' && game.trim() ? game.trim() : '2.31'; } catch { return null; }
+}
+
 let prepared;
 try {
   const runtimeVersion = readVersion(resolve(appDirectory, 'release.json'));
@@ -362,6 +367,10 @@ try {
   log(`Conversation service ${runtimeVersion ?? '(unknown version)'} preparing ${layout.gameRoot}; player data in ${layout.state}.`);
   if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
     log(`Warning: the Scripts package is ${scriptsVersion} but the Runtime package is ${runtimeVersion}. Install matching versions.`);
+  }
+  const runtimeGame = readGame(resolve(appDirectory, 'release.json')), scriptsGame = readGame(resolve(layout.mod, 'release.json'));
+  if (runtimeGame && scriptsGame && runtimeGame !== scriptsGame) {
+    log(`Warning: the Scripts package is the build for game ${scriptsGame} but the Runtime package is the build for game ${runtimeGame}. Install the two made for the same game.`);
   }
   // Optional pack files extracted one folder too deep (a wrapper folder named after the zip) are moved into place first, so the pack
   // checks below and the bridge find them (packaging/runtime/place-packs.mjs). A few stat calls when there is nothing to fix; a

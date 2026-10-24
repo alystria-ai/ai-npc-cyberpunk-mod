@@ -245,7 +245,7 @@ private func SetFocus(isFocused: Bool) -> Void {
 @addMethod(PhoneMessagePopupGameController)
 private final func ConvaiChatCreate() -> Void {
     if !IsDefined(this.m_convaiChatKeys) {
-        this.m_convaiChatKeys = GameInstance.GetCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatKey")
+        this.m_convaiChatKeys = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatKey")
             .AddTarget(InputTarget.Key(EInputKey.IK_Enter, EInputAction.IACT_Press))
             .AddTarget(InputTarget.Key(EInputKey.IK_Escape, EInputAction.IACT_Release));
     };

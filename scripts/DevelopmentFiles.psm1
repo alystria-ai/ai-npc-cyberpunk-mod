@@ -29,12 +29,22 @@ function Get-DevelopmentManifest([string]$ProjectDirectory) {
     return $manifest
 }
 
-function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory, [switch]$LuaOnly) {
+# The source of one manifest file for a game version: the file of packaging/game-variants/<game>/ (laid out like the game folder) when that game's
+# build replaces it (2.5: GameVariant.reds, docs/GAME_VERSIONS.md), else the project's own. 2.31 has no overlay.
+function Resolve-DevelopmentSource([string]$ProjectDirectory, $File, [string]$Game) {
+    if ($Game -and $Game -ne '2.31') {
+        $overlay = Resolve-DevelopmentPath $ProjectDirectory ('packaging/game-variants/' + $Game + '/' + $File.target)
+        if ([IO.File]::Exists($overlay)) { return $overlay }
+    }
+    return (Resolve-DevelopmentPath $ProjectDirectory $File.source)
+}
+
+function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory, [switch]$LuaOnly, [string]$Game = '2.31') {
     $manifest = Get-DevelopmentManifest $ProjectDirectory
     foreach ($file in $manifest.files) {
         if ($LuaOnly -and [IO.Path]::GetExtension($file.source) -notin @('.lua', '.json')) { continue }
         [pscustomobject]@{
-            From = (Resolve-DevelopmentPath $ProjectDirectory $file.source)
+            From = (Resolve-DevelopmentSource $ProjectDirectory $file $Game)
             To = (Resolve-DevelopmentPath $GameDirectory $file.target)
             Relative = $file.target
             Source = $file.source
@@ -42,7 +52,7 @@ function Get-DevelopmentFiles([string]$ProjectDirectory, [string]$GameDirectory,
     }
 }
 
-function Copy-DevelopmentNativeStage([string]$ProjectDirectory, [string]$ScriptsDirectory) {
+function Copy-DevelopmentNativeStage([string]$ProjectDirectory, [string]$ScriptsDirectory, [string]$Game = '2.31') {
     $manifest = Get-DevelopmentManifest $ProjectDirectory
     $prefix = 'r6/scripts/CyberpunkConvai/'
     $stage = Resolve-DevelopmentPath $ScriptsDirectory 'CyberpunkConvai'
@@ -54,11 +64,11 @@ function Copy-DevelopmentNativeStage([string]$ProjectDirectory, [string]$Scripts
     }
     foreach ($file in $manifest.files) {
         if (-not $file.target.StartsWith($prefix, [StringComparison]::Ordinal)) { continue }
-        $source = Resolve-DevelopmentPath $ProjectDirectory $file.source
+        $source = Resolve-DevelopmentSource $ProjectDirectory $file $Game
         $destination = Resolve-DevelopmentPath $stage $file.target.Substring($prefix.Length)
         if (-not [IO.File]::Exists($source)) { throw "Missing native source: $($file.source)" }
         Copy-Item -LiteralPath $source -Destination $destination -Force
     }
 }
 
-Export-ModuleMember -Function Resolve-DevelopmentPath, Get-DevelopmentManifest, Get-DevelopmentFiles, Copy-DevelopmentNativeStage
+Export-ModuleMember -Function Resolve-DevelopmentPath, Resolve-DevelopmentSource, Get-DevelopmentManifest, Get-DevelopmentFiles, Copy-DevelopmentNativeStage

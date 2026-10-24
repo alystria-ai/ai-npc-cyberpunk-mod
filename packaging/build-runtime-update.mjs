@@ -7,7 +7,8 @@
 //        [--listing <pack listing json> | --no-listing]
 //
 // It writes, into the folder:
-//   Runtime-Update-<from>-to-<to>.zip         every file the new Runtime has and the old one did not, or has with other
+//   Runtime-Update-<from>-to-<to>[-for-<game>].zip   (the suffix only for a game other than 2.31: packaging/game-variants.json; both Runtimes must be for the same game)
+//                                             every file the new Runtime has and the old one did not, or has with other
 //                                                                  bytes (path, size and CRC-32 are compared), the new app/release.json, and
 //                                                                  app/defaults/runtime-removals.json, and app/defaults/runtime-steps/step-<from>-to-<to>.json
 //                                                                  (the step marker: a later setup check names an update step a player skipped)
@@ -32,6 +33,7 @@ import {PLUGIN} from './runtime/apply-removals.mjs';
 import {REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 import {validateListing} from './lib/pack-overlap.mjs';
 import {STEPS_DIR, stepFileName, stepText} from '../bridge/runtime-steps.mjs';
+import {DEFAULT_GAME, GAME_VARIANTS} from './lib/game-variants.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
@@ -81,6 +83,14 @@ async function releaseVersion(files, label) {
   return release.version;
 }
 
+// The game a Runtime was built for (release.json "game"); a Runtime from before there was a build per game is the default game's.
+async function releaseGame(files) {
+  const found = files.get(RELEASE_ENTRY.toLowerCase());
+  if (!found) return DEFAULT_GAME;
+  const game = JSON.parse((await readEntry(found.zip, found.entry)).toString('utf8')).game;
+  return typeof game === 'string' && game ? game : DEFAULT_GAME;
+}
+
 // The paths of every file the optional packs ship (any case), so that the update never deletes one a pack put there.
 export const packPaths = listing => new Set(listing.packs.flatMap(pack => pack.files.map(([path]) => path.toLowerCase())));
 
@@ -91,6 +101,10 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
   to ??= await releaseVersion(after, 'new');
   if (!/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(from) || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(to)) throw Error(`Unusable version names: "${from}", "${to}".`);
   if (from === to) throw Error(`Both Runtimes are version ${from}.`);
+  // An update step never crosses games: a 2.31 Runtime and a 2.5 Runtime differ in the native plugin and are two separate update chains.
+  const game = await releaseGame(after);
+  if (await releaseGame(before) !== game) throw Error(`The old Runtime is for game ${await releaseGame(before)} and the new one for game ${game}; an update zip is built within one game.`);
+  if (!Object.hasOwn(GAME_VARIANTS, game)) throw Error(`The Runtime is for game ${game}, which packaging/game-variants.json does not list.`);
   const diff = compareRuntimes(before, after);
 
   // The removal list: what went away, what the new Runtime's own list declares, and the extra paths asked for.
@@ -107,7 +121,8 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
   const work = await mkdtemp(join(tmpdir(), 'runtime update '));
   try {
     await mkdir(out, {recursive: true});
-    const base = `Runtime-Update-${from}-to-${to}`;
+    // The name of a game other than the default carries its suffix (Runtime-Update-0.3.1-to-0.3.2-for-2.5.zip), so the zips cannot be mixed up.
+    const base = `Runtime-Update-${from}-to-${to}${GAME_VARIANTS[game].suffix}`;
     const zipPath = resolve(out, `${base}.zip`), temporary = `${zipPath}.tmp`;
     const writer = await ZipWriter.create(temporary);
     const files = [];
@@ -134,7 +149,7 @@ export async function buildRuntimeUpdate({oldZips, newZips, out, from, to, remov
     await rename(temporary, zipPath);
     const sha256 = await sha256File(zipPath);
     await writeFile(resolve(out, `${base}.files.json`), JSON.stringify(files, null, 1) + '\n');
-    const summary = {from, to, zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
+    const summary = {from, to, game, zip: zipPath, bytes: closed.bytes, entries: closed.entries, sha256, added: diff.added.length, changed: diff.changed.length,
       unchanged: diff.unchanged, removals: checked.ok.length, leftInPlace};
     log(`${base}.zip: ${(closed.bytes / 1024 ** 2).toFixed(1)} MiB, ${closed.entries} files (${diff.added.length} added, ${diff.changed.length} changed, ${diff.unchanged} unchanged and left out), `
       + `${checked.ok.length} file(s) in the removal list.`);

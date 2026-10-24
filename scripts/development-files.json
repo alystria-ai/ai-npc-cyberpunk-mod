@@ -282,6 +282,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/lua-heap-probe.lua"
     },
     {
+      "source": "r6/scripts/CyberpunkConvai/GameVariant.reds",
+      "target": "r6/scripts/CyberpunkConvai/GameVariant.reds"
+    },
+    {
       "source": "r6/scripts/CyberpunkConvai/Face.reds",
       "target": "r6/scripts/CyberpunkConvai/Face.reds"
     },

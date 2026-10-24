@@ -37,6 +37,11 @@ All of them use game-root-relative paths and merge into one install. Versions mu
 `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the
 Runtime one.
 
+## Two game versions
+
+The Scripts and Runtime are built once per game (`--game 2.31`, the default, or `--game 2.5`), from one source tree; the 2.5 build's files carry `-for-2.5`, its
+`release.json` files say `"game": "2.5"`, and it sits in `game-2.5/` on Hugging Face. The optional packs are shared. See `docs/GAME_VERSIONS.md`.
+
 ## Version numbers
 
 Releases are numbered `0.N`: 0.1, 0.2, 0.3, ..., and a hotfix of one release is `0.N.M` (0.2.1).

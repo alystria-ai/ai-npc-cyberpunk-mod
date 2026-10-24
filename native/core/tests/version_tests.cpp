@@ -1,4 +1,4 @@
-// The game-version guard in Load(): RED4ext reports 2.31 as SemVer 2.3.1.
+// The game-version guard in Load(): RED4ext reports 2.31 as SemVer 2.3.1 and 2.5 as 2.5.0.
 
 #include "Test.hpp"
 
@@ -17,11 +17,19 @@ TEST(version_semver_maps_to_cd_projekt_versions)
     CHECK_EQ(GameVersionFromSemVer(2, 3, 0).minor, 30);  // 2.30
 }
 
-TEST(version_only_2_31_is_supported)
+TEST(version_only_the_built_game_is_supported)
 {
+#if defined(CONVAI_GAME_2_5)
+    CHECK(IsSupportedGame(GameVersionFromSemVer(2, 5, 0)));
+    CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 3, 1)));  // the other variant's game
+    CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 5, 1)));  // a later patch
+    CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 6, 0)));
+#else
     CHECK(IsSupportedGame(GameVersionFromSemVer(2, 3, 1)));
+    CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 5, 0)));  // the other variant's game
     CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 3, 0)));  // 2.30
     CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 3, 2)));  // a later patch
+#endif
     CHECK(!IsSupportedGame(GameVersionFromSemVer(2, 31, 0))); // never a two-digit SemVer minor
     CHECK(!IsSupportedGame(GameVersionFromSemVer(3, 1, 0)));
     CHECK(!IsSupportedGame(GameVersion{}));

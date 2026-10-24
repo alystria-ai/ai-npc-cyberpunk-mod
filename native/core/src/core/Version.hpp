@@ -15,14 +15,22 @@ constexpr int kPluginMinor = 1;
 constexpr int kPluginPatch = 0;
 constexpr const char* kPluginVersion = "0.1.0";
 
-// The one game build this plugin is compiled and tested for: 2.31 (file version 3.0.80.51928).
-// RED4ext refuses the DLL on any other build because Query declares this runtime, and Main
-// re-checks the product version as a second guard.
+// The one game build this plugin is compiled and tested for. Two variants are built from this source
+// (CMake option CONVAI_GAME, scripts/Build-NativeCore.ps1 -Game): 2.31 (file version 3.0.80.51928, the
+// default) and 2.5 (3.0.88.46235, CONVAI_GAME_2_5). RED4ext refuses the DLL on any other build because
+// Query declares this runtime, and Main re-checks the product version as a second guard.
+#if defined(CONVAI_GAME_2_5)
+constexpr int kGameMajor = 2;
+constexpr int kGameMinor = 50; // RED4ext's SemVer 2.5.0
+constexpr const char* kGameLabel = "2.5";
+#else
 constexpr int kGameMajor = 2;
 constexpr int kGameMinor = 31;
+constexpr const char* kGameLabel = "2.31";
+#endif
 
 // RED4ext hands the game's product version over as a SemVer that splits CD Projekt's two-digit
-// minor (RED4ext.SDK Api/v1/Runtime.hpp): 1.03 -> 1.0.3, 1.10 -> 1.1.0, 2.31 -> 2.3.1.
+// minor (RED4ext.SDK Api/v1/Runtime.hpp): 1.03 -> 1.0.3, 1.10 -> 1.1.0, 2.31 -> 2.3.1, 2.50 -> 2.5.0.
 struct GameVersion
 {
     int major = -1;

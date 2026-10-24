@@ -96,20 +96,20 @@ public class ConvaiFaceService extends ScriptableService {
     this.m_crowdMode = 1;
     this.m_storyTalk = false;
     ArrayResize(this.m_rebuildKinds, 6);
-    GameInstance.GetCallbackSystem()
+    ConvaiCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
     // Ordinary NPCs: one callback per NPC spawn, filtered to the NPCPuppet type by the callback system itself.
-    GameInstance.GetCallbackSystem()
+    ConvaiCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnWorldInitialize")
       .AddTarget(EntityTarget.Type(n"NPCPuppet"));
     // DynamicEntityTarget is a lifecycle-event filter, not a builder filter.
     // The extraction callback repeats ownership using the builder request ID
     // before touching any newly extracted component instance.
-    GameInstance.GetCallbackSystem()
+    ConvaiCallbackSystem()
       .RegisterCallback(n"Entity/Extract", this, n"OnCompanionExtract");
     // An appearance rebuild names its entity here (and only here): the second half of PrepareRebuiltFace.
-    GameInstance.GetCallbackSystem()
+    ConvaiCallbackSystem()
       .RegisterCallback(n"Entity/Reassemble", this, n"OnReassemble")
       .AddTarget(EntityTarget.Type(n"NPCPuppet"));
   }
@@ -743,7 +743,7 @@ public final func ConvaiFaceStatus() -> String {
     if IsDefined(face) {
       let live = ResRef.ToString(ResourceRef.GetPath(face.graph));
       if !Equals(live, this.m_convaiFaceGraphPath) {
-        let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
+        let service = ConvaiServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
         return "stale:" + live + (IsDefined(service) ? " " + service.RebuildCounts() : "");
       };
     };
@@ -795,7 +795,7 @@ private final func ConvaiFaceAdoptWorld() -> Bool {
 @if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceRequest() -> String {
-  let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
+  let service = ConvaiServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
   if !IsDefined(service) { return "service-unavailable"; };
   let dynamic = GameInstance.GetDynamicEntitySystem();
   if !this.IsAttached() || !IsDefined(dynamic) { return "unavailable"; };
@@ -849,7 +849,7 @@ public final func ConvaiFaceDetail() -> String {
   if !IsDefined(face) { return text + " face_rig=none"; };
   text = text + " graph=" + ResRef.ToString(ResourceRef.GetPath(face.graph))
     + " rig=" + ResRef.ToString(ResourceRef.GetPath(face.rig));
-  let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
+  let service = ConvaiServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
   if IsDefined(service) { text = text + " " + service.RigReport(face) + " " + service.GraphReport(); };
   return text;
 }

@@ -373,6 +373,15 @@ const releaseVersion = async (path, expected) => {
   return typeof value.version === 'string' && value.version.trim() ? clip(value.version, 40) : null;
 };
 
+// The game version a package was built for (release.json "game", packaging/build-release.mjs --game). A release.json without it is from a build made before
+// there was one per game: the 2.31 build.
+export const DEFAULT_BUILD_GAME = '2.31';
+const releaseGame = async path => {
+  const value = await jsonOf(path);
+  const game = typeof value?.game === 'string' ? value.game.trim() : '';
+  return /^\d{1,2}\.\d{1,2}$/.test(game) ? game : DEFAULT_BUILD_GAME;
+};
+
 const settingsOf = async source => {
   try {
     const value = typeof source === 'function' ? await source() : source;
@@ -451,6 +460,10 @@ export async function collectSetupCheck(options = {}) {
     }
     if (scripts === null || runtime === null) return {state: 'unknown', code: 'unknown', scripts, runtime};
     if (scripts !== runtime) return {state: 'problem', code: 'mismatch', scripts, runtime};
+    // The same version, but built for different games (the 2.31 Runtime with the 2.5 Scripts, or the other way): they must be replaced together.
+    const scriptsGame = modRoot ? await releaseGame(join(modRoot, 'release.json')) : DEFAULT_BUILD_GAME;
+    const runtimeGame = project ? await releaseGame(join(project, 'release.json')) : DEFAULT_BUILD_GAME;
+    if (scriptsGame !== runtimeGame) return {state: 'problem', code: 'game-mismatch', scripts, runtime, scriptsGame, runtimeGame};
     // The versions agree; the update steps on disk (bridge/runtime-steps.mjs) say whether a step in between was skipped.
     const chain = project ? await checkRuntimeSteps({project, current: runtime}) : {code: 'none'};
     if (chain.code === 'gap') return {state: 'problem', code: 'chain-gap', scripts, runtime, from: clip(chain.from, 40), to: clip(chain.to, 40)};

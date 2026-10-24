@@ -159,6 +159,43 @@ test('the game version: the tested one is OK, another is a note and never a prob
   assert(#lineOf('game').description < 150, 'a long version string is cut')
 `));
 
+test('two builds, one per game: the 2.5 build accepts 2.5 and names the Native Settings UI it needs, the wrong build for the running game is a Problem with the build to get', () => run(String.raw`
+  installFiles(); serviceRunning()
+  -- a release.json without a game field is the 2.31 build (every build before the 2.5 one); the game field names the build
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.1', game = '2.5'})
+  for _, version in ipairs({'2.5', '2.50', '2.5.0', '2.50 hotfix'}) do
+    env.gameVersion = version; applyEnv(); check.run()
+    assert(lineOf('game').state == 'ok' and lineOf('game').description == 'Version ' .. version .. '.', version)
+  end
+  -- the 2.5 build on a later patch is only a note
+  env.gameVersion = '2.51'; applyEnv(); check.run()
+  assert(lineOf('game').state == 'note' and lineOf('game').description == 'Version 2.51. The mod is tested on 2.5 only, so some things may not work.', lineOf('game').description)
+  -- the 2.5 build on a 2.31 game: a Problem that names both games
+  env.gameVersion = '2.31'; applyEnv(); check.run()
+  local wrong = lineOf('game')
+  assert(wrong.state == 'problem' and wrong.description:find('mod build for game 2.5', 1, true) and wrong.description:find('build made for game 2.31', 1, true), wrong.description)
+  -- the 2.31 build on a 2.5 game, with and without the game field
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.3.1', game = '2.31'})
+  env.gameVersion = '2.5'; applyEnv(); check.run()
+  assert(lineOf('game').state == 'problem' and lineOf('game').description:find('mod build for game 2.31', 1, true) and lineOf('game').description:find('build made for game 2.5', 1, true))
+  put('release.json', {product = 'AI-NPC-Cyberpunk-Mod', package = 'scripts', version = '0.2.1'})
+  check.run()
+  assert(lineOf('game').state == 'problem' and lineOf('game').description:find('mod build for game 2.31', 1, true), 'no game field is the 2.31 build')
+  -- an unreadable or unknown game field falls back to the 2.31 build
+  put('release.json', {package = 'scripts', version = '0.3.1', game = 'banana'})
+  env.gameVersion = '2.31'; applyEnv(); check.run()
+  assert(lineOf('game').state == 'ok')
+  -- the Native Settings UI the build was made against
+  env.nsui, env.mcm = false, false; env.nsuiPresent = false; applyEnv()
+  put('release.json', {package = 'scripts', version = '0.3.1', game = '2.5'})
+  env.gameVersion = '2.5'; applyEnv(); check.run()
+  local manager = lineOf('nsui')
+  assert(manager.state == 'problem' and manager.description:find('Native Settings UI 1.97 or newer', 1, true), manager.description)
+  put('release.json', {package = 'scripts', version = '0.3.1', game = '2.31'})
+  env.gameVersion = '2.31'; applyEnv(); check.run()
+  assert(lineOf('nsui').description:find('Native Settings UI 1.96 or newer', 1, true), lineOf('nsui').description)
+`));
+
 test('the conversation service: no trace, an incomplete Runtime, a failed start, a missing browser or key, starting, running and stopped', () => run(String.raw`
   installFiles()
   -- nothing of this session: the Runtime is missing or did not load
@@ -255,6 +292,10 @@ test('the service answer is shown only from this game session and every check be
   assert(lineOf('versions').description:find('the Runtime is out of date', 1, true), 'compared as numbers, not as text')
   answer({versions = {id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}}); check.run()
   assert(table.concat(check.problems(), ',') == 'versions' and check.lines()[1].id == 'versions', 'the versions line sits first, next to the service')
+  -- the same version, built for different games: both games are named, and the page sends the player to the Runtime of the Scripts' game
+  answer({versions = {id = 'versions', state = 'problem', code = 'game-mismatch', scripts = '0.3.1', runtime = '0.3.1', scriptsGame = '2.5', runtimeGame = '2.31'}}); check.run()
+  assert(lineOf('versions').state == 'problem' and lineOf('versions').description == 'The Scripts are the build for game 2.5 but the Runtime is the build for game 2.31. Install the Runtime made for game 2.5 from the mod’s Hugging Face page, then restart the game.', lineOf('versions').description)
+  assert(table.concat(check.problems(), ',') == 'versions')
   -- the versions agree but an update step was skipped: the step is named, the instruction carries no version number
   answer({versions = {id = 'versions', state = 'problem', code = 'chain-gap', scripts = '0.2.9', runtime = '0.2.9', from = '0.2.7', to = '0.2.8'}}); check.run()
   local gap = lineOf('versions').description
