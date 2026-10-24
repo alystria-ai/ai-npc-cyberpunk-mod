@@ -24,6 +24,11 @@ pcall(function()
     trim('runtime/mcm.log', 262144, 65536)
 end)
 -- LOG-TRIM-END
+-- Optional native core plugin: routes the bridge mailbox files through its worker thread when
+-- present (native-core.lua). Without the plugin, io and os stay unchanged.
+pcall(function() dofile('native-core.lua').install() end)
+-- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
+pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
 -- Game 2.5 changed TargetingSystem.GetCrosshairData(owner) into GetCrosshairData(ownerID, owner). Every caller goes through this: it tries the 2.31
 -- form once and keeps whichever form answers (both return the crosshair position and direction).
 local crosshairForm = nil
@@ -36,11 +41,6 @@ function ConvaiCrosshairData(targeting, player)
     crosshairForm = '2.5'
     return position, forward
 end
--- Optional native core plugin: routes the bridge mailbox files through its worker thread when
--- present (native-core.lua). Without the plugin, io and os stay unchanged.
-pcall(function() dofile('native-core.lua').install() end)
--- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
-pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
 -- Is the service still restoring the player's saved files (mod/state-restore.lua, docs/PACKAGING.md "Mod Organizer 2")? A global: the readers
 -- of settings.json, phone-history.json, addon-settings.json and npc-names.json ask it only when their file is missing or empty. Absent, they
 -- behave as they always did.
