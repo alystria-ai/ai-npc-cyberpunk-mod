@@ -1,4 +1,4 @@
-# Nexus Mods page: AI NPC Cyberpunk Mod (launch 18 Oct 2026, 0.3.1 with two game versions)
+# Nexus Mods page: AI NPC Cyberpunk Mod (launch 18 Oct 2026, 0.3.2, game 2.5 and game 2.31)
 
 ## 1. Page description (Nexus BBCode)
 
@@ -6,7 +6,7 @@
 [size=4][b]Two downloads: the Scripts from this page AND the Runtime from [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]Hugging Face[/url]. Keep both on the same mod version.[/b][/size]
 
 [size=4][b]Game version 2.5, or the older 2.31.[/b][/size]
-The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2.5[/b], the current game. Still on the older game [b]2.31[/b]? Take the optional file [b]Scripts - for game 2.31 (older game version)[/b] from this page, and the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip]Runtime for game 2.31[/url] from the game-2.31 folder on Hugging Face. Both are mod version 0.3.1. To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
+The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2.5[/b], the current game. Still on the older game [b]2.31[/b]? Take the optional file [b]Scripts - for game 2.31 (older game version)[/b] from this page, and the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip]Runtime for game 2.31[/url] from the game-2.31 folder on Hugging Face. Both are the same mod version. To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -26,7 +26,7 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [*][b]No waiting.[/b] Characters you look at or walk up to get their conversation ready in the background, so they answer straight away.
 [*][b]Replies that sound like people.[/b] Characters echo your question back less, lean on stock closing lines less, and no longer recite where they are or what the weather is. Their character text is leaner, with lore fixes for many named characters.
 [/list][b]Companions[/b][list]
-[*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. No party size limit.
+[*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. With Mod Configuration Menu, type a name in its Search settings box to find a model at once, Rita Wheeler included, and every model shows a proper name. No party size limit.
 [*][b]They live alongside you.[/b] They walk beside you, follow you through doors, lifts and fast travel, sit with you on couches, benches and bar stools, ride in your car and fight with the game's own combat AI.
 [*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
 [*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
@@ -46,7 +46,8 @@ The main file, [b]Scripts[/b], and the Runtime on Hugging Face are for game [b]2
 [/list][b]Make it yours[/b][list]
 [*][b]Character editor.[/b] Edit any character's bio, speaking style and memories in your browser, or make characters of your own for anyone who has no profile (Mistral or Local AI). Open it from the Character editor button on Home in the Companion Manager.
 [*][b]World rules.[/b] Write rules for the whole of Night City on the editor's World rules page, for example "nobody knows V's name unless V says it", and every character follows them from the next reply, on every provider.
-[*][b]Prompting.[/b] On the editor's Prompting tab, tune the prompt for each AI option: Mistral, Local AI standard and lite, the Mature models and every Custom model you add. Edit the output rules, example replies, opening and closing lines, sampling and length limits, watch a live preview and reset any part. The game facts and the safety rules stay locked, and Convai's prompting lives on Convai's side.
+[*][b]Prompting.[/b] On the editor's Prompting tab, tune the prompt for each AI option: Mistral, Local AI standard and lite, the Mature models and every Custom model you add. Edit the output rules, example replies, opening and closing lines, sampling (temperature, Top P, Top K, Min P and the repeat, presence and frequency penalties) and length limits, add any other setting your model server understands in the Advanced parameters box (JSON, Local AI and Custom), watch a live preview and reset any part. Where Mature is on, the Mature wording is yours to edit too. The game facts, the safety rules and the Mature hard limits stay locked, and Convai's prompting lives on Convai's side.
+[*][b]Content packs.[/b] A content pack is a small add-on made only of a settings file and some text, with no code of its own. It changes how the characters talk: world rules, prompt wording, a character's backstory, style and name, name pools for passers-by, Convai twins and a separate memory. Switch each pack on or off in Settings > Content packs. Your own edits in the editor still win over a pack. [url=[MEDIEVAL_URL]][b]Medieval AI NPCs[/b][/url], a separate add-on page, is the first one and turns Night City into a medieval world.
 [*][b]Tuned for each model.[/b] Mistral, Local AI standard and lite and the Mature models each start from a prompt tuned for them and tested on sample conversations, so they slip into fewer echoes, lectures and off-character lines.
 [*][b]Choose what they know.[/b] Settings > Conversations > Dynamic info has nine switches: Location, Time and weather, Company and vehicle, Health, heat and fights, V's money, V's gear and clothes, V's gender and lifepath, Quest and journal, and Recent game dialogue. Turn one off and it is left out of what the characters are told, on every provider.
 [*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
@@ -106,7 +107,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
-[*]Download [b]Scripts 0.3.1[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, Vortex or by hand) and the Runtime 0.3.1 from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]Runtime for game 2.5[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip][b]Runtime for game 2.31[/b][/url]. Use the same version and the same game for both.
+[*]Download [b]Scripts[/b] from this page (the main file for game 2.5, or the optional file for the older 2.31, Vortex or by hand) and the Runtime from Hugging Face: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip][b]Runtime for game 2.5[/b][/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.31/Runtime.zip][b]Runtime for game 2.31[/b][/url]. Use the same version and the same game for both.
 [*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
@@ -122,10 +123,10 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [/list][b]Mod Organizer 2[/b]
 Install the Runtime as one mod. Put the Runtime update zips, the multilingual packs and the PocketTTS models INTO that Runtime mod's folder (replace files), not into mods of their own. The other packs can be mods of their own.
 
-[b]Keep the Scripts and the Runtime together.[/b] Both must be for your game version (2.5 or 2.31) and both on the same mod version (for example both 0.3.1). Settings > Help shows the version of each. Mixing them gives odd errors.
+[b]Keep the Scripts and the Runtime together.[/b] Both must be for your game version (2.5 or 2.31) and both on the same mod version. Settings > Help shows the version of each. Mixing them gives odd errors.
 
 [b]Updating[/b]
-Updating? Download the new Scripts (the main file for game 2.5, or the optional file for 2.31), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates]game 2.31[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. Moved your game from 2.31 to 2.5 and your Runtime is from the last release? Take the main Scripts file and the switch zip from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5 updates folder[/url], it switches your Runtime to 2.5 too.
+Updating? Download the new Scripts (the main file for game 2.5, or the optional file for 2.31), and instead of the full Runtime get the small [b]Runtime update[/b] zips from the updates folder on Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/game-2.31/updates]game 2.31[/url]) and extract them over your install one by one, starting from your version. The two games have separate update folders, so never mix them. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed, so if you already have them you don't need to download them again. If you skip one, the setup check in Settings > Help names the update zip that is missing. Not sure which version you have? Use the full Runtime. Moved your game from 2.31 to 2.5? A Runtime from the release before game 2.5 can take the first zip in the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/updates]game 2.5 updates folder[/url], which switches it to 2.5, and then the next zips one by one. Any other Runtime for 2.31 needs the full Runtime for game 2.5.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own. Install none, some or all, the same way as the Runtime.[list]
@@ -174,6 +175,9 @@ Yes, with Mistral or Local AI. Face a character that has no profile here (for ex
 [b]Can I change a character's voice?[/b]
 Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from that character's next line, with no restart. Remove clip brings the original voice back. The clip stays on your PC.
 
+[b]What is a content pack?[/b]
+A small add-on made only of a settings file and some text, with no code. It changes how the characters talk: world rules, prompt wording, a character's backstory, style and name, name pools for passers-by, their Convai twins and a separate memory. Install it like any add-on, by extracting its download into your Cyberpunk 2077 folder, then switch it on in Settings > Content packs. New names show after the game restarts and everything else from the next reply. Your own edits in the character editor win over a pack. [url=[MEDIEVAL_URL]]Medieval AI NPCs[/url] is the first.
+
 [b]Error reports[/b]
 When something in the mod fails, or replies stay slow, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default. Turn it off in [b]Settings > Privacy > Send error reports automatically[/b].[list]
 [*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed. For slow replies: only how long each stage of a few recent replies took, and their token counts.
@@ -214,13 +218,13 @@ Game 2.5 is the default and the main file, game 2.31 is an optional file ("Optio
 Scripts (the main file, game 2.5, zip Scripts.zip):
 
 ```text
-Game version 2.5. Get the Runtime from Hugging Face. New: game 2.5 support, relationships and world knowledge included. Also controller talk button, V speaks your microphone lines, steadier hold to talk, clearer setup check.
+Game version 2.5. Get the Runtime from Hugging Face. New: content packs, Model browser search, Rita Wheeler invitable, readable model names, Top K, Min P and penalty sampling, advanced parameters, editable Mature layer, official RED4ext for 2.5.
 ```
 
 Scripts - for game 2.31 (older game version) (optional file, zip Scripts-for-game-2.31.zip):
 
 ```text
-Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. Controller talk button, V speaks your microphone lines, steadier hold to talk, OmniVoice starts more reliably, no local model started for Convai users, clearer setup check.
+Older game version 2.31. Get the Runtime for game 2.31 from Hugging Face. New: content packs, Model browser search, Rita Wheeler invitable, readable model names, Top K, Min P and penalty sampling, advanced parameters, editable Mature layer.
 ```
 
 ## 3. Short summary (brief overview field)
