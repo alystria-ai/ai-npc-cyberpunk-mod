@@ -26,7 +26,7 @@ Each file is named `Runtime-Update-<from version>-to-<to version>.zip`. The step
 | `Runtime-Update-0.2.7-to-0.2.8.zip` | 3.9 MiB |
 | `Runtime-Update-0.2.8-to-0.2.9.zip` | 20.1 MiB |
 | `Runtime-Update-0.2.9-to-0.3.0.zip` | 1.2 MiB |
-| `Runtime-Update-0.3.0-to-0.3.1.zip` | 0.7 MiB |
+| `Runtime-Update-0.3.0-to-0.3.1.zip` | 1.7 MiB |
 
 ## Game 2.5
 
@@ -36,4 +36,4 @@ On 0.3.0 for game 2.31 and moved your game to 2.5? `Runtime-Update-0.3.0-to-0.3.
 
 | Step | Size |
 |---|---|
-| `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip` | 0.7 MiB |
+| `Runtime-Update-0.3.0-to-0.3.1-for-2.5.zip` | 1.7 MiB |
