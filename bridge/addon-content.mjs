@@ -11,7 +11,9 @@
 // is byte-stable within a profile and the prompt caches stay warm. A pack never touches the facts the character gets, the hard-limit guard or the Mature layer: they are
 // not part of a profile or of the world rules.
 import {BUILT_IN_IDS, isCustomProfileId, matureCapable, readOverride, validateOverride, deepFreeze} from './prompt-profiles.mjs';
-import {basename} from 'node:path';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
+import {basename, resolve} from 'node:path';
+import {insideFolder, validateCharacters, validateConvai, validateNamePools} from './addon-content-data.mjs';
 
 export const CONTENT_LIMITS = Object.freeze({
   rules: 24, ruleText: 600, rulesTotal: 4000,      // one pack's world rules: lines, characters per line, characters in all
@@ -20,6 +22,9 @@ export const CONTENT_LIMITS = Object.freeze({
   combinedRules: 6000,                             // all packs' world rules together (a later pack's lines are left out when they do not fit)
   convaiRules: 4000,                               // the player's rules and the packs' lines together, in Convai's dynamic info
 });
+export const CONTENT_NAMES_FILE = 'content-names.json';
+export const CONTENT_POOLS_FILE = 'content-name-pools.json';
+const SHIPPED = Symbol('shipped roster values');   // the row's own name, aliases and text, kept while a pack's are laid over them
 export const WORLD_RULE_BULLET = '- ';
 export const ALL_PROFILES = '*';
 
@@ -27,7 +32,7 @@ const plain = value => value !== null && typeof value === 'object' && !Array.isA
 const count = text => Array.from(text).length;
 const CONTROL = new RegExp('[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
 const oneLine = value => String(value).replace(CONTROL, ' ').replace(/\s+/g, ' ').trim();
-const FIELD_NAMES = Object.freeze(['worldRules', 'prompting']);
+const FIELD_NAMES = Object.freeze(['worldRules', 'prompting', 'characters', 'namePools', 'convai', 'memory']);
 
 const validProfileKey = key => key === ALL_PROFILES || BUILT_IN_IDS.includes(key) || isCustomProfileId(key);
 
@@ -39,13 +44,26 @@ const fieldsOf = override => Object.keys(override ?? {});
  * Returns {worldRules: [line], prompting: {key: override}}; either part may be empty. A `prompting` override is checked by the same validator a player's change goes
  * through (bridge/prompt-profiles.mjs validateOverride, against no defaults so a value equal to one profile's default is still kept for the others).
  */
-export function validateContent(raw) {
+export function validateContent(raw, {dir = null} = {}) {
   if (!plain(raw)) throw Error('content must be an object');
   for (const key of Object.keys(raw)) {
-    if (key === 'characters') throw Error('content.characters needs a newer add-on API than this AI NPC Cyberpunk Mod has');
-    if (!FIELD_NAMES.includes(key)) throw Error(`content.${key} is not a known field (worldRules, prompting)`);
+    if (!FIELD_NAMES.includes(key)) throw Error(`content.${key} is not a known field (${FIELD_NAMES.join(', ')})`);
   }
-  if (JSON.stringify(raw).length > CONTENT_LIMITS.json) throw Error(`content is larger than ${CONTENT_LIMITS.json} characters`);
+  // The size cap is for the small parts; the characters and the name pools have limits of their own (bridge/addon-content-data.mjs).
+  if (JSON.stringify({worldRules: raw.worldRules, prompting: raw.prompting, convai: raw.convai}).length > CONTENT_LIMITS.json) throw Error(`content is larger than ${CONTENT_LIMITS.json} characters`);
+  // characters and namePools: inline, or the path of a .json file inside the pack folder (read later by loadContentFiles, before the pack is used).
+  const files = {}, data = {};
+  for (const field of ['characters', 'namePools']) {
+    if (raw[field] === undefined) continue;
+    if (typeof raw[field] === 'string') {
+      const path = insideFolder(dir, raw[field]);
+      if (!path) throw Error(`content.${field} must be a .json file path inside the add-on folder`);
+      files[field] = path;
+    } else if (field === 'characters') data.characters = validateCharacters(raw.characters);
+    else data.namePools = validateNamePools(raw.namePools);
+  }
+  const convai = raw.convai === undefined ? {} : validateConvai(raw.convai);
+  if (raw.memory !== undefined && raw.memory !== 'shared' && raw.memory !== 'separate') throw Error('content.memory must be "shared" or "separate"');
   const worldRules = [];
   if (raw.worldRules !== undefined) {
     if (!Array.isArray(raw.worldRules)) throw Error('content.worldRules must be a list of texts');
@@ -79,7 +97,7 @@ export function validateContent(raw) {
       if (Object.keys(checked.value).length) prompting[key] = checked.value;
     }
   }
-  return {worldRules, prompting};
+  return {worldRules, prompting, memory: raw.memory ?? 'shared', ...(Object.keys(convai).length ? {convai} : {}), ...data, ...(Object.keys(files).length ? {files} : {})};
 }
 
 // `later` laid over `earlier`, field by field: an object field merges by sub-field, a list or a value replaces (the way mergeProfile lays an override over a profile).
@@ -125,7 +143,115 @@ export class AddonContent {
     this.version++;
     this.layers.clear(); this.rulesMemo = null; this.textMemo.clear(); this.logged.clear();
     for (const addon of this.#all()) this.log(`Content pack ${addon.id} is ${this.enabled(addon.id) ? 'on' : 'off'}`);
+    this.#applyRoster();
     try { this.onChanged?.(); } catch { /* the switch is saved; a hook never fails it */ }
+  }
+
+  // ---- The characters: the packs' text and names laid over the roster rows --------------------------------------------------------------
+  /**
+   * Hands over the bridge's roster array. The rows of the named characters and of the archetypes that a pack lists get the pack's backstory, speaking style, example lines and name
+   * (a later pack wins per field), and go back to the shipped values when no pack that is on lists them. A rename keeps the shipped name as an alias, so the old name is still
+   * recognised. The persona book and every other reader of the roster see the change at once (they read the rows on each turn); the player's own edits in the character editor
+   * are laid over it by the persona book, so they still win. Done now and each time a pack is switched, never per turn.
+   */
+  bindRoster(roster) {
+    this.roster = Array.isArray(roster) ? roster : null;
+    this.#applyRoster();
+  }
+  #applyRoster() {
+    const rows = this.roster;
+    if (!rows) return;
+    const packs = this.applied.filter(addon => addon.content.characters);
+    const listed = new Set(this.#all().flatMap(addon => Object.keys(addon.content.characters ?? {})));
+    let changed = 0;
+    for (const row of rows) {
+      if (!row || typeof row.key !== 'string' || row.kind === 'addon' || row.kind === 'custom') continue;
+      if (!listed.has(row.key) && !row[SHIPPED]) continue;
+      const shipped = row[SHIPPED] ??= {name: row.name, aliases: Array.isArray(row.aliases) ? [...row.aliases] : null,
+        backstory: row.backstory, speakingStyleDescription: row.speakingStyleDescription, speakingStyleSampleDialogues: row.speakingStyleSampleDialogues};
+      row.name = shipped.name; row.backstory = shipped.backstory;
+      row.speakingStyleDescription = shipped.speakingStyleDescription; row.speakingStyleSampleDialogues = shipped.speakingStyleSampleDialogues;
+      if (shipped.aliases) row.aliases = [...shipped.aliases]; else delete row.aliases;
+      for (const addon of packs) {
+        const mine = addon.content.characters[row.key];
+        if (!mine) continue;
+        for (const field of ['backstory', 'speakingStyleDescription', 'speakingStyleSampleDialogues']) if (mine[field] !== undefined) row[field] = mine[field];
+        if (mine.name !== undefined && shipped.name) {
+          row.name = mine.name;
+          const aliases = [...(shipped.aliases ?? []), shipped.name];
+          row.aliases = aliases.filter((alias, index) => alias && aliases.indexOf(alias) === index && alias !== mine.name);
+        }
+      }
+      changed++;
+    }
+    if (changed || this.#named) this.host?.characterLookup?.reset?.();
+    this.#named = changed > 0;
+    const known = new Set(rows.map(row => row?.key));
+    for (const addon of this.#all()) for (const key of Object.keys(addon.content.characters ?? {})) {
+      if (!known.has(key)) this.#once(`unknown:${addon.id}:${key}`, `Content pack ${addon.id} names ${key}, which is not a character of the mod: left out`);
+    }
+  }
+  #named = false;
+
+  /** The pack that keeps a separate memory while it is on (the last pack on whose manifest says memory "separate"), as its id, or null: the characters' memory then lives under `<key>@<id>`. */
+  memoryScope() {
+    let scope = null;
+    for (const addon of this.applied) if (addon.content.memory === 'separate') scope = addon.id;
+    return scope;
+  }
+  /** The memory key of a character: the profile key, or `<key>@<pack id>` while a pack with a separate memory is on. */
+  memoryKey(profileKey) {
+    const scope = this.memoryScope();
+    return scope && typeof profileKey === 'string' && !profileKey.includes('@') ? `${profileKey}@${scope}` : profileKey;
+  }
+
+  // ---- Convai: a twin of a character made from the pack's text -------------------------------------------------------------------------
+  /**
+   * The twins to register with the relationship routing: [{packId, profileKey, key, characterId}], from every installed pack (switched on or not; whether one is used is `twinFor`).
+   * `key` is the provider key `<profileKey>-<pack id>` (the way a multilingual twin is `<profileKey>-multilingual`). A twin for a character the mod does not have, with an id another
+   * character already uses, or with a key that does not fit is left out with one log line, so it can never stop the bridge.
+   *   ids   {profileKey: ordinary Convai character id}      taken   other ids in use (the multilingual twins)
+   */
+  convaiTwins({ids = {}, taken = []} = {}) {
+    const used = new Set([...Object.values(ids), ...taken]);
+    const list = [];
+    for (const addon of this.#all()) for (const [profileKey, characterId] of Object.entries(addon.content.convai ?? {})) {
+      const key = `${profileKey}-${addon.id}`;
+      const why = !Object.hasOwn(ids, profileKey) ? 'the mod has no Convai character for that key' : used.has(characterId) ? 'another character already uses that id'
+        : !/^[a-z0-9][a-z0-9-]{0,79}$/.test(key) || Object.hasOwn(ids, key) ? 'its provider key does not fit' : '';
+      if (why) { this.log(`Content pack ${addon.id}: the Convai twin of ${profileKey} is not used: ${why}`); continue; }
+      used.add(characterId);
+      list.push({packId: addon.id, profileKey, key, characterId});
+    }
+    this.twins = list;
+    return list;
+  }
+  /** The provider key of the Convai twin a switched-on pack offers for a character (a later pack wins), or null. A plain lookup per turn. */
+  twinFor(profileKey) {
+    let found = null;
+    for (const twin of this.twins ?? []) if (twin.profileKey === profileKey && this.enabled(twin.packId)) found = twin.key;
+    return found;
+  }
+
+  // ---- Files for the game: the new names and the name pools (the game applies them with its own switches) ------------------------------
+  /**
+   * Writes runtime/content-names.json ({version: 1, packs: [{id, names: {profileKey: name}}]}) and runtime/content-name-pools.json ({version: 1, packs: [{id, pools}]}) for the game
+   * (mod/content-names.lua). Every installed pack is listed, switched on or off: the game applies the ones its own settings have on. With nothing to say a file an earlier run
+   * left is emptied, and a missing or empty one is left alone (under Mod Organizer 2 only a file that exists is written in place). Never throws.
+   */
+  async publish(runtime, {write = (path, data) => writeFile(path, data), read = path => readFile(path, 'utf8')} = {}) {
+    const names = this.#all().map(addon => ({id: addon.id, names: Object.fromEntries(Object.entries(addon.content.characters ?? {})
+      .filter(([, entry]) => entry.name).map(([key, entry]) => [key, entry.name]))})).filter(pack => Object.keys(pack.names).length);
+    const pools = this.#all().filter(addon => addon.content.namePools).map(addon => ({id: addon.id, pools: addon.content.namePools}));
+    const put = async (file, packs) => {
+      const path = resolve(runtime, file);
+      try {
+        if (packs.length) { await mkdir(runtime, {recursive: true}); await write(path, JSON.stringify({version: 1, packs})); }
+        else if ((await read(path).catch(() => '')) !== '') await write(path, '');
+      } catch (error) { this.log(`${file} not written: ${error.message}`); }
+    };
+    await put(CONTENT_NAMES_FILE, names);
+    await put(CONTENT_POOLS_FILE, pools);
   }
 
   /** True when at least one pack with content is installed (on or off). */

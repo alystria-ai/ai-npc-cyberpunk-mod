@@ -1494,6 +1494,13 @@ function M.contentPacks()
     return list
 end
 
+--- Is this content pack switched on (the player's saved choice; on by default)? Reads the settings file once; no other file.
+function M.contentEnabledFor(id)
+    if type(id) ~= 'string' then return false end
+    loadSettings()
+    return contentEnabled(id)
+end
+
 --- True once a content pack has been seen (no file read): the settings page then offers its rows, and the save accepts them.
 function M.hasContent() return #content.packs > 0 end
 

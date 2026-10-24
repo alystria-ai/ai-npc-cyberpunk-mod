@@ -205,6 +205,8 @@ function syncCustomRoster() {
   addonHost.characterLookup?.reset?.();
 }
 syncCustomRoster();
+// The content packs' rewritten characters and names are laid over the roster rows now, and again each time a pack is switched (bridge/addon-content.mjs bindRoster).
+addonContent.bindRoster(roster);
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used for a turn whose message is clearly not English (wantsTwin). A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
@@ -213,7 +215,11 @@ const multilingualProfiles = multilingualTwins(JSON.parse(await readFile(resolve
   throw error;
 })), {ordinaryIds: ids});
 if (multilingualProfiles.skipped.length) console.error('[CyberpunkConvai] Multilingual profiles not used:', multilingualProfiles.skipped.join(', '));
-const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins});
+// A content pack's Convai twins (add-on API 1.1): characters made from the pack's text, used for a character while the pack is on and Convai's shared plan answers (a player's own key has
+// no twins, like the multilingual ones). A turn that goes to the multilingual twin keeps it; a character without a twin keeps its ordinary Convai character.
+const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, multilingual: multilingualProfiles.twins,
+  packTwins: addonContent.convaiTwins({ids, taken: Object.values(multilingualProfiles.twins)}),
+  packTwinFor: profileKey => (keys.singleSession ? null : addonContent.twinFor(profileKey))});
 // The sample rate Convai's audio really arrives at, per Convai character (bridge/convai-audio-rates.mjs): the twin sends 44.1 kHz audio labelled 24 kHz. Learned from the first turn's
 // statistics, kept here between sessions (convai-audio-rates.json in the state folder; a missing or unreadable file is an empty memory), and handed to every later turn of that character.
 const audioRatesPath = resolve(stateDirectory, 'convai-audio-rates.json');
@@ -395,6 +401,8 @@ await customCharacters.publish();
 // Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
 // file an earlier run left is removed and nothing is written. Then the add-on state and settings the game last wrote.
 await addonHost.publishStatus(runtime).catch(error => console.error('[Addons] Status not written:', error.message));
+// The content packs' new names and name pools, for the game to apply with the packs' switches (mod/content-names.lua); nothing without them.
+await addonContent.publish(runtime);
 for (const read of Object.values(addonHost.watchHandlers(runtime))) await read();
 // Each speaker's recent lines and memories of earlier fights or rides (runtime/addon-journal.json); nothing without add-ons.
 await addonHost.loadJournal(stateDirectory);

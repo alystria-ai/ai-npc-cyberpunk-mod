@@ -25,6 +25,7 @@ import {readPcmWav} from './speech-audio.mjs';
 import {LEGACY_LOCAL_VOICE_KEYS, PLAYER_REFERENCE_PREFIX, voiceKeyValid, voiceTranscriptValid} from './voice-profile-registry.mjs';
 import {AddonStock} from './addon-stock.mjs';
 import {validateContent} from './addon-content.mjs';
+import {loadContentFiles} from './addon-content-data.mjs';
 
 /** The add-on API this main mod implements. A manifest asking for the same major and an equal or lower minor is compatible. 1.1 added content packs. */
 export const ADDON_API_VERSION = '1.1';
@@ -157,7 +158,7 @@ export function validateManifest(raw, dir) {
   if (pack) {
     if (wanted.major === 1 && wanted.minor < 1) throw Error('content needs requires.api "1.1" or higher');
     // A pack written for a newer API than this one is reported as "needs a newer AI NPC Cyberpunk Mod" (discoverAddons), not judged by this version's content rules.
-    if (apiCompatible(required)) content = validateContent(raw.content);
+    if (apiCompatible(required)) content = validateContent(raw.content, {dir});
   }
   let bridge = null;
   if (raw.bridge !== undefined) {
@@ -240,6 +241,11 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
       continue;
     }
     if (ids.has(manifest.id)) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'another add-on uses this id'}); continue; }
+    // A content pack's characters or name pools in a file of its folder (API 1.1): read and checked now, so a broken file skips the pack whole.
+    if (manifest.content?.files) {
+      try { manifest.content = await loadContentFiles(manifest.content, {read: path => files.readFile(path, 'utf8')}); }
+      catch (error) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'invalid', reason: error.message}); continue; }
+    }
     // "addon-<id>-<speaker>" joins two names with a dash, so add-on "ab" with speaker "c-d" and add-on "ab-c" with speaker "d" share
     // one key: the later add-on would silently take the earlier one's profile over.
     if (manifest.speakers.some(speaker => profileKeys.has(speaker.profileKey))) {

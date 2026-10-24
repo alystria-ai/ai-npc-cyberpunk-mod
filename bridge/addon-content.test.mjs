@@ -29,9 +29,9 @@ test('the manifest of a content pack: the short form, the full form, and what is
   const short = validateManifest(pack('medieval', {worldRules: ['  People bow to lords.  ', ''], prompting: {'*': {closing: {text: 'Speak as {name}.'}}}}), dirOf('medieval'));
   assert.deepEqual(short.speakers, []);
   assert.equal(short.requires.api, '1.1');
-  assert.deepEqual(short.content, {worldRules: ['People bow to lords.'], prompting: {'*': {closing: {text: 'Speak as {name}.'}}}});
+  assert.deepEqual(short.content, {worldRules: ['People bow to lords.'], prompting: {'*': {closing: {text: 'Speak as {name}.'}}}, memory: 'shared'});
   const full = validateManifest({schema: 1, id: 'medieval', name: 'Medieval', version: '1.0.0', requires: {api: '1.1'}, speakers: [], content: {worldRules: ['One.']}}, dirOf('medieval'));
-  assert.deepEqual(full.content, {worldRules: ['One.'], prompting: {}});
+  assert.deepEqual(full.content, {worldRules: ['One.'], prompting: {}, memory: 'shared'});
   assert.equal(validateManifest({schema: 1, id: 'plain', name: 'Plain', version: '1.0.0', requires: {api: '1.0'}, speakers: []}, '/x').content, undefined, 'an add-on without content has none');
 
   const bad = (value, pattern) => assert.throws(() => validateManifest(value, dirOf('medieval')), pattern);
@@ -41,7 +41,7 @@ test('the manifest of a content pack: the short form, the full form, and what is
   bad(pack('medieval', {worldRules: Array.from({length: 25}, (_, index) => `Rule ${index}.`)}), /more than 24 lines/);
   bad(pack('medieval', {worldRules: Array.from({length: 8}, (_, index) => `${index}`.repeat(550))}), /characters in all/);
   bad(pack('medieval', {extra: 1}), /content\.extra is not a known field/);
-  bad(pack('medieval', {characters: []}), /content\.characters needs a newer add-on API/);
+  bad(pack('medieval', {characters: 5}), /must be an object of profile keys/);
   bad(pack('medieval', 'text'), /content must be an object/);
   bad(pack('medieval', {prompting: {nonsense: {closing: {text: 'x'}}}}), /not a profile id/);
   bad(pack('medieval', {prompting: {'*': {closing: {text: 'x'.repeat(701)}}}}), /content\.prompting\.\*: closing\.text is not valid \(closing-long\)/);

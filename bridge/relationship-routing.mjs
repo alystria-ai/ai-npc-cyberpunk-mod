@@ -55,7 +55,7 @@ function freeze(value) {
  * history treat it like the original's sibling. A missing twin map is a compatible English-only installation.
  * Each character has exactly one ordinary ID. The old alternate affectionate profiles (runtime/relationship-profiles.json,
  * provider keys "<key>-romantic") are retired: that file is no longer read. */
-export function relationshipRegistry(ordinaryIds, twins = {}) {
+export function relationshipRegistry(ordinaryIds, twins = {}, packTwins = []) {
   if (!plain(ordinaryIds) || Object.keys(ordinaryIds).length > 256
       || Object.entries(ordinaryIds).some(([profile, value]) => !key(profile) || !id(value))) fail('INVALID_ORDINARY_IDS');
   const providerIds = {...ordinaryIds}, providerFamilies = Object.fromEntries(Object.keys(ordinaryIds).map(profile => [profile, profile]));
@@ -70,8 +70,19 @@ export function relationshipRegistry(ordinaryIds, twins = {}) {
   for (const [providerKey, twinKey] of Object.entries(multilingual)) {
     providerIds[twinKey] = twins[providerKey]; providerFamilies[twinKey] = providerFamilies[providerKey];
   }
+  // A content pack's Convai twin (add-on API 1.1, bridge/addon-content.mjs convaiTwins): the character made from the pack's text, as provider key "<profileKey>-<pack id>" in the
+  // same family (memory guards, Forget and history treat it like a sibling). Whether a turn uses it is decided per turn (packTwin of selectRelationshipProfile). The list was already
+  // checked for collisions; one that still collides is left out here rather than stopping the bridge.
+  const packKeys = {}, taken = new Set(Object.values(providerIds));
+  for (const twin of Array.isArray(packTwins) ? packTwins : []) {
+    if (!twin || !Object.hasOwn(ordinaryIds, twin.profileKey) || !key(twin.key) || !id(twin.characterId) || Object.hasOwn(providerIds, twin.key)
+        || taken.has(twin.characterId) || twin.key.endsWith(MULTILINGUAL_SUFFIX)) continue;
+    providerIds[twin.key] = twin.characterId; providerFamilies[twin.key] = providerFamilies[twin.profileKey];
+    markerKeys[twin.key] = `${twin.profileKey}:${twin.packId}`;
+    taken.add(twin.characterId); packKeys[twin.key] = twin.profileKey;
+  }
   if (new Set(Object.values(providerIds)).size !== Object.keys(providerIds).length) fail('DUPLICATE_PROVIDER_ID');
-  return freeze({providerIds, providerFamilies, multilingual, markerKeys});
+  return freeze({providerIds, providerFamilies, multilingual, markerKeys, packKeys});
 }
 
 export function parseRelationshipState(raw) {
@@ -119,7 +130,7 @@ const fresh = (snapshot, boundary, now) => snapshot?.status === 'ready' && sameW
   && now - snapshot.capturedAt >= -1000 && now - snapshot.capturedAt <= 5000;
 
 export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, boundary, now = Date.now(), registry,
-  multilingual = false} = {}) {
+  multilingual = false, packTwin = null} = {}) {
   if (!key(profileKey) || !MODES.has(mode) || !registry || !Object.hasOwn(registry.providerIds, profileKey)
       || !Number.isSafeInteger(now)) fail('INVALID_SELECTION');
   const rule = RELATIONSHIP_PROFILES[profileKey];
@@ -132,7 +143,9 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   const romantic = !!rule && (mode === 'on' || mode === 'auto' && current && confirmed(profileKey, observed));
   // A turn in another language: the twin of the profile. A profile without a usable twin keeps its original (English-only) profile.
   const twinKey = multilingual === true ? registry.multilingual?.[profileKey] : undefined;
-  const providerProfileKey = twinKey ?? profileKey;
+  // A content pack's twin (English only): used when the pack is on and the turn does not go to the multilingual twin, which answers in the player's language.
+  const packKey = !twinKey && typeof packTwin === 'string' && registry.packKeys?.[packTwin] === profileKey ? packTwin : undefined;
+  const providerProfileKey = twinKey ?? packKey ?? profileKey;
   // Style and history are separate. On is never evidence, and Off does not erase a real event. Capture only this speaker's
   // current-save receipt with the admitted selection; group prompts never receive other partners' facts.
   const saveRelationship = current && confirmed(profileKey, observed)
@@ -149,8 +162,9 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
 /** Settings and native updates commit only at an idle turn boundary. A prepared
  * turn owns its frozen selection; a settings change never alters its style or redirects its send. */
 export class RelationshipRouting {
-  constructor({ordinaryIds, multilingual, now = Date.now} = {}) {
-    this.registry = relationshipRegistry(ordinaryIds, multilingual);
+  constructor({ordinaryIds, multilingual, packTwins = [], packTwinFor = null, now = Date.now} = {}) {
+    this.registry = relationshipRegistry(ordinaryIds, multilingual, packTwins);
+    this.packTwinFor = typeof packTwinFor === 'function' ? packTwinFor : null;   // profileKey => the provider key of the content pack twin to use now, or null (a map lookup)
     this.providerIds = this.registry.providerIds; this.providerFamilies = this.registry.providerFamilies;
     // Provider key -> the key in its ownership marker (only twins differ).
     this.markerKeys = this.registry.markerKeys;
@@ -158,7 +172,7 @@ export class RelationshipRouting {
     this.pending = null; this.changes = new Set(); this.fingerprints = new Map();
     // Every character whose provider can change: those with a twin. A style change (Auto/On/Off, a save fact) never changes
     // the provider, so it needs no connection retirement.
-    this.routedProfiles = [...new Set(Object.keys(this.registry.multilingual).map(providerKey => this.providerFamilies[providerKey]))];
+    this.routedProfiles = [...new Set([...Object.keys(this.registry.multilingual), ...Object.values(this.registry.packKeys)].map(providerKey => this.providerFamilies[providerKey]))];
   }
   update(settings, rawSnapshot, {boundary, busy = false} = {}) {
     const modes = settings === undefined ? this.pending?.modes ?? this.modes : relationshipModes(settings?.relationshipModes);
@@ -188,7 +202,10 @@ export class RelationshipRouting {
       && fresh(this.pending.snapshot, boundary, this.now())
       ? {...this.snapshot, capturedAt: this.pending.snapshot.capturedAt} : this.snapshot;
     return selectRelationshipProfile({profileKey, mode: this.modes[profileKey] ?? 'auto', snapshot: retained,
-      boundary, now: this.now(), registry: this.registry, multilingual: multilingual === true});
+      boundary, now: this.now(), registry: this.registry, multilingual: multilingual === true, packTwin: this.#packTwin(profileKey)});
+  }
+  #packTwin(profileKey) {
+    try { return this.packTwinFor?.(profileKey) ?? null; } catch { return null; }
   }
   consumeRouteChanges() { const keys = [...this.changes]; this.changes.clear(); return keys; }
   /** What the next admitted turn of each supported character would use. Names
