@@ -68,6 +68,8 @@ export const mcmFake = String.raw`
     local providers, providerOrder, catalog, drafts, config = {}, {}, {}, {}, {}
     local active, context, renderer, openRequest = nil, {open = false}, options.renderer ~= false, nil
     local scroll, scrollRequests, lastPage = 0, {}, nil
+    -- The Search settings box: its text (kept from page to page and from one visit to the next, as MCM does) and a request made by api.ui.setSearch.
+    local searchText, searchRequest = '', nil
     local coreStatus = ''
     local listeners, nextToken = {}, 0
     local api = {version = F.version, apiVersion = 2}
@@ -372,7 +374,13 @@ export const mcmFake = String.raw`
         scrollRequests[#scrollRequests + 1] = {region = region, position = position}
         return #scrollRequests
       end)
-      ui.setSearch = checked('setSearch', function(key, text) known(key); assert(type(text) == 'string', 'Search must be text'); return 1 end)
+      ui.setSearch = checked('setSearch', function(key, text)
+        known(key)
+        assert(type(text) == 'string', 'Search must be text')
+        assert(context.open and context.modKey == key, 'Mod is not displayed')
+        searchRequest = text
+        return 1
+      end)
       ui.setNavigation = checked('setNavigation', function(key, value)
         assert(type(value) == 'table' and type(value.pageId) == 'string', 'Navigation needs a pageId')
         for name in pairs(value) do
@@ -458,7 +466,7 @@ export const mcmFake = String.raw`
       assert(loaded, 'the page did not load: ' .. tostring(problem))
       active = key
       context = {open = true, modKey = key, pageId = (config[key] or {}).navigation and config[key].navigation.pageId or nil,
-        scroll = {content = 0, sidebar = 0}}
+        search = searchText, scroll = {content = 0, sidebar = 0}}
       scroll, lastPage = 0, context.pageId
     end
     -- The screen opens on the mod (a request made by api.ui.open or the player's own choice in the list).
@@ -492,6 +500,8 @@ export const mcmFake = String.raw`
         if not active then F.openScreen(key) end
       end
       if active then
+        if searchRequest ~= nil then searchText, searchRequest = searchRequest, nil end
+        context.search = searchText
         context.pageId = (config[active] or {}).navigation and config[active].navigation.pageId or nil
         -- A new page id starts at the top (MCM keeps a position per page id); a request to set the position is taken after that.
         if context.pageId ~= lastPage then lastPage, scroll = context.pageId, 0 end
@@ -499,6 +509,19 @@ export const mcmFake = String.raw`
         scrollRequests = {}
         context.scroll = {content = scroll, sidebar = 0}
       end
+    end
+    -- The player types in the Search settings box (MCM publishes the text on its next update, after its few frames of settling).
+    function F.search(text) searchText = text end
+    function F.searchText() return searchText end
+    -- MCM's own filter (mcm_model.lua flattenSettings): a row stays when the text is in its label, name, key or description, or in the
+    -- name of its category, case folded. The provider search mode switches it off (the provider does the filtering).
+    local function searchShows(category, setting)
+      local navigation = (config[active] or {}).navigation or {}
+      if navigation.searchMode == 'provider' or searchText == '' then return true end
+      for _, id in ipairs((config[active] or {}).footerActions or {}) do if id == setting.sourceId then return true end end
+      local query = searchText:lower()
+      local haystack = table.concat({tostring(setting.label or ''), tostring(setting.name or ''), tostring(setting.sourceId or ''), tostring(setting.description or '')}, ' '):lower()
+      return (tostring(category.name or '') .. ' ' .. tostring(category.id or '')):lower():find(query, 1, true) ~= nil or haystack:find(query, 1, true) ~= nil
     end
     -- The player drags the list.
     function F.scrollTo(position) scroll = position; if active then context.scroll = {content = scroll, sidebar = 0} end end
@@ -510,9 +533,9 @@ export const mcmFake = String.raw`
       for _, category in ipairs(mod.categories) do
         for _, setting in ipairs(category.settings) do
           local draft = drafts[setting.id]
-          rows[#rows + 1] = {category = category.name, id = setting.sourceId, label = setting.label, type = setting.type, description = setting.description,
+          if searchShows(category, setting) then rows[#rows + 1] = {category = category.name, id = setting.sourceId, label = setting.label, type = setting.type, description = setting.description,
             value = draft and draft.value or setting.value, saved = setting.value, draft = draft ~= nil, elements = setting.elements,
-            default = setting.defaultValue, disabled = setting.disabled, capabilities = setting.capabilities, min = setting.min, max = setting.max, step = setting.step}
+            default = setting.defaultValue, disabled = setting.disabled, capabilities = setting.capabilities, min = setting.min, max = setting.max, step = setting.step} end
         end
       end
       return rows
@@ -539,7 +562,9 @@ export const mcmFake = String.raw`
       for _, id in ipairs(cfg.footerActions or {}) do inFooter[id] = true end
       for _, category in ipairs(mod.categories) do
         local visible = {}
-        for _, setting in ipairs(category.settings) do if not inFooter[setting.sourceId] then visible[#visible + 1] = setting end end
+        for _, setting in ipairs(category.settings) do
+          if not inFooter[setting.sourceId] and searchShows(category, setting) then visible[#visible + 1] = setting end
+        end
         if #visible > 0 then
           out.rows[#out.rows + 1] = {kind = 'heading', label = category.name, description = category.description}
           for _, setting in ipairs(visible) do

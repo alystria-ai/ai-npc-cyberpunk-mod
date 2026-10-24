@@ -1043,13 +1043,136 @@ test('with a save loaded the model browser says how many models match in its hea
   local heading = headings()
   assert(heading:find('^Installed character models · %d+ matching models · Page 1 / %d+$'), heading)
   assert(not mcm.row('needs-save') and not mcm.row('model-status'), labels())
-  assert(mcm.description():find('^%d+ of them can talk%.$'), mcm.description())
+  assert(mcm.description():find('^%d+ of them can talk%.\\n'), mcm.description())
+  assert(mcm.description():find('Type in the search box to find a model by name or record', 1, true), 'the page says it can be searched: ' .. mcm.description())
   -- A letter group changes the list, and the heading keeps saying its count.
   press('Starts with: All')
   assert(headings():find('^Installed character models · %d+ matching models'), headings())
   for _, drawn in ipairs(mcm.layout().rows) do
     assert(drawn.kind == 'heading' or (drawn.kind == 'action' and drawn.x == 20), drawn.label .. ' is drawn as ' .. drawn.kind .. ' at ' .. tostring(drawn.x))
   end
+`));
+
+// ---- The Model browser search: MCM's own Search settings box, with the provider search mode on that page only.
+
+// 407 models: a few named ones and 400 fillers whose records are Character.Rec_<n>. The scan runs when the browser opens.
+const searchModels = `
+  local names = {'Rita Wheeler', 'Margarita Soto', 'Judy Alvarez', 'River Ward', 'Wheeler Smith', 'Meredith Stout', 'Zed'}
+  for index = 1, 400 do names[#names + 1] = 'Filler ' .. index end
+  local byId = {}
+  function TweakDB:GetRecords(kind)
+    scans = scans + 1
+    local result = {}
+    for index, name in ipairs(names) do
+      local id = 'Character.Rec_' .. index
+      byId[id] = name
+      result[index] = {GetID = function() return id end}
+    end
+    return result
+  end
+  function TweakDB:GetFlat(flat) local id = flat:gsub('%.displayName$', ''); return byId[id] or id end
+  local function inviteLabels()
+    local list = {}
+    for _, row in ipairs(mcm.rows()) do if row.id and row.id:sub(1, 7) == 'invite:' then list[#list + 1] = row.label end end
+    return table.concat(list, ' | ')
+  end
+  -- The player types in the box; MCM settles the text for a few frames and publishes it, the host sees it on its next tick.
+  local function typed(text) mcm.search(text); frames(8) end
+`;
+
+test('the Model browser is searched with the Search settings box: words in any order, parts of words, any case and spacing, and every result keeps its Invite button', () => withScreen(`
+  ${footer}
+  ${searchModels}
+  assert(mcm.config().navigation.searchMode == 'filter', 'Home keeps the filter of MCM')
+  press('Model browser'); frames(60)
+  assert(mcm.config().navigation.searchMode == 'provider', 'on the browser MCM leaves the filtering to the host')
+  assert(scans == 1)
+  local all = inviteLabels()
+  assert(select(2, all:gsub('|', '')) == 11, 'twelve models on the first page: ' .. all)
+  local loads = mcm.loads
+  typed('rita')
+  assert(inviteLabels() == 'Margarita Soto | Rita Wheeler', inviteLabels())
+  assert(mcm.loads == loads + 1, 'one new page for the new text: ' .. (mcm.loads - loads))
+  assert(core.search() == 'rita' and mcm.config().navigation.pageId:match('|rita$'), mcm.config().navigation.pageId)
+  typed('rita wheeler')
+  assert(inviteLabels() == 'Rita Wheeler', inviteLabels())
+  assert(headings():find('1 matching models', 1, true), headings())
+  typed('  WHEELER   Rita ')
+  assert(inviteLabels() == 'Rita Wheeler', 'the order of the words, their case and the spaces do not matter: ' .. inviteLabels())
+  typed('wheel')
+  assert(inviteLabels() == 'Rita Wheeler | Wheeler Smith', inviteLabels())
+  typed('rec_407')
+  assert(inviteLabels() == 'Filler 400', 'the record is searched too: ' .. inviteLabels())
+  typed('nobody here')
+  assert(inviteLabels() == '' and mcm.row('model-status').label == '0 matching models', 'no model: the status stays as a line')
+  -- A text that settles to the same words changes nothing: no page is built again.
+  loads = mcm.loads
+  typed('nobody   HERE')
+  frames(20)
+  assert(mcm.loads == loads and scans == 1, 'the same words do not draw the page again, and nothing is read from the game again')
+  -- A result is a normal invitation.
+  typed('rita wheeler')
+  assert(footerLabels():find('Starts with', 1, true) == nil, 'the letter group is out of the way while a text is searched: ' .. footerLabels())
+  press('Rita Wheeler'); frames(4)
+  assert(members[1] and members[1].key == 'model:1', 'the invitation of the search result')
+  typed('')
+  assert(inviteLabels() == all and footerLabels():find('Starts with: All', 1, true), footerLabels())
+  assert(mcm.config().navigation.searchMode == 'provider' and core.search() == '')
+`, {mcm: {version: '0.10.5'}}));
+
+test('the Search settings box is emptied on the way into and out of the Model browser, and the other pages keep the filter of MCM', () => withScreen(`
+  ${searchModels}
+  -- A text left in the box from another page does not filter the browser: the box is emptied when the browser opens.
+  mcm.search('model'); frames(6)
+  assert(mcm.row('tab:models') and not mcm.row('tab:settings'), 'on Home the box filters the destinations')
+  press('Model browser'); frames(60)
+  assert(mcm.searchText() == '' and core.search() == '', 'the box was emptied: ' .. mcm.searchText())
+  assert(select(2, inviteLabels():gsub('|', '')) == 11, inviteLabels())
+  typed('river')
+  assert(inviteLabels() == 'River Ward', inviteLabels())
+  press('Back to Companion Manager')
+  frames(8)
+  assert(mcm.searchText() == '' and core.search() == '' and core.view() == 'home', 'the text does not follow the player to Home')
+  assert(mcm.config().navigation.searchMode == 'filter')
+  assert(mcm.row('tab:models') ~= nil, 'Home is not filtered by the old text: ' .. labels())
+  -- On another page the text is MCM's own filter and the browser's search does not read it.
+  press('Settings'); frames(4)
+  mcm.search('zzzz'); frames(8)
+  assert(core.search() == '' and mcm.config().navigation.searchMode == 'filter')
+  mcm.search(''); frames(8)
+  -- The browser opens unfiltered again.
+  press('Back to Companion Manager'); press('Model browser'); frames(60)
+  assert(core.search() == '' and select(2, inviteLabels():gsub('|', '')) == 11)
+`, {mcm: {version: '0.10.5'}}));
+
+test('searching the Model browser does no work between texts: the box is read on the slow tick, nothing is scanned again, a page is built only for a new text', () => withScreen(`
+  ${searchModels}
+  press('Model browser'); frames(60)
+  local loads = mcm.loads
+  frames(200)
+  assert(mcm.loads == loads, 'an untouched box draws nothing: ' .. (mcm.loads - loads))
+  typed('rita')
+  typed('rita w')
+  typed('rita wh')
+  assert(mcm.loads == loads + 3 and scans == 1, 'one page per settled text, one scan in all: ' .. (mcm.loads - loads) .. ' ' .. scans)
+`, {mcm: {version: '0.10.5'}}));
+
+test('an MCM that refuses the provider search mode keeps its own filter on the browser, the page does not offer a search and nothing breaks', () => run(`${harness({screen: false, mcm: {version: '0.10.5'}})}
+  ${searchModels}
+  local setNavigation = mcm.api.ui.setNavigation
+  mcm.api.ui.setNavigation = function(key, value)
+    if value.searchMode ~= nil then return nil, 'Unsupported navigation option' end
+    return setNavigation(key, value)
+  end
+  mcm.openScreen(); frames(2)
+  press('Model browser'); frames(60)
+  assert(mcm.config().navigation.searchMode == 'filter' and mcm.config().navigation.pageId:match('^models'), 'the page was given without the option')
+  assert(not mcm.description():find('search box', 1, true), 'no hint for a search that is not there')
+  mcm.search('rita'); frames(10)
+  assert(core.search() == '', 'the host does not follow a box that MCM filters itself')
+  local seen = false
+  for _, line in ipairs(logged) do if line:find('provider search mode', 1, true) then seen = true end end
+  assert(seen, 'one line says why')
 `));
 
 // ---- MCM 0.10.6 UI API (private preview from MCM's author, 2026-10-20): close, setActionVisibility, labelIndent, highlightModifiedValues,

@@ -86,6 +86,9 @@ local wasActive, opened = false, false
 local reloadWanted, reloadAfter, revertWanted = false, 0, false
 local statusSent, lastError = nil, ''
 local currentBack, pageSeen
+-- The Model browser's search (followSearch): the text of MCM's Search settings box as MCM last published it, the page the box was last
+-- followed on, and whether this MCM takes the provider search mode (false once it refused it).
+local contextSearch, searchView, searchProvider = '', nil, true
 -- The page controls of the page last loaded: the page of its long list and how many there are, the letter group and how many.
 -- `status` holds the status lines of the category being converted ({text, help}), which the heading says (see STATUS_ROWS).
 local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil, status = {}}
@@ -312,7 +315,21 @@ local function schema()
     end
     if api then
         pageSeen = core.pageId()
-        pcall(api.ui.setNavigation, MOD_KEY, {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true})
+        -- The Model browser searches itself (followSearch): with the provider search mode MCM does not filter the rows by the box, which
+        -- would hide the models the page lists on a page of twelve. Every other page keeps MCM's own filter.
+        local navigation = {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true,
+            searchMode = searchProvider and core.view() == 'models' and 'provider' or nil}
+        local called, accepted = pcall(api.ui.setNavigation, MOD_KEY, navigation)
+        if navigation.searchMode and not (called and accepted == true) then
+            -- An MCM that refuses the option refuses the whole call: the page is given without it, and keeps MCM's filter and no hint.
+            navigation.searchMode = nil
+            local again, retried = pcall(api.ui.setNavigation, MOD_KEY, navigation)
+            if again and retried == true then
+                searchProvider = false
+                core.offerSearch(false)
+                logRepeat('Companion Manager: Mod Configuration Menu would not take the provider search mode, so the Model browser keeps its letters.')
+            end
+        end
         pcall(api.ui.setFooterActions, MOD_KEY, footerIds)
         local function entriesOf(id, disabled)
             local size = 0
@@ -360,7 +377,27 @@ end
 local function active()
     if not api then return false end
     local ok, context = pcall(api.ui.getContext)
-    return ok and type(context) == 'table' and context.open == true and context.modKey == MOD_KEY
+    if not (ok and type(context) == 'table') then return false end
+    contextSearch = type(context.search) == 'string' and context.search or ''
+    return context.open == true and context.modKey == MOD_KEY
+end
+
+-- The Model browser is searched with MCM's own Search settings box: on that page MCM hands the filtering to the provider (the provider
+-- search mode, set with the page's navigation) and publishes the box's text in its context, which active() read just now. MCM settles
+-- the text for a few frames after a key, so this sees a finished word, not every letter; the page is drawn again only when the words
+-- changed (core.setSearch says so, and the redraw is queued by it). The box keeps its text from page to page and filters the others by
+-- it, so it is emptied on the way into and out of the browser.
+local function followSearch()
+    local view = core.view()
+    if view ~= searchView then
+        local involved = view == 'models' or searchView == 'models'
+        searchView = view
+        if involved and contextSearch ~= '' then
+            pcall(api.ui.setSearch, MOD_KEY, '')
+            contextSearch = ''
+        end
+    end
+    if view == 'models' and searchProvider then core.setSearch(contextSearch) end
 end
 
 -- A button of a long list's page control: the list moves to another page, or to the next letter group.
@@ -605,6 +642,7 @@ local function connect()
     localeRevision = ui.revision()
     pcall(api.refreshProvider, PROVIDER)
     applyPresentation()
+    core.offerSearch(searchProvider)
     log('Companion Manager registered with Mod Configuration Menu ' .. version)
     return true
 end
@@ -731,13 +769,14 @@ function M.update(player, worldReady)
     opened = active()
     if not opened then
         if wasActive then
-            wasActive, reloadWanted, revertWanted, statusSent, keepScroll = false, false, false, nil, nil
+            wasActive, reloadWanted, revertWanted, statusSent, keepScroll, searchView = false, false, false, nil, nil, nil
             core.setView('home')
         end
         return
     end
     if not wasActive then refreshRowFont() end
     wasActive = true
+    followSearch()
     core.tick(player)
     if core.stale() then reloadWanted = true end
     if revertWanted then
@@ -780,6 +819,7 @@ function M.shutdown()
     if type(api.providers) == 'table' and type(api.providers.unregisterProvider) == 'function' then
         pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey)
     end
+    core.offerSearch(false)
     api, opened, wasActive, newUi, sentFont = nil, false, false, {}, false
 end
 

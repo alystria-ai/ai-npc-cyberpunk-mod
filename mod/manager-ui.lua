@@ -15,6 +15,9 @@ local PAGE_SIZE = 12
 local manager, queue
 -- view: the page shown. listPage / listGroup: the page of its long list and the letter group of the model browser.
 local view, listPage, listGroup = 'home', 1, 1
+-- The Model browser's search: the text a host handed over (M.setSearch) and its words, whether the host offers a search box at all
+-- (M.offerSearch), and the list worked out for that text (see searchedModels).
+local modelFind = {text = '', words = {}, offered = false}
 local actions, disabledActions, refreshQueued = {}, {}, false
 local owner, lastSignature, pollAt, snapshotAt = nil, '', 0, 0
 -- What the page that is on screen was built from (pageSignature) and what the last once-a-second look found. The page is drawn again
@@ -228,6 +231,7 @@ end
 -- Moves to another page of the manager. Its long list starts at the first page, and the line of the last action is dropped.
 local function navigate(nextView)
     view, listPage, listGroup = nextView, 1, 1
+    modelFind.text, modelFind.words = '', {}
     actionFeedback, preparationActionFeedback = nil, false
     refreshQueued = true
     return true
@@ -314,6 +318,37 @@ local function modelGroups(models)
         modelGroupsCache = {models = models, count = #models, order = order, lists = lists, all = real}
     end
     return modelGroupsCache
+end
+
+-- The words of a search text: lower case, split at any run of spaces, at most 100 characters. Returns the text as those words joined by
+-- one space (so "Rita  Wheeler " and "rita wheeler" are the same search) and the words.
+local function searchWords(text)
+    local words = {}
+    for word in tostring(text or ''):sub(1, 100):lower():gmatch('%S+') do words[#words + 1] = word end
+    return table.concat(words, ' '), words
+end
+-- Whether a model answers a search: every word is somewhere in its name, its record or its conversation profile (model.search, made by the
+-- scan), so "rita" and "wheeler rita" find Rita Wheeler and "wheeler" alone does too.
+local function modelMatches(model, words)
+    local haystack = model.search or (tostring(model.name or '') .. ' ' .. tostring(model.record or '') .. ' ' .. tostring(model.profileName or '')):lower()
+    for _, word in ipairs(words) do
+        if not haystack:find(word, 1, true) then return false end
+    end
+    return true
+end
+M.searchWords, M.modelMatches = searchWords, modelMatches
+
+-- The models of `list` (the browser's whole list) that answer the search text, in the same order. Worked out when the text changes or the
+-- list does, never per keystroke of a page build: a page build only reads the held result.
+local function searchedModels(list)
+    if modelFind.source ~= list or modelFind.found ~= modelFind.text then
+        local matches = {}
+        for _, model in ipairs(list) do
+            if modelMatches(model, modelFind.words) then matches[#matches + 1] = model end
+        end
+        modelFind.source, modelFind.found, modelFind.list = list, modelFind.text, matches
+    end
+    return modelFind.list
 end
 local function countKey(party, key)
     local count = 0
@@ -1081,6 +1116,7 @@ local function pageSignature(snapshot)
         -- The list is built once the scan has finished (the models are sorted then); until then only the status line shows.
         add(tostring(snapshot.scan.finished))
         if snapshot.scan.finished then add(tostring(#snapshot.models)) end
+        add(modelFind.text)
     end
     if support and view == 'help' then
         add('help:' .. support.signature() .. '|' .. support.serviceState())
@@ -1305,15 +1341,19 @@ local function schema()
         else
             -- A letter group, when there are few enough letters to cycle through: 1 is every model.
             local cache = modelGroups(models)
-            local groups = #cache.order <= 40 and cache.order or {}
+            -- With a search text the whole list is searched, so the letter group is out of the way (All, and no row for it).
+            local searching = #modelFind.words > 0
+            local groups = not searching and #cache.order <= 40 and cache.order or {}
             local groupElements = {ui.t('All')}
             for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
             listGroup = math.max(1, math.min(listGroup, #groupElements))
-            local matches = listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
+            local matches = searching and searchedModels(cache.all)
+                or listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
             local talking = 0
             for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
             rows[#rows + 1] = readonly('model-status', ui.t('{count} matching models', {count = #matches}), '',
-                ui.t('{count} of them can talk.', {count = talking}) .. '\n' .. (ui.t(scan.error) or ''),
+                ui.t('{count} of them can talk.', {count = talking}) .. '\n' .. (ui.t(scan.error) or '')
+                    .. (modelFind.offered and ('\n' .. ui.t('Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough.')) or ''),
                 {label = true, description = true})
             if #groups > 0 then
                 rows[#rows + 1] = setting('ui:group', 'Starts with', 'select', listGroup, 1,
@@ -1692,16 +1732,35 @@ local PAGES = {home = true, characters = true, party = true, models = true, sett
 
 function M.view() return view end
 
--- The page on screen as one short text (the view, the page of its long list and the letter group): a host that scrolls to the top on a
--- new page compares it.
-function M.pageId() return view .. '|' .. tostring(listPage) .. '|' .. tostring(listGroup) end
+-- The page on screen as one short text (the view, the page of its long list, the letter group and the search text): a host that scrolls to
+-- the top on a new page compares it.
+function M.pageId()
+    return view .. '|' .. tostring(listPage) .. '|' .. tostring(listGroup) .. (modelFind.text ~= '' and ('|' .. modelFind.text) or '')
+end
+
+-- The Model browser's search. A host that has a search box hands over its text here (a change is drawn on the next page build, never per
+-- keystroke) and says it has one with offerSearch, which only adds the hint to the page. The text is the words of what was typed, so it is
+-- also the page's identity (M.pageId). Returns whether the search changed.
+function M.offerSearch(offered)
+    modelFind.offered = offered == true
+end
+function M.setSearch(text)
+    local clean, words = searchWords(text)
+    if view ~= 'models' or clean == modelFind.text then return false end
+    modelFind.text, modelFind.words = clean, words
+    listPage = 1
+    refreshQueued = true
+    return true
+end
+function M.search() return modelFind.text end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
         or (name == 'custom-endpoint' and not customProvider.instance) then name = 'home' end
-    local changed = name ~= view or listPage ~= 1 or listGroup ~= 1
+    local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
+    modelFind.text, modelFind.words = '', {}
     if changed then actionFeedback, preparationActionFeedback = nil, false; refreshQueued = true end
     return changed
 end
@@ -2159,6 +2218,7 @@ function M.resetSession()
     slowAt, lastWorldReady = 0, nil
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     view, listPage, listGroup = 'home', 1, 1
+    modelFind.text, modelFind.words = '', {}
 end
 
 function M.shutdown()
