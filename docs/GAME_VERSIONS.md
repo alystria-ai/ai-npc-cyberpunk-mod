@@ -6,6 +6,7 @@ builds are separate downloads with different names, so a player cannot mix them 
 | | 2.31 build | 2.5 build |
 |---|---|---|
 | Game exe | 3.0.80.51928 | 3.0.88.46235 |
+| Version of the first release | 0.3.1 | 0.3.1 |
 | Native plugin SDK | RED4ext.SDK `ad727771` (WopsS) | RED4ext.SDK `b139fcbd` (KelpHect/RED4ext.SDK-psiberx: official #227 plus the #228 layouts) |
 | Native plugin declares | `RED4EXT_V1_RUNTIME_VERSION_2_31` | `RED4EXT_V1_RUNTIME_VERSION_2_50` |
 | File names | `…-Scripts-<v>.zip`, `Runtime-<v>.zip` | `…-Scripts-<v>-for-2.5.zip`, `Runtime-<v>-for-2.5.zip` |
@@ -16,16 +17,20 @@ builds are separate downloads with different names, so a player cannot mix them 
 1. `native/core` is compiled twice (`scripts/Build-NativeCore.ps1 -Game 2.31|2.5`, CMake option `CONVAI_GAME`): the SDK pin, the declared runtime and
    `kGameLabel` change. No source line changed for the 2.5 SDK: the plugin only goes through RTTI, `ExecuteFunction` and the SDK's own types, and it built
    and passed its headless tests against the 2.5 SDK as is. It still needs the in-game check (below).
-2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs: 2.31 calls Codeware's `GameInstance.GetCallbackSystem()`; the 2.5 build
-   replaces the file with `packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds`, which passes `GetGameInstance()` (2.5's own
-   getters have an optional game-instance parameter, and redscript 0.5.32 cannot resolve a call that leaves it out). Every caller uses
-   `ConvaiCallbackSystem()` / `ConvaiServiceContainer()`. If the 2.5 compile shows the no-argument form works, delete the overlay.
+2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds three helpers the rest of the scripts call
+   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`). The 2.5 build replaces the file with
+   `packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds`, which differs in ONE function: Codeware 2.31's
+   `InputTarget.Key(key, action)` filters by the key's action, 2.5's own `InputTarget.Key(key, <Float>)` has no action parameter, so the 2.5 target
+   passes only the key and the three key handlers (Manager, PhoneChat, PhoneContacts) check `evt.GetAction()` themselves (a compare per key event of
+   six keys, no per-frame work). The two getters compile unchanged on 2.5 with redscript 0.5.32 (the "no-argument getter" bug of the modder notes did not
+   reproduce), so the overlay holds them as in the 2.31 file.
 3. `release.json` of both packages carries `game`.
 4. `mod/setup-check.lua` and `bridge/setup-check.mjs` know both builds (see "Wrong build").
 
 The launcher plugin (`CyberpunkConvai.dll`, plain C, no RED4ext.SDK, declares itself runtime independent) is the SAME file in both builds. Everything
 else in the Runtime (Node, Python, bridge, models, voices, archives, llama.cpp, vgmstream) and everything else in the Scripts is byte for byte the same.
-So the two Runtimes differ in two files: `red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll` and `app/release.json`. The two Scripts
+So the two Runtimes differ in two files: `red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll` and `app/release.json` (checked on two real
+dry-run builds of 0.3.1: 8,676 files each, 8,662 identical; the other twelve are pip's `*.dist-info/RECORD` files, which differ between any two builds of the same source). The two Scripts
 differ in `GameVariant.reds` and `release.json`. The optional packs (Local AI, Mature, microphone, OmniVoice, language packs) hold no game-dependent
 file and are shared.
 
@@ -43,7 +48,7 @@ powershell scripts/Install-DevelopmentMod.ps1 -GameVersion 2.5 / scripts/Compile
 `--game 2.5` builds only `scripts` and `runtime` (the other packs are refused). An update zip is built within one game (two Runtimes of different games are
 refused), and the update chains of the two games are independent (`app/defaults/runtime-steps`).
 
-## Proposed names (to be decided by the owner)
+## Names (decided by the owner: one Nexus page, two main files, 0.3.1 for both)
 
 Same version number for both builds (0.3.1 is 0.3.1 for 2.31 and for 2.5), so the packs' "needs the Runtime of 0.2.7 or newer" rules and the step chains
 keep working.
@@ -54,9 +59,8 @@ Scripts.zip   Runtime.zip   updates/Runtime-Update-<a>-to-<b>.zip              2
 game-2.5/Scripts.zip   game-2.5/Runtime.zip   game-2.5/updates/Runtime-Update-<a>-to-<b>-for-2.5.zip
 local-ai/  mature/  mic/  voice/  multilingual/                                 shared by both
 ```
-Nexus Mods (one page): two Main files, named so the game is the first thing read, `AI NPC Cyberpunk Mod - Scripts - for game 2.31` (the existing zip) and
-`AI NPC Cyberpunk Mod - Scripts - for game 2.5` (`…-Scripts-<v>-for-2.5.zip`), each with its own requirement list in the description. The alternative is a
-separate Nexus page for 2.5 (cleaner requirements and tracking, split endorsements and posts).
+Nexus Mods (one page, decided): two Main files, named so the game is the first thing read, `AI NPC Cyberpunk Mod - Scripts - for game 2.31` (the existing zip) and
+`AI NPC Cyberpunk Mod - Scripts - for game 2.5` (`…-Scripts-<v>-for-2.5.zip`), each with its own requirement list in the description.
 
 A player who moves from 2.31 to 2.5 downloads the 2.5 Scripts and Runtime (the 2.5 Runtime is a full zip). A small "switch" zip (the two files that differ)
 is possible later if wanted.
@@ -86,11 +90,11 @@ RED4ext itself differs per game: v1.30.0 for 2.31, master (minimum game 2.50) fo
 | | 2.31 build | 2.5 build |
 |---|---|---|
 | Cyber Engine Tweaks | 1.37.1 | 1.38.0 (official, "Game version 2.5") |
-| RED4ext | 1.30.0 | wopss/RED4ext master 47ac01c or newer: 2.5 support is merged and unreleased (latest official release is v1.30.0 of 2026-03-09, for 2.31). The Codeware 2.5 zip (Nexus 35697) holds only the Codeware plugin; the notes zip says RED4ext is "built unmodified from master 47ac01c". Whether the Nexus page offers a RED4ext file could not be read (HTTP 403). |
+| RED4ext | 1.30.0 | the build of wopss/RED4ext master 47ac01c ("RED4ext 1.30.0 Master 47ac01c 2.5 Unofficial", Nexus 35697: `bin/x64/winmm.dll`, `red4ext/RED4ext.dll`; its log says `v1.30.0+master.1.47ac01c`). 2.5 support is merged upstream and unreleased (latest official release v1.30.0 of 2026-03-09, for 2.31). The Codeware 2.5 zip holds only the Codeware plugin. |
 | redscript | 0.5.31 | 0.5.32 |
 | Codeware | 1.20.5 | 1.20.6 "2.5 Unofficial" (Nexus 35697) |
 | Native Settings UI | 1.96 | 1.97 |
-| Mod Configuration Menu | 0.10.5 | unknown for 2.5 (no copy on disk) |
+| Mod Configuration Menu | 0.10.5 | 0.10.6-hf1 was in the owner's install and loaded on 2.5 (main menu entry, Companion Manager registered); not otherwise tested |
 
 2.5 caveats from the modder notes: CET 1.38.0 hangs a NEW game (start the new game without CET, save once, put CET back); the mirror customisation list is empty
 in vanilla 2.5; redscript 0.5.32 needs `GetGameInstance()` passed to 2.5's optional-parameter getters (done in the overlay).
@@ -116,3 +120,39 @@ in vanilla 2.5; redscript 0.5.32 needs `GetGameInstance()` passed to 2.5's optio
 
 Load the game with only RED4ext + the 2.5 Codeware and this plugin: the RED4ext log must show "CyberpunkConvaiNative … has been loaded" and `ConvaiNative`
 must answer `CheckVersion`; then each native system as in `docs/NATIVE_REWRITE_PLAN.md`. The headless tests (`ctest`) and the file inspector run on both builds.
+
+## Phase 2 result (2026-10-24, owner's PC, game 2.5, nothing played)
+
+Installed into the Steam folder (backup of every replaced file and of the saves in `backups/phase2-game25-install-<time>/`): CET 1.38.0, RED4ext master 47ac01c, redscript 0.5.32,
+Codeware 1.20.6 (2.5), Native Settings UI 1.97, then the 2.5 Runtime and Scripts of 0.3.1 (built with `--game 2.5 --dry-run`) extracted over it like a player.
+
+* RED4ext log: the launcher, `CyberpunkConvaiNative` (0.1.0) and Codeware 1.20.6 load; no "incompatible" line. All nine native systems register their RTTI classes.
+* redscript: the mod's 15 files and Codeware 2.5, MCM and the rest compile (`scc invoked successfully, 26809 source refs`); `final.redscripts.modded` is written. The
+  one thing 2.5 broke was `InputTarget.Key(key, action)` (three call sites), fixed as above.
+* CET 1.38.0 and the mod: no Lua error; MCM hosts the Companion Manager; Native Settings UI 1.97 initialises; the native core binds (`io`, `clearance`, `vehicles`,
+  `faces`; vehicle mounting matched the Lua eight times, then went native); the service answers the setup check with versions match and no game mismatch,
+  `Setup check: no critical problem`; auto-connect warmed two NPCs.
+* A save (made on 2.31 with mods) loads on 2.5 after the game's "mod verification" prompt; no save file was written.
+
+Not checked (needs a human at the keyboard): everything below.
+
+### Live-test list for the owner (2.5)
+
+1. Talk to an NPC by voice key and by text key: reply text, voice, lip sync, gestures.
+2. Phone: open it, the Chat tab, the J/L keys on a contact, the F6/F8 composer (the three key handlers were changed).
+3. Settings > Companion Manager (MCM) and the Native Settings UI page: open, change a setting, Apply.
+4. Companion: invite, follow, get in a car (native vehicles), leave; combat remarks.
+5. Face/lip sync on an ordinary NPC (Face.reds callbacks: `Entity/Initialize`, `Entity/Extract`, `Entity/Reassemble`, `DynamicEntityTarget` compiled, behaviour unchecked).
+6. Help page: the Game version line says OK, the versions line says match.
+7. A NEW game: CET 1.38.0 hangs a new game on 2.5 (notes: start without CET, save once, put CET back).
+8. Frame rate compared with 2.31 in the same place.
+9. Relationship receipts and world knowledge are OFF on 2.5 by design (see the audit): relationship-state.lua, bridge/relationship-routing.mjs, the rules pack and
+   characters/world-knowledge.json are pinned to `gameVersions: ["2.31"]`; they need an evidence pass on 2.5 before the pins are widened.
+10. The CDPR launcher warned that the NVIDIA driver (581.29) is older than the 621.01 it wants for 2.5; the game started and loaded anyway.
+
+### The 2.31 keeper copy (E:/SteamLibrary/Cyberpunk2077-2.31, game 3.0.80.51928)
+
+It is a full copy with RED4ext 1.30.0, CET 1.37.1 and the 0.3.0 Runtime. It has no `steam_appid.txt`, and `Cyberpunk2077.exe` started on its own asks Steam to
+relaunch the game it knows (the Steam folder, now 2.5). Starting it needs `bin/x64/steam_appid.txt` containing `1091500` (a file add in the keeper, with Steam running),
+or a Steam shortcut to the keeper's `Cyberpunk2077.exe`. Both installs share the saves in `Saved Games` and the mod's state in `%LOCALAPPDATA%/AiNpcCyberpunkMod`.
+Not done: the keeper was not touched.
