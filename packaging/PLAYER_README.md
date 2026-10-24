@@ -8,7 +8,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Controller talk button (optional, off by default)**: Settings > Voices > Controller talk button. Hold the left stick click while you look at someone, speak and let go to send. It does nothing in menus, scenes, calls, combat or vehicles, and the click keeps its normal job when the setting is off.
 - **V speaks your microphone lines (optional, off by default)**: Settings > Voices. A line you speak is repeated in V's voice like a typed one, and the reply follows V's line. It works with every voice and provider, OmniVoice and Convai included.
 - **Convai and the local model**: with Convai chosen, the mod no longer starts the Local AI model server just to look up a setting.
-- **Hold to talk**: a game that stalls for a few seconds no longer cancels the voice turn, a late signal no longer takes the microphone back, a key released before the microphone opened fails at once, and words that were heard but never got a final transcript are sent to the character.
+- **Hold to talk**: a game that stalls for a few seconds no longer cancels the voice turn, a late signal no longer takes the microphone back, letting go before the microphone opened fails at once, and words that were heard but never got a final transcript are sent to the character.
 - **OmniVoice**: a game started from a packaged app no longer fails with "Model-admission path escaped the runtime".
 - **Setup check**: it names the game version your files were made for, and says so when the Scripts and the Runtime are for different games or the build does not match your game.
 
