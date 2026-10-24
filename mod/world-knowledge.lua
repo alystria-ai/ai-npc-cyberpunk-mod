@@ -346,18 +346,29 @@ function Collector:reset(generation, reason, worldToken)
     self.reason = reason or 'world-reset'
 end
 
+-- The game names 2.5 as CD Projekt's two-digit minor 2.50; the pack says '2.5'. '2.5', '2.50' and '2.5.0' are all read as '2.5'
+-- (setup-check.lua and relationship-state.lua do the same). A text that does not start with major.minor stays as it is.
+local function canonicalGame(version)
+    local major, minor = tostring(version or ''):match('^%s*(%d+)%.(%d+)')
+    if not major then return version end
+    if #minor == 2 and minor:sub(2) == '0' then minor = minor:sub(1, 1) end
+    return major .. '.' .. minor
+end
+M.canonicalGameVersion = canonicalGame
+
 function Collector:configure(pack, options)
     options = options or {}
     self:reset(nil, 'invalid-pack'); self.config = nil
-    if not plain(pack) or pack.version ~= 1 or not identifier(options.gameVersion) or #options.gameVersion > 32
+    local gameVersion = type(options.gameVersion) == 'string' and canonicalGame(options.gameVersion) or options.gameVersion
+    if not plain(pack) or pack.version ~= 1 or not identifier(gameVersion) or #gameVersion > 32
         or not list(pack.gameVersions, 32, identifier, 1) then return false, self.reason end
     local compatible = false
-    for _, version in ipairs(pack.gameVersions) do if version == options.gameVersion then compatible = true end end
+    for _, version in ipairs(pack.gameVersions) do if version == gameVersion then compatible = true end end
     if not compatible then self.reason = 'unsupported-game-version'; return false, self.reason end
     local facts, factError = selectedInventory(pack, 'factAllowlist', options.factKeys)
     local journal, journalError = selectedInventory(pack, 'journalAllowlist', options.journalKeys)
     if not facts or not journal then self.reason = factError or journalError; return false, self.reason end
-    self.config = {gameVersion = options.gameVersion, facts = facts, journal = journal}
+    self.config = {gameVersion = gameVersion, facts = facts, journal = journal}
     self.reason = 'capture-pending'
     return true
 end

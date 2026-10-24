@@ -17,6 +17,9 @@ const sameWorld = (a, b) => binding(a) && binding(b)
   && a.worldToken === b.worldToken && a.generation === b.generation;
 const fail = code => { throw Object.assign(Error('Relationship routing: ' + code), {code}); };
 const MODES = new Set(['auto', 'on', 'off']);
+// The game versions the eleven receipt facts were checked on (docs/GAME_VERSIONS.md): the same quest data in 2.31 and 2.5. The Lua side
+// (mod/relationship-state.lua) writes the canonical name, '2.5' for CD Projekt's 2.50. Any other patch is unsupported on purpose.
+export const RELATIONSHIP_GAME_VERSIONS = Object.freeze(['2.31', '2.5']);
 export const RELATIONSHIP_PROFILES = Object.freeze({
   // The hut quest writes sq030_judy_lover only on the scene's romance exit, which
   // itself requires the morning commitment (sq030_11_romance). sq030_romance is
@@ -77,7 +80,7 @@ export function parseRelationshipState(raw) {
     if (typeof raw === 'string') { if (Buffer.byteLength(raw, 'utf8') > 16384) return null; value = JSON.parse(raw); }
     else { if (!plain(raw) || Buffer.byteLength(JSON.stringify(raw), 'utf8') > 16384) return null; value = structuredClone(raw); }
   } catch { return null; }
-  if (!plain(value) || value.version !== 1 || value.status !== 'ready' || value.gameVersion !== '2.31'
+  if (!plain(value) || value.version !== 1 || value.status !== 'ready' || !RELATIONSHIP_GAME_VERSIONS.includes(value.gameVersion)
       || !binding(value) || !Number.isSafeInteger(value.capturedAt) || value.capturedAt < 0 || !plain(value.facts)
       || Object.keys(value.facts).some(fact => !RELATIONSHIP_FACTS.includes(fact))) return null;
   const facts = {};

@@ -72,7 +72,31 @@ test('native failures, wrong versions and malformed facts never publish a partia
   assert(reads==before and writes[#writes].reason=='unsupported-game-version')
 `));
 
-test('a game version other than 2.31 is reported once per heartbeat, not written and read again on every frame', () => run(`
+test('game 2.5 captures the same eleven facts: the game names it 2.5, 2.50 or 2.5.0 and the receipt says 2.5', () => run(`
+  for _, name in ipairs({'2.5', '2.50', '2.5.0', ' 2.5'}) do
+    version=name; now=now+2000; reads=0
+    assert(collector:update(frame))
+    local s=writes[#writes]
+    assert(s.status=='ready' and s.gameVersion=='2.5' and reads==11, name..' -> '..tostring(s.gameVersion)..' reads '..reads)
+    assert(s.facts.sq030_judy_lover.value==1 and s.facts.sq030_judy_lover.present)
+  end
+  version='2.31'; now=now+2000; reads=0; collector:update(frame)
+  assert(writes[#writes].gameVersion=='2.31' and reads==11, 'game 2.31 is unchanged')
+  assert(module.canonicalGameVersion('2.50')=='2.5' and module.canonicalGameVersion('2.5')=='2.5' and module.canonicalGameVersion('2.31')=='2.31')
+  assert(module.canonicalGameVersion('2.5.0')=='2.5' and module.canonicalGameVersion('nope')==nil and module.canonicalGameVersion(nil)==nil)
+`));
+
+test('only the game versions the facts were checked on capture: 2.51, 2.6, 3.0 and a version that cannot be read do not', () => run(`
+  for _, name in ipairs({'2.51', '2.6', '3.0', '2.4', '2.30', 'future', ''}) do
+    version=name; now=now+2000; reads=0
+    assert(collector:update(frame))
+    assert(writes[#writes].status=='unavailable' and writes[#writes].reason=='unsupported-game-version' and reads==0, name)
+  end
+  version=nil; now=now+2000; collector:update(frame)
+  assert(writes[#writes].reason=='unsupported-game-version' and reads==0, 'no version string')
+`));
+
+test('a game version other than 2.31 and 2.5 is reported once per heartbeat, not written and read again on every frame', () => run(`
   version='2.32'
   for _=1,30 do assert(collector:update(frame)) end
   assert(#writes==1 and writes[1].reason=='unsupported-game-version', 'written '..#writes..' times in one heartbeat')

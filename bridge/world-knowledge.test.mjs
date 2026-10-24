@@ -207,6 +207,37 @@ test('provenance and exact version scope are checked before interpreting the sav
   assert.equal(resolve({snapshot: snapshot({gameVersion: '2.32'})}).diagnostics.status, 'unsupported-game-version');
 });
 
+test('a pack checked on 2.31 and 2.5 resolves on both games, and what lists only 2.31 stays off on 2.5', () => {
+  const both = pack([rule({gameVersions: ['2.31', '2.5']})]);
+  both.gameVersions = ['2.31', '2.5']; for (const row of both.evidence) row.gameVersions = ['2.31', '2.5'];
+  assert.equal(validateKnowledgePack(both).ok, true);
+  for (const game of ['2.31', '2.5']) {
+    const result = resolve({pack: both, snapshot: snapshot({gameVersion: game})});
+    assert.equal(result.events.length, 1, game); assert.equal(result.diagnostics.status, 'ready', game);
+  }
+  // The pack of 2.31 only, on a game 2.5 capture: nothing is interpreted.
+  assert.equal(resolve({snapshot: snapshot({gameVersion: '2.5'})}).diagnostics.status, 'unsupported-game-version');
+  // A patch nobody checked, on a pack that lists both.
+  for (const game of ['2.51', '2.6', '2.4', '3.0'])
+    assert.equal(resolve({pack: both, snapshot: snapshot({gameVersion: game})}).diagnostics.status, 'unsupported-game-version', game);
+  // Per rule: the pack lists both, one rule was checked on both, the other on 2.31 only.
+  const mixed = pack([rule({gameVersions: ['2.31', '2.5']}), rule({id: 'quest.choice-b', outcome: 'b', statement: 'V took the other road.',
+    condition: condition('choice_b'), gameVersions: ['2.31'], evidenceRefs: ['native-old']})]);
+  mixed.gameVersions = ['2.31', '2.5'];
+  mixed.evidence[0].gameVersions = ['2.31', '2.5'];
+  mixed.evidence.push({id: 'native-old', kind: 'native', sourceId: 'native-source', locator: 'branch 77 -> scene 88', gameVersions: ['2.31']});
+  mixed.factAllowlist.choice_b.evidenceRefs = ['native-old'];
+  assert.equal(validateKnowledgePack(mixed).ok, true);
+  const facts = {choice_a: observation(1, {present: true}), choice_b: observation(1, {present: true})};
+  const on231 = resolve({pack: mixed, snapshot: snapshot({gameVersion: '2.31', facts})});
+  const on25 = resolve({pack: mixed, snapshot: snapshot({gameVersion: '2.5', facts})});
+  assert.equal(on231.events.length, 0, 'two outcomes of one topic contradict each other on 2.31');
+  assert.equal(on25.events.length, 1, 'on 2.5 only the rule checked there is considered');
+  // A rule that claims 2.5 on evidence that does not, is refused.
+  const bad = pack([rule({gameVersions: ['2.31', '2.5']})]); bad.gameVersions = ['2.31', '2.5'];
+  assert.equal(validateKnowledgePack(bad).ok, false);
+});
+
 test('conflicting outcomes suppress a topic across character audiences, without leaking rejected text', () => {
   const conflicting = rule({id: 'quest.choice-b', outcome: 'b', statement: 'PRIVATE CONFLICTING STORY', condition: condition('choice_b'),
     audience: {speakers: ['panam-palmer'], perspective: 'private', channels: ['private'], recipients: ['v', 'panam-palmer']}});

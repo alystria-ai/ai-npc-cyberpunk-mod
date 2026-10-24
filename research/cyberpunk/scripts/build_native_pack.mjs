@@ -71,6 +71,24 @@ export function mergeNativePacks(parts, profileKeys, {coWitnesses} = {}) {
   return {pack, errors};
 }
 
+/** The pack as published: the evidence rows that research/cyberpunk/game-2.5-check.json lists gain `game` (2.5) next to `basedOn` (2.31), and so does
+ * every rule whose evidence rows are ALL widened. A row the check does not list stays on its own game version until the check is repeated for
+ * it. This runs after verification on purpose: the reviewed topic aliases pin each authored rule's hash, which the widened game list would change. */
+export function widenGameVersion(pack, {game, basedOn, verifiedEvidenceIds}) {
+  const checked = new Set(verifiedEvidenceIds), widened = new Set();
+  const covers = row => Array.isArray(row.gameVersions) && row.gameVersions.includes(basedOn) && !row.gameVersions.includes(game);
+  const add = row => ({...row, gameVersions: [...row.gameVersions, game]});
+  const evidence = pack.evidence.map(row => {
+    if (!checked.has(row.id) || !covers(row)) return row;
+    widened.add(row.id); return add(row);
+  });
+  const rules = pack.rules.map(row => covers(row) && Array.isArray(row.evidenceRefs) && row.evidenceRefs.length
+    && row.evidenceRefs.every(ref => widened.has(ref)) ? add(row) : row);
+  const versions = new Set(pack.gameVersions);
+  if (rules.some(row => row.gameVersions?.includes(game))) versions.add(game);
+  return {...pack, gameVersions: [...versions].sort(), evidence, rules};
+}
+
 /** Authored semantics require review; these checks prove the cited artifact exists unchanged. */
 export async function verifyNativeEvidence({pack, inventory, loadArtifact, decisions, requireJsonHashes = false,
   topicAliasDocument = {version: 1, aliases: []}, loadTopicReview}) {
@@ -234,7 +252,14 @@ async function main() {
   await mkdir(resolve(research, 'generated'), {recursive: true});
   await writeFile(resolve(research, 'generated/native-coverage.json'), JSON.stringify(report, null, 2) + '\n');
   if (!errors.length) {
-    const serialized = JSON.stringify(pack, null, 2) + '\n';
+    // The published pack: the same rows, with 2.5 added where the 2.5 check covers them (research/cyberpunk/game-2.5-check.json).
+    const published = widenGameVersion(pack, await read(resolve(research, 'game-2.5-check.json')));
+    const publishedCheck = validateKnowledgePack(published);
+    if (publishedCheck.errors.length) {
+      console.log(JSON.stringify({errors: publishedCheck.errors.slice(0, 20)}, null, 2));
+      process.exit(1);
+    }
+    const serialized = JSON.stringify(published, null, 2) + '\n';
     await writeFile(resolve(research, 'generated/world-knowledge.json'), serialized);
     if (process.argv.includes('--apply')) await writeFile(resolve(root, 'characters/world-knowledge.json'), serialized);
   }

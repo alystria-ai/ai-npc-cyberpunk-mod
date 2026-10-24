@@ -109,12 +109,72 @@ in vanilla 2.5; redscript 0.5.32 needs `GetGameInstance()` passed to 2.5's optio
   PhoneMessagePopupGameController (8), MessengerDialogViewController (4), PhoneContactItemVirtualController (5), PhoneDialerLogicController (2),
   PhoneDialerSelectionController (2), JournalEntryListItemController, AIMoveToCommandHandler.UpdateCommand, GameObject.PlayVoiceOver, PlayerPuppet
   OnGameAttached/OnDetach. A removed target is a compile error that disables every redscript mod; the Phase 2 compile against the 2.5 cache finds it.
-* Gates that refuse any game but 2.31 (left as they are until verified on 2.5; the 2.5 build runs without these features): `mod/relationship-state.lua:83` and
-  `bridge/relationship-routing.mjs:80` (the 11 romance quest facts: no auto romantic style, no Johnny remarks), `mod/world-knowledge.lua` + `bridge/world-knowledge.mjs`
-  + `characters/world-knowledge.json` (every rule and evidence row lists `gameVersions: ["2.31"]`: world knowledge is off on 2.5 until the data is
-  regenerated or the rows are checked).
+* Gates that refused any game but 2.31 (the audit of the first 2.5 build left them as they were, so that build ran without these features): `mod/relationship-state.lua`
+  and `bridge/relationship-routing.mjs` (the 11 romance quest facts: the automatic romantic style and Johnny's remarks) and `mod/world-knowledge.lua` +
+  `bridge/world-knowledge.mjs` + `characters/world-knowledge.json` (every rule and evidence row listed `gameVersions: ["2.31"]`). Both are ON for 2.5 since the
+  evidence pass in "Relationship receipts and world knowledge on 2.5" below.
 * CET reflection to re-probe live: the AI command classes and navigation calls of companion-actuator/placement, chauffeur and vehicle natives, workspot and
   gesture calls, spatial queries, passage blackboards and door devices, the subtitles chatter controller, phone widget trees.
+
+## Relationship receipts and world knowledge on 2.5 (2026-10-24, read-only against the installed game 2.5 and the 2.31 keeper copy)
+
+Both systems read only the game's quest data, so the question was whether every quest fact, journal entry and scripted call they depend on is the same on 2.5. No game folder
+was written to and no game was started. The evidence is reproducible with `node research/cyberpunk/scripts/check_game_2_5.mjs <stage>` (stages `cited`, `changed`,
+`extract`, `facts`, `citations`, `journal`, `localization`; WolvenKit CLI extracts into a work folder) and the result is recorded in `research/cyberpunk/game-2.5-check.json`.
+
+**Where the pins were** (all of them):
+
+| Pin | What it did |
+|---|---|
+| `mod/relationship-state.lua` | refused any `GetGameVersion()` but `'2.31'` (`unsupported-game-version`, no fact read) |
+| `bridge/relationship-routing.mjs` `parseRelationshipState` | refused a snapshot whose `gameVersion` was not `'2.31'` |
+| `mod/world-knowledge.lua` `configure` | the pack's `gameVersions` had to contain the game's version text |
+| `bridge/world-knowledge.mjs` | the pack, every evidence row and every rule carry `gameVersions` (validated, the evidence must cover each rule's list), and `resolveKnowledge` answers `unsupported-game-version` unless pack and rule list the snapshot's version |
+| `characters/world-knowledge.json` (and its generated copy `research/cyberpunk/generated/world-knowledge.json`) | `gameVersions` on the pack, 1318 evidence rows and 860 rules was `["2.31"]` |
+
+`bridge/intrinsic-character-context.mjs` also names `2.31`, but only as the declared version of its authored character packs (it never compares it with the running game), so it
+is not a gate and was left alone.
+
+**What they depend on, and the evidence for 2.5**
+
+1. *Quest data cited by the 1318 evidence rows and the fact writers* (796 resources: quests, phases, scenes, the cooked journals, English on-screen text). Compared by archive entry
+   hash (the SHA-1 in the RDAR directory of every archive), 2.5 against 2.31: 750 are byte for byte identical, 46 differ. Two of the 46 differ only in the base archive while the
+   Phantom Liberty archive still holds the 2.31 bytes and wins (`sts_wat_kabuki`, `ma_std_arr_06`). The other 44 were extracted and checked point by point: every cited JSON pointer
+   still resolves with the same node type and the same expected values, and every fact writer still writes the same value (208 pointers in changed resources, 208 ok on 2.5, and the
+   same 208 on 2.31 as the control).
+2. *Nothing new writes the facts.* This looked at the whole game data, not only the cited files: 12153 quest, phase, scene and journal resources exist in both games and 214 differ in
+   their effective version (ep1 over base). All 214 were extracted from both games and their fact reads and writes compared. 169 have no fact change, the others touch 55 fact
+   names, and 1 of those is a fact the rules use: `mq057.questphase` (Motorbreath) gained a read of `sq029_river_lover == 1`. It is a read. No writer of any of the 366 facts the
+   rules use changed, nor of the 11 relationship facts (the resources that write them are among the 750 identical ones).
+3. *Journal entries.* The 638 allowlisted entries are looked up by path and class (`GetEntryByString`): all 638 exist on 2.5 with the same class. The journal grew (38623 to 39819
+   entries: a tutorial course, a new tarot minor quest, more codex links, and one removed entry, `mq060_nitro/wait/06_message/message_questmappin`, which is not used). That moves
+   the positions the evidence cites, so the 669 journal evidence references were compared by path instead: all 669 entries are identical on 2.5.
+4. *English text the evidence quotes.* 187 on-screen strings, compared by primary key: identical. (The on-screen file itself changed, but not for these keys.)
+5. *Scripted calls.* A probe `.reds` compiled with `scc.exe -compile <dir> -customCacheDir <copy>` against a copy of the 2.5 `final.redscripts` and, as the control, of the 2.31
+   one: `QuestsSystem.GetFactStr(String): Int32`, `JournalManager` `HasAnyDelayedStateChanges`, `GetEntryByString(String, String)`, `GetEntry`, `GetEntryHash`, `GetEntryState`,
+   `GetEntryTimestamp`, `GetParentEntry`, `IsEntryVisited`, `JournalContact.IsKnown`, `TimeSystem.GetGameTime` / `GetGameTimeStamp`, `GameTime.GetSeconds`,
+   `PlayerDevelopmentSystem.GetLifePath`, the enums `gameJournalEntryState` and `gamedataLifePath`, `inkISystemRequestsHandler.IsPreGame` / `GetGameVersion`. All compile on both
+   with the same signatures (a deliberately wrong call in the same harness fails, so the probe does catch a change; `GetEntryHash` returns an Int32 in the scripts, which the
+   Lua already turns into an unsigned hash). The owner's 2.5 session also shows the journal side live: its `runtime/knowledge-active.json` holds quests with state, native path
+   and `gameTimeSeconds` read through `Game.GetJournalManager()`.
+6. *The game's version text.* The save metadata of the owner's 2.5 game says `buildPatch "2.5"` and `gameVersion 2500` (2.31: `"2.31"`, `2310`). No earlier run wrote down what
+   `GetGameVersion()` returns on 2.5 (only that the Help page's Game version line says OK), so Lua reads `2.5`, `2.50` and `2.5.0` all as `2.5`, as `mod/setup-check.lua` does,
+   and passes `2.5` on. Any other patch (2.51, 2.6, 3.0) stays unsupported on purpose.
+
+**What changed**
+
+* `mod/relationship-state.lua`: the version gate is `{2.31, 2.5}` after the canonical name above, and the snapshot says `gameVersion = "2.5"` on 2.5.
+* `bridge/relationship-routing.mjs`: `RELATIONSHIP_GAME_VERSIONS = ['2.31', '2.5']`.
+* `mod/world-knowledge.lua` `configure`: reads the game's version through the same canonical name before looking it up in the pack.
+* `characters/world-knowledge.json`: `gameVersions` is `["2.31", "2.5"]` on the pack, on all 1318 evidence rows and on all 859 executable rules (and the one disabled rule that has a list).
+  It is built, not hand-edited: `research/cyberpunk/game-2.5-check.json` lists the checked evidence ids and `build_native_pack.mjs` (`widenGameVersion`, run after the evidence
+  verification so the reviewed topic aliases that pin each authored rule's hash still match) adds `2.5` to those rows and to every rule whose evidence rows are all listed. A new
+  row stays on 2.31 until the check is repeated for it, and `bridge/game-25-check.test.mjs` fails when an executable rule or evidence row lacks 2.5 or the list drifts.
+* No per-frame work was added: the version text is read once per capture (every 2 s for the receipts, as before) and once at `configure`.
+* The Scripts carry the pack and the Lua, the Runtime carries the pack and the bridge, so both packages of both games change.
+
+**What stays off:** nothing. What could not be seen offline is a running 2.5 game executing these calls through CET 1.38.0 (the live check is item 9 of the list above). If a call
+failed there, both systems already fail closed: the receipts publish `native-fact-unavailable` and the style stays ordinary, and the world collector reads nothing.
 
 ## In-game check of the native plugin (2.5)
 
@@ -160,8 +220,10 @@ Still open: 7 (a new game with CET 1.38.0, a CET problem, documented for players
 6. Help page: the Game version line says OK, the versions line says match.
 7. A NEW game: CET 1.38.0 hangs a new game on 2.5 (notes: start without CET, save once, put CET back).
 8. Frame rate compared with 2.31 in the same place.
-9. Relationship receipts and world knowledge are OFF on 2.5 by design (see the audit): relationship-state.lua, bridge/relationship-routing.mjs, the rules pack and
-   characters/world-knowledge.json are pinned to `gameVersions: ["2.31"]`; they need an evidence pass on 2.5 before the pins are widened.
+9. Relationship receipts and world knowledge are ON for 2.5 (section "Relationship receipts and world knowledge on 2.5" below). In a game, after a save has loaded,
+   `runtime/relationship-state.json` in the mod folder says `"status":"ready"` and `"gameVersion":"2.5"` within a few seconds (it said `unavailable` while they were off),
+   and `runtime/knowledge-status.json` no longer answers `unsupported-game-version`. A romance save then gives Judy, Panam, River, Kerry or Stout the romantic style on Auto,
+   and a quest fact that became set makes Johnny speak up (Johnny setting on).
 10. The CDPR launcher warned that the NVIDIA driver (581.29) is older than the 621.01 it wants for 2.5; the game started and loaded anyway.
 
 ### The 2.31 keeper copy (E:/SteamLibrary/Cyberpunk2077-2.31, game 3.0.80.51928)

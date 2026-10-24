@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {RelationshipRouting, relationshipRegistry, parseRelationshipState, selectRelationshipProfile,
-  RELATIONSHIP_FACTS, RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
+  RELATIONSHIP_FACTS, RELATIONSHIP_PROFILES, RELATIONSHIP_GAME_VERSIONS} from './relationship-routing.mjs';
 import {retireRelationshipConnections} from './relationship-routing.mjs';
 import {relationshipContext} from './romance-context.mjs';
 import {PartyConnections} from './party-connections.mjs';
@@ -238,6 +238,23 @@ test('registry preserves exact ordinary IDs, and a multilingual twin joins its o
   for (const twins of [{'judy-alvarez': ordinaryIds['panam-palmer']}, {'unknown-key': 'x'}, {'judy-alvarez-multilingual': 'x'}])
     assert.throws(() => relationshipRegistry(ordinaryIds, twins));
   assert.throws(() => relationshipRegistry({...ordinaryIds, 'panam-palmer': ordinaryIds['judy-alvarez']}), /DUPLICATE_PROVIDER_ID/);
+});
+
+test('a receipt captured on game 2.5 selects the romantic style exactly like one captured on 2.31', () => {
+  for (const game of RELATIONSHIP_GAME_VERSIONS) {
+    const raw = {...snapshot({sq028_kerry_relationship: 1}), gameVersion: game};
+    const parsed = parseRelationshipState(JSON.stringify(raw));
+    assert(parsed, game); assert.equal(parsed.gameVersion, game);
+    const choice = selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry, boundary, now: NOW, snapshot: parsed});
+    assert.equal(choice.style, 'romantic', game); assert.equal(choice.reason, 'verified-current-save');
+    const plainSave = selectRelationshipProfile({profileKey: 'kerry-eurodyne', registry, boundary, now: NOW,
+      snapshot: parseRelationshipState(JSON.stringify({...snapshot({}), gameVersion: game}))});
+    assert.equal(plainSave.style, 'ordinary', game);
+  }
+  assert.deepEqual([...RELATIONSHIP_GAME_VERSIONS], ['2.31', '2.5']);
+  // Any other patch stays unsupported on purpose, and the Lua side writes the canonical name, so 2.50 is not accepted here.
+  for (const game of ['2.50', '2.5.0', '2.51', '2.6', '2.30', '3.0', 2.5, null])
+    assert.equal(parseRelationshipState(JSON.stringify({...snapshot({sq028_kerry_relationship: 1}), gameVersion: game})), null, String(game));
 });
 
 test('native state parser rejects nonnative/malformed/unallowlisted observations', () => {

@@ -102,6 +102,25 @@ options.cpuNow=function() error('timer unavailable') end
 local other=configured(); other:update(context); assert(calls.facts==8)
 `));
 
+test('configure takes game 2.5 as the game reports it (2.5, 2.50, 2.5.0) and only when the pack lists 2.5', () => run(fixture + `
+fact('positive')
+local both={version=1,gameVersions={'2.31','2.5'},factAllowlist=pack.factAllowlist,journalAllowlist={}}
+for _, name in ipairs({'2.5', '2.50', '2.5.0', '2.31'}) do
+  local m=module.new(options); assert(m:configure(both,{gameVersion=name,factKeys={'positive'}}), name)
+  finish(m)
+  local want=(name=='2.31') and '2.31' or '2.5'
+  assert(m:capture(context).gameVersion==want, name..' captured as '..tostring(m:capture(context).gameVersion))
+end
+-- A pack that lists only 2.31 stays off on 2.5, and a patch nobody checked stays off on a pack that lists both.
+local old=module.new(options); local ok,reason=old:configure(pack,{gameVersion='2.5',factKeys={'positive'}})
+assert(not ok and reason=='unsupported-game-version', tostring(reason))
+for _, name in ipairs({'2.51', '2.6', '2.4', '3.0'}) do
+  local m=module.new(options); local ok2,why=m:configure(both,{gameVersion=name,factKeys={'positive'}})
+  assert(not ok2 and why=='unsupported-game-version', name)
+end
+assert(module.canonicalGameVersion('2.50')=='2.5' and module.canonicalGameVersion('2.31')=='2.31' and module.canonicalGameVersion('x')=='x')
+`));
+
 test('configure rejects unknown patches, arbitrary selectors, oversized implicit inventories and cyclic selection input before any native read', () => run(fixture + `
 fact('positive'); local m=module.new(options)
 assert(not m:configure(pack,{gameVersion='2.32'}))

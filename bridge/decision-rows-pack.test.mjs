@@ -103,7 +103,9 @@ test('db.queen-friendship-hook joins the reviewed Panam romance topic through a 
   assert.notEqual(rule.outcome, romance.outcome);
   const alias = aliases.find(entry => entry.ruleId === rule.id);
   assert.ok(alias?.reviewed === true && alias.nativeTopic === rule.topic && alias.catalogTopic === 'panam.romance');
-  assert.equal(alias.ruleSha256, nativeRuleAuthorHash(rule), 'the alias pins this exact rule');
+  // The alias pins the rule as authored (2.31). The published pack adds 2.5 after the 2.5 check (build_native_pack.mjs, game-2.5-check.json).
+  const authored = {...rule, gameVersions: rule.gameVersions.filter(version => version !== '2.5')};
+  assert.equal(alias.ruleSha256, nativeRuleAuthorHash(authored), 'the alias pins this exact rule');
   assert.ok(existsSync(new URL(`../research/cyberpunk/${alias.reviewRef}`, import.meta.url)));
   // The friendship hook alone: Panam tells it. The romance alone is unchanged. Both together are a contradiction and neither is told.
   const hook = {'al5.panam.friendship-hook': journal('queen-of-the-highway', 'active')};

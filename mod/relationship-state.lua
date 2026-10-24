@@ -26,6 +26,18 @@ local function same(a, b)
     return ready(a) and ready(b) and a.worldToken == b.worldToken and a.generation == b.generation
 end
 
+-- The game versions the eleven facts were checked on: the quest data they come from is byte for byte the same in 2.31 and 2.5
+-- (docs/GAME_VERSIONS.md, "Relationship receipts and world knowledge on 2.5"). Any other patch stays unsupported on purpose.
+-- The game names 2.5 as CD Projekt's two-digit minor 2.50: '2.5', '2.50' and '2.5.0' are all read as '2.5' (setup-check.lua does the same).
+local CHECKED_GAMES = {['2.31'] = true, ['2.5'] = true}
+local function canonicalGame(version)
+    local major, minor = tostring(version or ''):match('^%s*(%d+)%.(%d+)')
+    if not major then return nil end
+    if #minor == 2 and minor:sub(2) == '0' then minor = minor:sub(1, 1) end
+    return major .. '.' .. minor
+end
+M.canonicalGameVersion = canonicalGame
+
 local function nativeFact(key) return Game.GetQuestsSystem():GetFactStr(key) end
 local function nativeVersion() return Game.GetSystemRequestsHandler():GetGameVersion() end
 local function write(value)
@@ -48,7 +60,7 @@ function M.new(options)
     local last = nil
     -- The unavailable answer that is standing (reason, when it was published), and a world whose capture just failed (frame-shaped, so
     -- `same` compares it). Both only ever hold work back: an answer that cannot change is not written again every frame, which on a
-    -- game version other than 2.31 (or with a runtime file that cannot be opened) was a file write and 2 to 13 native reads per frame.
+    -- game version other than 2.31 and 2.5 (or with a runtime file that cannot be opened) was a file write and 2 to 13 native reads per frame.
     local standing, held = nil, nil
     local collector = {}
 
@@ -80,7 +92,8 @@ function M.new(options)
         local slot = convaiHeartbeatSlot
         if last and same(last, frame) and now >= last.capturedAt and type(slot) == 'function' and not slot() then return true end
         local versionOk, version = pcall(readVersion)
-        if not versionOk or version ~= '2.31' then return failed(self, 'unsupported-game-version', frame, now) end
+        version = versionOk and canonicalGame(version) or nil
+        if not version or not CHECKED_GAMES[version] then return failed(self, 'unsupported-game-version', frame, now) end
         local candidate = {version = 1, status = 'ready', gameVersion = version,
             worldToken = frame.worldToken, generation = frame.generation, capturedAt = now, facts = {}}
         for _, spec in ipairs(FACTS) do
