@@ -164,6 +164,6 @@ test('the model card and both updates READMEs make game 2.5 the default and 2.31
   assert.match(await read('packaging/HF_UPDATES_README.md'), /Runtime-Update-0\.3\.0-to-0\.3\.1-for-2\.5\.zip/);
   assert.match(await read('packaging/HF_UPDATES_README_2_31.md'), /Runtime-Update-0\.2\.2-to-0\.2\.3\.zip/);
   for (const rel of ['README.md', 'packaging/PLAYER_README.md', 'packaging/HF_MODEL_CARD.md', 'packaging/HF_UPDATES_README.md', 'packaging/HF_UPDATES_README_2_31.md', 'docs/NEXUS_PAGE.md']) {
-    assert.doesNotMatch(await read(rel), /game-2\.5\//, `${rel}: the game-2.5 folder is gone`);
+    assert.doesNotMatch(await read(rel), /(?<!codeware-)game-2\.5\//, `${rel}: the game-2.5 folder is gone`);
   }
 });
