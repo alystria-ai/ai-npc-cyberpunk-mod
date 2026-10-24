@@ -281,11 +281,11 @@ local function retiredModel(model)
     local name = tostring(model.name or '')
     return name:find('^%s*!') ~= nil or name:upper():find('%f[%a]OBSOLETE%f[%A]') ~= nil
 end
--- A record that has no name of its own (an unnamed model, or the record id shown instead of a name) or a name that is only an internal code
--- (no lowercase letter, a digit or a dash in it: "1H-DNC-LAÖ"). They are listed after the real names.
+-- A record that has no name of its own (an unnamed model, a name the scan made from the record id, or the record id itself) or a name that
+-- is only an internal code (no lowercase letter, a digit or a dash in it: "1H-DNC-LAÖ"). They are listed after the real names.
 local function placeholderModel(model)
     local name = tostring(model.name or '')
-    if model.unnamedIndex or (model.record ~= nil and name == model.record) then return true end
+    if model.unnamedIndex or model.derived or (model.record ~= nil and name == model.record) then return true end
     -- Capital letters with an accent (Latin-1, A-grave to Thorn) are letters of a code like any other; any other non-ASCII letter
     -- belongs to a real name.
     local plain = name:gsub('\195[\128-\158]', '')

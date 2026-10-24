@@ -93,6 +93,10 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   holds the trip state and **Stop trip**. The party has no size limit (see "Party size").
 - **Model browser:** every Character record in the game, so any model can be invited, including characters without conversation
   support, which join as followers and do not talk. Each row's help names the record and the conversation profile, if any.
+  A row is named by the roster profile when the record has one (Rita Wheeler, not the game's generic "Mox"), else by the game's own name for
+  the record, else by a readable name made from the record id ("Character.lizzies_bouncer" becomes "Lizzies Bouncer"; a quest code in
+  front and the build mark behind are dropped, a mark is kept as (M) or (F)). Those last names are listed after the real ones, and the raw
+  record stays in the help and in the search (the game's own name too, so "mox" finds Rita Wheeler).
 - **Settings:** the sections of the page table above, in that order. Rows by section:
   - Interface: Interface language. Its help says the setting changes this mod's menus and notices only, that character voices and the language the
     player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).

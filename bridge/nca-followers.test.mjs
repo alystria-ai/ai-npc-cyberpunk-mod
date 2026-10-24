@@ -44,6 +44,9 @@ test('the roster has Lucy and Rita Wheeler with the base records, the NCA clone 
   for (const record of NCA_LUCY) assert.ok(lucy.records.includes(record), `Lucy record ${record}`);
   for (const record of NCA_RITA) assert.ok(rita.records.includes(record), `Rita record ${record}`);
   assert.equal(lucy.gender, 'FEMALE'); assert.equal(rita.gender, 'FEMALE');
+  // 2026-10-25 (owner): our own Rita is invitable from the menus (two Ritas with NCA are accepted); Lucy's records come only from other mods.
+  assert.notEqual(rita.invite, false, 'Rita is invitable');
+  assert.equal(lucy.invite, false, 'Lucy stays talk only');
   // Other game characters are called Lucy (Lucy Thackery), so the bare first name never resolves to her.
   const names = [lucy.name, ...(lucy.aliases || [])].map(name => name.toLowerCase());
   assert.ok(!names.includes('lucy'), 'never the bare name Lucy');

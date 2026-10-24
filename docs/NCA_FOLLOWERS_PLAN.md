@@ -4,6 +4,8 @@ Written 2026-10-18 on branch `nca-followers` (from `main` da059f29). Unit-tested
 
 A player asked (verbatim in `TODO.md`): *"would it be possible in the future to have addons for mods like NCA Rita Wheeler or Lucy? I'm using them as followers with Night City Allies but it would be so damn amazing to have actual conversations when we do a side mission or just riding along the car together."*
 
+**Decision change (the owner, 2026-10-25): our own Rita Wheeler is always invitable.** `invite: false` is gone from her row in `characters/roster.json` (and its plan row in `research/cyberpunk/generated/profile-plan.json`), so she is listed on the Characters page and in the Model browser with an Invite like any roster character, even with Night City Allies installed (two Ritas are accepted). Her records are unchanged and still map NCA's copy (`NCA.Character.lizzies_bouncer`) and the game's own bouncer to her profile for talk. Lucy keeps `invite: false`: her records come only from other mods, so a copy of ours could point at a record that does not exist. The Model browser also names every record that has a roster profile by the profile (Rita Wheeler, not the game's generic "Mox"), and a record the game gives no name by a readable name made from its id (`mod/manager.lua` `readableRecordName`). The raw record stays in the row's details and in the search.
+
 **Decision (the user, 2026-10-18):** this is part of the main mod, not an add-on. No separate repository, Nexus page or add-on wrapper. The main mod recognises Night City Allies' (NCA) Lucy and Rita when NCA (and, for Lucy, the Lucy mods) are installed, and does nothing when they are absent. NCA keeps its follow, combat and car behaviour; we add talk, face and audio, the same rule as for game-placed characters.
 
 The add-on API would have been the wrong tool anyway: an add-on speaker has no body (no face, no gaze), and add-on text never uses Convai (`docs/ADDON_API.md`, "Guarantees"). NCA's followers have bodies, and the path for bodies another mod spawns already exists (`docs/SPAWNED_CHARACTERS.md`).
@@ -109,7 +111,7 @@ Our spawned-character policy already stays out of all of this:
   - The rows carry the records above. `mod/init.lua` already hashes every roster record with `TweakDBID.new` at load (~line 480), so a record that does not exist (no NCA, no Lucy mod) is two unused table entries.
   - The aliases are full names only.
   - No code of ours names NCA, its tag or these records (a test checks this). There is nothing to detect and nothing per frame, and a player without NCA pays nothing.
-- **`invite: false`** on both rows, honoured by `definitionFor` in `mod/manager.lua`: no companion definition, so the Manager shows "Profile only", the Companion Manager lists them as unavailable and the party queue refuses them. Without this, every player would have seen an invitable "Lucy Kushinada" whose record may not exist. `buildProfiles` keeps the field on rebuilds (`...preserved`).
+- **`invite: false`** on Lucy's row (Rita's was dropped 2026-10-25, see the decision change at the top), honoured by `definitionFor` in `mod/manager.lua`: no companion definition, so the Manager shows "Profile only", the Companion Manager lists her as unavailable and the party queue refuses her. Without this, every player would have seen an invitable "Lucy Kushinada" whose record may not exist. `buildProfiles` keeps the field on rebuilds (`...preserved`).
 - **Ride context.**
   - `convaiSpawnedPeople.riders` in `mod/init.lua`: when a turn's context is read (`turn-context.lua`, cached 5 s) and V sits in a vehicle, it returns the remembered spawned roster characters mounted in V's own vehicle, with the seat the engine reports (`GetMountingInfoSingleWithObjects`).
   - They join the turn context's party, and `turn-context.lua` `classify` turns the seat into `passenger` or `driving`. The bridge already words those: "You are with V in person, riding along in V's vehicle through ...", or "driving V's vehicle" when NCA's chauffeur drives V. Other speakers hear "Also with V: Lucy Kushinada".
@@ -121,7 +123,7 @@ Our spawned-character policy already stays out of all of this:
 - **Convai voices** (placeholders): Lucy `Claire (Whispering Young-Adult American Female)`, unused elsewhere; Rita `Rachel (Neutral Adult American Female)`, which no tier-1 companion uses.
 - **Tests:**
   - `bridge/nca-followers.test.mjs`: rows and records, resolution by base and clone record and by full name, never the bare "Lucy", the game-placed Rita under the story setting, the soft dependency, the seat classification, `riders` (only V's own vehicle, roster only, enabled profiles, nothing read on foot or with nobody remembered, a failing read drops the row), and the wiring (one caller, nothing in `onUpdate`).
-  - `bridge/manager.test.mjs`: `invite = false`.
+  - `bridge/manager.test.mjs`: `invite = false` (Lucy), Rita invitable from both pages, the names the Model browser shows.
   - Count pins in `bridge/first-person-profiles.test.mjs` are 82.
 
 **Memory.** Memory is keyed by profile:
@@ -174,7 +176,7 @@ Each has a suggested default.
 |---|---|---|
 | Research, this plan | M | done |
 | Dossiers, roster rows, first person, appearance, profile text, plan and coverage | M | done |
-| Recognition data (records, aliases), `invite: false` | S | done |
+| Recognition data (records, aliases), `invite: false` (Lucy only since 2026-10-25) | S | done |
 | Ride context (`riders`, `classify` seat) | S | done |
 | Face named records (clone prefix), regenerated `FaceFeature.reds` | S | done; needs `scripts/Compile-Redscript.ps1` and a game restart to install |
 | World-knowledge audience, twin voice map | S | done |
@@ -195,7 +197,7 @@ Each has a suggested default.
    - Talk to her: the reply knows she is riding along. The log has `Turn context: ... party=1 activity=lucy-kushinada=passenger`.
    - Let NCA's chauffeur drive: `activity=lucy-kushinada=driving`.
 3. Group key with both: both answer, each in her own voice.
-4. Neither appears as invitable in the Companion Manager (Profile only) or the phone.
+4. Lucy does not appear as invitable in the Companion Manager (Profile only) or the phone. Rita does (since 2026-10-25): Invite works from the Characters page and the Model browser, with or without NCA's copy beside her.
 5. A side job with a fight: with Battle reactions on, either may speak an opening or closing line.
 6. Save, load, talk again: the earlier conversation is remembered (memory by profile).
 7. Without NCA and the Lucy mods: no new log line, no notice, no change. FPS and the perf probe show no new per-frame row.
@@ -209,7 +211,7 @@ Each has a suggested default.
 | `characters/roster.json`, `first-person-profiles.json`, `appearance.json`, `profile-build-report.json`, `profile-text/*.txt` | the two profiles |
 | `research/cyberpunk/generated/profile-plan.json`, `coverage.json`, `world-knowledge.json`; `characters/world-knowledge.json` | plan rows, coverage, knowledge audience |
 | `characters/multilingual-voice-map.json` | twin voice placeholders |
-| `mod/manager.lua` | `invite = false` |
+| `mod/manager.lua` | `invite = false` (Lucy only since 2026-10-25), model names |
 | `mod/init.lua` | `convaiSpawnedPeople.riders`, the party and activity callbacks |
 | `mod/turn-context.lua` | `classify`: the `mounted` seat |
 | `scripts/Build-FacialGraphs.mjs`, `r6/scripts/CyberpunkConvai/FaceFeature.reds` | clone-prefixed records |

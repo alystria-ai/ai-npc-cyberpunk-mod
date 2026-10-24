@@ -1324,8 +1324,8 @@ end
 local function definitionFor(profile)
     local known = companions.definition(profile.key)
     if known then return known end
-    -- invite = false: another mod owns this character's body (Night City Allies' Lucy and Rita, docs/NCA_FOLLOWERS_PLAN.md).
-    -- Her records only let the talk path recognise that mod's copy; we never spawn one of our own from the menus.
+    -- invite = false: the character's records come only from other mods (Night City Allies' Lucy, docs/NCA_FOLLOWERS_PLAN.md).
+    -- They only let the talk path recognise that mod's copy; we never spawn one of our own from the menus.
     if profile.invite == false then return nil end
     local record = type(profile.records) == 'table' and profile.records[1] or nil
     return record and {id = record, name = profile.name} or nil
@@ -1526,6 +1526,49 @@ local function archetypeFor(record, id)
     return {key = key, name = name}
 end
 
+-- Trailing body-type words of a record id ("tyger_claws_gang3_katana_wa"): male or female build, shown as (M) or (F).
+local buildMarks = {ma = 'M', mb = 'M', mbb = 'M', wa = 'F', wb = 'F', wbb = 'F'}
+local acronyms = {ncpd = 'NCPD', npc = 'NPC', dj = 'DJ', tv = 'TV', ai = 'AI', vip = 'VIP', bd = 'BD'}
+
+-- A readable name made from a record id, for a record the game gives no name: "Character.red_door_bouncer" is "Red Door Bouncer",
+-- "Character.CorpoWomanBag" "Corpo Woman Bag", "Character.q105_valentino_ma" "Valentino (M)". The prefix up to the last dot goes, so do
+-- a leading quest code (q105, sq012) and the trailing build mark; underscores, dashes, camelCase and letter/digit joins split into words.
+-- Plain string work, run once per record by the scan. Nil when nothing readable is left.
+local function readableRecordName(id)
+    local base = tostring(id or ''):match('([^%.]+)$') or ''
+    local words, mark = {}, nil
+    for token in base:gmatch('[^_%-%s]+') do
+        if #words == 0 and token:lower():match('^s?q%d+%a?$') then
+            -- a quest code in front of the name
+        else
+            token = token:gsub('(%l)(%u)', '%1 %2'):gsub('(%u)(%u%l)', '%1 %2')
+                :gsub('(%a)(%d)', '%1 %2'):gsub('(%d)(%a)', '%1 %2')
+            for word in token:gmatch('%S+') do words[#words + 1] = word end
+        end
+    end
+    if #words > 1 and buildMarks[words[#words]:lower()] then mark = buildMarks[table.remove(words)] end
+    for index, word in ipairs(words) do
+        local lower = word:lower()
+        words[index] = acronyms[lower] or (word:match('^%d+$') and (word:gsub('^0+(%d)', '%1')))
+            or lower:gsub('^%l', string.upper)
+    end
+    local text = table.concat(words, ' ')
+    if not text:find('%a') then return nil end
+    return text .. (mark and (' (' .. mark .. ')') or '')
+end
+M.readableRecordName = readableRecordName
+
+-- The name a model shows: the roster profile's name when the record has a profile (the game calls Rita Wheeler "Mox"), else the name
+-- the game gives the record, else one made from the record id, never the raw code. `derived` is true for the last, which the browser
+-- lists after the real names. The record itself stays in the row's details and in the search text.
+local function modelName(profile, localized, id)
+    if profile then return profile.name, false end
+    if localized then return localized, false end
+    local readable = id and readableRecordName(id)
+    if readable then return readable, true end
+    return nil, true
+end
+
 local function modelRecord(record, index)
     local recordID = record:GetID()
     local debugId = tostring(recordID)
@@ -1536,26 +1579,30 @@ local function modelRecord(record, index)
     modelSeen[unique] = true
     local profile = id and byRecord[id] or nil
     local archetype = not profile and archetypeFor(record, id) or nil
-    local label
+    local localized
     if id then
-        local ok, localized = pcall(function()
+        local ok, text = pcall(function()
             local raw = tostring(TweakDB:GetFlat(id .. '.displayName') or '')
             local number = raw:match('LocKey%((%d+)')
             return GetLocalizedText(number and ('LocKey#' .. number) or raw)
         end)
-        if ok and type(localized) == 'string' and localized ~= '' and not localized:find('LocKey', 1, true) then label = localized end
+        -- A name that is only the record id again is no name.
+        if ok and type(text) == 'string' and text ~= '' and text ~= id and not text:find('LocKey', 1, true) then localized = text end
     end
-    local unnamedIndex = not label and not profile and not id and index or nil
-    label = clean(label or (profile and profile.name) or id or ('Unnamed model ' .. index), 160)
+    local label, derived = modelName(profile, localized, id)
+    local unnamedIndex = not label and index or nil
+    label = clean(label or ('Unnamed model ' .. index), 160)
     local key = 'model:' .. tostring(index)
     local definition = {id = id, recordID = recordID, name = label,
         profileKey = profile and profile.key or (archetype and archetype.key) or nil,
         profileName = profile and profile.name or (archetype and archetype.name) or nil}
     local registered = companions.registerDefinition(key, definition)
     if registered then
-        models[#models + 1] = {key = key, name = label, unnamedIndex = unnamedIndex, record = id or debugId,
+        -- The game's own name is searchable too when the profile's name replaced it: "mox" still finds Rita Wheeler.
+        models[#models + 1] = {key = key, name = label, unnamedIndex = unnamedIndex, derived = derived or nil, record = id or debugId,
             profileKey = definition.profileKey, profileName = definition.profileName, archetype = archetype ~= nil,
-            search = (label .. ' ' .. (id or debugId) .. ' ' .. (definition.profileName or '')):lower()}
+            search = (label .. ' ' .. (id or debugId) .. ' ' .. (definition.profileName or '')
+                .. (localized and localized ~= label and (' ' .. localized) or '')):lower()}
     end
 end
 

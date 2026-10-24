@@ -16,8 +16,9 @@ const noticesSource = readFileSync(new URL('../mod/notices.lua', import.meta.url
 const entrySource = readFileSync(new URL('../mod/nsui-entry.lua', import.meta.url), 'utf8');
 const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta.url), 'utf8');
 
-// Night City Allies' Lucy and Rita (docs/NCA_FOLLOWERS_PLAN.md): the roster records only let the talk path recognise that
-// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", the manager unavailable, the party queue refuses).
+// Night City Allies' Lucy (docs/NCA_FOLLOWERS_PLAN.md): the roster records only let the talk path recognise that mod's copy.
+// invite = false keeps her out of every invite (Manager "Profile only", the manager unavailable, the party queue refuses). Rita has
+// been invitable since 2026-10-25.
 test('a roster profile marked invite = false is talk only: no companion definition, so nothing invites our own copy', () => {
   run(`${managerFixture}
     manager.configure(api, {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}},
@@ -2814,6 +2815,72 @@ test('the model browser leaves out the game\'s retired records ("!OBSOLETE ...")
   `);
 });
 
+// 2026-10-25 (owner): our own Rita Wheeler is invitable like anyone else, even with Night City Allies installed. Lucy stays talk only.
+test('Rita Wheeler is invitable from the Characters page and the Model browser; the model shows her profile name, not the generic "Mox", and "mox" still finds her', () => {
+  run(`${nsuiFixture}
+    local rita = {key = 'rita-wheeler', name = 'Rita Wheeler', records = {'Character.lizzies_bouncer', 'NCA.Character.lizzies_bouncer'}}
+    manager.configure(api, {rita, {key = 'lucy-kushinada', name = 'Lucy Kushinada', invite = false,
+      records = {'Character.EdgerunnersLucy_Merc', 'NCA.Character.EdgerunnersLucy_Merc'}}})
+    assert(defs['rita-wheeler'] and defs['rita-wheeler'].id == 'Character.lizzies_bouncer', 'a definition from her first record')
+    assert(defs['lucy-kushinada'] == nil, 'Lucy stays talk only')
+    local names = {['Character.lizzies_bouncer'] = 'Mox', ['Character.q105_valentino_ma'] = 'Valentino'}
+    local ids = {'Character.lizzies_bouncer', 'NCA.Character.lizzies_bouncer', 'Character.q105_valentino_ma', 'Character.CorpoWomanBag',
+      'Character.tyger_claws_gang3_katana_wa', 'Character.wat_kab_ripperdoc_01', 'Character.NCPDOfficer', 'Character.01'}
+    function TweakDB:GetRecords()
+      local result = {}
+      for index, id in ipairs(ids) do result[index] = {GetID = function() return id end} end
+      return result
+    end
+    function TweakDB:GetFlat(flat) local id = flat:gsub('%.displayName$', ''); return names[id] or id end
+    assert(invoke('tab:characters').ok); loaded = registered.loadMod('manager')
+    assert(row('invite:rita-wheeler') and row('invite:rita-wheeler').value == 'Invite', 'Rita is in the Characters list with an Invite')
+    assert(row('invite:lucy-kushinada') and row('invite:lucy-kushinada').value == 'Profile only', 'Lucy is a profile only')
+    assert(invoke('invite:rita-wheeler').ok); managerUi.update(player, true)
+    assert(members[1].key == 'rita-wheeler' and members[1].profileKey == 'rita-wheeler')
+    assert(invoke('characters:back').ok and invoke('tab:models').ok)
+    for _ = 1, 4 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    local byRecord = {}
+    for _, model in ipairs(manager.snapshot(player).models) do byRecord[model.record] = model end
+    local function check(id, name, derived)
+      assert(byRecord[id] and byRecord[id].name == name, id .. ' -> ' .. tostring(byRecord[id] and byRecord[id].name))
+      assert((byRecord[id].derived == true) == derived, id .. ' derived')
+    end
+    -- The roster profile's name first (the game calls her Mox), then the game's name, then one made from the record id.
+    check('Character.lizzies_bouncer', 'Rita Wheeler', false)
+    check('NCA.Character.lizzies_bouncer', 'Rita Wheeler', false)
+    check('Character.q105_valentino_ma', 'Valentino', false)
+    check('Character.CorpoWomanBag', 'Corpo Woman Bag', true)
+    check('Character.tyger_claws_gang3_katana_wa', 'Tyger Claws Gang 3 Katana (F)', true)
+    check('Character.wat_kab_ripperdoc_01', 'Wat Kab Ripperdoc 1', true)
+    check('Character.NCPDOfficer', 'NCPD Officer', true)
+    assert(byRecord['Character.01'].unnamedIndex == 8 and byRecord['Character.01'].name == 'Unnamed model 8', 'nothing readable left: an unnamed model')
+    assert(manager.readableRecordName('Character.lizzies_bouncer') == 'Lizzies Bouncer'
+      and manager.readableRecordName('Character.sq012_panamPalmer_2') == 'Panam Palmer 2' and manager.readableRecordName('x.y') == 'Y'
+      and manager.readableRecordName('Character.') == nil and manager.readableRecordName(nil) == nil)
+    -- The raw record stays in the details and in the search, with the game's own name for the replaced one.
+    local function matching(typed) core.setSearch(typed); loaded = registered.loadMod('manager'); return row('model-status').label end
+    assert(matching('rita') == '2 matching models' and matching('lizzies_bouncer') == '2 matching models')
+    assert(matching('mox') == '1 matching models', 'the game name of a profiled record is searched too')
+    assert(matching('corpo woman') == '1 matching models' and matching('Character.CorpoWomanBag') == '1 matching models')
+    core.setSearch('rita'); loaded = registered.loadMod('manager')
+    local description
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do
+        if item.id == 'invite:' .. byRecord['Character.lizzies_bouncer'].key then description = item.description end
+      end
+    end
+    assert(description:find('Character.lizzies_bouncer', 1, true) and description:find('Conversation: Rita Wheeler', 1, true), description)
+    -- The names made from a record id are listed after the real ones, in the group of their first letter.
+    core.setSearch(''); loaded = registered.loadMod('manager')
+    local listed = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
+    end
+    assert(listed[1] == 'Rita Wheeler' and listed[2] == 'Rita Wheeler' and listed[3] == 'Valentino' and listed[4] == 'Corpo Woman Bag', table.concat(listed, ' | '))
+  `);
+});
+
 test('the Model browser search words: any order, parts of words, any case and spacing; the search belongs to the browser page and is dropped when the page is left', () => {
   run(`${nsuiFixture}
     local text, words = core.searchWords('  Rita   WHEELER ')
@@ -2847,7 +2914,7 @@ test('the Model browser search words: any order, parts of words, any case and sp
     for _, category in ipairs(loaded.categories) do
       for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
     end
-    assert(table.concat(listed, ' | ') == 'Character.Model_600 | Character.Model_6000', table.concat(listed, ' | '))
+    assert(table.concat(listed, ' | ') == 'Model 600 | Model 6000', table.concat(listed, ' | '))
     assert(row('ui:group') == nil and row('ui:page') == nil, 'a letter group and a page slider are no use for two models')
     -- A result is invited like any other row, and the scan is not made again.
     assert(invoke('invite:model:600').ok)
@@ -2897,7 +2964,8 @@ test('the model browser covers the full installed catalogue while exposing bound
     end
     -- Twelve rows a page, 500 pages, all one letter group: the pages are read with the slider.
     assert(countInvites() == 12 and row('ui:page').max == 500 and row('ui:group') and row('ui:group').elements[1] == 'All')
-    assert(#row('ui:group').elements == 2 and row('ui:group').elements[2] == 'C')
+    -- Silverhand shows under the roster profile's name (J), the 5999 records without a name under the one made from the record id (M).
+    assert(table.concat(row('ui:group').elements, ',') == 'All,J,M', table.concat(row('ui:group').elements, ','))
     local at
     for page = 1, 500 do
       assert(core.setUi('ui:page', page) or page == 1); loaded = registered.loadMod('manager')

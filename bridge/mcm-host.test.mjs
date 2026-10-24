@@ -456,7 +456,10 @@ test('a long list is turned with footer buttons beside the way back (never rows 
   press('Starts with: All')
   assert(mcm.row('Starts with: All') == nil, 'the letter changed')
   assert(mcm.config().navigation.pageId:match('^models|1|2$'), tostring(mcm.config().navigation.pageId))
-  assert(footerLabels():find('^Starts with: %S+ | Previous page | Next page | Back$'), footerLabels())
+  -- The first letter is J (Johnny Silverhand under his profile name, one model: no pages), the next M (the 5999 models named from their record id).
+  assert(footerLabels() == 'Starts with: J | Back', footerLabels())
+  press('Starts with: J')
+  assert(footerLabels():find('^Starts with: M | Previous page | Next page | Back$'), footerLabels())
 `));
 
 test('every page the manager can show is drawn in one style: buttons are buttons of one size and place, settings are settings, no button is turned into a plain line', () => withScreen(`
@@ -502,7 +505,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
   go('Current party'); check('party'); go('Back to Companion Manager')
   go('Model browser'); frames(140)
-  check('models'); go('Starts with: All'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
+  check('models'); go('Starts with: All'); check('models letter J'); go('Starts with: J'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
   go('Settings'); check('settings')
   go('Relationships'); check('relationships'); go('Back to settings')
   go('Dynamic info'); check('dynamic-info'); go('Back to settings')
