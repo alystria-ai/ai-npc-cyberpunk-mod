@@ -33,17 +33,23 @@ export class CharacterEditor {
    *   voices     PlayerVoices (optional: without it the editor has no voice clips)
    *   worldRules WorldRules (optional: without it the editor has no "World rules" page): one text for the whole world (bridge/world-rules.mjs)
    *   promptProfiles PromptProfiles (optional: without it the editor has no "Prompting" page): the wording of the prompt per conversation option (bridge/prompt-profile-store.mjs)
+   *   addonContent AddonContent (optional): the content packs of the add-ons (bridge/addon-content.mjs); the World rules page lists their rules read-only
    *   onChanged  (key) => void: after a save, reset, memory edit or character change reached the store. Everything the prompt reads is a plain lookup per
    *              turn (PersonaBook, CharacterOverrides, CustomCharacters, MemoryStore), so the next turn already uses it; what a speculative turn
    *              (a prepared group reply, a look-ahead) wrote before the save is the one thing that does not, and the bridge drops it here.
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, promptProfiles = null, onChanged = () => {}} = {}) {
-    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, onChanged});
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, promptProfiles = null, addonContent = null, onChanged = () => {}} = {}) {
+    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, addonContent, onChanged});
     // The Prompting page (bridge/prompting-editor.mjs). A saved change counts from the next turn like every other editor change.
     this.prompting = promptProfiles ? new PromptingEditor({profiles: promptProfiles, onChanged: () => this.#changed('')}) : null;
   }
   /** What the page needs for the "World rules" page: the saved text and its limit. Null without a store. */
-  get worldRulesForPage() { return this.worldRules ? {text: this.worldRules.get(), limit: this.worldRules.limit ?? WORLD_RULES_LIMIT} : null; }
+  get worldRulesForPage() {
+    if (!this.worldRules) return null;
+    // `packs`: the content packs (add-ons, bridge/addon-content.mjs) that add world rules after the player's, read-only on the page. Absent without any.
+    const packs = this.addonContent?.worldRulesList?.() ?? [];
+    return {text: this.worldRules.get(), limit: this.worldRules.limit ?? WORLD_RULES_LIMIT, ...(packs.length ? {packs} : {})};
+  }
   #changed(key) { try { this.onChanged(key); } catch { /* the change is saved; a hook never fails it */ } }
   get limitsForPage() { return {...this.limits, record: STORE_LIMITS.fact, summary: STORE_LIMITS.summary}; }
   /** What the page needs to build the "New character" form. Null without a store. */

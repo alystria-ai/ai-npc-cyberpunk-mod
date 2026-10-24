@@ -45,7 +45,7 @@ async function addonFolder(root, name, value) {
 }
 
 test('API versions: same major and an equal or lower minor are compatible', () => {
-  assert.equal(ADDON_API_VERSION, '1.0');
+  assert.equal(ADDON_API_VERSION, '1.1');
   assert.deepEqual(parseApiVersion('1.0'), {major: 1, minor: 0});
   assert.equal(parseApiVersion('1'), null);
   assert.equal(apiCompatible('1.0', '1.0'), true);
@@ -103,7 +103,7 @@ test('discovery: the CET mods folder one level deep plus the environment list; b
     const byFolder = Object.fromEntries(problems.map(problem => [problem.dir.split(/[\\/]/).pop(), problem]));
     assert.equal(byFolder.Broken.status, 'invalid');
     assert.equal(byFolder.TooNew.status, 'incompatible');
-    assert.match(byFolder.TooNew.reason, /needs add-on API 1\.9; this AI NPC Cyberpunk Mod has 1\.0/);
+    assert.match(byFolder.TooNew.reason, /needs add-on API 1\.9; this AI NPC Cyberpunk Mod has 1\.1/);
     assert.equal(byFolder.Twin.status, 'duplicate');
     assert.equal(byFolder.SomeOtherMod, undefined, 'a mod folder without a manifest is not an add-on');
     const host = await AddonHost.load({game, environment: {[ADDON_ENV]: extra}});
@@ -141,7 +141,7 @@ test('without add-ons the host is inert: no rows, ids, blocks, files, timers or 
 test('the bridge only touches add-ons through the host, and every touch is a no-op without one', () => {
   const bridge = read('./convai-bridge.mjs');
   const uses = [...bridge.matchAll(/addonHost\.(\w+)/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'characterLookup', 'extend', 'isSpeaker', 'loadJournal',
+  assert.deepEqual([...new Set(uses)].sort(), ['active', 'afterReply', 'beginTurn', 'blocks', 'characterLookup', 'extend', 'hasSpeakers', 'isSpeaker', 'loadJournal',
     'localPace', 'modeOf', 'onStock', 'onWarm', 'produce', 'providerNotice', 'publishStatus', 'recentLines', 'remarkRefunded', 'remarkStarted', 'routeFor', 'speakers', 'stock',
     'trigger', 'usesVoiceContext', 'voiceConfigPaths', 'watchHandlers']);
   // A remark on the local AI inside its default pace is answered at once with addon-pace, before any text request.

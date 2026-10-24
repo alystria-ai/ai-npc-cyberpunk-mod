@@ -24,9 +24,10 @@ import {pathToFileURL} from 'node:url';
 import {readPcmWav} from './speech-audio.mjs';
 import {LEGACY_LOCAL_VOICE_KEYS, PLAYER_REFERENCE_PREFIX, voiceKeyValid, voiceTranscriptValid} from './voice-profile-registry.mjs';
 import {AddonStock} from './addon-stock.mjs';
+import {validateContent} from './addon-content.mjs';
 
-/** The add-on API this main mod implements. A manifest asking for the same major and an equal or lower minor is compatible. */
-export const ADDON_API_VERSION = '1.0';
+/** The add-on API this main mod implements. A manifest asking for the same major and an equal or lower minor is compatible. 1.1 added content packs. */
+export const ADDON_API_VERSION = '1.1';
 export const ADDON_MANIFEST = 'convai-addon.json';
 export const ADDON_STATUS_FILE = 'addons-status.json';
 export const ADDON_STATE_FILE = 'addon-state.json';
@@ -141,22 +142,33 @@ function providers(value, where) {
  */
 export function validateManifest(raw, dir) {
   if (!object(raw)) throw Error('manifest must be a JSON object');
-  if (raw.schema !== 1) throw Error('schema must be 1');
+  // A content pack (API 1.1, bridge/addon-content.mjs) is only this file: it may leave out `schema` and `speakers` and write `requires` as the plain version ("1.1").
+  const pack = raw.content !== undefined;
+  if (raw.schema !== 1 && !(pack && raw.schema === undefined)) throw Error('schema must be 1');
   if (typeof raw.id !== 'string' || !ADDON_ID.test(raw.id)) throw Error('id must be 2-24 lowercase letters, digits or dashes, starting with a letter');
   const name = text(raw.name, 60);
   if (!name) throw Error('name is required');
   if (typeof raw.version !== 'string' || !VERSION.test(raw.version)) throw Error('version must look like 1.0 or 1.0.0');
-  const required = object(raw.requires) ? raw.requires.api : undefined;
-  if (!parseApiVersion(required)) throw Error('requires.api must look like "1.0"');
+  const required = object(raw.requires) ? raw.requires.api : pack && typeof raw.requires === 'string' ? raw.requires : undefined;
+  const wanted = parseApiVersion(required);
+  if (!wanted) throw Error('requires.api must look like "1.0"');
+  // `content` goes through the validators a player's own edits go through; a pack that is not valid is skipped whole, never half applied.
+  let content = null;
+  if (pack) {
+    if (wanted.major === 1 && wanted.minor < 1) throw Error('content needs requires.api "1.1" or higher');
+    // A pack written for a newer API than this one is reported as "needs a newer AI NPC Cyberpunk Mod" (discoverAddons), not judged by this version's content rules.
+    if (apiCompatible(required)) content = validateContent(raw.content);
+  }
   let bridge = null;
   if (raw.bridge !== undefined) {
     bridge = inside(dir, raw.bridge);
     if (!bridge || !/\.m?js$/.test(bridge)) throw Error('bridge must be a .mjs file inside the add-on folder');
   }
   const addonProviders = providers(raw.providers, 'providers') ?? [...ADDON_PROVIDERS];
-  if (!Array.isArray(raw.speakers) || raw.speakers.length > ADDON_LIMITS.speakers) throw Error(`speakers must be a list of at most ${ADDON_LIMITS.speakers}`);
+  const listed = raw.speakers === undefined && pack ? [] : raw.speakers;
+  if (!Array.isArray(listed) || listed.length > ADDON_LIMITS.speakers) throw Error(`speakers must be a list of at most ${ADDON_LIMITS.speakers}`);
   const seen = new Set();
-  const speakers = raw.speakers.map((speaker, index) => {
+  const speakers = listed.map((speaker, index) => {
     if (!object(speaker) || typeof speaker.id !== 'string' || !SPEAKER_ID.test(speaker.id)) throw Error(`speakers[${index}].id is invalid`);
     if (seen.has(speaker.id)) throw Error(`speaker ${speaker.id} is listed twice`);
     seen.add(speaker.id);
@@ -186,7 +198,7 @@ export function validateManifest(raw, dir) {
       persona: persona(speaker.persona, speaker.id), voice, modes, defaultMode,
       providers: providers(speaker.providers, `speaker ${speaker.id}: providers`) ?? addonProviders};
   });
-  return {schema: 1, id: raw.id, name, version: raw.version, requires: {api: required.trim()}, bridge, speakers, dir, providers: addonProviders};
+  return {schema: 1, id: raw.id, name, version: raw.version, requires: {api: required.trim()}, bridge, speakers, dir, providers: addonProviders, ...(content ? {content} : {})};
 }
 
 /** The folders searched for add-ons: the game's CET mods folder, then the CYBERPUNK_CONVAI_ADDONS list. */
@@ -557,13 +569,17 @@ export class AddonHost {
     this.onWarm = null;              // profileKey => void: the bridge warms the speaker's text route
     this.characterLookup = null;     // keyOrName => {key, name, gender} | null: the bridge's roster, for bridge modules (characterInfo)
     // Lines written ahead of time (bridge/addon-stock.mjs). Holds nothing, and starts nothing, until an add-on asks for stock.
-    this.stock = this.active ? new AddonStock({now: () => this.now(), recent: key => this.recentLines(key)}) : null;
+    this.stock = this.hasSpeakers ? new AddonStock({now: () => this.now(), recent: key => this.recentLines(key)}) : null;
     this.onStock = null;             // () => void: the stock changed or may need lines; the bridge starts or stops its pump
+    this.onContentSettings = null;   // () => void: the add-on settings file changed (bridge/addon-content.mjs reads the content packs' on/off values)
     this.localRemarkAt = new Map();  // addonId -> when its last remark started on the local AI
   }
 
   /** True when at least one add-on is installed and valid. Every caller can skip its add-on work when false. */
   get active() { return this.addons.length > 0; }
+
+  /** True when an installed add-on has a speaker. A content pack (API 1.1) has none: it needs the settings file, not the state file, the stock or the journal. */
+  get hasSpeakers() { return this.addons.some(addon => addon.speakers.length > 0); }
 
   /** Finds, validates and loads the installed add-ons. Never throws: a failure is an add-on that is not there. */
   static async load({game, environment = process.env, log = noop, version = ADDON_API_VERSION, files} = {}) {
@@ -1078,7 +1094,10 @@ export class AddonHost {
     const next = parseAddonSettings(raw);
     const changed = JSON.stringify(next) !== JSON.stringify(this.settings);
     this.settings = next;
-    if (changed) for (const addon of this.addons) this.#hook(addon.id, 'onSettings', {...(next[addon.id] ?? {})});
+    if (changed) {
+      for (const addon of this.addons) this.#hook(addon.id, 'onSettings', {...(next[addon.id] ?? {})});
+      try { this.onContentSettings?.(); } catch { /* a switch is applied best effort; the next change tries again */ }
+    }
   }
 
   /**
@@ -1171,7 +1190,8 @@ export class AddonHost {
       try { value = JSON.parse(raw); } catch { return undefined; }
       return apply(value);
     }, () => undefined);
-    return {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw)),
+    // A content pack has no speaker, so with only packs installed the state file is not watched (the settings file carries the packs' on/off values).
+    return {...(this.hasSpeakers ? {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw))} : {}),
       [ADDON_SETTINGS_FILE]: reader(ADDON_SETTINGS_FILE, raw => this.observeSettings(raw))};
   }
 
@@ -1180,6 +1200,8 @@ export class AddonHost {
     return {version: 1, api: ADDON_API_VERSION, updated: this.now(), addons: [
       ...this.addons.map(addon => ({id: addon.id, name: addon.name, version: addon.version, status: 'ready',
         ...(this.moduleErrors.has(addon.id) ? {moduleError: this.moduleErrors.get(addon.id)} : {}),
+        // A content pack (API 1.1): what the game lists under Settings > Content packs (mod/addons.lua contentPacks).
+        ...(addon.content ? {content: {worldRules: addon.content.worldRules.length, prompting: Object.keys(addon.content.prompting)}} : {}),
         speakers: addon.speakers.map(speaker => ({id: speaker.id, profileKey: speaker.profileKey, providers: speaker.providers,
           modes: Object.keys(speaker.modes), voice: speaker.voice ? (this.voiceStatus.get(speaker.profileKey) ?? 'pending') : 'none'}))})),
       ...this.problems.map(problem => ({...(problem.id ? {id: problem.id} : {}), ...(problem.name ? {name: problem.name} : {}),

@@ -254,15 +254,15 @@ test('discovery: the CET mods folder is read one level deep, files and nested fo
 test('discovery: an add-on that needs a newer API does not reserve its id, at most eight add-ons load, and the rest are named as skipped', async () => {
   const work = await folder();
   try {
-    const first = await addonFolder(work, '0-too-new', manifest({requires: {api: '1.1'}, version: '2.0.0'}));
+    const first = await addonFolder(work, '0-too-new', manifest({requires: {api: '1.2'}, version: '2.0.0'}));
     const second = await addonFolder(work, '1-current', manifest({version: '1.5.0'}));
     const third = await addonFolder(work, '2-twin', manifest({version: '1.6.0'}));
     let result = await discoverAddons({roots: rootsOf([first, second, third])});
     assert.deepEqual(result.addons.map(addon => addon.version), ['1.5.0'], 'the newer-API copy never loaded, so the current one is not its duplicate');
     assert.deepEqual(result.problems.map(problem => problem.status), ['incompatible', 'duplicate']);
-    assert.deepEqual([result.problems[0].requires, result.problems[0].version], ['1.1', '2.0.0']);
-    // The same manifest is fine on a main mod that serves 1.1.
-    result = await discoverAddons({roots: rootsOf([first]), version: '1.1'});
+    assert.deepEqual([result.problems[0].requires, result.problems[0].version], ['1.2', '2.0.0']);
+    // The same manifest is fine on a main mod that serves 1.2.
+    result = await discoverAddons({roots: rootsOf([first]), version: '1.2'});
     assert.equal(result.addons.length, 1);
     result = await discoverAddons({roots: rootsOf([first]), version: '2.0'});
     assert.equal(result.problems[0].status, 'incompatible', 'a main mod on a newer major does not serve an older major either');

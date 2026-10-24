@@ -515,7 +515,11 @@ export function editorClient() {
         h('p', {class: 'help', id: 'h-worldRules'}, T('Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.')),
         area, meter),
       h('p', {class: 'help'}, T('Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.')),
-      h('div', {class: 'actions bar'}, keep, back, wipe));
+      h('div', {class: 'actions bar'}, keep, back, wipe),
+      // Content packs (add-ons, bridge/addon-content.mjs): their rules come after the player's, read-only here. The player turns a pack off in the game's settings.
+      ...(spec.packs || []).length ? [h('p', {class: 'help'}, T('Content packs add rules after yours. You cannot edit them here: turn a pack off under Settings > Content packs in the game.')),
+        ...spec.packs.map((pack, index) => h('div', {class: 'field'}, h('label', {for: 'f-pack-' + index}, T('From the content pack {name}', {name: pack.name})),
+          h('textarea', {id: 'f-pack-' + index, rows: Math.min(10, pack.rules.length + 1), readonly: true}, pack.rules.join('\n'))))] : []);
   };
   const openWorld = () => {
     if (model.world || !leave()) return;
@@ -621,7 +625,9 @@ export function editorClient() {
     p.ui = {errs: {}, top: h('div', {class: 'errs', role: 'alert'}), preview: h('div', {class: 'previewbody'}), save: null, revert: null, totals: null};
     const heading = h('div', {class: 'head'}, h('h2', {}, profileName(row)), badges(row),
       h('button', {type: 'button', class: 'quiet', disabled: !Object.keys(data.override).length, onclick: () => resetPrompting()}, T('Reset everything')));
-    return h('div', {}, top, h('hr'), heading, p.ui.top, h('div', {class: 'pcols'}, h('div', {class: 'pedit'}, ...promptingSections(), promptingBar()), promptingPreview()));
+    // Content packs (add-ons, bridge/addon-content.mjs) that change this profile: the effective profile below already has their wording; the player's changes stay on top of it.
+    const packNote = data.packs && data.packs.length ? h('p', {class: 'help'}, T('Content packs that change this prompt: {names}. Your own changes stay on top of theirs, and Reset to default goes back to the pack’s wording.', {names: data.packs.join(', ')})) : null;
+    return h('div', {}, top, h('hr'), heading, packNote, p.ui.top, h('div', {class: 'pcols'}, h('div', {class: 'pedit'}, ...promptingSections(), promptingBar()), promptingPreview()));
   };
 
   const promptingChanged = () => {

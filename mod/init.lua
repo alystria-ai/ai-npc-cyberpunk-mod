@@ -4968,6 +4968,9 @@ registerForEvent('onUpdate', function(delta)
     if convaiAddons and convaiAddons.live then
         local addonOk, addonError = pcall(convaiAddons.tick, player, elapsedPoll, worldReady)
         if not addonOk then convaiLogOnce('Add-on update failed: ' .. tostring(addonError)) end
+    elseif convaiAddons and convaiAddons.noticePending then
+        -- No add-on registered: one check at the first gameplay tick for an add-on or content pack the bridge could not load (mod/addons.lua idleTick).
+        pcall(convaiAddons.idleTick, player, worldReady)
     end
     if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)

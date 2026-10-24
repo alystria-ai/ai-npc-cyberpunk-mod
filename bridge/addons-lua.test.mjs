@@ -13,8 +13,8 @@ test('loading the module touches nothing: no file, no global, not live, and the 
   run(`
     assert(#opened == 0, 'a file was opened at load: ' .. tostring(opened[1]))
     assert(M.live == false)
-    assert(M.public.version == '1.0' and M.public.major == 1 and M.public.minor == 0)
-    assert(M.public.compatible('1.0') and not M.public.compatible('1.1') and not M.public.compatible('2.0') and not M.public.compatible(nil))
+    assert(M.public.version == '1.1' and M.public.major == 1 and M.public.minor == 1)
+    assert(M.public.compatible('1.0') and M.public.compatible('1.1') and not M.public.compatible('1.2') and not M.public.compatible('2.0') and not M.public.compatible(nil))
     assert(#M.talkCandidates({}, false) == 0 and M.isSpeaker('addon-x-y') == false)
     assert(#M.settingsSections() == 0 and M.signature() == '')
     M.reset('load')                      -- inert before any registration
@@ -31,7 +31,7 @@ test('an add-on written for a newer API is refused with one notice for the playe
     assert(handle == nil and reason:find('needs add%-on API 1.4'), tostring(reason))
     assert(M.live == true, 'live so the notice can be shown')
     tick(); tick()
-    assert(#notices == 1 and notices[1] == 'Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.4; this version has 1.0). Update AI NPC Cyberpunk Mod.', notices[1])
+    assert(#notices == 1 and notices[1] == 'Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.4; this version has 1.1). Update AI NPC Cyberpunk Mod.', notices[1])
     assert(select(2, M.public.register({id = 'Bad Id', name = 'x', requires = '1.0'})) == 'invalid id')
     assert(select(2, M.public.register({id = 'ok', requires = '1.0'})) == 'name is required')
   `);
@@ -989,7 +989,8 @@ test('speech, subtitles, continuous speech, group chat and the manager change no
   const page = code('manager-ui.lua');
   for (const match of page.matchAll(/convaiAddons\.(\w+)\(/g)) {
     const window = page.slice(Math.max(0, match.index - 900), match.index);
-    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0/, `manager-ui.lua ${match[1]} is not guarded`);
+    // The content-pack calls (API 1.1) are guarded by their own function's existence: they run with no add-on registered.
+    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0|convaiAddons and convaiAddons\.content\w+|addonSettingsInUse\(\)|convaiAddons\.live == true or \(type\(convaiAddons\.hasContent\)/, `manager-ui.lua ${match[1]} is not guarded`);
   }
 });
 

@@ -18,7 +18,7 @@
 -- handle:replaceGameLines declares which subtitle lines are its character's; while the player's "Replace the game's own lines" is on,
 -- mod/game-dialogue.lua (from the subtitle hooks it already has, never per frame) keeps those lines off the screen and stops their voice
 -- where a Wwise event is known. The scene itself is never touched. "Mark our lines" tags the add-on speaker's own subtitles instead.
-local M = {API_MAJOR = 1, API_MINOR = 0, live = false}
+local M = {API_MAJOR = 1, API_MINOR = 1, live = false, noticePending = true}
 M.API_VERSION = M.API_MAJOR .. '.' .. M.API_MINOR
 
 local addons, order = {}, {}         -- id -> add-on record, registration order
@@ -1454,6 +1454,71 @@ local function readBridgeStatus()
     end
 end
 
+-- ---- Content packs (API 1.1, bridge/addon-content.mjs) -------------------------------------------------------------------------
+-- A content pack is an add-on folder with only convai-addon.json: it never registers here, so `live` stays false for it and nothing above runs.
+-- The bridge lists it in runtime/addons-status.json (an entry with a `content` object). The settings page offers one On/Off row for each
+-- (Settings > Content packs); the choice is saved in runtime/addon-settings.json as {<pack id> = {contentEnabled = false}} and the bridge
+-- applies it from the next reply. Nothing is read per frame or per tick: the status file is read while the settings page is open, at most
+-- every CONTENT_READ_EVERY seconds, and once at the first gameplay tick to tell the player about a pack that could not load.
+local CONTENT_READ_EVERY = 3
+local content = {packs = {}, readAt = nil}
+
+local function contentEnabled(id)
+    local values = addons[id] and addons[id].values or settingsValues and settingsValues[id]
+    return not (type(values) == 'table' and values.contentEnabled == false)
+end
+
+local function readContentPacks(force)
+    local now = os.time()
+    if not force and content.readAt and now - content.readAt < CONTENT_READ_EVERY then return content.packs end
+    content.readAt = now
+    local doc = decode(readFile('addons-status.json'))
+    local packs = {}
+    if type(doc) == 'table' and doc.version == 1 and type(doc.addons) == 'table' then
+        for _, entry in ipairs(doc.addons) do
+            if type(entry) == 'table' and entry.status == 'ready' and type(entry.content) == 'table' and type(entry.id) == 'string'
+                    and entry.id:match('^[a-z][a-z0-9%-]*$') and #entry.id <= 24 and #packs < 8 then
+                packs[#packs + 1] = {id = entry.id, name = trim(entry.name, 60) or entry.id}
+            end
+        end
+    end
+    content.packs = packs
+    return packs
+end
+
+--- The installed content packs: {{id, name, enabled}}, in the order the bridge listed them. Reads the status file at most every 3 s.
+function M.contentPacks()
+    loadSettings()
+    local list = {}
+    for _, pack in ipairs(readContentPacks(false)) do list[#list + 1] = {id = pack.id, name = pack.name, enabled = contentEnabled(pack.id)} end
+    return list
+end
+
+--- True once a content pack has been seen (no file read): the settings page then offers its rows, and the save accepts them.
+function M.hasContent() return #content.packs > 0 end
+
+--- Is the add-on part of the settings page in use: an add-on has registered, or a content pack was seen.
+function M.settingsActive() return M.live or #content.packs > 0 end
+
+--- Part of the settings page signature: changes when a pack appears, disappears or is switched. '' without packs.
+function M.contentSignature()
+    local parts = {}
+    for _, pack in ipairs(M.contentPacks()) do parts[#parts + 1] = pack.id .. '=' .. tostring(pack.enabled) end
+    return table.concat(parts, ',')
+end
+
+--- The one-time check when no add-on has registered: a pack (or add-on) the bridge could not load is told to the player once, at the first
+--- gameplay tick. Called from init.lua's onUpdate only while `noticePending`; one small file read per game start, nothing else.
+function M.idleTick(player, worldReady)
+    if not M.noticePending or M.live or not worldReady or not player or not host then return end
+    M.noticePending = false
+    bridgeStatusRead = true
+    pcall(readBridgeStatus)
+    readContentPacks(true)
+    for _, text in ipairs(pendingNotices) do pcall(host.notify, player, text) end
+    pendingNotices = {}
+end
+
 --- Every 0.1 s from init.lua's onUpdate while live (and only then).
 function M.tick(player, elapsed, worldReady)
     clock = clock + (tonumber(elapsed) or 0)
@@ -1758,6 +1823,18 @@ end
 local function settingFor(rowId)
     if type(rowId) ~= 'string' then return nil end
     local id, key = rowId:match('^addon:([%w%-]+):([%w_]+)$')
+    if id and key == 'contentEnabled' then
+        -- A content pack's On/Off row (M.contentPacks). The pack has no registration of its own: its saved values live in the settings file under its id.
+        for _, pack in ipairs(content.packs) do
+            if pack.id == id then
+                loadSettings()
+                if addons[id] then return addons[id], {id = 'contentEnabled', kind = 'bool'} end
+                settingsValues[id] = settingsValues[id] or {}
+                return {id = id, name = pack.name, handlers = {}, values = settingsValues[id], pack = true}, {id = 'contentEnabled', kind = 'bool'}
+            end
+        end
+        return nil
+    end
     local addon = id and addons[id]
     if not addon then return nil end
     if key == 'remarkGap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkGap', kind = 'select', elements = GAPS} end
@@ -1805,7 +1882,8 @@ function M.commitSettings()
     for id, values in pairs(settingsValues or {}) do if not addons[id] then doc.addons[id] = values end end
     local text = encode(doc)
     local saved = text ~= nil and writeFile('addon-settings.json', text)
-    for _, change in ipairs(changes) do settingEvents[#settingEvents + 1] = change end
+    -- A content pack has no handlers and no tick: the bridge reads the file.
+    for _, change in ipairs(changes) do if not change.addon.pack then settingEvents[#settingEvents + 1] = change end end
     return saved
 end
 

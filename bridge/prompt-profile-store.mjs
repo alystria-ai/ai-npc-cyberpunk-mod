@@ -47,8 +47,10 @@ export class PromptProfiles {
    * active   () => {route, tier, mature, custom: {origin, model}} the turn the next reply would be, for `list` (which profile is active now); the bridge passes it
    */
   constructor({dir, now = Date.now, active = () => null, read = defaultIo.read, write = defaultIo.write, readdir: list = defaultIo.readdir,
-    rename: move = defaultIo.rename, remove = defaultIo.remove, log = () => {}} = {}) {
-    Object.assign(this, {dir, now, activeTurn: active, read, write, listDir: list, move, remove, log});
+    rename: move = defaultIo.rename, remove = defaultIo.remove, log = () => {}, packs = null} = {}) {
+    // packs: the content packs' layer (bridge/addon-content.mjs AddonContent: layerFor(id) a frozen override or null, the same object until a pack is switched on or off, and namesFor(id)).
+    // It lies between the shipped default and the player's change. Without it nothing here differs from before.
+    Object.assign(this, {dir, now, activeTurn: active, read, write, listDir: list, move, remove, log, packs});
     this.rows = new Map();     // profile id -> frozen override (only what differs)
     this.meta = new Map();     // custom profile id -> {host, model, family} (kept in the file so an endpoint no longer configured is still listed)
     this.damaged = new Set();
@@ -98,15 +100,30 @@ export class PromptProfiles {
   }
   #turn() { try { return this.activeTurn() ?? null; } catch { return null; } }
 
-  /** The effective profile of an id (memoized until the override changes), or null for an unknown id. */
-  #effective(id, family) {
+  /** The packs' change to a profile (a frozen override), or null. A lookup, never a disk read. */
+  #layer(id) { try { return this.packs?.layerFor(id) ?? null; } catch { return null; } }
+
+  /** The shipped default with the content packs' change laid over it (the same object while neither changes), or null for an unknown id. What the player's own change is laid over and checked against. */
+  #underlay(id, family) {
     const base = defaultProfile(id, {family});
+    if (!base) return null;
+    const layer = this.#layer(id);
+    if (!layer) return base;
+    const cached = this.under?.get(id);
+    if (cached && cached.layer === layer && cached.base === base) return cached.profile;
+    (this.under ??= new Map()).set(id, {layer, base, profile: mergeProfile(base, layer)});
+    return this.under.get(id).profile;
+  }
+
+  /** The effective profile of an id (memoized until the override or a pack changes), or null for an unknown id. */
+  #effective(id, family) {
+    const base = this.#underlay(id, family);
     if (!base) return null;
     const over = this.rows.get(id) ?? null;
     const cached = this.cache.get(id);
-    if (cached && cached.over === over && cached.family === family) return cached.profile;
+    if (cached && cached.over === over && cached.family === family && cached.base === base) return cached.profile;
     const profile = over ? mergeProfile(base, over) : base;
-    this.cache.set(id, {over, family, profile});
+    this.cache.set(id, {over, family, base, profile});
     return profile;
   }
 
@@ -125,6 +142,14 @@ export class PromptProfiles {
     if (isCustomProfileId(id)) { const custom = this.#customOf(id); return custom ? defaultProfile(id, {family: custom.family}) : null; }
     return defaultProfile(id);
   }
+  /** The shipped default with the content packs' change laid over it (the player's change not yet): what the player's edits are made against. Equals getDefault without a pack. */
+  getBase(id) {
+    if (isCustomProfileId(id)) { const custom = this.#customOf(id); return custom ? this.#underlay(id, custom.family) : null; }
+    return this.#underlay(id);
+  }
+  /** The names of the content packs that change a profile: ['Medieval AI NPCs'] (none without packs). */
+  packsFor(id) { try { return this.packs?.namesFor(id) ?? []; } catch { return []; } }
+  #packNames(id) { const names = this.packsFor(id); return names.length ? {packs: names} : {}; }
   /** The default with the player's change laid over it, or null. */
   getEffective(id) {
     if (isCustomProfileId(id)) { const custom = this.#customOf(id); return custom ? this.#effective(id, custom.family) : null; }
@@ -140,19 +165,20 @@ export class PromptProfiles {
   list(context) {
     const turn = context ?? this.#turn();
     const activeId = turn ? profileIdFor(turn) : null;
-    const out = builtInRows().map(row => ({...row, active: row.id === activeId, changed: this.rows.has(row.id)}));
+    const out = builtInRows().map(row => ({...row, active: row.id === activeId, changed: this.rows.has(row.id), ...this.#packNames(row.id)}));
     const custom = new Map();
     if (turn?.custom?.origin && turn.custom.model) custom.set(customProfileId(turn.custom.origin, turn.custom.model), {host: hostOf(turn.custom.origin), model: String(turn.custom.model), family: familyOf(turn.custom.model)});
     for (const [id, meta] of this.meta) if (!custom.has(id)) custom.set(id, meta);
     for (const [id, meta] of custom) {
-      out.push({id, label: `Custom: ${meta.model || 'model'} at ${meta.host || 'endpoint'}`, provider: 'custom', models: meta.model, family: meta.family, host: meta.host, active: id === activeId, changed: this.rows.has(id)});
+      out.push({id, label: `Custom: ${meta.model || 'model'} at ${meta.host || 'endpoint'}`, provider: 'custom', models: meta.model, family: meta.family, host: meta.host, active: id === activeId, changed: this.rows.has(id), ...this.#packNames(id)});
     }
     return out;
   }
 
   /** Checks a change against the shipped default; nothing is stored. {ok: false, errors: [{field: '', code: 'unknown-profile'}]} for an id nobody knows. */
   validate(id, patch) {
-    const defaults = this.getDefault(id);
+    // Against the default with the packs' change: a value equal to the pack's is no change of the player's, and one equal to the shipped default but not to the pack's is kept.
+    const defaults = this.getBase(id);
     if (!defaults) return {ok: false, errors: [{field: '', code: 'unknown-profile'}]};
     return validateOverride(patch, defaults, this.rows.get(id) ?? {});
   }

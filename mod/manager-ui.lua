@@ -1084,6 +1084,11 @@ end
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
 -- when this changes, so a state the page does not show (a voice going from loading to ready while the Characters list is
 -- open) never redraws it. Every field below is read by that page's rows.
+-- Do the add-on settings take part in a save: an add-on has registered, or the settings page listed a content pack (mod/addons.lua hasContent).
+local function addonSettingsInUse()
+    if not convaiAddons then return false end
+    return convaiAddons.live == true or (type(convaiAddons.hasContent) == 'function' and convaiAddons.hasContent() == true)
+end
 local function pageSignature(snapshot)
     local parts = {view, tostring(listPage), tostring(listGroup), tostring(M.feedback())}
     local function add(text) parts[#parts + 1] = text end
@@ -1160,6 +1165,8 @@ local function pageSignature(snapshot)
         end
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
+        -- Content packs (add-on API 1.1): the rows appear, vanish or flip with the packs the bridge listed and the player's switches.
+        if convaiAddons and convaiAddons.contentSignature then add('content:' .. convaiAddons.contentSignature()) end
     end
     return table.concat(parts, '\n')
 end
@@ -1652,6 +1659,17 @@ local function schema()
                 categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
             end
         end
+        -- Content packs (add-on API 1.1, docs/ADDON_API.md): add-ons that only change how the characters talk. One On/Off row for each, on by default; the bridge
+        -- applies it from the next reply. Their names are the add-on's own and are shown as written.
+        if convaiAddons and convaiAddons.contentPacks then
+            local list = {}
+            for _, pack in ipairs(convaiAddons.contentPacks()) do
+                list[#list + 1] = setting('addon:' .. pack.id .. ':contentEnabled', pack.name, 'bool', pack.enabled, true,
+                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Mistral, Local AI and Custom. With Convai only its world rules apply. The change counts from the next reply.', {name = pack.name}),
+                    nil, {label = true, description = true})
+            end
+            if #list > 0 then categories[#categories + 1] = category('addon-content', 'Content packs', list, 'Add-ons that change how the characters talk.') end
+        end
         -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
         categories[#categories + 1] = category('privacy', 'Privacy', {
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
@@ -1902,7 +1920,7 @@ function M.apply(changes)
     local values, applied = {relationshipModes = {}, dynamicInfo = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
-    if convaiAddons and convaiAddons.live then convaiAddons.discardSettings() end
+    if addonSettingsInUse() then convaiAddons.discardSettings() end
     local function refused(text)
         if addonChanges > 0 then convaiAddons.discardSettings() end
         actionFeedback = ui.t(text)
@@ -2004,7 +2022,7 @@ function M.apply(changes)
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose how often Johnny speaks up.') end
             values.johnnyInHead = change.value ~= 1
             values.johnnyRemarks = ({'off', 'off', 'rare', 'normal'})[change.value]
-        elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
+        elseif key:sub(1, 6) == 'addon:' and addonSettingsInUse() then
             local staged, problem = convaiAddons.stageSetting(key, change.value)
             if not staged then convaiAddons.discardSettings(); return refused(problem) end
             addonChanges = addonChanges + 1

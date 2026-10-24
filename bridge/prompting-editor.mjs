@@ -44,7 +44,9 @@ export class PromptingEditor {
     const row = this.#row(id);
     const base = this.profiles.getDefault(id), effective = this.profiles.getEffective(id);
     if (!base || !effective) throw new EditorError(404, 'not-found');
-    return {...row, default: base, effective, override: this.profiles.getOverride(id) ?? {}};
+    // `packs`: the content packs (add-ons) that change this profile, when there are any; the page names them. `effective` already includes them.
+    const packs = this.profiles.packsFor?.(id) ?? [];
+    return {...row, default: base, effective, override: this.profiles.getOverride(id) ?? {}, ...(packs.length ? {packs} : {})};
   }
   #body(patch) {
     if (!plain(patch)) throw new EditorError(400, 'bad-request');
@@ -91,7 +93,7 @@ export class PromptingEditor {
     if (patch === undefined || patch === null) return {ok: true, ...this.profiles.preview(id, {name, talkWords, mature})};
     const checked = this.profiles.validate(id, this.#body(patch));
     if (!checked.ok) return {ok: false, errors: checked.errors};
-    const profile = mergeProfile(this.profiles.getDefault(id), checked.value);
+    const profile = mergeProfile(this.profiles.getBase?.(id) ?? this.profiles.getDefault(id), checked.value);
     return {ok: true, rules: renderRules(profile, {name, talkWords, mature}), closing: renderClosing(profile, {name, talkWords}), examples: renderExamples(profile)};
   }
 }

@@ -19,7 +19,7 @@ test('handle API: a wrong or oversized argument is refused with its reason, a nu
     assert(why(M.public.register(nil)) == 'register needs a table' and why(M.public.register('skippy')) == 'register needs a table')
     for _, id in ipairs({'', 'a', 'Bad', 'a b', '../x', string.rep('a', 25), 5}) do assert(why(M.public.register({id = id, name = 'X', requires = '1.0'})) == 'invalid id', tostring(id)) end
     assert(why(M.public.register({id = 'fine', name = '   ', requires = '1.0'})) == 'name is required')
-    for _, requires in ipairs({'2.0', '1.1', '0.9', 'latest', '1', 5, true}) do
+    for _, requires in ipairs({'2.0', '1.2', '0.9', 'latest', '1', 5, true}) do
         assert(tostring(why(M.public.register({id = 'newer', name = 'N', requires = requires}))):find('^incompatible'), tostring(requires))
     end
     assert(not M.isSpeaker('addon-newer-x') and #M.settingsSections() == 0, 'a refused registration leaves nothing behind')
@@ -254,12 +254,12 @@ test('files the game reads: addons-status.json says each problem once and nothin
   const said = notices(`json.encode({version = 1, addons = {
     {id = 'skippy', name = 'Skippy', status = 'ready'},
     {id = 'broke', name = 'Broken Mod', status = 'invalid', reason = 'schema must be 1'},
-    {folder = 'TooNew', status = 'incompatible', reason = 'needs add-on API 1.9; this AI NPC Cyberpunk Mod has 1.0'},
+    {folder = 'TooNew', status = 'incompatible', reason = 'needs add-on API 1.9; this AI NPC Cyberpunk Mod has 1.1'},
     {name = 'Twin', status = 'duplicate', reason = 'another add-on uses this id'},
     {name = 'Huge', status = 'invalid', reason = string.rep('x', 500)}}})`).split('\n');
   assert.equal(said.length, 4, 'one notice for each add-on that is not ready, none for the ready one');
   assert.equal(said[0], 'Broken Mod could not load: schema must be 1');
-  assert.equal(said[1], 'TooNew needs a newer AI NPC Cyberpunk Mod (needs add-on API 1.9; this AI NPC Cyberpunk Mod has 1.0). Update AI NPC Cyberpunk Mod.');
+  assert.equal(said[1], 'TooNew needs a newer AI NPC Cyberpunk Mod (needs add-on API 1.9; this AI NPC Cyberpunk Mod has 1.1). Update AI NPC Cyberpunk Mod.');
   assert.equal(said[2], 'Twin could not load: another add-on uses this id');
   assert.equal(said[3], `Huge could not load: ${'x'.repeat(160)}`, 'a long reason is cut');
   // The saved settings: defaults for anything unreadable, and a declared setting whose saved value has the wrong type or range is reset.

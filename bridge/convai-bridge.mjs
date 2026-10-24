@@ -134,6 +134,7 @@ import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {SlowTurnWatch} from './slow-turns.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
+import {AddonContent} from './addon-content.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -174,6 +175,10 @@ const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json')
 const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
 addonHost.extend(roster, ids);
 addonHost.characterLookup = rosterLookup(roster);
+// Content packs (API 1.1, bridge/addon-content.mjs): add-ons that only change how the characters talk (world rules, prompt-profile wording). The prompt-profile store and
+// the world rules below read them with plain lookups; the player's on/off switch arrives in the add-on settings file. Nothing without a pack.
+const addonContent = new AddonContent({host: addonHost, log: message => console.error('[Addons] ' + message)});
+if (addonContent.installed) console.error('[Addons] Content packs: ' + addonContent.describe());
 // Voice clips players give characters in the editor (docs/CHARACTER_EDITOR.md, "Voice clips"; bridge/player-voices.mjs): kept in the data folder
 // (<state>/player-voices/<key>.wav and player-voices.json), opened before the voice configurations are built so each clip is merged over the
 // shipped voice of its character. A removed clip's Voxtral slot (<state>/player-voices-prepared) goes with it. A clip saved or removed while the
@@ -990,7 +995,9 @@ const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDire
 // The player's rules for the whole world (docs/CHARACTER_EDITOR.md, "World rules"): <state>/world-rules.json, read once here; the prompt builder reads the text
 // with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
 const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
-const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters, worldRules});
+// The text providers' personas carry the player's rules and then the content packs' (a view of the same store); the editor and Convai below read the store itself.
+const personaBook = new PersonaBook(roster, {lean: true, overrides: characterOverrides, custom: customCharacters,
+  worldRules: addonContent.installed ? addonContent.worldRulesView(worldRules) : worldRules});
 // "Mature content": read from the settings file when it changes (never per turn); the local AI and Custom routes use it, Mistral and Convai never. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
@@ -1009,6 +1016,7 @@ maturePackInstalled(true);
 // Prompt profiles (bridge/prompt-profiles.mjs, docs/LOCAL_AI.md "Prompt profiles"): the wording of the output rules and the sampling per model, with the player's own changes
 // (<state>/prompt-overrides/<profile>.json) read once here; a turn picks its profile with a plain lookup and a saved change is in effect on the next turn. The Convai prompt is not touched.
 const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, 'prompt-overrides'), log: message => console.error('[PromptProfiles] ' + message),
+  packs: addonContent.installed ? addonContent : null,
   active: () => ({route: mistral.route, tier: localServer.status?.().tier ?? null, mature: matureContent.enabled === true,
     custom: customEndpoint.ready ? {origin: customEndpoint.origin, model: customEndpoint.model} : null})});
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
@@ -1426,7 +1434,8 @@ const conversationBlocks = input => {
     // relationship, phone recap), at most 2,000 characters of the player's words. The voice and style notes after them (follow-up, Natural speech, Expressive
     // emotions, the first-person reminder, the reply language) keep the places that were measured for them. The tier is one no text-provider layout reads
     // (contextPartsOf): those carry the rules in the persona.
-    ...convaiWorldRulesBlocks(worldRules.get(), mistral.active),
+    // The content packs' world rules (API 1.1) follow the player's, kept to a size (bridge/addon-content.mjs convaiWorldRulesText); the pack's switch in the game's settings removes them.
+    ...convaiWorldRulesBlocks(addonContent.convaiWorldRulesText(worldRules.get()), mistral.active),
     // Follow-up questions go before the voice notes: after "keep the same length and content" they lost most of their effect
     // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them). The one-sentence
     // first-person reminder goes after the voice blocks, which pull a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
@@ -1759,6 +1768,8 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
 // until the game submits that exact turn (docs/GROUP_VOICE.md, Look-ahead).
 const lookahead = new GroupLookahead({start: entry => startAhead(entry)});
 const dropPrefetch = () => { prefetch.invalidate(); lookahead.cancel(); };
+// A content pack switched on or off in the game: a group reply prepared from the old wording is dropped, so the next one is written from the new (like an editor save).
+addonContent.onChanged = () => { dropPrefetch(); prefetchObserved = ''; };
 
 // `streamed` (optional, set by respondStreamed): the reply is still being written and `result` holds only its first sentence, which
 // is voiced at once; the finished reply is merged into the returned result when the voice is done (bridge/reply-stream.mjs).
@@ -3359,7 +3370,7 @@ async function finishProviderSwitch() {
   rewarmLocalVoice();
   // Back to Convai: the memory search's embedding process (CPU) is not needed either, and goes now instead of after its five idle minutes.
   // Add-on speakers answer through the text routes whatever the provider is, so with an add-on installed it stays on its idle timer.
-  if (!mistral.active && !addonHost.active) void localEmbedder.close().catch(() => {});
+  if (!mistral.active && !addonHost.hasSpeakers) void localEmbedder.close().catch(() => {});
   await mistralControl.publishStatus().catch(() => {});
 }
 // `ownTurn`: called for the turn the request poll is about to start (see providerForTurn).
@@ -3704,7 +3715,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
-  voices: playerVoices, worldRules, promptProfiles,
+  voices: playerVoices, worldRules, promptProfiles, addonContent: addonContent.installed ? addonContent : null,
   // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
   // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.
   onChanged: () => { dropPrefetch(); prefetchObserved = ''; }});
