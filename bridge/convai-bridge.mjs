@@ -1182,7 +1182,7 @@ let connectionMetricsWriting = Promise.resolve();
 const preparedInputs = new WeakMap();
 const intrinsicConversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext, baseBlocks: baseConversationBlocks,
   intrinsic: intrinsicHistory, resolveAdmission: input => preparedInputs.get(input),
-  isCurrentSync: prepared => knowledgeRouter.currentSync(prepared)});
+  isCurrentSync: prepared => knowledgeRouter.currentSync(prepared), skip: input => addonContent.covers(input?.profileKey)});
 // Natural speech: the devices the CURRENT voice engine can render, for spoken replies only. Phone chat is text,
 // battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
 // The voice of each turn (bridge/multilingual.mjs). Decided once per submitted turn, the first time it is needed, so

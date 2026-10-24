@@ -499,11 +499,13 @@ export class IntrinsicCharacterContext {
 /** Same dynamic-context route for phone/private text and microphone. Never
  * touches TTS, creates a warm turn, or reads supplied intrinsicContext strings.
  * Missing admission/group/automatic turns retain their ordinary base context. */
-export function createIntrinsicConversationContext({baseContext, baseBlocks, intrinsic, resolveAdmission, isCurrentSync}) {
+export function createIntrinsicConversationContext({baseContext, baseBlocks, intrinsic, resolveAdmission, isCurrentSync, skip = () => false}) {
   if (typeof baseContext !== 'function' || !(intrinsic instanceof IntrinsicCharacterContext)
-      || typeof resolveAdmission !== 'function' || typeof isCurrentSync !== 'function') fail('invalid wrapper');
+      || typeof resolveAdmission !== 'function' || typeof isCurrentSync !== 'function' || typeof skip !== 'function') fail('invalid wrapper');
+  // `skip(input)`: no topic history for this turn (a content pack rewrites the character, bridge/addon-content.mjs covers).
   const selectedFor = input => {
     let selected = '';
+    try { if (skip(input)) return selected; } catch {}
     try { selected = intrinsic.select(input, resolveAdmission(input), isCurrentSync).context; } catch {}
     return selected;
   };

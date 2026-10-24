@@ -230,6 +230,11 @@ export class AddonContent {
     this.twins = list;
     return list;
   }
+  /** Whether a switched-on pack rewrites this character's text (its `characters` lists the key). The mod's own topic lore about the character (bridge/intrinsic-character-context.mjs)
+   * is then left out, since it tells the shipped story in the shipped words. A plain lookup per turn. */
+  covers(profileKey) {
+    return typeof profileKey === 'string' && this.applied.some(addon => Object.hasOwn(addon.content.characters ?? {}, profileKey));
+  }
   /** The provider key of the Convai twin a switched-on pack offers for a character (a later pack wins), or null. A plain lookup per turn. */
   twinFor(profileKey) {
     let found = null;

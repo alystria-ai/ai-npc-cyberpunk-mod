@@ -249,6 +249,14 @@ test('actual protocol and PlayerKnowledge path preserves current-world authority
   assert.doesNotMatch(context, /Forged biography|Cole|ceiling fan/);
   live = false;
   assert.doesNotMatch(wrapped(prepared.input), /Topic-limited intrinsic/);
+
+  // A content pack that rewrites the character (skip) keeps the topic history out; the base context stays.
+  live = true;
+  const skipped = createIntrinsicConversationContext({baseContext: conversationContext, intrinsic: selector,
+    resolveAdmission: input => admissions.get(input), isCurrentSync: value => router.currentSync(value), skip: input => input.profileKey === prepared.input.profileKey});
+  assert.doesNotMatch(skipped(prepared.input), /Topic-limited intrinsic/);
+  assert.match(skipped(prepared.input), /no active tracked quest/);
+  assert.ok(skipped.blocks(prepared.input).every(block => !/Topic-limited intrinsic/.test(block.text)));
 });
 
 test('the bridge wrapper reaches actual phone and admitted world paths', async () => {
