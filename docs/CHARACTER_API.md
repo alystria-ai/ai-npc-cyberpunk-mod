@@ -121,6 +121,20 @@ Credentials are read from ignored `runtime/convai-key.txt` (`api-key=...`) or
 `CYBERPUNK_CONVAI_KEY_FILE`. Remote snapshots, mappings and verification reports
 remain under ignored `runtime/`. Examples and tracked source use placeholders.
 
+## Twins of a content pack
+
+`node scripts/Create-PackTwins.mjs --pack <pack folder> [--only key,key] [--limit N] [--dry-run | --apply]` creates a **new** Convai character for every
+character a content pack rewrites (`content.characters`), so Convai players get the pack's version (`content.convai`, docs/ADDON_API.md). Each twin gets the
+pack's name and the pack's three texts (the backstory ends with the pack's own marker line `[CyberpunkConvai profile v2:<key>:<pack id>]`), and the original's
+voice, model, memory and generation settings, English (en-US). The original and the multilingual twin are only read. Every payload goes through
+`character-payload.mjs` and the sample-dialogue label check before anything is sent; the default (and `--dry-run`) makes reads only.
+
+Progress is written after each step: `runtime/pack-twins-<id>.json` is the map `{profileKey: characterId}` (the shape of `content.convai`) and
+`runtime/pack-twins-<id>.state.json` holds the phases. A re-run never duplicates (a mapped twin is re-verified, and one whose create receipt was lost is found
+again by name and marker). Each twin is read back and compared field by field, and the model is checked against the original in a final character list.
+A create refused with a limit or credit message, or three rejections in a row, stops the run with a report. Requests are paced like the multilingual script's.
+Neither file is committed (`runtime/` is ignored).
+
 ## Migration verification — September 30, 2026 (IST)
 
 All 77 named characters and both ambient residents were updated in the existing
