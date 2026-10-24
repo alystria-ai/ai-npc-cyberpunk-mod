@@ -6,7 +6,7 @@
 [size=4][b]Two downloads: the Scripts from this page AND the Runtime from Hugging Face ([url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/Runtime.zip]game 2.31[/url] or [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/game-2.5/Runtime.zip]game 2.5[/url]). Pick both for your game version, and keep both on the same mod version.[/b][/size]
 
 [size=4][b]Game version 2.31 or 2.5.[/b][/size]
-This page has two main files, [b]Scripts for game 2.31[/b] and [b]Scripts for game 2.5[/b], both mod version 0.3.1. Take the one for your game, and the Runtime for your game too (the 2.5 Runtime is in the game-2.5 folder on Hugging Face). To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old. The features that read the game's quest history, the world knowledge rules and the relationship facts behind the automatic romantic style and Johnny's remarks, work on both games: the quest data they read was compared between 2.31 and 2.5 and is the same.
+This page has two main files, [b]Scripts for game 2.31[/b] and [b]Scripts for game 2.5[/b], both mod version 0.3.1. Take the one for your game, and the Runtime for your game too (the 2.5 Runtime is in the game-2.5 folder on Hugging Face). To play 2.31 on Steam, right-click the game in your Steam Library, then Properties, Game Versions & Betas, and pick 2_31_old.
 
 [youtube]iR0lOYfrFx8[/youtube]
 
@@ -153,7 +153,7 @@ Then in game: Settings > Conversation provider, choose Local AI, pick your model
 
 [size=4][b]Help and FAQ[/b][/size]
 [b]Is the 2.5 build the same mod?[/b]
-Yes, the same mod from the same source, built once for each game version. The features that read the game's quest history, the world knowledge rules and the relationship facts behind the automatic romantic style and Johnny's remarks, work on both games: the quest data they read was compared between 2.31 and 2.5 and is the same.
+Yes, the same mod from the same source, built once for each game version.
 
 [b]A new game hangs on game 2.5.[/b]
 That is Cyber Engine Tweaks 1.38.0, not this mod. Start the new game without Cyber Engine Tweaks installed, save once, then install it again.
