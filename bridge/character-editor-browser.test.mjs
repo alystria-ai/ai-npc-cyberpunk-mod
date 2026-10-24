@@ -585,7 +585,7 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(await page.locator('.profiles .profile .chip').count(), 1, 'no other badge yet');
   assert.deepEqual(await page.locator('#main h2').allTextContents(), ['Prompting', 'Local AI, Standard']);
   const text = await page.locator('#main').textContent();
-  assert.match(text, /The facts the characters get from the game, the safety guards and the Mature rules cannot be edited here\. Convai’s prompting lives on Convai’s side\./);
+  assert.match(text, /The facts the characters get from the game and a short list of safety filters cannot be edited here\. Convai’s prompting lives on Convai’s side\./);
   assert.match(text, /Your Custom models and APIs/);
   assert.equal(await page.locator('#list .pick.on').count(), 0);
   await previewHas(page, 'OUTPUT RULES (they outrank everything above about format)');
@@ -690,6 +690,43 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(e.profiles.getEffective('local-standard').sampling.topP, null, 'Off is not sent');
   assert.equal('topP' in e.profiles.getOverride('local-standard').sampling, shippedTopP !== null, 'where Off is the shipped value nothing is stored for it');
 
+  // More samplers: Top K and Min P (with Off, like Top P), the penalties, and the advanced parameters as JSON. A bad JSON or a key the form refuses is said in words and nothing is saved.
+  assert.equal(await page.locator('#p-sampling-topK').isDisabled(), true, 'off while the shipped value is off');
+  assert.match(await page.locator('#p-sampling-topK-h').textContent(), /From 0 to 1000\. Shipped: off/);
+  assert.match(await page.locator('#p-sampling-minP-h').textContent(), /From 0 to 1\. Shipped: off/);
+  await page.locator('#p-sampling-topK-off').uncheck(); assert.equal(await page.inputValue('#p-sampling-topK'), '40');
+  await page.locator('#p-sampling-minP-off').uncheck(); assert.equal(await page.inputValue('#p-sampling-minP'), '0.05');
+  await page.fill('#p-sampling-topK', '20');
+  await page.locator('#p-sampling-presencePenalty-off').uncheck();
+  await page.fill('#p-sampling-presencePenalty', '0.3');
+  await page.fill('#p-sampling-extra', '{"typical_p": 0.9,');
+  await page.waitForSelector('section[data-field=sampling] .err');
+  assert.equal(await page.locator('section[data-field=sampling] .err').textContent(), 'Advanced parameters (JSON): That is not valid JSON.');
+  assert.equal(await page.locator('#p-sampling-extra').getAttribute('aria-invalid'), 'true');
+  await saveBar(page).getByRole('button', {name: 'Save'}).click();
+  await toast(page).waitFor();
+  assert.equal(e.profiles.getEffective('local-standard').sampling.topK, null, 'a bad JSON stores nothing, not even the other boxes');
+  await page.fill('#p-sampling-extra', '{"typical_p": 0.9, "model": "x", "max_tokens": 5, "top_p": 0.5}');
+  await page.waitForFunction(() => document.querySelectorAll('section[data-field=sampling] .err').length === 3);
+  assert.deepEqual(await page.locator('section[data-field=sampling] .err').allTextContents(),
+    ['Advanced parameters (JSON): “model” is set by the mod and cannot be changed here.', 'Advanced parameters (JSON): Use the Longest reply box for the length of a reply, not “max_tokens”.',
+      'Advanced parameters (JSON): “top_p” has its own setting in this form. Use that instead.']);
+  await page.fill('#p-sampling-extra', '{"typical_p": 0.9, "dry_multiplier": 0.8, "mirostat": 2}');
+  await page.waitForFunction(() => !document.querySelector('section[data-field=sampling] .err'));
+  await saveBar(page).getByRole('button', {name: 'Save'}).click();
+  await savedToast(page);
+  const more = e.profiles.getEffective('local-standard').sampling;
+  assert.deepEqual([more.topK, more.minP, more.presencePenalty, {...more.extra}], [20, 0.05, 0.3, {typical_p: 0.9, dry_multiplier: 0.8, mirostat: 2}]);
+  assert.match(await page.inputValue('#p-sampling-extra'), /"typical_p": 0.9/, 'the saved JSON is shown again');
+  await page.fill('#p-sampling-extra', '');
+  await page.locator('#p-sampling-topK-off').check();
+  await page.locator('#p-sampling-minP-off').check();
+  await page.locator('#p-sampling-presencePenalty-off').check();
+  await saveBar(page).getByRole('button', {name: 'Save'}).click();
+  await savedToast(page);
+  const none = e.profiles.getEffective('local-standard').sampling;
+  assert.deepEqual([none.topK, none.minP, none.presencePenalty, none.extra], [null, null, null, null]);
+
   // Errors, in plain words, in the sections they belong to; Save is refused with the same words and stores nothing.
   const before = JSON.stringify(e.profiles.getOverride('local-standard'));
   await page.fill('#p-sampling-temperature', '3');
@@ -741,12 +778,34 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Mistral');
   assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
   assert.equal(await page.locator('textarea[aria-label="Rule 1"]').inputValue(), defaultProfile('mistral').rules[0].text, 'the unsaved text was dropped');
+  // Mistral's API takes neither Top K, Min P nor extra fields: they are not offered, with a note; the two penalties are.
+  assert.equal(await page.locator('#p-sampling-topK, #p-sampling-minP, #p-sampling-extra').count(), 0);
+  assert.equal(await page.locator('#p-sampling-presencePenalty').count(), 1);
+  assert.match(await page.locator('section[data-field=sampling]').textContent(), /Mistral takes only the settings shown here/);
   await page.fill('#p-closing-text', 'Mistral closing.');
   await saveBar(page).getByRole('button', {name: 'Save'}).click();
   await savedToast(page);
   await picks.nth(3).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Local AI, Lite, Mature on');
   assert.equal(await page.locator('#p-sample-mature').isChecked(), true);
+  // The Mature layer's wording: its own section on this option (not on Mistral's), shown in the preview, saved, reset.
+  assert.equal(await page.locator('section[data-field=matureLayer] textarea').count(), 11);
+  assert.equal(await page.inputValue('#p-mature-tone'), defaultProfile('mature-lite').matureLayer.tone);
+  assert.equal(await page.locator('label[for=p-mature-speechFull]').textContent(), 'Speech line, for models that allow explicit sex');
+  await previewHas(page, 'MATURE CONTENT IS ON (adults 18+ only)');
+  await page.fill('#p-mature-tone', 'MY TONE LINE.');
+  await previewHas(page, 'MY TONE LINE.');
+  await saveBar(page).getByRole('button', {name: 'Save'}).click();
+  await savedToast(page);
+  assert.equal(e.profiles.getOverride('mature-lite').matureLayer.tone, 'MY TONE LINE.');
+  await page.fill('#p-mature-tone', 'x'.repeat(1501));
+  await page.waitForSelector('section[data-field=matureLayer] .err');
+  assert.equal(await page.locator('section[data-field=matureLayer] .err').textContent(), 'Tone line: This text is too long. Keep it under 1500 characters.');
+  await saveBar(page).getByRole('button', {name: 'Revert changes'}).click();
+  e.dialogs.length = 0;
+  await page.locator('section[data-field=matureLayer] .phead').getByRole('button', {name: 'Reset to default'}).click();
+  await page.waitForFunction(value => document.querySelector('#p-mature-tone')?.value === value, defaultProfile('mature-lite').matureLayer.tone);
+  assert.equal(e.profiles.getOverride('mature-lite'), null);
   await picks.nth(5).click();
   await page.waitForFunction(() => document.querySelectorAll('#main h2')[1]?.textContent === 'Custom: qwen3-8b at openrouter.ai');
   const custom = defaultProfile(customProfileId('https://openrouter.ai', 'qwen3-8b'), {family: 'qwen'}), penalty = differs(custom.sampling.repeatPenalty, 1.1, 1.15);
@@ -758,7 +817,7 @@ test('Prompting: the options with their badges, a live preview, edits saved and 
   assert.equal(e.profiles.getOverride('local-standard'), null, 'a change never reaches another option');
   assert.equal(e.profiles.getOverride(customProfileId('https://openrouter.ai', 'qwen3-8b')).sampling.repeatPenalty, penalty);
   assert.deepEqual(await page.locator('.profiles .profile').evaluateAll(nodes => nodes.map(node => node.querySelectorAll('.chip').length)), [1, 0, 1, 0, 0, 1]);
-  assert.deepEqual(e.problems, ['Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)'], 'no console message but the browser noting the one refused save');
+  assert.deepEqual(e.problems, Array(2).fill('Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)'), 'no console message but the browser noting the two refused saves');
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer');
 });
 

@@ -27,6 +27,7 @@ import {CompactChoice} from './compact-persona.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
 import {profileSignature} from './prompt-profiles.mjs';
+import {extraFields} from './sampler-extras.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -435,11 +436,16 @@ export function describeLocalTurn({ok, trace, error, detail, first = false, brie
 /**
  * The request fields of a prompt profile's sampling (bridge/prompt-profiles.mjs): nothing for a field the profile leaves null, so a profile that sets none sends the request it always did. `stop` joins the end-of-turn
  * strings our own llama-server is always given. A server the player runs that refuses one of these by name loses it and is asked again (bridge/mistral-client.mjs).
+ * The player's advanced parameters (`extra`, bridge/sampler-extras.mjs) come first, so a box of the form always wins; Mistral's API takes neither them nor Top K and Min P (`provider`), only the two penalties.
  */
-export function samplingBody(sampling, lease) {
-  const body = {};
+export function samplingBody(sampling, lease, provider = null) {
+  const body = provider === 'mistral' ? {} : extraFields(sampling.extra);
   if (Number.isFinite(sampling.topP)) body.top_p = sampling.topP;
+  if (provider !== 'mistral' && Number.isFinite(sampling.topK)) body.top_k = sampling.topK;
+  if (provider !== 'mistral' && Number.isFinite(sampling.minP)) body.min_p = sampling.minP;
   if (Number.isFinite(sampling.repeatPenalty)) body.repeat_penalty = sampling.repeatPenalty;
+  if (Number.isFinite(sampling.presencePenalty)) body.presence_penalty = sampling.presencePenalty;
+  if (Number.isFinite(sampling.frequencyPenalty)) body.frequency_penalty = sampling.frequencyPenalty;
   if (sampling.stop?.length) body.stop = lease?.external === false ? [...LOCAL_STOP_STRINGS, ...sampling.stop] : [...sampling.stop];
   return body;
 }
@@ -522,6 +528,9 @@ export class TextProviderHost {
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
       const wanted = models?.length ? models : route.models();
+      // The sampling fields of this turn's reply, built once; a server the player runs that refuses one by name loses it (bridge/mistral-client.mjs, `askedKeys`).
+      const sampled = sampling ? samplingBody(sampling, lease, route.provider) : {};
+      const askedKeys = Object.keys(sampled).filter(name => name !== 'stop');
       const now = Date.now();
       const usable = wanted.filter(item => !(route.blocked.get(item.id) > now));
       let lastError;
@@ -534,8 +543,9 @@ export class TextProviderHost {
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
             ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), ...(lease.noThinking ? {noThinking: lease.noThinking} : {}), maxTokens: item.maxTokens ?? sampling?.maxTokens ?? this.limits.maxTokens, temperature: sampling?.temperature ?? this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
-            onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
-            extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(sampling ? samplingBody(sampling, lease) : {}), ...(item.body ?? {}), ...extraBody}});
+            ...(askedKeys.length ? {askedKeys} : {}),
+            onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}${error.paramsRejected ? `, refused ${error.paramsRejected.names?.length ? error.paramsRejected.names.join(', ') : 'a request field'}: left out from now on` : ''}); asking again in ${waitMs} ms`),
+            extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...sampled, ...(item.body ?? {}), ...extraBody}});
           noted(answer?.trace);
           return answer;
         } catch (error) {

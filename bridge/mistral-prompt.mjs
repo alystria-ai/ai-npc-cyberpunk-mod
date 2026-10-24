@@ -141,7 +141,7 @@ export class PersonaBook {
 // The last thing the model reads before it answers: the rules it most often drifts from. The wording is the profile's (bridge/prompt-profiles.mjs `closing`): a small model does what the last
 // line says, so the shipped one names the three that matter most for a spoken reply: begin with the answer, stay short, invent nothing. With the Mature setting on (`mature` = the level) one more
 // sentence ends it (bridge/mature-content.mjs, matureClosing): measured on the uncensored models, the persona and these rules outrank the layer in the system message, and a clause here is what moves the reply.
-export const closing = (name, talkWords = 0, mature = null, profile = BASE_PROFILE) => renderClosing(profile, {name, talkWords, extra: mature ? matureClosing(mature) : ''});
+export const closing = (name, talkWords = 0, mature = null, profile = BASE_PROFILE) => renderClosing(profile, {name, talkWords, extra: mature ? matureClosing(mature, profile.matureLayer) : ''});
 
 // The output rules are data now (bridge/prompt-profiles.mjs: the shipped wording and why it is what it is, per profile; the player can change them in the editor). `rulesOf` renders them for a
 // speaker: with the Mature setting on two rules change (their `mature` text), and a speaker with a reply length of its own (`talkWords`) has its own rule 3 and closing.
@@ -209,7 +209,7 @@ export function systemHead({persona, memory = '', limits = LIMITS, mature = null
   }
   // The mature layer comes after the length caps: it is never counted against them and never cut.
   // `guard` without `mature`: an uncensored model answers (or an add-on speaker does) with the setting off, so only the adults-only line and the hard limits are added.
-  return mature ? `${text}\n\n${matureLayer(mature)}` : guard ? `${text}\n\n${guardLayer()}` : text;
+  return mature ? `${text}\n\n${matureLayer(mature, profile.matureLayer)}` : guard ? `${text}\n\n${guardLayer()}` : text;
 }
 
 /**
@@ -224,7 +224,7 @@ export function systemPrompt({persona, memory = '', limits = LIMITS, layers = nu
   if (!layers) return [systemHead({persona, memory, limits, mature, guard, profile}), rules].filter(Boolean).join('\n\n');
   const prefixed = `${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`;
   const fitted = capContext(prefixed, limits.world);
-  const lean = text => mature ? matureWorld(text) : text;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
+  const lean = text => mature ? matureWorld(text, profile.matureLayer) : text;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
   // The per-turn knowledge block (ranked by V's words, so it differs on nearly every turn) goes after everything that is stable between turns, the older-talk summary
   // included: a prompt cache (llama.cpp's) reuses the text up to the first difference, and with the block in the middle of the world context every turn read the summary
   // again. Only when the blocks are the very ones the world context is made of; otherwise the old order stands. The cap of the world context then cuts the stable blocks
@@ -295,7 +295,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     : finish ? `${says}\n\n${finish}` : says;
   if (!v2) {
     const fitted = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);
-    const live = mature ? matureWorld(fitted) : fitted;
+    const live = mature ? matureWorld(fitted, profile.matureLayer) : fitted;
     messages.push({role: 'user', content: `[LIVE CONTEXT for this moment: facts and instructions for you, never to be read aloud]\n${live}\n\n${message}`});
     return withPromptSource(messages, arguments[0]);
   }
