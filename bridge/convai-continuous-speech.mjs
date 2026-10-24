@@ -30,6 +30,12 @@ const rendererReason = error => {
 const requestedLease = Number(process.env.CYBERPUNK_CONVAI_TEST_LEASE_MS);
 const LEASE_MS = Number.isFinite(requestedLease) && requestedLease > 2000 ? requestedLease : 2000;
 const FIRST_LEASE_MS = Math.max(5000, LEASE_MS);
+/**
+ * V speaks your microphone lines, on the Convai provider (bridge/mic-v-line.mjs): the player's recognised words arrive in this stream (`userText`), so a reply
+ * that has audio waits this long, from its first audio, for them (`awaitTranscript`), to start V's line and hold the buffered reply behind it as for a typed
+ * line. Past it, or when the whole reply is already in, the reply goes on without V.
+ */
+export const TRANSCRIPT_WAIT_MS = 1500;
 
 export class ConvaiContinuousSpeech {
   // writeFace + faceFile(): when the game's adapter advertises it (speech-state
@@ -47,6 +53,9 @@ export class ConvaiContinuousSpeech {
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
+    // onTranscript(userText): once, the first snapshot that carries the player's recognised words. awaitTranscript(): true while the reply should wait for them
+    // (V's line for a microphone turn is wanted and not started: TRANSCRIPT_WAIT_MS at most). Both are side-effect free for a turn that asks for neither.
+    onTranscript = () => {}, awaitTranscript = () => false,
     // pace: a SpeechPace (bridge/speech-pace.mjs) of the voice engine. After a line of the voice broke, the next ones wait for a longer
     // lead of audio before their first sound. onEnded({underruns, seconds, playedMs, refillSeconds}): once, when the line has played to its end.
     pace = null, onEnded = () => {},
@@ -71,6 +80,7 @@ export class ConvaiContinuousSpeech {
     this.pace = pace; this.onEnded = onEnded;
     this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.holdSound = holdSound;
+    this.onTranscript = onTranscript; this.awaitTranscript = awaitTranscript; this.transcriptSeen = false; this.transcriptWaitSince = undefined;
     // A latch, not a one-shot promise: a hold can now be woken twice (V near its end publishes, V's end starts the sound).
     this.wakes = createWakeSignal();
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
@@ -214,6 +224,12 @@ export class ConvaiContinuousSpeech {
     // A device timestamp may be quantized by one render quantum. Never move
     // the native face/subtitle clock backwards when that estimate changes.
     this.position = Math.max(this.position, Math.min(duration, snapshot.positionSeconds));
+    // The player's recognised words, the first time they are in a snapshot: V's line for them may start (setting V speaks your microphone lines,
+    // bridge/mic-v-line.mjs), before the hold below is asked about it.
+    if (!this.transcriptSeen && typeof snapshot.userText === 'string' && snapshot.userText.trim()) {
+      this.transcriptSeen = true;
+      try { this.onTranscript(snapshot.userText); } catch { /* V's line never affects the reply */ }
+    }
     // A look-ahead turn only buffers: the renderer receives the quiet control, so
     // nothing is audible, and no state, reply or receipt is published until the
     // game has submitted this exact turn. The facial model keeps analysing.
@@ -222,6 +238,11 @@ export class ConvaiContinuousSpeech {
     if (this.pace && !this.published) {
       this.paceSince ??= this.now();
       if (this.pace.holds(duration, this.now() - this.paceSince, {complete: snapshot.sourceComplete})) { this.feedModel(snapshot); return quiet(); }
+    }
+    // V's line for the player's words is wanted and the words are not here yet: the buffered reply stays quiet until they are (bounded; never once the whole reply is in).
+    if (!this.published && !this.transcriptSeen && this.awaitTranscript()) {
+      this.transcriptWaitSince ??= this.now();
+      if (!(snapshot.sourceComplete && snapshot.textComplete) && this.now() - this.transcriptWaitSince < TRANSCRIPT_WAIT_MS) { this.feedModel(snapshot); return quiet(); }
     }
     // Admission needs validated PCM and reply text, not a 400 ms prefix: the
     // renderer itself withholds sound until 400 ms is buffered (or EOF). The

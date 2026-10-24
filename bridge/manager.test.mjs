@@ -6114,7 +6114,8 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
     local item = row('vVoiceMic')
     assert(item.label == 'V speaks your microphone lines' and item.type == 'bool' and item.value == false and item.defaultValue == false)
     assert(item.description:find('Needs V’s voice on', 1, true) and item.description:find('Off by default, because you just said it yourself', 1, true)
-        and item.description:find('The reply never waits for V', 1, true) and item.description:find('Not available with OmniVoice', 1, true))
+        and item.description:find('the reply follows V’s line', 1, true) and not item.description:find('never waits', 1, true)
+        and not item.description:find('cut short', 1, true) and not item.description:find('OmniVoice', 1, true))
     -- Stored through the settings page like any switch, and shown as on afterwards.
     assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = true}}).ok and saved.vVoiceMic == true)
     loaded = registered.loadMod('manager')

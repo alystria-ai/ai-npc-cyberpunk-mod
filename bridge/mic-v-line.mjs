@@ -1,14 +1,16 @@
 // V's voice for what the player SAID (setting vVoiceMic, off by default; docs/V_VOICE.md "Microphone lines").
 //
-// The line of a voice turn (hold to talk, Voice activation) is V's voice repeating the final transcript. It is started by the transcript callback of the
-// microphone channel (`options.onTranscript`, bridge/local-stt-capture.mjs), which runs after the recognition and before the reply is asked for, so the line
-// is synthesized beside the reply's text request. It is a SOFT VLine (bridge/v-voice.mjs): the reply never holds for it. When the reply asks (its audio is
-// ready, or its voice request goes out on a worker the two share) a line that is not finished is cut short, or dropped when it is not audible yet.
-//
-// Where a transcript cannot exist before the reply (the Convai provider recognises the speech together with the reply) nothing is started and the reason is
-// logged once. An empty recording never reaches the callback (the channel fails with "no speech" first). A cancelled or superseded turn aborts its signal
-// (the microphone session's), and a new turn ends the line of the previous one (dropAll). Nothing here runs unless V's voice and the setting are both on.
-import {TurnClock, withClock} from './turn-clock.mjs';
+// The line of a voice turn (hold to talk, Voice activation) is V's voice repeating the final transcript. The player chose it, so it behaves exactly like a typed
+// line (owner, 2026-10-24: "it's fine to wait, we should respect player choice"): it is a normal VLine (bridge/v-voice.mjs), spoken in full, and the reply's
+// audio is held until it has finished (the same hold, grace and hand-off as for a typed line). It starts the moment the transcript is known:
+//   - text providers (Mistral, Local AI, Custom): the microphone channel's transcript callback (`options.onTranscript`, bridge/local-stt-capture.mjs) runs after
+//     the recognition and before the model request, so the line is synthesized beside the reply's text request;
+//   - the Convai provider: the transcript arrives in the realtime stream (the renderer's snapshots carry `userText`). The reply's audio is buffered silently
+//     anyway, so the continuous speech (bridge/convai-continuous-speech.mjs) keeps the reply quiet until the transcript has arrived (at most
+//     TRANSCRIPT_WAIT_MS (convai-continuous-speech.mjs) after its first audio, then the reply goes on without V), starts the line from `onTranscript`, and holds the buffered reply
+//     behind it exactly as it does for a typed line.
+// An empty recording never reaches the callback (the channel fails with "no speech" first). A cancelled or superseded turn aborts its signal (the microphone
+// session's), and a new turn ends the line of the previous one (dropAll). Nothing here runs unless V's voice and the setting are both on.
 
 export class MicVLines {
   /**
@@ -18,7 +20,7 @@ export class MicVLines {
    */
   constructor({vVoice, stopped = () => false, max = 4} = {}) {
     Object.assign(this, {vVoice, stopped, max});
-    this.entries = new Map();   // request id -> {clock, line}
+    this.entries = new Map();   // request id -> {line}
   }
 
   /** The turn's line while it is still pending or audible, else null. A settled line is forgotten, so a reply that asks later finds nothing to hold for. */
@@ -27,9 +29,6 @@ export class MicVLines {
     return line && !line.settled ? line : null;
   }
 
-  /** The clock the turn's reply voice marks 'ttsSent' on (bridge/voice-key-stream, synthesizeReply run inside it), or null when the turn has no line. */
-  clockOf(requestId) { return this.entries.get(requestId)?.clock ?? null; }
-
   /** Ends every turn's line (a new turn starts: a typed message, a new recording, a cancel). */
   dropAll(reason = 'turn-ended') {
     for (const entry of this.entries.values()) entry.line?.drop(reason);
@@ -37,7 +36,7 @@ export class MicVLines {
   }
 
   open(requestId) {
-    const entry = {clock: new TurnClock(), line: null};
+    const entry = {line: null};
     this.entries.set(requestId, entry);
     while (this.entries.size > this.max) {
       const oldest = this.entries.keys().next().value;
@@ -48,8 +47,8 @@ export class MicVLines {
   }
 
   /**
-   * The final transcript of the turn is known: start V's soft line for it, beside the reply. Returns the line or null (setting off, no entry, empty
-   * transcript, cancelled turn, a language or engine V cannot speak). Never throws, never waits.
+   * The final transcript of the turn is known: start V's line for it, beside the reply. Returns the line or null (setting off, no entry, empty transcript,
+   * cancelled turn, a language or engine V cannot speak). Never throws, never waits.
    */
   start(input, transcript, signal) {
     try {
@@ -58,7 +57,7 @@ export class MicVLines {
       if (!entry) return null;
       if (entry.line) return entry.line;
       this.vVoice.noteGender(input);
-      const line = this.vVoice.startSpoken(input, transcript.trim(), {signal, clock: entry.clock});
+      const line = this.vVoice.startSpoken(input, transcript.trim(), {signal});
       if (!line) { this.entries.delete(input.requestId); return null; }
       entry.line = line;
       line.whenClear(() => { if (this.entries.get(input.requestId)?.line === line) this.entries.delete(input.requestId); });
@@ -67,32 +66,38 @@ export class MicVLines {
   }
 
   /**
-   * Wraps the microphone session's prepareReply(input, signal) -> options. With the setting off, for an add-on's or a made character's voice turn (they start
-   * V from their own turn, runAddonTurn) and on the Convai provider nothing changes. Otherwise the turn gets an entry, the reply is prepared inside the entry's
-   * clock (so its voice requests mark 'ttsSent' there) and the options carry a transcript callback that starts V's line.
-   * `own(input)`: the turn starts V by itself; `textRoute()`: the provider is a text one (Mistral, Local AI, Custom), the only kind with a transcript before the reply.
+   * What the Convai provider's continuous speech takes for this turn: `awaitTranscript()` (the reply's first audio waits for the transcript while it is true,
+   * bounded by TRANSCRIPT_WAIT_MS) and `onTranscript(text)` (starts the line, and wakes the speech when the line nears its end or clears). Null when the turn
+   * has no entry (the setting is off, or the turn starts V by itself).
    */
-  wrapPrepare(prepare, {own = () => false, textRoute = () => true} = {}) {
+  convaiHooks(input, signal, wake = () => {}) {
+    const entry = this.entries.get(input.requestId);
+    if (!entry) return null;
+    return {
+      awaitTranscript: () => this.vVoice.micWanted && entry.line === null && this.entries.get(input.requestId) === entry,
+      onTranscript: text => {
+        const line = this.start(input, text, signal);
+        if (!line) return;
+        line.whenNearEnd(wake);
+        line.whenClear(wake);
+      },
+    };
+  }
+
+  /**
+   * Wraps the microphone session's prepareReply(input, signal) -> options. With the setting off, and for an add-on's or a made character's voice turn (they start
+   * V from their own turn, runAddonTurn), nothing changes. Otherwise the turn gets an entry and the options carry a transcript callback that starts V's line
+   * (text providers). `own(input)`: the turn starts V by itself.
+   */
+  wrapPrepare(prepare, {own = () => false} = {}) {
     return async (input, signal) => {
       if (own(input) || !this.vVoice.micWanted) return prepare(input, signal);
-      if (!textRoute()) {
-        this.vVoice.micUnavailable('convai', "V's microphone line skipped: the Convai provider recognises speech together with the reply, so there is no transcript to start from");
-        return prepare(input, signal);
-      }
-      const entry = this.open(input.requestId);
-      const options = await withClock(entry.clock, () => prepare(input, signal));
+      this.open(input.requestId);
+      const options = await prepare(input, signal);
       return {...options, onTranscript: text => {
         try { options?.onTranscript?.(text); } catch { /* a listener never breaks the turn */ }
         this.start(input, text, signal);
       }};
-    };
-  }
-
-  /** Wraps onReply(input, result, signal) so the non-streamed reply's voice request is made inside the turn's clock too. */
-  wrapReply(reply) {
-    return (input, result, signal) => {
-      const clock = this.clockOf(input.requestId);
-      return clock ? withClock(clock, () => reply(input, result, signal)) : reply(input, result, signal);
     };
   }
 }
