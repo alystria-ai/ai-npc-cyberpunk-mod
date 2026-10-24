@@ -128,7 +128,7 @@ function customRetryAfter(headers, now = Date.now()) {
 // The optional request fields the custom provider sends, and the ones a server may refuse. A server's refusal names the field, or at least
 // says "unsupported parameter"; the request is then sent once more without it (or, for max_tokens that a newer OpenAI model replaced by
 // max_completion_tokens, with the new name) and the choice is remembered for the session (`adapt`, see streamChat).
-const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'repeat_penalty', 'max_completion_tokens']);
+const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'top_k', 'min_p', 'repeat_penalty', 'presence_penalty', 'frequency_penalty', 'max_completion_tokens']);
 // "must be": LM Studio refuses the fact extraction's json_object with "'response_format.type' must be 'json_schema'" (a field it names is dropped;
 // a sentence that names no optional field, such as "messages must be non-empty", is still not a refusal of one).
 const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|must be|invalid_request_error.*param/;
@@ -170,6 +170,12 @@ export function rejectedParameters(status, text) {
 export function namedNoThinkFields(text) {
   const lower = String(text ?? '').toLowerCase();
   return NO_THINKING_FIELDS.filter(name => new RegExp(String.raw`(?<![\w/:-])${name}(?![\w-])`).test(lower));
+}
+
+/** Which of the request fields `keys` (sampling fields, the player's advanced parameters) a refusal names, as whole words (`min_p` is not found in `min_p_x`). */
+export function namedKeys(text, keys) {
+  const lower = String(text ?? '').toLowerCase();
+  return keys.filter(name => new RegExp(String.raw`(?<![\w])${String(name).toLowerCase().replace(/[^a-z0-9_]/g, '')}(?![\w])`).test(lower));
 }
 
 // A daily allowance does not clear by waiting a few seconds. OpenRouter's free models answer 429 "Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000
@@ -590,13 +596,13 @@ const contentText = content => typeof content === 'string' ? content
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
-  adapt, headers, reasoning, noThinking, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+  adapt, headers, reasoning, noThinking, askedKeys, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
   if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
-  let lastError, adapted = 0, larger = null;   // larger: {maxTokens, noThink} once a reply that went to thinking is asked again with more room
+  let lastError, adapted = 0, advancedDrops = 0, larger = null;   // larger: {maxTokens, noThink} once a reply that went to thinking is asked again with more room
   let thinkRetry = false;   // a reply of only thinking is asked again once with the fields that ask for no thinking (noThinking)
   const failed = [];
   const hasDeadline = Number.isFinite(deadlineAt);
@@ -617,7 +623,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
-        adapt, headers, reasoning, noThinking: askedNoThink ? noThinking : undefined, lowEffort: askedLow, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
+        adapt, headers, reasoning, askedKeys, noThinking: askedNoThink ? noThinking : undefined, lowEffort: askedLow, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
         ...(larger ? {maxTokens: larger.maxTokens, noThink: larger.noThink} : {})});
       // What the larger budget (and the switch) bought is kept: the next requests start with it, so no turn pays for the empty first try again.
       if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; if (askedLow) adapt.lowEffort = true; }
@@ -674,8 +680,10 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
       // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again. A server that refuses
       // one field at a time (OpenAI's reasoning models: max_tokens, then temperature) is asked again after each refusal that taught something new,
       // at most MAX_ADAPTATIONS times; a refusal that changes nothing in the request is an error at once (no loop).
-      if (adapt && adapted < MAX_ADAPTATIONS && lastError.paramsRejected && learnRefusal(adapt, lastError.paramsRejected, reasoning?.length ?? 0)) {
-        adapted++;
+      const refused = lastError.paramsRejected;
+      const advancedOnly = !!refused && !refused.swap && !refused.reasoning && refused.names.length > 0 && refused.names.every(name => askedKeys?.includes(name) && !DROPPABLE.includes(name));
+      if (adapt && (adapted - advancedDrops < MAX_ADAPTATIONS || advancedOnly) && refused && learnRefusal(adapt, refused, reasoning?.length ?? 0)) {
+        adapted++; if (advancedOnly) advancedDrops++;
         try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
         attempt--;
         continue;
@@ -697,7 +705,8 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
 export const MIN_ATTEMPT_MS = 3000;
 
 const MAX_RETRY_WAIT_MS = 8000;
-// How many refused fields one request may learn before it gives up (max_tokens renamed, temperature, response_format, stream).
+// How many refused fields one request may learn before it gives up (max_tokens renamed, temperature, response_format, stream). The player's advanced parameters do not count: a server names them one at a
+// time, each is learned once, and there are at most as many as the player wrote.
 const MAX_ADAPTATIONS = 4;
 
 // What the custom provider's server refused is remembered in `adapt` ({dropped: Set of field names, swapped: max_tokens is sent as
@@ -709,7 +718,7 @@ const MAX_ADAPTATIONS = 4;
 // the thinking from the first try. `lowEffort`: a reply that came back empty was asked again with the least effort the provider has a word for (bridge/reasoning.mjs lowerEffort) and
 // that worked, so later requests ask for it from the start; `lowEffortRefused`: the server refused that level, which is not asked again.
 export function newAdaptation() { return {dropped: new Set(), swapped: false, reasoningStep: 0, floorTokens: 0, noThink: false, thinks: false, noThinkDropped: new Set(), mustReason: false, lowEffort: false, lowEffortRefused: false}; }
-const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'repeat_penalty', 'stop']);
+const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'top_k', 'min_p', 'repeat_penalty', 'presence_penalty', 'frequency_penalty', 'stop']);
 /**
  * Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). `steps`: how many
  * steps of the reasoning field the request has (bridge/reasoning.mjs): a refusal that is about them moves to the next, after the last nothing is sent.
@@ -728,6 +737,8 @@ function learnRefusal(adapt, rejected, steps = 0) {
   // drops nothing else (temperature and the fact extraction's response_format stay until the server refuses them).
   else if (!rejected.names.length && !rejected.swap) { adapt.reasoningStep = steps; for (const name of NO_THINKING_FIELDS) adapt.noThinkDropped.add(name); }
   for (const name of rejected.names.length || rejected.swap || rejected.reasoning ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+  // A refusal that names no field also takes the player's advanced parameters (bridge/sampler-extras.mjs), which are optional like the rest.
+  if (!rejected.names.length && !rejected.swap) for (const name of rejected.advanced ?? []) adapt.dropped.add(name);
   return signature() !== before;
 }
 function applyAdaptation(body, adapt) {
@@ -761,7 +772,7 @@ function emptyAnswer(provider, apiKey, {thought, finishReason, extra = {}}) {
 }
 
 async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer = setTimeout, clearTimer = clearTimeout,
-  reasoning, noThinking, noThink, lowEffort = false, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
+  reasoning, noThinking, noThink, lowEffort = false, thinkingRoom, thinkingPieces = 0, deadlineCapped = false, askedKeys}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
   const trace = newTrace();
@@ -839,6 +850,17 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     if (!response.ok) {
       const refused = await errorBody(response, provider);
       const failure = mapFailure(response.status, refused, {headers: response.headers, apiKey, provider});
+      // A server that has `adapt` and refuses a sampling field or one of the player's advanced parameters (`askedKeys`) by name loses that field and is asked again. This comes before the
+      // no-thinking check below: a strict server's "unknown field typical_p" is a refusal of that key, not of the fields that ask for no thinking.
+      if (adapt && askedKeys?.length && (response.status === 400 || response.status === 422)) {
+        const named = namedKeys(textOf(refused), askedKeys);
+        if (named.length) failure.paramsRejected = {...failure.paramsRejected, names: [...new Set([...(failure.paramsRejected?.names ?? []), ...named])], swap: failure.paramsRejected?.swap === true};
+        // A strict server that says "Extra inputs are not permitted" without naming a field: the sampling fields and advanced parameters still being sent are the likely cause, so they go (once each).
+        else if (!failure.paramsRejected && UNKNOWN_FIELD_WORDS.test(textOf(refused).toLowerCase()) && !NO_SUCH_MODEL.test(textOf(refused).toLowerCase())) {
+          const live = askedKeys.filter(name => !adapt.dropped?.has(name));
+          if (live.length) failure.paramsRejected = {names: live, swap: false};
+        }
+      }
       // A server of ours (the local route has no refused-field handling of its own) that refuses a field that asks for no thinking by name: sent again without it.
       if (noThinking && provider !== 'custom' && !failure.paramsRejected) {
         const refusal = rejectedParameters(response.status, textOf(refused));
@@ -850,6 +872,8 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
           failure.paramsRejected = {names: [], swap: false, reasoning: true, noThink: [...NO_THINKING_FIELDS]};
         }
       }
+      // A refusal that names no field also drops the sampling fields and advanced parameters that were sent, with the optional fields (learnRefusal).
+      if (askedKeys?.length && adapt && failure.paramsRejected && !failure.paramsRejected.names.length && !failure.paramsRejected.swap) failure.paramsRejected = {...failure.paramsRejected, advanced: askedKeys};
       failure.trace = {...trace, elapsedMs: since()};
       throw failure;
     }

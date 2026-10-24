@@ -70,7 +70,7 @@ export class PromptProfiles {
         const value = JSON.parse(raw);
         if (plain(value) && value.version === 1 && value.id === id && (builtInRows().some(row => row.id === id) || isCustomProfileId(id))) {
           const family = isCustomProfileId(id) ? (typeof value.meta?.family === 'string' ? value.meta.family : 'generic') : undefined;
-          const row = readOverride(value, defaultProfile(id, {family}));
+          const row = readOverride(value, defaultProfile(id, {family}), {mistral: id === 'mistral'});
           if (isCustomProfileId(id)) this.meta.set(id, {host: String(value.meta?.host ?? '').slice(0, 80), model: String(value.meta?.model ?? '').slice(0, 200), family: family ?? 'generic'});
           if (Object.keys(row).length) this.rows.set(id, Object.freeze(row));
           continue;
@@ -154,7 +154,7 @@ export class PromptProfiles {
   validate(id, patch) {
     const defaults = this.getDefault(id);
     if (!defaults) return {ok: false, errors: [{field: '', code: 'unknown-profile'}]};
-    return validateOverride(patch, defaults, this.rows.get(id) ?? {});
+    return validateOverride(patch, defaults, this.rows.get(id) ?? {}, {mistral: id === 'mistral'});
   }
 
   /**

@@ -17,13 +17,15 @@ const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json'
 const book = new PersonaBook(roster);
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 
-async function fakeServer(script = () => 'Sure thing, V.') {
+async function fakeServer(script = () => 'Sure thing, V.', refuse = () => null) {
   const requests = [];
   const server = createServer((request, response) => {
     let raw = '';
     request.on('data', chunk => { raw += chunk; });
     request.on('end', () => {
       requests.push(JSON.parse(raw));
+      const refusal = refuse(requests.at(-1));
+      if (refusal) { response.writeHead(400, {'content-type': 'application/json'}); response.end(JSON.stringify({error: {message: refusal}})); return; }
       response.writeHead(200, {'content-type': 'text/event-stream'});
       for (const piece of String(script(requests.at(-1))).match(/.{1,12}/gs) ?? []) response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: piece}}]})}\n\n`);
       response.end(`data: ${JSON.stringify({choices: [{delta: {}, finish_reason: 'stop'}]})}\n\ndata: [DONE]\n\n`);
@@ -40,8 +42,8 @@ const keyed = async (preference, custom = null) => {
   await provider.load(); provider.setPreference(preference); provider.apply();
   return provider;
 };
-const setup = async (kind, {tier = 'standard', mature = false, profileOptions = {}, hostOptions = {}, origin = null, model = 'qwen3-8b'} = {}) => {
-  const llama = await fakeServer();
+const setup = async (kind, {tier = 'standard', mature = false, profileOptions = {}, hostOptions = {}, origin = null, model = 'qwen3-8b', refuse} = {}) => {
+  const llama = await fakeServer(undefined, refuse);
   const customEndpoint = kind === 'custom' ? {ready: true, local: true, origin: origin ?? llama.origin, chatUrl: llama.endpoint, model, key: undefined} : null;
   const provider = await keyed(kind, customEndpoint);
   const matureContent = new MatureContent(); matureContent.update({matureContent: mature});
@@ -182,5 +184,106 @@ test('the prompt a profile builds is stable between two turns of one character: 
     const [a, b] = t.llama.requests.map(systemOf);
     assert.equal(a, b);
     assert(profileSignature(defaultProfile('local-lite')) && defaultProfile('local-lite') !== BASE_PROFILE);
+  } finally { await t.close(); }
+});
+
+// ---- More samplers: Top K, Min P, the two penalties and the advanced parameters (bridge/sampler-extras.mjs) ----------------------------------------------------
+
+const MORE = {topK: 20, minP: 0.05, presencePenalty: 0.3, frequencyPenalty: 0.2, extra: {typical_p: 0.9, dry_multiplier: 0.8, mirostat: 2, samplers: ['top_k', 'min_p']}};
+// A Custom profile exists for the endpoint and model the player configured now.
+const onCustom = t => { const profiles = new PromptProfiles({active: () => ({route: 'custom', custom: {origin: t.llama.origin, model: 'qwen3-8b'}})}); t.host.promptProfiles = profiles; return profiles; };
+const asFields = {top_k: 20, min_p: 0.05, presence_penalty: 0.3, frequency_penalty: 0.2, typical_p: 0.9, dry_multiplier: 0.8, mirostat: 2, samplers: ['top_k', 'min_p']};
+
+test('samplingBody: Top K, Min P, the penalties and the advanced parameters; a box wins over the same key, a refused key is never sent, Mistral gets only the two penalties', () => {
+  assert.deepEqual(samplingBody(MORE, {external: true}, 'local'), asFields);
+  assert.deepEqual(samplingBody(MORE, {external: true}, 'custom'), asFields);
+  assert.deepEqual(samplingBody(MORE, {external: true}, 'mistral'), {presence_penalty: 0.3, frequency_penalty: 0.2}, 'Mistral refuses unknown fields: no Top K, Min P or extra keys');
+  // A file edited by hand can hold a key the form refuses: it never reaches the request, and a box decides over the same key.
+  const sneaky = {topP: 0.8, extra: {top_p: 0.1, model: 'other', stream: false, max_tokens: 1, cache_prompt: false, mirostat: 1}};
+  assert.deepEqual(samplingBody(sneaky, {external: true}, 'local'), {top_p: 0.8, mirostat: 1});
+  assert.deepEqual(samplingBody({extra: null}, {}, 'custom'), {});
+});
+
+test('Local AI: Top K, Min P and the advanced parameters reach our llama-server with the reply, and the host\'s own fields are untouched', async () => {
+  const t = await setup('local', {tier: 'standard'});
+  try {
+    assert.equal((await t.profiles.set('local-standard', {sampling: MORE})).ok, true);
+    await t.host.reply(turn('hello'));
+    const body = t.llama.requests[0];
+    for (const [name, value] of Object.entries(asFields)) assert.deepEqual(body[name], value, name);
+    assert.equal(body.temperature, defaultProfile('local-standard').sampling.temperature);
+    assert.deepEqual(body.stop, [...LOCAL_STOP_STRINGS]);
+    assert.equal(body.stream, true);
+    assert.equal(body.return_progress, true);
+    assert.equal(body.chat_template_kwargs.enable_thinking, false);
+  } finally { await t.close(); }
+});
+
+test('Custom: the same fields are in the request body; Off and reset take them out again', async () => {
+  const t = await setup('custom');
+  try {
+    const id = customProfileId(t.llama.origin, 'qwen3-8b');
+    const profiles = onCustom(t);
+    assert.equal((await profiles.set(id, {sampling: MORE})).ok, true);
+    await t.host.reply(turn('hello'));
+    for (const [name, value] of Object.entries(asFields)) assert.deepEqual(t.llama.requests[0][name], value, name);
+    assert.equal((await profiles.set(id, {sampling: {topK: 'off', minP: 'off', extra: null}})).ok, true);
+    await t.host.reply(turn('again'));
+    for (const name of ['top_k', 'min_p', 'typical_p', 'dry_multiplier', 'mirostat', 'samplers']) assert.equal(name in t.llama.requests[1], false, name);
+    assert.equal(t.llama.requests[1].presence_penalty, 0.3, 'the penalties stay until they are switched off');
+    await profiles.reset(id);
+    await t.host.reply(turn('third'));
+    for (const name of ['top_k', 'min_p', 'presence_penalty', 'frequency_penalty', 'typical_p']) assert.equal(name in t.llama.requests[2], false, name);
+  } finally { await t.close(); }
+});
+
+test('Mistral: the profile refuses Top K, Min P and the advanced parameters, and a turn never sends them', async () => {
+  const t = await setup('mistral');
+  try {
+    for (const sampling of [{topK: 20}, {minP: 0.1}, {extra: {mirostat: 2}}]) {
+      const result = await t.profiles.set('mistral', {sampling});
+      assert.equal(result.ok, false);
+      assert.equal(result.errors[0].code, 'not-for-mistral');
+    }
+    assert.equal((await t.profiles.set('mistral', {sampling: {presencePenalty: 0.4, frequencyPenalty: 0.1}})).ok, true);
+    await t.host.reply(turn('hello'));
+    const body = t.llama.requests[0];
+    assert.equal(body.presence_penalty, 0.4); assert.equal(body.frequency_penalty, 0.1);
+    for (const name of ['top_k', 'min_p', 'mirostat', 'typical_p']) assert.equal(name in body, false, name);
+  } finally { await t.close(); }
+});
+
+test('Custom: a server that refuses an advanced key loses it, the turn still answers, and the refusal is logged once and remembered', async () => {
+  const logs = [];
+  const refuse = body => ('mirostat' in body ? "Unsupported parameter: 'mirostat'" : 'dry_multiplier' in body ? 'dry_multiplier: Extra inputs are not permitted' : null);
+  const t = await setup('custom', {refuse, hostOptions: {log: line => logs.push(line)}});
+  try {
+    const id = customProfileId(t.llama.origin, 'qwen3-8b');
+    const profiles = onCustom(t);
+    assert.equal((await profiles.set(id, {sampling: {topK: 30, extra: {mirostat: 2, dry_multiplier: 0.8, typical_p: 0.9}}})).ok, true);
+    const first = await t.host.reply(turn('hello'));
+    assert.match(String(first.text ?? first.reply ?? JSON.stringify(first)), /Sure thing/);
+    assert.equal(t.llama.requests.length, 3, 'one request per refused key, then the answer');
+    const last = t.llama.requests.at(-1);
+    assert.equal('mirostat' in last, false); assert.equal('dry_multiplier' in last, false);
+    assert.equal(last.typical_p, 0.9); assert.equal(last.top_k, 30, 'what the server accepts stays');
+    assert.equal(logs.filter(line => /refused mirostat/.test(line)).length, 1, logs.join('\n'));
+    await t.host.reply(turn('second'));
+    assert.equal(t.llama.requests.length, 4, 'learned: the next turn is one request');
+    assert.equal(logs.filter(line => /left out from now on/.test(line)).length, 2, 'once per learned key (mirostat, dry_multiplier)');
+  } finally { await t.close(); }
+});
+
+test('Custom: a server that refuses with no field named drops the sampling fields and advanced keys it was sent, and answers', async () => {
+  const refuse = body => ('typical_p' in body || 'top_k' in body ? 'Extra inputs are not permitted' : null);
+  const t = await setup('custom', {refuse});
+  try {
+    const id = customProfileId(t.llama.origin, 'qwen3-8b');
+    const profiles = onCustom(t);
+    await profiles.set(id, {sampling: {topK: 30, extra: {typical_p: 0.9}}});
+    const reply = await t.host.reply(turn('hello'));
+    assert.match(JSON.stringify(reply), /Sure thing/);
+    const last = t.llama.requests.at(-1);
+    assert.equal('typical_p' in last, false); assert.equal('top_k' in last, false);
   } finally { await t.close(); }
 });

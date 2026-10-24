@@ -9,7 +9,8 @@
 //   closing    {text, talk} the last line before the model answers ({name}, {words}); the Mature setting's closing clause is added after it by the code
 //   labels     the headings of the prompt's sections
 //   layout     {youNow: copy the "where you are" sentence right before V's words, volatile: 'before' | 'after' V's line}
-//   sampling   {temperature, topP, repeatPenalty, maxTokens} (null: not sent)
+//   sampling   {temperature, topP, topK, minP, repeatPenalty, presencePenalty, frequencyPenalty, maxTokens, extra} (null: not sent). `extra`: the player's own request fields, an object (bridge/sampler-extras.mjs);
+//              topK, minP and extra are for Local AI and Custom only (Mistral's API does not take them)
 //   limits     {persona, turns} (null: the shipped limit); stop: extra strings that end a reply
 // Tokens in a text: {name} (the character's name; "yourself" in a rule, "this person" in the closing) and {words} (the reply length of a speaker that has one).
 //
@@ -17,6 +18,7 @@
 // layer (bridge/mature-content.mjs: Local AI and Custom only), the add-on speaker's own rules and identity line, the player's world rules, and the length caps of a reply. With no change
 // by the player the profile is its shipped default and the prompt is byte for byte what that default builds, so the prompt cache and the pinned hashes hold.
 import {createHash} from 'node:crypto';
+import {checkExtra, EXTRA_LIMITS} from './sampler-extras.mjs';
 
 // ---- Field limits (what the editor enforces) -------------------------------------------------------------------------------------------
 export const PROFILE_LIMITS = Object.freeze({
@@ -24,8 +26,9 @@ export const PROFILE_LIMITS = Object.freeze({
   examples: 8, example: 300, examplesTotal: 1500,
   intro: 600, closing: 700, label: 240,
   stops: 4, stop: 32,
-  temperature: Object.freeze([0, 2]), topP: Object.freeze([0, 1]), repeatPenalty: Object.freeze([1, 2]), maxTokens: Object.freeze([16, 2000]),
-  persona: Object.freeze([2000, 16000]), turns: Object.freeze([0, 11]),
+  temperature: Object.freeze([0, 2]), topP: Object.freeze([0, 1]), topK: Object.freeze([0, 1000]), minP: Object.freeze([0, 1]), repeatPenalty: Object.freeze([1, 2]),
+  presencePenalty: Object.freeze([-2, 2]), frequencyPenalty: Object.freeze([-2, 2]), maxTokens: Object.freeze([16, 2000]),
+  persona: Object.freeze([2000, 16000]), turns: Object.freeze([0, 11]), extra: EXTRA_LIMITS.chars,
 });
 export const LABEL_KEYS = Object.freeze(['rules', 'examples', 'formatNotes', 'world', 'remember', 'knowledge', 'rightNow', 'youNow', 'thisTurn', 'things']);
 export const VOLATILE_PLACES = Object.freeze(['before', 'after']);
@@ -80,7 +83,7 @@ const BASE = {
     things: 'THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits',
   },
   layout: {youNow: true, volatile: 'before'},
-  sampling: {temperature: 0.65, topP: null, repeatPenalty: null, maxTokens: 600},
+  sampling: {temperature: 0.65, topP: null, topK: null, minP: null, repeatPenalty: null, presencePenalty: null, frequencyPenalty: null, maxTokens: 600, extra: null},
   limits: {persona: null, turns: null},
   stop: [],
 };
@@ -307,15 +310,18 @@ function text(given, field, key, max, errors, {empty = false} = {}) {
 
 const SUBFIELDS = {
   intro: ['named', 'ambient'], closing: ['text', 'talk'], labels: LABEL_KEYS,
-  layout: ['youNow', 'volatile'], sampling: ['temperature', 'topP', 'repeatPenalty', 'maxTokens'], limits: ['persona', 'turns'],
+  layout: ['youNow', 'volatile'], sampling: ['temperature', 'topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty', 'maxTokens', 'extra'], limits: ['persona', 'turns'],
 };
+// The sampling fields that can be switched off (stored as null: not sent) where the default has a value, and the ones Mistral's API does not take.
+const SWITCHABLE = new Set(['topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty']);
+const NOT_FOR_MISTRAL = new Set(['topK', 'minP', 'extra']);
 
 /**
  * Checks a change a player sent against the shipped default. `patch` holds any of PROFILE_FIELDS: a list is given whole (rules, examples, stop), an object by sub-field; `null` puts a field or
  * a sub-field back to the default. `current` is the override stored now (fields the patch does not mention are kept). Returns {ok: true, value} with the fields to store (a field equal to its default
  * is dropped), or {ok: false, errors: [{field, key?, index?, code, max?}]}; the codes are stable words the page turns into sentences.
  */
-export function validateOverride(patch, defaults, current = {}) {
+export function validateOverride(patch, defaults, current = {}, {mistral = false} = {}) {
   const errors = [], next = copy(current ?? {});
   if (!plain(patch)) return {ok: false, errors: [{field: '', code: 'bad-request'}]};
   for (const field of Object.keys(patch)) if (!PROFILE_FIELDS.includes(field)) errors.push({field, code: 'unknown-field'});
@@ -343,8 +349,14 @@ export function validateOverride(patch, defaults, current = {}) {
       } else if (field === 'sampling') {
         const range = PROFILE_LIMITS[key];
         // 'off' switches an optional field off (stored as null: not sent) where the default has a value; null puts it back to the default.
-        if (value === 'off' && (key === 'topP' || key === 'repeatPenalty')) row[key] = null;
-        else if (num(value, range, key === 'maxTokens')) row[key] = value;
+        if (mistral && NOT_FOR_MISTRAL.has(key)) errors.push({field, key, code: 'not-for-mistral'});
+        else if (key === 'extra') {
+          const checked = checkExtra(value);
+          if (!checked.ok) errors.push(...checked.errors);
+          else if (Object.keys(checked.value).length) row.extra = checked.value;
+          else delete row.extra;
+        } else if (value === 'off' && SWITCHABLE.has(key)) row[key] = null;
+        else if (num(value, range, key === 'maxTokens' || key === 'topK')) row[key] = value;
         else errors.push({field, key, code: 'out-of-range', min: range[0], max: range[1]});
       } else if (field === 'limits') {
         const range = PROFILE_LIMITS[key];
@@ -368,19 +380,19 @@ export function validateOverride(patch, defaults, current = {}) {
 /**
  * The stored form of a file's fields: the parts that are valid are kept, the rest is dropped (a damaged or hand-edited file never breaks a prompt). Returns a plain object with the valid fields.
  */
-export function readOverride(value, defaults) {
+export function readOverride(value, defaults, options) {
   if (!plain(value)) return {};
   const out = {};
   for (const field of PROFILE_FIELDS) {
     if (!(field in value)) continue;
     if (SUBFIELDS[field] && plain(value[field])) {
       for (const key of Object.keys(value[field])) {
-        const given = field === 'sampling' && value[field][key] === null && (key === 'topP' || key === 'repeatPenalty') ? 'off' : value[field][key];
-        const result = validateOverride({[field]: {[key]: given}}, defaults, out);
+        const given = field === 'sampling' && value[field][key] === null && SWITCHABLE.has(key) ? 'off' : value[field][key];
+        const result = validateOverride({[field]: {[key]: given}}, defaults, out, options);
         if (result.ok) Object.assign(out, result.value);
       }
     } else {
-      const result = validateOverride({[field]: value[field]}, defaults, out);
+      const result = validateOverride({[field]: value[field]}, defaults, out, options);
       if (result.ok) Object.assign(out, result.value);
     }
   }

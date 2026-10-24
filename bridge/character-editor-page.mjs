@@ -529,7 +529,9 @@ export function editorClient() {
   // The server (bridge/prompting-editor.mjs) keeps the shipped default, the player's change and the effective profile of each option. The page edits a draft of the effective
   // profile (numbers as the text of their boxes) and sends only what differs from the saved one; the preview asks the server to render the draft, so what is shown is what the
   // prompt builder would write. Nothing is stored until Save.
-  const PROMPT_START = {topP: 0.9, repeatPenalty: 1.1};
+  // The sampling boxes that have an Off box (not sent while off), and the value a box starts with when Off is cleared and nothing was shipped.
+  const OPTIONAL_SAMPLING = ['topP', 'topK', 'minP', 'repeatPenalty', 'presencePenalty', 'frequencyPenalty'];
+  const PROMPT_START = {topP: 0.9, topK: 40, minP: 0.05, repeatPenalty: 1.1, presencePenalty: 0, frequencyPenalty: 0};
   const numText = value => (value === null || value === undefined ? '' : String(value));
   const numOf = text => { const value = String(text).trim(); return value === '' ? null : Number(value); };
   const ruleOut = rule => ({id: rule.id, text: rule.text, ...(rule.talk && rule.talk.trim() ? {talk: rule.talk} : {}), ...(rule.mature && rule.mature.trim() ? {mature: rule.mature} : {})});
@@ -537,8 +539,8 @@ export function editorClient() {
     rules: eff.rules.map(rule => ({id: rule.id, text: rule.text, talk: rule.talk || '', mature: rule.mature || ''})),
     examples: [...eff.examples], stop: [...eff.stop],
     intro: {...eff.intro}, closing: {...eff.closing}, labels: {...eff.labels}, layout: {...eff.layout},
-    sampling: {temperature: numText(eff.sampling.temperature), topP: numText(eff.sampling.topP), topPOff: eff.sampling.topP === null,
-      repeatPenalty: numText(eff.sampling.repeatPenalty), repeatPenaltyOff: eff.sampling.repeatPenalty === null, maxTokens: numText(eff.sampling.maxTokens)},
+    sampling: {temperature: numText(eff.sampling.temperature), maxTokens: numText(eff.sampling.maxTokens), extra: eff.sampling.extra ? JSON.stringify(eff.sampling.extra, null, 2) : '',
+      ...Object.fromEntries(OPTIONAL_SAMPLING.flatMap(key => [[key, numText(eff.sampling[key])], [key + 'Off', eff.sampling[key] === null]]))},
     limits: {persona: numText(eff.limits.persona), turns: numText(eff.limits.turns)},
   });
   // The change the draft makes to the saved profile `eff`, in the shape the server takes: whole lists, and only the sub-fields of an object that differ.
@@ -555,9 +557,15 @@ export function editorClient() {
     }
     const sampling = {};
     for (const key of ['temperature', 'maxTokens']) { const value = numOf(draft.sampling[key]); if (!same(value, eff.sampling[key])) sampling[key] = value; }
-    for (const key of ['topP', 'repeatPenalty']) {
+    for (const key of OPTIONAL_SAMPLING) {
       if (draft.sampling[key + 'Off']) { if (eff.sampling[key] !== null) sampling[key] = 'off'; } else { const value = numOf(draft.sampling[key]); if (!same(value, eff.sampling[key])) sampling[key] = value; }
     }
+    // The advanced parameters go as the JSON they are; text that is not JSON goes as text, and the server says what is wrong with it. Empty text, or {}, is none.
+    const typed = draft.sampling.extra.trim();
+    let extra = null;
+    if (typed) { try { extra = JSON.parse(typed); } catch { extra = typed; } }
+    if (extra !== null && typeof extra === 'object' && !Array.isArray(extra) && !Object.keys(extra).length) extra = null;
+    if (!same(extra, eff.sampling.extra)) sampling.extra = extra;
     if (Object.keys(sampling).length) patch.sampling = sampling;
     const limits = {};
     for (const key of ['persona', 'turns']) { const value = numOf(draft.limits[key]); if (!same(value, eff.limits[key])) limits[key] = value; }
@@ -572,11 +580,13 @@ export function editorClient() {
     thisTurn: T('Heading of the notes for this turn'), things: T('Heading of the things remembered about V')});
   const fieldNames = () => ({'intro.named': T('Opening line for a named character'), 'intro.ambient': T('Opening line for an ordinary person'),
     'closing.text': T('Closing line'), 'closing.talk': T('Closing line for a speaker with a reply length of its own'),
-    'sampling.temperature': T('Temperature'), 'sampling.topP': T('Top P'), 'sampling.repeatPenalty': T('Repeat penalty'), 'sampling.maxTokens': T('Longest reply (in tokens)'),
+    'sampling.temperature': T('Temperature'), 'sampling.topP': T('Top P'), 'sampling.topK': T('Top K'), 'sampling.minP': T('Min P'), 'sampling.repeatPenalty': T('Repeat penalty'),
+    'sampling.presencePenalty': T('Presence penalty'), 'sampling.frequencyPenalty': T('Frequency penalty'), 'sampling.maxTokens': T('Longest reply (in tokens)'), 'sampling.extra': T('Advanced parameters (JSON)'),
     'limits.persona': T('Longest character description, in characters'), 'limits.turns': T('Earlier turns kept'), 'layout.youNow': T('Right-now sentence'), 'layout.volatile': T('Notes for this turn'),
     ...Object.fromEntries(Object.entries(labelNames()).map(([key, name]) => ['labels.' + key, name]))});
   const errorKey = item => item.field + (item.index !== undefined ? '#' + item.index : '') + (item.key ? ':' + item.key : '');
   // One problem as a sentence in the player's language. A problem about one box says which box.
+  const EXTRA_EXAMPLE = '{"typical_p": 0.9, "mirostat": 2}';
   const promptingText = item => {
     const values = {max: item.max, min: item.min, n: (item.index || 0) + 1};
     let text;
@@ -593,6 +603,16 @@ export function editorClient() {
       case 'intro-long': case 'closing-long': case 'labels-long': text = T('This text is too long. Keep it under {max} characters.', values); break;
       case 'empty': text = T('This text cannot be empty.'); break;
       case 'out-of-range': text = T('Use a number from {min} to {max}.', values); break;
+      case 'not-for-mistral': text = T('Mistral does not take this setting.'); break;
+      case 'extra-json': text = T('That is not valid JSON.'); break;
+      case 'extra-type': text = T('This must be a JSON object, for example {example}.', {example: EXTRA_EXAMPLE}); break;
+      case 'extra-big': text = T('This text is too long. Keep it under {max} characters.', values); break;
+      case 'extra-many': text = T('Too many keys. Keep {max} or fewer.', values); break;
+      case 'extra-name': text = T('“{name}” is not a usable key name. Use letters, digits and underscores.', {name: item.name}); break;
+      case 'extra-box': text = T('“{name}” has its own setting in this form. Use that instead.', {name: item.name}); break;
+      case 'extra-length': text = T('Use the Longest reply box for the length of a reply, not “{name}”.', {name: item.name}); break;
+      case 'extra-reserved': text = T('“{name}” is set by the mod and cannot be changed here.', {name: item.name}); break;
+      case 'extra-value': text = T('“{name}” needs a number, a text, true or false, or a list of those.', {name: item.name}); break;
       case 'stop-many': text = T('Too many stop texts. Keep {max} or fewer.', values); break;
       case 'stop-long': text = T('A stop text is too long. Keep each one under {max} characters.', values); break;
       default: return T('Could not save. Try again.');
@@ -744,9 +764,9 @@ export function editorClient() {
     const names = fieldNames(), tokens = {name: '{name}', words: '{words}'};
     const sampling = () => {
       const make = (key, label, range, options) => numberBox('p-sampling-' + key, label, d.sampling[key], range, 'sampling:' + key, value => { d.sampling[key] = value; }, options);
-      // Top P and the repeat penalty are not sent to the model while they are off.
-      const optional = (key, label, range) => {
-        const box = make(key, label, range, {hint: shipped.sampling[key] === null ? T('Shipped: off') : shippedText(shipped.sampling[key]), disabled: d.sampling[key + 'Off']});
+      // The optional boxes (Top P, Top K, Min P and the penalties) are not sent to the model while they are off.
+      const optional = (key, label, range, more = {}) => {
+        const box = make(key, label, range, {...more, hint: shipped.sampling[key] === null ? T('Shipped: off') : shippedText(shipped.sampling[key]), disabled: d.sampling[key + 'Off']});
         const off = h('input', {type: 'checkbox', id: 'p-sampling-' + key + '-off'});
         off.checked = d.sampling[key + 'Off'];
         off.addEventListener('change', () => {
@@ -757,9 +777,19 @@ export function editorClient() {
         });
         return h('div', {class: 'numrow'}, box.node, h('label', {class: 'check', for: 'p-sampling-' + key + '-off'}, off, h('span', {}, T('Off'))));
       };
+      // Mistral's API takes neither Top K and Min P nor extra fields (it refuses an unknown one), so those are left out for it, with a note.
+      const mistral = p.profiles.find(item => item.id === p.id).provider === 'mistral';
+      const advanced = () => {
+        const node = textBox('p-sampling-extra', names['sampling.extra'], d.sampling.extra, L.extra, 'sampling:extra', value => { d.sampling.extra = value; }, 5);
+        node.classList.add('json');
+        return [h('p', {class: 'help'}, T('Extra settings added to every reply, written as a JSON object, for example {example}. Use it for samplers that have no box above. A setting that has its own box above is refused. If a server refuses a setting, it is left out and the reply still comes.', {example: EXTRA_EXAMPLE})), node];
+      };
       return [h('div', {class: 'numrow'}, make('temperature', names['sampling.temperature'], L.temperature, {hint: shippedText(shipped.sampling.temperature)}).node),
-        optional('topP', names['sampling.topP'], L.topP), optional('repeatPenalty', names['sampling.repeatPenalty'], L.repeatPenalty),
-        h('div', {class: 'numrow'}, make('maxTokens', names['sampling.maxTokens'], L.maxTokens, {integer: true, hint: shippedText(shipped.sampling.maxTokens)}).node)];
+        optional('topP', names['sampling.topP'], L.topP), mistral ? null : optional('topK', names['sampling.topK'], L.topK, {integer: true}), mistral ? null : optional('minP', names['sampling.minP'], L.minP),
+        optional('repeatPenalty', names['sampling.repeatPenalty'], L.repeatPenalty), optional('presencePenalty', names['sampling.presencePenalty'], L.presencePenalty),
+        optional('frequencyPenalty', names['sampling.frequencyPenalty'], L.frequencyPenalty),
+        h('div', {class: 'numrow'}, make('maxTokens', names['sampling.maxTokens'], L.maxTokens, {integer: true, hint: shippedText(shipped.sampling.maxTokens)}).node),
+        ...(mistral ? [h('p', {class: 'help'}, T('Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.'))] : advanced())];
     };
     const limits = () => ['persona', 'turns'].map(key => numberBox('p-limits-' + key, names['limits.' + key], d.limits[key], L[key], 'limits:' + key, value => { d.limits[key] = value; },
       {integer: true, hint: shipped.limits[key] === null ? T('Shipped: the mod’s own limit') : shippedText(shipped.limits[key])}).node);
@@ -1122,6 +1152,7 @@ label.check{display:flex;gap:8px;align-items:center;margin:6px 0 10px;cursor:poi
 .ppreview{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--panel)}
 .ppreview h3{margin:0 0 4px;font-size:17px}
 .ppreview h4{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.json textarea{font:13px/1.45 ui-monospace,Consolas,monospace}
 .ppreview pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.45 ui-monospace,Consolas,monospace;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:10px}
 .ppreview .stale{color:var(--bad)}
 .ppreview .field{margin:0 0 10px}
