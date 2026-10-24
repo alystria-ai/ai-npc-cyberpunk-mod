@@ -21,6 +21,11 @@
 --           while she is silent).
 -- Poses: smile frown browsup browsdown jaw all sweep ramp-smile ramp-frown
 --        ramp-brows custom:<track>=<value>,...
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local M = convaiFaceTest or {}
 local REQUEST, RESPONSE, LOG = 'runtime/face-test-request.txt', 'runtime/face-test-response.txt', 'runtime/face-test.log'
 local EXPRESSION = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
@@ -384,7 +389,7 @@ local function stageTarget(distance)
     distance = distance or M.stageDistance
     local player = Game.GetPlayer()
     if not player then return nil, 'no player' end
-    local ok, _, forward = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
+    local ok, _, forward = pcall(function() return crosshairData(Game.GetTargetingSystem(), player) end)
     if not ok or not forward then forward = player:GetWorldForward() end
     local length = forward and math.sqrt(forward.x * forward.x + forward.y * forward.y) or 0
     if length < 1e-3 then return nil, 'no camera direction' end

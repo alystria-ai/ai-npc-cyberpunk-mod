@@ -25,6 +25,11 @@
 -- actuator still refuses is dropped for the next candidate. A companion who
 -- still makes no headway is removed as soon as V cannot see her, or after a
 -- bounded wait: she never stands there for good.
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {}
 
@@ -96,7 +101,7 @@ function M.nativeAdapter()
     function N.crowd(npc) return npc:IsCrowd() == true end
     function N.playerPosition(player) local p = player:GetWorldPosition(); return {x = p.x, y = p.y, z = p.z} end
     function N.cameraForward(player)
-        local _, forward = Game.GetTargetingSystem():GetCrosshairData(player)
+        local _, forward = crosshairData(Game.GetTargetingSystem(), player)
         return forward and {x = forward.x, y = forward.y, z = forward.z} or nil
     end
     -- The nearest walkable ground to a point (within radius), as plain

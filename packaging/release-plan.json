@@ -549,6 +549,10 @@
           "target": "r6/scripts/CyberpunkConvai/PhoneChat.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/GameVariant.reds",
+          "target": "r6/scripts/CyberpunkConvai/GameVariant.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/Face.reds",
           "target": "r6/scripts/CyberpunkConvai/Face.reds"
         },

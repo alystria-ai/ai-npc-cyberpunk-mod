@@ -536,6 +536,8 @@ public class ConvaiManagerPopup extends InGamePopup {
     }
 
     protected cb func OnManagerKey(evt: ref<KeyInputEvent>) -> Void {
+        // The 2.5 key target cannot filter by action (GameVariant.reds), so every action of the six keys arrives: only the press counts.
+        if NotEquals(evt.GetAction(), EInputAction.IACT_Press) { return; };
         if this.IsClosing() || !this.IsTopPopup() || !IsDefined(this.m_player) || evt.IsAltDown() { return; };
         if Equals(evt.GetKey(), EInputKey.IK_Tab) {
             if this.m_search.IsFocused() {
@@ -568,14 +570,14 @@ public class ConvaiManagerPopup extends InGamePopup {
             super.Close();
             return;
         };
-        this.m_keys = GameInstance.GetCallbackSystem()
+        this.m_keys = ConvaiCallbackSystem()
             .RegisterCallback(n"Input/Key", this, n"OnManagerKey")
-            .AddTarget(InputTarget.Key(EInputKey.IK_Up, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Down, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Left, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Right, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Tab, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Enter, EInputAction.IACT_Press));
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Up, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Down, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Left, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Right, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Tab, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Enter, EInputAction.IACT_Press));
     }
 
     protected cb func OnShown() {

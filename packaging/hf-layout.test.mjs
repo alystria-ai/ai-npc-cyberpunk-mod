@@ -110,7 +110,7 @@ test('no tool writes, uploads or mentions a loose checksum file, and the builder
   }
   const builder = await read('packaging/build-release.mjs');
   assert.match(builder, /id === 'scripts' \? `\$\{config\.product\}-Scripts-\$\{version\}` : `\$\{titles\[id\]\}-\$\{version\}`/);
-  assert.match(await read('packaging/build-runtime-update.mjs'), /const base = `Runtime-Update-\$\{from\}-to-\$\{to\}`/);
+  assert.match(await read('packaging/build-runtime-update.mjs'), /const base = `Runtime-Update-\$\{from\}-to-\$\{to\}\$\{GAME_VARIANTS\[game\]\.suffix\}`/);
   assert.match(await read('packaging/build-pocket-models.mjs'), /`PocketTTS-Model-\$\{languageInfo\(lang\)\.title\}`/);
   assert.match(await read('scripts/voice-packs/package_pack.mjs'), /`Voices-\$\{LANGUAGE_NAMES\[language\]\}`/);
 });

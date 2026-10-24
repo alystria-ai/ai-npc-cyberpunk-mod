@@ -22,7 +22,11 @@ if type(convaiSetupCheck) == 'table' and convaiSetupCheck.version == 1 then retu
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {version = 1}
 
-local TESTED_GAME = '2.31'
+-- The game versions this mod is built for (docs/GAME_VERSIONS.md): one build per game, made from this source tree. The build's own game is the
+-- `game` field of the Scripts' release.json (written by packaging/build-release.mjs --game); a release.json without it (every build before the
+-- 2.5 one) and a development checkout are the 2.31 build. nsui is the Native Settings UI version the build was made against.
+local BUILDS = {['2.31'] = {nsui = '1.96'}, ['2.5'] = {nsui = '1.97'}}
+local DEFAULT_BUILD = '2.31'
 local RESULT, REQUEST, PROBE_LOG = 'runtime/setup-check.json', 'runtime/setup-check-request.json', 'runtime/probe.log'
 local SESSION_WINDOW_S = 180   -- a service answer written this long before the mod loaded still counts as this session's (service-status.lua)
 local FIRST_DELAY_S = 12       -- the first-load check waits this long after the first world is ready: the service has said something by then
@@ -46,17 +50,21 @@ local MAX_NAMES = 4
 local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'nsui'}
 -- The Companion Manager lives in Mod Configuration Menu 0.10.5 or newer (the default) or in Native Settings UI (the alternative): the
 -- check keeps its id, 'nsui', and is met by either.
-local NSUI_CONSOLE = 'AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer, '
-    .. 'and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI '
-    .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.'
+local function nsuiConsole(build)
+    return 'AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI ' .. build.nsui .. ' or newer, '
+        .. 'and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI '
+        .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.'
+end
 local MCM_OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is older than 0.10.5, so the Companion Manager cannot open in it. '
     .. 'Update Mod Configuration Menu to 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640), or install Native Settings UI '
     .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game. The manager works with either.'
 local MCM_MIN = {0, 10, 5}
 -- The first-load lines for the CET console and probe.log, in English like the one above (a report is read in English).
-local SCRIPTS_CONSOLE = 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
-    .. 'If the error names another mod, that mod is the problem. '
-    .. 'Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.'
+local function scriptsConsole(build)
+    return 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
+        .. 'If the error names another mod, that mod is the problem. '
+        .. 'Missing or old Codeware or redscript, or a game version other than ' .. build.game .. ', can also cause it.'
+end
 local COMPILER_CONSOLE = 'AI NPC Cyberpunk Mod: redscript is missing. Install it from Nexus Mods, then restart the game.'
 local OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Codeware is too old (it lacks the text input this mod needs). '
     .. 'Update Codeware from Nexus Mods, then restart the game.'
@@ -106,6 +114,23 @@ local function exists(path)
         file:close()
         return true
     end) == true
+end
+
+-- The game version as the build table names it: '2.31', and CD Projekt's two-digit minor 2.50 as '2.5' (RED4ext reports 2.5 as 2.5.0). Nil when
+-- the text does not start with major.minor.
+local function canonicalGame(version)
+    local major, minor = tostring(version or ''):match('^%s*(%d+)%.(%d+)')
+    if not major then return nil end
+    if #minor == 2 and minor:sub(2) == '0' then minor = minor:sub(1, 1) end
+    return major .. '.' .. minor
+end
+
+-- {game, nsui}: the build these Scripts are (see BUILDS). Read from the files on disk each time it is asked, never per frame.
+local function buildOf()
+    local release = readJson('release.json')
+    local named = release and canonicalGame(text(release.game, 10)) or nil
+    local game = named and BUILDS[named] and named or DEFAULT_BUILD
+    return {game = game, nsui = BUILDS[game].nsui}
 end
 
 local function appendLog(line)
@@ -279,9 +304,13 @@ function M.run(now)
     checks.files = filesCheck()
     local version = text(try(function() return Game.GetSystemRequestsHandler():GetGameVersion() end), 30)
     if not version then checks.game = {state = 'unknown', code = 'unknown'}
-    elseif version == TESTED_GAME or version:sub(1, #TESTED_GAME + 1) == TESTED_GAME .. ' ' or version:sub(1, #TESTED_GAME + 1) == TESTED_GAME .. '.' then
-        checks.game = {state = 'ok', code = 'tested', version = version}
-    else checks.game = {state = 'note', code = 'untested', version = version} end
+    else
+        -- Tested: the game is the one this build is made for. Another game version this mod has a build for: the wrong build is installed.
+        local build, running = buildOf(), canonicalGame(version)
+        if running == build.game then checks.game = {state = 'ok', code = 'tested', version = version}
+        elseif running and BUILDS[running] then checks.game = {state = 'problem', code = 'wrong-build', version = version, build = build.game, forGame = running}
+        else checks.game = {state = 'note', code = 'untested', version = version, build = build.game} end
+    end
     checks.cet = {state = found.cet and 'ok' or 'unknown', code = found.cet and 'found' or 'unknown', version = found.cet}
     local scripts, words = found.redscript, found.requirements
     -- Codeware, the one framework this mod's own scripts are compiled against.
@@ -416,7 +445,11 @@ local function gameLine(id, check)
         label = ui.t('Game version')
         if check.state == 'ok' then return line(id, label, 'ok', ui.t('Version {version}.', {version = check.version})) end
         if check.state == 'note' then
-            return line(id, label, 'note', ui.t('Version {version}. The mod is tested on 2.31 only, so some things may not work.', {version = check.version}))
+            return line(id, label, 'note', ui.t('Version {version}. The mod is tested on {game} only, so some things may not work.', {version = check.version, game = check.build or DEFAULT_BUILD}))
+        end
+        if check.state == 'problem' then
+            -- The other game's build is installed: the mod names the build to get (the Nexus page and the Hugging Face folder carry both).
+            return line(id, label, 'problem', ui.t('Version {version}. These files are the mod build for game {build}. Install the build made for game {game} from the mod’s Nexus Mods page (Scripts) and Hugging Face page (Runtime), then restart the game.', {version = check.version, build = check.build or '?', game = check.forGame or '?'}))
         end
         return line(id, label, 'unknown', ui.t('The game version could not be read.'))
     end
@@ -432,14 +465,14 @@ local function gameLine(id, check)
         return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
     end
     if id == 'redscript' then
-        return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than 2.31, can also cause it.'))
+        return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.', {game = buildOf().game}))
     end
     if id == 'nsui' and check.code == 'mcm-old' then
         return line(id, label, 'problem', ui.t('Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.'))
     end
     if id == 'nsui' then
         -- Missing, or a Native Settings UI that is too old: Mod Configuration Menu first, Native Settings UI as the alternative.
-        return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.'))
+        return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI {nsui} or newer. Either one is enough. Install one from Nexus Mods, then restart the game.', {nsui = buildOf().nsui}))
     end
     if id == 'codeware' and check.code == 'old' then return line(id, label, 'problem', ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.')) end
     return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
@@ -476,7 +509,10 @@ end
 
 local function bridgeLines(out)
     local versions = bridgeCheck('versions')
-    if versions and (versions.code == 'match' or versions.code == 'mismatch') then
+    if versions and versions.code == 'game-mismatch' then
+        -- Same version, built for different games: the Runtime is replaced by the one made for the Scripts' game.
+        out[#out + 1] = line('versions', ui.t('Scripts and Runtime'), 'problem', ui.t('The Scripts are the build for game {scripts} but the Runtime is the build for game {runtime}. Install the Runtime made for game {scripts} from the mod’s Hugging Face page, then restart the game.', {scripts = text(versions.scriptsGame, 10) or '?', runtime = text(versions.runtimeGame, 10) or '?'}))
+    elseif versions and (versions.code == 'match' or versions.code == 'mismatch') then
         local values = {scripts = text(versions.scripts, 30) or '?', runtime = text(versions.runtime, 30) or '?'}
         local older = versions.code == 'mismatch' and runtimeIsOlder(versions)
         out[#out + 1] = versions.code == 'mismatch'
@@ -723,8 +759,8 @@ local function firstLoad()
     -- in English for the report, one line each.
     for _, id in ipairs(problems) do
         local check = game.checks[id]
-        if id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or SCRIPTS_CONSOLE)
-        elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or NSUI_CONSOLE)
+        if id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or scriptsConsole(buildOf()))
+        elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or nsuiConsole(buildOf()))
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')

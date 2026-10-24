@@ -1,6 +1,9 @@
 param(
     [string]$GameDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077',
-    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot)
+    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
+    # The game version the scripts are compiled for (2.5 uses packaging/game-variants/2.5/ over the project's files, docs/GAME_VERSIONS.md).
+    [ValidateSet('2.31', '2.5')]
+    [string]$GameVersion = '2.31'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +27,7 @@ Get-ChildItem -LiteralPath $gameScripts -Force |
     Copy-Item -Destination $scripts -Recurse -Force
 # Compile exactly the owned native files that the installer ships, excluding
 # retired experiments even if they remain in source or an older installation.
-Copy-DevelopmentNativeStage -ProjectDirectory $project -ScriptsDirectory $scripts
+Copy-DevelopmentNativeStage -ProjectDirectory $project -ScriptsDirectory $scripts -Game $GameVersion
 
 $deps = Join-Path $scripts '__CyberpunkConvaiCompilerDependencies'
 [IO.Directory]::CreateDirectory($deps) | Out-Null

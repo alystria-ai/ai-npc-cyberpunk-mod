@@ -14,10 +14,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Static CRT: the DLL needs no Visual C++ redistributable on the player's machine.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# --- RED4ext.SDK, pinned ------------------------------------------------------------------------
-# The commit supports game 2.31 (RED4EXT_V1_RUNTIME_VERSION_2_31 = 3.0.80.51928). Changing it is a
-# deliberate act: bump it, rebuild, and run the in-game check in docs/NATIVE_REWRITE_PLAN.md.
-set(RED4EXT_SDK_COMMIT "ad7277714ad30d6885d7050c5ba24fa0102f6920")
+# --- RED4ext.SDK, pinned per game variant ------------------------------------------------------
+# Two variants are built from this one source tree (CONVAI_GAME), each with its own SDK pin and
+# declaring only its own game runtime, so RED4ext refuses the wrong one without a message:
+#   2.31 (default): the SDK commit with RED4EXT_V1_RUNTIME_VERSION_2_31 = 3.0.80.51928.
+#   2.5:            the 2.5 fork commit (official #227 plus the #228 generated layouts, KelpHect/RED4ext.SDK-psiberx),
+#                   RED4EXT_V1_RUNTIME_VERSION_2_50 = 3.0.88.46235. The 2.5 engine layouts differ (Callback 32 -> 64
+#                   bytes, CBaseFunction, CStackFrame, ...), so a plugin must be built against this SDK for 2.5.
+# Changing a pin is a deliberate act: bump it, rebuild, and run the in-game check in docs/NATIVE_REWRITE_PLAN.md.
+set(CONVAI_GAME "2.31" CACHE STRING "Game variant to build for: 2.31 or 2.5")
+set_property(CACHE CONVAI_GAME PROPERTY STRINGS "2.31" "2.5")
+if(CONVAI_GAME STREQUAL "2.31")
+  set(RED4EXT_SDK_COMMIT "ad7277714ad30d6885d7050c5ba24fa0102f6920")
+  set(RED4EXT_SDK_REPOSITORY "https://github.com/WopsS/RED4ext.SDK.git")
+elseif(CONVAI_GAME STREQUAL "2.5")
+  set(RED4EXT_SDK_COMMIT "b139fcbd51b1c391399662f9fbfc00c5977f7231")
+  set(RED4EXT_SDK_REPOSITORY "https://github.com/KelpHect/RED4ext.SDK-psiberx.git")
+else()
+  message(FATAL_ERROR "CONVAI_GAME must be 2.31 or 2.5, not '${CONVAI_GAME}'.")
+endif()
 set(RED4EXT_SDK_DIR "" CACHE PATH "A RED4ext.SDK checkout at the pinned commit (else it is fetched)")
 set(RED4EXT_HEADER_ONLY ON CACHE BOOL "" FORCE)
 
@@ -30,7 +45,7 @@ else()
   include(FetchContent)
   FetchContent_Declare(
     red4ext_sdk
-    GIT_REPOSITORY https://github.com/WopsS/RED4ext.SDK.git
+    GIT_REPOSITORY "${RED4EXT_SDK_REPOSITORY}"
     GIT_TAG "${RED4EXT_SDK_COMMIT}"
     GIT_SHALLOW FALSE
   )
@@ -59,6 +74,9 @@ add_library(convai_core STATIC
 )
 target_include_directories(convai_core PUBLIC src third_party/yyjson)
 target_compile_definitions(convai_core PUBLIC WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+if(CONVAI_GAME STREQUAL "2.5")
+  target_compile_definitions(convai_core PUBLIC CONVAI_GAME_2_5)
+endif()
 target_compile_options(convai_core PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${CONVAI_COMPILE_OPTIONS}>
                                            $<$<COMPILE_LANGUAGE:C>:/Brepro /GS /guard:cf>)
 

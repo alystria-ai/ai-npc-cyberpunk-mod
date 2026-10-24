@@ -79,10 +79,10 @@ public func EnableContactsInput() -> Void {
 @if(ModuleExists("Codeware"))
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiStartPhoneKeys() -> Void {
-    this.m_convaiPhoneKeys = GameInstance.GetCallbackSystem()
+    this.m_convaiPhoneKeys = ConvaiCallbackSystem()
         .RegisterCallback(n"Input/Key", this, n"OnConvaiPhoneKey")
-        .AddTarget(InputTarget.Key(EInputKey.IK_J, EInputAction.IACT_Press))
-        .AddTarget(InputTarget.Key(EInputKey.IK_L, EInputAction.IACT_Press));
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_J, EInputAction.IACT_Press))
+        .AddTarget(ConvaiKeyTarget(EInputKey.IK_L, EInputAction.IACT_Press));
 }
 
 @if(!ModuleExists("Codeware"))
@@ -176,6 +176,8 @@ protected cb func OnContactListClosed() -> Bool {
 @if(ModuleExists("Codeware"))
 @addMethod(NewHudPhoneGameController)
 private cb func OnConvaiPhoneKey(evt: ref<KeyInputEvent>) -> Void {
+    // Only the press counts; the 2.5 key target cannot filter by action (GameVariant.reds).
+    if NotEquals(evt.GetAction(), EInputAction.IACT_Press) { return; };
     if !IsDefined(this.m_convaiPhoneKeys) || NotEquals(this.m_screenType, PhoneScreenType.Contacts)
         || this.m_threadsVisible || this.m_messagesPanelVisible
         || evt.IsControlDown() || evt.IsAltDown() || !IsDefined(this.m_contactListLogicController) {

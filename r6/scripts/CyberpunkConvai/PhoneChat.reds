@@ -245,9 +245,9 @@ private func SetFocus(isFocused: Bool) -> Void {
 @addMethod(PhoneMessagePopupGameController)
 private final func ConvaiChatCreate() -> Void {
     if !IsDefined(this.m_convaiChatKeys) {
-        this.m_convaiChatKeys = GameInstance.GetCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatKey")
-            .AddTarget(InputTarget.Key(EInputKey.IK_Enter, EInputAction.IACT_Press))
-            .AddTarget(InputTarget.Key(EInputKey.IK_Escape, EInputAction.IACT_Release));
+        this.m_convaiChatKeys = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatKey")
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Enter, EInputAction.IACT_Press))
+            .AddTarget(ConvaiKeyTarget(EInputKey.IK_Escape, EInputAction.IACT_Release));
     };
     if IsDefined(this.m_convaiChatPanel) { return; };
     let parent = this.m_dialogViewController.ConvaiChatParent();
@@ -287,6 +287,8 @@ private final func ConvaiChatCreate() -> Void {
 @if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PhoneMessagePopupGameController)
 private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
+    // Enter counts on its press and Escape on its release. The 2.5 key target cannot filter by action (GameVariant.reds), so the action is checked here.
+    if NotEquals(evt.GetAction(), Equals(evt.GetKey(), EInputKey.IK_Escape) ? EInputAction.IACT_Release : EInputAction.IACT_Press) { return; };
     if Equals(evt.GetKey(), EInputKey.IK_Escape) {
         // Native menu actions also receive key release. Keep this transition
         // consumed until a later adapter frame, so Escape cannot open Pause.

@@ -35,6 +35,10 @@
 //   --auth-secret-env NAME  the environment variable that holds the backend's client request secret (default CONVAI_AUTH_CLIENT_SECRET; at least
 //                      32 characters, never printed). The Runtime ships NO Convai key: it carries these two as app/defaults/convai-auth.json,
 //                      and a build of it without both fails (a --dry-run may leave them out). --key-env and --key-file are refused.
+//   --game 2.31|2.5    the game version this build is for (default 2.31; packaging/game-variants.json, docs/GAME_VERSIONS.md). The Scripts and
+//                      Runtime of a variant carry a suffix in their file names (-for-2.5), a "game" field in both release.json files, the native
+//                      plugin built against that game's RED4ext.SDK, and the files of packaging/game-variants/<game>/ laid over the source's.
+//                      The optional packs are the same for both games, so only scripts and runtime are built for a variant other than 2.31.
 //   --launcher PATH    use a prebuilt launcher DLL instead of compiling native/autostart with MSVC
 //   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
 //   --no-native        leave the native plugin out (the Lua keeps its own path)
@@ -63,6 +67,7 @@ import {RUNTIME_PREPARED_FOLDER, LANGUAGE_PACK_TREE} from './lib/pack-overlap.mj
 import {crcOfFile, omniMarker, omniNoticeLines, omniNoticesText, omniPythonSkip, runtimeClipSet} from './lib/omni-pack-rules.mjs';
 import {POCKET_MODEL_TREE} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
+import {GAME_VARIANTS, gameOverlay} from './lib/game-variants.mjs';
 import {nativeOffText} from './lib/native-off.mjs';
 import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {nodePackagePruned, pocketShipped, pythonPruned} from './lib/runtime-prune.mjs';
@@ -82,6 +87,9 @@ if (!isReleaseVersion(version)) {
   process.exit(2);
 }
 const dryRun = flag('--dry-run');
+// The game version this build is for (two variants from one source tree, docs/GAME_VERSIONS.md). Everything that differs is in
+// packaging/game-variants.json and the overlay folder packaging/game-variants/<game>/.
+const game = value('--game', '2.31');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
 // 'mature-lite' and 'mature-standard' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
 // when asked for, never in the default set. 'micpack-european' and 'micpack-asian' are the two voice-input packs (docs/LOCAL_STT.md), opt-in the same way.
@@ -98,6 +106,12 @@ const sourceRef = value('--source', 'HEAD');
 const useWorktree = flag('--worktree');
 if (!['local', 'hf'].includes(modelSource)) throw Error('--models must be local or hf');
 for (const name of packages) if (!PACKAGE_IDS.includes(name)) throw Error(`Unknown package: ${name}`);
+if (!Object.hasOwn(GAME_VARIANTS, game)) throw Error(`--game must be one of ${Object.keys(GAME_VARIANTS).join(', ')}, not ${game}`);
+const variant = GAME_VARIANTS[game];
+if (variant.suffix) {
+  const shared = [...packages].filter(name => !['scripts', 'runtime'].includes(name));
+  if (shared.length) throw Error(`The ${shared.join(', ')} package(s) are the same for every game version; build them without --game ${game}.`);
+}
 
 const log = message => console.log(`[${((Date.now() - started) / 1000).toFixed(0).padStart(4)}s] ${message}`);
 
@@ -285,9 +299,9 @@ async function buildNative(source) {
   }
   const output = resolve(out, 'native-core');
   await rm(output, {recursive: true, force: true});
-  log('Compiling the native plugin from native/core with MSVC (the headless tests run as part of it).');
+  log(`Compiling the native plugin for game ${game} from native/core with MSVC (the headless tests run as part of it).`);
   await run('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-    resolve(source.root, 'scripts/Build-NativeCore.ps1'), '-ProjectDirectory', source.root, '-OutputDirectory', output], {quiet: true});
+    resolve(source.root, 'scripts/Build-NativeCore.ps1'), '-ProjectDirectory', source.root, '-OutputDirectory', output, '-Game', game], {quiet: true});
   const dll = resolve(output, 'CyberpunkConvaiNative.dll');
   if (!existsSync(dll)) throw Error('The native build produced no DLL.');
   // The file-only inspector the install test runs on the extracted DLL (it maps the image without running any of its code).
@@ -331,7 +345,13 @@ async function scriptsPackage(source, config) {
   for (const rel of await walk(resolve(source.root, 'r6/scripts/CyberpunkConvai'))) {
     if (rel.endsWith('.reds') && !retired.has(rel)) pkg.file(`r6/scripts/CyberpunkConvai/${rel}`, resolve(source.root, 'r6/scripts/CyberpunkConvai', rel));
   }
-  pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, commit: source.commit});
+  // The game variant's own files (packaging/game-variants/<game>/, laid out like the game folder) replace the same-named files above:
+  // for 2.5 only r6/scripts/CyberpunkConvai/GameVariant.reds. A file with no counterpart in the source is refused.
+  for (const [target, from] of await gameOverlay(source.root, game)) {
+    if (!pkg.entries.has(target)) throw Error(`The ${game} overlay file ${target} replaces nothing in the Scripts package.`);
+    pkg.entries.set(target, {source: from});
+  }
+  pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, game, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
   // The runtime/ files the Lua and the bridge exchange, as empty placeholders: under Mod Organizer 2 a file created in the game
@@ -534,7 +554,7 @@ async function runtimePackage(source, config, models, auth) {
   }
   if (!codeRows.length) throw Error('The Runtime has no code files to list (bridge/runtime-integrity.mjs).');
   pkg.text(`${app}/${integrity.CODE_LIST}`, integrity.codeListText({version, rows: codeRows}));
-  pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
+  pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, game, commit: source.commit,
     node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: 'none', convaiSignIn: auth ? 'backend' : 'none',
     nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
@@ -1079,7 +1099,7 @@ async function main() {
   const config = await readJson(value('--release-config') ? resolve(value('--release-config')) : resolve(source.root, 'packaging/release.config.json'));
   const timestamp = new Date(source.time * 1000);
   const models = (packages.has('runtime') || packages.has('omni')) ? await resolveModels(config, source) : null;
-  const report = {product: config.product, version, commit: source.commit, dryRun, models: modelSource,
+  const report = {product: config.product, version, game, commit: source.commit, dryRun, models: modelSource,
     built: new Date().toISOString(), packages: {}};
 
   const builders = {
@@ -1103,7 +1123,7 @@ async function main() {
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
     // The Scripts keep the long name (the file the owner uploads to Nexus Mods); the others have no product prefix.
-    const archiveBase = id === 'scripts' ? `${config.product}-Scripts-${version}` : `${titles[id]}-${version}`;
+    const archiveBase = (id === 'scripts' ? `${config.product}-Scripts-${version}` : `${titles[id]}-${version}`) + variant.suffix;
     const result = await writeArchives(pkg, archiveBase, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
     report.packages[id] = {archives: result.archives, fileCount: result.files.length,
       uncompressedBytes: result.files.reduce((sum, file) => sum + file.bytes, 0)};

@@ -10,6 +10,7 @@ commit message), and there are NO checksum files:
     mic/MicPack-European.zip        mic/MicPack-Asian.zip
     voice/OmniPack.zip              (OmniVoice is the only downloadable voice model)
     updates/Runtime-Update-<from>-to-<to>.zip   and   multilingual/Voices-<Language>.zip, PocketTTS-Model-<Language>.zip   (published by their own tools)
+    game-2.5/Scripts.zip   game-2.5/Runtime.zip   game-2.5/updates/Runtime-Update-<from>-to-<to>.zip    (the build for game 2.5, --game 2.5; docs/GAME_VERSIONS.md)
 
 The zip of a build is named <Title>-<version>.zip (packaging/build-release.mjs; the Scripts are AI-NPC-Cyberpunk-Mod-Scripts-<version>.zip).
 
@@ -24,6 +25,7 @@ to GitHub releases by this script.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -46,6 +48,10 @@ LAYOUT = {
 }
 PACKS = tuple(LAYOUT)
 PRODUCT = "AI-NPC-Cyberpunk-Mod"
+# The game versions the mod is built for (packaging/game-variants.json, docs/GAME_VERSIONS.md): the Scripts and Runtime of a game other than
+# the default carry a suffix in the file name of a build and sit in a folder of their own, game-<version>/. The other packs are shared.
+GAME_VARIANTS = json.loads((Path(__file__).with_name("game-variants.json")).read_text(encoding="utf-8"))["variants"]
+GAME_PACKS = ("scripts", "runtime")
 
 
 def no_write_message(repository: str, detail: str = "") -> str:
@@ -102,32 +108,47 @@ def connect(repository: str):
     return api
 
 
-def built_name(pack: str, version: str) -> str:
+def variant_of(game: str, pack: str) -> dict:
+    """The game variant (packaging/game-variants.json) a pack is built for; only the Scripts and Runtime differ between games."""
+    if game not in GAME_VARIANTS:
+        raise SystemExit(f"Unknown game {game}; expected one of {', '.join(GAME_VARIANTS)}.")
+    variant = GAME_VARIANTS[game]
+    if variant["suffix"] and pack not in GAME_PACKS:
+        raise SystemExit(f"The {pack} pack is the same for every game version; upload it without --game.")
+    return variant
+
+
+def built_name(pack: str, version: str, game: str = "2.31") -> str:
     """The name of the zip a build writes for the pack (packaging/build-release.mjs)."""
     title = LAYOUT[pack][1]
-    return f"{PRODUCT}-{title}-{version}.zip" if pack == "scripts" else f"{title}-{version}.zip"
+    name = f"{PRODUCT}-{title}-{version}" if pack == "scripts" else f"{title}-{version}"
+    return f"{name}{variant_of(game, pack)['suffix']}.zip"
 
 
-def remote_path(pack: str) -> str:
-    """Where the pack lives in the repository: <folder>/<title>.zip, no product prefix, no version."""
+def remote_path(pack: str, game: str = "2.31") -> str:
+    """Where the pack lives in the repository: <folder>/<title>.zip, no product prefix, no version. The Scripts and Runtime of
+    another game version sit in that game's folder (game-2.5/Runtime.zip)."""
     folder, title = LAYOUT[pack]
+    game_folder = variant_of(game, pack)["hfFolder"]
+    if game_folder:
+        folder = f"{game_folder}/{folder}" if folder else game_folder
     return f"{folder}/{title}.zip" if folder else f"{title}.zip"
 
 
-def plan(version: str, pack: str, packages: Path) -> list[tuple[Path, str]]:
+def plan(version: str, pack: str, packages: Path, game: str = "2.31") -> list[tuple[Path, str]]:
     """The (local file, path in the repository) pair of one pack: its one zip, in the pack's folder. No checksum file goes with it."""
     if pack not in LAYOUT:
         raise SystemExit(f"Unknown pack {pack}; expected one of {', '.join(PACKS)}.")
     if not re.fullmatch(r"\d+(\.\d+){1,3}([-+][0-9A-Za-z.-]+)?", version):
         raise SystemExit(f"Invalid version: {version}")
-    name = built_name(pack, version)
+    name = built_name(pack, version, game)
     parts = sorted(packages.glob(f"{name[:-4]}-part*of*.zip"))
     if parts:
         raise SystemExit(f"{parts[0].name} is a multi-part zip; a pack is uploaded as one zip.")
     zip_path = packages / name
     if not zip_path.is_file():
         raise SystemExit(f"Expected exactly one zip for the {pack} pack in {packages}: {name} is missing. A pack is a single zip, never parts.")
-    return [(zip_path, remote_path(pack))]
+    return [(zip_path, remote_path(pack, game))]
 
 
 def upload(api, repository: str, version: str, pack: str, items: list[tuple[Path, str]]) -> None:
@@ -168,6 +189,7 @@ def main() -> int:
     parser.add_argument("--version")
     parser.add_argument("--pack", choices=PACKS)
     parser.add_argument("--packages", type=Path, help="folder with the built zip")
+    parser.add_argument("--game", default="2.31", help="the game version a Scripts or Runtime zip is built for (2.5 is uploaded to game-2.5/)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.check:
@@ -176,7 +198,7 @@ def main() -> int:
         return 0
     if not (args.version and args.pack and args.packages):
         parser.error("--version, --pack and --packages are required")
-    items = plan(args.version, args.pack, args.packages)
+    items = plan(args.version, args.pack, args.packages, args.game)
     if args.dry_run:
         for local, remote in items:
             print(f"{local} -> {args.repo}/{remote}")

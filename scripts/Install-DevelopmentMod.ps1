@@ -1,7 +1,10 @@
 param(
     [string]$GameDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077',
     [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
-    [switch]$LuaOnly
+    [switch]$LuaOnly,
+    # The game version the install is for: 2.5 lays the files of packaging/game-variants/2.5/ over the project's (docs/GAME_VERSIONS.md).
+    [ValidateSet('2.31', '2.5')]
+    [string]$GameVersion = '2.31'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,7 +27,7 @@ if (-not $LuaOnly) {
 
 Import-Module (Join-Path $PSScriptRoot 'DevelopmentFiles.psm1') -Force
 $manifest = Get-DevelopmentManifest $project
-$targets = @(Get-DevelopmentFiles -ProjectDirectory $project -GameDirectory $game -LuaOnly:$LuaOnly)
+$targets = @(Get-DevelopmentFiles -ProjectDirectory $project -GameDirectory $game -LuaOnly:$LuaOnly -Game $GameVersion)
 foreach ($item in $targets) {
     if (-not [IO.File]::Exists($item.From)) { throw "Missing source: $($item.From)" }
 }

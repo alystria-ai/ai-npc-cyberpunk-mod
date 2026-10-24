@@ -43,6 +43,11 @@
 -- how many tag reads failed, how many the tag list held and how many of those the
 -- search had missed, and the nearest NPCs with tag=yes / no / err, so a tag that
 -- never counted is visible in probe.log.
+-- The crosshair on both game versions (init.lua ConvaiCrosshairData); the plain 2.31 call where init.lua is not loaded (tests).
+local function crosshairData(targeting, player)
+    if ConvaiCrosshairData then return ConvaiCrosshairData(targeting, player) end
+    return targeting:GetCrosshairData(player)
+end
 local M = {}
 local DEFAULTS = {aimRadius = 30, nearRadius = 50, taggedRadius = 100, aimCone = 0.9781, listMax = 6}
 -- GameObject tag readers, in the order tried. The first that answers with a boolean is used.
@@ -122,7 +127,7 @@ function M.nativeAdapter()
     end
     -- Where the camera looks: origin and unit-ish forward as plain numbers, or nil.
     function N.crosshair(player)
-        local origin, forward = Game.GetTargetingSystem():GetCrosshairData(player)
+        local origin, forward = crosshairData(Game.GetTargetingSystem(), player)
         if not origin or not forward then return nil end
         return {x = origin.x, y = origin.y, z = origin.z}, {x = forward.x, y = forward.y, z = forward.z}
     end

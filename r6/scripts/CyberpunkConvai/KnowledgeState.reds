@@ -74,7 +74,7 @@ public class ConvaiKnowledgeState extends ScriptableSystem {
 
     private func OnAttach() -> Void {
         this.m_attached = true;
-        this.m_callbacks = GameInstance.GetCallbackSystem();
+        this.m_callbacks = ConvaiCallbackSystem();
         this.m_callbacks.RegisterCallback(n"Session/BeforeSave", this, n"OnKnowledgeBeforeSave");
         this.m_callbacks.RegisterCallback(n"Session/AfterSave", this, n"OnKnowledgeAfterSave");
         let lifecycle = ConvaiKnowledgeLifecycle.Get();
@@ -282,12 +282,12 @@ public class ConvaiKnowledgeLifecycle extends ScriptableService {
     private let m_exhausted: Bool;
 
     public static func Get() -> ref<ConvaiKnowledgeLifecycle> {
-        return GameInstance.GetScriptableServiceContainer()
+        return ConvaiServiceContainer()
             .GetService(n"CyberpunkConvai.ConvaiKnowledgeLifecycle") as ConvaiKnowledgeLifecycle;
     }
 
     private cb func OnLoad() -> Void {
-        let callbacks = GameInstance.GetCallbackSystem();
+        let callbacks = ConvaiCallbackSystem();
         callbacks.RegisterCallback(n"Session/BeforeStart", this, n"OnKnowledgeStart");
         callbacks.RegisterCallback(n"Session/Ready", this, n"OnKnowledgeReady");
         callbacks.RegisterCallback(n"Session/BeforeEnd", this, n"OnKnowledgeEnd");

@@ -159,7 +159,7 @@ test("the player's own state and secrets never ship: no settings, key, memory, c
 
 test('release.json, README.txt and LICENSE.txt are written from the build and the repository', async () => {
   const release = JSON.parse(await text(`${MOD}/release.json`));
-  assert.deepEqual(release, {product: config.product, package: 'scripts', version: VERSION, commit: 'worktree'});
+  assert.deepEqual(release, {product: config.product, package: 'scripts', version: VERSION, game: '2.31', commit: 'worktree'});
   assert.equal(await text(`${MOD}/README.txt`), await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'));
   assert.equal(await text(`${MOD}/LICENSE.txt`), await readFile(resolve(project, 'LICENSE'), 'utf8'));
 });
@@ -292,4 +292,44 @@ test('building the same commit twice gives the same zip, and the commit it recor
     }
     assert.equal(sums[0], sums[1], 'the same inputs make the same bytes');
   } finally { await rm(twice, {recursive: true, force: true}); }
+});
+
+// One source tree, one build per game (docs/GAME_VERSIONS.md): the 2.5 Scripts differ from the 2.31 ones in the file name, release.json's game
+// field and the files of packaging/game-variants/2.5/ laid over the source's (only GameVariant.reds), and in nothing else.
+test('the 2.5 build: suffixed file name, game 2.5 in release.json, only GameVariant.reds replaced, the same files otherwise', async () => {
+  const out25 = join(root, 'out25');
+  const result = build(buildArgs(out25, join(root, 'cache25'), ['--game', '2.5']));
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  const zip25 = join(out25, 'packages', `${config.product}-Scripts-${VERSION}-for-2.5.zip`);
+  assert.deepEqual((await readdir(join(out25, 'packages'))).sort(), [`${config.product}-Scripts-${VERSION}-for-2.5.files.json`, `${config.product}-Scripts-${VERSION}-for-2.5.zip`, 'release-manifest.json'].sort());
+  const entries25 = await listZip(zip25);
+  assert.deepEqual(entries25.map(entry => entry.name).sort(), names().sort(), 'the same files in both builds');
+  const dir25 = join(root, 'extracted25');
+  await mkdir(dir25);
+  assert.equal(spawnSync(tar, ['-xf', zip25, '-C', dir25], {encoding: 'utf8'}).status, 0);
+  assert.deepEqual(JSON.parse(await readFile(join(dir25, ...`${MOD}/release.json`.split('/')), 'utf8')), {product: config.product, package: 'scripts', version: VERSION, game: '2.5', commit: 'worktree'});
+  const differing = [];
+  for (const rel of names()) {
+    const a = await readFile(join(extracted, ...rel.split('/')));
+    const b = await readFile(join(dir25, ...rel.split('/')));
+    if (!a.equals(b)) differing.push(rel);
+  }
+  assert.deepEqual(differing, [`${MOD}/release.json`, 'r6/scripts/CyberpunkConvai/GameVariant.reds']);
+  const variant = await readFile(join(dir25, 'r6', 'scripts', 'CyberpunkConvai', 'GameVariant.reds'), 'utf8');
+  assert.equal(variant, await readFile(resolve(project, 'packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds'), 'utf8'));
+  assert.match(variant, /return InputTarget\.Key\(key\);/);
+  // The 2.31 file is the one in the source tree, and the callers name only the two helpers.
+  assert.match(await text('r6/scripts/CyberpunkConvai/GameVariant.reds'), /return InputTarget\.Key\(key, action\);/);
+  for (const rel of names().filter(name => name.endsWith('.reds') && !name.endsWith('GameVariant.reds'))) {
+    assert.doesNotMatch(await text(rel), /GameInstance\.(?:GetCallbackSystem|GetScriptableServiceContainer)\(|InputTarget\.Key\(/, `${rel} calls an engine function that GameVariant.reds owns`);
+  }
+});
+
+test('an unknown game is refused, and the packs that are the same for every game are not built with a game', () => {
+  const unknown = build(buildArgs(join(root, 'outx'), join(root, 'cachex'), ['--game', '9.9']));
+  assert.notEqual(unknown.status, 0);
+  assert.match(unknown.stderr, /--game must be one of 2\.31, 2\.5, not 9\.9/);
+  const shared = build(['--version', VERSION, '--dry-run', '--packages', 'omni', '--game', '2.5', '--worktree', '--out', join(root, 'outy'), '--cache', join(root, 'cachey')]);
+  assert.notEqual(shared.status, 0);
+  assert.match(shared.stderr, /same for every game version/);
 });

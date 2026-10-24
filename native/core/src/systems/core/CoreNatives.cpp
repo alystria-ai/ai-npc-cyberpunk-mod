@@ -46,7 +46,7 @@ std::string StatusJson()
     std::string out = "{\"plugin\":\"";
     out += kPluginVersion;
     out += "\",\"api\":" + std::to_string(kApiVersion);
-    out += ",\"game\":\"" + std::to_string(kGameMajor) + "." + std::to_string(kGameMinor) + "\"";
+    out += std::string(",\"game\":\"") + kGameLabel + "\"";
     out += ",\"runtime\":\"" + JsonEscape(paths::WideToUtf8(GlobalFileIo().RuntimeDirectory())) + "\"";
     // Mod Organizer 2's virtual file system is loaded: file replaces use MoveFileExW, which it sees.
     out += std::string(",\"vfs\":") + (fileio::VirtualFileSystemLoaded() ? "true" : "false");
