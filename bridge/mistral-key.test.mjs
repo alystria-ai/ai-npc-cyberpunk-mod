@@ -375,7 +375,7 @@ test('the bridge unloads the local model server when the provider leaves Local A
   assert.match(poll, /if \(mistral\.preference === 'local'\) prepareLocal\(\);\n(\s*\/\/[^\n]*\n)+\s*else if \(mistral\.localUnused\) void localServer\.stop\(\)\.catch\(\(\) => \{\}\);/);
   // The tiny memory embedder is a different process (localEmbedder): the idle switch stops it only when Convai is the provider again and no
   // add-on (whose speakers use the text routes whatever the provider is) is installed (docs/RESOURCE_LIFECYCLE.md); the early stop never does.
-  assert.match(apply, /if \(!mistral\.active && !addonHost\.active\) void localEmbedder\.close\(\)/);
+  assert.match(apply, /if \(!mistral\.active && !addonHost\.hasSpeakers\) void localEmbedder\.close\(\)/);
   assert.ok(!/localEmbedder\.(close|stop)/.test(poll));
 });
 

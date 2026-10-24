@@ -135,6 +135,7 @@ import {SlowTurnWatch} from './slow-turns.mjs';
 import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 import {AddonContent} from './addon-content.mjs';
+import {memoryScopes, scopedMemory} from './memory-scope.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -1027,7 +1028,13 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
   packs: addonContent.installed ? addonContent : null,
   active: () => ({route: mistral.route, tier: localServer.status?.().tier ?? null, mature: matureContent.enabled === true,
     custom: customEndpoint.ready ? {origin: customEndpoint.origin, model: customEndpoint.model} : null})});
+// A content pack whose manifest says memory "separate" (API 1.1) gives the characters a memory of their own while it is on: the text providers keep it under `<profile key>@<pack id>`
+// (bridge/memory-scope.mjs). This is the one place the mapping is made: a turn takes its key once when it starts, the character editor reads the memory in use, Forget acts on it.
+// Convai's own memory is not part of it (a pack's Convai twins have ids of their own); an add-on speaker's and a player-made character's keys are never changed.
+// With no pack, or a pack with a shared memory, every key is the profile key, as before.
+const memoryNamespace = memoryScopes(addonContent);
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
+  memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
   // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
   deliverAction: message => companionActions.deliver(message),
@@ -1419,7 +1426,15 @@ const micV = new MicVLines({vVoice, stopped: () => stopped});
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
-  return key ? vendorMemory.contextFor({memoryKey: key, profileKey: prepared.route.profileKey}) : '';
+  return key ? vendorMemory.contextFor({memoryKey: key, profileKey: prepared.route.profileKey, scope: vendorScope(prepared)}) : '';
+};
+// While a content pack with a separate memory is on, the visits are kept apart from the normal ones (the same file, keys `<record>@<pack id>`; bridge/vendor-memory.mjs). A turn takes its
+// memory once, when its context is first built, and the exchange is stored in that memory when it is heard, even if the pack was switched in between.
+const vendorScopes = new WeakMap();
+const vendorScope = prepared => {
+  let scope = vendorScopes.get(prepared);
+  if (scope === undefined) { scope = memoryNamespace.scope(); vendorScopes.set(prepared, scope); }
+  return scope;
 };
 // The blocks of a turn's context in the order Convai gets them, each tagged by how often it changes (see conversationContextBlocks in
 // bridge/quest-context.mjs). Convai gets them joined in this order; the text providers (Mistral, local) lay them out stable to
@@ -2436,9 +2451,11 @@ async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
     throwIfCancelled(signal);
     // Forget all memories also forgets what shopkeepers remember of V. PlayerMemory has already persisted the reset
     // epoch and fenced every character, so a turn begun earlier can no longer write; a failed removal fails the clear.
-    if (scope === 'all' && (await vendorMemory.forgetAll()).ok !== true) throw Error('Vendor memory could not be cleared');
+    // Forget acts on the memory in use: the normal one, or the separate memory of the content pack that is on (bridge/memory-scope.mjs). The other stays as it is.
+    const pack = memoryNamespace.scope();
+    if (scope === 'all' && (await vendorMemory.forgetAll({scope: pack})).ok !== true) throw Error('Vendor memory could not be cleared');
     // The text providers keep their own conversation memory here (bridge/memory-store.mjs): Forget clears it too, records and vectors included.
-    mistralMemory.forget({all: scope === 'all', profileKeys: profileKeys ?? []});
+    mistralMemory.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});
     await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
@@ -3229,7 +3246,7 @@ async function rememberVendorTurn(entry) {
     if (!key) return;
     // A microphone turn is remembered by its recognized words only, never by the "[Microphone]" placeholder.
     const spoken = prepared.route.transport === 'microphone' || prepared.input.source === 'microphone';
-    await vendorMemory.remember({memoryKey: key, profileKey: prepared.route.profileKey,
+    await vendorMemory.remember({memoryKey: key, profileKey: prepared.route.profileKey, scope: vendorScope(prepared),
       playerText: spoken ? entry.exchange.userText : prepared.input.text, replyText: entry.exchange.replyText,
       isCurrent: () => !stopped && !memoryQuiescing && knowledgeRouter.currentSync(prepared)});
   } catch { /* Memory is a convenience; the conversation never depends on it. */ }
@@ -3722,7 +3739,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
-const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
+const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: scopedMemory(mistralMemory, memoryNamespace.keyFor), route: () => mistral.route, custom: customCharacters,
   voices: playerVoices, worldRules, promptProfiles, addonContent: addonContent.installed ? addonContent : null,
   // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
   // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.

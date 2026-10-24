@@ -5,21 +5,39 @@ comments on fights (Oct 20), and the Delamain cab's voice (Oct 25). Each add-on 
 repository: `alystria-ai/ai-npc-cyberpunk-mod-skippy` and `alystria-ai/ai-npc-cyberpunk-mod-delamain` (private until their launch dates;
 see "The two add-ons" below). An add-on depends on the main mod, but the main mod never depends on an add-on.
 
-API version: **1.0** (`mod/addons.lua` `M.API_VERSION`, `bridge/addons.mjs` `ADDON_API_VERSION`). An add-on asks for a
+API version: **1.1** (`mod/addons.lua` `M.API_VERSION`, `bridge/addons.mjs` `ADDON_API_VERSION`). An add-on asks for a
 version, for example `requires = '1.0'`. A main mod with the same major version and an equal or higher minor version serves it.
-Any other version gets one notice: "Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.2; this version has 1.0). Update
+Any other version gets one notice: "Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.2; this version has 1.1). Update
 AI NPC Cyberpunk Mod."
+
+Version history:
+
+| Version | What it added |
+|---|---|
+| 1.0 | Add-on speakers (a voice with no body), remarks, personas and modes, settings, events, stock, held remarks, replacing the game's own lines. Skippy and the Delamain cab. |
+| 1.1 | **Content packs** (see "Content packs" below): an add-on that is only its manifest and changes how the characters talk (world rules, prompt wording, the characters' text and names, Convai twins, name pools, a separate memory). Add-ons written for 1.0 run unchanged on 1.1. |
+
+An add-on is either a **voice add-on** (speakers, an `init.lua`: Skippy, the Delamain cab) or a **content pack** (only `convai-addon.json`
+and data files), or both at once.
 
 ## Guarantees
 
 - **With no add-on installed, nothing changes.** `convaiAddons.live` stays false and `init.lua` skips every add-on call.
   `AddonHost.active` stays false and the bridge adds no roster rows, blocks, files, watchers or timers. The tests prove this:
   `bridge/addons.test.mjs` ("inert") and `bridge/addons-lua.test.mjs` ("loading the module touches nothing").
-- **No Convai, ever.** An add-on speaker's text comes only from **Mistral**, the **local AI** or the player's own **Custom** provider.
+- **No Convai for add-on speakers, ever.** An add-on **speaker's** text comes only from **Mistral**, the **local AI** or the player's own **Custom** provider.
   - It never uses Convai: neither the free tier nor a player's own key.
   - It never counts toward the shared key's 500 conversations a day.
   - It never opens a Convai connection, memory or warm-up.
-  - A `convai` field in a manifest is refused, and an add-on key in `characters.json` is removed at start.
+  - A `convai` field in a speaker of a manifest is refused, and an add-on key in `characters.json` is removed at start.
+  - A **content pack** (API 1.1) is not a speaker. It may reach the mod's own characters on Convai, in two ways only, both described under "Content packs": its
+    world rules join the dynamic info the bridge already sends, and `content.convai` names Convai characters (twins made from the pack's text) that the
+    mod's own characters use while the pack is on. A pack opens no Convai connection of its own and adds no Convai call.
+- **A pack never changes the safety.** The hard-limit guard, the adults-only line, the facts the game gives a character, and the bridge's input and
+  output screens are not part of what a pack can change. They are added after a pack's wording, as they are after the player's own edits.
+- **A pack knows no game version.** One zip serves every supported game (2.5 and 2.31): there is no game field in the manifest, no game check, no
+  `-for-2.31` suffix and no per-game build of an add-on (`packaging/game-variants.json` is about the main mod's own packages). The main mod's setup
+  check and error reports never look at add-on folders, so an add-on can never be reported as a game mismatch.
 - **No per-frame work.** Everything runs on the main mod's existing 0.1 s tick, only while an add-on is registered, and on events
   the main mod already has. Bridge hooks are synchronous and must take under 5 ms; a hook that fails three times is switched off.
 - **Game characters stay untouched.** A speaker has no body: no face, gaze, gestures or gameplay actions. Game dialogue and scenes
@@ -119,8 +137,9 @@ Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod<Name
 | `version` | `1.0` or `1.0.0` (an optional `-beta.1` suffix is allowed). |
 | `requires.api` | The add-on API version the add-on was written for, `"1.0"`. |
 | `bridge` | Optional `.mjs` inside the folder (see Bridge module). |
+| `content` | Optional (API 1.1): a content pack's data, see "Content packs (API 1.1)". With it `schema` and `speakers` may be left out, `requires` may be the plain text `"1.1"`, and `requires.api` must be 1.1 or higher. |
 | `providers` | Optional. `["mistral", "local"]` (the default), `["mistral"]` or `["local"]`. Anything else is refused. A speaker may set its own `providers`. `"custom"` is not a value here: the player's Custom provider is followed by every speaker (see Text providers). |
-| `speakers[]` | At most 4. `id` uses the same characters as the add-on id (1–24); `name` at most 60 characters. |
+| `speakers[]` | At most 4 (optional in a content pack, see "Content packs"). `id` uses the same characters as the add-on id (1–24); `name` at most 60 characters. |
 | `persona.backstory` | Required. At most 12,000 characters. Who the speaker is. |
 | `persona.intro` / `identityRule` | Optional. Replace the opening line ("You are X, a real person…") and the "you are a real person" rule. A voice that is not a person should set both. |
 | `persona.style` / `samples` / `rules` | Speaking style; at most 12 example exchanges (each at most 600 characters); at most 12 rules. |
@@ -781,13 +800,154 @@ node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/
 - `--json` prints the results for comparison between persona versions.
 - In tests, pass `chat` (and `llmJudge({chat})`) a stand-in, as `addons/example/example.test.mjs` does.
 
+## Content packs (API 1.1)
+
+A content pack is an add-on that is **only data**: a folder with `convai-addon.json` (and optionally data files, a README and a LICENSE). It has no
+`init.lua`, no `bridge.mjs` and no speakers. It changes how the mod's own characters talk, and only while the player has it switched on. The first
+one is "Medieval AI NPCs". `addons/example-content/` is a complete, tested example to copy.
+
+Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod<Name>/convai-addon.json`, like any add-on. The bridge finds the folder by its
+manifest (CET itself ignores a folder with no `init.lua`, so nothing runs on the game side for it). The pack is read **once, when the bridge starts**; there
+are no file watchers, so an edit to a pack needs a bridge restart (starting the game does it).
+
+### A minimal pack
+
+```json
+{
+  "schema": 1,
+  "id": "medieval",
+  "name": "Medieval AI NPCs",
+  "version": "1.0.0",
+  "requires": {"api": "1.1"},
+  "speakers": [],
+  "content": {
+    "worldRules": ["There are no phones, cars or guns in this world; people travel on foot or by horse."],
+    "prompting": {"*": {"closing": {"text": "Reply as {name}, in the speech of this age, in one to three short sentences."}}},
+    "characters": "characters.json",
+    "memory": "separate"
+  }
+}
+```
+
+The short form `{"id": ..., "name": ..., "version": ..., "requires": "1.1", "content": {...}}` (no `schema`, no `speakers`, `requires` as a plain text) is accepted
+for a manifest that has `content`. Use the full form above for a pack that should say "needs a newer AI NPC Cyberpunk Mod" on an older bridge (see "Older main mods").
+`requires` must be 1.1 or higher when there is a `content` object. Any other top-level field (a `game` field, say) is ignored: a pack has no game version.
+
+### What `content` can hold
+
+| Field | Meaning |
+|---|---|
+| `worldRules` | A list of texts (at most 24 lines of 600 characters, 4,000 in all). Added to **every** character's world rules **after the player's own**, one line each with a leading `- `. |
+| `prompting` | `{"*": override, "<profile id>": override}`: changes to the prompt profiles (the wording of the output rules, the closing line, the sampling, the Mature layer...). Each override has exactly the shape a player's change has in the prompt-profile store (`bridge/prompt-profiles.mjs` `validateOverride`; the editor's Prompting page). `"*"` is every profile; a profile id is `mistral`, `local-lite`, `local-standard`, `mature-lite`, `mature-standard` or a Custom profile's id. At most 12 keys. |
+| `characters` | `{"<profile key>": {"name", "backstory", "speakingStyleDescription", "speakingStyleSampleDialogues"}}`, **or a path** (`"characters.json"`) of a JSON file inside the pack folder holding the same object (or a list of rows with a `key`, the shape of `characters/roster.json`). Keys are those of `characters/roster.json` and `characters/archetype-roster.json`. The name, gender, records and voice of a character are the game's: only `name` (the display name) and the three texts can be given, and any other field is refused. |
+| `namePools` | The name pools of the random pedestrians, in the shape and under the rules of `characters/npc-name-pools.json` (16 cultures with at least 100 male, 100 female, 100 surnames and 20 handles each, 10 handle styles of at least 30, a blocked list of at least 50 names; `scripts/Build-NpcNamePools.mjs` `validate`). Inline or a path of a JSON file in the pack folder. |
+| `convai` | `{"<profile key>": "<Convai character id>"}`: a Convai character made from the pack's text for that character (a "twin", made the way the multilingual twins are, `scripts/Create-MultilingualProfiles.mjs`). |
+| `memory` | `"shared"` (the default) or `"separate"`. |
+
+Limits (all checked before anything is used; a pack that breaks one is **skipped whole**, with one line in the log and one notice in the game, never half applied):
+a character's backstory is 40 to 9,000 characters, its style at most 1,800, its example lines at most 20 of 600 characters (6,000 in all), and the three together at most 12,500
+(the limits of the character editor); at most 512 characters, 512 twins; the `characters` file at most 3 MB and the `namePools` file 1 MB; the rest of `content` (world rules, prompting,
+twins) at most 40,000 characters as JSON. A file path must stay inside the pack folder (no drive, no leading slash, no `..`) and end in `.json`. Several packs together may add at most 6,000
+characters of world rules (a later pack's lines that do not fit are left out, with a log line).
+
+### Precedence
+
+**The shipped profile < the packs < the player's own editor changes.** Several packs apply in folder-name order, and a **later pack wins per field**
+(per sub-field of an object field; a list such as `rules` replaces); world rules are added one pack after the other. For one pack, `"*"` is laid down first and
+a specific profile id on top of it. For a character, the pack's text replaces the shipped one, and **a player's own edits of that character (Settings > Edit characters) still win,
+field by field**. In the editor "Reset to default" returns to the pack's value when a pack sets that field, to the shipped one otherwise (the pages say so).
+The player's changes are checked against the shipped profile with the packs laid over it: a value equal to the pack's is no change, one that equals only the shipped value is kept.
+
+### Providers
+
+- **Mistral, Local AI and Custom** get everything: the world rules, the prompt wording (`prompting`), the characters' text and names.
+- **Convai** is changed in two ways only: the pack's **world rules** go into the dynamic info the bridge already sends every turn (`convaiWorldRulesBlocks`, after the
+  player's own world rules, kept whole; the packs' lines are added while the whole stays within 4,000 characters, a line that does not fit is left out with one log line), and **`convai`
+  twins** (below). Convai's prompting lives on Convai's side, so `prompting` is not applied there.
+- An add-on speaker's persona is the add-on's: `characters` never reaches a speaker (`addon-` keys) or a character the player made (`custom-`).
+- The guard, the hard limits, the adults-only line and the facts from the game are not part of any of it.
+- Nothing happens per turn or per frame: the merged results are made when a pack is switched on or off and kept, so the system prompt stays **byte-stable** within a profile
+  (the prompt caches of Mistral and the local AI stay warm). With no pack, or with every pack switched off, every prompt is byte for byte what it is without the feature.
+
+### The player's switch
+
+**Settings > Content packs** (Mod Configuration Menu and Native Settings UI) lists each installed pack with an On/Off switch (on by default, saved in
+`runtime/addon-settings.json` as `{"<pack id>": {"contentEnabled": false}}`). The row says what the pack works with (prompt changes: Mistral, Local AI, Custom; on Convai its world rules
+and its own Convai characters). A switch counts **from the next reply**, with no restart, for everything the bridge does (prompt, world rules, characters' text and names in the prompt and the editor, Convai twins,
+memory). The game shows the **new names** (Companion Manager, party, subtitles, phone, holocall, scanner names) after the **next game start or save load**, because the game reads its name lists then;
+the old name keeps working as a name for the character in both directions.
+
+### Characters and names
+
+When a pack is on, the persona of a listed key is the pack's text (Mistral, Local AI, Custom). The roster rows themselves carry the pack's text and name, so the prompt (`{name}`, the opening line, the closing
+line), the character editor and every reader of the roster see it at once. The shipped name stays an alias, so **the old name is still recognised** (what V says or types, group chats, the editor's and the
+manager's search find a character by the new and the old name). Switching the pack off restores the rows exactly. The mod's game side applies the names with the switches (`mod/content-names.lua`, from
+`runtime/content-names.json`, which lists the names of every installed pack; the game applies the ones that are on).
+
+`namePools` do the same for pedestrians: while the pack is on the scanner and talk names of ordinary people come from the pack's pools (`runtime/content-name-pools.json`, read once, the first time a name is made).
+A shopkeeper who already has a saved name keeps it.
+
+### Convai twins
+
+`content.convai` gives, for a profile key, the id of a Convai character that holds the pack's text for it. While the pack is on, a Convai turn for that character uses the twin's id instead of the
+ordinary one (memory per twin is separate on Convai's side, and "Forget" clears the twin with the original, like a multilingual twin). Rules:
+
+- Only on Convai's shared plan, as the multilingual twins are (a player's own Convai key has no twins).
+- A key **without** a twin keeps the normal Convai character, plus the pack's world rules through the dynamic info. Its Convai-side memory is then the normal one, shared with the pack's talks.
+- **With the multilingual twins:** a turn that goes to a character's multilingual twin (a message that is clearly not English, or a fixed Voice language other than English) keeps using it, because it answers in the
+  player's language and the pack's twin is English only. Every other turn uses the pack's twin. (The pack's world rules reach the multilingual twin through the dynamic info like everyone's.)
+- A twin for a key the mod has no Convai character for, with an id that another character already uses, or whose provider key (`<profile key>-<pack id>`) does not fit, is left out with one log line.
+- The twin's text must carry the ownership marker `[CyberpunkConvai profile v2:<profile key>:<pack id>]`, as a multilingual twin carries `...:multilingual]`, so the memory guards accept it.
+- Switching the pack off goes back to the normal character ids at the next idle moment (the bridge retires the connections of the characters whose route changed).
+
+### Memory
+
+With `"memory": "separate"`, while the pack is on, the text providers (Mistral, Local AI, Custom) keep each character's memory (the recent turns, summaries, facts about V, phone and group history, shopkeepers' memory of V) under the key `<profile key>@<pack id>`,
+so talks in the pack's world and normal talks never mix. Turning the pack off returns to the normal memory, untouched; turning it on again resumes the pack's. Nothing is moved, copied or deleted.
+**Forget memories** (the Memory page of the Companion Manager, and the character editor) acts on the memory in use, and the Memory page names it ("Memory in use"). The player's own hand-written memories of a character
+(editor) are shared. Shopkeepers' memory of V splits the same way even when Convai answers. Convai's own memory is the Convai characters' (see "Convai twins"). The last pack that is on and says `separate` decides.
+With `"shared"` (the default) nothing changes.
+
+### Older main mods
+
+A pack asks for 1.1. The bridge of an older main mod (1.0) reads the manifest, sees `requires.api` "1.1" and logs `needs add-on API 1.1; this AI NPC Cyberpunk Mod has 1.0` (status `incompatible` in
+`runtime/addons-status.json`) and skips the pack. Because a pack has no `init.lua`, **an old game side never reads that file, so the player is not shown a notice**: say "needs AI NPC Cyberpunk Mod 0.3.2 or newer" on the pack's page.
+To get the in-game notice on an old main mod too, a pack may ship a tiny `init.lua` that only registers for the notice:
+
+```lua
+registerForEvent('onInit', function()
+    local main = GetMod('AiNpcCyberpunkMod')
+    local api = type(main) == 'table' and main.addons or nil
+    if api and not api.compatible('1.1') then api.register({id = 'medieval', name = 'Medieval AI NPCs', version = '1.0.0', requires = '1.1'}) end
+end)
+```
+
+On a main mod with API 1.1 or newer it does nothing; on an older one `register` refuses and shows the "needs a newer AI NPC Cyberpunk Mod" notice. The builder ships it (a pack with an `init.lua` is built as any add-on).
+
+### Problems the player is told about
+
+At the first gameplay tick the game reads `runtime/addons-status.json` once and shows one notice for each add-on or pack the bridge could not load: "<name> could not load: <reason>" (an invalid pack: the reason names the
+field, for example `content.prompting.mistral: sampling.topK is not valid (not-for-mistral)`) or "<name> needs a newer AI NPC Cyberpunk Mod (...)". Nothing else changes and the other add-ons still load.
+
+### Testing a pack
+
+`node --test bridge/addon-content.test.mjs bridge/addon-content-characters.test.mjs addons/example-content/example-content.test.mjs` (the format, precedence, providers, toggles, Convai and memory), and
+`node packaging/build-addon.mjs addons/example-content --out dist/addons` to see the zip. In the game: copy the folder into the CET mods folder as `AiNpcCyberpunkMod<Name>`, start the game, open Settings > Content packs, talk to a character on
+Mistral or Local AI, switch the pack off, talk again.
+
 ## Packaging
 
 ```
 node packaging/build-addon.mjs addons/example --out dist/addons       # any add-on folder, in this repository or outside it
 → dist/addons/AI-NPC-Cyberpunk-Mod-Example-1.0.0.zip
     bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkModExample/{init.lua, convai-addon.json, bridge.mjs}
+node packaging/build-addon.mjs addons/example-content --out dist/addons   # a content pack: no init.lua
+→ dist/addons/AI-NPC-Cyberpunk-Mod-ExampleContent-1.0.0.zip
+    bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkModExampleContent/{convai-addon.json, characters.json, README.md}
 ```
+
+A content pack with no speaker and no bridge module is built **without** an `init.lua`; its `characters` and `namePools` files are checked by the same code the bridge uses and must be in the folder. A `LICENSE` file (no
+extension) ships too. There is one zip for every supported game: the builder has no game option and the name has no game suffix.
 
 The two shipping add-ons build their own zips with a self-contained copy of this builder (`tools/build.mjs` in each repository; same
 files, same bytes, no main checkout needed). If the rules below change here, change them there too.
@@ -806,6 +966,7 @@ files, same bytes, no main checkout needed). If the rules below change here, cha
 | `addons-status.json` | bridge → game, once at start | which add-ons were found, and why any was not loaded (the game shows one notice per problem) |
 | `addon-state.json` | game → bridge, at most twice a second, only when changed | `{version, updated, addons: {<id>: {companionContext, state, modes, memories, warm}}}` |
 | `addon-settings.json` | game → bridge, on Apply | `{version: 1, addons: {<id>: {<setting>: value}}}` |
+| `content-names.json`, `content-name-pools.json` | bridge → game, once at start | the new names and the name pools of every installed content pack (empty when there is none); the game applies the packs that are on (`mod/content-names.lua`). A pack's switch is `addon-settings.json` `{<pack id>: {contentEnabled: false}}` |
 | `addon-journal.json` (state folder) | bridge only | each speaker's last 12 lines and 12 memories |
 | `last-input.json`, `reply.json`, `reaction-lease.json` | the existing turn files | a remark is an automatic request with `reaction: {kind: 'addon', addon, speaker, event, priority, expiresAt}` and `addon: {id, speaker, event, text, facts, maxWords, mode, blocks}` |
 

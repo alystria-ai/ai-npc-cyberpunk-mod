@@ -1478,7 +1478,8 @@ local function readContentPacks(force)
         for _, entry in ipairs(doc.addons) do
             if type(entry) == 'table' and entry.status == 'ready' and type(entry.content) == 'table' and type(entry.id) == 'string'
                     and entry.id:match('^[a-z][a-z0-9%-]*$') and #entry.id <= 24 and #packs < 8 then
-                packs[#packs + 1] = {id = entry.id, name = trim(entry.name, 60) or entry.id}
+                -- `memory = 'separate'`: the pack keeps a memory of its own while it is on (the bridge says so in the entry's content; shared packs say nothing).
+                packs[#packs + 1] = {id = entry.id, name = trim(entry.name, 60) or entry.id, memory = entry.content.memory == 'separate' and 'separate' or nil}
             end
         end
     end
@@ -1490,8 +1491,23 @@ end
 function M.contentPacks()
     loadSettings()
     local list = {}
-    for _, pack in ipairs(readContentPacks(false)) do list[#list + 1] = {id = pack.id, name = pack.name, enabled = contentEnabled(pack.id)} end
+    for _, pack in ipairs(readContentPacks(false)) do list[#list + 1] = {id = pack.id, name = pack.name, enabled = contentEnabled(pack.id), memory = pack.memory} end
     return list
+end
+
+--- Which memory the characters' memories page acts on. Returns `installed, name`: `installed` is true when a pack that keeps a separate memory is installed (on or
+--- off); `name` is that pack's name while it is switched on (the last such pack in the bridge's order, as the bridge picks it), else nil (the normal memory is in use).
+--- Reads the status file at most every 3 s, as contentPacks does; nothing else.
+function M.contentMemory()
+    loadSettings()
+    local installed, name = false, nil
+    for _, pack in ipairs(readContentPacks(false)) do
+        if pack.memory == 'separate' then
+            installed = true
+            if contentEnabled(pack.id) then name = pack.name end
+        end
+    end
+    return installed, name
 end
 
 --- Is this content pack switched on (the player's saved choice; on by default)? Reads the settings file once; no other file.

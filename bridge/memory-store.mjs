@@ -10,6 +10,7 @@ import {readFile, readdir as readDirectory, rename as renameFile, rm, mkdir} fro
 import {join, dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 import {MEMORY_LIMITS} from './mistral-memory.mjs';
+import {MEMORY_KEY, MEMORY_FILE_NAME, scopeOf, fileScope, ambientId, ambientIn, overflowing} from './memory-scope.mjs';
 
 export const STORE_LIMITS = Object.freeze({
   ...MEMORY_LIMITS,
@@ -24,8 +25,9 @@ export const STORE_LIMITS = Object.freeze({
 export const RECORD_KINDS = Object.freeze(['fact', 'event', 'preference', 'relationship', 'promise']);
 
 const CHANNELS = ['private', 'phone', 'group'];
-const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
-const FILE = /^([a-z0-9][a-z0-9-]{0,79})\.json$/;
+// A key is a profile key, or `<profile key>@<pack id>` while a content pack keeps a separate memory (bridge/memory-scope.mjs).
+const KEY = MEMORY_KEY;
+const FILE = MEMORY_FILE_NAME;
 const CONTROL = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
 const SAVE_MS = 800;
 const EXTRACT_COUNT = 6;          // exchanges that trigger an extraction at once
@@ -99,7 +101,8 @@ export class MemoryStore {
     this.rows = new Map(); this.ambient = new Map();
     this.generation = 0;           // bumped by every forget: summaries, extractions and retrievals that began earlier are discarded
     this.extractor = null; this.extractorCanRun = null;
-    this.dirty = new Set(); this.removedKeys = new Set(); this.wipeAll = false;
+    this.dirty = new Set(); this.removedKeys = new Set();
+    this.wipes = new Set();        // the memories ('' = the normal one, else a content pack's id) whose files the next save removes whole (Forget everything)
     this.damaged = new Set();      // characters whose file the load could not use: kept aside (<key>.json.corrupt) before a save writes over it
     this.saving = Promise.resolve(); this.saveTimer = null;
     this.workTimer = null; this.workDue = Infinity; this.running = null;
@@ -198,16 +201,16 @@ export class MemoryStore {
     if (!row) { row = emptyRow(); this.rows.set(key, row); }
     return row;
   }
+  // Each memory (the normal one, and each content pack's) keeps at most `characters` characters: a pack's talks never push the normal ones out.
   #trim() {
-    while (this.rows.size > this.limits.characters) {
-      const oldest = [...this.rows].sort((a, b) => a[1].updated - b[1].updated)[0];
-      this.rows.delete(oldest[0]);
-      this.dirty.delete(oldest[0]); this.removedKeys.add(oldest[0]);
+    for (const key of overflowing(this.rows, this.limits.characters)) {
+      this.rows.delete(key);
+      this.dirty.delete(key); this.removedKeys.add(key);
     }
   }
   /** {summary, turns} for a conversation. `ambientKey` (an ordinary NPC's conversation) uses the in-memory history. */
   recall({profileKey, channel = 'private', ambientKey}) {
-    if (ambientKey) return {summary: '', turns: [...(this.ambient.get(ambientKey) ?? [])]};
+    if (ambientKey) return {summary: '', turns: [...(this.ambient.get(ambientId(profileKey, ambientKey)) ?? [])]};
     const row = this.rows.get(profileKey);
     if (!row) return {summary: '', turns: []};
     return {summary: channel === 'group' ? '' : row.summary, turns: [...(row.channels[channel] ?? [])]};
@@ -217,9 +220,10 @@ export class MemoryStore {
     const turn = {v: clean(v, this.limits.line), r: clean(r, this.limits.line), at: this.now()};
     if (!turn.v || !turn.r) return false;
     if (ambientKey) {
-      const turns = this.ambient.get(ambientKey) ?? [];
+      const id = ambientId(profileKey, ambientKey);
+      const turns = this.ambient.get(id) ?? [];
       turns.push(turn);
-      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
+      this.ambient.delete(id); this.ambient.set(id, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
       while (this.ambient.size > this.limits.ambient) this.ambient.delete(this.ambient.keys().next().value);
       return true;
     }
@@ -588,23 +592,31 @@ export class MemoryStore {
   /**
    * Clears memory: everything, or the given profile keys. Deletes the rows, vectors and files, cancels timers and the running job,
    * and clears the in-memory ordinary-NPC conversations. Returns the number of characters removed.
+   * `scope` (all: true only) is the memory to clear everything of: null for the normal one, or the id of a content pack that keeps a separate memory
+   * (bridge/memory-scope.mjs). The other memories are not touched, in memory or on disk. Keys named in `profileKeys` carry their pack in the key (`judy@medieval`).
    */
-  forget({all = false, profileKeys = []} = {}) {
+  forget({all = false, profileKeys = [], scope = null} = {}) {
     this.generation++;
     this.running?.controller.abort();
     this.#disarm();
     let removed = 0;
+    const cleared = new Set();      // the memories whose in-memory ordinary-NPC conversations go too
     if (all) {
-      removed = this.rows.size;
-      this.rows.clear(); this.dirty.clear(); this.removedKeys.clear(); this.damaged.clear(); this.wipeAll = true;
+      const mine = scope || '';
+      cleared.add(mine);
+      for (const key of [...this.rows.keys()]) if (scopeOf(key) === mine) { this.rows.delete(key); removed++; }
+      for (const set of [this.dirty, this.removedKeys, this.damaged]) for (const key of [...set]) if (scopeOf(key) === mine) set.delete(key);
+      this.wipes.add(mine);
     } else {
       for (const key of profileKeys) {
         if (!KEY.test(key ?? '')) continue;
+        cleared.add(scopeOf(key));
         if (this.rows.delete(key)) removed++;
         this.dirty.delete(key); this.removedKeys.add(key); this.damaged.delete(key);
       }
+      if (!cleared.size) cleared.add(scope || '');
     }
-    this.ambient.clear();
+    for (const id of [...this.ambient.keys()]) for (const mine of cleared) if (ambientIn(id, mine)) { this.ambient.delete(id); break; }
     void this.flush().catch(() => {});
     this.#plan();
     return removed;
@@ -617,7 +629,7 @@ export class MemoryStore {
     this.#saveSoon();
   }
   #saveSoon() {
-    if (!this.root || !(this.dirty.size || this.removedKeys.size || this.wipeAll)) return;
+    if (!this.root || !(this.dirty.size || this.removedKeys.size || this.wipes.size)) return;
     if (this.saveTimer) this.clearTimer(this.saveTimer);
     this.saveTimer = this.setTimer(() => { this.saveTimer = null; void this.flush().catch(() => {}); }, SAVE_MS);
     this.saveTimer?.unref?.();
@@ -643,17 +655,18 @@ export class MemoryStore {
   /** Writes the changed characters now (off the speech path; also at shutdown and in tests). Only changed characters are rewritten. */
   flush() {
     if (this.saveTimer) { this.clearTimer(this.saveTimer); this.saveTimer = null; }
-    if (!this.root || !(this.dirty.size || this.removedKeys.size || this.wipeAll)) return this.saving;
-    const wipe = this.wipeAll, removals = [...this.removedKeys];
+    if (!this.root || !(this.dirty.size || this.removedKeys.size || this.wipes.size)) return this.saving;
+    const wipe = new Set(this.wipes), removals = [...this.removedKeys];
     const writes = [...this.dirty].filter(key => this.rows.has(key)).map(key => [key, this.#document(key, this.rows.get(key))]);
-    this.wipeAll = false; this.removedKeys.clear(); this.dirty.clear();
+    this.wipes.clear(); this.removedKeys.clear(); this.dirty.clear();
     this.saving = this.saving.catch(() => {}).then(async () => {
       try {
-        if (wipe) {
+        if (wipe.size) {
+          // Everything of the normal memory (every file that is not a content pack's), and/or everything of the packs named; a pack's files stay when only the normal memory is wiped.
           let names = [];
           try { names = await this.readdir(this.root); } catch { /* no folder yet */ }
-          for (const name of names) await this.remove(join(this.root, name)).catch(() => {});
-          if (this.legacyPath) for (const path of [this.legacyPath, this.legacyPath + '.migrated']) await this.remove(path).catch(() => {});
+          for (const name of names) if (wipe.has(fileScope(name))) await this.remove(join(this.root, name)).catch(() => {});
+          if (this.legacyPath && wipe.has('')) for (const path of [this.legacyPath, this.legacyPath + '.migrated']) await this.remove(path).catch(() => {});
         }
         for (const key of removals) for (const path of [this.#path(key), this.#path(key) + '.corrupt']) await this.remove(path).catch(() => {});
         let failure = null;

@@ -170,6 +170,9 @@ end
 function M.configure(env)
     M.env = type(env) == 'table' and env or {}
     local rows = type(M.env.contacts) == 'function' and M.env.contacts() or readJson('phone-contacts.json')
+    -- A content pack's new name for a character (mod/content-names.lua): the call screen and the notices use the contact's name.
+    local named, contentNames = pcall(dofile, 'content-names.lua')
+    if named and type(contentNames) == 'table' and type(contentNames.applyRows) == 'function' then pcall(contentNames.applyRows, rows) end
     M.catalog = M.loadCatalog(rows)
     M.sweepDue, M.lenses = true, nil
 end

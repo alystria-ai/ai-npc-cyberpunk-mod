@@ -7,7 +7,8 @@
 --     and kept in a small file (npc-names.json, 128 names at most), so the shopkeeper keeps the name across sessions too.
 --   * Trait-driven: gender from the body, the archetype kind the catalog resolved (gang, police, corporate, vendor kind,
 --     resident kind), the affiliation (corporate employer), and tokens of the appearance and record names.
---   * Curated pools (mod/npc-name-pools.lua, generated from characters/npc-name-pools.json), loaded once on first need.
+--   * Curated pools (mod/npc-name-pools.lua, generated from characters/npc-name-pools.json), loaded once on first need. A content pack's
+--     pools (mod/content-names.lua) replace them while its switch is on; a saved vendor name stays, the pack's pools name the ones made after.
 --   * Realistic first and last names; a mild street handle on a share of them ("Rico 'Chrome' Alvarez"). Never the name of
 --     a named game character (the pools' blocked list is re-rolled).
 --
@@ -295,8 +296,22 @@ function M.new(options)
     end
     local function log(line) if options.log then pcall(options.log, line) end end
 
+    -- A content pack's pools (mod/content-names.lua, the last enabled pack that has some) replace the shipped ones. Asked once, on the first
+    -- need, with the shipped pools. A vendor that already has a saved name keeps it (the file below): the pack's pools apply to names made after.
+    local function packPools()
+        if options.contentPools then return options.contentPools() end
+        if options.loadPools ~= nil then return nil end
+        local named, contentNames = pcall(dofile, 'content-names.lua')
+        if named and type(contentNames) == 'table' and type(contentNames.pools) == 'function' then return contentNames.pools() end
+        return nil
+    end
     local function loadPools()
         if pools then return pools end
+        local packOk, pack = pcall(packPools)
+        if packOk and type(pack) == 'table' and type(pack.cultures) == 'table' and type(pack.styles) == 'table' then
+            pools = pack
+            return pools
+        end
         local loader = options.loadPools or function() return dofile('npc-name-pools.lua') end
         local ok, loaded = pcall(loader)
         if ok and type(loaded) == 'table' and type(loaded.cultures) == 'table' then pools = loaded end

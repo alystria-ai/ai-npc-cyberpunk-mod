@@ -8,6 +8,7 @@
 // "Forget" (the Memory page) clears this memory too. Nothing here calls any service.
 import {readFile} from 'node:fs/promises';
 import {atomicFile} from './guarded-file.mjs';
+import {MEMORY_KEY, scopeOf, ambientId, ambientIn, overflowing} from './memory-scope.mjs';
 
 export const MEMORY_FILE = 'mistral-memory.json';
 export const MEMORY_LIMITS = Object.freeze({
@@ -27,7 +28,7 @@ export const MEMORY_LIMITS = Object.freeze({
 });
 
 const CHANNELS = ['private', 'phone', 'group'];
-const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
+const KEY = MEMORY_KEY;   // a profile key, or `<profile key>@<pack id>` while a content pack keeps a separate memory (bridge/memory-scope.mjs)
 const CONTROL = new RegExp('[\u0000-\u001f\u007f-\u009f  ]', 'g');
 const clean = (value, limit) => {
   const points = Array.from(String(value ?? '').replace(CONTROL, ' ').replace(/\s+/g, ' ').trim());
@@ -75,14 +76,11 @@ export class MistralMemory {
     return row;
   }
   #trim() {
-    while (this.rows.size > this.limits.characters) {
-      const oldest = [...this.rows].sort((a, b) => a[1].updated - b[1].updated)[0];
-      this.rows.delete(oldest[0]);
-    }
+    for (const key of overflowing(this.rows, this.limits.characters)) this.rows.delete(key);   // each memory (the normal one, a pack's) has its own limit
   }
   /** {summary, turns} for a conversation. `ambientKey` (an ordinary NPC's conversation) uses the in-memory history. */
   recall({profileKey, channel = 'private', ambientKey}) {
-    if (ambientKey) return {summary: '', turns: [...(this.ambient.get(ambientKey) ?? [])]};
+    if (ambientKey) return {summary: '', turns: [...(this.ambient.get(ambientId(profileKey, ambientKey)) ?? [])]};
     const row = this.rows.get(profileKey);
     if (!row) return {summary: '', turns: []};
     return {summary: channel === 'group' ? '' : row.summary, turns: [...(row.channels[channel] ?? [])]};
@@ -92,9 +90,10 @@ export class MistralMemory {
     const turn = {v: clean(v, this.limits.line), r: clean(r, this.limits.line), at: this.now()};
     if (!turn.v || !turn.r) return false;
     if (ambientKey) {
-      const turns = this.ambient.get(ambientKey) ?? [];
+      const id = ambientId(profileKey, ambientKey);
+      const turns = this.ambient.get(id) ?? [];
       turns.push(turn);
-      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
+      this.ambient.delete(id); this.ambient.set(id, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
       while (this.ambient.size > this.limits.ambient) this.ambient.delete(this.ambient.keys().next().value);
       return true;
     }
@@ -140,13 +139,20 @@ export class MistralMemory {
   /**
    * Clears memory: everything, or the given profile keys (and, for a key, its whole conversation set). Returns the number of
    * characters removed. The in-memory ordinary-NPC conversations are cleared with it.
+   * `scope` (all: true only): null for the normal memory, or the id of a content pack that keeps a separate memory (bridge/memory-scope.mjs); the others stay.
    */
-  forget({all = false, profileKeys = []} = {}) {
+  forget({all = false, profileKeys = [], scope = null} = {}) {
     this.generation++;
     let removed = 0;
-    if (all) { removed = this.rows.size; this.rows.clear(); }
-    else for (const key of profileKeys) if (this.rows.delete(key)) removed++;
-    this.ambient.clear();
+    const cleared = new Set();
+    if (all) {
+      cleared.add(scope || '');
+      for (const key of [...this.rows.keys()]) if (scopeOf(key) === (scope || '')) { this.rows.delete(key); removed++; }
+    } else {
+      for (const key of profileKeys) { cleared.add(scopeOf(key)); if (this.rows.delete(key)) removed++; }
+      if (!cleared.size) cleared.add(scope || '');
+    }
+    for (const id of [...this.ambient.keys()]) for (const mine of cleared) if (ambientIn(id, mine)) { this.ambient.delete(id); break; }
     this.#schedule(0);
     return removed;
   }

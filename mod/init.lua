@@ -48,6 +48,13 @@ do
     local restoreLoaded, restoreModule = pcall(dofile, 'state-restore.lua')
     convaiStateRestore = restoreLoaded and type(restoreModule) == 'table' and restoreModule or nil
 end
+-- Add-on API (mod/addons.lua, docs/ADDON_API.md). A global, so no function here gains an upvalue. Until an add-on registers,
+-- convaiAddons.live is false and every call below is skipped: the main mod behaves exactly as it does without the file.
+-- Loaded before the catalogs (companions.lua, the roster below): a content pack's new names (mod/content-names.lua) ask it which packs are on.
+do
+    local loaded, module = pcall(dofile, 'addons.lua')
+    convaiAddons = loaded and type(module) == 'table' and module or nil
+end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The single gate for on-screen notices (notices.lua, docs/NOTIFICATIONS.md). If it cannot load, nothing is shown.
 local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')
@@ -132,12 +139,6 @@ local tactics = tacticModule('companion-tactics.lua', {env = tacticEnv}, {
     update = function() end, abandon = function() end, cancel = function() end})
 companions.tactics = tactics
 convaiCompanionTactics, convaiTargetMarking = tactics, marking
--- Add-on API (mod/addons.lua, docs/ADDON_API.md). A global, so no function here gains an upvalue. Until an add-on registers,
--- convaiAddons.live is false and every call below is skipped: the main mod behaves exactly as it does without the file.
-do
-    local loaded, module = pcall(dofile, 'addons.lua')
-    convaiAddons = loaded and type(module) == 'table' and module or nil
-end
 local lootObserver = dofile('loot-observer.lua')
 local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
@@ -566,6 +567,10 @@ do
             supportedProfiles[profile.key] = true
             if type(profile) == 'table' then for _, field in ipairs(bridgeOnly) do profile[field] = nil end end
         end
+        -- Content packs (mod/content-names.lua): the new names of the packs that are on are laid over the rows here, once, so every reader of
+        -- the roster (the catalog, the manager, the phone, the party) shows them; the old name stays an alias. A switch counts from the next game start.
+        local namesLoaded, contentNames = pcall(dofile, 'content-names.lua')
+        if namesLoaded and type(contentNames) == 'table' then pcall(contentNames.applyRows, profiles) end
     end
 end
 -- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
@@ -579,7 +584,12 @@ if type(manager.configureArchetypes) == 'function' then
         type(characterCatalog.classifyRecord) == 'function'
             and function(facts) return (characterCatalog.classifyRecord(archetypes, facts)) end or nil,
         type(characterCatalog.archetypeLabel) == 'function'
-            and function(key) return characterCatalog.archetypeLabel(archetypes, key) end or nil)
+            and function(key)
+                local label = characterCatalog.archetypeLabel(archetypes, key)
+                -- A content pack may rename an archetype too (mod/content-names.lua, loaded with the roster above): its name, else the shipped label.
+                if type(convaiContentNames) == 'table' then label = convaiContentNames.label(key, label) end
+                return label
+            end or nil)
 end
 -- mark: an add-on speaker's own caption carries a small tag when its "Mark our lines" is on (mod/addons.lua captionName).
 subtitles.configure({style = manager.subtitleStyle, mark = function(profileKey, name)

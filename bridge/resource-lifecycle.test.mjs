@@ -330,7 +330,7 @@ test('the bridge releases what settings stop using: facial model, renderer pages
   assert.match(bridge, /phoneRealtime\.releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS\}\)/);
   assert.match(bridge, /if \(voiceBoundaryBusy\(\) \|\| voiceRouteReservation \|\| keySwitching \|\| providerSwitching\) return;/, 'pages only between turns');
   assert.match(bridge, /else audioWatch\.suspend\(\);/);
-  assert.match(bridge, /if \(!mistral\.active && !addonHost\.active\) void localEmbedder\.close\(\)/);
+  assert.match(bridge, /if \(!mistral\.active && !addonHost\.hasSpeakers\) void localEmbedder\.close\(\)/);
   assert.match(bridge, /ready: key => localVoice\.vRouteSpeaks\(key\),/, 'V speaks with playback Off while his setting is on');
   assert.doesNotMatch(bridge, /ready: key => localVoice\.playbackEnabled/);
   assert.match(bridge, /const muted = localVoice\.silent;/, 'no grace period: the release follows the setting');

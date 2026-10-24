@@ -232,7 +232,7 @@ test('Convai: the rules are a block of the dynamic info, only while no text prov
 
 test('the bridge puts the Convai block after the facts of the game and before the voice and style notes, and builds the persona book with the store', async () => {
   const source = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(source, /phoneRecentConversationContext\(prepared\.input\) : ''\),(?:\s*\/\/[^\n]*\n)+\s*\.\.\.convaiWorldRulesBlocks\(worldRules\.get\(\), mistral\.active\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', followUpContext\(input\)\)/);
+  assert.match(source, /phoneRecentConversationContext\(prepared\.input\) : ''\),(?:\s*\/\/[^\n]*\n)+\s*\.\.\.convaiWorldRulesBlocks\(addonContent\.convaiWorldRulesText\(worldRules\.get\(\)\), mistral\.active\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', followUpContext\(input\)\)/);
   assert.match(source, /WorldRules\.open\(\{dir: stateDirectory/);
   assert.match(source, /new PersonaBook\(roster, \{[^}]*worldRules\}\)/);
   assert.match(source, /new CharacterEditor\(\{[^]*?worldRules,/);

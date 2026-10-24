@@ -28,6 +28,7 @@ import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor, MATURE_PROVIDERS} from './mature-content.mjs';
 import {profileSignature} from './prompt-profiles.mjs';
 import {extraFields} from './sampler-extras.mjs';
+import {baseOf} from './memory-scope.mjs';
 
 const isTag = group => hasEmotionTag(group);
 const pause = (ms, signal) => new Promise((resolve, reject) => {
@@ -473,13 +474,16 @@ export class TextProviderHost {
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
    * spokenLines  (profileKey) => the speaker's own recent lines (an add-on's journal, remarks included): a conversation reply that says one
    *                again is held back from the voice while it matches and is written once more when it is one
+   * memoryKeyFor  (profileKey) => the key the character's memory is kept under now (bridge/memory-scope.mjs): the profile key, or `<profile key>@<pack id>` while a content pack with
+   *                a separate memory is on. Taken once when a turn starts and used to its end (the exchange it records, the summary that follows), so a switch in the middle of a turn
+   *                never moves it into the other memory. Without it the profile key is the memory key, as before.
    * stripPlayerEcho  true for an add-on's host: a conversation reply that opens by saying V's own line again (or writes V's side of the talk as a
    *                script) loses those words, in the text the voice is given as it streams and in the finished reply (stripPlayerEcho in mistral-prompt.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, traceReaction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null, promptProfiles = null} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, traceReaction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null, promptProfiles = null, memoryKeyFor = null} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, traceReaction, matureContent, matureGuard, guardOnly, echoCut, spokenLines, promptProfiles});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, traceReaction, matureContent, matureGuard, guardOnly, echoCut, spokenLines, promptProfiles, memoryKeyFor});
     this.summaries = new Set();
     this.stoppable = new Set();   // the controllers of background requests that give way to a turn (a local summary)
     this.matureLogged = new Set();
@@ -614,7 +618,7 @@ export class TextProviderHost {
       if (done) return;
       done = true;
       this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
-      this.#summarize(route, profileKey);
+      this.#summarize(route, profileKey, memoryKey.profileKey);
     };
     if (typeof deferRecord === 'function') deferRecord(commit);
     else if (!signal?.aborted) commit();
@@ -634,7 +638,8 @@ export class TextProviderHost {
     for (const stopper of [...this.stoppable]) { this.stoppable.delete(stopper); try { stopper.abort(); } catch { /* already over */ } }
     const persona = this.personas.persona(local.profileKey, local.name);
     const reaction = !!config.reaction;
-    const memoryKey = {profileKey: local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
+    // The memory key is taken once here (a content pack with a separate memory may be switched while the turn runs); the persona and everything else keep the profile key.
+    const memoryKey = {profileKey: this.memoryKeyFor ? this.memoryKeyFor(local.profileKey) : local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
     // The stream the reply text goes through: the voice's, or one that only marks the first sentence on the turn's clock.
     const feed = stream ?? new ReplyStream({name: persona.name, isTag, speak: false});
     // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
@@ -1115,13 +1120,14 @@ export class TextProviderHost {
   // Folds older exchanges into the character's summary, one request per `batch` exchanges, never while one is running for the
   // character and not at all while the provider is known to refuse requests. Fire and forget: the reply is already on its way.
   // The fully local route also waits until background work may run, so it never competes with a reply or a fight for the GPU.
-  #summarize(route, profileKey) {
+  // `key` is the memory key the turn took (bridge/memory-scope.mjs): the summary reads and writes that memory only, even if a content pack is switched meanwhile.
+  #summarize(route, profileKey, key = profileKey) {
     if (!route.summarizeAllowed()) return;
-    if (this.summaries.has(profileKey)) return;
-    const batch = this.memory.pendingSummary(profileKey);
+    if (this.summaries.has(key)) return;
+    const batch = this.memory.pendingSummary(key);
     if (!batch) return;
-    this.summaries.add(profileKey);
-    this.memory.beginSummary(profileKey);
+    this.summaries.add(key);
+    this.memory.beginSummary(key);
     const name = this.personas.persona(profileKey).name;
     const work = async () => {
       // On the local AI a summary gives way to a turn: the model has one slot, a summary on a computer the game keeps busy takes tens of seconds, and a line V typed
@@ -1135,16 +1141,16 @@ export class TextProviderHost {
         const response = await this.#request(route, summaryMessages({name, summary: batch.summary, turns: batch.turns}), stopper?.signal,
           {maxTokens: 260, temperature: 0.3, retries: 1, totalMs: 40000, background: route.name === 'local', priority: 'background'});
         const text = cleanReply(response.text, {name, isTag});
-        if (!this.memory.applySummary(profileKey, text, batch)) this.memory.failSummary(profileKey);
+        if (!this.memory.applySummary(key, text, batch)) this.memory.failSummary(key);
       } catch (error) {
-        this.memory.failSummary(profileKey);
+        this.memory.failSummary(key);
         // Put off, not failed: a turn needed the model (or one is being served, or other background work holds the slot); the next quiet moment tries again.
         if (stopper?.signal.aborted) this.log('summary put off: a turn needed the local model');   // folded in after a later turn's reply
         else if (error?.reason === 'busy') again = true;   // a turn, or other background work, holds the slot: asked again in a few seconds, no log line
         else this.log('summary failed: ' + (failureKind(error) ?? 'error'));
       } finally {
-        this.summaries.delete(profileKey); if (stopper) this.stoppable.delete(stopper);
-        if (again && !this.closed) this.#later(() => this.#summarize(route, profileKey), this.idleRetryMs);
+        this.summaries.delete(key); if (stopper) this.stoppable.delete(stopper);
+        if (again && !this.closed) this.#later(() => this.#summarize(route, profileKey, key), this.idleRetryMs);
       }
     };
     if (route.name === 'local' || this.gate) this.#whenIdle(() => { void work(); }); else void work();
@@ -1156,7 +1162,7 @@ export class TextProviderHost {
     if (!this.provider.active) throw Object.assign(new MistralError('request', 'extraction is not available on this route'), {retryLater: true});
     const route = this.routes[this.provider.route];
     if (!route || !route.summarizeAllowed()) throw new MistralError('request', 'cannot extract facts now');
-    const name = this.personas.persona(profileKey).name;
+    const name = this.personas.persona(baseOf(profileKey)).name;   // the store's key may carry a content pack (`judy@medieval`): the persona is the character's
     let response;
     try {
       response = await this.#request(route, factMessages({name, turns, known}), signal,

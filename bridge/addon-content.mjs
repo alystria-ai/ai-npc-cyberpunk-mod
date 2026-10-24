@@ -188,10 +188,14 @@ export class AddonContent {
     this.#named = changed > 0;
     const known = new Set(rows.map(row => row?.key));
     for (const addon of this.#all()) for (const key of Object.keys(addon.content.characters ?? {})) {
-      if (!known.has(key)) this.#once(`unknown:${addon.id}:${key}`, `Content pack ${addon.id} names ${key}, which is not a character of the mod: left out`);
+      if (!known.has(key) && !this.warned.has(`${addon.id}:${key}`)) {
+        this.warned.add(`${addon.id}:${key}`);
+        this.log(`Content pack ${addon.id} names ${key}, which is not a character of the mod: left out`);
+      }
     }
   }
   #named = false;
+  warned = new Set();      // "pack:key" of the characters a pack names that the mod does not have (said once)
 
   /** The pack that keeps a separate memory while it is on (the last pack on whose manifest says memory "separate"), as its id, or null: the characters' memory then lives under `<key>@<id>`. */
   memoryScope() {

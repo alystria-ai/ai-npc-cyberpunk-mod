@@ -685,9 +685,21 @@ local function invitationBoard()
     return queue and type(queue.board) == 'function' and queue.board() or nil
 end
 
+-- A content pack that keeps a memory of its own (add-on API 1.1, `content.memory: "separate"`): `installed` is true when one is installed, `name` is its name while it is on.
+-- The bridge keeps the memory in use for the characters and Forget acts on that one only (bridge/memory-scope.mjs), so the memory page says which it is.
+local function memoryInUse()
+    if not (convaiAddons and convaiAddons.contentMemory) then return false, nil end
+    local ok, installed, name = pcall(convaiAddons.contentMemory)
+    if not ok or installed ~= true then return false, nil end
+    return true, type(name) == 'string' and name or nil
+end
+
 local function memorySettings(snapshot)
     local memory = snapshot.memory
     local pending = memory.command and memory.command.state == 'pending'
+    local separate, packName = memoryInUse()
+    local inUse = separate and (packName or ui.t('Normal memory')) or nil
+    local note = inUse and ui.t('This clears the memory in use: {memory}.', {memory = inUse}) or nil
     local rows = {
         readonly('memory-identity', 'Player memory', 'Shared across your saves',
             'Invited characters are prepared immediately. Their memories start when you actually talk to them.\n\nOne player identity is shared across all saves and stays the same after forgetting.\n\nCurrent game context describes the world you have loaded.'),
@@ -702,6 +714,11 @@ local function memorySettings(snapshot)
             'Choose any character from the list below. They do not need to be in your current party.',
             {value = memory.selectedName ~= nil}),
     }
+    -- With a content pack that has a memory of its own installed, the page names the memory Forget acts on (the pack's by name while it is on, else the normal one).
+    if separate then
+        table.insert(rows, 4, readonly('memory-in-use', 'Memory in use', inUse,
+            'Forget memories clears only the memory shown here. The other memory stays as it is.', {value = true}))
+    end
     if memory.feedback ~= '' then rows[#rows + 1] = readonly('memory-feedback', 'Memory result', memory.feedback, memory.feedback) end
     local confirmation = memory.confirmation
     if confirmation then
@@ -709,6 +726,7 @@ local function memorySettings(snapshot)
             and ui.t('Clear memories about you for all {count} characters you have talked to?',{count=confirmation.count})
             or ui.t('Clear {name}’s memories about conversations with you?',{name=confirmation.target})
         description = description .. ' ' .. ui.t('Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.')
+        if note then description = description .. ' ' .. note end
         rows[#rows + 1] = readonly('memory-confirmation', 'Confirm memory clear', description, description)
         rows[#rows + 1] = action('memory:confirm:' .. confirmation.token, 'Confirm', 'Forget memories', description,
             function() return manager.confirmMemoryClear(confirmation.token) end,
@@ -720,6 +738,7 @@ local function memorySettings(snapshot)
             memory.selectedName and ui.t('Clear {name}’s memories about conversations with you. Review an inline confirmation first.',{name=memory.selectedName})
                 or 'Choose a character before clearing their memories about you.',
             function() return manager.beginMemoryClear('character') end, memory.canClearCharacter)
+        if note then rows[#rows].description = rows[#rows].description .. '\n\n' .. note end
         -- The button says what it does, the count goes in the name: "Forget all memories (6 characters)" in the button's name budget
         -- (BUTTON_LABEL_UNITS). A count that is too wide for it (two digits, or a longer translation) is only the number, "Forget all memories (12)",
         -- and when even that does not fit the name stands alone: the row above ("Characters you have talked to") shows the count anyway.
@@ -733,6 +752,7 @@ local function memorySettings(snapshot)
         rows[#rows + 1] = action('memory:forget-all', forgetName, 'Forget',
             'Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.',
             function() return manager.beginMemoryClear('all') end, memory.canClearAll)
+        if note then rows[#rows].description = rows[#rows].description .. '\n\n' .. note end
     end
     rows[#rows + 1] = readonly('memory-chat-history', 'Phone Chat messages', 'Kept until forgotten',
         'Chat history stays available across game launches.\n\nForgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.')
@@ -1098,6 +1118,9 @@ local function pageSignature(snapshot)
             memory.selectedKey or '', memory.confirmation and memory.confirmation.token or '',
             memory.command and memory.command.id or '', memory.command and memory.command.scope or '',
             memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|'))
+        -- The page names the memory in use while a content pack with a memory of its own is installed: it redraws when that pack is switched.
+        local separate, packName = memoryInUse()
+        if separate then add('memory-in-use:' .. tostring(packName)) end
     end
     if view == 'characters' or view == 'party' then
         add(tostring(queue.message()))
@@ -1665,7 +1688,7 @@ local function schema()
             local list = {}
             for _, pack in ipairs(convaiAddons.contentPacks()) do
                 list[#list + 1] = setting('addon:' .. pack.id .. ':contentEnabled', pack.name, 'bool', pack.enabled, true,
-                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Mistral, Local AI and Custom. With Convai only its world rules apply. The change counts from the next reply.', {name = pack.name}),
+                    ui.t('Turns the content pack {name} on or off. A pack changes how the characters talk. Its prompt changes work with Mistral, Local AI and Custom. On Convai its world rules and its own Convai characters apply. A switch counts from the next reply, new names after a restart.', {name = pack.name}),
                     nil, {label = true, description = true})
             end
             if #list > 0 then categories[#categories + 1] = category('addon-content', 'Content packs', list, 'Add-ons that change how the characters talk.') end

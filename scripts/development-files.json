@@ -222,6 +222,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-name-pools.lua"
     },
     {
+      "source": "mod/content-names.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/content-names.lua"
+    },
+    {
       "source": "mod/phone-chat-style.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-chat-style.lua"
     },

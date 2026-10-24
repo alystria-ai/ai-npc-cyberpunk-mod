@@ -186,6 +186,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-name-pools.lua"
         },
         {
+          "source": "mod/content-names.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/content-names.lua"
+        },
+        {
           "source": "mod/phone-chat-style.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-chat-style.lua"
         },
@@ -617,6 +621,8 @@
           "selection": "explicit production import closure, excluding tests and retired modules",
           "status": "source-import-closure-reviewed-not-packaged",
           "sourceFiles": [
+            "bridge/addon-content-data.mjs",
+            "bridge/addon-content.mjs",
             "bridge/addon-stock.mjs",
             "bridge/addon-voice.mjs",
             "bridge/addons.mjs",
@@ -703,6 +709,7 @@
             "bridge/mature-guard-terms.mjs",
             "bridge/mature-guard.mjs",
             "bridge/mature-pack.mjs",
+            "bridge/memory-scope.mjs",
             "bridge/memory-store.mjs",
             "bridge/mic-live.mjs",
             "bridge/mic-tap.mjs",

@@ -600,7 +600,7 @@ test('an archetype twin has its own memory identity in the archetype family, and
 test('the bridge loads the twins, gives memory their markers and decides the voice per turn', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /multilingualTwins\(JSON\.parse\(await readFile\(resolve\(stateDirectory, 'multilingual-profiles\.json'\)/);
-  assert.match(bridge, /new RelationshipRouting\(\{ordinaryIds: ids, multilingual: multilingualProfiles\.twins\}\)/);
+  assert.match(bridge, /new RelationshipRouting\(\{ordinaryIds: ids, multilingual: multilingualProfiles\.twins,\s*packTwins: addonContent\.convaiTwins\(/);
   // The retired alternate profiles are gone from the wiring: nothing reads relationship-profiles.json or passes variants.
   const code = bridge.split('\n').filter(line => !/^\s*\/\//.test(line)).join('\n');
   assert.doesNotMatch(code, /relationship-profiles\.json|relationshipVariants|variants:/);

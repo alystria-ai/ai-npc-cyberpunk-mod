@@ -1207,7 +1207,8 @@ export class AddonHost {
       ...this.addons.map(addon => ({id: addon.id, name: addon.name, version: addon.version, status: 'ready',
         ...(this.moduleErrors.has(addon.id) ? {moduleError: this.moduleErrors.get(addon.id)} : {}),
         // A content pack (API 1.1): what the game lists under Settings > Content packs (mod/addons.lua contentPacks).
-        ...(addon.content ? {content: {worldRules: addon.content.worldRules.length, prompting: Object.keys(addon.content.prompting)}} : {}),
+        // `memory: "separate"` only for a pack that keeps its own memory while it is on (the game's Memory page then says which memory Forget clears); a shared one says nothing.
+        ...(addon.content ? {content: {worldRules: addon.content.worldRules.length, prompting: Object.keys(addon.content.prompting), ...(addon.content.memory === 'separate' ? {memory: 'separate'} : {})}} : {}),
         speakers: addon.speakers.map(speaker => ({id: speaker.id, profileKey: speaker.profileKey, providers: speaker.providers,
           modes: Object.keys(speaker.modes), voice: speaker.voice ? (this.voiceStatus.get(speaker.profileKey) ?? 'pending') : 'none'}))})),
       ...this.problems.map(problem => ({...(problem.id ? {id: problem.id} : {}), ...(problem.name ? {name: problem.name} : {}),

@@ -106,6 +106,17 @@ do
         end
     end
 end
+-- Content packs (mod/content-names.lua): the new names of the packs that are on, over the built-in definitions and the phone contacts, once
+-- at load (the old name stays an alias). The invite and dismiss notices and the party rows then name the character the way the roster does.
+do
+    local named, contentNames = pcall(dofile, 'content-names.lua')
+    if named and type(contentNames) == 'table' then
+        local rows = {}
+        for _, definition in pairs(records) do rows[#rows + 1] = definition end
+        for _, contact in pairs(phoneContacts) do rows[#rows + 1] = contact end
+        pcall(contentNames.applyRows, rows)
+    end
+end
 
 -- A model and a conversation identity are independent. Only definitions with
 -- an explicit profileKey participate in conversation routing or connections.

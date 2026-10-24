@@ -15,9 +15,10 @@ import {basename, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {ADDON_MANIFEST, CET_MODS, validateManifest} from '../bridge/addons.mjs';
+import {loadContentFiles} from '../bridge/addon-content-data.mjs';
 
 /** Files an add-on may ship: its CET Lua, its manifest and data, its bridge module, voice references and notes. */
-const SHIPPED = /\.(?:lua|json|mjs|js|wav|txt|md)$/i;
+const SHIPPED = /(?:\.(?:lua|json|mjs|js|wav|txt|md)|(?:^|\/)LICENSE)$/i;
 /** The voice folder: its files are cut from game audio and kept out of git, so only a reference the manifest names ships from it. */
 const VOICE_FOLDER = /(?:^|\/)voice\//;
 /** Never shipped: tests, evaluation scripts (eval/), dotfiles, dependency folders. */
@@ -56,12 +57,16 @@ export async function addonEntries(dir) {
   const files = (await walk(root)).filter(rel => !SKIPPED(rel));
   const refused = files.filter(rel => !SHIPPED.test(rel));
   if (refused.length) throw Error(`add-on ${manifest.id} has files an add-on cannot ship: ${refused.join(', ')}`);
-  const need = [manifest.bridge, ...manifest.speakers.map(speaker => speaker.voice?.reference)].filter(Boolean)
+  // A content pack (API 1.1) can name its characters or name pools in a .json file of its folder: checked here exactly as the bridge checks it at start.
+  if (manifest.content?.files) await loadContentFiles(manifest.content);
+  const need = [manifest.bridge, ...manifest.speakers.map(speaker => speaker.voice?.reference), ...Object.values(manifest.content?.files ?? {})].filter(Boolean)
     .map(path => relative(root, path).split(sep).join('/'));
   // A stray clip or a *.voice.json note in voice/ is not part of the add-on: only the references the manifest names go in the zip.
   const shipping = files.filter(rel => !VOICE_FOLDER.test(rel) || need.includes(rel));
   const listed = new Set(shipping);
-  if (!listed.has('init.lua')) throw Error(`add-on ${manifest.id} has no init.lua (CET runs it)`);
+  // A content pack with no speaker and no bridge module is only its manifest (and notes): CET ignores a folder without init.lua. Every other add-on needs init.lua.
+  const onlyContent = !!manifest.content && !manifest.speakers.length && !manifest.bridge;
+  if (!listed.has('init.lua') && !onlyContent) throw Error(`add-on ${manifest.id} has no init.lua (CET runs it)`);
   for (const rel of need) {
     if (!listed.has(rel)) throw Error(`add-on ${manifest.id}: ${rel} is named in ${ADDON_MANIFEST} but not shipped`);
   }

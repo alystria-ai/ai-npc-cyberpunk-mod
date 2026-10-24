@@ -14,6 +14,8 @@ export const CLIENT_ASSETS = Object.freeze([
 // closure. Source tests compare this allowlist with the real entry point so a
 // newly imported module cannot silently become a missing package component.
 export const BRIDGE_MODULES = Object.freeze([
+  'bridge/addon-content-data.mjs',
+  'bridge/addon-content.mjs',
   'bridge/addon-stock.mjs',
   'bridge/addon-voice.mjs',
   'bridge/addons.mjs',
@@ -100,6 +102,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/mature-guard-terms.mjs',
   'bridge/mature-guard.mjs',
   'bridge/mature-pack.mjs',
+  'bridge/memory-scope.mjs',
   'bridge/memory-store.mjs',
   'bridge/mic-live.mjs',
   'bridge/mic-tap.mjs',

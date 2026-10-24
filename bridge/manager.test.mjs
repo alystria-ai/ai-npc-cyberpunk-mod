@@ -2260,6 +2260,33 @@ test('a translation that is too wide for a button row falls back to the bare cou
   convaiUiLocale.t = original
 `));
 
+test('with a content pack that keeps a memory of its own, the memory page names the memory Forget acts on (the pack by name while it is on, the normal one when off); without such a pack nothing changes', () => run(`${nsuiFixture}${memoryFixture}
+  publishMemory(6, {})
+  openMemory()
+  local plainAll, plainCharacter = row('memory:forget-all').description, row('memory:forget-character').description
+  assert(not row('memory-in-use'), 'no content pack: no row')
+  assert(not plainAll:find('memory in use', 1, true) and not plainCharacter:find('memory in use', 1, true))
+  -- A pack that shares its memory (or none installed) reports nothing to name.
+  convaiAddons = {contentMemory = function() return false, nil end}
+  reloadMemory()
+  assert(not row('memory-in-use') and row('memory:forget-all').description == plainAll)
+  -- A pack with a separate memory is on: the page says so, by name, and every Forget row repeats it.
+  convaiAddons = {contentMemory = function() return true, 'Medieval AI NPCs' end}
+  reloadMemory()
+  assert(row('memory-in-use').label == 'Memory in use' and row('memory-in-use').value == 'Medieval AI NPCs', tostring(row('memory-in-use') and row('memory-in-use').value))
+  assert(row('memory-in-use').description:find('only the memory shown here', 1, true))
+  assert(row('memory:forget-all').description == plainAll .. '\\n\\nThis clears the memory in use: Medieval AI NPCs.', row('memory:forget-all').description)
+  assert(row('memory:forget-character').description:find('This clears the memory in use: Medieval AI NPCs.', 1, true))
+  assert(invoke('memory:forget-all').ok)
+  assert(row('memory-confirmation').description:find('This clears the memory in use: Medieval AI NPCs.', 1, true), row('memory-confirmation').description)
+  assert(invoke('memory:cancel:' .. token()).ok)
+  -- The pack is installed but switched off: the normal memory is the one in use.
+  convaiAddons = {contentMemory = function() return true, nil end}
+  reloadMemory()
+  assert(row('memory-in-use').value == 'Normal memory')
+  assert(row('memory:forget-all').description:find('This clears the memory in use: Normal memory.', 1, true))
+`));
+
 test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${nsuiFixture}${memoryFixture}
   publishMemory(0,{})
   openMemory()

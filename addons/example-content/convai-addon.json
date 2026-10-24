@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "example-content",
+  "name": "Example content pack",
+  "version": "1.0.0",
+  "requires": {"api": "1.1"},
+  "speakers": [],
+  "content": {
+    "worldRules": [
+      "In this example world people swear 'by my cyberware' now and then instead of a plain curse.",
+      "Nobody here has ever heard of Judy Alvarez by that name: she is known as Judith of the Example."
+    ],
+    "prompting": {
+      "*": {
+        "closing": {"text": "Reply as {name}: answer what V just said, in one to three short sentences. Work in the oath 'by my cyberware' once in a while. No invented facts."}
+      }
+    },
+    "characters": "characters.json",
+    "memory": "separate"
+  }
+}

@@ -1,6 +1,7 @@
 import {mkdir, readFile, rename, rm} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
+import {SCOPE_ID, scopeOf} from './memory-scope.mjs';
 
 // Vendor memory (docs/PLAYER_MEMORY.md, "Vendor memory"): a shopkeeper V comes back to remembers V.
 //
@@ -28,6 +29,11 @@ const PLACEHOLDER = /^\[microphone\]$/i;
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 export const validMemoryKey = value => typeof value === 'string' && KEY.test(value);
+// While a content pack with a separate memory is on (bridge/memory-scope.mjs), a vendor is kept under `<record>@<pack id>`: the normal visits and the pack's stay apart,
+// in the same file. `scope` is null for the normal memory. A scope that is not a pack id is refused rather than taken for the normal memory.
+const validScope = scope => scope === null || scope === undefined || (typeof scope === 'string' && SCOPE_ID.test(scope));
+const slotOf = (key, scope) => scope ? `${key.toLowerCase()}@${scope}` : key.toLowerCase();
+const validSlot = value => typeof value === 'string' && validMemoryKey(value.split('@')[0]) && (!value.includes('@') || (value.split('@').length === 2 && SCOPE_ID.test(scopeOf(value))));
 
 /** One line of dialogue: control characters and runs of whitespace collapse, double quotes become single quotes
  * (the context quotes each line), and the text is clipped by code points so no character is split. */
@@ -66,7 +72,7 @@ function readDocument(text, limits) {
   const vendors = new Map();
   // Map order is recency order (oldest first); the file lists vendors that way, but do not rely on it.
   for (const [key, row] of Object.entries(value.vendors).sort((a, b) => (Number(a[1]?.updatedAt) || 0) - (Number(b[1]?.updatedAt) || 0))) {
-    if (!validMemoryKey(key) || !plain(row) || typeof row.profileKey !== 'string' || !PROFILE.test(row.profileKey)
+    if (!validSlot(key) || !plain(row) || typeof row.profileKey !== 'string' || !PROFILE.test(row.profileKey)
         || !Number.isFinite(row.updatedAt) || !Array.isArray(row.exchanges)) continue;
     const exchanges = row.exchanges.map(readExchange).filter(Boolean).slice(-limits.exchangesPerVendor);
     if (exchanges.length) vendors.set(key.toLowerCase(), {profileKey: row.profileKey, updatedAt: row.updatedAt, exchanges});
@@ -75,9 +81,19 @@ function readDocument(text, limits) {
 }
 
 // The Map is kept in recency order, least recently updated first: eviction drops from the front.
+// Each memory (the normal one, and each content pack's) has its own limit, so a pack's visits never push the normal ones out.
 function trimVendors(vendors, count) {
-  const drop = vendors.size - count;
-  return drop > 0 ? new Map([...vendors].slice(drop)) : vendors;
+  if (vendors.size <= count) return vendors;
+  const seen = new Map();
+  for (const [key] of vendors) seen.set(scopeOf(key), (seen.get(scopeOf(key)) ?? 0) + 1);
+  const over = new Map([...seen].filter(([, total]) => total > count).map(([scope, total]) => [scope, total - count]));
+  if (!over.size) return vendors;
+  return new Map([...vendors].filter(([key]) => {
+    const left = over.get(scopeOf(key));
+    if (!left) return true;
+    over.set(scopeOf(key), left - 1);
+    return false;
+  }));
 }
 
 const serialize = vendors => JSON.stringify({version: 1, vendors: Object.fromEntries([...vendors]
@@ -91,7 +107,7 @@ export class VendorMemory {
   #vendors = new Map(); #queue = Promise.resolve();
   // Bumped by a Forget at the moment it is called. A write captures it when issued and is discarded if it changed,
   // so a turn that started before a Forget can never re-populate what the Forget removed.
-  #epoch = 0; #vendorEpochs = new Map();
+  #epochs = new Map(); #everything = 0; #vendorEpochs = new Map();   // the epoch of each memory ('' = the normal one, else a content pack's id)
   #keptAside = false; #warned = new Set();
 
   static async open(options) {
@@ -142,12 +158,13 @@ export class VendorMemory {
   /** Stores one exchange after a reply was delivered. `isCurrent` (synchronous) is evaluated again immediately
    * before the file is replaced, so a world change or a pending Forget at that instant discards the write.
    * Resolves true only when the exchange is durable. */
-  remember({memoryKey, profileKey, playerText, replyText, isCurrent} = {}) {
-    if (!validMemoryKey(memoryKey) || typeof profileKey !== 'string' || !PROFILE.test(profileKey)) return Promise.resolve(false);
-    const key = memoryKey.toLowerCase(), v = cleanLine(playerText), npc = cleanLine(replyText);
+  remember({memoryKey, profileKey, playerText, replyText, isCurrent, scope = null} = {}) {
+    if (!validMemoryKey(memoryKey) || typeof profileKey !== 'string' || !PROFILE.test(profileKey) || !validScope(scope)) return Promise.resolve(false);
+    const key = slotOf(memoryKey, scope), v = cleanLine(playerText), npc = cleanLine(replyText);
     if (!v || !npc) return Promise.resolve(false);
-    const epoch = this.#epoch, vendorEpoch = this.#vendorEpochs.get(key) ?? 0;
-    const allowed = () => this.#epoch === epoch && (this.#vendorEpochs.get(key) ?? 0) === vendorEpoch
+    const mine = scope || '';
+    const epoch = this.#epochs.get(mine) ?? 0, everything = this.#everything, vendorEpoch = this.#vendorEpochs.get(key) ?? 0;
+    const allowed = () => (this.#epochs.get(mine) ?? 0) === epoch && this.#everything === everything && (this.#vendorEpochs.get(key) ?? 0) === vendorEpoch
       && (typeof isCurrent !== 'function' || isCurrent() === true);
     return this.#enqueue(async () => {
       if (!allowed()) return false;
@@ -160,8 +177,10 @@ export class VendorMemory {
       next.set(key, {profileKey, updatedAt: at, exchanges: [...kept, {at, v, npc}].slice(-this.#limits.exchangesPerVendor)});
       const vendors = trimVendors(next, this.#limits.vendors);
       let data = serialize(vendors);
+      // Over the file's size: the oldest of the same memory go first (the other memory's visits are not given up for this one's).
       while (Buffer.byteLength(data, 'utf8') > this.#limits.fileBytes && vendors.size > 1) {
-        vendors.delete(vendors.keys().next().value); data = serialize(vendors);
+        const oldest = [...vendors.keys()].find(other => scopeOf(other) === scopeOf(key) && other !== key) ?? vendors.keys().next().value;
+        vendors.delete(oldest); data = serialize(vendors);
       }
       if (Buffer.byteLength(data, 'utf8') > this.#limits.fileBytes) return false;
       return this.#commit(vendors, data, allowed);
@@ -182,9 +201,9 @@ export class VendorMemory {
   }
 
   /** The per-turn context block for this vendor, or '' when there is nothing to recall. Pure memory, no I/O. */
-  contextFor({memoryKey, profileKey} = {}) {
-    if (!validMemoryKey(memoryKey)) return '';
-    const row = this.#vendors.get(memoryKey.toLowerCase());
+  contextFor({memoryKey, profileKey, scope = null} = {}) {
+    if (!validMemoryKey(memoryKey) || !validScope(scope)) return '';
+    const row = this.#vendors.get(slotOf(memoryKey, scope));
     if (!row || row.profileKey !== profileKey || !row.exchanges.length) return '';
     return [
       'WHAT YOU REMEMBER OF V (earlier talks at this shop)',
@@ -195,24 +214,42 @@ export class VendorMemory {
   }
 
   /** Forget everything. The in-memory store is emptied at once (so no later turn sees it), writes issued earlier
-   * are discarded, and the file and any kept-aside damaged copy are removed. Resolves {ok}. */
-  forgetAll() {
-    this.#epoch++; this.#vendors = new Map();
+   * are discarded, and the file and any kept-aside damaged copy are removed. Resolves {ok}.
+   * `scope` (a content pack's id, or null for the normal memory) forgets only that memory: the other memory's visits stay in the file as they were.
+   * Called with no `scope` at all, everything goes. With no pack's visits in the file, null and "everything" are the same. */
+  forgetAll({scope} = {}) {
+    if (scope !== undefined && !validScope(scope)) return Promise.resolve({ok: false});
+    const only = scope === undefined ? null : (scope || '');
+    const bump = key => this.#epochs.set(key, (this.#epochs.get(key) ?? 0) + 1);
+    if (only === null) {
+      this.#everything++;
+      this.#vendors = new Map();
+    } else {
+      bump(only);
+      this.#vendors = new Map([...this.#vendors].filter(([key]) => scopeOf(key) !== only));
+    }
+    const rest = new Map(this.#vendors);
     return this.#enqueue(async () => {
       let ok = true;
-      for (const path of [this.#path, this.#asidePath]) {
-        try { await this.#io.rm(path, {force: true}); } catch { ok = false; }
+      if (rest.size) {
+        // Another memory's visits remain: the file is written again without this memory's. The kept-aside damaged copy goes with the normal memory's Forget.
+        try { await atomicFile(this.#path, serialize(rest), {files: this.#files}); } catch { ok = false; }
+        if (ok && only === '') { try { await this.#io.rm(this.#asidePath, {force: true}); this.#keptAside = false; } catch { ok = false; } }
+      } else {
+        for (const path of [this.#path, this.#asidePath]) {
+          try { await this.#io.rm(path, {force: true}); } catch { ok = false; }
+        }
+        if (ok) this.#keptAside = false;
       }
-      if (ok) this.#keptAside = false;
-      else this.#report('forget', 'The vendor memory file could not be removed.');
+      if (!ok) this.#report('forget', 'The vendor memory file could not be removed.');
       return {ok};
     }).catch(() => ({ok: false}));
   }
 
   /** Forget one vendor record. Resolves {ok, removed}. */
-  forgetVendor(memoryKey) {
-    if (!validMemoryKey(memoryKey)) return Promise.resolve({ok: false, removed: false});
-    const key = memoryKey.toLowerCase(), removed = this.#vendors.delete(key);
+  forgetVendor(memoryKey, {scope = null} = {}) {
+    if (!validMemoryKey(memoryKey) || !validScope(scope)) return Promise.resolve({ok: false, removed: false});
+    const key = slotOf(memoryKey, scope), removed = this.#vendors.delete(key);
     this.#vendorEpochs.set(key, (this.#vendorEpochs.get(key) ?? 0) + 1);
     if (!removed) return this.#enqueue(async () => ({ok: true, removed: false})).catch(() => ({ok: false, removed: false}));
     return this.#enqueue(async () => {

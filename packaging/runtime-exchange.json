@@ -13,6 +13,8 @@
     "companion-chauffeur-cleanup.json",
     "companion-invitations-state.json",
     "companion-invitations.json",
+    "content-name-pools.json",
+    "content-names.json",
     "continuous-control.json",
     "continuous-face.json",
     "continuous-speech.json",

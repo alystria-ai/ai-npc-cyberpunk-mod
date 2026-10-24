@@ -1236,7 +1236,9 @@ function M.relationshipChoices()
     loadSettings()
     local result = {}
     for _, profile in ipairs(relationshipProfiles) do
-        result[#result + 1] = {key = profile.key, name = profile.name, mode = settings.relationshipModes[profile.key]}
+        -- The roster's name when it has one (a content pack may have renamed the character), else the built-in one.
+        local configured = byKey and byKey[profile.key]
+        result[#result + 1] = {key = profile.key, name = configured and configured.name or profile.name, mode = settings.relationshipModes[profile.key]}
     end
     return result
 end
@@ -1345,7 +1347,11 @@ function M.configure(companionApi, profileList)
             end
         end
     end
-    for _, value in ipairs(readJSON('manager-characters.json') or {}) do
+    local extras = readJSON('manager-characters.json') or {}
+    -- A content pack's new names (mod/content-names.lua); the profile list handed in above has them already (init.lua applies them to the roster).
+    local named, contentNames = pcall(dofile, 'content-names.lua')
+    if named and type(contentNames) == 'table' and type(contentNames.applyRows) == 'function' then pcall(contentNames.applyRows, extras) end
+    for _, value in ipairs(extras) do
         if type(value.key) == 'string' then
             local profile = byKey[value.profileKey or value.key]
             local id = value.record or value.id
@@ -1602,7 +1608,9 @@ local function modelRecord(record, index)
         models[#models + 1] = {key = key, name = label, unnamedIndex = unnamedIndex, derived = derived or nil, record = id or debugId,
             profileKey = definition.profileKey, profileName = definition.profileName, archetype = archetype ~= nil,
             search = (label .. ' ' .. (id or debugId) .. ' ' .. (definition.profileName or '')
-                .. (localized and localized ~= label and (' ' .. localized) or '')):lower()}
+                .. (localized and localized ~= label and (' ' .. localized) or '')
+                -- The name a content pack replaced (mod/content-names.lua) still finds the model.
+                .. (profile and profile.shippedName and (' ' .. profile.shippedName) or '')):lower()}
     end
 end
 
@@ -1672,7 +1680,8 @@ local function rowsForTab()
         end
     elseif tab == 'party' then
         for _, member in ipairs(party) do
-            if matches(member.name .. ' ' .. (member.profileName or '') .. ' ' .. (member.record or '')) then
+            local shipped = member.profileKey and byKey[member.profileKey] and byKey[member.profileKey].shippedName or ''
+            if matches(member.name .. ' ' .. (member.profileName or '') .. ' ' .. (member.record or '') .. ' ' .. shipped) then
                 result[#result + 1] = {key = 'party:' .. member.serial, name = member.name,
                     note = member.state == 'ready' and (member.profileKey and ('Chat: ' .. member.profileName) or 'Conversation profile not assigned')
                         or (member.state == 'spawning' and 'Joining...' or (member.error or member.state)),
