@@ -136,6 +136,20 @@ Codeware 1.20.6 (2.5), Native Settings UI 1.97, then the 2.5 Runtime and Scripts
 
 Not checked (needs a human at the keyboard): everything below.
 
+### Owner's live test (2026-10-24, game 2.5)
+
+The first pass found every talk key, the phone keys and NPC facing dead: `TargetingSystem.GetCrosshairData` on 2.5 is
+`(EntityID, wref<GameObject>, out Vector4, out Vector4)` (read from redscript's overload error against the 2.5 `final.redscripts`), where 2.31 has
+`(GameObject, out, out)`, and CET answered "requires 2 parameter(s)". All crosshair calls now go through `ConvaiCrosshairData` (top of `mod/init.lua`),
+which tries the 2.31 form once and keeps whichever answers, so the Lua stays the same for both builds. After a CET reload, on the owner's 2.5 game:
+
+* items 1, 2, 3, 5 and 6 pass: voice and text replies with voice, lip sync and gestures on a street NPC, the character faces V, the phone Chat tab, J/L and the
+  F6 composer, MCM and the Native Settings UI page (game Settings > Mods), the Help page lines OK;
+* item 4: the companion rides in the car and gets out with V; an invited street NPC declined in character ("has things to do"), which the owner accepts;
+* item 8: frame rate feels the same as 2.31.
+
+Still open: 7 (a new game with CET 1.38.0, a CET problem, documented for players), combat remarks, and the 2.31 side of the crosshair helper on the keeper copy.
+
 ### Live-test list for the owner (2.5)
 
 1. Talk to an NPC by voice key and by text key: reply text, voice, lip sync, gestures.
