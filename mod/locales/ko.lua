@@ -1254,4 +1254,5 @@ return {
     ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "컨트롤러로 대화하려면 캐릭터를 향한 상태에서 왼쪽 스틱 누르기(L3)를 누른 채 말하고, 손을 떼면 전송됩니다. 스틱을 움직이지 않은 상태로 누르고 있으세요.\n\n도보 중에만 가능하며 메뉴, 장면, 대화 선택지, 통화, 전투, 차량 탑승 중에는 불가능합니다. 이 클릭은 여전히 스프린트를 켜고 끄지만, 멈춰 서 있을 때는 아무 효과가 없습니다.",
     ["V speaks your microphone lines"] = "V가 마이크로 한 대사를 말함",
     ["After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself."] = "말한 뒤(길게 눌러 말하기 또는 음성 활성화)에 V가 당신의 말을 V의 음성으로 소리 내어 말하고, 응답은 V의 대사 뒤에 이어집니다. V의 음성이 켜져 있어야 합니다. 방금 직접 말한 내용이라 기본값은 꺼짐입니다.",
+    ["Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough."] = "검색창에 입력하면 이름이나 레코드로 모델을 찾을 수 있습니다. 예: “rita wheeler”. 단어의 일부만 입력해도 됩니다.",
 }

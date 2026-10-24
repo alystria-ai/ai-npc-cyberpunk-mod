@@ -2814,6 +2814,67 @@ test('the model browser leaves out the game\'s retired records ("!OBSOLETE ...")
   `);
 });
 
+test('the Model browser search words: any order, parts of words, any case and spacing; the search belongs to the browser page and is dropped when the page is left', () => {
+  run(`${nsuiFixture}
+    local text, words = core.searchWords('  Rita   WHEELER ')
+    assert(text == 'rita wheeler' and #words == 2 and words[1] == 'rita' and words[2] == 'wheeler')
+    assert(core.searchWords(nil) == '' and core.searchWords('   ') == '' and #select(2, core.searchWords('')) == 0)
+    assert(#core.searchWords(string.rep('ab ', 100)) <= 100, 'a very long text is cut')
+    local rita = {name = 'Rita Wheeler', record = 'Character.rita_wheeler', profileName = 'Rita Wheeler',
+      search = 'rita wheeler character.rita_wheeler rita wheeler'}
+    local function matches(model, typed) return core.modelMatches(model, select(2, core.searchWords(typed))) end
+    for _, typed in ipairs({'rita', 'wheel', 'RITA wheeler', 'wheeler   rita', 'rita_wheel', 'a w', ''}) do assert(matches(rita, typed), typed) end
+    for _, typed in ipairs({'rita smith', 'judy', 'wheelers', 'ritaa'}) do assert(not matches(rita, typed), typed) end
+    -- A model without the text the scan makes is searched by its name, its record and its conversation profile.
+    local judy = {name = 'Judy Alvarez', record = 'Character.judy', profileName = 'Judy Alvarez'}
+    assert(matches(judy, 'ALVAREZ judy') and matches(judy, 'character.judy') and not matches(judy, 'rita'))
+    assert(matches({name = 'Zed'}, 'zed') and not matches({}, 'zed'))
+
+    -- Only the browser has a search: another page ignores it.
+    assert(core.setSearch('rita') == false and core.search() == '')
+    assert(invoke('tab:models').ok)
+    for _ = 1, 126 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    assert(scans == 1 and row('model-status').label == '6000 matching models')
+    local id = core.pageId()
+    assert(core.setSearch('  MODEL_600 ') == true and core.search() == 'model_600')
+    assert(core.pageId() == id .. '|model_600', 'a new text is a new page: ' .. core.pageId())
+    assert(core.setSearch('model_600') == false and core.setSearch('Model_600   ') == false, 'the same words are no change')
+    assert(core.stale(), 'the page is drawn again for the text')
+    loaded = registered.loadMod('manager')
+    assert(row('model-status').label == '2 matching models', row('model-status').label)
+    local listed = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
+    end
+    assert(table.concat(listed, ' | ') == 'Character.Model_600 | Character.Model_6000', table.concat(listed, ' | '))
+    assert(row('ui:group') == nil and row('ui:page') == nil, 'a letter group and a page slider are no use for two models')
+    -- A result is invited like any other row, and the scan is not made again.
+    assert(invoke('invite:model:600').ok)
+    assert(scans == 1, 'a search never reads the game again')
+    core.setSearch('nobody at all'); loaded = registered.loadMod('manager')
+    assert(row('model-status').label == '0 matching models' and not row('invite:model:600'))
+    -- Leaving the page drops the text; so does opening it again.
+    assert(invoke('models:back').ok and core.search() == '' and core.view() == 'home')
+    assert(invoke('tab:models').ok and core.search() == '')
+    core.setSearch('model_6000'); core.setView('models'); assert(core.search() == '', 'a page opened by the host starts unfiltered')
+  `);
+});
+
+test('the Model browser tells a host that has a search box how to use it, and says nothing to one that has none', () => {
+  run(`${nsuiFixture}
+    assert(invoke('tab:models').ok)
+    for _ = 1, 126 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    assert(not row('model-status').description:find('search box', 1, true), 'Native Settings UI has no search box: ' .. row('model-status').description)
+    core.offerSearch(true); loaded = registered.loadMod('manager')
+    local help = row('model-status').description
+    assert(help:find('Type in the search box to find a model by name or record', 1, true), help)
+    core.offerSearch(false); loaded = registered.loadMod('manager')
+    assert(not row('model-status').description:find('search box', 1, true))
+  `);
+});
+
 test('the model browser covers the full installed catalogue while exposing bounded pages of rows', () => {
   run(`${nsuiFixture}
     assert(scans == 0)

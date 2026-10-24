@@ -1254,4 +1254,5 @@ return {
     ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "用手把說話：在角色身上按住左搖桿按下（L3），說話，放開即送出。搖桿保持不動時按住。\n\n僅限步行時使用，選單、場景、對話選項、通話、戰鬥或載具中都不可用。按下時仍會切換衝刺，站立時不會有任何效果。",
     ["V speaks your microphone lines"] = "V 朗讀你的麥克風台詞",
     ["After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself."] = "你說完後（按住語音鍵或語音啟動），V 會用 V 的聲音把你的話完整說出來，回覆接在 V 的台詞之後。需要開啟 V 的語音。預設關閉，因為這些話你自己剛說過。",
+    ["Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough."] = "在搜尋框中輸入，即可依名稱或記錄尋找模型，例如「rita wheeler」。只輸入單字的一部分也可以。",
 }

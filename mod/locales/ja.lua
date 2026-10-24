@@ -1254,4 +1254,5 @@ return {
     ["Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand."] = "コントローラーで話すには、キャラクターに向けて左スティック押し込み（L3）を押し続け、話してから離すと送信されます。スティックを動かさずに押し続けてください。\n\n徒歩のときだけ使え、メニュー、シーン、会話の選択肢、通話、戦闘、乗り物中には使えません。このクリックではスプリントも切り替わりますが、立っている間は何も起きません。",
     ["V speaks your microphone lines"] = "マイクのセリフをVの声で話す",
     ["After you speak (hold to talk or Voice activation), V says your words out loud in V’s voice, and the reply follows V’s line. Needs V’s voice on. Off by default, because you just said it yourself."] = "話した後（ボタンを押し続けて話す、または音声起動）、あなたの言葉をVの声で声に出して言い、返答はVのセリフの後に続きます。Vの声をオンにしておく必要があります。自分で言ったばかりなので、初期設定はオフです。",
+    ["Type in the search box to find a model by name or record, for example “rita wheeler”. A part of a word is enough."] = "検索ボックスに入力すると、名前またはレコードでモデルを探せます。例：「rita wheeler」。単語の一部だけでも見つかります。",
 }

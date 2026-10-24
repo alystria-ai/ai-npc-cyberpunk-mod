@@ -242,6 +242,21 @@ batch of 48 records a frame while the page is shown). Then it shows "N matching 
 selector (All first, then the letters in use: a plain letter upper-cased, digits and symbols together as #, a letter of another script as
 itself; left out when there are more than 40 groups) and the paged rows. The groups are built once per finished scan.
 
+**Searching the Model browser (MCM only).** In MCM the box "Search settings" is the search: on the browser page the host sets the
+navigation's `searchMode` to `provider` (MCM then does not filter the rows by the box, which would only ever see the twelve of the page),
+and reads the box's text from `api.ui.getContext().search` on its 0.25 s tick (MCM settles the text for 12 frames after a key, so the
+host sees whole words). `M.setSearch(text)` in `manager-ui.lua` keeps the lower-cased words (any run of spaces, at most 100 characters)
+and the page is drawn again only when the words changed. A model answers when every word is somewhere in its name, its record or its
+conversation profile (`model.search`, made by the scan), so "rita", "wheeler rita" and "RITA  wheel" all find Rita Wheeler. The matches
+are taken from the list the scan already sorted, once per text (`searchedModels` holds the result), so nothing is read from the game
+again and no keystroke rebuilds the list; the result pages like any list, every row keeps its Invite button, and while a text is
+searched the letter group is out of the way. The text is part of `M.pageId()` (a new text scrolls to the top). MCM keeps the text of its
+box from page to page and filters the other pages by it, so the host empties the box (`api.ui.setSearch`) on the way into and out of
+the browser. If an MCM refuses the option the page is given without it, MCM keeps its own filter there, and the page does not mention a
+search (one log line). The hint line on the page ("Type in the search box ...") is shown only when the host offers a search
+(`M.offerSearch`, set by `mcm-host.lua` while it is registered). **Native Settings UI has no text field**, so its Model browser keeps
+the letter group and the page slider.
+
 **The tab and NSUI's list.** NSUI keeps a hole in its section list when a section in the middle is removed. The host therefore
 removes sections only from the end (last first) and adds the new ones; a change inside a page replaces only the rows that differ.
 A row's signature is everything about it except the value it holds (kind, id, label, description, button text, range, elements): a
@@ -364,7 +379,7 @@ Relationships is a page of its own (view `relationships`, back to Settings), ope
 The Memory page's Forget all row reads "Forget all memories (N characters)" with the one-word button "Forget": the count is in the row's name, within `BUTTON_LABEL_UNITS` (29, the figure `mod/nsui.lua` cuts a button row's name to); a translation or a count that does not fit it is only the number ("Forget all memories (12)"), then the name alone. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
 it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
-the top of a new page. The OmniVoice entries of Companion voices are disabled choices (`setChoiceStates`, reason "Requires the optional
+the top of a new page (on the Model browser, with the search text added). The OmniVoice entries of Companion voices are disabled choices (`setChoiceStates`, reason "Requires the optional
 OmniVoice pack (GPU)") while its pack is missing. A long list is turned with buttons, because MCM has no setting that changes the page
 without a draft: **Previous page**, **Next page** (disabled at the ends) and, in the model browser, **Starts with: B** (the next letter
 group, the last one goes round to All).
