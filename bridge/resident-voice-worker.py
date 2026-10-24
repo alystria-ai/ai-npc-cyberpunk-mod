@@ -739,7 +739,9 @@ def model_admission(root=ROOT, *, cache_root=None, wait_s=0.0, poll_s=MODEL_SLOT
         if linked_path(candidate):
             raise ValueError('Linked model-admission paths are not supported')
     approved = cache_root if cache_root is not None else root / 'runtime'
-    if not candidate.resolve().is_relative_to(approved):
+    # Every part of the path was checked for links above; the folder is compared resolved on both sides, never the lock file itself: a sandboxed
+    # parent process (a packaged app's file virtualization) redirects a changed file to its own copy, so the file alone can resolve elsewhere.
+    if not candidate.parent.resolve().is_relative_to(approved.resolve()):
         raise ValueError('Model-admission path escaped the runtime')
     candidate.parent.mkdir(parents=True, exist_ok=True)
     with candidate.open('a+b') as handle:

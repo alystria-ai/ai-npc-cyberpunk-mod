@@ -514,6 +514,18 @@ class PortableVoicePaths(unittest.TestCase):
         with worker.model_admission(other_app, cache_root=cache):
             pass
 
+    def test_admission_works_when_a_sandbox_redirects_the_lock_file(self):
+        # A game started from a packaged app sees changed files of its data folder at another real path (file virtualization).
+        cache = self.paths['cacheDirectory']
+        elsewhere = self.root / 'virtualized copy' / 'resident-model.lock'
+        real_resolve = Path.resolve
+        def redirected(path, *args, **kwargs):
+            return elsewhere if path.name == 'resident-model.lock' else real_resolve(path, *args, **kwargs)
+        with patch.object(Path, 'resolve', redirected):
+            with worker.model_admission(self.app, cache_root=cache):
+                pass
+        self.assertTrue((cache / 'resident-model.lock').is_file())
+
     def hold_slot_then_release(self, cache, hold_s):
         """Another worker that owns the slot and exits `hold_s` later (a worker of the old bridge, still going down)."""
         import threading
