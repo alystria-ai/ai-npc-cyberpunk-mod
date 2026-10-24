@@ -757,6 +757,29 @@ test('reselect does nothing while the server is stopped (the next start reads th
   assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
 });
 
+test('plannedModel names the model a start would load from the selection alone: nothing is started, and it follows the choice, Mature content and a loaded model', async t => {
+  const h = choiceHarness(t);
+  // Before any start the card is unknown, so the plan is the smallest model (the rule for an unknown card); nothing is spawned to find out.
+  assert.deepEqual(h.server.plannedModel(), {name: 'Qwen3.5-2B', tier: 'lite', hints: null});
+  assert.equal(h.calls.length, 0, 'asking never spawned a server');
+  await h.server.ensure();
+  assert.equal(h.server.plannedModel().name, 'Qwen3.5-4B', 'a loaded model is the plan');
+  h.state.pin = 'lite';
+  assert.equal(h.server.plannedModel().name, 'Qwen3.5-4B', 'a loaded model wins over a changed selection until it is reloaded');
+  await h.server.stop();
+  const spawned = h.calls.length;
+  assert.equal(h.server.plannedModel().name, 'Qwen3.5-2B', 'after a stop the selection is read again');
+  h.state.pin = 'auto';
+  assert.equal(h.server.plannedModel().name, 'Qwen3.5-4B', 'the card of the last start is known: the model that fits');
+  h.state.matureOn = true;
+  assert.equal(h.server.plannedModel().name, 'Gemma-4-E4B-uncensored', 'Mature content on plans the uncensored model');
+  h.state.matureOn = false;
+  assert.equal(h.server.status().state, 'stopped');
+  assert.equal(h.calls.length, spawned, 'planning never spawned a server');
+  const none = harness(t, {standard: false, lite: false, selection: () => ({pin: 'auto', matureOn: false, matureModels: []})});
+  assert.equal(none.server.plannedModel(), null, 'no model installed: null, no throw');
+});
+
 // ---- Models the player added by hand (bridge/custom-models.mjs) ------------------------------------------------------------------
 // Two custom models next to the built-in ones: 'my-model' (7000 MiB, auto, with a context size and a chat template) and 'odd-model' (2500 MiB,
 // pinned only). FAKE_LLAMA_EXIT_FOR_MODEL makes the fake server refuse a file the way llama.cpp refuses an unsupported architecture.

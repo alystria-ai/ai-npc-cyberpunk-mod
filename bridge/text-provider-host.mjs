@@ -375,14 +375,14 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     shapePersona(persona, {mature = null, guard = false, limits, profile} = {}) {
       try { return compacts.personaFor(persona, {speed: lastSpeed, meter: lastMeter, mature, guard, limits, profile}); } catch { return persona; }   // the warm-up never fails for a cut
     },
-    // The loaded model's tier ('lite' or 'standard'), which picks the prompt profile (bridge/prompt-profiles.mjs profileIdFor); only while a model is up, like `modelName`. `loadedTier` starts the server if it is not up.
+    // The loaded model's tier ('lite' or 'standard'), which picks the prompt profile (bridge/prompt-profiles.mjs profileIdFor); only while a model is up, like `modelName`.
     tierName: () => { const status = server.status?.(); return status?.state === 'ready' || status?.state === 'warming' ? status?.tier ?? null : null; },
-    loadedTier: async signal => (await server.ensure({signal}))?.tier ?? null,
-    // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
-    // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
-    // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
+    // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs). Only while a model is up: after an idle stop (or during a reload) the status still names
+    // the previous model, and the next start may load another one, so the level would be read for the wrong model.
     modelName: () => { const status = server.status?.(); return ['stopped', 'failed', 'starting'].includes(status?.state) ? null : status?.model ?? null; },
-    loadedModel: async signal => (await server.ensure({signal}))?.model ?? null,
+    // The model a start would load, read from the selection: {name, tier, hints} or null. A question about WHICH model (the Mature level, the prompt profile) never starts the server:
+    // the request itself does that, once (2026-10-24: a Mature level read started a server that could not start, a second time in the same turn).
+    plannedModel: () => { try { return server.plannedModel?.() ?? null; } catch { return null; } },
     // The model is down or on its way up (the idle stop, a reload), so the first request of a turn waits for it; `prepare` starts that load (and waits for it) at the start of the turn.
     // How long a turn keeps to ask the model once it is up (LOCAL_ATTEMPT_ROOM_MS for a model on the card; longer for one with layers on the CPU: the cold prompt takes the time it takes).
     attemptRoomMs: () => {
@@ -868,17 +868,18 @@ export class TextProviderHost {
 
   /**
    * The Mature content level for a turn on `route` ('full' or 'suggestive'), or null: the setting is off, or the route is not one that may
-   * have it (MATURE_PROVIDERS: not Convai, not Mistral). The model decides the level (its licence): on the local AI it is read from the loaded model (the server
-   * is started for it when it is not up yet, as the request would); on Custom it is the first model the route will ask (no await).
+   * have it (MATURE_PROVIDERS: not Convai, not Mistral). The model decides the level (its licence): on the local AI it is read from the loaded model, else from the model the selection
+   * would load (route.plannedModel: this never starts the server); on Custom it is the first model the route will ask (no await).
    * Nothing is awaited while the setting is off.
    */
   async #matureLevel(route, signal) {
     if (!this.matureContent?.enabled) return null;
     if (MATURE_PROVIDERS[route?.name] !== true) { this.#noteMature(`layer NOT applied (provider ${route?.name} never gets it)`); return null; }
-    let model = route.modelName?.() ?? null;
-    if (!model && route.loadedModel) model = await route.loadedModel(signal);
+    let model = route.modelName?.() ?? null, hints = route.modelHints?.();
+    // No model is up (never loaded, an idle stop, a failed start): the level is read from the model the next start would load (the selection), never by starting one.
+    if (!model && route.plannedModel) { const planned = route.plannedModel(); model = planned?.name ?? null; hints = planned?.hints ?? hints; }
     if (!model && route.name !== 'local') model = route.models?.()[0]?.id ?? null;
-    const level = this.matureContent.forTurn(route.name, model, route.modelHints?.())?.level ?? null;
+    const level = this.matureContent.forTurn(route.name, model, hints)?.level ?? null;
     if (level) this.#noteMature(`layer applied (level ${level}, model ${model ?? 'unknown'})`);
     return level;
   }
@@ -893,11 +894,9 @@ export class TextProviderHost {
     if (!this.matureContent || MATURE_PROVIDERS[route?.name] !== true) return false;
     if (this.matureContent.enabled) return true;
     if (route.name !== 'local') return false;
-    let model = route.modelName?.() ?? null;
-    if (!model && route.loadedModel) {
-      try { model = await route.loadedModel(signal); } catch { return false; }   // the request fails (or falls back) on its own terms
-    }
-    const uncensored = allowanceFor(model, route.modelHints?.()).uncensored;
+    let model = route.modelName?.() ?? null, hints = route.modelHints?.();
+    if (!model && route.plannedModel) { const planned = route.plannedModel(); model = planned?.name ?? null; hints = planned?.hints ?? hints; }   // never starts the server (see #matureLevel)
+    const uncensored = allowanceFor(model, hints).uncensored;
     if (uncensored) this.#noteMature(`guard applied (the loaded model is uncensored, setting off, model ${model ?? 'unknown'})`);
     return uncensored;
   }
@@ -911,14 +910,13 @@ export class TextProviderHost {
 
   /**
    * The prompt profile of a turn (bridge/prompt-profiles.mjs): chosen by the route, the loaded model's tier (Local AI) or the endpoint and model (Custom), and the Mature setting; null when the host has
-   * no profiles (an add-on's host) or the route has none (Convai), which builds the shipped base prompt. A map lookup; the local tier is read from the server's status (the server is started for it
-   * only when it is not up yet, as the request would).
+   * no profiles (an add-on's host) or the route has none (Convai), which builds the shipped base prompt. A map lookup; the local tier is read from the server's status, else from the selection (the server is never started for it).
    */
   async #profileFor(route, mature, signal) {
     if (!this.promptProfiles) return null;
     try {
       let tier = null;
-      if (route.name === 'local') tier = route.tierName?.() ?? (route.loadedTier ? await route.loadedTier(signal) : null);
+      if (route.name === 'local') tier = route.tierName?.() ?? route.plannedModel?.()?.tier ?? null;
       const turn = {route: route.name, tier, mature: Boolean(mature), custom: route.describe?.() ?? null};
       const profile = this.promptProfiles.resolve(turn);
       if (profile) this.#noteProfile(this.promptProfiles.idFor(turn), profile);

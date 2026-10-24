@@ -10,6 +10,7 @@ import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, buildMessages, systemHead, parseFacts, factMessages, joinBlocks, FACT_SCHEMA, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
 import {errorCodeFor, failureKind, MistralError, DEFAULT_MODELS} from './mistral-client.mjs';
 import {fakeClock} from './fixtures/fake-clock.mjs';
+import {MatureContent} from './mature-content.mjs';
 
 const MISTRAL_KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
@@ -280,6 +281,61 @@ test('local: a server that cannot start fails the turn with its own reason; Loca
     assert.equal(provider.localBroken, null);
     assert.equal(provider.requested, 'local');
   } finally { await close(); }
+});
+
+// ---- A player who did not choose Local AI never starts it (owner rule 2026-10-24, reports 4cf959 / 52c992) ------------------------
+
+test('a Convai-provider turn never starts the local model server: not the turn, not the warm-up, not the Mature level', async () => {
+  const llama = await fakeServer(() => 'from the local server');
+  const calls = {ensure: 0, prewarm: 0, status: 0, planned: 0};
+  const server = {status: () => { calls.status++; return {state: 'stopped'}; }, plannedModel: () => { calls.planned++; return {name: 'Gemma 4 E4B uncensored', tier: null, hints: null}; },
+    ensure: async () => { calls.ensure++; return {endpoint: llama.endpoint, apiKey: 'session-key-abcdef123456', model: 'qwen-test'}; },
+    touch() {}, prewarm: async () => { calls.prewarm++; }, reset() {}};
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+  await provider.load();
+  provider.setPreference('convai'); provider.apply();
+  const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: true});
+  const textHost = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: localRoute({server, provider})}, matureContent});
+  // The Convai realtime host, which the attached text provider wraps: while the provider is Convai every turn stays on its own path.
+  const convai = {answered: 0, reply: async () => { convai.answered++; return {text: 'from convai'}; }, prepare: async () => ({}), warm: async () => ({}), readiness: async () => ({}),
+    lateEmotion: async () => ({}), refreshIdle: async () => true, voiceChannel: () => ({})};
+  attachTextProvider(convai, {provider, mistral: textHost, prewarmVoice: false});
+  try {
+    assert.equal(provider.route, 'convai');
+    assert.equal((await convai.reply(turn('hello'))).text, 'from convai');
+    await convai.warm(turn('hello'), {role: 'target'});
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(convai.answered, 1);
+    assert.deepEqual(calls, {ensure: 0, prewarm: 0, status: 0, planned: 0}, 'the local server was never asked, started or looked at');
+    assert.equal(llama.requests.length, 0);
+    // The text host itself has no route for Convai: it fails the turn before any route (and so any local server) is reached.
+    const error = await textHost.reply(turn('direct')).catch(caught => caught);
+    assert.match(String(error?.message), /no route/);
+    assert.equal(calls.ensure, 0);
+  } finally { textHost.close(); await llama.close(); }
+});
+
+test('the Mature level of a Local AI turn is read from the selection and never starts a model server that is not up', async () => {
+  const llama = await fakeServer(() => 'Fine, V.');
+  const started = [];
+  // Down after a failed start: the status names no model, `ensure` is how a server would be started. It is asked only by the request (connect), never to read a level.
+  const server = {status: () => ({state: 'failed', reason: 'low-ram'}), plannedModel: () => ({name: 'Gemma 4 E4B uncensored', tier: null, hints: null}),
+    ensure: async () => { started.push(new Error('ensure').stack); const error = new Error('The local AI is not available [local:unavailable]'); error.reason = 'low-ram'; throw error; },
+    touch() {}, prewarm: async () => {}, reset() {}};
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+  await provider.load();
+  provider.setPreference('local'); provider.apply();
+  const logs = [];
+  const matureContent = new MatureContent(); matureContent.setPack(true); matureContent.update({matureContent: true});
+  const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: localRoute({server, provider})}, matureContent,
+    log: line => logs.push(line)});
+  try {
+    const error = await host.reply(turn('hi')).catch(caught => caught);
+    assert(isLocalUnavailable(error), 'the turn fails with the local AI own reason');
+    assert(started.length >= 1, 'the request itself asked the server');
+    assert(started.every(stack => !/matureLevel|guardOn|profileFor/.test(stack)), 'reading the level, the guard or the profile never asked the server to start');
+    assert(logs.some(line => line.includes('[MatureContent] layer applied (level full, model Gemma 4 E4B uncensored)')), 'the level came from the planned model');
+  } finally { host.close(); await llama.close(); }
 });
 
 // A failed Local AI is started again by the next turn that needs it (localRoute retryFailed): at most once every LOCAL_RETRY_MS, only for the reasons a new start
