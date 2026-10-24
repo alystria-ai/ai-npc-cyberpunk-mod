@@ -987,6 +987,24 @@ export class LocalLlmServer extends EventEmitter {
   /** {uncensored, family} from the manifest of the loaded model when it is one the player added (bridge/custom-models.mjs), else null. */
   get modelHints() { return this.#hints; }
 
+  /**
+   * The model a start would load now, read from the selection alone: {name, tier, hints} or null. It starts nothing and reads no graphics memory and no process (only the model list and the sizes of its files), so a caller that only needs to know WHICH model (the Mature allowance of a turn, its prompt profile) never loads
+   * one to ask (2026-10-24: a turn that read the level started a server that could not start, twice). While a model is up or loading it is that model.
+   * It is the choice with the card's numbers of the last start (the smallest model before any), so a step-down to a smaller model is not seen; the loaded model, once there, always wins.
+   */
+  plannedModel() {
+    try {
+      if (this.#model && (this.#state === 'ready' || this.#state === 'warming')) return {name: this.#model, tier: this.#tier, hints: this.#hints};
+      const selected = this.#selected(this.pack);
+      if (!selected.models.length) return null;
+      let model;
+      if (this.tierSetting === 'standard' || this.tierSetting === 'lite') model = selected.models.find(item => item.id === this.tierSetting);
+      else model = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB: this.#lastFreeMiB ?? this.#totalMiB, totalMiB: this.#totalMiB, sizeOf: file => this.fileSizeMiB(file)}).model;
+      if (!model) return null;
+      return {name: model.loadedName ?? model.name, tier: model.tier ?? null, hints: model.custom ? {uncensored: model.uncensored === true, family: model.family ?? null} : null};
+    } catch { return null; }
+  }
+
   /** The free graphics memory (MiB) the last choice of a model saw (before that model was loaded), or null before any start. */
   get lastFreeMiB() { return this.#lastFreeMiB; }
 
