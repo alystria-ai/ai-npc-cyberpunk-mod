@@ -1,7 +1,7 @@
 // Settings > Dynamic info: which kinds of live game info a turn's context may carry (docs/DYNAMIC_INFO.md).
 //
 // The game side (mod/manager.lua) saves one on/off value per kind in runtime/settings.json, `dynamicInfo: {location: true, ...}`, all on by
-// default (a missing or malformed value counts as on), and stops reading an off kind from the game (mod/turn-context.lua, mod/init.lua). This
+// default except `mods` (a missing or malformed value takes the default), and stops reading an off kind from the game (mod/turn-context.lua, mod/init.lua). This
 // module is the bridge's half: it follows the same file and takes an off kind out of the context of EVERY provider, because they all build the
 // turn's context in one place (bridge/quest-context.mjs conversationContextBlocks: Convai's dynamic info, and the layers of the Mistral, Local AI
 // and Custom prompts). So an off kind is absent from the prompt even when an older request, or another mod's request, still carries it.
@@ -43,11 +43,14 @@ export function stripSnapshot(snapshot, off = NO_KINDS) {
   return copy ?? snapshot;
 }
 
-/** The kinds a settings object turns off: a kind is off only when it is saved as the boolean false. */
+// The kinds that are off until the player turns them on: a missing or non-boolean value is off for these, on for every other kind.
+const OFF_BY_DEFAULT = Object.freeze(new Set(['mods']));
+
+/** The kinds a settings object turns off: a kind is off when saved as the boolean false, or (an off-by-default kind) when it is not saved as true. */
 export function offKinds(settings) {
   const table = settings && typeof settings === 'object' && settings.dynamicInfo && typeof settings.dynamicInfo === 'object' && !Array.isArray(settings.dynamicInfo)
     ? settings.dynamicInfo : {};
-  return KINDS.filter(kind => table[kind] === false);
+  return KINDS.filter(kind => OFF_BY_DEFAULT.has(kind) ? table[kind] !== true : table[kind] === false);
 }
 
 /**
@@ -55,7 +58,7 @@ export function offKinds(settings) {
  * settings of the bridge). `off` is a frozen Set that is replaced, never changed, so a turn that holds it sees one consistent answer.
  */
 export class DynamicInfo {
-  constructor() { this.off = NO_KINDS; }
+  constructor() { this.off = Object.freeze(new Set(OFF_BY_DEFAULT)); }
   /** Returns whether the set of off kinds changed. */
   update(settings) {
     if (!settings || typeof settings !== 'object') return false;

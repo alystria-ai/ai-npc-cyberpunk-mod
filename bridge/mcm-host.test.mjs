@@ -632,11 +632,11 @@ test('Dynamic info is a page of its own: a button in Conversations opens it, its
   local info = manager.snapshot(player).settings.dynamicInfo
   assert(info.location == false and info.dialogue == false and info.time == true and manager.dynamicInfo('dialogue') == false)
   assert(mcm.row('Location').value == false and mcm.config().navigation.pageId == 'dynamic-info|1|1', 'still on the page after Apply')
-  -- Restore defaults on this page puts every switch back on (and Settings with them).
+  -- Restore defaults on this page puts every switch back to its default, on except Other mods' state (and Settings with them).
   press('Defaults'); press('Defaults')
   info = manager.snapshot(player).settings.dynamicInfo
-  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == true, kind) end
-  assert(mcm.row('Location').value == true)
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
+  assert(mcm.row('Location').value == true and mcm.row('Other mods’ state').value == false)
   press('Back to settings')
   assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Dynamic info'))
   press('Back to Companion Manager')

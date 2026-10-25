@@ -378,7 +378,7 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   for _, name in ipairs({'Location', 'Time and weather', 'Company and vehicle', 'Health, heat and fights', 'V’s money', 'V’s gear and clothes',
       'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue', 'Time since last talk', 'Music and TV', 'Other mods’ state'}) do
     local switch = assert(ns.find(name), 'no switch ' .. name)
-    assert(switch.type == 'switch' and switch.state == true, name .. ' is on by default')
+    assert(switch.type == 'switch' and switch.state == (name ~= 'Other mods’ state'), name .. ' is on by default, except Other mods’ state')
   end
   assert(ns.find('Back to settings'))
   -- A change is applied for real, as one saved transaction.
@@ -392,8 +392,8 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: twelve sw
   -- Restore defaults works on this page, and the page does not need Settings to be open.
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   info = manager.snapshot(player).settings.dynamicInfo
-  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == true, kind) end
-  assert(ns.find('Location').state == true and managerUi.inspect().shown == 'Defaults restored.')
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
+  assert(ns.find('Location').state == true and ns.find('Other mods’ state').state == false and managerUi.inspect().shown == 'Defaults restored.')
   assert(convaiDynamicInfo.location == true and saved.dynamicInfo.location == true)
   press('Back to settings')
   assert(managerUi.inspect().view == 'settings')

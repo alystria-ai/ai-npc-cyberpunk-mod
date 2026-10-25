@@ -6,7 +6,7 @@ the player turn each kind off, and says how the place is worded. The audit of wh
 
 ## What the player sees
 
-**Settings > Conversations > Dynamic info (Open)** opens a page with twelve switches, all on by default. An off kind is left out of every conversation
+**Settings > Conversations > Dynamic info (Open)** opens a page with twelve switches, all on by default except **Other mods' state**, which is off by default (a missing or malformed saved value takes the default, in the game and in the bridge). An off kind is left out of every conversation
 provider (Convai, Mistral, Local AI and Custom) and the mod stops reading it from the game. The page has the usual Back row and takes part in
 Restore defaults (Native Settings UI's own button, and the Defaults footer button in Mod Configuration Menu).
 
@@ -23,7 +23,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | Recent game dialogue (`dynamic:dialogue`) | `dynamicInfo.dialogue` | the last lines of scenes and V's chosen replies | the game-dialogue block | `gameDialogue:capture()` (the recorder stays: Johnny's remarks and the add-ons hear the game's lines through it, and it only works when the game shows a line) |
 | Time since last talk (`dynamic:lastTalk`) | `dynamicInfo.lastTalk` | how long since V last talked to this character, in the game and in real days | the Background line "You last talked with V ..." (and nothing is stored for the character) | the game clock in seconds (one read inside the turn-context snapshot) |
 | Music and TV (`dynamic:media`) | `dynamicInfo.media` | the song on the car radio while V rides in a car, or on V's pocket radio on foot; a TV that is on near V (its channel and what it just said) | the Background line's radio and TV sentences, for a companion in person and for Johnny in V's head | `mod/media-context.lua` (the radio and TV reads) and the TV line ring in `mod/game-dialogue.lua` |
-| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked (with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
+| Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
 
 What is deliberately not a switch: what each character knows about the story (the world facts and the recent shared events, they are the character's own
 knowledge and the bridge binds a conversation to the save with them), a fight reaction's own subject (battle reactions have their own setting), the pickups
@@ -74,7 +74,7 @@ wording), and the Dynamic info and Forget cases in `bridge/manager.test.mjs`, `b
 
 ## Other mods' state: Dark Future
 
-Added 2026-10-25. With **Other mods' state** on (the default) and the Dark Future mod installed, a character is told how V is doing in the plain words of
+Added 2026-10-25. With **Other mods' state** turned on (it is the one kind that is off by default) and the Dark Future mod installed, a character is told how V is doing in the plain words of
 body language: "V is exhausted and parched." / "V is badly on edge and in withdrawal from alcohol." Without Dark Future nothing changes and nothing is loaded.
 
 **How it is read** (`mod/mod-state.lua`, called from `mod/init.lua` inside `turn-context.lua`'s 5 second snapshot, so at most once per turn window and never per
