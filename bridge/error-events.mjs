@@ -519,6 +519,8 @@ export class ErrorEvents {
       if (row?.state !== 'problem' || typeof row.id !== 'string' || typeof row.code !== 'string') continue;
       // Local AI that could not start because the server the player runs is down, blocked or wrongly set up: their setup, already told in the game (2026-10-22 report ee4689b6).
       if (row.playerServer === true) continue;
+      // The player's own Python for OmniVoice that was refused (docs/OMNIVOICE_AMD.md): their experimental setup, told on the Help page, like a PC without CUDA.
+      if (row.id === 'omni-python') continue;
       this.record({kind: 'setup-problem', message: `${clip(row.id, 40)} ${clip(row.code, 40)}`, frame: 'setup-check',
         detail: {...(typeof row.scripts === 'string' ? {scripts: row.scripts} : {}), ...(typeof row.runtime === 'string' ? {runtime: row.runtime} : {})}});
     }

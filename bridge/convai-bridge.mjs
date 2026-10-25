@@ -64,6 +64,7 @@ import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
+import {ownPythonLine, ownPythonSummary, readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext, rosterContacts} from './phone-chat.mjs';
@@ -79,7 +80,7 @@ import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
 import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
-import {gpuVendors, nvidiaCardMiB} from './gpu-vendors.mjs';
+import {gpuVendors, nvidiaCardMiB, amdRoute} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
@@ -357,20 +358,51 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
 // OmniVoice is wanted (chosen or starting; VoiceSelection passes `wanted`), never at start-up, which runs no process of its own. null until the list is read;
 // the voice state is published again when it arrives.
 // The same list gives the NVIDIA card's memory (nvidiaCardMiB: a number, no name): OmniVoice's "needs 12 GB" hint, and a timeout on a card of 8 GB or less read as too little graphics memory.
+// With the player's own Python for OmniVoice (<data>/omni-python.txt, bridge/omni-own-python.mjs, docs/OMNIVOICE_AMD.md) its self-test runs beside the card list,
+// and OmniVoice waits for both: a Python that passed is the worker's, and the card memory its PyTorch reads (an AMD card has no NVIDIA size) is the one the
+// small-card rules use. Without the file nothing more happens than before.
 let graphicsVendors = null;
 let graphicsCardMiB = null;
 let graphicsLookup = false, graphicsKnown = false;
+let omniOwnPython = null, omniOwnPythonRun = null, graphicsCards = [];
+const cardMiB = () => omniOwnPython?.used && omniOwnPython.vramMiB ? omniOwnPython.vramMiB : nvidiaCardMiB(graphicsCards);
+let omniOwnPythonBusy = false;
+// Until its self-test has run, a file that names a Python is only known to be there (one small read at start-up, no process): the voice menu does not
+// say "needs NVIDIA" while it may still pass.
+let omniOwnPythonNamed = null;
+readOwnPythonSetting({stateDirectory}).then(setting => { if (setting.configured && !setting.problem) omniOwnPythonNamed = {configured: true, used: false, pending: true, reason: null}; }, () => {});
+const checkOwnPython = ({again = false} = {}) => {
+  if (omniOwnPythonRun && (omniOwnPythonBusy || !(again && omniOwnPython?.configured && !omniOwnPython.used))) return omniOwnPythonRun;
+  omniOwnPythonBusy = true;
+  omniOwnPythonRun = resolveOwnPython({stateDirectory, runtimePython: process.env.CYBERPUNK_CONVAI_PYTHON,
+    packInstalled: detectOmniPack({project, config: omniVoiceConfigs.long}).installed})
+    .catch(() => ({configured: false}))
+    .then(result => {
+      omniOwnPython = result; omniOwnPythonBusy = false;
+      if (graphicsKnown) graphicsCardMiB = cardMiB();
+      if (result.configured) process.stderr.write(`[LocalVoice] [OmniPython] ${ownPythonLine(result)}\n`);
+      try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      return result;
+    });
+  return omniOwnPythonRun;
+};
 const lookUpGraphics = wanted => {
   if (wanted && !graphicsLookup) {
     graphicsLookup = true;
-    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); graphicsCardMiB = nvidiaCardMiB(cards); }, () => {}).finally(() => { graphicsKnown = true; try { if (!localVoice.closed) localVoice.publish(); } catch {} });
+    Promise.all([cachedGraphicsCards().then(found => { graphicsCards = found; graphicsVendors = gpuVendors(found); }, () => {}), checkOwnPython()])
+      .finally(() => {
+        graphicsCardMiB = cardMiB();
+        graphicsKnown = true; try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      });
   }
 };
 const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphicsVendors; };
 // undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
+const graphicsAmdRouteSource = wanted => { lookUpGraphics(wanted); return graphicsKnown && amdRoute(graphicsCards); };
 const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  gpuVendors: graphicsVendorsSource, gpuMemoryMiB: graphicsMemorySource,
+  gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
+  omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
@@ -3829,6 +3861,19 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail)};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    // The player's own Python for OmniVoice (only with omni-python.txt): a light run reports what is known, the Help page's run tests it (again after a refusal).
+    omniPython: async ({light: lightRun} = {}) => {
+      // The Help page follows its request for 15 s: a self-test still running after 8 s is reported as being tested, and the next check shows its result.
+      if (!lightRun) {
+        const done = await Promise.race([checkOwnPython({again: true}), new Promise(wait => setTimeout(wait, 8000).unref?.())]);
+        if (done) return ownPythonSummary(done);
+        const setting = await readOwnPythonSetting({stateDirectory});
+        return setting.configured ? {...ownPythonSummary({configured: true, used: false, reason: setting.problem ?? null}), testing: !setting.problem} : null;
+      }
+      if (omniOwnPython) return ownPythonSummary(omniOwnPython);
+      const setting = await readOwnPythonSetting({stateDirectory});
+      return ownPythonSummary(setting.configured ? {configured: true, used: false, reason: setting.problem ?? null} : setting);
+    },
     // Whether the Pocket voice (V's voice, the companions') has failed to start: a row of the Help page when it has.
     voice: () => localVoice.voiceProblem(),
     // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.

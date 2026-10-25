@@ -1167,6 +1167,7 @@ function M.characterVoiceLabel(profile, view, pack)
     if chosen == 'omni' and type(pack) == 'table' then
         local omni = M.voiceLabel('omni', settings.omniSteps, settings.omniReference)
         if pack.known and not pack.installed then return ui.t('{voice} · needs Omni pack', {voice = omni}) end
+        if pack.amdRoute then return ui.t('{voice} · AMD experimental', {voice = omni}) end
         if pack.noNvidia then return ui.t('{voice} · needs NVIDIA card', {voice = omni}) end
         if pack.smallCard then return ui.t('{voice} · needs 12 GB card', {voice = omni}) end
     end
@@ -1195,10 +1196,12 @@ function M.omniPack()
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
     local noNvidia = fresh and localVoiceState.omniNoNvidia == true
     local smallCard = fresh and localVoiceState.omniSmallCard == true
+    -- `amdRoute`: no NVIDIA card but a discrete AMD Radeon one, and no working own Python (docs/OMNIVOICE_AMD.md): the menu points to that experimental route.
+    local amdRoute = noNvidia and localVoiceState.omniAmdRoute == true
     if fresh and type(pack) == 'table' and pack.installed == false then
-        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard}
+        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard, amdRoute = amdRoute}
     end
-    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia, smallCard = smallCard}
+    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia, smallCard = smallCard, amdRoute = amdRoute}
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only

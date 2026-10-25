@@ -2,6 +2,7 @@ import {PocketVoice, validatePocketConfig} from './pocket-voice.mjs';
 import {ResidentVoice, pathAttestationFailed, noCudaFailed, timedOutFailed, outOfMemoryFailed} from './resident-voice.mjs';
 import {lacksNvidia, isSmallCard, underNeeded} from './gpu-vendors.mjs';
 import {spillVerdict} from './gpu-memory.mjs';
+import {OMNI_SOURCE_VARIABLE, OWN_PYTHON_VARIABLE, ownPythonSummary} from './omni-own-python.mjs';
 import {createVoiceProfileRegistry, isPlayerReference} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {DEFAULT_OMNI_REFERENCE, OMNI_REFERENCES} from './voice-config-paths.mjs';
@@ -161,7 +162,7 @@ export class VoiceSelection {
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
     // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
-    this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.omniNoCuda=false;
+    this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.gpuAmdRouteSource=typeof options.gpuAmdRoute==='function'?options.gpuAmdRoute:()=>false;this.omniNoCuda=false;
     // The memory of the NVIDIA card (MiB, or null until the same lazy card list is read) and omniNoMemory: Omni ran out of its time with its graphics memory spilled into shared
     // memory, or on a card of 8 GB or less (not enough graphics memory next to the game). Like omniNoCuda, it is for the life of the service: Omni is not tried again,
     // and Pocket speaks in its place (resolve), told once (fallback.reason 'omni-memory').
@@ -577,7 +578,7 @@ export class VoiceSelection {
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
-      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniSmallCard:this.omniSmallCard,
+      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniAmdRoute:this.omniAmdRoute,omniSmallCard:this.omniSmallCard,omniPython:ownPythonSummary(this.omniOwnPython),
       keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
@@ -652,7 +653,7 @@ export class VoiceSelection {
     const variant=backend==='omni'?this.omniVariants[this.clientReference]:null;
     const factory=backend==='omni'?this.omniFactory:this.factory;
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,...(backend==='omni'?{configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{})}:{}),onState: value => {
+      ...this.omniWorkerHooks()}:{}),onState: value => {
       if (this.client !== client || this.closed) return;
       if (value.state === 'error') queueMicrotask(()=>this.backendFailed(backend,client));
       if (value.state === 'ready') this.stageAvailability(client,backend);
@@ -788,8 +789,21 @@ export class VoiceSelection {
   // The card vendors for the Omni start and failure lines: names only.
   get graphicsVendors(){try{const found=this.gpuVendorsSource(this.omniWanted);return Array.isArray(found)?found:null;}catch{return null;}}
   get graphicsNote(){const vendors=this.graphicsVendors;return vendors?.length?`graphics: ${vendors.join(', ')}`:'graphics: unknown';}
-  // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones. Unknown claims nothing.
-  get omniNoNvidia(){return this.omniNoCuda||lacksNvidia(this.graphicsVendors);}
+  // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones and no own Python with a
+  // working GPU PyTorch (ROCm) is used or still to be tested (pending). Unknown claims nothing.
+  get omniNoNvidia(){const own=this.omniOwnPython;return this.omniNoCuda||(lacksNvidia(this.graphicsVendors)&&!own?.used&&!own?.pending);}
+  // True when the PC has a discrete AMD Radeon card and no NVIDIA one (bridge/gpu-vendors.mjs amdRoute) and no own Python is working or still being tested: the menu and
+  // the Help page then point to the experimental AMD route (docs/OMNIVOICE_AMD.md) instead of "needs NVIDIA". Nothing is downloaded or started for it.
+  get omniAmdRoute(){const own=this.omniOwnPython;try{return this.gpuAmdRouteSource(this.omniWanted)===true&&!own?.used&&!own?.pending;}catch{return false;}}
+  // The player's own Python for OmniVoice (bridge/omni-own-python.mjs resolveOwnPython), or null: without the file, and until its self-test has run.
+  get omniOwnPython(){try{const found=this.options.omniOwnPython?.();return found?.configured?found:null;}catch{return null;}}
+  // The python.exe and environment of an OmniVoice worker: the player's own Python only when its self-test passed (with OmniVoice's code from the pack,
+  // and no CUDA graph on ROCm unless the worker is told otherwise), else the Runtime's, as before. The CUDA graph is off for the retry after a memory fault.
+  omniWorkerHooks(){
+    const own=this.omniOwnPython,used=own?.used===true&&!!own.path&&!!own.source;
+    const extra={...(used?{[OWN_PYTHON_VARIABLE]:'1',[OMNI_SOURCE_VARIABLE]:own.source}:{}),...(this.omniGraphOff?{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}:{})};
+    return {pythonExecutable:used?own.path:this.options.omniPythonExecutable,...(Object.keys(extra).length?{extraEnvironment:extra}:{})};
+  }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
   // Would routing speak with Pocket if it could run? Only when the player chose Pocket: an Omni that cannot run does not load Pocket in its
   // place. A cloud voice and the Convai voice want no Pocket worker.
@@ -845,7 +859,7 @@ export class VoiceSelection {
     if(!variant.configured){this.omniRetry=null;return;}
     const entry={reference,client:null,loaded:false,lastState:null};
     const hooks={...this.options,keepPreparedVoices:this.keepPrepared,configPath:variant.path,
-      pythonExecutable:this.options.omniPythonExecutable,lowPriority:true,...(this.omniGraphOff?{extraEnvironment:{CYBERPUNK_CONVAI_CUDA_GRAPH:'0'}}:{}),onState:value=>{
+      ...this.omniWorkerHooks(),lowPriority:true,onState:value=>{
         if(this.closed)return;
         if(this.candidate===entry){
           entry.lastState=value;

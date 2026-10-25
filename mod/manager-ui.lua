@@ -1154,7 +1154,7 @@ local function pageSignature(snapshot)
     if view == 'characters' then
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
-            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.smallCard),
+            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard),
             tostring((snapshot.mistral or {}).saved)}, '|'))
     end
     if view == 'models' then
@@ -1193,7 +1193,7 @@ local function pageSignature(snapshot)
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
-            tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
+            tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
         modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
@@ -1808,6 +1808,7 @@ local function schema()
         local voiceName = ui.t('Companion voices')
         if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
         -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
+        elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: experimental') .. ')'
         elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')'
         -- The NVIDIA card has under 12 GB (the bridge's card list): the entries stay choosable, the row says what OmniVoice needs.
         elseif pack.smallCard then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs 12 GB') .. ')' end
@@ -1862,7 +1863,10 @@ local function schema()
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
             end
             -- First paragraph, so a long description that is cut keeps it.
-            if voiceRow.id == 'voiceProvider' and pack.noNvidia then
+            if voiceRow.id == 'voiceProvider' and pack.amdRoute then
+                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md on the mod’s GitHub page (alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices.')
+                    .. '\n\n' .. voiceRow.description
+            elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
                 voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
                     .. '\n\n' .. voiceRow.description
             elseif voiceRow.id == 'voiceProvider' and pack.smallCard then

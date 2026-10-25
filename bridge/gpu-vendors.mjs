@@ -25,6 +25,24 @@ export function gpuVendors(cards) {
  */
 export const lacksNvidia = vendors => Array.isArray(vendors) && vendors.length > 0 && vendors.every(vendor => vendor === 'amd' || vendor === 'intel');
 
+// A discrete-looking AMD card: a model name of the RX/Pro/Instinct families, or a memory size no integrated Radeon reports (those take 0.5 to 4 GB of shared memory, and the
+// 32-bit registry value stops at 4 GiB). 'AMD Radeon(TM) Graphics' with a small or unknown size is an integrated one.
+const AMD_DISCRETE_NAME = /\brx\s?\d{3,4}|radeon\s+pro|radeon\s+vii|instinct|\bpro\s+w\d/i;
+const AMD_DISCRETE_MIB = 6_000;
+/**
+ * True when OmniVoice's AMD route (docs/OMNIVOICE_AMD.md, the player's own Python with ROCm PyTorch) applies: a discrete-looking AMD Radeon card and no NVIDIA card at all.
+ * Mixed NVIDIA + AMD stays on the NVIDIA route; an Intel or AMD integrated-only PC, an unrecognised name or an empty list claim nothing. Pure.
+ */
+export function amdRoute(cards) {
+  const list = Array.isArray(cards) ? cards : [];
+  if (gpuVendors(list).includes('nvidia')) return false;
+  return list.some(card => {
+    if (!gpuVendors([card]).includes('amd')) return false;
+    const memory = Number(card?.memoryMiB);
+    return AMD_DISCRETE_NAME.test(String(card?.name ?? '')) || (Number.isFinite(memory) && memory >= AMD_DISCRETE_MIB);
+  });
+}
+
 // OmniVoice beside the game and Local AI needs about 12 GB of graphics memory (docs: an 8 GB card times out, 2026-10-22 reports of an RTX 4060 Ti 8 GB: the voice worker held
 // 2,036 MiB on the card and 518 MiB in shared system memory when its preparation ran out of time). Cards report a little under their nominal size (8,188 MiB for 8 GB, 12,282 for 12 GB).
 export const OMNI_CARD_MIB = Object.freeze({

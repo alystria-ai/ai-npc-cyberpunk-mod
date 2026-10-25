@@ -321,6 +321,40 @@ test('optional packs: found, moved by the launcher, one folder too deep, and fil
   assert(table.concat(check.problems(), ',') == 'packs')
 `));
 
+test('omni-python: the own Python for OmniVoice names its backend or why it was refused, on the Help page and once in probe.log', () => run(String.raw`
+  installFiles(); serviceRunning()
+  answer({}); check.run()
+  assert(lineOf('omni-python') == nil, 'no omni-python.txt, no line')
+  answer({['omni-python'] = {id = 'omni-python', state = 'ok', code = 'used', backend = 'rocm', device = 'AMD Radeon RX 9070 XT', memoryMiB = 16304}}); check.run()
+  assert(lineOf('omni-python').state == 'ok' and lineOf('omni-python').description == 'Your own Python (omni-python.txt) runs OmniVoice with ROCm on AMD Radeon RX 9070 XT, 15.9 GB. Experimental.', tostring(lineOf('omni-python').description))
+  assert(files['runtime/probe.log']:find('Setup check: omni-python used backend=rocm card=AMD Radeon RX 9070 XT memoryMiB=16304', 1, true), tostring(files['runtime/probe.log']))
+  check.run()
+  local _, said = files['runtime/probe.log']:gsub('omni%-python used', '')
+  assert(said == 1, 'the same answer is logged once')
+  answer({['omni-python'] = {id = 'omni-python', state = 'ok', code = 'used', backend = 'cuda', device = 'NVIDIA GeForce RTX 4070'}}); check.run()
+  assert(lineOf('omni-python').description == 'Your own Python (omni-python.txt) runs OmniVoice with CUDA on NVIDIA GeForce RTX 4070. Experimental.', tostring(lineOf('omni-python').description))
+  local reasons = {
+    {'no-gpu', 'its PyTorch finds no graphics card (no CUDA or ROCm)'}, {'not-found', 'the file does not name a python.exe that exists'},
+    {'no-torch', 'PyTorch is not installed in it'}, {'op-failed', 'a test on the graphics card failed'}, {'no-pack', 'the OmniVoice pack is not installed'},
+    {'timed-out', 'it did not start or did not answer in time'}, {'omnivoice-failed', 'OmniVoice’s code could not load in it'},
+  }
+  for _, case in ipairs(reasons) do
+    answer({['omni-python'] = {id = 'omni-python', state = 'problem', code = 'refused', reason = case[1], backend = 'none'}}); check.run()
+    assert(lineOf('omni-python').state == 'problem' and lineOf('omni-python').description == 'Your own Python (omni-python.txt) was not used: ' .. case[2] .. '. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', case[1] .. ': ' .. tostring(lineOf('omni-python').description))
+  end
+  answer({['omni-python'] = {id = 'omni-python', state = 'problem', code = 'refused', reason = 'missing-module', module = 'transformers', backend = 'rocm'}}); check.run()
+  assert(lineOf('omni-python').description:find('the module transformers is missing in it', 1, true), tostring(lineOf('omni-python').description))
+  assert(files['runtime/probe.log']:find('omni-python refused backend=rocm reason=missing-module module=transformers', 1, true))
+  assert(#check.problems() == 0, 'an experimental setup is no first-load notice')
+  answer({['omni-python'] = {id = 'omni-python', state = 'unknown', code = 'testing'}}); check.run()
+  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('being tested', 1, true))
+  answer({['omni-python'] = {id = 'omni-python', state = 'unknown', code = 'untested'}}); check.run()
+  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('tested when OmniVoice starts', 1, true))
+  answer({['omni-python'] = {id = 'omni-python', state = 'note', code = 'amd-route', device = 'AMD Radeon RX 9070 XT'}}); check.run()
+  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('^Your AMD Radeon card %(AMD Radeon RX 9070 XT%) can run OmniVoice with your own Python') and lineOf('omni-python').description:find('Experimental. Steps: docs/OMNIVOICE_AMD.md', 1, true), tostring(lineOf('omni-python').description))
+  assert(#check.problems() == 0 and files['runtime/probe.log']:find('omni-python amd-route', 1, true))
+`));
+
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`
   installFiles(); serviceRunning()
   answer({browser = {id = 'browser', state = 'problem', code = 'missing'}}); check.run()

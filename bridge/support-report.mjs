@@ -616,6 +616,8 @@ function companionProviders({settings, voice, routing, party}) {
     voiceFallback: voice?.fallback ?? null,
     omniReference: voice?.omniReference ?? settings?.omniReference ?? null,
     omniPackInstalled: voice?.omniPack?.installed ?? null,
+    // The player's own Python for OmniVoice (docs/OMNIVOICE_AMD.md): which backend its self-test found (cuda, rocm, none) and why it was refused. null without one.
+    omniPython: voice?.omniPython ?? null,
     keepPreparedVoices: voice?.keepPreparedVoices ?? settings?.keepPreparedVoices ?? null,
     companions: rows};
 }

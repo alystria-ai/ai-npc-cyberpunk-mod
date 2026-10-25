@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {gpuVendors, isSmallCard, lacksNvidia, nvidiaCardMiB, underNeeded} from './gpu-vendors.mjs';
+import {amdRoute, gpuVendors, isSmallCard, lacksNvidia, nvidiaCardMiB, underNeeded} from './gpu-vendors.mjs';
 
 const card = name => ({name, memoryMiB: 8192});
 
@@ -56,4 +56,21 @@ test('isSmallCard (8 GB or less) and underNeeded (under 12 GB) read only a known
   for (const size of [8188, 10240]) assert.equal(underNeeded(size), true, String(size));
   for (const size of [11264, 12282, 12288, 16384]) assert.equal(underNeeded(size), false, String(size));
   for (const unknown of [null, undefined, 0, NaN]) assert.deepEqual([isSmallCard(unknown), underNeeded(unknown)], [false, false]);
+});
+
+test('amdRoute: a discrete AMD Radeon and no NVIDIA card, nothing else', () => {
+  const amd = {name: 'AMD Radeon RX 9070 XT', memoryMiB: 16304}, nvidia = {name: 'NVIDIA GeForce RTX 4060', memoryMiB: 8188};
+  assert.equal(amdRoute([amd]), true, 'AMD only');
+  assert.equal(amdRoute([nvidia]), false, 'NVIDIA only');
+  assert.equal(amdRoute([nvidia, amd]), false, 'both: the NVIDIA route');
+  assert.equal(amdRoute([{name: 'AMD Radeon(TM) Graphics', memoryMiB: 512}, nvidia]), false, 'a laptop with an AMD iGPU and an NVIDIA card');
+  assert.equal(amdRoute([{name: 'Intel(R) UHD Graphics 770', memoryMiB: 128}]), false, 'Intel only');
+  assert.equal(amdRoute([{name: 'AMD Radeon(TM) Graphics', memoryMiB: 512}]), false, 'AMD integrated only');
+  assert.equal(amdRoute([{name: 'AMD Radeon(TM) Graphics', memoryMiB: null}]), false, 'integrated, size unknown');
+  assert.equal(amdRoute([{name: 'AMD Radeon(TM) Graphics', memoryMiB: 512}, {name: 'Intel(R) Arc(TM) A770', memoryMiB: 16384}]), false, 'AMD iGPU beside an Intel card');
+  assert.equal(amdRoute([{name: 'Intel(R) UHD Graphics 770'}, {name: 'AMD Radeon RX 7600'}]), true, 'Intel iGPU beside a Radeon card (no size needed with an RX name)');
+  assert.equal(amdRoute([{name: 'AMD Radeon(TM) Graphics', memoryMiB: 8192}]), true, 'a large size says discrete');
+  assert.equal(amdRoute([{name: 'Meta Virtual Monitor'}, amd]), true, 'a virtual display is ignored');
+  assert.equal(amdRoute([{name: 'Some Unknown Adapter', memoryMiB: 16000}]), false, 'unknown vendor');
+  assert.equal(amdRoute([]), false); assert.equal(amdRoute(null), false); assert.equal(amdRoute(undefined), false);
 });
