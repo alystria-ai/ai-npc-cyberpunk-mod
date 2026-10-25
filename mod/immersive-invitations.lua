@@ -232,11 +232,12 @@ function M.new(env)
         local definition = env.companions.definition(key)
         if not definition then return false, ui.t('That character model is unavailable.') end
         local profileKey = definition.profileKey or key
+        -- Her walking body is in the companion list too (state 'visiting'): the appointment is looked at first.
+        local existing = byProfile(profileKey)
+        if existing then return false, ui.t('{name} is already on the way.', {name = existing.name}) end
         for _, member in ipairs(env.companions.list()) do
             if member.state ~= 'leaving' and (member.profileKey or member.key) == profileKey then return nil end
         end
-        local existing = byProfile(profileKey)
-        if existing then return false, ui.t('{name} is already on the way.', {name = existing.name}) end
         local here, why = env.world.describe('here', settings().arrival == 'car')
         if not here then return false, why or ui.t('Your position cannot be read yet.') end
         local a = create({key = key, profileKey = profileKey, name = definition.name, kind = 'here', dest = here.position,
@@ -267,16 +268,18 @@ function M.new(env)
         if not C.enabled() then return nil end
         local definition = env.companions.definition(key)
         if not definition then return nil end
+        -- The appointment comes first: her walking body (state 'visiting', live 2026-10-25 20:49) is in the companion list from the moment it
+        -- spawns, and "already here" there made the cancel of a meeting that stood impossible.
+        local existing = byProfile(profileKey)
+        if existing and existing.phase ~= 'leaving' then
+            local cancelToken = token()
+            offers[profileKey] = {token = cancelToken, at = wall(), cancelOnly = true}
+            return {version = 1, unavailable = 'pending', place = clip(existing.place, 160), cancel = true, token = cancelToken}
+        end
         for _, member in ipairs(env.companions.list()) do
             if member.state ~= 'leaving' and (member.profileKey or member.key) == profileKey then
                 return {version = 1, unavailable = 'already-here'}
             end
-        end
-        local existing = byProfile(profileKey)
-        if existing then
-            local cancelToken = token()
-            offers[profileKey] = {token = cancelToken, at = wall(), cancelOnly = true}
-            return {version = 1, unavailable = 'pending', place = clip(existing.place, 160), cancel = true, token = cancelToken}
         end
         local st = env.world.state()
         if st.held == 'combat' then return {version = 1, unavailable = 'combat'} end
@@ -312,6 +315,30 @@ function M.new(env)
         create({key = offer.key, profileKey = profileKey, name = offer.name, kind = kind, dest = use.position,
             place = use.place, road = use.road})
         return true
+    end
+
+    -- V called a meeting off in plain words to someone else (a talk or voice turn with a companion who is here; bridge/call-off.mjs): the one
+    -- standing appointment, or, with several, the only one whose name V said. True when one was called off.
+    function C.callOff(text)
+        local pending = {}
+        for _, a in ipairs(appts) do if a.phase ~= 'leaving' then pending[#pending + 1] = a end end
+        if #pending == 0 then return false end
+        local target = pending[1]
+        if #pending > 1 then
+            local said, found = ' ' .. tostring(text or ''):lower():gsub('[%p%s]+', ' ') .. ' ', nil
+            for _, a in ipairs(pending) do
+                local name = tostring(a.name or ''):lower():gsub('[%p%s]+', ' ')
+                local first = name:match('^(%S+)')
+                if name ~= '' and (said:find(' ' .. name .. ' ', 1, true) or (first and #first > 2 and said:find(' ' .. first .. ' ', 1, true))) then
+                    if found then return false end
+                    found = a
+                end
+            end
+            if not found then return false end
+            target = found
+        end
+        offers[target.profileKey] = nil
+        return C.cancel(target.profileKey, 'never-mind')
     end
 
     -- "Never mind" (a short in-character text and a light memory) or a quiet end.
@@ -932,6 +959,11 @@ function M.new(env)
         return false
     end
     function C.appointment(profileKey) return byProfile(profileKey) end
+    -- Is a meeting standing (not one that is already leaving)? One loop over at most a few rows.
+    function C.standing()
+        for _, a in ipairs(appts) do if a.phase ~= 'leaving' then return true end end
+        return false
+    end
 
     return C
 end

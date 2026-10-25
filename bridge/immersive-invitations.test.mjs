@@ -850,3 +850,46 @@ test('never mind on the way on foot: she walks off and the offer is spent', () =
   assert(ctl.appointment('judy-alvarez').phase == 'leaving')
   assert(not ctl.accept('judy-alvarez', {kind = 'cancel-meet', token = offer.token}), 'one use')
 `));
+
+// ---- Live 2026-10-25 20:49 (Claire Russell): "actually no dont come" did not stop her -----------------------------------------------------------------
+// Her walking body is in the companion list (state 'visiting') from the moment it spawns, so the offer said "already here" and no cancel was offered.
+test('live 2026-10-25: a walking visitor is in the companion list, and the offer is still the cancel of the standing meeting', () => run(`
+  ask('judy'); tick(3)
+  assert(#fake.visitors == 1, 'her body walks')
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'visiting'}}
+  local offer = ctl.offer('judy-alvarez', 'judy')
+  assert(offer.unavailable == 'pending' and offer.cancel == true and offer.token, tostring(offer.unavailable))
+  assert(ctl.accept('judy-alvarez', {kind = 'cancel-meet', token = offer.token}))
+  tick(1)
+  assert(texts('cancelled') == 1 and ctl.note('judy-alvarez').kind == 'cancelled')
+`));
+
+test('the Invite button says she is on the way while her visiting body is in the companion list', () => run(`
+  ask('judy'); tick(3)
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'visiting'}}
+  local ok, why = ctl.requestInvite('judy')
+  assert(ok == false and why:find('already on the way'), tostring(ok) .. tostring(why))
+`));
+
+test('a plain call-off said to someone else: the one standing meeting is called off, nothing else is touched', () => run(`
+  assert(ctl.callOff('never mind, cancel that') == false, 'nothing stands')
+  ask('judy'); tick(3)
+  fake.party = {{profileKey = 'judy-alvarez', key = 'judy', state = 'visiting'}}
+  assert(ctl.standing() == true)
+  assert(ctl.callOff('never mind, cancel that') == true)
+  tick(1)
+  assert(texts('cancelled') == 1 and ctl.note('judy-alvarez').kind == 'cancelled')
+  assert(ctl.standing() == false, 'a meeting that is leaving does not stand')
+  assert(ctl.callOff('never mind, cancel that') == false, 'and is not called off twice')
+`));
+
+test('a plain call-off with several meetings standing: only the one V named, never a guess', () => run(`
+  ask('judy'); ask('panam'); tick(3)
+  assert(ctl.callOff('never mind, cancel that') == false, 'two stand and none is named')
+  assert(ctl.appointment('judy-alvarez').phase ~= 'leaving' and ctl.appointment('panam-palmer').phase ~= 'leaving')
+  assert(ctl.callOff('never mind, tell Panam to stay home') == true)
+  assert(ctl.appointment('panam-palmer') == nil or ctl.appointment('panam-palmer').phase == 'leaving')
+  assert(ctl.appointment('judy-alvarez').phase ~= 'leaving')
+  ask('rita'); tick(3)
+  assert(ctl.callOff('forget it, judy and rita') == false, 'two names are not one')
+`));
