@@ -233,3 +233,20 @@ test('bodies that were made while we did not look are adopted, strangers of ours
     assert(world.bodies[900] == nil, 'a body nobody lives in stayed')
   `);
 });
+
+test('she wakes at her own wake time, not at six: asleep before it, up after it', () => {
+  lua(`${WORLD}
+    local plan = dofile('housemate-plan.lua')
+    world.data = {reservedFacts = {any = {}}, apartments = {corpo = {id = 'corpo', spots = {
+      {id = 'chair', kind = 'chair', x = 4, y = 0, z = 0},
+    }}}}
+    local wake = plan.waketime('judy-alvarez')
+    world.hours = 24 + wake - 0.3
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 20)
+    assert(snapshot(c)['judy-alvarez'].sleep == true, 'not asleep shortly before her wake time')
+    world.hours = 24 + wake + 0.3
+    run(c, 20)
+    assert(snapshot(c)['judy-alvarez'].sleep == false, 'still asleep after her wake time')
+  `);
+});

@@ -192,19 +192,21 @@ function M.new(options)
         end
         local leave = capturedOffer(options.leaveOffer, context.entity, context)
         if leave and (type(leave.members) ~= 'table' or #leave.members < 1 or #leave.members > 12) then leave = nil end
+        -- An ordinary world NPC's reaction (docs/NPC_REACTIONS.md): only a private conversation, and only for a person with no
+        -- companion offer at all.
+        local reaction
+        if private and not drive and not tactic and not follow and not leave then
+            reaction = capturedOffer(options.reactionOffer, context.entity, context)
+            if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 3) then reaction = nil end
+        end
         -- A housing offer (mod/housemates.lua): V's flats to move into, the housemates V may call along, and moving out. Private turns
         -- carry the apartments; the first speaker of a group round carries only the audience.
         local home
         if private then home = capturedOffer(options.homeOffer, context.entity, context)
         elseif group then home = capturedOffer(options.groupHomeOffer, context.entity, context) end
         if home and (type(home.apartments) ~= 'table' or #home.apartments > 5 or type(home.members) ~= 'table' or #home.members > 12) then home = nil end
-        -- An ordinary world NPC's reaction (docs/NPC_REACTIONS.md): only a private conversation, and only for a person with no
-        -- companion offer at all.
-        local reaction
-        if private and not drive and not tactic and not follow and not leave and not home then
-            reaction = capturedOffer(options.reactionOffer, context.entity, context)
-            if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 3) then reaction = nil end
-        end
+        -- A housing offer is a companion's: it replaces an ordinary person's reaction offer.
+        if home then reaction = nil end
         -- A follow the game refuses carries only its reason code: no lease, no action.
         if not follow and type(refusal) == 'table' and refusal.available == false
             and FOLLOW_UNAVAILABLE[refusal.reason] then

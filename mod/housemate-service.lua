@@ -47,6 +47,11 @@ function M.new(d)
             place = d.place, hours = d.hours, ready = function() return true end, held = d.held, fact = d.fact, vpos = d.vpos,
             eligible = d.eligible, profileName = d.profileName, store = store(), random = d.random, talking = d.talking,
             twin = world.twin, rig = world.rig, proc = world.proc,
+            ours = function(entity)
+                if d.companions.partyMember(entity) then return true end
+                for _, row in ipairs(d.companions.visitors()) do if row.entityID == entity then return true end end
+                return false
+            end,
             notify = d.notify, log = d.log, t = d.t,
             bodies = world.bodies, seats = world.seats,
             companions = {
@@ -81,6 +86,8 @@ function M.new(d)
         return controller
     end
 
+    S.ensure = ensure
+
     -- Every 0.1 s of play time, from the world-ready part of the 10 Hz poll.
     function S.tick(delta)
         local state = S.state
@@ -98,7 +105,7 @@ function M.new(d)
     -- A world ended (preserve == false) or V fast travelled (preserve == true).
     function S.reset(reason, preserve)
         if S.controller then pcall(S.controller.reset, reason, preserve) end
-        if S.world and S.world.abandon then pcall(S.world.abandon) end
+        if S.world and S.world.abandon then pcall(S.world.abandon, preserve ~= true) end
         if preserve ~= true then S.state = {acc = 0, read = false, homes = nil} end
     end
 

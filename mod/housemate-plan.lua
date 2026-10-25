@@ -53,7 +53,8 @@ function M.bedSlots(bed)
     local yaw = bed.yaw or ((bed.across or 0) - 90)
     for index, offset in ipairs(bed.sides or {}) do
         slots[#slots + 1] = {id = bed.id .. ':' .. index, kind = 'bed', bed = bed.id, x = bed.anchor.x + lx * offset,
-            y = bed.anchor.y + ly * offset, z = bed.anchor.z, yaw = yaw, conf = bed.conf, group = bed.id}
+            y = bed.anchor.y + ly * offset, z = bed.anchor.z, yaw = yaw, conf = bed.conf, group = bed.id,
+            side = offset < 0 and -1 or 1, lateral = {x = lx, y = ly}}
     end
     return slots
 end

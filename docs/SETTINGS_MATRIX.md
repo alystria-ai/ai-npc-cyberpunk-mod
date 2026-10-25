@@ -166,3 +166,7 @@ Live checks (every line is something to look at in the game; none was done):
 9. Settings page in MCM: no line is another size (there is no read-only line); the Memory and Help pages still show their text lines.
 10. Mistral key row: with Mistral chosen and Voxtral voices, Remove names both; with only Voxtral companions it names the Convai voice; with only V on Voxtral it names Pocket; with neither it says nothing depends on it. Read the interface-language help and the new texts in German and Japanese.
 11. Skippy or Delamain with the Custom provider chosen and ready: the add-on speaks through the custom endpoint (probe log shows the Custom route); with Mature on the guard still screens it.
+
+## Housemates (2026-10-25)
+
+No setting of their own. The pair chat between housemates follows **Companion speak-up** (Off: no chat). Moving in and out is a conversation action or the Move out row of Current party.

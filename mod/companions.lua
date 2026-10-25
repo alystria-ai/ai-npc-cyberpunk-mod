@@ -824,6 +824,14 @@ function M.residentNpc(serial)
     return ok and attached and entry.npc or nil
 end
 -- The ready party member that speaks as this profile (nil: none, a leaving copy does not count).
+-- Every ready party member's entity (a group release lists the whole party, not only the three who answer: mod/companion-adoption.lua).
+function M.partyEntities()
+    local list={}
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and entry.profileKey then list[#list+1]=tostring(entry.entityID.hash) end
+    end
+    return list
+end
 function M.partyMemberOf(profileKey)
     for _,entry in ipairs(entries) do
         if entry.state=='ready' and entry.profileKey==profileKey then
@@ -846,12 +854,6 @@ function M.visitorFace(serial,position,yaw)
     if not entry or not entry.motor then return false end
     local ok,sent=pcall(actuator.teleport,entry.motor,position,yaw,'housemate-face')
     return ok and sent==true
-end
--- Show or hide a visiting copy (a scene or a quest is playing in her flat); the body stays where it is.
-function M.residentVisible(serial,visible)
-    local entry=visitorEntry(serial)
-    if not entry or not entry.npc then return false end
-    return setVisible(entry,visible==true)
 end
 function M.releaseToHome(serial,home)
     local entry
@@ -1965,6 +1967,12 @@ function setVisible(entry,visible)
     end)
     if not ok then entry.visibilityError=tostring(err) end
     return ok
+end
+-- Show or hide a visiting copy (a scene or a quest is playing in her flat); the body stays where it is (mod/housemates.lua).
+function M.residentVisible(serial,visible)
+    local entry=visitorEntry(serial)
+    if not entry or not entry.npc then return false end
+    return setVisible(entry,visible==true)
 end
 local function checkRiders(s,position)
     for _,entry in ipairs(entries) do

@@ -233,3 +233,9 @@ coverage is recorded in [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md).
    a player's real conversations during routine verification.
 
 Controller text entry is not implemented; keyboard typing is the current path.
+
+## Moving in by text (2026-10-25, docs/HOUSEMATES.md)
+
+A phone message to a contact who may be invited can carry a housing offer next to the meeting offer: V's flats (from the quest facts of the purchases), the flat V is in,
+the flat she lives in, and Move out. The character answers with a tag at the start of her text (`[stay:corpo]`, `[move-out]`; `bridge/home-requests.mjs`), the game checks it
+against the one-use token it sent (`mod/housemates.lua phoneAction`) and moves her in. A message that is only a meeting request still goes to the meeting offer.

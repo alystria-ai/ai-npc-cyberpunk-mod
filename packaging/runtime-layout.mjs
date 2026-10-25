@@ -76,6 +76,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/group-lookahead.mjs',
   'bridge/group-prefetch.mjs',
   'bridge/guarded-file.mjs',
+  'bridge/home-requests.mjs',
+  'bridge/house-chat.mjs',
   'bridge/intrinsic-character-context.mjs',
   'bridge/jali-face-model.mjs',
   'bridge/jali-face.mjs',

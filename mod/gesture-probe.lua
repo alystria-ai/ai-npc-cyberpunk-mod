@@ -580,6 +580,12 @@ COMMANDS['reload-seating'] = function()
 end
 -- run <name> [args...]: research probe runtime/<name>.lua (returns a function of
 -- words and this probe) without a CET reload. Names are letters, digits, - and _.
+-- housemate <sub> ...: the housemates' development tools (mod/housemate-survey.lua, docs/HOUSEMATES.md "Phase 0").
+COMMANDS.housemate = function(words)
+    local loaded, module = pcall(dofile, 'housemate-survey.lua')
+    if not loaded then return false, tostring(module) end
+    return module.command(words)
+end
 COMMANDS.run = function(words)
     local name = words[2] or ''
     if not name:match('^[%w%-_]+$') then return false, 'probe name must be letters, digits, - or _' end

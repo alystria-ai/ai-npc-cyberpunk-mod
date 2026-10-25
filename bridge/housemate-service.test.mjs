@@ -16,6 +16,7 @@ const SERVICE = `
     joinVisitor = function() return true end,
     releaseToHome = function(serial, apt) released[#released + 1] = {serial, apt}; return true end,
     partyMemberOf = function(key) return party[key] end,
+    partyMember = function(entity) if entity == '1ULL' then return {serial = 1} end return nil end,
     residentNpc = function() return nil end,
     dismissVisitor = function() end, residentVisible = function() end,
   }
@@ -80,6 +81,8 @@ test('an offer builds the controller on demand; before the first read the regist
     -- a conversation turn comes before the world-ready read
     local offer = service.homeOffer('1ULL', {profileKey = 'judy-alvarez'})
     assert(offer and #offer.apartments >= 1)
+    -- somebody who is not one of our copies (a game character, a person on the street) is offered nothing
+    assert(service.homeOffer('999ULL', {profileKey = 'judy-alvarez'}) == nil)
     service.tick(0.1)
     assert(#service.rows() == 1 and service.rows()[1].key == 'rogue', 'the registry was not applied to the controller built early')
   `);

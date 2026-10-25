@@ -88,6 +88,8 @@ test('stay: a party member told to stay in the flat V stands in is released into
     run(c, 15)
     local s = snapshot(c)['judy-alvarez']
     assert(s.state == 'at' and s.serial == serial, tostring(s.state))
+    assert(world.spawned == nil, 'a second body was made for a party member who already has one')
+    assert(world.homeOutfit['judy-alvarez'] == true)
   `);
 });
 

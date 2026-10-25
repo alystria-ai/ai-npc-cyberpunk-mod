@@ -163,7 +163,14 @@ function M.new(o)
             local h = nat.surface(spot.x + probe[1].x * probe[2], spot.y + probe[1].y * probe[2], floor + 1.2, floor - 0.2)
             if not h or math.abs(h - top) > 0.15 then return nil, 'the bed is too narrow at the slot' end
         end
-        return {kind = 'bed', x = spot.x, y = spot.y, z = top, yaw = yaw, approach = nil, bed = true}
+        -- She walks up from the open side of the bed: a point past the edge, on the floor.
+        local lateral = spot.lateral or {x = -f.y, y = f.x}
+        local side = spot.side or 1
+        local out = {x = spot.x + lateral.x * side * 1.35, y = spot.y + lateral.y * side * 1.35}
+        local ground = nat.surface(out.x, out.y, top + 0.1, top - 1.4, true)
+        local approach = ground and nat.navPoint({x = out.x, y = out.y, z = ground}, player()) or nil
+        if not approach then return nil, 'no way up to the bed' end
+        return {kind = 'bed', x = spot.x, y = spot.y, z = top, yaw = yaw, approach = approach, bed = true}
     end
 
     local function standSpot(spot, r)
@@ -440,8 +447,10 @@ function M.new(o)
         return (tostring(entry.rig):lower():gsub('[^a-z0-9]', ''))
     end
 
-    function W.abandon()
+    -- sweep: the world ended, so every seat device left in it goes too (a CET reload keeps the world and its devices).
+    function W.abandon(sweep)
         for h in pairs(handles) do deleteDevice(h) end
+        if sweep and nat.sweep then pcall(nat.sweep) end
         handles, prep, procState, twinAt = {}, {}, {}, {}
     end
 

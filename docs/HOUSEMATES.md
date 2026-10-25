@@ -1,7 +1,9 @@
-# Housemates (design)
+# Housemates
 
-Status: design for review, written 2026-10-25 on branch `feat/housemates` (from main 29a85e01). Nothing is built. Every statement about a game
-API says whether the mod already uses it (and where) or is a guess that only a live run can settle ("What only a live run can settle").
+Status: **built** on branch `feat/housemates` (2026-10-25), phases 0 to 2 of the plan below, on top of `feat/immersive-invitations` (visiting copies,
+`joinVisitor`). Source and fake-world tests pass; **nothing has been seen in the game yet**. The list in "What only a live run can settle" and the
+steps in "Live test, step by step" are what to run first. The design below was reviewed by the owner on 2026-10-25; "Owner's decisions" lists the
+answers and where they changed it. Every statement about a game API says whether the mod already uses it (and where) or is a guess a live run settles.
 The archive research behind the apartment tables was done with the WolvenKit CLI, read only, on the 2.31 install (WolvenKit 9.0.1 cannot parse
 the 2.5 streaming sectors, see "Uncertain"). Nothing in any game folder was touched.
 
@@ -324,8 +326,8 @@ Inputs: the residents to materialize (`homes` filtered by apartment) and the apa
 4. Each resident draws a kind from weights: sit 0.62, window 0.12, lean (counter) 0.10, stand (other) 0.12 (zeroed when the apartment has none), limited by free spots of that kind; sit spots are consumed first by the residents with the highest sit weight in the day plan.
 5. **Spacing**: two residents are never assigned spots less than 0.9 m apart (centre to centre) unless on the same couch (0.66 m seats), and never two in the same `zone` beyond the zone's `capacity` (a couch group, the bar, the window area).
 6. **Faces**: a sitter on a couch next to another sitter is fine. A stander at a window faces the glass. Two standers are not placed facing a wall at less than 1 m.
-7. **Overflow**: when the table runs out, procedural stand spots (above). When the apartment's body cap is reached (10 bodies, 6 in a small flat, a constant per apartment) the extra housemates are **out**: not
-   materialized, rotated in when someone leaves or after 10 minutes of V being in the flat (one in, one out, behind V's back: the leaving body walks out of the door, the incoming one appears at the door and walks to a free spot). Housemates remain unlimited; bodies are what cost FPS.
+7. **Overflow**: when the table runs out, procedural stand spots (above). **There is no cap on bodies and no rotation** (owner, 2026-10-25: all housemates are present at once, "people will not spawn that many"). The idle work stays cheap
+   (one step a second for everybody settled, nothing per frame) and the live test measures it with the biggest group the owner has.
 8. A re-plan (a change of spot) re-runs the assignment for that one resident only, with the others fixed.
 
 ## Routine state machine
@@ -371,7 +373,7 @@ All through the one body: `companions.joinVisitor` (immersive branch) and its mi
 | --- | --- |
 | Home -> party (**tag along**) | `Join V's Party` action (offer kind `home`, `members` = residents in earshot, `all` or named). For each target: leave the workspot (native fast exit, wait for `inWorkspot` false up to 1.5 s, step out as the seating code does), release the actuator, `joinVisitor(serial)` (follower role, `state = 'ready'`, no respawn), `convaiOutfitApi.setHome(key, false)` (she changes out of home clothes when nobody is looking), notice "{name} joins you." Slot and lane come from the normal `groupFrame`. If the party is at its size limit: refused in character (`reason = 'full'`). |
 | Party -> home (**rest / leave / stay** while V is in **her** apartment) | The existing `Leave V's Party` action. The game, not the model, decides what it means from the offer: if `member.home == the apartment V is in`, she is **released to her routine** (below), otherwise she **departs** (walks away, removed out of V's view, `companion-adoption`) and is home virtually. The model's job is only to decide V meant it. |
-| Party -> home, in another of V's flats | She departs and is virtual at her own home. (Alternative: she asks to stay here and moves house. Open question 4.) |
+| Party -> home, in another of V's flats (**owner, 2026-10-25**) | **She asks**: the leave offer's member carries `away`, `homeName` and `hereName`, and the character is told not to leave yet but to ask "want me here, or back at my place in Glen?". The game remembers the question for 10 minutes. V's answer is the next turn: "back" is the ordinary `Leave V's Party` (now marked `confirmed`: she departs and is home virtually), "here" is `Stay At <this flat>` (she moves house to this flat and is released into its routine). A leave packet for an `away` member that is not `confirmed` is refused by the game. V on the street (not in any flat): no question, she just leaves. |
 | Party -> routine ("release") | Reverse of `attachFollower`: remove the follow behaviour (`ai:SetAIRole` back to `AINoRole`, the check `attachFollower` already makes on spawn), cancel formation/tactic/transport/gesture/seating ownership of her (`companions.bodyAnimation.release`, `stopPace`), `entry.state = 'visiting'` with `entry.home`, then the routine places her. `setHome(key, true)`. **Uncertain**: that a copy accepts `AINoRole` after `AIFollowerRole` and then answers `AIMoveTo` commands (live check 5). Fallback: delete the body when V is not looking at her and materialize a fresh resident at her spot. |
 | Dismiss (manager Current party) | Same as the leave action: routine if V is in her home flat, else departure. A housemate is never deleted from `homes` by a dismissal, only by `Move Out`. |
 | Fast travel while a resident is materialized | Residents are deleted before the capture, like visitors (`beginFastTravel`). They are virtual again; nothing to carry. |
@@ -396,16 +398,18 @@ All through the one body: `companions.joinVisitor` (immersive branch) and its mi
 
 ## Pair chat
 
-Housemates talk to each other while V is home and has released them from the party. Design goals: one conversation at a time, random pair, 7 to 8 lines in total, then a pause, V can join or call someone back, and it must not eat the Convai budget.
+Housemates talk to each other while V is home and has released them from the party. Goals: one conversation at a time, a random pair, 7 to 8 lines in all, then a pause, V can join in or call someone back, and no requests, no connections and no lines whenever V is not at home.
 
 ### Conditions to start
 
-All must hold (checked at the scheduler's step, 0.2 Hz, only while two or more residents are materialized):
+All must hold (checked at the scheduler's step, once a second, only while two or more residents are settled in the flat V is in):
 
-1. V is in the apartment (district record), not in combat, a scene, dialogue, a call, a menu, a vehicle, or the phone; no conversation or group round in progress; no automatic reaction speaking.
-2. At least two residents are `at(spot)` (not asleep, not walking, not joining, not held), within 12 m of each other, and both within 25 m of V (V can hear).
-3. The cooldown since the last chat ended has passed (below), the rate limiter allows, the budget allows.
+1. V is in the apartment (district record), not in combat, a scene, dialogue, a call, a menu, a vehicle, or the phone; no conversation, group round, phone message or automatic reaction in progress.
+2. At least two residents are settled (not asleep, not walking, not joining, not held, not in a talk with V), within 12 m of each other, and both within 25 m of V (V can hear).
+3. The pause since the last chat ended has passed (2 minutes) and the Companion speak-up level allows another chat this hour.
 4. Neither resident is in the party.
+
+When V is not in the flat nothing of this runs: the scheduler is not even called, so no request is made, no connection opened and no line spoken.
 
 ### The chat
 
@@ -421,22 +425,14 @@ All must hold (checked at the scheduler's step, 0.2 Hz, only while two or more r
 * V calls someone back to the party: the normal `Join V's Party`; the chat ends.
 * V leaves, a scene or combat starts, or one of them is hidden or deleted: the chat is dropped at once, no cooldown penalty beyond a short one.
 
-### Rate and budget
+### Rate and budget (owner, 2026-10-25)
 
-The owner's constraint is not to spam the Convai budget. Numbers (all constants, the level comes from the existing **Companion speak-up** setting, so there is no new toggle):
-
-| Level (existing setting) | Gap after a chat ends | Chats per real hour, at most | Lines per hour, at most |
-| --- | --- | --- | --- |
-| Off | no chats | | 0 |
-| Rare (default) | 12 to 20 real minutes, random | 3 | 24 |
-| Normally | 8 to 14 minutes | 4 | 32 |
-| Often | 5 to 9 minutes | 6 | 48 |
-
-* A shared **proactive limiter** (interface below) decides first: one gate for Johnny's remarks, companion speak-up and pair chat, so three features cannot add up to a flood. Pair chat asks for a whole chat's lines at once (`take(kind='house', lines=8)`); a refusal delays the chat, it does not shorten it. Until the speak-up branch merges, `mod/housemates.lua` carries a tiny local limiter with the same shape (`allow(kind, lines, now)`, `note(...)`) that it hands over to the shared one without changing callers.
-* **Shared key**: a new `HouseChatAllowance` beside `RemarkAllowance` in `bridge/shared-key-guard.mjs`: the chat lines may use at most `HOUSE_SHARE` (default 8 percent) of the day's limit, counted in their own signed record, ignored for Mistral, Local AI, Custom and a player's own Convai key (those are not shared-key turns). At a 100 turn day that is **8 lines, one chat a day**; at 500 it is 40 lines, about 5 chats. This is stricter than it looks, and is a question for the owner (open question 5). Also: the chat waits when the shared key's rate bucket is below half, and when the Convai quota watch (`bridge/convai-quota.mjs`) reports `quota`, `daily` or `rate` the scheduler stops chats until the next day / hour.
-* **Latency of V first**: a chat never starts while V's own request is in flight, and V's request pre-empts the next line (the request queue already gives manual turns priority over automatic ones: `manual-priority`).
-* **Local routes** (Mistral, Local AI): free of the shared key, but not of the GPU: the level table is the only brake, and a local model that is loading or busy defers the chat.
-* **Connections**: both speakers need a prepared connection. Preparing them is the only real cost of the chat start, so it is done once at the moment the pair is picked (the existing `companion-invitations` preparation without a party reservation), at most 3 residents hold a warm connection at any time (least recently used is released), and everything is released when V leaves.
+* **One chat at a time**, at most 8 lines (the speakers aim for 7 or 8; the last line is a closing remark).
+* **A pause of 2 minutes from the end of the last chat**, on every provider. There is **no special Convai share**: the idea of a `HouseChatAllowance` beside `RemarkAllowance` was dropped.
+* The **Companion speak-up** level (Off, rarely, normally, often; the setting is changing names on `feat/dynamic-info-speak-up`) caps the chats per real hour: Off none, rarely 2, normally 4, often 6 (about 2, 4 and 6 an hour as the setting says). Off means no housemate chat. `mod/housemate-chat.lua` accepts the old names (rare, medium, normal) too.
+* The shared arbiter of unprompted lines (Johnny, companions speaking up) is used through `limiter.allow/note` when the speak-up branch provides it (`convaiProactive`); until then only the pause and the level apply.
+* V's own requests come first: a chat never starts while any request of V's is in flight, and a line that is only waiting for the channel is cancelled the moment V talks.
+* Connections: the existing "Auto-connect nearby characters" warms the characters V looks at or stands near, residents included, so a talk with a housemate opens fast. A chat line cold-opens its speaker's connection like any first line; that is the only cost of a chat start.
 
 ### Interface for the shared limiter
 
@@ -524,16 +520,15 @@ None for the feature. The owner prefers none unless needed, and nothing here nee
 
 * Pair chat frequency follows the existing **Companion speak-up** setting (Off disables chats).
 * Moving in is a conversation act, moving out is a conversation act or the manager row.
-* Every tunable is a named constant at the top of the module (gaps, dwell times, body caps, day weights).
+* Every tunable is a named constant at the top of the module (gaps, dwell times, day weights).
 
 If the owner wants a master switch it is one row (`housemates`, On by default) in the same Settings page as Companion speak-up; it is not proposed.
 
 ## Many housemates
 
-* **Housemates**: unlimited (the registry is a table of keys).
-* **Bodies at once** in one flat: capped by a per-apartment constant (10, small flats 6). The rest are "out", rotating in and out as described in Assignment.
-* **Cost per body**: one managed NPC; no connection (lazy); no gesture or expression ticks (those key on `ready`); the face writer's rows (`expressionActors`) include residents only while they speak.
-* **Talking cost**: at most 3 residents with a warm connection.
+* **Housemates**: unlimited (the registry is a table of keys), and **all of them are present at once** in their flat (no cap on bodies, no rotation: owner).
+* **Cost per body**: one managed NPC; no connection until someone talks to her; no gesture or expression ticks (those key on `ready`); the face writer's rows (`expressionActors`) include residents only while they speak.
+* The controller steps once a second for everybody settled and four times a second while anybody walks, spawns or changes place. The live test measures FPS with the largest group available.
 
 ## Edge cases
 
@@ -557,7 +552,7 @@ If the owner wants a master switch it is one row (`housemates`, On by default) i
 | The character editor deletes a custom character | Her fact is stale and harmless; no body |
 | A resident is attacked / V attacks her | The existing hostile handling of managed copies; she is deleted after the fight, remains in `homes` |
 | Two apartments, V moves between them without leaving a district | Not possible (each is its own volume) |
-| Body cap reached | Rotation (Assignment, rule 7) |
+| Many housemates in one flat | All are present; the places run out, the rest stand on procedural places (Assignment, rule 7) |
 | Bed exists but the width scan disagrees with the table | The bed is skipped for that session and logged |
 | Apartment with no data yet (Glen, Japantown, Northside) | Procedural stand spots only; no sleeping in the bed; `chairsleep` and `couch` unavailable |
 | Upgrade 2.31 to 2.5 changes furniture | The runtime verification rejects a bad spot (logged); data fixes follow |
@@ -602,19 +597,19 @@ Not touched: `mod/diagnostics.lua`, `scripts/Test-GameInput.ps1`, `docs/DEMO_VID
 
 ## Phases
 
-**Phase 0 - measure and qualify (no player-visible feature).** Recorder and scanner; run on a throwaway save for all five apartments; promote measured spots into the table; fact write/read check (live check 1); the extraction script for reserved facts; verify the vanilla workspots exist per rig; archive build with the new components. Output: the data, the label fix, a go/no-go on facts.
+**Phase 0 - measure and qualify (built).** The recorder and scanner (`mod/housemate-survey.lua`, through the gesture probe), the quest-fact extractor, the saved-fact check, the new archive components and the build changes they need, the label fix. Output still to come from the live run: the measured spots of the five flats and the go/no-go on facts.
 
-**Phase 1 - the feature.** Registry and facts; ownership; offers and actions (stay, release, recall, move out) on private, group and phone; materialization and unload; assignment, routine (day, sit, window, lean, stand), party transitions, home clothes; quest/scene safety; H10 and Corpo Plaza spots, procedural fallback for the rest; tests; the first live round.
+**Phase 1 - the feature (built).** Registry and facts; ownership; the offers and actions (stay, rest with the question, recall, move out) on private, group and phone turns; materialization and unload; assignment and routine; party transitions; home clothes behind a guard; quest/scene safety; the data of H10 and Corpo Plaza, the procedural fallback for the other three.
 
-**Phase 2 - the life.** Sleeping (beds that fit two, chair sleep), pair chat with limiter and allowance, the lazy connection warm on gaze, the manager Move out row, the memory notes polish.
+**Phase 2 - the life (built).** Sleeping (beds that fit two, a chair to doze in), pair chat, the welcome line when V comes home after a long absence, the Move out row in the manager.
 
-**Phase 3 - polish and research.** Shower/sink poses if a generic pose can be made; a greeting when V comes home after a long time (the immersive meeting greeting path); body rotation; Dogtown if the owner wants it; idle variety chains (`shuffle`, `look`).
+**Left out on purpose.** The shower (owner: out; a sink wash with the generic pose is in the archive components but no sink spot is recorded yet), Dogtown, gaze between the two chatters.
 
 ## Test plan
 
 Unit (pure Lua with injected seams, the `bridge/companion-seating.test.mjs` Fengari approach):
 
-* **Assignment**: N residents x apartment tables: V slots never given, spacing, quota (most sit, some stand), overflow to procedural, rotation at the body cap, stability by hash.
+* **Assignment**: N residents x apartment tables: V slots never given, spacing, quota (most sit, some stand), overflow to procedural places, stability by hash.
 * **Routine machine** with a fake clock and fake game seams: day plan weights, dwell, churn limit, bedtime/wake hashing, bed only when `fitsTwo` and verified, chair sleep fallback, time jump re-plan, talk wakes a sleeper.
 * **Persistence**: fake fact store, write on move in/out, read at world ready for every known key, rollback (older save's values), a deleted custom character, unknown keys.
 * **Offers**: bridge offer parsing, the apartment choice rules (named, here, only one, ask which and the follow-up), unavailable reasons, `all` and named targets, cap 12, tag screens in every menu language (reuse the fixtures of `text-action-words`).
@@ -655,7 +650,67 @@ Unit (pure Lua with injected seams, the `bridge/companion-seating.test.mjs` Feng
 * Convai concurrency and the shared key's day cap decide how lively the flat can be.
 * The speak-up branch and the outfits branch are unfinished; the interfaces above are what this design needs from them.
 
-## Open questions for the owner
+## Owner's decisions (2026-10-25)
+
+1. Persistence in saved quest facts; qualify first (live check 1), fall back to the session file (`runtime/housemates.json`, `registry.mode = 'file'`, the service's `storeMode`) if facts do not survive a load.
+2. Built on top of `feat/immersive-invitations` (visiting copies and `joinVisitor`), rebased onto its latest commits; expect one more rebase at merge time. Outfits are used behind a guard (`convaiOutfitApi`), so housemates work without that branch.
+3. Rest in another flat: she asks first (built, "Party transitions").
+4. No cap on bodies, no rotation.
+5. Chat only while V is in the flat, a pause of about 2 minutes after a chat, every provider alike, no Convai share, 8 lines per chat, one at a time.
+6. Chat follows the Companion speak-up level (Off means none).
+7. The recorder may run on a throwaway copy of a save (teleport and purchase facts); the game is not launched by the agent: "Live test, step by step" has the exact commands.
+8. Move out row in the manager (built; MCM and Native Settings UI share the page), strings in all 15 locales.
+9. Scope as designed (no Dogtown, no romance partners' places, no quest penthouses).
+10. Shower out.
+11. Greeting when V comes home after a long absence (built: one housemate, once per return, after at least 6 game hours away, from the housemate nearest V).
+
+## What was built
+
+| Part | File |
+| --- | --- |
+| Registry in saved facts, fallback file store | `mod/housemate-registry.lua` |
+| Plan: day and night, bedtimes, assignment, next place | `mod/housemate-plan.lua` |
+| Controller: zone, materialization, routine, held mode, offers, actions, party transitions | `mod/housemates.lua` |
+| Game adapter: seat snapping with raycasts, workspot play and exit, walking, procedural places, bodies | `mod/housemate-world.lua` |
+| Glue for init.lua | `mod/housemate-service.lua` |
+| Pair chat scheduler | `mod/housemate-chat.lua` |
+| Flats, spots, reserved facts | `mod/housemate-spots-data.lua` |
+| Development recorder | `mod/housemate-survey.lua` (probe command `housemate`) |
+| Visiting copies of the housemates, release to home, step, face, show/hide | `mod/companions.lua` (`owner = 'housemates'`, `home`, `releaseToHome`, `partyMemberOf`, `residentNpc`, `visitorStep`, `visitorFace`, `residentVisible`) |
+| Quiet resident job without preparation | `mod/manager-party.lua` (`extra.resident`; residents are not party copies in `Q.list` and `Q.count`) |
+| The housing offer in the lease | `mod/gameplay-actions.lua` (`homeOffer`, `groupHomeOffer`, `queueHome`, leave offers up to 12) |
+| Wiring | `mod/init.lua` (tick, reset, offers, talk and seat hooks, `house` reaction line, district event), `mod/phone-chat.lua`, `mod/companion-seating.lua` (`onSettled`), `mod/companion-adoption.lua` (12 members), `mod/manager-ui.lua` (Move out), `mod/notices.lua` |
+| Bridge | `bridge/companion-actions.mjs`, `protocol.mjs`, `text-actions.mjs`, `text-action-words.mjs`, `phone-chat.mjs`, `home-requests.mjs`, `house-chat.mjs`, `turn-context.mjs`, `battle-context.mjs`, `dynamic-info.mjs` |
+| Archive components | `assets/gestures/gestures.json` (`bed`, `chairsleep`, `lean`, `sink`), `mod/gesture-catalog.lua`, `scripts/Build-GestureAssets.mjs` and `Verify-GestureAssets.mjs` (a sleep workspot that already repeats is accepted) |
+| Facts | `scripts/Extract-ApartmentFacts.mjs` |
+
+Differences from the design text above, found while building:
+
+* The bed workspot `generic__lie_double_bed__sleep__01` exists for woman_base, man_base and man_fat only (no man_big): those bodies doze in a chair instead. The chair-sleep workspot exists for all four.
+* The chair-sleep component serves chairs only (not counter stools), so a housemate dozes only in a chair.
+* Beds ship with `usable = false` until the recorder measured their width and V's lying root (`housemate bed <id>`).
+* Seats that may be V's own seat (`maybeV`) are held back until V's seat in that flat is known: the seating controller reports every seat V settles on (`onSettled`), the root is learned (`runtime/housemate-learned.json`, world coordinates, kept across saves) and a housemate on it gets up.
+* The quest fact list was regenerated from the cooked quest phases (`scripts/Extract-ApartmentFacts.mjs`); the per-flat `mq055_02_<flat>_active` names are the real ones. `q001_in_v_room` is deliberately not reserved (nobody can be invited in the prologue and whether it is reset is unknown).
+* The welcome line and the chat lines are `house` reactions (event `welcome` or `chat`) spoken like the meeting greeting; the chat speaker's text is captured through `convaiHouseReplyText` and handed to the next speaker.
+* A talk with a housemate uses eyes and head only (like a character another mod spawned), so her workspot is never disturbed; the talk wakes a sleeper.
+* The old per-flat `usable` seeds of Glen, Japantown and Northside stay off; those flats use the procedural standing places until the recorder measured them.
+
+## Live test, step by step
+
+Everything below is for a **throwaway copy of a save** (never one of the owner's saves). The commands go through the gesture probe:
+`scripts\Send-HousemateProbe.ps1 <command>` (a wrapper of `scripts\Send-GestureProbe.ps1 "housemate <command>"`; Developer mode on; the game running and not paused). The steps below write each command as `housemate <command>` (with the wrapper leave the word `housemate` out); `help` lists them. Examples: `.\scripts\Send-HousemateProbe.ps1 where`, `.\scripts\Send-HousemateProbe.ps1 stay judy-alvarez corpo`.
+
+1. **Facts survive a load (live check 1).** `housemate qualify write`, save the game, quit to the main menu, load that save, `housemate qualify read` must say `survived = true`. Load an OLDER save of the same character: `fact` must be 0 (the rollback). If facts do not survive: set `registry.mode = 'file'` and the service's `storeMode` to `'file'` (one line in `mod/init.lua`, `storeMode`), and say so.
+2. **Own the flats.** `housemate own corpo`, `own glen`, `own japan`, `own north` (H10 is always yours); the manager's offer then lists them. `housemate reserved` in a flat prints the quest facts and their values (live check 9: nothing above 0 in a quiet save).
+3. **Move somebody in without a conversation.** `housemate stay judy-alvarez corpo`, walk into the flat (or `housemate teleport corpo`): she appears and takes a place. `housemate status` shows the residents and the learned seats.
+4. **Measure** (V stands or lies on the spot; one line each is appended to `runtime/housemate-survey.txt`, paste them into `mod/housemate-spots-data.lua`): `housemate record couch corpo-couch-3` on each seat (sit on V's own seat first: its root is learned too), `housemate bed h10-bed` lying in the bed, `housemate window h10-window` facing the window, `housemate door h10`, and `housemate scan 8` for a list of couch, chair, stool and bed candidates around V (`runtime/housemate-scan.json`). Repeat for all five flats.
+5. **Conversation.** Talk to a party member inside a flat: "you can stay at my place" (the action), "rest" (released), "come along" to a housemate, "everyone, come with me" in a group, "you can't live here any more". In another flat: "rest" to a housemate whose home is elsewhere: she must ask first.
+6. **Routine and sleep.** Wait or skip time to 23:00 to 02:00: housemates go to bed (a bed that fits two) or doze in a chair; talk to one: she wakes. Sit on the couch and sleep in the bed yourself: nobody sits on your seat, you can sleep.
+7. **Chat.** `housemate chat` starts a pair chat at once (the 2-minute pause cleared): one conversation, 7 to 8 lines, each speaker in her own voice, then the pause. Talk to one mid-chat: it ends after the line in the air.
+8. **Welcome.** Leave for 15 minutes of play (6 game hours), come back: one greets you. `housemate greet` forces it.
+9. **FPS.** With everybody settled and with housemates registered but V elsewhere: the frame time must not change (the controller is a once-a-second step and nothing per frame).
+
+## Owner's questions as they stood before the review (kept for the record)
 
 1. **Persistence**: use the game's own saved facts for the housemate registry (recommended; the only per-save store that works in the shipped mod), or the file keyed by save line which falls back to the session (it forgets after a restart)?
 2. **Merge order**: housemates builds on the visiting copies of `feat/immersive-invitations` and the outfit API of `feat/outfits`. Build after both merge, or carry the minimal visiting-copy part here?

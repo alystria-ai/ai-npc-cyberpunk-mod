@@ -427,18 +427,6 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         if offer and convaiHousemateLeaveOffer then offer = convaiHousemateLeaveOffer(offer) end
         return offer
     end,
-    -- Housemates: moving in and out, and calling the ones at home along (docs/HOUSEMATES.md).
-    homeOffer = function(entity, context)
-        if convaiStory and convaiStory.entity == entity then return nil end
-        return convaiHousemateOffer and convaiHousemateOffer(entity, context) or nil
-    end,
-    groupHomeOffer = function(entity, context)
-        return convaiHousemateGroupOffer and convaiHousemateGroupOffer(entity, context) or nil
-    end,
-    queueHome = function(home, offer, entity, requestId, groupId)
-        if not convaiHousemateQueue then return false, ui.t('That action is not available.') end
-        return convaiHousemateQueue(home, offer, entity, requestId, groupId)
-    end,
     queueFollow = function(offer, entity, requestId)
         if not adoption then return false, ui.t('That action is not available.') end
         return adoption.queueFollow(offer, entity, requestId)
@@ -450,6 +438,18 @@ gameplayActions = dofile('gameplay-actions.lua').new({
                 function(t, o, e, r, g) return adoption.queueLeave(t, o, e, r, g) end)
         end
         return adoption.queueLeave(target, offer, entity, requestId, groupId)
+    end,
+    -- Housemates: moving in and out, and calling the ones at home along (docs/HOUSEMATES.md).
+    homeOffer = function(entity, context)
+        if convaiStory and convaiStory.entity == entity then return nil end
+        return convaiHousemateOffer and convaiHousemateOffer(entity, context) or nil
+    end,
+    groupHomeOffer = function(entity, context)
+        return convaiHousemateGroupOffer and convaiHousemateGroupOffer(entity, context) or nil
+    end,
+    queueHome = function(home, offer, entity, requestId, groupId)
+        if not convaiHousemateQueue then return false, ui.t('That action is not available.') end
+        return convaiHousemateQueue(home, offer, entity, requestId, groupId)
     end,
     -- An ordinary world NPC's reaction to the conversation (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): leave, call the police or
     -- attack. A global service, so these two lines add no upvalue. Nothing is offered or started when the module is missing.

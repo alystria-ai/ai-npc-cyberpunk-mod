@@ -131,7 +131,8 @@ function M.new(env)
             if not ok or may ~= true then return end
             if env.limiter and env.limiter.allow then
                 local asked, allowed = pcall(env.limiter.allow, 'house', M.MAX_LINES)
-                if not asked or allowed == false then return end
+                -- A limiter that fails (a different version of the arbiter) is ignored: the pause and the level still apply.
+                if asked and allowed == false then return end
             end
             local people = env.people()
             if #people < 2 then return end
@@ -183,6 +184,8 @@ function M.new(env)
         if hard or state.phase == 'between' then return finish(reason or 'interrupted') end
         chat.stopAfterLine, chat.stopReason = true, reason or 'interrupted'
     end
+    -- Development: start the next chat at once (the cooldown and the hourly count cleared).
+    function C.force() state.nextAt, state.started = 0, {}; return true end
     function C.active() return chat ~= nil end
     -- Does this person take part in the chat now?
     function C.involves(key) return chat ~= nil and (chat.a.key == key or chat.b.key == key) end

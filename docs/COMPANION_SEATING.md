@@ -38,7 +38,7 @@ internal: an archive without the sit components disables it.
 
 ## First probe: V's apartment couch (October 8, seat watcher)
 
-V sat on the H10 couch with Judy nearby for about 5 s (`runtime/gesture-probe.log`
+V sat on the couch of the Corpo Plaza apartment (labelled "H10" until 2026-10-25: the seat root (-1602.30, 356.20, 48.62) is inside the sectors of `loc_dlc6_apart_cct_dtn`; Megabuilding H10 is at x -1395..-1375, y 1260..1280, docs/HOUSEMATES.md) with Judy nearby for about 5 s (`runtime/gesture-probe.log`
 `seat-watch`, at 602-613):
 
 - `IsActorInWorkspot(player)` true while seated; **`GetWorkspotInstance` returned

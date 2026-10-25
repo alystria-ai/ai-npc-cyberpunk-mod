@@ -322,6 +322,38 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-world.lua"
         },
         {
+          "source": "mod/housemates.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemates.lua"
+        },
+        {
+          "source": "mod/housemate-registry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-registry.lua"
+        },
+        {
+          "source": "mod/housemate-plan.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-plan.lua"
+        },
+        {
+          "source": "mod/housemate-chat.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-chat.lua"
+        },
+        {
+          "source": "mod/housemate-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-world.lua"
+        },
+        {
+          "source": "mod/housemate-service.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-service.lua"
+        },
+        {
+          "source": "mod/housemate-spots-data.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-spots-data.lua"
+        },
+        {
+          "source": "mod/housemate-survey.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-survey.lua"
+        },
+        {
           "source": "mod/immersive-car.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-car.lua"
         },
@@ -703,6 +735,8 @@
             "bridge/group-lookahead.mjs",
             "bridge/group-prefetch.mjs",
             "bridge/guarded-file.mjs",
+            "bridge/home-requests.mjs",
+            "bridge/house-chat.mjs",
             "bridge/intrinsic-character-context.mjs",
             "bridge/jali-face-model.mjs",
             "bridge/jali-face.mjs",

@@ -631,6 +631,20 @@ test('V far away removes a stuck companion even in view', () => runWorld(leaveSe
   assert(find('judy-alvarez')==nil,'V is 60 m away: '..table.concat(logs,' / '))
 `));
 
+test('a group round names every party member in its leave offer, not only the ones who answer (housemates: up to twelve)', () => runWorld(`
+  companions.registerDefinition('panam',{id='Character.Panam',name='Panam Palmer',profileKey='panam-palmer'})
+  companions.registerDefinition('rogue',{id='Character.Rogue',name='Rogue',profileKey='rogue'})
+  assert(queue.invite('panam')); assert(queue.invite('rogue')); step(2)
+  local panam,rogue=find('panam-palmer'),find('rogue')
+  assert(panam and rogue)
+  -- the round has only Panam as a speaker (three voices at most), Rogue is addressed by name
+  local leave=adoption.leaveOffer(panam.entityID,{profileKey='panam-palmer',group={id='round'},entities={panam.entityID}})
+  assert(#leave.members==2,'members '..#leave.members)
+  local ids={}
+  for _,member in ipairs(leave.members) do ids[member.key]=member.id end
+  assert(ids['panam-palmer']==panam.entityID and ids['rogue']==rogue.entityID)
+`));
+
 test('headway keeps a walking companion from being called stuck', () => runWorld(leaveSetup + `
   navigation(function() return true end)
   player.forward=Vector4.new(0,1)

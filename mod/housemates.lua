@@ -24,6 +24,7 @@
 --   chat                    the pair chat seams (mod/housemate-chat.lua); nil: no chat
 --   greet(info)             a housemate greets V who has come home
 --   twin(r)                 true when the game's own copy of this character stands near V
+--   ours(entity)            true when this entity is one of our own copies (party member, visitor, housemate)
 local plan = dofile('housemate-plan.lua')
 local registry = dofile('housemate-registry.lua')
 local chatModule
@@ -198,7 +199,7 @@ function M.new(env)
     end
     local function sleepWanted(r)
         local h = hours()
-        return h ~= nil and plan.period(h) == 'night' and plan.sleepy(r.key, h) and not (r.wakeUntil and clock < r.wakeUntil)
+        return h ~= nil and plan.sleepy(r.key, h) and not (r.wakeUntil and clock < r.wakeUntil)
     end
     local function day() local h = hours() return h and math.floor(h / 24) or 0 end
 
@@ -306,6 +307,13 @@ function M.new(env)
             end
             snapped.id = r.spot.id; snapped.procedural = r.spot.procedural
             r.spot = snapped
+            if r.serial then
+                -- She already has a body (a party member released into the flat): she walks to her place, nothing is created.
+                r.state, r.handle = 'placing', nil
+                return
+            end
+            -- Casual clothes from the first frame (the outfits module dresses a new copy by this setting).
+            if env.outfits then guard(env.outfits.setHome, r.key, true) end
             local ok, err = env.bodies.spawn(r, snapped)
             if ok then r.state, r.spawnedAt = 'spawning', clock
             else
@@ -361,7 +369,7 @@ function M.new(env)
                 if not spot then if why ~= 'wait' then r.tries = r.tries + 1 end if r.tries > 5 then r.state = 'at'; dwellFor(r) end return end
                 r.nextSpot = spot
             end
-            local snapped, why, wait = env.seats.prepare(r.nextSpot, r)
+            local snapped, why, wait = env.seats.prepare(r.nextSpot, {key = r.key, apt = r.apt, sleep = r.nextSleep == true})
             if wait then return end
             if not snapped then
                 if r.nextSpot.id then rejected[r.nextSpot.id] = true end
@@ -555,6 +563,13 @@ function M.new(env)
     end
 
     function C.setChat(module) chat = module end
+    -- Development (mod/housemate-survey.lua): the next chat and the welcome line now.
+    function C.forceChat() return chat ~= nil and chat.force ~= nil and chat.force() == true end
+    function C.forceGreeting()
+        if not zone then return false end
+        welcome, lastWelcomeAt = {apt = zone, away = 12}, nil
+        return true
+    end
     -- The name of the flat V is in now (the chat prompt says where they are).
     function C.placeName() return zone and M.NAMES[zone] or '' end
     -- The housemates that can chat or be greeted by now: settled, awake, not in a talk with V.
@@ -704,6 +719,9 @@ function M.new(env)
     function C.homeOffer(entity, context)
         if type(entity) ~= 'string' or type(context) ~= 'table' or type(context.profileKey) ~= 'string' then return nil end
         if guard(env.held) == 'combat' then return nil end
+        -- Only our own copies (a party member, a visitor, a housemate) are ever offered anything: a game character, or an ordinary person
+        -- on the street, gets nothing, however many housemates stand near.
+        if env.ours and not guard(env.ours, entity) then return nil end
         local key = context.profileKey
         local eligible = guard(env.eligible, key) == true
         local vp = guard(env.vpos)
