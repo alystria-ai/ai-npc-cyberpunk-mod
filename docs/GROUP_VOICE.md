@@ -22,7 +22,7 @@ existing assignments; it is not automatic mod initialization.
 
 - Private/group text and voice share target resolution. The addressed supported character goes
   first. Group mode requires at least two distinct enabled profiles and selects
-  at most three. Duplicate copies do not produce duplicate speakers. A looked-at
+  at most three. With nobody faced the round is the first member of the party plus two picked at random from the rest of it (`docs/TALK_FALLBACK.md`). Duplicate copies do not produce duplicate speakers. A looked-at
   unsupported NPC is reported rather than silently replaced by another person.
 - Starting group voice freezes the participating entities/profiles and follow-up setting.
   The first request contains microphone input and its group context. Finish

@@ -87,6 +87,34 @@ test('the list the redscript takes: the five slots in order, - for none, and not
   assert(kb.list({voice = 'not a key', text = 'IK_Escape'}) == '', 'a value that is not a key the player may choose is left out')
 `));
 
+test('Talk to Johnny: two more actions after the five, so the slots of an older list stay; the list grows only when one of them has a key', () => run(fixture + `
+  assert(#kb.ACTIONS == 7 and kb.ACTIONS[6] == 'johnny_voice' and kb.ACTIONS[7] == 'johnny_text')
+  assert(kb.CET_ID.johnny_voice == 'cyberpunk_convai_johnny_voice' and kb.CET_ID.johnny_text == 'cyberpunk_convai_johnny_text')
+  assert(kb.HOLD.johnny_voice == true and kb.HOLD.johnny_text == nil and kb.HOLD.voice == true and kb.HOLD.text == nil)
+  assert(kb.list({voice = 'IK_F7', johnny_voice = 'IK_J'}) == 'IK_F7,-,-,-,-,IK_J')
+  assert(kb.list({johnny_text = 'IK_K'}) == '-,-,-,-,-,-,IK_K')
+  assert(kb.list({voice = 'IK_F7', johnny_voice = 'IK_J', johnny_text = 'IK_K'}) == 'IK_F7,-,-,-,-,IK_J,IK_K')
+  assert(kb.list({voice = 'IK_F7'}) == 'IK_F7,-,-,-,-', 'without a Johnny key the list is the one it always was')
+  assert(kb.list({johnny_voice = 'not a key'}) == '')
+`));
+
+test('Talk to Johnny: the voice action is a hold (slot 6), the text action a tap (slot 7), and the CET line of both is read', () => run(fixture + `
+  saved.johnny_voice, saved.johnny_text = 'IK_J', 'IK_K'
+  tick()
+  assert(player.list == '-,-,-,-,-,IK_J,IK_K', player.list)
+  player:push('d6'); assert(runList() == 'johnny_voice:down')
+  player:push('d6'); assert(runList() == 'johnny_voice:down', 'key repeat')
+  player:push('u6'); assert(runList() == 'johnny_voice:down,johnny_voice:up')
+  runs = {}
+  player:push('d7'); assert(runList() == '', 'nothing on the press')
+  clock = clock + 0.1; player:push('u7'); assert(runList() == 'johnny_text')
+  local found = kb.decodeCet('{"AiNpcCyberpunkMod": {"cyberpunk_convai_johnny_voice": 33214047251857408, "cyberpunk_convai_johnny_text": 32932572275146752}}')
+  assert(found.johnny_voice == 'F7' and found.johnny_text == 'F6')
+  -- A key another action has is refused for them too.
+  kb.beginCapture(player, 'johnny_text'); clock = clock + 0.5; player:push('kIK_J')
+  assert(results[#results].kind == 'duplicate' and results[#results].other == 'johnny_voice')
+`));
+
 // ---- Cyber Engine Tweaks' bindings.json --------------------------------------------------------------------------------------------------------
 const slotsValue = (...codes) => codes.reduce((total, code, index) => total | (BigInt(code) << BigInt(48 - 16 * index)), 0n);
 
@@ -402,8 +430,8 @@ test('init.lua: with no binding saved the module is never loaded; once one is, i
 test('init.lua: an own voice key runs the CET key\'s own code path under the CET key id, a text key runs beginText, the manager key openManager', () => run(`
   local calls, observed = {}, nil
   manager = {keyBindings = function() return {} end, setKeyBinding = function(who, action, name) calls[#calls + 1] = 'save:' .. action .. ':' .. tostring(name); return true end}
-  function voiceKeyEdge(id, group, down) calls[#calls + 1] = id .. ':' .. tostring(group) .. ':' .. tostring(down) end
-  function beginText(group) calls[#calls + 1] = 'text:' .. tostring(group) end
+  function voiceKeyEdge(id, group, down, johnny) calls[#calls + 1] = id .. ':' .. tostring(group) .. ':' .. tostring(down) .. (johnny and ':johnny' or '') end
+  function beginText(group, johnny) calls[#calls + 1] = 'text:' .. tostring(group) .. (johnny and ':johnny' or '') end
   function openManager() calls[#calls + 1] = 'manager' end
   function log() end
   Game = {GetPlayer = function() return 'the player' end}
@@ -416,7 +444,9 @@ test('init.lua: an own voice key runs the CET key\'s own code path under the CET
   assert(convaiKeyBindsModule() == module, 'one module')
   module.deps.voice('voice', true); module.deps.voice('voice', false); module.deps.voice('group_voice', true)
   module.deps.tap('text'); module.deps.tap('group_text'); module.deps.tap('manager')
-  assert(table.concat(calls, ',') == 'voice:false:true,voice:false:false,group_voice:true:true,text:false,text:true,manager', table.concat(calls, ','))
+  module.deps.voice('johnny_voice', true); module.deps.voice('johnny_voice', false); module.deps.tap('johnny_text')
+  assert(table.concat(calls, ',') == 'voice:false:true,voice:false:false,group_voice:true:true,text:false,text:true,manager,'
+    .. 'johnny_voice:false:true:johnny,johnny_voice:false:false:johnny,text:false:johnny', table.concat(calls, ','))
   calls = {}
   assert(module.deps.save('text', 'IK_T') == true and calls[1] == 'save:text:IK_T')
   module.deps.changed({kind = 'bound'}); assert(calls[2] == 'result:bound')
@@ -439,8 +469,10 @@ test('init.lua: the CET hotkeys ask convaiTapOnce, the CET voice keys are unchan
   assert.match(initSource, /registerInput\('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function\(isDown\) voiceKeyEdge\('group_voice', true, isDown\) end\)/);
   assert.match(initSource, /pcall\(convaiKeyBindsTick, player, worldReady\)/, 'ticked from the 10 Hz tick, not from onUpdate');
   assert.match(initSource, /if convaiKeyBinds then pcall\(convaiKeyBinds\.stop,/, 'stopped at shutdown');
+  assert.match(initSource, /registerHotkey\('cyberpunk_convai_johnny_text'[^\n]*if convaiTapOnce\('johnny_text'\) then beginText\(false, true\) end/);
+  assert.match(initSource, /registerInput\('cyberpunk_convai_johnny_voice', 'AI NPC Cyberpunk Mod: talk to Johnny by voice', function\(isDown\) voiceKeyEdge\('johnny_voice', false, isDown, true\) end\)/);
   const code = wiring();
-  assert.match(code, /voiceKeyEdge\(action, action == 'group_voice', isDown\)/);
+  assert.match(code, /voiceKeyEdge\(action, action == 'group_voice', isDown, action == 'johnny_voice'\)/);
   assert.match(code, /Observe\('PlayerPuppet', 'ConvaiKeyBindNotify'/);
   assert.ok(!/OnUpdate|onUpdate|GetTimeSystem/.test(code), 'nothing per frame');
 });

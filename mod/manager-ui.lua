@@ -1220,7 +1220,9 @@ local function keyActionName(id)
     if id == 'voice' then return ui.t('Talk by voice')
     elseif id == 'text' then return ui.t('Talk by text')
     elseif id == 'group_voice' then return ui.t('Group voice chat')
-    elseif id == 'group_text' then return ui.t('Group text chat') end
+    elseif id == 'group_text' then return ui.t('Group text chat')
+    elseif id == 'johnny_voice' then return ui.t('Talk to Johnny by voice')
+    elseif id == 'johnny_text' then return ui.t('Talk to Johnny by text') end
     return ui.t('Companion Manager')
 end
 -- A key as the page says it: the key's name, 'Controller LB' for a controller button, or 'Not set'. The keys that have a word of their own (Space, Page up,
@@ -1267,10 +1269,12 @@ local function keyBindingSections(snapshot)
             'The mod’s key bindings could not be loaded. Open Help for what is wrong.')})}
     end
     local sections = {
-        bindingSection(snapshot, module, 'voice', 'Talk by voice', 'Hold the key or button while you speak and let go to send, like the Cyber Engine Tweaks talk key.'),
-        bindingSection(snapshot, module, 'text', 'Talk by text', 'Press it to type to the character you face.'),
-        bindingSection(snapshot, module, 'group_voice', 'Group voice chat', 'Hold it to talk to the characters around you at once, and let go to send.'),
-        bindingSection(snapshot, module, 'group_text', 'Group text chat', 'Press it to type to the characters around you at once.'),
+        bindingSection(snapshot, module, 'voice', 'Talk by voice', 'Hold the key or button while you speak and let go to send, like the Cyber Engine Tweaks talk key. Facing nobody, you talk to the first member of your party.'),
+        bindingSection(snapshot, module, 'text', 'Talk by text', 'Press it to type to the character you face. Facing nobody, you type to the first member of your party.'),
+        bindingSection(snapshot, module, 'group_voice', 'Group voice chat', 'Hold it to talk to the characters around you at once, and let go to send. Facing nobody, you talk to the first member of your party and two others from it.'),
+        bindingSection(snapshot, module, 'group_text', 'Group text chat', 'Press it to type to the characters around you at once. Facing nobody, you type to the first member of your party and two others from it.'),
+        bindingSection(snapshot, module, 'johnny_voice', 'Talk to Johnny by voice', 'Hold it to talk to Johnny, the voice in your head, wherever you face, and let go to send. It needs Johnny in your head turned on in Settings.'),
+        bindingSection(snapshot, module, 'johnny_text', 'Talk to Johnny by text', 'Press it to type to Johnny, the voice in your head, wherever you face. It needs Johnny in your head turned on in Settings.'),
         bindingSection(snapshot, module, 'manager', 'Companion Manager', 'Press it to open the Companion Manager while you play.'),
     }
     -- The same setting as Settings > Voices (a row of its own there): changing it here changes it there.
@@ -1716,7 +1720,7 @@ local function schema()
             setting('johnnyInHead', 'Johnny in your head', 'select',
                 snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
                     or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
+                'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
             -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
             setting('companionSpeakUp', 'Companions speak up', 'select',
@@ -2257,7 +2261,7 @@ function M.apply(changes)
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
-        elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}
+        elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}
         elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then

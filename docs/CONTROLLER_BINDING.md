@@ -1,6 +1,6 @@
 # Controller talk button
 
-Settings > Voices > **Controller talk button** (off by default, in Mod Configuration Menu and Native Settings UI alike; the same row is on **Companion Manager > Key bindings**, see `docs/KEY_BINDINGS.md`). On, **hold the left stick click (L3)** at a character, speak, and let go to send: the same hold-to-talk as the CET talk key (`docs/VOICE_INPUT.md`), by voice, for the private talk only. The text composer and the group voice key stay on the keyboard (a controller cannot type, and one controller button is all the pad has to give).
+Settings > Voices > **Controller talk button** (off by default, in Mod Configuration Menu and Native Settings UI alike; the same row is on **Companion Manager > Key bindings**, see `docs/KEY_BINDINGS.md`). On, **hold the left stick click (L3)** at a character, speak, and let go to send: the same hold-to-talk as the CET talk key (`docs/VOICE_INPUT.md`), by voice, for the private talk only. Facing nobody, the hold talks to the first member of the party (`docs/TALK_FALLBACK.md`). A button for Talk to Johnny by voice is set on Key bindings. The text composer and the group voice key stay on the keyboard (a controller cannot type, and one controller button is all the pad has to give).
 
 Checked 2026-10-24 against game 2.31 (`r6/config/inputUserMappings.xml`, `r6/config/inputContexts.xml`, `r6/cache/final.redscripts`, read only).
 

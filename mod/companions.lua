@@ -988,14 +988,16 @@ function M.conversationCandidates(player, radius)
     local result = {}
     if not player then return result end
     local origin = player:GetWorldPosition()
-    for _, entry in ipairs(entries) do
+    for index, entry in ipairs(entries) do
         if entry.profileKey and (entry.state == 'ready' or entry.state == 'visiting') and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
             local pos = entry.npc:GetWorldPosition()
             local distance = math.sqrt((pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2)
             if distance <= radius then
+                -- party / order: a ready party member and its place in the Companion Manager's list (the talk keys' fallback, init.lua selectConversation).
                 result[#result + 1] = {npc = entry.npc, entity = tostring(entry.entityID.hash),
                     profileKey = entry.profileKey, name = entry.profileName,
-                    bodyType = bodyName(entry.npc:GetBodyType()), distance = distance}
+                    bodyType = bodyName(entry.npc:GetBodyType()), distance = distance,
+                    party = entry.state == 'ready', order = index}
             end
         end
     end
@@ -1003,6 +1005,18 @@ function M.conversationCandidates(player, radius)
         if a.distance == b.distance then return a.entity < b.entity end
         return a.distance < b.distance
     end)
+    return result
+end
+
+-- The ready party members within `radius` of V, in the order of the Companion Manager's Current party list (the order the copies joined), not by
+-- distance: the talk keys' fallback when V faces nobody (init.lua selectConversation, key press only). The same rows as conversationCandidates.
+function M.partyInOrder(player, radius)
+    local result = {}
+    if not player then return result end
+    for _, row in ipairs(M.conversationCandidates(player, radius)) do
+        if row.party then result[#result + 1] = row end
+    end
+    table.sort(result, function(a, b) return a.order < b.order end)
     return result
 end
 

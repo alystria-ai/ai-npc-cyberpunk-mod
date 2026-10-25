@@ -40,7 +40,7 @@ Mods screen (Esc > Mods)
 | Page | Back goes to | Sections |
 | --- | --- | --- |
 | Home | none | none: the six destinations are the page (the fourth, Character editor, opens the browser at once and has no page; Key bindings sits between it and Settings) |
-| Key bindings | Home | one section for each of the five actions (the key set here, the key set in Cyber Engine Tweaks, Set, Clear), Controller (`docs/KEY_BINDINGS.md`) |
+| Key bindings | Home | one section for each of the seven actions (the key set here, the key set in Cyber Engine Tweaks, Set, Clear), Controller (`docs/KEY_BINDINGS.md`) |
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
