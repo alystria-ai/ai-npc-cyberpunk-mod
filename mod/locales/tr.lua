@@ -1413,4 +1413,6 @@ return {
     ["{name} moves into {apartment}."] = "{name}, {apartment} dairesine taşınıyor.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} artık senin yanında kalmıyor. Bunun dışında her şey aynı kalır.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · {apartment} dairesinde yaşıyor · {state}",
+    ["Companions change outfits"] = "Yoldaşlar kıyafet değiştirir",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Ekibindeki yoldaşlar ara sıra kıyafetlerini değiştirir: gündüz ve gece için farklı bir görünüm, karakterin sahip olduğu durumlarda evde rahat kıyafetler.\n\nYalnızca görüş alanının dışındayken, asla tam önünde değil ve yalnızca ekibinin kendi kopyaları için, oyunun kendi karakterleri için asla değil. Bu seçeneği kapatmak, şu an giydikleri kıyafetlerde kalmalarını sağlar.",
 }

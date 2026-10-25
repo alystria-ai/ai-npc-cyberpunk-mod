@@ -1746,6 +1746,9 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
+            -- On by default: party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
+            setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits ~= false, true,
+                'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
@@ -2250,6 +2253,7 @@ function M.apply(changes)
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
         elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}
+        elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then
             -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).

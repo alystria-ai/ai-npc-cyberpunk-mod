@@ -825,6 +825,8 @@ local function loadSettings()
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
+    -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
+    if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = true, true end
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
@@ -1016,6 +1018,12 @@ end
 function M.voiceActivation()
     loadSettings()
     return settings.voiceActivation == true
+end
+
+-- Companions change outfits (Settings > Companion behavior, docs/COMPANION_OUTFITS.md): on by default. Read on the game's 10 Hz tick (one boolean), never per frame.
+function M.companionOutfits()
+    loadSettings()
+    return settings.companionOutfits ~= false
 end
 
 -- Controller talk button (Settings > Voices): hold the left stick click to talk by voice. Off by default. Read on the game's 10 Hz tick (one boolean),
@@ -2001,6 +2009,7 @@ function M.snapshot(player)
             voiceActivation = settings.voiceActivation == true,
             padTalk = settings.padTalk == true,
             keyBindings = settings.keyBindings,
+            companionOutfits = settings.companionOutfits ~= false,
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
@@ -2121,6 +2130,9 @@ function M.applySettings(player, values)
                 if seen[name] then return false, 'That key is already used for another action.' end
                 seen[name] = true
             end
+        elseif key == 'companionOutfits' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.companionOutfits = value
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value

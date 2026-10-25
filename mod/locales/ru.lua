@@ -1413,4 +1413,6 @@ return {
     ["{name} moves into {apartment}."] = "{name} переезжает в {apartment}.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} больше не живёт у тебя. Всё остальное остаётся как было.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · живёт в {apartment} · {state}",
+    ["Companions change outfits"] = "Напарники меняют наряд",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Напарники из вашей группы время от времени меняют наряд: другой образ днём и ночью, а дома — повседневную одежду, если она есть у персонажа.\n\nТолько когда вы на них не смотрите, никогда на виду, и только для собственных копий вашей группы, никогда для персонажей самой игры. Если выключить эту опцию, они останутся в том, что носят сейчас.",
 }

@@ -1413,4 +1413,6 @@ return {
     ["{name} moves into {apartment}."] = "{name} 搬進了{apartment}。",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name} 不再住在你這裡。其他方面不變。",
     ["{name} · lives in {apartment} · {state}"] = "{name} · 住在{apartment} · {state}",
+    ["Companions change outfits"] = "夥伴更換服裝",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "隊伍中的夥伴會不時更換服裝：白天和夜晚各有不同造型，在家時還會換上休閒服（若該角色有此服裝）。\n\n僅在你看不見他們時才會更換，絕不會在你面前更換，且只針對隊伍中的夥伴分身，絕不會更換遊戲原本的角色。關閉此選項後，他們會保持目前的服裝。",
 }

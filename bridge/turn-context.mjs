@@ -46,6 +46,12 @@ const ACTIVITIES = {
   driving: ", driving V's vehicle", boarding: ", getting into V's vehicle",
   'leaving-car': ", getting out of V's vehicle",
   attacking: ', going after a target V picked'};
+// Clothes (mod/companion-outfits.lua): a companion who wears other clothes than the ones her appearance text describes. The text is baked into her
+// character (Convai's backstory, the prompt's persona) and never changes, so the turn says that her clothes now differ from it. Hair, face, tattoos and
+// cyberware are the same in every outfit of a template, and she is not told what she wears instead (nothing here knows).
+const OUTFITS = {
+  changed: 'You have changed clothes: you are not wearing the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.',
+  home: 'You are in casual clothes for home, not the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.'};
 // Said last in every form: the facts are scenery unless the talk needs them.
 const MENTION = ' Do not recite it, and mention a place or the time only if it matters to what V says.';
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
@@ -165,7 +171,8 @@ export function parseTurnContext(value) {
     for (const row of rows) {
       const name = clean(row?.name, MAX_NAME);
       if (!plain(row) || typeof row.key !== 'string' || !/^[a-z0-9-]{1,80}$/.test(row.key) || !name || seen.has(row.key)) continue;
-      seen.add(row.key); party.push({key: row.key, name, ...(Object.hasOwn(ACTIVITIES, row.activity) ? {activity: row.activity} : {})});
+      seen.add(row.key); party.push({key: row.key, name, ...(Object.hasOwn(ACTIVITIES, row.activity) ? {activity: row.activity} : {}),
+        ...(Object.hasOwn(OUTFITS, row.outfit) ? {outfit: row.outfit} : {})});
       if (party.length >= MAX_PARTY) break;
     }
     if (party.length) result.party = party;
@@ -268,6 +275,7 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     sentences.push(`You are with V in person${ACTIVITIES[mine?.activity] ?? ''}.`);
     pushWhere(YOU);
+    if (mine?.outfit) sentences.push(OUTFITS[mine.outfit]);
   } else if (call) {
     const where = '. You are somewhere else; where you are and what you are doing are not given.';
     sentences.push(call.mode === 'holo'

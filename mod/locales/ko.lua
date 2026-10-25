@@ -1413,4 +1413,6 @@ return {
     ["{name} moves into {apartment}."] = "{name}이(가) {apartment}(으)로 이사해요.",
     ["{name} stops living at your place. She stays as she is otherwise."] = "{name}은(는) 더 이상 당신의 집에 살지 않아요. 그 밖에는 그대로예요.",
     ["{name} · lives in {apartment} · {state}"] = "{name} · {apartment}에 살아요 · {state}",
+    ["Companions change outfits"] = "동료 의상 변경",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "파티의 동료들은 이따금 의상을 바꿉니다. 낮과 밤에 각각 다른 모습을 하고, 캐릭터가 가진 경우 집에서는 편한 옷을 입습니다.\n\n오직 시야 밖에서만 바뀌며, 눈앞에서는 절대 바뀌지 않습니다. 파티 소속 복제 동료에게만 적용되고, 게임 고유 캐릭터에게는 적용되지 않습니다. 이 옵션을 끄면 지금 입고 있는 옷을 그대로 유지합니다.",
 }

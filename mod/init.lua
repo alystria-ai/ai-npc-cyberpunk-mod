@@ -4944,6 +4944,73 @@ function convaiTapOnce(action)
     return convaiKeyBinds == nil or convaiKeyBinds.once(action)
 end
 registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', function() if convaiTapOnce('manager') then openManager() end end)
+-- Companions change outfits (Settings > Companion behavior, on by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
+-- look of its own template by the game's time of day, now and then for variety and into casual clothes at home, only while it is out of V's view. Our own
+-- copies only. The module is loaded on first use and not at all while the setting is off; its 10 Hz tick subtracts the elapsed time from one counter and looks
+-- at the party every 20 s. No per-frame work, no handle kept. Global functions, so onUpdate reaches them without a new upvalue.
+function convaiOutfitModule()
+    if convaiOutfits then return convaiOutfits end
+    convaiOutfits = dofile('companion-outfits.lua')
+    convaiOutfits.deps = {
+        enabled = function() return manager.companionOutfits() end,
+        rows = function() return companions.outfitRows(convaiOutfits.known) end,
+        current = function(row) return NameToString(row.npc:GetCurrentAppearanceName()) end,
+        prefetch = function(row, name) return companions.changeAppearance(row.serial, name, 'prefetch') end,
+        apply = function(row, name) return companions.changeAppearance(row.serial, name, 'apply') end,
+        remember = function(row, name) return companions.changeAppearance(row.serial, name, 'forget') end,
+        gameHours = function()
+            local seconds = worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime()
+            return seconds and seconds / 3600 or nil
+        end,
+        place = function() local where = currentDistrict(); return where and (where.area or where.district) or nil end,
+        -- Ordinary gameplay: no fight, scene, call, vehicle or V as a replacer (battle-observer's read, once per check that has a change to make).
+        world = function()
+            local sample = battleObserver.sample(Game.GetPlayer())
+            if sample.available ~= true then return 'unreadable' end
+            if sample.combat then return 'combat' end
+            if sample.blocked then return sample.reason end
+            return nil
+        end,
+        busy = function(row) return companions.outfitBusy(row.serial) end,
+        -- The game's own "could be seen" test, with the margins its reaction and vehicle code uses for it.
+        frustum = function(npc) return Game.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75) end,
+        angle = function(npc, who)
+            local forward = Game.GetCameraSystem():GetActiveCameraForward()
+            local a, b = who:GetWorldPosition(), npc:GetWorldPosition()
+            local dx, dy, dz = b.x - a.x, b.y - a.y, b.z - a.z
+            local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if length < 0.01 then return 0 end
+            local dot = (dx * forward.x + dy * forward.y + dz * forward.z) / length
+            return math.deg(math.acos(math.max(-1, math.min(1, dot))))
+        end,
+        log = log,
+    }
+    return convaiOutfits
+end
+
+function convaiOutfitTick(player, elapsed, ready)
+    if not manager.companionOutfits() then return end
+    convaiOutfitModule().tick(player, elapsed, ready)
+end
+
+-- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
+companions.spawnOutfit = function(record, key)
+    if not manager.companionOutfits() then return nil end
+    return convaiOutfitModule().spawnAppearance(record, key)
+end
+companions.outfitCreated = function(serial, key, record, name)
+    if convaiOutfits then convaiOutfits.created(serial, key, record, name) end
+end
+companions.outfitStatus = function(serial) return convaiOutfits and convaiOutfits.status(serial) or nil end
+
+-- The home outfit API for other features (docs/COMPANION_OUTFITS.md "Home outfit API"): convaiOutfitApi.setHome('judy-alvarez', true) puts that companion
+-- in casual home clothes (where the character has them) the next time nobody is looking; false keeps them out of home clothes; nil goes back to following
+-- whether V is in an apartment. Safe to call at any time, with the setting off too (it then only remembers the answer for the session).
+convaiOutfitApi = {
+    setHome = function(key, on) return convaiOutfitModule().setHome(key, on) end,
+    isHome = function(key) return convaiOutfitModule().isHome(key) end,
+    hasHomeOutfit = function(record) return convaiOutfitModule().hasHomeOutfit(record) end,
+}
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
 
@@ -4990,6 +5057,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
     -- Housemates: the registry is read again from the save that loads next; a fast travel keeps it (the bodies were deleted before it).
     if convaiHousemateReset then convaiHousemateReset(reason, preserveTransit == true) end
+    -- A new session forgets which look each copy wears and any home answers; fast travel keeps them (the copies are made again in the same clothes).
+    if convaiOutfits and preserveTransit ~= true then pcall(convaiOutfits.reset) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
@@ -5519,6 +5588,9 @@ registerForEvent('onUpdate', function(delta)
     -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
     local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
     if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
+    -- Companions change outfits (Settings > Companion behavior, on by default): one boolean per tick while it is off; the module is not even loaded then.
+    local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
+    if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
     if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
