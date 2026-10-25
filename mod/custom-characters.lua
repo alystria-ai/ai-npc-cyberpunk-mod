@@ -7,6 +7,10 @@
 --     and only while there are characters or the player opened the editor in the last two hours (watch). With none of that, a talk key press
 --     costs no file read at all.
 --   - match() is asked wherever a character's profile is resolved (character-catalog.lua resolve); with no character made it is one comparison.
+--   - a record is compared by its id (hash and length), never by the whole id string: the game's text of an id carries the record's readable
+--     name only when the scripting layer knows that name at the moment it is printed (`ToTweakDBID{ hash = 0x9ECAADC2, length = 28 --[[ Character.X --]] }`).
+--     A record another mod creates while the game starts (a spawn menu's or a record-cloning mod's copy) has no readable name yet when this
+--     file is first read, so the same record printed later, from the spawned person, did not compare equal (idKey).
 --
 -- A character is used only while Mistral or the Local AI is answering (`enabled`): Convai has no character for it. Otherwise match() answers
 -- nothing, so the game treats the person as an ordinary one, and remembers the character it would have been (takeSkipped) so the talk key
@@ -23,6 +27,16 @@ local function normalized(value)
     return text
 end
 M.normalized = normalized
+
+-- The id part of the game's text of a record id ("ToTweakDBID{ hash = 0x9ECAADC2, length = 28 --[[ Character.X --]] }" -> "0x9ecaadc2:28"),
+-- or the text itself when it is not such a text (a record name, a test's plain string). The readable name in the comment is left out.
+local function idKey(text)
+    if type(text) ~= 'string' then return nil end
+    local hash, length = text:match('hash%s*=%s*(0[xX]%x+)%s*,%s*length%s*=%s*(%d+)')
+    if hash then return hash:lower() .. ':' .. length end
+    return text
+end
+M.idKey = idKey
 
 -- options:
 --   read()         the text of the file, or nil           (default: io.open FILE)
@@ -67,7 +81,7 @@ function M.new(options)
                             for _, prefix in ipairs(options.prefixes or {}) do variants[#variants + 1] = prefix .. record end
                         end
                         for _, variant in ipairs(variants) do
-                            local id = options.hash and options.hash(variant) or variant
+                            local id = idKey(options.hash and options.hash(variant) or variant)
                             if id and records[id] == nil then records[id] = entry end
                             if records[variant] == nil then records[variant] = entry end
                         end
@@ -126,10 +140,14 @@ function M.new(options)
     function self.get(key) return self.keys[key] end
     function self.size() return self.count end
 
-    -- The character this person is, or nil. actor = {record, name} as character-catalog.lua resolve gets them.
+    -- The character this person is, or nil. actor = {record, name, facts} as character-catalog.lua resolve gets them: the record's id, then its
+    -- readable name (facts.recordName, when the facts were read), then the display name.
     function self.match(actor)
         if self.count == 0 or type(actor) ~= 'table' then return nil end
-        local entry = (type(actor.record) == 'string' and self.records[actor.record]) or self.names[normalized(actor.name)]
+        local facts = type(actor.facts) == 'table' and actor.facts or nil
+        local entry = (type(actor.record) == 'string' and self.records[idKey(actor.record)])
+            or (facts and type(facts.recordName) == 'string' and self.records[facts.recordName])
+            or self.names[normalized(actor.name)]
         if not entry then return nil end
         if providerOk == nil then self.checkProvider() end
         if providerOk ~= true then self.skipped = entry; return nil end
