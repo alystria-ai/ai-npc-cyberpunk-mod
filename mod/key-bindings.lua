@@ -5,7 +5,7 @@
 -- runs (init.lua voiceKeyEdge, beginText, openManager), so the behaviour and the gating are the same.
 --
 -- Nothing here runs per frame. The redscript half calls ConvaiKeyBindNotify when a key goes down or up, and this module observes it (CET Observe), so a key is
--- handled at the moment it happens. The game's 10 Hz tick also drains the same queue (a call returning "" when empty) in case the observer was not installed,
+-- handled at the moment it happens. The game's 10 Hz tick drains the same queue (a call returning "" when empty) only when the observer was not installed,
 -- registers the saved keys again for a new player after a load, and ends a Set that nobody answered. With no binding saved and no Set in progress the tick costs
 -- one table check and the redscript listener is not registered.
 --
@@ -88,15 +88,25 @@ function M.valid(name)
     return type(name) == 'string' and M.describe(name) ~= nil
 end
 
--- The list the redscript half takes: the key of each slot in order, '-' for none; '' when there is none at all.
+-- The list the redscript half takes: the key of each slot in order, '-' for none; '' when there is none at all. The 10 Hz tick asks this, so the answer is
+-- kept with the five names it was made from and handed back as it is while none of them changed (no table and no string built per tick).
+local listed = {names = {}, text = ''}
 function M.list(bindings)
-    if type(bindings) ~= 'table' or next(bindings) == nil then return '' end
+    if type(bindings) ~= 'table' then listed.names, listed.text = {}, ''; return '' end
+    local names, same = listed.names, true
+    for index, action in ipairs(M.ACTIONS) do
+        if names[index] ~= bindings[action] then same = false; break end
+    end
+    if same then return listed.text end
     local parts, any = {}, false
+    names = {}
     for index, action in ipairs(M.ACTIONS) do
         local name = bindings[action]
+        names[index] = name
         if M.valid(name) then parts[index] = name; any = true else parts[index] = '-' end
     end
-    return any and table.concat(parts, ',') or ''
+    listed.names, listed.text = names, any and table.concat(parts, ',') or ''
+    return listed.text
 end
 
 -- ---- Cyber Engine Tweaks' own bindings (shown on the page, never changed) ------------------------------------------------------------------------
@@ -391,7 +401,13 @@ function M.tick(player, ready)
     end
     if state.missingAt and now >= state.missingAt and now - state.missingAt < MISSING_RETRY_S then return end
     if not configure(player, wanted, now) then return end
-    if wanted ~= '' or state.capture then install(); M.take(player) end
+    if wanted ~= '' or state.capture then
+        -- Once the observer is installed every key event drains the queue as it happens, so the tick asks the game only when it is not (or just was: anything
+        -- queued before it was installed is read once).
+        local fresh = state.observed == nil
+        install()
+        if fresh or state.observed ~= true then M.take(player) end
+    end
 end
 
 -- The session ends, or every binding is gone: holds end, a Set is dropped and the redscript listeners stop (best effort: the player may be gone).

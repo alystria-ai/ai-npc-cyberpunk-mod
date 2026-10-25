@@ -303,6 +303,22 @@ test('saved keys are registered once, again for a new player after a load, again
   assert(after == asked, 'and then the player is not asked anything again')
 `));
 
+test('the 10 Hz tick builds nothing while the keys stay the same, and asks the game for the queue only when the observer is not installed', () => run(fixture + `
+  saved.voice, saved.manager = 'IK_F8', 'IK_Pad_LeftShoulder'
+  tick()
+  local first = kb.list(saved)
+  assert(first == 'IK_F8,-,-,-,IK_Pad_LeftShoulder' and rawequal(first, kb.list(saved)), 'the same list string is handed back')
+  saved.text = 'IK_T'
+  assert(kb.list(saved) == 'IK_F8,IK_T,-,-,IK_Pad_LeftShoulder', 'a changed binding rebuilds it')
+  saved.text = nil
+  tick()
+  local taken = player.calls.Take or 0
+  for i = 1, 30 do tick() end
+  assert((player.calls.Take or 0) == taken, 'the observer drains the queue; the tick does not ask the game')
+  player.queue = {'d2', 'u2'}; observer(player)
+  assert(runList() == 'text', 'a key event is still heard through the observer')
+`));
+
 test('a change of the keys while a hold is down ends the hold; a world that is not ready ends it too, and the keys are registered again afterwards', () => run(fixture + `
   saved.voice = 'IK_F8'
   tick(); player:push('d1'); assert(runList() == 'voice:down')
