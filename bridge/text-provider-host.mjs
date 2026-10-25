@@ -13,6 +13,7 @@ import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, ne
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, stripEchoOpener, stripStockTail, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {reactionTraceLine} from './companion-actions.mjs';
+import {callMeetClassifier, parseCallMeetAnswer} from './call-meet.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -612,12 +613,15 @@ export class TextProviderHost {
    * remembered: nothing is recorded once the turn is cancelled. With `deferRecord` (a function, from the bridge) the exchange is handed to it as a
    * one-shot `commit` and recorded only when the bridge publishes the reply; without it the exchange is recorded now, as before.
    */
-  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey}) {
+  // `event` ({v}): the turn was a message the character started (a phone appointment event, bridge/appointment-events.mjs), so `text` is the mod's trigger and
+  // never V's words. The exchange recorded is `event.v` (a bracketed note) with her text, or nothing at all when `v` is null.
+  #remember({signal, deferRecord}, {memoryKey, text, spoken, route, profileKey, event}) {
+    if (event && typeof event.v !== 'string') return;
     let done = false;
     const commit = () => {
       if (done) return;
       done = true;
-      this.memory.record({...memoryKey, v: text, r: stripSpeechTags(spoken)});
+      this.memory.record({...memoryKey, v: event ? event.v : text, r: stripSpeechTags(spoken)});
       this.#summarize(route, profileKey, memoryKey.profileKey);
     };
     if (typeof deferRecord === 'function') deferRecord(commit);
@@ -710,7 +714,7 @@ export class TextProviderHost {
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
         // hard-limit guard replaced is not remembered, and neither are the words that led to it.
         if (!reaction && !outcome.guarded) {
-          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey});
+          this.#remember({signal, deferRecord}, {memoryKey, text, spoken: reply, route, profileKey: local.profileKey, event: config.phoneEvent});
         }
         markStage('replyReturned');
         // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
@@ -804,7 +808,7 @@ export class TextProviderHost {
     if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
-    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey});
+    if (head && !reaction) this.#remember({signal, deferRecord}, {memoryKey, text, spoken: head, route, profileKey, event: config.phoneEvent});
     this.log(head ? `${route.label} stopped after the first sentence (${error.kind}); that sentence is the reply`
       : `${route.label} did not answer in time (${(error.failed ?? []).map(item => `${item.kind} ${item.ms} ms`).join(', ') || error.kind}); the character says a short holding line`);
     markStage('replyReturned');
@@ -835,6 +839,54 @@ export class TextProviderHost {
         accepted => { if (!traced) this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`); },
         error => this.log(`action ${code} failed: ${error?.message ?? 'error'}`));
     } catch (error) { this.log(`action ${code} failed: ${error?.message ?? 'error'}`); }
+  }
+
+  /**
+   * The meeting a finished holocall exchange arranged (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"; bridge/call-meet.mjs). A call reply streams straight to the voice,
+   * so no tag can be taken out of it: once her reply is complete, one tiny request with no persona reads V's call line and her reply and says meet-here,
+   * meet-waypoint, cancel-meet or none. The result is handed to the game the way a Convai action is (`deliverAction`), where the lease and the one-use token of the
+   * game's offer still decide. It is never awaited by the reply: it starts after the reply is complete and is background work (on the local AI it gives way to
+   * any turn, as a summary does; on Mistral it queues behind turns). A failure, a late answer or an unclear one is "none". Never throws.
+   * `plan`: planCallMeet's result; `token`: the turn's action token (CompanionActions); resolves to the kind handed to the game, or null.
+   */
+  async decideMeet({plan, userText, replyText, token, profileKey, signal}) {
+    const route = this.routes[this.provider.route];
+    if (!route || this.closed || !plan || typeof this.deliverAction !== 'function' || signal?.aborted) return null;
+    const stopper = route.name === 'local' ? new AbortController() : null;
+    if (stopper) this.stoppable.add(stopper);
+    const own = stopper ? (signal ? AbortSignal.any([signal, stopper.signal]) : stopper.signal) : signal;
+    let kind = null;
+    try {
+      // The Local AI's slot may be held for a moment by the summary of older talk (also background work, one at a time): ask again a couple of times, never
+      // longer than the offer lives.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          const response = await this.#request(route, callMeetClassifier(plan, {userText, replyText}), own,
+            {slotKey: profileKey, maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.(),
+              background: route.name === 'local', priority: 'background'});
+          kind = parseCallMeetAnswer(response.text, plan);
+          break;
+        } catch (error) {
+          if (error?.reason !== 'busy' || attempt >= 3 || own?.aborted) throw error;
+          await pause(1500, own);
+        }
+      }
+    } catch (error) {
+      if (stopper?.signal.aborted) this.log('call meeting decision put off: a turn needed the local model');
+      else if (!signal?.aborted) this.log('call meeting decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return null;
+    } finally { if (stopper) this.stoppable.delete(stopper); }
+    // Codes only: never V's words or the reply.
+    this.log(`call meeting: ${kind ?? 'none'}`);
+    if (!kind || signal?.aborted) return null;
+    try {
+      const accepted = await this.deliverAction({version: 1, token, meet: kind});
+      this.log(`call meeting ${kind} ${accepted ? 'handed to the game' : 'was not accepted'}`);
+      return accepted ? kind : null;
+    } catch (error) {
+      this.log(`call meeting ${kind} failed: ${error?.message ?? 'error'}`);
+      return null;
+    }
   }
 
   /**
@@ -1225,14 +1277,15 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
   const withoutLocal = config => {
     if (!config || !('local' in config || 'contextParts' in config)) return config;
-    const {local: _local, contextParts: _parts, ...rest} = config;
+    const {local: _local, contextParts: _parts, phoneEvent: _event, ...rest} = config;
     return rest;
   };
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
     // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
     // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
-    if (provider.active && onPlayerText && !config?.reaction && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
+    // (An appointment event's text is the mod's trigger too: config.phoneEvent.)
+    if (provider.active && onPlayerText && !config?.reaction && !config?.phoneEvent && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {

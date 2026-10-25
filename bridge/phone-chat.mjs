@@ -9,6 +9,8 @@ import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {describePhoneFailure} from './phone-failure.mjs';
+import {parseMeetOffer, parseMeetEvent, screenMeet, meetInstruction, splitMeetTags, meetAction} from './meet-requests.mjs';
+import {eventTrigger} from './appointment-events.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -113,9 +115,12 @@ export function parsePhoneState(raw) {
   if (typeof state.chatContact === 'string' && /^[a-zA-Z0-9_-]{1,120}$/.test(state.chatContact)) result.chatContact = state.chatContact;
   if (!state.request) return result;
   const {id, contact, text} = state.request;
+  // An appointment event (docs/IMMERSIVE_INVITATIONS.md) is a message the character starts: its text is empty, and only a valid event makes that acceptable.
+  // A malformed event is dropped like any optional field; a typed line wins over an event that came with it.
+  const event = typeof text === 'string' && !text.trim() ? parseMeetEvent(state.request.event) : null;
   if (typeof id !== 'string' || !id.startsWith(state.world + '-') || id.length > 140
       || typeof contact !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(contact)
-      || typeof text !== 'string' || !text.trim() || [...text].length > 1200) return null;
+      || typeof text !== 'string' || (!text.trim() && !event) || [...text].length > 1200) return null;
   const requestBinding = parsePhoneBinding(state.version === 2 ? state.request.saveIdentity : undefined);
   if (phoneBindingKey(requestBinding) !== phoneBindingKey(saveIdentity)) return null;
   const journal = parseJournal(state.request.journal), battle = parseBattle(state.request.battle);
@@ -131,11 +136,30 @@ export function parsePhoneState(raw) {
   const recent=state.request.recentConversation===undefined ? undefined : recentConversation(state.request.recentConversation,
     {world:state.world,binding:phoneBindingKey(requestBinding),contact,memoryReset});
   if (state.request.recentConversation!==undefined && !recent) return null;
+  // The offer to meet (bridge/meet-requests.mjs): a typed line only, never an event turn; malformed means no offer.
+  const meetOffer = event ? null : parseMeetOffer(state.request.meetOffer);
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
+    ...(event ? {event} : {}), ...(meetOffer ? {meetOffer} : {}),
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
     ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {}), ...(turnContext ? {turnContext} : {})};
   return result;
+}
+
+// The text sent to a provider that takes one string: the context, the meet instruction when there is one, then V's words. An event turn has no words of
+// V's: its trigger follows the context as it is, never labelled as something V said.
+function providerText(context, instruction, text, event) {
+  const lead = instruction ? [context, instruction].filter(Boolean).join('\n\n') : context;
+  if (event) return lead ? lead + '\n\n' + text : text;
+  return lead ? lead + '\n\nV messages: ' + text : text;
+}
+// The reply as published: her text without any meet tag, and the action the tag asks for (null unless the offer allows it, bridge/meet-requests.mjs).
+// The tag may survive only in `speechText` (the voice-tagged original that bridge/natural-speech.mjs keeps), so both are read.
+function meetOutcome(result, offer, screen) {
+  const own = splitMeetTags(result.text);
+  let kind = own.kind;
+  if (!kind && offer && typeof result.speechText === 'string') kind = splitMeetTags(result.speechText).kind;
+  return {text: own.text, action: offer ? meetAction(kind, offer, screen) : null};
 }
 
 function sessionStore(value) {
@@ -223,7 +247,14 @@ export class PhoneChat {
       let stage = 'route';
       try {
         let scope = phoneScope(input.saveIdentity);
-        const requestInput = {...input, profileKey: contact.profile, channel: 'phone'};
+        // The meet offer stays out of the request the providers see; the instruction made from it (only when V's words can be a meeting request) goes with it,
+        // and an event turn carries the trigger the model is told in place of V's (empty) words.
+        const {meetOffer, ...typed} = input;
+        const requestInput = {...typed, profileKey: contact.profile, channel: 'phone'};
+        const screen = meetOffer ? screenMeet(input.text) : null;
+        const instruction = screen ? meetInstruction(meetOffer, screen) : '';
+        if (instruction) requestInput.meetInstruction = instruction;
+        if (input.event) requestInput.text = eventTrigger(input.event);
         if (requestInput.recentConversation && requestInput.recentConversation.profileKey!==contact.profile) throw Error('Phone history audience changed');
         if (requestInput.worldKnowledge?.status === 'ready') {
           const snapshot = requestInput.worldKnowledge, owner = snapshot.identity;
@@ -271,7 +302,7 @@ export class PhoneChat {
         const result = await this.reply({characterId: selectedCharacterId, profileKey: contact.profile, sessionId,
           input: requestInput, saveIdentity: clone(input.saveIdentity), context, ...(endUserId ? {endUserId} : {}),
           ...(active.playerContext ? {scope, sessionKey: routeSessionKey, remoteGeneration} : {}),
-          text: context ? context + '\n\nV messages: ' + input.text : input.text,
+          text: providerText(context, instruction, requestInput.text, !!input.event),
           voice: false, signal: active.controller.signal});
         if (!await active.isCurrent()) return;
         stage = 'reply';
@@ -281,9 +312,13 @@ export class PhoneChat {
         if (typeof result?.text !== 'string' || !result.text.trim() || result.text.length > 6000 || (!sessionless && !sessionID(result.sessionID))) {
           throw Error('Invalid reply');
         }
+        // Her tag, if any, comes off the text whatever happens; the action it asks for only goes out when the game's own offer allows it.
+        const {text: shown, action} = meetOutcome(result, meetOffer, screen);
+        if (!shown.trim()) throw Error('Invalid reply');
+        const reply = {...identity, state: 'reply', text: shown, ...(action ? {action} : {})};
         if (sessionless) {
           stage = 'publish';
-          if (await active.isCurrent()) await this.emit(active, {...identity, state: 'reply', text: result.text});
+          if (await active.isCurrent()) await this.emit(active, reply);
           return;
         }
         const record = {scope, profileKey: contact.profile, characterId: selectedCharacterId, channel: 'phone', remoteGeneration,
@@ -299,22 +334,23 @@ export class PhoneChat {
           while (this.transientSessions.size > 256) this.transientSessions.delete(this.transientSessions.keys().next().value);
         }
         stage = 'publish';
-        if (await active.isCurrent()) await this.emit(active, {...identity, state: 'reply', text: result.text});
+        if (await active.isCurrent()) await this.emit(active, reply);
       } catch (error) {
         let errorCode; try { errorCode = this.failureCode(error); } catch { /* the ordinary failure text */ }
         // A message that is no longer wanted (a newer one, a close, a load) is not a failure worth a line.
         const wanted = await active.isCurrent();
-        if (wanted) this.noteFailure(error, stage, {contact: input.contact, profileKey: contact.profile, errorCode});
+        // An event turn (the character texting first) that fails is not a message V sent: the game words it itself from a template, and the log says which event.
+        if (wanted) this.noteFailure(error, stage, {contact: input.contact, profileKey: contact.profile, errorCode, ...(input.event ? {event: input.event.kind} : {})});
         if (wanted) await this.emit(active, {...identity, state: 'error',
           error: 'Message could not be delivered. Please try again.', ...(errorCode ? {errorCode} : {})});
       } finally { if (this.active === active) this.active = null; }
     })().catch(() => {}); // file errors are recovered by the adapter's timeout
   }
-  noteFailure(error, stage, {contact, profileKey, errorCode}) {
+  noteFailure(error, stage, {contact, profileKey, errorCode, event}) {
     if (!this.onFailure) return;
     try {
       const {reason, detail} = describePhoneFailure(error, stage);
-      this.onFailure({error, stage, reason, detail, contact, profileKey, ...(errorCode ? {errorCode} : {})});
+      this.onFailure({error, stage, reason, detail, contact, profileKey, ...(errorCode ? {errorCode} : {}), ...(event ? {event} : {})});
     } catch { /* a log line never fails a send */ }
   }
   close() { this.active?.controller.abort(); this.active = null; }

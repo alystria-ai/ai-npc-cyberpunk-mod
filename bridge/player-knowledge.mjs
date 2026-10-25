@@ -233,7 +233,8 @@ export class PlayerKnowledge {
     let route = inputRoute(frozen, settings.channel);
     const snapshot = parseWorldSnapshot(frozen.worldKnowledge);
     const binding = this.#binding(settings, snapshot);
-    const selected = this.#selectedRoute(route, binding, {text: frozen.text, reaction: frozen.reaction});
+    // An appointment event's text is the mod's trigger, not V's words: it selects the profile like an automatic reaction does.
+    const selected = this.#selectedRoute(route, binding, {text: frozen.text, reaction: frozen.reaction ?? (frozen.event ? frozen.event : undefined)});
     route = selected.route;
     frozen.channel = route.channel;
     frozen.worldKnowledge = snapshot;

@@ -447,16 +447,17 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
   assert.match(send, /if not context\.reaction and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
-  assert.match(initSource, /microphone\.captureTurnContext = function\(\) return convaiTurnContext and convaiTurnContext:capture\(\) or nil end/);
+  // The wrapper takes the speaker's profile key so a pending appointment note (immersive invitations) can ride on a copy of the snapshot.
+  assert.match(initSource, /microphone\.captureTurnContext = function\(profileKey\)\s+local snapshot = convaiTurnContext and convaiTurnContext:capture\(\) or nil/);
   assert.match(initSource, /pcall\(dofile, 'turn-context\.lua'\)/);
   assert.match(initSource, /place = function\(\) return currentDistrict\(\) end/);
   assert.match(initSource, /companions\.conversationCandidates\(player, radius\)/);
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext:reset\(reason\) end/);
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext\.options\.log = log end/);
-  assert.equal(microphoneSource.match(/context\.turnContext = M\.captureTurnContext and M\.captureTurnContext\(\)/g).length, 2);
+  assert.equal(microphoneSource.match(/context\.turnContext = M\.captureTurnContext and M\.captureTurnContext\(context\.profileKey\)/g).length, 2);
   // The phone reads it once, when a message is sent, through the same wrapper the microphone uses.
-  assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext\)/);
-  assert.equal(phoneSource.match(/captureTurnContext/g).length, 1, 'one read, on the send path');
+  assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext, key\)/);
+  assert.equal(phoneSource.match(/captureTurnContext/g).length, 2, 'two reads: the send path and the start of a text she sends herself (immersive invitations)');
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
   assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
@@ -866,7 +867,7 @@ test('the default adapter survives a game with none of the calls: every field ab
 
 test('init and phone chat pass the same snapshot on, so the phone gets the weather with no change of its own', () => {
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
-  assert.match(phoneSource, /capture\(M\.captureTurnContext\)/);
+  assert.match(phoneSource, /capture\(M\.captureTurnContext, key\)/);
   const bridgePhone = readFileSync(new URL('./phone-chat.mjs', import.meta.url), 'utf8');
   assert.match(bridgePhone, /parseTurnContext\(state\.request\.turnContext\)/);
 });

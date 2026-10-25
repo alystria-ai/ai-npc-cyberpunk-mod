@@ -79,6 +79,7 @@
   "state": [
     "addon-settings.json",
     "decision-ledger.json",
+    "immersive-invitations.json",
     "memory-chat-resets.json",
     "npc-names.json",
     "phone-history.json",

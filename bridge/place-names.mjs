@@ -23,7 +23,7 @@ const PLACE = /^[A-Za-z0-9][A-Za-z0-9 _.'-]{0,63}$/;
 const NAMES = Object.freeze({JapanTown: 'Japantown'});
 
 // Named interiors: enum name -> how to say it. All of these are inside a building the game's own record names.
-const INTERIORS = Object.freeze({
+export const INTERIORS = Object.freeze({
   LittleChina_Afterlife: 'the Afterlife', LittleChina_MistysShop: "Misty's Esoterica", LittleChina_RiotClub: 'the Riot Club',
   LittleChina_TomsDiner: "Tom's Diner", LittleChina_VictorsClinic: "Viktor's clinic",
   Kabuki_LizziesBar: "Lizzie's Bar", Kabuki_NoTellMotel: 'the No-Tell Motel', Kabuki_JudysApartment: "Judy's apartment",

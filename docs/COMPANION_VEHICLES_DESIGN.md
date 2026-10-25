@@ -161,32 +161,16 @@ River's `Vehicle.sobchak_vehicle` uses an authored quest vehicle template and
 is not enabled as a preference. Jackie's motorcycles are not additional
 carpool cars. No original quest-world car is acquired or altered.
 
-### Alt Cunningham: a passenger, never a driver
+### Alt Cunningham: an ordinary driver
 
-Alt Cunningham (`Character.Alt`, key `alt-cunningham`) is a digital ghost. She
-has no vehicle record in the game (no row in the vehicle database above, and
-the game gives her no car in any quest), and a ghost behind a wheel is out of
-character, so she gets no car of her own instead of the Hella. The catalog marks
-her `passengerOnly` (by managed model key or original record, like the car
-preferences, so a copy of her model keeps it under any chat profile):
+Alt Cunningham (`Character.Alt`, key `alt-cunningham`) has a real body: our copy is an ordinary spawned character. She
+drives like any other companion, in the car-follow fleet and in drive-me. The game has no vehicle record for her (no row in the
+vehicle database above), so she has no personal car and gets the fallback car, as anyone without one does. Until 2026-10-25 the
+catalog marked her `passengerOnly` (a digital ghost never takes a wheel); that rule and the `does-not-drive` chauffeur refusal
+were removed on the owner's correction.
 
-- She rides along in V's car. Waiting passengers who never drive are seated
-  first, so she takes a seat beside V before anyone who could drive an overflow
-  car; everyone else keeps serial order.
-- Overflow cars are driven only by a companion who drives. If she is the only
-  one still waiting, no car is created for her (a car nobody drives is useless):
-  she keeps waiting for a free seat, and the planner says
-  "Waiting for a free passenger seat: this companion does not drive."
-  A seat that frees up, or a party car that another companion drives, is hers.
-  Alone and with no seat anywhere she stays on foot and follows V as any
-  companion does when no seat exists.
-- The chauffeur never offers her the wheel: the offer is refused with code
-  `does-not-drive` before any native read (`docs/COMPANION_CHAUFFEUR.md`).
-
-Tests: `bridge/companion-vehicles.test.mjs` (catalog choice, first seat in V's
-car, seat in another companion's car, lone passenger-only companion) and
-`bridge/companion-chauffeur.test.mjs` (the refused offer under any profile).
-Not seen in the game.
+Tests: `bridge/companion-vehicles.test.mjs` (catalog choice, serial-order seating, the overflow car she drives) and
+`bridge/companion-chauffeur.test.mjs` (the offer is not refused). Not seen in the game.
 
 ## Placement and navigation limits
 
@@ -318,7 +302,7 @@ files.
 - `mod/companion-vehicle-native.lua` `M.foreignRiders(player, vehicle)`: once per boarding, counts the followers another mod seats in V's car and returns the count plus a report (one row per nearby spawned character: who, distance, counted or not and why, and the entity IDs of those counted). It asks the spawned-character service (`mod/spawned-characters.lua`, the same recognition as every other spawned character: managed by the dynamic entity system, not ours, not a quest actor; one targeting query plus one lookup per remembered ID, radius 50 m) and counts the ones that are alive, attached, not a drone or mech, standing outside every vehicle, and either follow V (`IsPlayerCompanion`, the engine's follower role) or are friendly to V in V's attitude group. Nothing of NCA's is named or matched (no tag, record or namespace), nothing is sent. A bike, a missing service or a failed read count none. The service is read as a bare global of the mod environment first (`rawget(_G, ...)` alone found nothing in the game, see the second live check below).
 - `mod/companion-vehicles.lua`, the plan: when the first companion needs a seat in V's car, `sampleForeign` asks that question once and `foreignPlan` fixes the seats the other mod's default order would use (`seat_front_right` first, then the next free passenger seats in the car's seat order, one per rider, from the seats free at that moment). `available` keeps them out of every choice. The plan never moves: a seat that fills up must not push the hold onto the next one. V's car only, never an overflow car of ours.
 - The wait (second round): the plan can be wrong (favourite seats; a mod that does not follow that order; followers the engine's follower AI mounts by itself, which is what NCA's debug-spawned followers get). So while any counted rider still stands outside a vehicle, our companions send no mount command, spawn no overflow car and decide no seat for good. `M.foreignPending(ids)` is polled twice a second (a lookup and a mount read per counted rider); the wait ends when all of them are seated or gone, or after 12 s. The seats are then chosen from what is really occupied or reserved (the plan is released), which the pre-mount check in `board` enforces anyway: a seat taken in the meantime sends the companion on to the next free one.
-- A companion left without a seat takes the ordinary no-free-seat path, unchanged: a companion who can drive gets an overflow car (the convoy), a passenger-only one (Alt) waits for a seat; a seat that stays empty is hers once the wait is over.
+- A companion left without a seat takes the ordinary no-free-seat path, unchanged: every companion can drive (Alt Cunningham included), so she gets an overflow car (the convoy); if no car can be made, a seat that stays empty is hers once the wait is over.
 - A companion the engine's follower AI seated in V's car while the fleet planned another car (or none) for her is adopted where she sits (`allocate`, using the mount `board` read last tick, no extra native read).
 - Exits: a person mounted in a car of the fleet other than the one planned for her is unmounted from the car she is really in (before, `leave` waited forever for a "foreign vehicle" that was V's own car), and three refused unmounts are retried in rounds ten seconds apart, three rounds at most (before: `exit-failed` for good).
 - Cost: one targeting query and a few reads once per boarding, plus the twice-a-second poll while the wait lasts (at most 12 s), nothing per frame, no new hook.

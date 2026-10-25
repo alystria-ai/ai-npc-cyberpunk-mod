@@ -24,6 +24,9 @@
 // replies that did not need it): the place is its own modest sentence after the first one, never part of it, because the first sentence is said
 // again right before V's words (bridge/mistral-prompt.mjs HERE) and a place there got worked into every reply. Inside, outside or "somewhere in"
 // the area, never "standing in" a district; the guidance says to mention a place or the time only when it matters to what V says.
+// An arranged meeting (docs/IMMERSIVE_INVITATIONS.md): a named companion's snapshot may carry `appointment`, and the block then has ONE more sentence
+// (on her way, waiting, stood up, called off) right after who she is and where. It has room of its own beyond MAX_CHARS, so it never costs the other facts
+// their place; a stranger and Johnny in V's head have none. On a phone or a call it also lifts the "name no place of your own" rule for that one place.
 // Settings > Dynamic info (bridge/dynamic-info.mjs): `off`, the kinds the player turned off, are taken out of the snapshot before it is worded.
 import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
@@ -79,6 +82,26 @@ function sequence(value, limit) {
   return plain(value) && Object.keys(value).length === 0 ? [] : null;
 }
 
+// The appointment the game sends: {kind: 'on-the-way' | 'waiting' | 'stood-up' | 'cancelled', place, minutes}. The place is game-made words, quoted and
+// never parsed; a stood-up note says how long she waited.
+const APPOINTMENT_KINDS = ['on-the-way', 'waiting', 'stood-up', 'cancelled'];
+const APPOINTMENT_PLACE = 120;
+export function parseAppointment(value) {
+  if (!plain(value) || !APPOINTMENT_KINDS.includes(value.kind) || !Number.isInteger(value.minutes) || value.minutes < 0 || value.minutes > 240) return null;
+  const place = clean(value.place, APPOINTMENT_PLACE);
+  return place ? {kind: value.kind, place, minutes: value.minutes} : null;
+}
+// The one sentence of an appointment, in the character's own voice ("You ..."). The place is quoted data, not an instruction.
+function appointmentSentence({kind, place, minutes}) {
+  const where = JSON.stringify(place);
+  if (kind === 'on-the-way') return `You told V you would meet at ${where} and you are on your way there.`;
+  if (kind === 'waiting') return `You are waiting for V at ${where}, you agreed to meet there.`;
+  if (kind === 'stood-up') return `V arranged to meet you at ${where} and never came; you waited about ${minutes} minutes and left angry. Bring it up in your own way only if it fits, do not recite it.`;
+  return `V called off your meeting at ${where}; you were a little put out. Mention it only if it fits.`;
+}
+// A remote character is told she is not there and names no place of her own; the meeting she arranged is the one place she may speak of.
+const MEETING_EXCEPTION = ' The one exception is the meeting you arranged with V: you may say you are on your way to that place or waiting there.';
+
 // Fail closed on the shape, fail soft on a field: a bad field is simply absent, a malformed snapshot carries nothing but
 // never loses the message.
 export function parseTurnContext(value) {
@@ -105,6 +128,9 @@ export function parseTurnContext(value) {
   if (typeof value.vehicle === 'boolean') result.vehicle = value.vehicle;
   if (value.vehicle === true && typeof value.driving === 'boolean') result.driving = value.driving;
   if (Object.hasOwn(MOTIONS, value.motion) && value.vehicle !== true) result.motion = value.motion;
+  // An appointment this character has with V (docs/IMMERSIVE_INVITATIONS.md, mod/immersive-invitations.lua): bounded, and absent when malformed.
+  const appointment = parseAppointment(value.appointment);
+  if (appointment) result.appointment = appointment;
   const rows = sequence(value.party, MAX_PARTY * 2);
   if (rows) {
     const party = [], seen = new Set();
@@ -224,6 +250,8 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
     sentences.push('You are messaging V by text on the phone, not talking to V in person. You are somewhere else; where you are and what you are doing are not given.');
     pushWhere(V);
   }
+  // Where the appointment sentence goes: right after the sentences about who she is and where (below), never lost to the budget cut.
+  const lead = sentences.length;
   if (snapshot.hour !== undefined) scene('time', `It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
   // The weather goes to all three kinds of turn: a stranger or a contact on the phone could know it as well.
   if (snapshot.weather) scene('weather', WEATHER[snapshot.weather]);
@@ -250,16 +278,23 @@ export function describeTurnContext(input, {ambient = false, voice = false, spli
   // Money is the least urgent fact, so it goes last and is the first to go in a budget cut. A companion in person only.
   if (!ambient && !phone && MONEY[snapshot.money]) sentences.push(MONEY[snapshot.money]);
   const background = scenery.length ? `${BACKGROUND} ${scenery.join(' ')}` : '';
+  // An arranged meeting: a named companion's, on every channel (a stranger and Johnny in V's head have none). One sentence; on a phone or a call it also
+  // lifts the "name no place of your own" rule for that one place.
+  const meeting = !ambient && !head && snapshot.appointment ? appointmentSentence(snapshot.appointment) : null;
+  const remoteMeeting = meeting && (phone || call) && ['on-the-way', 'waiting'].includes(snapshot.appointment.kind);
   // A stranger hears who V is to them on every turn, with or without other facts: a player report (2026-10-25) had every pedestrian and guard talk as if they knew V.
-  if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
+  if (!sentences.length && !meeting) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
-  const suffix = ambient
+  let suffix = ambient
     ? ` ${STRANGER_NOTE} Background only; bring it up only when it matters to what V says.`
     : head ? HEAD_SUFFIX : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
       + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them.' + MENTION;
-  // Over budget: drop whole sentences from the end, never cut one in half.
+  // Over budget: drop whole sentences from the end, never cut one in half. The meeting sentence (and its exception) has room of its own: the other facts
+  // keep the budget they have without it, and it is never the one dropped.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
+  if (meeting) sentences.splice(Math.min(lead, sentences.length), 0, meeting);
+  if (remoteMeeting) suffix = suffix.slice(0, suffix.length - MENTION.length) + MEETING_EXCEPTION + MENTION;
   if (!sentences.length) return ambient ? {text: STRANGER_NOTE, background, parts: scenery.length, reason: ''} : {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
   return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};
 }

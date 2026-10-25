@@ -716,7 +716,7 @@ test('wiring: a global service, built from the module; the offer and the start g
   assert.match(capture, /context\.head then/); assert.match(capture, /context\.voiceOnly then/); assert.match(capture, /convaiStory and convaiStory\.entity == context\.entity/);
   assert.match(init, /if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
   // A group round never carries a reaction (the lease takes the first speaker's leave offer only).
-  assert.match(actionsSource, /if private and not drive and not tactic and not follow and not leave then\s+reaction = capturedOffer/);
+  assert.match(actionsSource, /if private and not call and not drive and not tactic and not follow and not leave then\s+reaction = capturedOffer/);
 });
 
 test('wiring: the quest flag is the record flag or the runtime IsQuest of the game, read at offer and reaction time only', () => {

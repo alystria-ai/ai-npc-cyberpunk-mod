@@ -314,6 +314,26 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/invitation-readiness.lua"
         },
         {
+          "source": "mod/immersive-invitations.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-invitations.lua"
+        },
+        {
+          "source": "mod/immersive-service.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-service.lua"
+        },
+        {
+          "source": "mod/immersive-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-world.lua"
+        },
+        {
+          "source": "mod/immersive-car.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-car.lua"
+        },
+        {
+          "source": "mod/place-words.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/place-words.lua"
+        },
+        {
           "source": "mod/addons.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/addons.lua"
         },
@@ -635,10 +655,12 @@
             "bridge/addon-voice.mjs",
             "bridge/addons.mjs",
             "bridge/analysis-pcm.mjs",
+            "bridge/appointment-events.mjs",
             "bridge/ascii-temp.mjs",
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",
             "bridge/bridge-diagnostics.mjs",
+            "bridge/call-meet.mjs",
             "bridge/caption-cues.mjs",
             "bridge/character-editor-control.mjs",
             "bridge/character-editor-page.mjs",
@@ -717,6 +739,7 @@
             "bridge/mature-guard-terms.mjs",
             "bridge/mature-guard.mjs",
             "bridge/mature-pack.mjs",
+            "bridge/meet-requests.mjs",
             "bridge/memory-scope.mjs",
             "bridge/memory-store.mjs",
             "bridge/mic-live.mjs",

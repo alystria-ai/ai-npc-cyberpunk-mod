@@ -5906,7 +5906,7 @@ test('Natural speech beside other providers is unaffected by a retired Multiling
   `);
 });
 
-test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, and Companion behavior keeps its two rows', () => {
+test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, and Companion behavior keeps its two gaze rows (plus the Immersive invitations button)', () => {
   run(`${nsuiFixture}
     local GONE = {autoConnectNearby = 'Auto-connect nearby characters', expressiveEmotions = 'Expressive emotions', gameDialogueContext = 'Continue from game dialogue',
       holocallLiveImage = 'Live holocall picture', bodyGestures = 'Body gestures'}
@@ -5944,7 +5944,7 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
       end
       local behavior
       for _, category in ipairs(loaded.categories) do if category.id == 'companion-behavior' then behavior = category end end
-      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 2, 'Companion behavior')
+      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 3, 'Companion behavior: two gaze rows and the Immersive invitations button')
       assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.

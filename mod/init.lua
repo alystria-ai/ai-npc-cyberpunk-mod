@@ -441,6 +441,14 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         if not convaiNpcReactions then return false, 'not-available' end
         return convaiNpcReactions.start(kind, offer, entity, requestId)
     end,
+    -- A meeting V may ask for on a holocall (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"): nothing is offered while Immersive invitations is Off.
+    meetOffer = function(entity, context)
+        return convaiMeetCallOffer and convaiMeetCallOffer(context) or nil
+    end,
+    queueMeet = function(kind, offer, profileKey, requestId)
+        if not convaiMeetCallAccept then return false, 'not-available' end
+        return convaiMeetCallAccept(profileKey, kind, offer)
+    end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
@@ -1494,7 +1502,11 @@ do
             end
             return info
         end}) or nil
-    microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+    microphone.captureTurnContext = function(profileKey)
+        local snapshot = convaiTurnContext and convaiTurnContext:capture() or nil
+        if snapshot and convaiAppointmentTurn then snapshot = convaiAppointmentTurn(snapshot, profileKey) end
+        return snapshot
+    end
     -- A group round with a character another mod or a spawner created in it needs a party row for that character: read it
     -- afresh rather than reuse a snapshot a private turn took a moment earlier (nothing else changes for other rounds).
     groupChat.onSpawned = function() if convaiTurnContext then convaiTurnContext:reset('group-spawned') end end
@@ -3101,6 +3113,7 @@ local function sendRequest(context)
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
     if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    if not context.reaction and context.turnContext and convaiAppointmentTurn then context.turnContext = convaiAppointmentTurn(context.turnContext, context.profileKey) end
     -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.
     if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
     -- Automatic turns have one subject. Manual conversations may still discuss
@@ -3109,10 +3122,14 @@ local function sendRequest(context)
     -- A battle reaction already carries its own fight (battles.offer); a manual turn reads it through battles.captureManual (Health, heat and
     -- fights off: nothing). The module's own capture is the reaction's and is never gated.
     else context.battle = context.battle or (battles.captureManual or battles.capture)() end
+    -- A greeting at a meeting (immersive invitations) has one subject too.
+    if context.reaction and context.reaction.kind == 'meet' then context.battle = nil end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
-        -- A holocall's caller is not here (mod/holocall.lua): no gameplay actions (follow, fight, drive) are offered.
+        -- A holocall's caller is not here (mod/holocall.lua): no follow, fight or drive is offered. The one thing a call can ask for is a meeting
+        -- (immersive invitations): gameplay-actions.lua leases only that for a call, and only while the setting is On.
+        if not context.reaction then gameplayActions.capture(context, 'private-text') end
     elseif context.head then
         -- Johnny in V's head has no body (docs/JOHNNY_IN_YOUR_HEAD.md): no gameplay actions, no add-on blocks.
     elseif context.voiceOnly then
@@ -3509,6 +3526,156 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
     return true
 end
 
+-- ---- Immersive invitations (docs/IMMERSIVE_INVITATIONS.md) ---------------------------------------------------------------------
+-- The controller (mod/immersive-invitations.lua) exists only while Settings > Immersive invitations is On, and the tick below is one table
+-- read per 0.1 s while it is Off. Globals and one do-block: the main chunk is near Lua's limit of locals.
+convaiImmersiveService = nil
+convaiMeetGreetingWaiting, convaiMeetGreetingCurrent = nil, nil
+do
+    local function held()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        -- IsEntityInScene stays true in ordinary tier-one gameplay (mod/battle-observer.lua): the scene tier, a dialogue or a choice is a scene.
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then return 'scene' end
+        if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
+        return nil
+    end
+    local function notify(kind, text)
+        local player = Game.GetPlayer()
+        if not player or type(text) ~= 'string' or text == '' then return end
+        if kind == 'text' then convaiNotices.send(player, 'immersive-text', text)
+        elseif kind == 'on-the-way' then convaiNotices.send(player, 'immersive-on-the-way', text) end
+    end
+    local path = 'runtime/immersive-invitations.json'
+    local persist = {
+        load = function()
+            local file = io.open(path, 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, value = pcall(json.decode, raw)
+            return ok and type(value) == 'table' and value or nil
+        end,
+        store = function(value)
+            local ok, encoded = pcall(json.encode, value)
+            if not ok then error(encoded) end
+            local file = io.open(path, 'wb')
+            if not file then error('The appointments file cannot be written.') end
+            file:write(encoded); file:close()
+        end}
+    -- The glue module is loaded on the first tick with the setting On; with it Off nothing but the setting is ever read.
+    local function service()
+        if convaiImmersiveService then return convaiImmersiveService end
+        local loaded, module = pcall(dofile, 'immersive-service.lua')
+        if not loaded or type(module) ~= 'table' then
+            convaiLogOnce('immersive-service', 'Immersive invitations are unavailable: ' .. tostring(module))
+            return nil
+        end
+        convaiImmersiveService = module.new({
+            manager = manager, queue = function() return managerUi.party and managerUi.party() end, companions = companions,
+            phoneChat = phoneChat, load = dofile, notify = notify, log = log, logOnce = convaiLogOnce, held = held,
+            districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random})
+        return convaiImmersiveService
+    end
+    -- The controller for the manager's Invite button and the Contacts J key: nil while the setting is Off (the old instant path applies).
+    function convaiImmersiveGet()
+        local options = manager.immersive and manager.immersive()
+        if not options or not options.enabled then return nil end
+        local glue = service()
+        return glue and glue.get() or nil
+    end
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate.
+    function convaiImmersiveTick(delta)
+        local options = manager.immersive and manager.immersive()
+        if (not options or not options.enabled) and not convaiImmersiveService then return end
+        local glue = service()
+        if glue then glue.tick(delta) end
+        -- Switched Off: the controller was dropped by the tick above; the glue goes too, so nothing stays loaded.
+        if not (manager.immersive and manager.immersive().enabled) then convaiMeetGreetingWaiting, convaiImmersiveService = nil, nil end
+    end
+    function convaiImmersiveReset(reason, preserve)
+        convaiMeetGreetingWaiting, convaiMeetGreetingCurrent = nil, nil
+        if convaiImmersiveService then convaiImmersiveService.reset(reason, preserve) end
+    end
+    function convaiAppointmentTurn(snapshot, profileKey)
+        if not convaiImmersiveService then return snapshot end
+        return convaiImmersiveService.appointmentTurn(snapshot, profileKey)
+    end
+    -- A holocall line: the meeting V could ask for on the call (nil while the setting is Off), and the bridge's answer to it, checked against that offer.
+    function convaiMeetCallOffer(context)
+        local options = manager.immersive and manager.immersive()
+        if not options or not options.enabled then return nil end
+        convaiImmersiveGet()
+        return convaiImmersiveService and convaiImmersiveService.callOffer(context) or nil
+    end
+    function convaiMeetCallAccept(profileKey, kind, offer)
+        if not convaiImmersiveService then return false, 'off' end
+        return convaiImmersiveService.callAccept(profileKey, kind, offer)
+    end
+    -- The greeting when V reaches her: one automatic reaction turn by her, spoken like any reply. It waits for the channel to be free
+    -- (at most 20 s) and falls back to a notice with a plain line when no reply could be played.
+    function convaiMeetGreeting(info)
+        convaiMeetGreetingWaiting = {info = info, at = os.time()}
+    end
+    local function greetingFallback(info)
+        local player = Game.GetPlayer()
+        if player then
+            convaiNotices.send(player, 'immersive-greeting', ui.t('{name}: Good to see you. Let us go.', {name = tostring(info.name)}))
+        end
+    end
+    function convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+        local current = convaiMeetGreetingCurrent
+        if automatic and automatic.reaction.kind == 'meet' then
+            if automatic.playbackAt then convaiMeetGreetingCurrent = nil end
+            local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+                or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            if reason then cancelAutomatic('meet-' .. reason)
+            elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+            elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+            return true
+        end
+        if current then
+            -- Her greeting ended without being heard: the plain line instead.
+            convaiMeetGreetingCurrent = nil
+            greetingFallback(current)
+        end
+        local waiting = convaiMeetGreetingWaiting
+        if not waiting or automatic then return false end
+        if os.time() - waiting.at > 20 then
+            convaiMeetGreetingWaiting = nil
+            greetingFallback(waiting.info)
+            return false
+        end
+        if not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        local info = waiting.info
+        local npc = companions.actor(info.serial)
+        local entity
+        for _, row in ipairs(companions.list()) do if row.serial == info.serial then entity = row.entityID end end
+        if not npc or not entity then return false end
+        local available = battleObserver.canSpeak(npc, 'start')
+        if not available then return false end
+        generation = generation + 1
+        local context = {generation = generation, entity = entity, name = info.name, bodyType = '', profileKey = info.profileKey, sentAt = now,
+            text = 'You have just met V at the place you agreed on. Give a brief in-character greeting.',
+            reaction = {kind = 'meet', event = 'greeting', place = info.place, waitedMinutes = info.waitedMinutes,
+                expiresAt = math.floor((now + 20) * 1000)}}
+        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+        automatic = context
+        captureReactionGuard(worldReady, outputs, nil)
+        convaiMeetGreetingWaiting = nil
+        if reactionLease(true) and sendRequest(context) then
+            speech.target = npc
+            lastAutomatic = {at = now, requestId = context.requestId, kind = 'meet'}
+            convaiMeetGreetingCurrent = info
+            log('Automatic meet greeting: speaker=' .. tostring(info.profileKey))
+        else
+            cancelAutomatic('request-write-failed')
+            greetingFallback(info)
+        end
+        return true
+    end
+end
+
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
@@ -3545,7 +3712,9 @@ local function updateBattles(player, elapsed, worldReady)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
-    if automatic and automatic.reaction.kind == 'head' then
+    if automatic and automatic.reaction.kind == 'meet' then
+        convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'head' then
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
     elseif automatic then
         local speaker
@@ -3565,6 +3734,9 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
             cancelAutomatic('completed')
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+    end
+    if not automatic and (convaiMeetGreetingWaiting or convaiMeetGreetingCurrent) then
+        convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
     local function mayFollow(event, kind)
@@ -4073,6 +4245,16 @@ local function processPhoneAction(player)
         return
     end
     if join then
+        -- With Settings > Immersive invitations On, Invite is an appointment: she travels there (mod/immersive-invitations.lua).
+        local immersive = convaiImmersiveGet and convaiImmersiveGet() or nil
+        if immersive then
+            local taken, why = immersive.requestInvite(key)
+            if taken ~= nil then
+                log('Phone appointment ' .. (taken and 'requested' or 'refused') .. ' for ' .. key)
+                if not taken then convaiNotices.send(player, 'phone-invite-reply', tostring(why)) end
+                return
+            end
+        end
         local accepted, message, invitationId = queue.invite(key)
         log(accepted and ('Phone preparation requested for ' .. key)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
@@ -4440,6 +4622,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
+    -- Immersive invitations: the references are dropped after the party's own, with no call into the game (mod/immersive-invitations.lua bind).
+    if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
@@ -5000,6 +5184,10 @@ registerForEvent('onUpdate', function(delta)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then convaiLogOnce('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
+    if worldReady then
+        local immersiveOk, immersiveError = pcall(convaiImmersiveTick, elapsedPoll)
+        if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
+    end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
     if worldReady and convaiCompanionAdoption then
         local adoptionOk, adoptionError = pcall(convaiCompanionAdoption.update, elapsedPoll)

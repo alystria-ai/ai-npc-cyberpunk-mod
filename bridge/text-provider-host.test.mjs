@@ -1026,3 +1026,31 @@ test('the bridge defers the exchange of its typed and custom text turns and comm
   assert.equal([...source.matchAll(/deferRecord: deferExchange\(input\)/g)].length, 5);
   assert.equal([...source.matchAll(/^\s*commitExchange\(input\);/gm)].length, 2);
 });
+
+// ---- an appointment event the character starts (bridge/appointment-events.mjs) ---------------------------------------------------------
+
+test('an appointment event records a bracketed note for V instead of its trigger, and an arrival records nothing', async () => {
+  const phone = {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'phone'};
+  const trigger = 'This is an automatic game event, not something V said. V arranged to meet you and never came.';
+  const {host, memory, close} = await harness(() => 'I waited an hour. Thanks for nothing.');
+  try {
+    const stood = await host.reply(turn(trigger, {local: phone, phoneEvent: {v: '[V did not come to the meeting at Pacifica]'}}));
+    assert.equal(stood.text, 'I waited an hour. Thanks for nothing.');
+    const said = () => memory.recall({profileKey: 'judy-alvarez', channel: 'phone'}).turns.map(({v, r}) => ({v, r}));
+    assert.deepEqual(said(), [{v: '[V did not come to the meeting at Pacifica]', r: 'I waited an hour. Thanks for nothing.'}]);
+    await host.reply(turn(trigger, {local: phone, phoneEvent: {v: null}}));
+    assert.equal(said().length, 1, 'an arrival leaves no exchange');
+    // An ordinary phone message is recorded as before.
+    await host.reply(turn('hello', {local: phone}));
+    assert.deepEqual(said().at(-1), {v: 'hello', r: 'I waited an hour. Thanks for nothing.'});
+  } finally { await close(); }
+});
+
+test('a meet tag in her reply never reaches the memory', async () => {
+  const phone = {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'phone'};
+  const {host, memory, close} = await harness(() => '[meet-here] On my way, I know that place.');
+  try {
+    await host.reply(turn('come meet me', {local: phone}));
+    assert.deepEqual(memory.recall({profileKey: 'judy-alvarez', channel: 'phone'}).turns.map(({v, r}) => ({v, r})), [{v: 'come meet me', r: 'On my way, I know that place.'}]);
+  } finally { await close(); }
+});

@@ -34,6 +34,10 @@ M.catalog = {
     -- A character the player made, talked to while Convai answers: it speaks as an ordinary person (docs/CHARACTER_EDITOR.md)
     ['custom-needs-provider'] = {class = PLAYER, repeatS = 86400},
     ['phone-queue-refused'] = {class = PLAYER, repeatS = 20},
+    -- Immersive invitations (docs/IMMERSIVE_INVITATIONS.md)
+    ['immersive-on-the-way'] = {class = PLAYER, repeatS = 5},  -- Invite with the setting On: she is on her way
+    ['immersive-text'] = {class = PLAYER, repeatS = 5},        -- a text she sent: she arrived, V was stood up, the meeting was called off
+    ['immersive-greeting'] = {class = PLAYER, repeatS = 20},   -- the plain greeting when her spoken one could not be played
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)

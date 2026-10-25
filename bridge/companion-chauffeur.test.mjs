@@ -677,16 +677,12 @@ world.foreignDrive=false;tick(50,.1)
 assert(world.brakes==1 and phase()=='waiting-for-player-exit')
 `));
 
-test('a passenger-only companion (Alt Cunningham, a digital ghost) is never offered the wheel, under any chat profile',()=>run(`
+test('Alt Cunningham is offered the wheel like any companion, under any chat profile',()=>run(`
 entry.key='alt-cunningham'; entry.record='Character.Alt'
 local offer=transport.chauffeurOffer(fleet,player,entry)
-assert(not offer.available and offer.code=='does-not-drive',tostring(offer.code))
-assert(not queue() and not fleet.chauffeur and world.mountsRequested==0 and world.enables==0)
--- The model decides: her copy under another profile is still refused, another model under her profile is not.
+assert(offer.code~='does-not-drive',tostring(offer.code))
 entry.key='alt-model-copy'; entry.profileKey='judy-alvarez'
-assert(transport.chauffeurOffer(fleet,player,entry).code=='does-not-drive')
-entry.key='judy-alvarez'; entry.record='Character.Judy'; entry.profileKey='alt-cunningham'
-assert(transport.chauffeurOffer(fleet,player,entry).available,'Judy under her profile can still drive')
+assert(transport.chauffeurOffer(fleet,player,entry).code~='does-not-drive')
 `));
 
 // ---- Seated drive: V already sits in their own car ----------------------------------------------------------------------------
