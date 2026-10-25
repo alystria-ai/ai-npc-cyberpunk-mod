@@ -94,6 +94,7 @@ function M.new(env)
         log(table.concat(parts, ' '))
     end
     local offerShown = {}     -- profileKey -> the last offer written to the log (one line per change, not one per turn)
+    local factsShown          -- the hold facts last written to the log (hold-facts: one line per change)
     local function translate(text, vars) if env.t then return env.t(text, vars) end if vars then return (text:gsub('{(%w+)}', function(k) return tostring(vars[k]) end)) end return text end
     -- `ui.t('literal')` so that scripts/Extract-UiCatalog.mjs finds every text of this file.
     local ui = {t = translate}
@@ -228,16 +229,20 @@ function M.new(env)
     local function day() local h = hours() return h and math.floor(h / 24) or 0 end
 
     -- ---- reserved flats --------------------------------------------------------------------------------------------------------------
-    local function reservedReason(apt)
+    -- The scene facts above 0 for this flat (names). The hold in the step and the offer/move-in both ask this one list: when the flat is
+    -- held she is neither offered the flat nor taken out of the party for it, so nobody accepts and then vanishes.
+    local function reservedFacts(apt)
+        local out = {}
         local d = loadData()
-        if not d or not d.reservedFacts then return nil end
+        if not d or not d.reservedFacts then return out end
         for _, list in ipairs({d.reservedFacts.any or {}, d.reservedFacts[apt] or {}}) do
             for _, name in ipairs(list) do
-                if (tonumber(guard(env.fact, name)) or 0) > 0 then return name end
+                if (tonumber(guard(env.fact, name)) or 0) > 0 then out[#out + 1] = name end
             end
         end
-        return nil
+        return out
     end
+    local function reservedReason(apt) return reservedFacts(apt)[1] end
 
     -- ---- placing --------------------------------------------------------------------------------------------------------------------------
     local function planResidents(apt)
@@ -539,6 +544,7 @@ function M.new(env)
             leftAt = nil
             if zone ~= here then
                 zone, zoneSince = here, clock
+                factsShown = nil
                 local living = 0
                 for _, r in pairs(rec) do if r.apt == here then living = living + 1 end end
                 stage('flat-entered', {apt = here, residents = living})
@@ -551,8 +557,13 @@ function M.new(env)
             if h then lastHome[here] = h end
             if combatUntil and clock < combatUntil then return end
             local reason = guard(env.held)
-            local reserved = loadData() and reservedReason(here) or nil
-            if reserved then reason = reason or ('quest:' .. reserved) end
+            local facts = loadData() and reservedFacts(here) or {}
+            local signature = table.concat(facts, ',')
+            if signature ~= factsShown then
+                factsShown = signature
+                stage('hold-facts', {apt = here, facts = signature ~= '' and signature or '-'})
+            end
+            if facts[1] then reason = reason or ('quest:' .. facts[1]) end
             if reason then applyHeld(reason, here) return end
             clearHeld()
             if heldSince then return end
@@ -659,6 +670,8 @@ function M.new(env)
         if not key or not M.NAMES[apt] then stage('failed:unknown-apartment', {key = key, apt = apt}); return false, 'unknown' end
         if not guard(env.eligible, key) then stage('failed:not-eligible', {key = key}); return false, 'not-eligible' end
         if not C.owned()[apt] then stage('failed:not-owned', {key = key, apt = apt}); return false, 'not-owned' end
+        -- A scene is running in the flat V stands in: nothing changes (she stays in the party, the offer did not list this flat either).
+        if apt == hereId() and reservedReason(apt) then stage('failed:quest-reserved', {key = key, apt = apt}); return false, 'quest-reserved' end
         local ok, why = registry.write(env.store, key, apt)
         if not ok then stage('failed:store', {key = key, why = tostring(why):sub(1, 80)}); return false, why end
         local previous = homes[key]
@@ -774,8 +787,14 @@ function M.new(env)
         local vp = guard(env.vpos)
         local offer = {available = true, actor = {id = entity, key = key}}
         local apartments = eligible and ownedList() or {}
-        offer.apartments = apartments
         local present = hereId()
+        if present and eligible and reservedReason(present) then
+            local rest = {}
+            for _, a in ipairs(apartments) do if a.id ~= present then rest[#rest + 1] = a end end
+            apartments = rest
+            offer.unavailable = 'quest-reserved'
+        end
+        offer.apartments = apartments
         if present and eligible then offer.here = present end
         if eligible and homes[key] then
             offer.lives = {id = homes[key], name = M.NAMES[homes[key]]}

@@ -127,7 +127,7 @@ test('quest facts reserve a flat: bodies are hidden, deleted after a minute, and
     local c = control({['judy-alvarez'] = 'corpo', ['rogue'] = 'corpo'})
     run(c, 12)
     assert(count(world.bodies) == 2)
-    world.facts['mq055_02_active'] = 1
+    world.facts['mq055_04_intimate_action_on'] = 1
     run(c, 3)
     for _, b in pairs(world.bodies) do assert(b.hidden, 'not hidden') end
     run(c, 40)
@@ -137,7 +137,7 @@ test('quest facts reserve a flat: bodies are hidden, deleted after a minute, and
     local spawnedBefore = world.spawned
     run(c, 10)
     assert(world.spawned == spawnedBefore, 'a body was made during the quest')
-    world.facts['mq055_02_active'] = 0
+    world.facts['mq055_04_intimate_action_on'] = 0
     run(c, 20)
     assert(count(world.bodies) == 2)
   `);
