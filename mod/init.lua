@@ -414,6 +414,9 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     tacticOffer = function(entity) return tactics.offer(entity) end,
     queueTactic = function(kind, offer, entity) return tactics.start(kind, offer, entity) end,
     followOffer = function(entity, context)
+        -- A companion settled in V's flat can be asked to come along (mod/companion-settle.lua).
+        local settled = convaiSettleOffer and convaiSettleOffer(entity, context)
+        if settled then return settled end
         return adoption and adoption.offer(entity, conversationNpc(entity), context.profileKey, context.name) or nil
     end,
     leaveOffer = function(entity, context)
@@ -422,15 +425,35 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         for _, person in ipairs(round and round.participants or {}) do
             if person.entity == entity and person.spawned then return nil end
         end
-        return adoption and adoption.leaveOffer(entity, context) or nil
+        local offer = adoption and adoption.leaveOffer(entity, context) or nil
+        -- A housemate who lives in another of V's flats is asked first (mod/housemates.lua).
+        if offer and convaiHousemateLeaveOffer then offer = convaiHousemateLeaveOffer(offer) end
+        return offer
     end,
     queueFollow = function(offer, entity, requestId)
+        if convaiSettleFollow and convaiSettleFollow(entity) then return true end
         if not adoption then return false, ui.t('That action is not available.') end
         return adoption.queueFollow(offer, entity, requestId)
     end,
     queueLeave = function(target, offer, entity, requestId, groupId)
         if not adoption then return false, ui.t('That action is not available.') end
+        if convaiHousemateQueueLeave then
+            return convaiHousemateQueueLeave(target, offer, entity, requestId, groupId,
+                function(t, o, e, r, g) return adoption.queueLeave(t, o, e, r, g) end)
+        end
         return adoption.queueLeave(target, offer, entity, requestId, groupId)
+    end,
+    -- Housemates: moving in and out, and calling the ones at home along (docs/HOUSEMATES.md).
+    homeOffer = function(entity, context)
+        if convaiStory and convaiStory.entity == entity then return nil end
+        return convaiHousemateOffer and convaiHousemateOffer(entity, context) or nil
+    end,
+    groupHomeOffer = function(entity, context)
+        return convaiHousemateGroupOffer and convaiHousemateGroupOffer(entity, context) or nil
+    end,
+    queueHome = function(home, offer, entity, requestId, groupId)
+        if not convaiHousemateQueue then return false, ui.t('That action is not available.') end
+        return convaiHousemateQueue(home, offer, entity, requestId, groupId)
     end,
     -- An ordinary world NPC's reaction to the conversation (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): leave, call the police or
     -- attack. A global service, so these two lines add no upvalue. Nothing is offered or started when the module is missing.
@@ -440,6 +463,14 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     queueReaction = function(kind, offer, entity, requestId)
         if not convaiNpcReactions then return false, 'not-available' end
         return convaiNpcReactions.start(kind, offer, entity, requestId)
+    end,
+    -- A meeting V may ask for on a holocall (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"): nothing is offered while Immersive invitations is Off.
+    meetOffer = function(entity, context)
+        return convaiMeetCallOffer and convaiMeetCallOffer(context) or nil
+    end,
+    queueMeet = function(kind, offer, profileKey, requestId)
+        if not convaiMeetCallAccept then return false, 'not-available' end
+        return convaiMeetCallAccept(profileKey, kind, offer)
     end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
@@ -975,7 +1006,7 @@ function convaiJohnnyRemarksService()
     if convaiJohnnyRemarks == nil then
         local loaded, module = pcall(dofile, 'johnny-remarks.lua')
         convaiJohnnyRemarksModule = loaded and type(module) == 'table' and type(module.new) == 'function' and module or nil
-        convaiJohnnyRemarks = convaiJohnnyRemarksModule and module.new({level = function() return manager.johnnyRemarks() end}) or false
+        convaiJohnnyRemarks = convaiJohnnyRemarksModule and module.new({level = function() return manager.johnnyRemarks() end, paced = true}) or false
         if not convaiJohnnyRemarks then print('[CyberpunkConvai] johnny-remarks.lua unavailable: ' .. tostring(module)) end
     end
     return convaiJohnnyRemarks or nil
@@ -1388,7 +1419,13 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
     -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
-    onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
+    onRow = function(row)
+        if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end
+        -- Companions speak up (docs/COMPANION_SPEAK_UP.md): a scene she may comment on once it is over. A few table writes per scene line.
+        if convaiSpeakUpScene then convaiSpeakUpScene(row) end
+    end,
+    -- Music and TV (Settings > Dynamic info): the last TV lines are kept only while the switch is on, for mod/media-context.lua (one boolean read per subtitle line).
+    heardWanted = function() return manager.dynamicInfo == nil or manager.dynamicInfo('media') end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
     onGameLineWanted = function() return convaiAddons ~= nil and convaiAddons.live == true end,
     onGameLine = function(seconds, kind, measured) convaiAddons.gameLine(seconds, kind, measured) end,
@@ -1415,6 +1452,24 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
         return keys
     end}) or nil
 convaiGameDialogue = gameDialogue
+
+-- Music and TV, the song (mod/media-song.lua): the game's own song-change events, cached for mod/media-context.lua. Loaded and hooked only
+-- while the switch is on: at start (onInit) when it is on then, else the first time a turn is built with it on. Once hooked, a callback with
+-- the switch off returns after one boolean read. A failed load is not retried. Globals: the main chunk is near Lua's limit of locals.
+convaiMediaSongInstall = function()
+    if convaiMediaSong ~= nil then return end
+    if manager.dynamicInfo ~= nil and not manager.dynamicInfo('media') then return end
+    local loaded, module = pcall(dofile, 'media-song.lua')
+    if not loaded or type(module) ~= 'table' or type(module.new) ~= 'function' then
+        convaiMediaSong = false
+        convaiLogOnce('media-song-load', 'Media song: not loaded: ' .. tostring(module))
+        return
+    end
+    convaiMediaSong = module.new({observe = ObserveAfter, wanted = function() return manager.dynamicInfo == nil or manager.dynamicInfo('media') end})
+    local hooked = convaiMediaSong:install()
+    -- convaiLogLine, not log: this runs before the local log is defined in the chunk.
+    if convaiLogLine then convaiLogLine('Media song: ' .. tostring(hooked) .. ' of ' .. #module.HOOKS .. ' song events hooked') end
+end
 
 -- Witness receipts (docs/QUEST_DECISIONS.md 4.3): on unless settings.witnessReceipts is turned off. When a world scan sees a quest fact or journal entry
 -- change, who stood within 15 m is written to runtime/witness-receipts.json. One boolean check per scan; optional like the modules above.
@@ -1478,6 +1533,38 @@ do
             for _, person in ipairs(ridersRead and riders or {}) do rows[#rows + 1] = person end
             return rows
         end,
+        -- Music and TV, and other mods' state (Settings > Dynamic info): the readers are loaded the first time a turn is built with their switch on,
+        -- so nothing is loaded while a switch is off or the module is absent. Each answers a plain table or nothing (mod/media-context.lua, mod/mod-state.lua).
+        media = function(player)
+            if convaiMediaSong == nil then convaiMediaSongInstall() end
+            if convaiMediaContext == nil then
+                local loaded, module = pcall(dofile, 'media-context.lua')
+                convaiMediaContext = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+            end
+            return convaiMediaContext and convaiMediaContext.read(player) or nil
+        end,
+        -- Other mods' state: Dark Future's own classes are looked up before anything is loaded (docs/DYNAMIC_INFO.md, "Other mods' state"). One
+        -- class name or two, pcall'd. Absent: mod-state.lua is never read from disk, and the probe is repeated at most once a minute (it may
+        -- not exist yet during a loading screen), so a player without the mod pays one failed lookup a minute while talking and nothing else.
+        -- Present: the module is loaded once (a failed load is not retried) and read per turn window.
+        mods = function(player)
+            if convaiModState == nil then
+                local now = os.time()
+                local probedAt = convaiModStateProbedAt
+                if probedAt ~= nil and now >= probedAt and now - probedAt < 60 then return nil end
+                convaiModStateProbedAt = now
+                local present = false
+                for _, name in ipairs({'DarkFuture.Main.DFMainSystem', 'DarkFuture.Needs.DFHydrationSystem'}) do
+                    local ok, system = pcall(function() return Game.GetScriptableSystemsContainer():Get(CName.new(name)) end)
+                    if ok and system ~= nil then present = true; break end
+                end
+                if not present then return nil end
+                local loaded, module = pcall(dofile, 'mod-state.lua')
+                convaiModState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+                if convaiLogLine then convaiLogLine('Mod state: Dark Future found, reader ' .. (convaiModState and 'loaded' or 'failed to load')) end
+            end
+            return convaiModState and convaiModState.read(player, function(line) if convaiLogLine then convaiLogLine(line) end end) or nil
+        end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
         -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
@@ -1494,7 +1581,11 @@ do
             end
             return info
         end}) or nil
-    microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+    microphone.captureTurnContext = function(profileKey)
+        local snapshot = convaiTurnContext and convaiTurnContext:capture() or nil
+        if snapshot and convaiAppointmentTurn then snapshot = convaiAppointmentTurn(snapshot, profileKey) end
+        return snapshot
+    end
     -- A group round with a character another mod or a spawner created in it needs a party row for that character: read it
     -- afresh rather than reuse a snapshot a private turn took a moment earlier (nothing else changes for other rounds).
     groupChat.onSpawned = function() if convaiTurnContext then convaiTurnContext:reset('group-spawned') end end
@@ -1777,6 +1868,19 @@ phoneChat.typingOpened = function(player, contact)
 end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
+-- A wardrobe outfit of Equipment-EX shows instead of V's equipped clothes in that gear (docs/PLAYER_GEAR_CONTEXT.md). Only while Settings > Dynamic info >
+-- Other mods' state is on: off, the module is never loaded and nothing is read from that mod. Called inside the gear's cached read, once per window.
+if playerGear then
+    local equipmentEx
+    playerGear.options.outfit = function(player)
+        if not (manager.dynamicInfo and manager.dynamicInfo('mods')) then return nil end
+        if equipmentEx == nil then
+            local loaded, module = pcall(dofile, 'equipment-ex.lua')
+            equipmentEx = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+        end
+        return equipmentEx and equipmentEx.read(player, log) or nil
+    end
+end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.options.logOnce = log, convaiLogOnce end
 -- Street reputation (docs/REPUTATION_DESIGN.md, mod/reputation.lua): the module is loaded and its hooks registered only once the setting is
@@ -2090,6 +2194,13 @@ do
         -- The gesture catalogue (1.4 MB of generated Lua) is compiled and held once, shared with the gesture controller.
         catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
+        -- V settled on a seat: its root is learned so that no housemate is given it (mod/housemates.lua).
+        onSettled = function(anchor, forward, kind)
+            if convaiHousemateLearn then convaiHousemateLearn(anchor, forward, kind) end
+            if convaiSettleSat then convaiSettleSat(anchor) end
+        end,
+        -- The first party tick of a world (a save made at home, fast travel into a flat): is V in one of V's flats? (mod/companion-settle.lua)
+        onWorld = function() if convaiSettleWake then convaiSettleWake() end end,
         log = function(kind, fields)
             if manager.developerMode() then
                 local ok, text = pcall(json.encode, fields)
@@ -2118,6 +2229,9 @@ do
         tick = function(player, step, rows)
             local c, p, s = current(), currentProbe(), currentSeating()
             if s then pcall(s.tick, player, step, rows) end
+            -- Settling in V's flat (mod/companion-settle.lua): a nil global away from home.
+            local z = convaiSettle
+            if z then pcall(z.tick, player, step, rows) end
             if c then pcall(c.tick, player, step, rows) end
             if p then return p.tick(player, step, rows) end
         end,
@@ -2127,6 +2241,13 @@ do
             if not s or not s.owns then return false end
             local ok, owned = pcall(s.owns, entry)
             return ok and owned == true
+        end,
+        -- A change of clothes on a home place (mod/companion-outfits.lua): stand up, take no place for `hold` seconds.
+        standUp = function(serial, hold)
+            local s = currentSeating()
+            if not s or not s.homeStandUp then return nil end
+            local ok, result = pcall(s.homeStandUp, serial, hold)
+            return ok and result or nil
         end,
         -- Decision override before behavior (a walk to a seat, then a hold).
         steer = function(entry, context, step)
@@ -2367,6 +2488,11 @@ local function beginFocus(player, npc)
     -- so its follow and pose commands are never fought.
     local policy = convaiWorldPolicy
     local keepAI = policy ~= nil and policy.spawned(npc) == true
+    -- A housemate keeps her seat or her bed: eyes and head only, no hold or turn (mod/housemates.lua).
+    if not keepAI and convaiResidentNpc ~= nil and convaiHousemates ~= nil and convaiResidentNpc(npc) then
+        keepAI = true
+        if convaiHousemateTalk then pcall(convaiHousemateTalk, tostring(npc:GetEntityID().hash)) end
+    end
     local ok, focused = pcall(function()
         if keepAI then return player:ConvaiBeginFocus(npc, true) end
         return player:ConvaiBeginFocus(npc)
@@ -2541,9 +2667,72 @@ function convaiFacingCharacter()
     return {record = record, name = name, gender = gender == 'FEMALE' and 'female' or gender == 'MALE' and 'male' or nil}
 end
 
+-- Talking with nobody in view goes to the party (docs/TALK_FALLBACK.md), decided once on the key press, never polled. Global functions: the
+-- main chunk is at Lua's limit of local variables.
+-- Private talk: the first party member, in the Companion Manager's Current party order, who is within talk range and whose
+-- profile can answer. nil when there is none.
+function convaiTalkFirstParty(player)
+    if type(companions.partyInOrder) ~= 'function' then return nil end
+    local ok, rows = pcall(companions.partyInOrder, player, 8)
+    if not ok or type(rows) ~= 'table' then return nil end
+    for _, row in ipairs(rows) do
+        if supportedProfiles[row.profileKey] and profileEnabled(player, row.profileKey) then return row end
+    end
+    return nil
+end
+
+-- Group talk: the first party member, then two more picked at random from the rest of the party (fewer when the party is
+-- smaller), then the unchosen party members and everyone else in the list (visiting housemates, spawned characters), who fill
+-- the round only when the party cannot (groupChat.choose takes three). nil when no party member is in the list.
+function convaiTalkGroupFromParty(candidates, random)
+    local party, others = {}, {}
+    for _, candidate in ipairs(candidates) do
+        if candidate.party then party[#party + 1] = candidate else others[#others + 1] = candidate end
+    end
+    if #party == 0 then return nil end
+    table.sort(party, function(a, b) return (a.order or 0) < (b.order or 0) end)
+    random = random or math.random
+    local list = {table.remove(party, 1)}
+    for _ = 1, 2 do
+        if #party == 0 then break end
+        list[#list + 1] = table.remove(party, random(#party))
+    end
+    for _, candidate in ipairs(party) do list[#list + 1] = candidate end
+    for _, candidate in ipairs(others) do list[#list + 1] = candidate end
+    return list
+end
+
+-- The Johnny keys (docs/JOHNNY_IN_YOUR_HEAD.md): Johnny as the voice in V's head, wherever V faces, while the story has him there and
+-- the game does not have the floor. Otherwise a notice says why and nothing starts.
+function convaiTalkJohnny(player)
+    local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
+    if not head then
+        convaiNotices.send(player, 'talk-johnny-off', ui.t('Johnny in your head is off. Turn it on in Settings > Conversations.'))
+        return nil
+    end
+    local why = head:refusal(player)
+    if why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
+        local partner = head:partner(player)
+        if partner then
+            convaiHeadTalk = {entity = partner.entity}
+            log('Johnny in your head: conversation stage=' .. tostring(partner.head.stage))
+            return partner
+        end
+    elseif why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
+        log('Johnny in your head: refused reason=' .. why .. ' facts[' .. head:detail() .. ']')
+        convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
+        return nil
+    end
+    log('Johnny in your head: not in V\'s head (' .. tostring(why or 'muted') .. ')')
+    convaiNotices.send(player, 'talk-johnny-away', ui.t('{name} is not in your head right now.', {name = head.name}))
+    return nil
+end
+
 -- addonHears: this computer can recognise speech locally (manager.speechRecognitionReady), which an add-on voice needs to answer the
 -- voice keys; the caller asks it on the key press only, and only while an add-on is live.
-local function selectConversation(player, groupMode, singleAction, addonHears)
+-- talkJohnny: the Johnny keys (Talk to Johnny by voice or text): Johnny, whoever V faces.
+local function selectConversation(player, groupMode, singleAction, addonHears, talkJohnny)
+    if talkJohnny then return convaiTalkJohnny(player) end
     -- A character the player made may have been saved since the last look: the list is read if it is due (at most every 3 s, and only while
     -- there are characters or the editor was opened lately: mod/custom-characters.lua).
     if convaiCustomCharacters then pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider) end
@@ -2579,6 +2768,15 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
                 .. ' (found=' .. tostring(stats.found) .. ' generic=' .. tostring(stats.generic) .. ' noProfile=' .. tostring(stats.noProfile)
                 .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')'
                 .. convaiSpawnedPeople.describe())
+        end
+        -- Nobody faced: the first party member leads and two more come at random from the party (fewer in a smaller party).
+        if not npc then
+            local ordered = convaiTalkGroupFromParty(candidates)
+            if ordered then
+                candidates = ordered
+                log('Talk fallback: group of the party, first=' .. tostring(ordered[1].profileKey)
+                    .. ' then=' .. tostring(ordered[2] and ordered[2].profileKey) .. ',' .. tostring(ordered[3] and ordered[3].profileKey))
+            end
         end
     end
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
@@ -2619,24 +2817,14 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
     end
     if not npc and groupMode and candidates[1] and not candidates[1].voiceOnly then npc = candidates[1].npc end
-    -- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V, private talk addresses Johnny while the story has
-    -- him in V's head and the game does not have the floor. Not in V's head (or the setting off): the notice below, as before.
+    -- Nobody faced (docs/TALK_FALLBACK.md): private talk goes to the first party member in range. Without a party, the notice below.
+    -- Johnny has his own keys (Talk to Johnny, convaiTalkJohnny above): facing nobody no longer reaches him.
+    local fallback = nil
     if not npc and not groupMode then
-        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
-        local why = head and head:refusal(player) or nil
-        if head and why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
-            local partner = head:partner(player)
-            if partner then
-                convaiHeadTalk = {entity = partner.entity}
-                log('Johnny in your head: conversation stage=' .. tostring(partner.head.stage))
-                return partner
-            end
-        elseif head and why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
-            log('Johnny in your head: refused reason=' .. why .. ' facts[' .. head:detail() .. ']')
-            convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
-            return nil
-        elseif head then
-            log('Johnny in your head: not in V\'s head (' .. tostring(why or 'muted') .. ')')
+        local member = convaiTalkFirstParty(player)
+        if member then
+            npc, fallback = member.npc, true
+            log('Talk fallback: first party member ' .. tostring(member.profileKey))
         end
     end
     if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
@@ -2660,7 +2848,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key,
-        spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil}
+        spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil, fallback = fallback}
     -- A named character of the game (docs/WORLD_CHARACTERS.md) is talked to only while the game is not in charge of it: not in a
     -- scene or quest dialogue, not while V is in a quest conversation, not under a scene's or quest's AI, in a fight, hurt or
     -- riding. Read fresh on this key press; the same test then guards the recording and the reply. Nothing of the character
@@ -2827,6 +3015,8 @@ local function acceptVoiceSubmission(context)
         microphone.cancel('stale-group'); return false
     end
     claimPrivateReply(context, 'voice')
+    -- A spoken line is V talking too: nothing prepared ahead survives it, and a reply to it may get a follow-on (docs/COMPANION_SPEAK_UP.md).
+    if convaiSpeakUpManualSent then pcall(convaiSpeakUpManualSent, context) end
     if context.holocall and convaiHolocall then convaiHolocall.touch() end
     pending, pendingKnowledgeOwner = context, microphone.knowledgeOwner
     pending.sentAt, focusUntil = os.time(), os.time() + 90
@@ -2901,11 +3091,11 @@ local function moveStateText(player)
     if not ok or type(held) ~= 'boolean' then return 'n/a' end
     return held and 'held' or 'free'
 end
-local function beginTextNow(groupMode, waited)
+local function beginTextNow(groupMode, waited, talkJohnny)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
-        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text')
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text', nil, talkJohnny)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
@@ -2949,6 +3139,8 @@ local function beginTextNow(groupMode, waited)
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly,
             holocall = primary.holocall, head = primary.head}
+        -- Facing nobody, the first party member took the line (selectConversation): the hand-off says so in probe.log (a global, not in the request).
+        convaiTalkFallbackGeneration = primary.fallback and not participants and generation or nil
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         -- V types for seconds: the history rows of a scan under way are encoded now, a few per frame, not on the send frame.
@@ -2963,18 +3155,18 @@ local function beginTextNow(groupMode, waited)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end
 
-local function beginText(groupMode)
+local function beginText(groupMode, talkJohnny)
     local player = Game.GetPlayer()
     local gate = convaiTalkGate
     if player and gate and moveStateText(player) == 'held' then
         -- A second press while waiting only updates which chat was asked for.
         local waiting = gate.waiting
-        gate.waiting = {group = groupMode, waited = waiting and waiting.waited or 0}
+        gate.waiting = {group = groupMode, johnny = talkJohnny, waited = waiting and waiting.waited or 0}
         if not waiting then log('Talk box waits for the movement keys to be released') end
         return
     end
     if gate then gate.waiting = nil end
-    beginTextNow(groupMode)
+    beginTextNow(groupMode, nil, talkJohnny)
 end
 
 -- Called from onUpdate (a nil check per frame while nobody is waiting). Opens the
@@ -2994,7 +3186,7 @@ function convaiTalkGate.update(delta, worldReady)
     -- A reading that never cleared is probably an unseen key-up: forget it so the
     -- next talk request is not delayed by it, then open the box anyway.
     if stillHeld then pcall(function() player:ConvaiMoveForget() end) end
-    beginTextNow(waiting.group, waiting.waited)
+    beginTextNow(waiting.group, waiting.waited, waiting.johnny)
 end
 
 -- Hold to talk: the voice key records from the moment it goes down until it comes up, and V's turn ends there (docs/VOICE_INPUT.md).
@@ -3002,7 +3194,7 @@ end
 -- or 'vad' (Voice activation heard V start speaking: begin, with no key; mod/voice-activation.lua).
 -- holdId: this key press's id, already told to the bridge (mod/microphone.lua holdKey) so its microphone tap is open. vadId: the detector's id for the start.
 -- No notice is shown for a normal turn: no "connecting", no "listening", no "finished". Only a real failure speaks (no microphone, no connection).
-local function toggleVoice(groupMode, source, holdId, vadId)
+local function toggleVoice(groupMode, source, holdId, vadId, talkJohnny)
     source = source or 'press'
     local player = Game.GetPlayer()
     if not player then return end
@@ -3036,7 +3228,7 @@ local function toggleVoice(groupMode, source, holdId, vadId)
         end
         if not gameplayCanAcquire(player) then return end
         local addonHears = convaiAddons ~= nil and convaiAddons.live == true and manager.speechRecognitionReady() or false
-        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears)
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice', addonHears, talkJohnny)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         -- The target is known: the bridge opens the microphone now and keeps what it hears, before the preparation below and the connection
@@ -3096,23 +3288,36 @@ local function sendRequest(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()
     -- Manual turns only: an automatic reaction has its own single subject.
-    if not context.reaction and convaiGameDialogue then
+    local speakUp = context.reaction ~= nil and context.reaction.kind == 'speakup'
+    -- A housemate's welcome when V comes home is a talk with V: it carries the game clock (and the right-now facts) so the bridge can word how long it
+    -- has been since V last talked to her (bridge/last-talk.mjs). A housemates' chat line between two of them is not.
+    local houseWelcome = context.reaction ~= nil and context.reaction.kind == 'house' and context.reaction.event == 'welcome'
+    if (not context.reaction or (speakUp and context.reaction.event == 'scene')) and convaiGameDialogue then
         context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
-    if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    if (not context.reaction or speakUp or houseWelcome) and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    if not context.reaction and context.turnContext and convaiAppointmentTurn then context.turnContext = convaiAppointmentTurn(context.turnContext, context.profileKey) end
+    -- Housemates: where she lives, whether she is home, who else lives there (bridge/turn-context.mjs `housemate`).
+    if not context.reaction and context.turnContext and convaiHousemateTurn then context.turnContext = convaiHousemateTurn(context.turnContext, context.profileKey) end
     -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.
     if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
-    if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
+    if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head' or speakUp) then context.battle = nil
     -- A battle reaction already carries its own fight (battles.offer); a manual turn reads it through battles.captureManual (Health, heat and
     -- fights off: nothing). The module's own capture is the reaction's and is never gated.
     else context.battle = context.battle or (battles.captureManual or battles.capture)() end
+    -- A greeting at a meeting (immersive invitations) has one subject too.
+    if context.reaction and context.reaction.kind == 'meet' then context.battle = nil end
+    -- So has a housemates' chat line or greeting (mod/housemates.lua).
+    if context.reaction and context.reaction.kind == 'house' then context.battle = nil end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
-        -- A holocall's caller is not here (mod/holocall.lua): no gameplay actions (follow, fight, drive) are offered.
+        -- A holocall's caller is not here (mod/holocall.lua): no follow, fight or drive is offered. The one thing a call can ask for is a meeting
+        -- (immersive invitations): gameplay-actions.lua leases only that for a call, and only while the setting is On.
+        if not context.reaction then gameplayActions.capture(context, 'private-text') end
     elseif context.head then
         -- Johnny in V's head has no body (docs/JOHNNY_IN_YOUR_HEAD.md): no gameplay actions, no add-on blocks.
     elseif context.voiceOnly then
@@ -3162,6 +3367,7 @@ do
     sendRequest = function(context)
         local sent = submit(context)
         if sent then requestFileId = context.requestId; claimPrivateReply(context, 'text') end
+        if sent and not context.reaction and convaiSpeakUpManualSent then pcall(convaiSpeakUpManualSent, context) end
         if sent and context.holocall and convaiHolocall then convaiHolocall.touch() end
         return sent
     end
@@ -3402,6 +3608,12 @@ cancelAutomatic = function(reason, abandoning)
     if lastAutomatic and lastAutomatic.requestId == automatic.requestId then
         lastAutomatic.finishedAt = os.time()
     end
+    -- An unprompted line (a companion's speak-up, Johnny's remark or follow-on) gives the floor back to the scheduler; one nobody heard does not count.
+    local hold = convaiSpeakUpState and convaiSpeakUpState.hold
+    if hold and hold.requestId == automatic.requestId then
+        convaiSpeakUpState.hold = nil
+        if convaiSpeakUp then pcall(convaiSpeakUp.release, convaiSpeakUp, hold.who, automatic.playbackAt ~= nil) end
+    end
     automatic, reactionGuard = nil, nil
 end
 
@@ -3465,6 +3677,646 @@ local function captureLootContext(player)
         people = reactionPeople(player, observation)}
 end
 
+-- ---- Immersive invitations (docs/IMMERSIVE_INVITATIONS.md) ---------------------------------------------------------------------
+-- The controller (mod/immersive-invitations.lua) exists only while Settings > Immersive invitations is On, and the tick below is one table
+-- read per 0.1 s while it is Off. Globals and one do-block: the main chunk is near Lua's limit of locals.
+convaiImmersiveService = nil
+convaiMeetGreetingWaiting, convaiMeetGreetingCurrent = nil, nil
+do
+    local function held()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        -- IsEntityInScene stays true in ordinary tier-one gameplay (mod/battle-observer.lua): the scene tier, a dialogue or a choice is a scene.
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then return 'scene' end
+        if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
+        return nil
+    end
+    local function notify(kind, text)
+        local player = Game.GetPlayer()
+        if not player or type(text) ~= 'string' or text == '' then return end
+        if kind == 'text' then convaiNotices.send(player, 'immersive-text', text)
+        elseif kind == 'on-the-way' then convaiNotices.send(player, 'immersive-on-the-way', text) end
+    end
+    local path = 'runtime/immersive-invitations.json'
+    local persist = {
+        load = function()
+            local file = io.open(path, 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, value = pcall(json.decode, raw)
+            return ok and type(value) == 'table' and value or nil
+        end,
+        store = function(value)
+            local ok, encoded = pcall(json.encode, value)
+            if not ok then error(encoded) end
+            local file = io.open(path, 'wb')
+            if not file then error('The appointments file cannot be written.') end
+            file:write(encoded); file:close()
+        end}
+    -- The glue module is loaded on the first tick with the setting On; with it Off nothing but the setting is ever read.
+    -- One try per load: a glue that cannot be loaded or built is not read, compiled and run again on every 0.1 s tick.
+    local failed = false
+    local function service()
+        if convaiImmersiveService then return convaiImmersiveService end
+        if failed then return nil end
+        local loaded, module = pcall(dofile, 'immersive-service.lua')
+        local built, glue = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            built, glue = pcall(module.new, {
+                manager = manager, queue = function() return managerUi.party and managerUi.party() end, companions = companions,
+                phoneChat = phoneChat, load = dofile, notify = notify, log = log, logOnce = convaiLogOnce, held = held,
+                districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random})
+        end
+        if not built then
+            failed = true
+            convaiLogOnce('immersive-service', 'Immersive invitations are unavailable: ' .. tostring(glue))
+            return nil
+        end
+        convaiImmersiveService = glue
+        return glue
+    end
+    -- The controller for the manager's Invite button and the Contacts J key: nil while the setting is Off (the old instant path applies).
+    function convaiImmersiveGet()
+        local options = manager.immersive and manager.immersive()
+        if not options or not options.enabled then return nil end
+        local glue = service()
+        return glue and glue.get() or nil
+    end
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate.
+    function convaiImmersiveTick(delta)
+        local options = manager.immersive and manager.immersive()
+        if (not options or not options.enabled) and not convaiImmersiveService then return end
+        local glue = service()
+        if glue then glue.tick(delta) end
+        -- Switched Off: the controller was dropped by the tick above; the glue goes too, so nothing stays loaded.
+        if not (manager.immersive and manager.immersive().enabled) then convaiMeetGreetingWaiting, convaiImmersiveService = nil, nil end
+    end
+    function convaiImmersiveReset(reason, preserve)
+        convaiMeetGreetingWaiting, convaiMeetGreetingCurrent = nil, nil
+        if convaiImmersiveService then convaiImmersiveService.reset(reason, preserve) end
+    end
+    function convaiAppointmentTurn(snapshot, profileKey)
+        if not convaiImmersiveService then return snapshot end
+        return convaiImmersiveService.appointmentTurn(snapshot, profileKey)
+    end
+    -- A holocall line: the meeting V could ask for on the call (nil while the setting is Off), and the bridge's answer to it, checked against that offer.
+    function convaiMeetCallOffer(context)
+        local options = manager.immersive and manager.immersive()
+        if not options or not options.enabled then return nil end
+        convaiImmersiveGet()
+        return convaiImmersiveService and convaiImmersiveService.callOffer(context) or nil
+    end
+    function convaiMeetCallAccept(profileKey, kind, offer)
+        if not convaiImmersiveService then return false, 'off' end
+        return convaiImmersiveService.callAccept(profileKey, kind, offer)
+    end
+    -- The greeting when V reaches her: one automatic reaction turn by her, spoken like any reply. It waits for the channel to be free
+    -- (at most 20 s) and falls back to a notice with a plain line when no reply could be played.
+    function convaiMeetGreeting(info)
+        convaiMeetGreetingWaiting = {info = info, at = os.time()}
+    end
+    local function greetingFallback(info)
+        local player = Game.GetPlayer()
+        if player then
+            convaiNotices.send(player, 'immersive-greeting', ui.t('{name}: Good to see you. Let us go.', {name = tostring(info.name)}))
+        end
+    end
+    function convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+        local current = convaiMeetGreetingCurrent
+        if automatic and automatic.reaction.kind == 'meet' then
+            if automatic.playbackAt then convaiMeetGreetingCurrent = nil end
+            local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+                or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            if reason then cancelAutomatic('meet-' .. reason)
+            elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+            elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+            return true
+        end
+        if current then
+            -- Her greeting ended without being heard: the plain line instead.
+            convaiMeetGreetingCurrent = nil
+            greetingFallback(current)
+        end
+        local waiting = convaiMeetGreetingWaiting
+        if not waiting or automatic then return false end
+        if os.time() - waiting.at > 20 then
+            convaiMeetGreetingWaiting = nil
+            greetingFallback(waiting.info)
+            return false
+        end
+        if not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        local info = waiting.info
+        local npc = companions.actor(info.serial)
+        local entity
+        for _, row in ipairs(companions.list()) do if row.serial == info.serial then entity = row.entityID end end
+        if not npc or not entity then return false end
+        local available = battleObserver.canSpeak(npc, 'start')
+        if not available then return false end
+        generation = generation + 1
+        local context = {generation = generation, entity = entity, name = info.name, bodyType = '', profileKey = info.profileKey, sentAt = now,
+            text = 'You have just met V at the place you agreed on. Give a brief in-character greeting.',
+            reaction = {kind = 'meet', event = 'greeting', place = info.place, waitedMinutes = info.waitedMinutes,
+                expiresAt = math.floor((now + 20) * 1000)}}
+        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+        automatic = context
+        captureReactionGuard(worldReady, outputs, nil)
+        convaiMeetGreetingWaiting = nil
+        if reactionLease(true) and sendRequest(context) then
+            speech.target = npc
+            lastAutomatic = {at = now, requestId = context.requestId, kind = 'meet'}
+            convaiMeetGreetingCurrent = info
+            log('Automatic meet greeting: speaker=' .. tostring(info.profileKey))
+        else
+            cancelAutomatic('request-write-failed')
+            greetingFallback(info)
+        end
+        return true
+    end
+end
+
+-- ---- Housemates (docs/HOUSEMATES.md) -------------------------------------------------------------------------------------------------------
+-- Characters V told "you can stay at my place" live in V's flats. Settings > Companion behavior > Housemates (Off by default) switches it all: while it is
+-- Off the tick below is one table read, nothing is offered or listed, and no housemate module is loaded. With it On the glue
+-- (mod/housemate-service.lua) is loaded on the first world-ready tick; the controller, the game adapter, the chat scheduler and the spot data only
+-- when somebody lives somewhere or a conversation offer asks. Nothing runs per frame. Globals and one do-block: the main chunk is near Lua's limit
+-- of locals.
+convaiHousemates = nil
+convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+do
+    local districtHooked = false
+    local lastWelcomeLine
+    local function held()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
+            -- V sitting, sleeping or washing at home plays as a scene of tier 3 or 4: V's own interaction, not a quest scene.
+            if not sample.dialogue and not sample.choices then
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                if ok and inside then return nil end
+            end
+            return 'scene'
+        end
+        if sample.call or (convaiHolocall and convaiHolocall.call) then return 'call' end
+        return nil
+    end
+    local function mayChat()
+        if held() then return false end
+        if active ~= nil or groupChat.round ~= nil or phoneChat.pending ~= nil or pending ~= nil or automatic ~= nil then return false end
+        if speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        if microphone.context ~= nil and microphone.state ~= 'reply' then return false end
+        if type(battleSample) == 'table' and (battleSample.vehicle or battleSample.combat) then return false end
+        return true
+    end
+    local function notify(text)
+        local player = Game.GetPlayer()
+        if player and type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'housemate-notice', text) end
+    end
+    -- Settings > Companion behavior > Housemates: one table read.
+    local function on()
+        local options = manager.housemates and manager.housemates()
+        return options ~= nil and options.enabled == true
+    end
+    companions.housematesOn = on
+    local function gameHours()
+        local system = Game.GetTimeSystem()
+        local stamp = system and system:GetGameTime()
+        if stamp == nil then return nil end
+        local ok, value = pcall(function()
+            return GameTime.Days(stamp) * 24 + GameTime.Hours(stamp) + GameTime.Minutes(stamp) / 60
+        end)
+        if ok and type(value) == 'number' then return value end
+        local okSeconds, seconds = pcall(function() return stamp.seconds end)
+        if okSeconds and tonumber(seconds) then return tonumber(seconds) / 3600 end
+        return nil
+    end
+    local learnedPath = 'runtime/housemate-learned.json'
+    local persist = {
+        load = function()
+            local file = io.open(learnedPath, 'rb')
+            if not file then return nil end
+            local raw = file:read('*a'); file:close()
+            local ok, value = pcall(json.decode, raw)
+            return ok and type(value) == 'table' and value or nil
+        end,
+        store = function(value)
+            local ok, encoded = pcall(json.encode, value)
+            if not ok then return end
+            local file = io.open(learnedPath, 'wb')
+            if file then file:write(encoded); file:close() end
+        end}
+    local function eligible(key)
+        if type(key) ~= 'string' or not companions.definition(key) then return false end
+        for _, profile in ipairs(profiles) do
+            if profile.key == key then return profile.invite ~= false end
+        end
+        return true
+    end
+    local function knownKeys()
+        local list, seen = {}, {}
+        for _, profile in ipairs(profiles) do
+            if type(profile.key) == 'string' and not seen[profile.key] then seen[profile.key] = true; list[#list + 1] = profile.key end
+        end
+        for key in pairs(supportedProfiles) do
+            if type(key) == 'string' and not seen[key] and key ~= 'resident-male' and key ~= 'resident-female' and not key:match('^npc%-') then
+                seen[key] = true; list[#list + 1] = key
+            end
+        end
+        return list
+    end
+    local function build()
+        local loaded, module = pcall(dofile, 'housemate-service.lua')
+        if not loaded or type(module) ~= 'table' then
+            convaiLogOnce('housemate-service', 'Housemates are unavailable: ' .. tostring(module))
+            return nil
+        end
+        local built, value = pcall(module.new, {
+            load = dofile, companions = companions,
+            queue = function() return managerUi.party and managerUi.party() end,
+            catalog = function() return convaiGestures and convaiGestures.catalog or nil end,
+            seating = function() return convaiSeating end,
+            fact = function(name)
+                local quests = Game.GetQuestsSystem()
+                return quests and tonumber(quests:GetFactStr(name)) or 0
+            end,
+            place = function()
+                local district = currentDistrict()
+                return district and (district.area or district.district) or nil
+            end,
+            hours = gameHours, held = held,
+            vpos = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end,
+            knownKeys = knownKeys, eligible = eligible,
+            profileName = function(key)
+                local definition = companions.definition(key)
+                return definition and (definition.profileName or definition.name) or nil
+            end,
+            notify = notify, t = function(text, vars) return ui.t(text, vars) end, log = log,
+            devLog = function(kind, fields)
+                if manager.developerMode() then
+                    local ok, text = pcall(json.encode, fields)
+                    log('Housemates ' .. kind .. ' ' .. (ok and text or ''))
+                end
+            end,
+            talking = function()
+                local npc = speech.target
+                if not npc then return nil end
+                local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+                return ok and id or nil
+            end,
+            random = math.random,
+            speak = convaiHouseSpeak, speakStatus = convaiHouseSpeakStatus, speakCancel = convaiHouseSpeakCancel,
+            greet = convaiHouseGreeting,
+            level = function() return manager.companionSpeakUp and manager.companionSpeakUp() or 'rare' end,
+            -- "Housemates talk to each other" (Settings > Housemates): the pair chat is loaded only while it is On.
+            chatOn = function()
+                local options = manager.housemates and manager.housemates()
+                return options == nil or options.chat ~= false
+            end,
+            mayChat = mayChat,
+            -- The shared arbiter of unprompted lines (Johnny, companions speaking up) when that feature is installed; nil: only the cooldown.
+            -- Plain global reads: CET gives this mod an environment without _G (rawget(_G, ...) throws there).
+            limiter = convaiProactive,
+            outfits = function() return convaiOutfitApi end,
+            leave = function(serial, entity, key, name)
+                local departure = convaiCompanionAdoption
+                if not departure then return false end
+                local offer = {available = true, actor = {id = entity, key = key}, members = {{serial = serial, id = entity, key = key, name = name}}}
+                return departure.queueLeave(entity, offer, entity, nil, nil)
+            end,
+            persist = persist,
+            -- Party companions settled in a flat (mod/companion-settle.lua) hold places the housemates leave alone.
+            reserved = function(apt) return convaiSettleTaken and convaiSettleTaken(apt) or nil end,
+            hookDistrict = function()
+                if districtHooked then return end
+                districtHooked = true
+                -- The game pushes a district when V crosses a district volume (a door of the flat): the one event that wakes the idle controller.
+                local ok, err = pcall(function()
+                    ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function() convaiHousemateWake() end)
+                end)
+                if not ok then log('Housemates: the district hook could not be installed: ' .. tostring(err)) end
+            end,
+            storeMode = function() return nil end})
+        if not built then
+            convaiLogOnce('housemate-build', 'Housemates are unavailable: ' .. tostring(value))
+            return nil
+        end
+        convaiHousemates = value
+        return value
+    end
+    -- One build per load: a failed one is not retried every 0.1 s (that would load and compile the module again on every tick).
+    local function service()
+        if not on() then return nil end
+        if convaiHousemates then return convaiHousemates end
+        if convaiHousematesFailed then return nil end
+        local ok, glue = pcall(build)
+        if ok and glue then return glue end
+        convaiHousematesFailed = true
+        if not ok then convaiLogOnce('housemate-build', 'Housemates are unavailable: ' .. tostring(glue)) end
+        return nil
+    end
+    -- The district hook cannot be removed once installed: while the setting is Off its callback does nothing.
+    function convaiHousemateWake()
+        local glue = convaiHousemates
+        if glue and glue.controller and on() then glue.controller.wake() end
+    end
+    -- Switched Off: her line is dropped, the controller goes (the bodies are removed quietly, the seats let go) and so does the glue, so nothing stays
+    -- loaded. The saved flats stay where they are: switching On again builds the service on the next tick and the housemates come back.
+    local function switchOff()
+        local glue = convaiHousemates
+        convaiHousemates, convaiHousematesFailed = nil, nil
+        if convaiHouseWaiting or convaiHouseCurrent then pcall(convaiHouseSpeakCancel) end
+        convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+        if glue then pcall(glue.disable) end
+    end
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate. Off: one table read.
+    function convaiHousemateTick(delta)
+        if not on() then
+            if convaiHousemates or convaiHousematesFailed then switchOff() end
+            return
+        end
+        local glue = convaiHousemates or service()
+        if glue then glue.tick(delta) end
+    end
+    function convaiHousemateReset(reason, preserve)
+        convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+        if convaiHousemates then convaiHousemates.reset(reason, preserve) end
+    end
+    -- Offers for a conversation turn (mod/gameplay-actions.lua): in person, and the first speaker of a group round.
+    function convaiHousemateOffer(entity, context)
+        local glue = service()
+        return glue and glue.homeOffer(entity, context) or nil
+    end
+    function convaiHousemateGroupOffer(entity, context)
+        local glue = service()
+        return glue and glue.groupHomeOffer(entity, context) or nil
+    end
+    function convaiHousemateQueue(home, offer, entity, requestId, groupId)
+        local glue = service()
+        if not glue then log('Housemates failed:no-service'); return false, 'That action is not available.' end
+        return glue.queueHome(home, offer, entity, requestId, groupId)
+    end
+    function convaiHousemateLeaveOffer(offer)
+        if not convaiHousemates or not on() then return offer end
+        return convaiHousemates.decorateLeave(offer)
+    end
+    function convaiHousemateQueueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
+        if not convaiHousemates or not on() then return adoptionQueue(target, offer, entity, requestId, groupId) end
+        return convaiHousemates.queueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
+    end
+    function convaiHousemateTurn(snapshot, profileKey)
+        if not convaiHousemates or not on() then return snapshot end
+        return convaiHousemates.turn(snapshot, profileKey)
+    end
+    function convaiHousemateTalk(entity)
+        -- A chat line that is only waiting for the channel gives way to V's talk at once.
+        if convaiHouseWaiting then convaiHouseSpeakCancel() end
+        if convaiHousemates and on() then convaiHousemates.talkStarted(entity) end
+    end
+    function convaiHousemateLearn(anchor, forward, kind)
+        if convaiHousemates and on() then convaiHousemates.learnV(anchor, forward, kind) end
+    end
+    -- The manager's page: the housemates and a Move out for each.
+    function convaiHousemateRows()
+        if not convaiHousemates or not on() then return {} end
+        return convaiHousemates.rows()
+    end
+    function convaiHousemateMoveOut(key)
+        return convaiHousemates ~= nil and on() and convaiHousemates.moveOut(key) == true
+    end
+    -- Is this body one of the housemates' own? (A talk with her keeps her workspot: eyes and head only.)
+    function convaiResidentNpc(npc)
+        if not on() then return false end
+        local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        if not ok then return false end
+        for _, row in ipairs(companions.visitors()) do
+            if row.owner == 'housemates' and row.entityID == id then return true end
+        end
+        return false
+    end
+    -- The phone: a contact who may live at V's place (mod/phone-chat.lua captureHomeOffer / onHomeAction).
+    phoneChat.captureHomeOffer = function(contact, profileKey)
+        local glue = service()
+        local key = companions.phoneContactKey(contact)
+        return glue and key and glue.phoneOffer(key, profileKey) or nil
+    end
+    phoneChat.onHomeAction = function(profileKey, action)
+        if convaiHousemates and on() then convaiHousemates.phoneAction(profileKey, action) end
+    end
+
+    -- The spoken lines (a chat line, a greeting): one automatic reaction of kind 'house' at a time, spoken like any reply. It waits for the
+    -- channel to be free (at most 45 s) and gives way to anything V does.
+    local function finish(status, text)
+        convaiHouseWaiting, convaiHouseCurrent = nil, nil
+        convaiHouseResult = {status = status, text = text}
+    end
+    function convaiHouseSpeak(request)
+        if convaiHouseWaiting or convaiHouseCurrent or type(request) ~= 'table' then return false end
+        convaiHouseWaiting = {request = request, at = os.time()}
+        convaiHouseText = nil
+        convaiHouseResult = {status = 'busy'}
+        return true
+    end
+    function convaiHouseSpeakStatus()
+        local result = convaiHouseResult
+        if not result then return nil end
+        return result.status, result.text
+    end
+    function convaiHouseSpeakCancel()
+        if automatic and automatic.reaction.kind == 'house' then cancelAutomatic('house-cancelled') end
+        finish('cancelled')
+    end
+    function convaiHouseGreeting(info)
+        if type(info) ~= 'table' then return false end
+        return convaiHouseSpeak({kind = 'welcome', speaker = {key = info.key, name = info.name, serial = info.serial, entity = info.entity},
+            place = info.place, awayHours = info.awayHours, others = info.others})
+    end
+    -- One unprompted speaker at a time (docs/COMPANION_SPEAK_UP.md): a housemate line or chat (also between two lines of it) and an arrival greeting
+    -- that is waiting for the channel or being said count as the floor being held, for the speak-up arbiter. Global reads and one call, only asked
+    -- while a speak-up list is on.
+    function convaiUnpromptedBusy()
+        if convaiHouseWaiting or convaiHouseCurrent or convaiMeetGreetingWaiting or convaiMeetGreetingCurrent then return true end
+        local glue = convaiHousemates
+        local controller = glue and glue.controller
+        return controller ~= nil and controller.chatActive ~= nil and controller.chatActive() == true
+    end
+    function convaiHouseReplyText(replyPending, text)
+        if replyPending and replyPending.reaction and replyPending.reaction.kind == 'house' then convaiHouseText = text end
+    end
+    local function placeName()
+        local glue = convaiHousemates
+        local controller = glue and glue.controller
+        return controller and controller.placeName and controller.placeName() or ''
+    end
+    function convaiHouseTick(player, now, worldReady, outputs, manual)
+        if automatic and automatic.reaction.kind == 'house' then
+            if automatic.playbackAt then convaiHouseWaiting = nil end
+            local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+                or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            local shown = automatic.shown == true
+            if reason then
+                cancelAutomatic('house-' .. reason)
+                finish(reason == 'manual-priority' and 'cancelled' or 'failed')
+            elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
+                cancelAutomatic('completed')
+                finish(shown and 'done' or 'failed', convaiHouseText)
+            elseif not reactionLease(true) then
+                cancelAutomatic('lease-write-failed')
+                finish('failed')
+            end
+            return true
+        end
+        if convaiHouseCurrent then
+            -- Her line ended without being heard.
+            finish('failed')
+        end
+        local waiting = convaiHouseWaiting
+        if not waiting or automatic then return false end
+        if os.time() - waiting.at > 45 then finish('failed'); return false end
+        if not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+        local request = waiting.request
+        local npc = companions.residentNpc(request.speaker.serial)
+        if not npc then finish('failed'); return false end
+        local available = battleObserver.canSpeak(npc, 'start')
+        if not available then return false end
+        generation = generation + 1
+        local reaction
+        if request.kind == 'welcome' then
+            reaction = {kind = 'house', event = 'welcome', place = request.place or placeName(), awayHours = request.awayHours or 0,
+                others = request.others or {}, expiresAt = math.floor((now + 25) * 1000)}
+        else
+            reaction = {kind = 'house', event = 'chat', partner = request.partner.name, partnerKey = request.partner.key,
+                place = placeName(), n = request.n, of = request.of, topic = request.topic, lines = request.lines or {},
+                expiresAt = math.floor((now + 30) * 1000)}
+        end
+        local context = {generation = generation, entity = request.speaker.entity, name = request.speaker.name, bodyType = '',
+            profileKey = request.speaker.key, sentAt = now, reaction = reaction,
+            text = request.kind == 'welcome' and 'V has just come home. Give a brief in-character greeting.'
+                or 'You are talking with ' .. tostring(request.partner.name) .. ' at V\'s place. Say your next line.'}
+        context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+        automatic = context
+        captureReactionGuard(worldReady, outputs, nil)
+        convaiHouseWaiting = nil
+        if reactionLease(true) and sendRequest(context) then
+            speech.target = npc
+            lastAutomatic = {at = now, requestId = context.requestId, kind = 'house'}
+            convaiHouseCurrent = request
+            log('Automatic house line: speaker=' .. tostring(request.speaker.key) .. ' event=' .. reaction.event)
+        else
+            cancelAutomatic('request-write-failed')
+            finish('failed')
+        end
+        return true
+    end
+end
+
+-- ---- Companions settle in V's flat (docs/COMPANION_SETTLE.md) -------------------------------------------------------------------------------
+-- While V stays in one of V's own apartments the party takes seats and standing places of the flat instead of trailing V. Nothing of it exists
+-- away from home: mod/companion-settle.lua is built when the game pushes a district change into one of the five flats (the hook in onInit) and is
+-- dropped on the next change out. It is driven by the companions' own body animation tick, so there is no timer of its own. No setting: away from
+-- home it is one global that is nil. Globals and one do-block (the main chunk is near Lua's limit of locals).
+convaiSettle = nil
+do
+    local FLATS = {LittleChina_VApartment = 'h10', CorpoPlaza_Apartment = 'corpo', Glen_Apartment = 'glen',
+        JapanTown_Apartment = 'japan', Northside_Apartment = 'north'}
+    local failed = false
+    local function flatNow()
+        local where = currentDistrict()
+        local place = where and (where.area or where.district) or nil
+        return place and FLATS[place] or nil
+    end
+    -- V cannot settle now: a fight, a vehicle, or a scene or call that is not V's own sitting, sleeping or washing at home.
+    local function busy()
+        local sample = battleSample
+        if type(sample) ~= 'table' then return nil end
+        if sample.combat then return 'combat' end
+        if sample.vehicle then return 'car' end
+        if (sample.tier ~= nil and sample.tier ~= 1) or sample.dialogue or sample.choices then
+            if not sample.dialogue and not sample.choices then
+                local ok, inside = pcall(function() return Game.GetWorkspotSystem():IsActorInWorkspot(Game.GetPlayer()) == true end)
+                if ok and inside then return nil end
+            end
+            return 'scene'
+        end
+        return nil
+    end
+    local function build()
+        if failed or not convaiSeating or not convaiSeating.setHome then return nil end
+        local loaded, module = pcall(dofile, 'companion-settle.lua')
+        if not loaded or type(module) ~= 'table' then
+            failed = true
+            convaiLogOnce('settle-load', 'Settling in the flat is unavailable: ' .. tostring(module))
+            return nil
+        end
+        local built, value = pcall(module.new, {
+            load = dofile,
+            seating = function() return convaiSeating end,
+            vpos = function()
+                local player = Game.GetPlayer()
+                local at = player and player:GetWorldPosition()
+                return at and {x = at.x, y = at.y, z = at.z} or nil
+            end,
+            held = busy,
+            district = flatNow,
+            -- The housemates' places (only while that feature is On and has someone in this flat).
+            others = function(apt)
+                local glue = convaiHousemates
+                local controller = glue and glue.controller
+                return controller and controller.takenSpots and controller.takenSpots(apt) or nil
+            end,
+            member = function(entity) return companions.partyMember(entity) end,
+            log = function(kind, fields)
+                if manager.developerMode() then
+                    local ok, text = pcall(json.encode, fields)
+                    log('Settle ' .. kind .. ' ' .. (ok and text or ''))
+                end
+            end})
+        if not built then
+            failed = true
+            convaiLogOnce('settle-build', 'Settling in the flat is unavailable: ' .. tostring(value))
+            return nil
+        end
+        return value
+    end
+    -- The game pushed a district change (or the party's first tick of a world, or V sat down at home): is V in one of the flats now?
+    function convaiSettleWake()
+        local ok, flat = pcall(flatNow)
+        flat = ok and flat or nil
+        if flat then
+            if not convaiSettle then convaiSettle = build() end
+            if convaiSettle then convaiSettle.enter(flat) end
+        elseif convaiSettle then
+            local settle = convaiSettle
+            convaiSettle = nil
+            pcall(settle.leave, 'left the flat')
+        end
+    end
+    -- V sat on a seat (once per sit): it is never given away, and a missed district event is made up for.
+    function convaiSettleSat(anchor)
+        if not convaiSettle then convaiSettleWake() end
+        if convaiSettle then convaiSettle.learnV(anchor) end
+    end
+    -- The world ended or V fast travelled: the seating controller has let go of its places already (no native calls here).
+    function convaiSettleReset(reason, preserve)
+        convaiSettle = nil
+    end
+    -- "Come with me" to a settled companion: the follow offer of the conversation actions, and its execution.
+    function convaiSettleOffer(entity, context)
+        return convaiSettle and convaiSettle.followOffer(entity, context) or nil
+    end
+    function convaiSettleFollow(entity)
+        return convaiSettle ~= nil and convaiSettle.follow(entity) == true
+    end
+    -- The spots the settled party holds in a flat (the housemates leave them alone).
+    function convaiSettleTaken(apt)
+        return convaiSettle and convaiSettle.taken(apt) or nil
+    end
+end
+
 -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
 -- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
 -- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
@@ -3483,11 +4335,201 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
         return true
     end
-    if busy or not remarks or not remarks:pending() then return false end
-    local head = convaiJohnnyRemarksService() and convaiJohnnyHeadService() or nil
-    if not head or head:refusal(player) then return false end
-    local entry = remarks:offer(now)
-    if not entry or not mayFollow(entry, 'head') then return false end
+    -- Starting one is the speak-up scheduler's job (convaiSpeakUpOffer below): it lets Johnny's queued remark and the companions compete.
+    return false
+end
+
+-- Companions and Johnny speak up on their own (docs/COMPANION_SPEAK_UP.md). One scheduler (mod/speak-up.lua) paces both by target rates and
+-- lets one unprompted speaker talk at a time; this block is the game side: who may speak (a party companion's calm moment, a companion after a
+-- scene she was in, Johnny's queued remarks), the request each one sends, and Johnny's follow-on to a line that is playing, which is written and
+-- voiced ahead (bridge/group-lookahead.mjs: runtime/group-prefetch.json) and submitted the moment that line has been heard. Everything runs on the
+-- 0.1 s game tick inside updateBattles, on a game event (a recorded scene line, the end of a line of speech) or on demand; nothing per frame, and
+-- nothing is loaded while both lists are Off. Globals, so updateBattles and the callbacks gain no upvalues.
+convaiSpeakUpState = {plan = nil, hold = nil, scene = nil, lastManual = nil, lastManualAt = -1000, calmFor = 0, withFor = 0,
+    decided = {}, decidedCount = 0, lastPerson = nil, people = {}, peopleAt = nil}
+-- QUIET: seconds after V's last manual turn before a companion speaks up on her own. CALM: seconds of calm play (and of a companion being with V)
+-- before a calm line. SCENE_*: a scene is over after SCENE_QUIET seconds without a line; her line is prepared from SCENE_PREP on. LINE_MAX: the
+-- longest line Johnny follows up (the bridge compares it with the whole source text). SEND: seconds a line has to be heard once sent.
+convaiSpeakUpConfig = {QUIET = 45, CALM = 20, SCENE_QUIET = 6, SCENE_PREP = 2.5, SCENE_TTL = 120, SCENE_MIN_LINES = 2, PLAN_TTL = 120,
+    LINE_MAX = 500, SEND = 60, FOLLOW_SEND = 120}
+
+function convaiSpeakUpService()
+    -- A manager without these settings (an old or partial one) counts as Off.
+    local askCompanion, askHead = manager.companionSpeakUp, manager.johnnyInHead
+    local companion = askCompanion and askCompanion() or 'off'
+    local johnny = askHead and askHead() and manager.johnnyRemarks() or 'off'
+    if companion == 'off' and johnny == 'off' then
+        -- Unload what is not used: the scheduler goes with the last list that was on.
+        if convaiSpeakUp then convaiSpeakUpReset('off'); convaiSpeakUp = nil end
+        return nil
+    end
+    if convaiSpeakUp == nil then
+        local loaded, module = pcall(dofile, 'speak-up.lua')
+        convaiSpeakUp = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+            companionLevel = function() return manager.companionSpeakUp() end,
+            johnnyLevel = function() if manager.johnnyInHead() then return manager.johnnyRemarks() end return 'off' end}) or false
+        if not convaiSpeakUp then print('[CyberpunkConvai] speak-up.lua unavailable: ' .. tostring(module)) end
+    end
+    return convaiSpeakUp or nil
+end
+
+-- Withdraw whatever was prepared ahead (the bridge drops the held line) and give the floor back unheard.
+function convaiSpeakUpWithdraw(reason)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    local plan = st.plan
+    if not plan then return end
+    st.plan = nil
+    pcall(convaiSpeakUpPublish, nil)
+    -- An 'ahead' plan holds the floor from the moment it was prepared; a follow-on takes it only when it is submitted.
+    local hold = st.hold
+    if plan.kind == 'ahead' and hold and hold.requestId == plan.context.requestId then
+        st.hold = nil
+        if sched then pcall(sched.release, sched, hold.who, false) end
+    end
+    if convaiLogLine then convaiLogLine('Speak up: prepared line withdrawn (' .. tostring(reason) .. ') kind=' .. tostring(plan.kind)) end
+end
+
+-- A world change, a save load or both lists turned Off: nothing is kept.
+function convaiSpeakUpReset(reason)
+    local st = convaiSpeakUpState
+    pcall(convaiSpeakUpWithdraw, reason)
+    st.hold, st.scene, st.lastManual, st.calmFor, st.withFor, st.decided, st.decidedCount = nil, nil, nil, 0, 0, {}, 0
+    if convaiSpeakUp then pcall(convaiSpeakUp.reset, convaiSpeakUp) end
+end
+
+-- The prediction file (the one the bridge's look-ahead reads): {kind = 'follow', sourceRequestId, input} or {kind = 'ahead', input}; nil writes {}.
+function convaiSpeakUpPublish(command)
+    local encoded = '{}'
+    if command then
+        if not attachKnowledge(command.input) then return false end
+        local ok, text = pcall(json.encode, command)
+        if not ok then return false end
+        encoded = text
+    end
+    local file = io.open('runtime/group-prefetch.json', 'wb')
+    if not file then return false end
+    file:write(encoded); file:close()
+    return true
+end
+
+-- The party companions that may speak up: our own copies (never a character another mod spawned, never Johnny), cached per battle sample.
+function convaiSpeakUpPeople()
+    local st = convaiSpeakUpState
+    if st.peopleAt ~= battleSampleAt then
+        st.peopleAt = battleSampleAt
+        local list = {}
+        for _, person in ipairs(battlePeople) do
+            if not person.spawned and person.profileKey ~= 'johnny-silverhand' then list[#list + 1] = person end
+        end
+        st.people = list
+    end
+    return st.people
+end
+
+-- A calm moment: the game is ours (open gameplay), nothing is playing, V is not talking or typing and has not for a while.
+function convaiSpeakUpEligible(now, worldReady, manual, outputs)
+    if not worldReady or manual or not outputs.enabled then return false end
+    local sample = battleSample
+    if not sample or sample.available ~= true or sample.blocked or sample.combat then return false end
+    if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+    if convaiUnpromptedBusy and convaiUnpromptedBusy() then return false end
+    if battles.fighting() then return false end
+    return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
+end
+
+-- The scheduler's clock, once per tick: the eligible time only. Returns the scheduler, or nil while both lists are Off.
+function convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
+    local sched = convaiSpeakUpService()
+    if not sched then return nil end
+    local st = convaiSpeakUpState
+    local eligible = convaiSpeakUpEligible(now, worldReady, manual, outputs)
+    local step = elapsed < 1 and elapsed or 1
+    st.calmFor = eligible and st.calmFor + step or 0
+    st.withFor = (eligible and #convaiSpeakUpPeople() > 0) and st.withFor + step or 0
+    sched:tick(elapsed, eligible)
+    return sched
+end
+
+-- A recorded game line (mod/game-dialogue.lua onRow): the scene a companion was in. Event-driven, a few table writes.
+function convaiSpeakUpScene(row)
+    if type(row) ~= 'table' or row.channel ~= 'scene' then return end
+    if (manager.companionSpeakUp and manager.companionSpeakUp() or 'off') == 'off' or not manager.dynamicInfo('dialogue') then return end
+    local st, at = convaiSpeakUpState, os.clock()
+    local scene = st.scene
+    if not scene or at - scene.lastAt > convaiSpeakUpConfig.SCENE_TTL then
+        scene = {count = 0, present = {}, failed = false}
+        st.scene = scene
+    end
+    scene.lastAt, scene.count = at, scene.count + 1
+    for _, key in ipairs(type(row.present) == 'table' and row.present or {}) do
+        if type(key) == 'string' then scene.present[key] = true end
+    end
+    if type(row.profileKey) == 'string' then scene.present[row.profileKey] = true end
+end
+
+-- Who of the party may speak now, and about what: a companion who was in a scene that has just ended (event 'scene', with how long it has been
+-- quiet), else any companion at a calm moment (event 'calm'). nil when nobody may.
+function convaiSpeakUpCompanion()
+    if (manager.companionSpeakUp and manager.companionSpeakUp() or 'off') == 'off' then return nil end
+    local st, cfg = convaiSpeakUpState, convaiSpeakUpConfig
+    local people = convaiSpeakUpPeople()
+    if #people == 0 then return nil end
+    local scene = st.scene
+    if scene then
+        local quiet = os.clock() - scene.lastAt
+        if quiet > cfg.SCENE_TTL then st.scene = nil
+        elseif scene.count >= cfg.SCENE_MIN_LINES and not scene.failed and quiet >= cfg.SCENE_PREP then
+            local pool = {}
+            for _, person in ipairs(people) do
+                if person.available == true and person.voiceBusy ~= true and scene.present[person.profileKey] then pool[#pool + 1] = person end
+            end
+            if #pool > 0 then return pool[math.random(#pool)], 'scene', quiet end
+        end
+    end
+    if st.calmFor >= cfg.CALM and st.withFor >= cfg.CALM then
+        local pool = {}
+        for _, person in ipairs(people) do
+            if person.available == true and person.voiceBusy ~= true and (#people == 1 or person.profileKey ~= st.lastPerson) then pool[#pool + 1] = person end
+        end
+        if #pool > 0 then return pool[math.random(#pool)], 'calm', 0 end
+    end
+    return nil
+end
+
+-- The request of a companion's speak-up: a reaction like a battle line, with the tracked quest, the right-now facts and (after a scene) the
+-- scene's lines. The text is a placeholder; the bridge writes the trigger (bridge/speakup-context.mjs).
+function convaiSpeakUpBuild(person, event, now)
+    generation = generation + 1
+    local context = {generation = generation, entity = person.entity, name = person.name, bodyType = person.bodyType,
+        profileKey = person.profileKey, sentAt = now, text = 'A companion speaks up unprompted. Give one brief in-character line.',
+        reaction = {kind = 'speakup', event = event, facts = {v = 1}, expiresAt = math.floor((now + convaiSpeakUpConfig.SEND) * 1000)}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    -- Captured here so a request prepared ahead is the very request that is sent later (the bridge compares them).
+    context.journal = questContext.capture()
+    if event == 'scene' and convaiGameDialogue then context.gameDialogue = convaiGameDialogue:capture() end
+    if convaiTurnContext then context.turnContext = convaiTurnContext:capture() end
+    return context
+end
+
+-- Send an unprompted request now: the floor is already claimed by `who`. person is nil for Johnny.
+function convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, who, label)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    automatic = context
+    captureReactionGuard(worldReady, outputs, person)
+    if reactionLease(true) and sendRequest(context) then
+        speech.target = person and person.npc or player
+        st.hold = {who = who, requestId = context.requestId}
+        lastAutomatic = {at = now, requestId = context.requestId, kind = context.reaction.kind == 'head' and 'head' or 'speakup'}
+        log('Speak up: ' .. label)
+        return true
+    end
+    cancelAutomatic('request-write-failed')
+    if sched then pcall(sched.release, sched, who, false) end
+    return false
+end
+
+-- Johnny's own queued remark (a person, a job, a place...): the request of mod/johnny-remarks.lua, now paced by the scheduler.
+function convaiSpeakUpStartJohnny(player, now, worldReady, outputs, entry, head)
     local partner = head:partner(player)
     if not partner then return false end
     generation = generation + 1
@@ -3497,17 +4539,216 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
         reaction = {kind = 'head', event = entry.kind, facts = entry.facts,
             expiresAt = math.floor((now + convaiJohnnyRemarksModule.SEND_SECONDS) * 1000)}}
     context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
-    automatic = context
-    captureReactionGuard(worldReady, outputs, nil)
-    if reactionLease(true) and sendRequest(context) then
-        remarks:claim(entry, now)
-        speech.target = player
-        convaiHeadTalk = {entity = partner.entity}
-        lastAutomatic = {at = now, requestId = context.requestId, kind = 'head'}
-        log('Automatic head reaction: ' .. entry.subject .. ' stage=' .. tostring(partner.head.stage))
-    else cancelAutomatic('request-write-failed') end
+    if not convaiSpeakUpSubmit(player, now, worldReady, outputs, context, nil, 'johnny', 'Johnny ' .. entry.subject .. ' stage=' .. tostring(partner.head.stage)) then
+        return false
+    end
+    convaiJohnnyRemarks:claim(entry, now)
+    convaiHeadTalk = {entity = partner.entity}
     return true
 end
+
+-- The unprompted turn of the tick: Johnny's queued remark and the companions' candidate compete; the scheduler says who (or nobody).
+function convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayFollow)
+    local sched, st = convaiSpeakUp, convaiSpeakUpState
+    if not sched or busy or st.plan then return end
+    local entry, remarks = nil, convaiJohnnyRemarks
+    if remarks and remarks:pending() then
+        local head = convaiJohnnyHeadService()
+        if head and not head:refusal(player) then entry = remarks:offer(now) end
+    end
+    -- Nobody is due: no candidate list is built and no table made on this tick (the companions' timer is due about twice an hour).
+    if entry == nil and not sched:ready('companion') then return end
+    local person, event, quiet
+    if sched:ready('companion') then person, event, quiet = convaiSpeakUpCompanion() end
+    local who = sched:pick({companion = person ~= nil, johnny = entry ~= nil})
+    if who == 'johnny' then
+        if not mayFollow(entry, 'head') or not sched:claim('johnny') then return end
+        local head = convaiJohnnyHeadService()
+        if not head or not convaiSpeakUpStartJohnny(player, now, worldReady, outputs, entry, head) then
+            if sched:holder() == 'johnny' then sched:release('johnny', false) end
+        end
+    elseif who == 'companion' then
+        if not mayFollow(true, 'speakup') or not sched:claim('companion') then return end
+        local context = convaiSpeakUpBuild(person, event, now)
+        st.lastPerson = person.profileKey
+        if event == 'scene' and quiet < convaiSpeakUpConfig.SCENE_QUIET then
+            -- The scene's last line may still be playing: write and voice her line now, say it once the scene is over (or drop it).
+            st.hold = {who = 'companion', requestId = context.requestId}
+            if convaiSpeakUpPublish({kind = 'ahead', input = context}) then
+                st.plan = {kind = 'ahead', context = context, person = person, createdAt = now, sceneStamp = st.scene.lastAt}
+                log('Speak up: companion scene line prepared speaker=' .. person.profileKey)
+            else
+                st.hold = nil
+                sched:release('companion', false)
+                st.scene.failed = true
+            end
+            return
+        end
+        if event == 'scene' then st.scene = nil end
+        convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, 'companion', 'companion ' .. event .. ' speaker=' .. person.profileKey)
+    end
+end
+
+-- A companion's unprompted line that is on its way or playing: kept, or released when the game takes the floor back.
+function convaiSpeakUpManage(player, now, worldReady, outputs, manual)
+    local speaker
+    for _, person in ipairs(battlePeople) do
+        if person.entity == automatic.entity and person.profileKey == automatic.profileKey then speaker = person; break end
+    end
+    captureReactionGuard(worldReady, outputs, speaker)
+    local waiting = reactionSpeakerWait(speaker)
+    local sample = battleSample or {}
+    local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+        or not speaker and 'speaker-missing' or (not speaker.available and not waiting) and 'speaker-unavailable'
+        or sample.combat and 'combat' or sample.blocked and 'scene-blocked'
+        or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+    if reason then cancelAutomatic(reason)
+    elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+    elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+end
+
+-- Johnny follows a line that is playing: decided and prepared once the line's whole text is known (his turn is written and voiced ahead and held),
+-- submitted by convaiSpeakUpStopped when the line has been heard to its end.
+function convaiSpeakUpPlanFollow(player, now)
+    local sched, st = convaiSpeakUp, convaiSpeakUpState
+    if not sched or st.plan or not sched:ready('johnny') then return end
+    local rid = speech.requestId
+    if not rid or st.decided[rid] then return end
+    local via, name
+    if automatic and automatic.requestId == rid and automatic.reaction and automatic.reaction.kind == 'speakup'
+        and st.hold and st.hold.who == 'companion' and st.hold.requestId == rid then
+        via, name = 'companion', automatic.name
+    else
+        local manual = st.lastManual
+        if manual and manual.requestId == rid and manual.eligible then via, name = 'talk', manual.name end
+    end
+    if not via then return end
+    local spoken = speech.context
+    local transcript = type(spoken) == 'table' and speech.transcript(rid, spoken.generation, spoken.entity) or nil
+    if not transcript or transcript.textComplete ~= true or type(transcript.text) ~= 'string' then return end
+    if st.decidedCount >= 8 then st.decided, st.decidedCount = {}, 0 end
+    st.decided[rid], st.decidedCount = true, st.decidedCount + 1
+    local text = transcript.text
+    if #text < 4 or #text > convaiSpeakUpConfig.LINE_MAX or type(name) ~= 'string' or #name < 1 or #name > 60 then return end
+    if not sched:followOn(via == 'companion' and 'companion' or 'talk', {during = via == 'companion'}) then return end
+    local head = convaiJohnnyHeadService()
+    if not head or head:refusal(player) then return end
+    local partner = head:partner(player)
+    if not partner then return end
+    generation = generation + 1
+    local context = {generation = generation, entity = partner.entity, name = partner.name, bodyType = '',
+        profileKey = partner.profileKey, voiceOnly = true, head = partner.head, sentAt = now,
+        text = 'Johnny speaks up unprompted. Give one brief in-character remark.',
+        reaction = {kind = 'head', event = 'follow', facts = {who = name, line = text, via = via},
+            expiresAt = math.floor((now + convaiSpeakUpConfig.FOLLOW_SEND) * 1000)}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    context.journal = questContext.capture()
+    if not convaiSpeakUpPublish({kind = 'follow', sourceRequestId = rid, input = context}) then return end
+    st.plan = {kind = 'follow', context = context, sourceRequestId = rid, createdAt = now, via = via}
+    log('Speak up: Johnny follow-on prepared via=' .. via)
+end
+
+-- Johnny's prepared follow-on: the source line has been heard to its end, so the very request that was prepared is sent now.
+function convaiSpeakUpSubmitFollow(plan)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    local player = Game.GetPlayer()
+    local head = convaiJohnnyHeadService()
+    local outputs = battleOutputs or (player and reactionOutputs(player)) or {enabled = true}
+    if not sched or not player or not head or head:refusal(player) or pending ~= nil or automatic ~= nil or not outputs.enabled then
+        return convaiSpeakUpWithdraw('follow-not-possible')
+    end
+    if not sched:claim('johnny', {follow = true}) then return convaiSpeakUpWithdraw('follow-refused') end
+    st.plan = nil
+    local context = plan.context
+    if convaiSpeakUpSubmit(player, os.time(), true, outputs, context, nil, 'johnny', 'Johnny follow-on via=' .. tostring(plan.via)) then
+        convaiHeadTalk = {entity = context.entity}
+    end
+end
+
+-- A line of speech ended (mod/speech.lua M.stop, reason 'finished' when it was heard to its end): a companion's unprompted line is over at
+-- once (not when its caption has faded), and a prepared follow-on to it, or to a conversation reply, starts.
+function convaiSpeakUpStopped(requestId, reason)
+    local st = convaiSpeakUpState
+    if automatic and automatic.requestId == requestId and automatic.reaction and automatic.reaction.kind == 'speakup' and reason == 'finished' then
+        cancelAutomatic('finished', true)
+    end
+    local plan = st.plan
+    if plan and plan.kind == 'follow' and plan.sourceRequestId == requestId then
+        if reason == 'finished' then convaiSpeakUpSubmitFollow(plan)
+        else convaiSpeakUpWithdraw('source-' .. tostring(reason)) end
+    end
+end
+speech.onStopped = function(requestId, reason)
+    if convaiSpeakUp or convaiSpeakUpState.plan then pcall(convaiSpeakUpStopped, requestId, reason) end
+end
+
+-- V sent a line of their own: it cancels anything prepared, and a reply to it may get a follow-on from Johnny.
+function convaiSpeakUpManualSent(context)
+    local st = convaiSpeakUpState
+    st.lastManualAt = os.time()
+    st.calmFor = 0
+    if st.plan then convaiSpeakUpWithdraw('manual') end
+    local key = context.profileKey
+    local ordinary = type(key) ~= 'string' or key:find('^resident%-') or key:find('^npc%-') or key:find('^addon%-') or key:find('^custom%-')
+        or key == 'johnny-silverhand'
+    st.lastManual = {requestId = context.requestId, name = context.name, profileKey = key,
+        eligible = not ordinary and not context.group and not context.holocall and not context.head and not context.voiceOnly and not context.archetype}
+end
+
+-- The prepared line and the plan, once per tick: dropped when V talks or the game takes the floor; an 'ahead' line is sent when its scene is over.
+function convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual)
+    local st = convaiSpeakUpState
+    local plan = st.plan
+    if not plan then return end
+    local sched, sample = convaiSpeakUp, battleSample or {}
+    local why
+    if not sched then why = 'off'
+    elseif not worldReady then why = 'world-not-ready'
+    elseif manual then why = 'manual'
+    elseif not outputs.enabled then why = 'outputs-disabled'
+    elseif now - plan.createdAt > convaiSpeakUpConfig.PLAN_TTL then why = 'stale' end
+    if not why and plan.kind == 'follow' then
+        local head = convaiJohnnyHeadService()
+        why = head == nil and 'head-off' or head:refusal(player)
+        if why then why = 'head-' .. why end
+    elseif not why then
+        local scene = st.scene
+        if not scene or scene.lastAt ~= plan.sceneStamp then why = 'scene-continued'
+        elseif sample.combat then why = 'combat'
+        elseif sample.blocked then why = 'scene-blocked'
+        elseif automatic ~= nil or pending ~= nil or speech.requestId ~= nil then why = 'busy' end
+        if not why and os.clock() - scene.lastAt >= convaiSpeakUpConfig.SCENE_QUIET then
+            local person
+            for _, candidate in ipairs(battlePeople) do
+                if candidate.entity == plan.person.entity and candidate.profileKey == plan.person.profileKey then person = candidate; break end
+            end
+            if not person or person.available ~= true then why = 'speaker-unavailable'
+            else
+                st.plan, st.scene = nil, nil
+                convaiSpeakUpSubmit(player, now, worldReady, outputs, plan.context, person, 'companion',
+                    'companion scene speaker=' .. person.profileKey .. ' (prepared ahead)')
+                return
+            end
+        end
+        if why and scene then scene.failed = true end
+    end
+    if why then convaiSpeakUpWithdraw(why) end
+end
+
+-- Other features' proactive exchanges (the housemates' chat and welcome) share the pace and the gaps. Always present; with both speak-up
+-- lists Off there is nothing to merge with, so everything is allowed and nothing is kept.
+convaiProactive = {
+    allow = function(kind, lines)
+        local sched = convaiSpeakUp
+        if not sched then return true end
+        local ok, allowed = pcall(sched.externalAllowed, sched)
+        return not ok or allowed == true
+    end,
+    note = function(kind, lines)
+        local sched = convaiSpeakUp
+        if sched then pcall(sched.external, sched, kind, lines) end
+    end}
+
 
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
@@ -3545,8 +4786,20 @@ local function updateBattles(player, elapsed, worldReady)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
-    if automatic and automatic.reaction.kind == 'head' then
+    -- Companions and Johnny speak up: the scheduler's clock counts calm time only; a prepared line is kept or dropped (one nil check while none).
+    if convaiPerfMark then convaiPerfMark('init:speakUp') end -- Developer mode: its own row in perf-probe.json; the battle work below returns to 'init:battles'
+    local speakUpOn = convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
+    if convaiSpeakUpState.plan then convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual) end
+    if speakUpOn and not convaiSpeakUpState.plan then convaiSpeakUpPlanFollow(player, now) end
+    if convaiPerfMark then convaiPerfMark('init:battles') end
+    if automatic and automatic.reaction.kind == 'meet' then
+        convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'house' then
+        convaiHouseTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'head' then
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'speakup' then
+        convaiSpeakUpManage(player, now, worldReady, outputs, manual)
     elseif automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
@@ -3565,6 +4818,12 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then
             cancelAutomatic('completed')
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+    end
+    if not automatic and (convaiMeetGreetingWaiting or convaiMeetGreetingCurrent) then
+        convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
+    end
+    if not automatic and (convaiHouseWaiting or convaiHouseCurrent) then
+        convaiHouseTick(player, now, worldReady, outputs, manual)
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() or automatic ~= nil
     local function mayFollow(event, kind)
@@ -3615,7 +4874,7 @@ local function updateBattles(player, elapsed, worldReady)
     end
     -- Battle and loot reactions first; then a waiting Johnny remark (one length check while nothing is queued).
     if not event then
-        if convaiJohnnyRemarks then convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow) end
+        if speakUpOn then convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy or (convaiUnpromptedBusy ~= nil and convaiUnpromptedBusy()), mayFollow) end
         return
     end
     generation = generation + 1
@@ -3882,7 +5141,7 @@ local function reactionCanDeliver(context, player)
     -- player scene/combat state and the owned speaker before playback.
     for _, person in ipairs(battlePeople) do
         if person.entity == context.entity and person.profileKey == context.profileKey then
-            person.available, person.availableReason, person.voiceBusy = battleObserver.canDeliver(player, person.npc, context.reaction.phase)
+            person.available, person.availableReason, person.voiceBusy = battleObserver.canDeliver(player, person.npc, context.reaction.phase or 'end')
             captureReactionGuard(true, reactionOutputs(player), person)
             local waiting = reactionSpeakerWait(person)
             if not person.available and not waiting then cancelAutomatic('speaker-unavailable') end
@@ -4073,6 +5332,16 @@ local function processPhoneAction(player)
         return
     end
     if join then
+        -- With Settings > Immersive invitations On, Invite is an appointment: she travels there (mod/immersive-invitations.lua).
+        local immersive = convaiImmersiveGet and convaiImmersiveGet() or nil
+        if immersive then
+            local taken, why = immersive.requestInvite(key)
+            if taken ~= nil then
+                log('Phone appointment ' .. (taken and 'requested' or 'refused') .. ' for ' .. key)
+                if not taken then convaiNotices.send(player, 'phone-invite-reply', tostring(why)) end
+                return
+            end
+        end
         local accepted, message, invitationId = queue.invite(key)
         log(accepted and ('Phone preparation requested for ' .. key)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
@@ -4212,8 +5481,8 @@ if convaiAddons then
     convaiAddons.attach(seams)
 end
 
-registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() beginText(false) end)
-registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() beginText(true) end)
+registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() if convaiTapOnce('text') then beginText(false) end end)
+registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() if convaiTapOnce('group_text') then beginText(true) end end)
 -- The talk keys are inputs, not hotkeys: a hotkey runs its function only when the key comes back UP (docs/COMPANION_HOTKEY_INPUT.md), so a held
 -- key did nothing until it was let go. An input reports both edges, which is what hold-to-talk needs (docs/VOICE_INPUT.md):
 --   down  the recording begins at once (the bridge's microphone opens for the press, the connection follows, nothing said is lost)
@@ -4221,7 +5490,7 @@ registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text 
 -- A hold shorter than HOLD_S is a bounce or an accidental tap: the recording is dropped without a word. Every edge and what it did is logged.
 local HOLD_S = 0.2
 local voiceKeys = {}
-local function voiceKeyEdge(id, groupMode, isDown)
+local function voiceKeyEdge(id, groupMode, isDown, talkJohnny)
     local now = os.clock()
     local ok, err = pcall(function()
         local key = voiceKeys[id]
@@ -4231,7 +5500,7 @@ local function voiceKeyEdge(id, groupMode, isDown)
             key = {at = now, seen = now, holdId = microphone.newHoldId()}
             voiceKeys[id] = key
             local before = microphone.context and tostring(microphone.state) or 'idle'
-            toggleVoice(groupMode, 'press', key.holdId)
+            toggleVoice(groupMode, 'press', key.holdId, nil, talkJohnny)
             local after = microphone.context and tostring(microphone.state) or 'idle'
             key.began = before ~= 'starting' and after == 'starting'
             log('Voice key ' .. id .. ' down: recording ' .. before .. ' -> ' .. after .. (key.began and ' (this press began it)' or ''))
@@ -4260,6 +5529,9 @@ local function voiceKeyEdge(id, groupMode, isDown)
 end
 registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
 registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
+-- Johnny has his own keys (docs/TALK_FALLBACK.md): the talk keys with nobody faced go to the party, so the voice in V's head is asked for by name.
+registerHotkey('cyberpunk_convai_johnny_text', 'AI NPC Cyberpunk Mod: talk to Johnny by text', function() if convaiTapOnce('johnny_text') then beginText(false, true) end end)
+registerInput('cyberpunk_convai_johnny_voice', 'AI NPC Cyberpunk Mod: talk to Johnny by voice', function(isDown) voiceKeyEdge('johnny_voice', false, isDown, true) end)
 
 -- The talk key's microphone device is opened by the key press and stays open, unread, for about 15 s after a voice turn so the next press of a
 -- conversation starts at once (docs/VOICE_INPUT.md; the bridge times it, bridge/mic-tap.mjs). This tick tells the bridge when the game is BUSY (a menu, a
@@ -4347,7 +5619,171 @@ function convaiPadBindingTick(player, ready)
     end
     convaiPadBindingModule().tick(player, ready)
 end
-registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
+-- A typed line was handed to the service (convaiTalkReceipt, set where the composer's submission is sent): 2 s later one probe.log line says whether the
+-- service took it, from the bridge's own status (mod/service-status.lua receipt), so a request that is never read shows in a report (game 2.31, 25 Oct: a
+-- typed line had no reply and nothing said where it stopped). Not yet taken: one more look at 6 s, then the line says what the service last wrote.
+-- Codes only. At most two looks at two small files per typed line; a global, so onUpdate reaches it without a new upvalue.
+function convaiTalkReceiptTick()
+    local watch = convaiTalkReceipt
+    local elapsed = os.clock() - watch.at
+    if elapsed < (watch.again and 6 or 2) and elapsed >= 0 then return end
+    local status = convaiServiceStatus
+    if type(status) ~= 'table' or type(status.receipt) ~= 'function' then convaiTalkReceipt = nil; return end
+    local received, state, statusAge, serviceAge = status.receipt(watch.requestId)
+    if not received and not watch.again then watch.again = true; return end
+    convaiTalkReceipt = nil
+    if received then
+        log('Talk request received by the service: generation=' .. tostring(watch.generation) .. ' state=' .. tostring(state) .. (watch.again and ' (after 2 s)' or ''))
+    else
+        log('Talk request not received by the service within 6 s: generation=' .. tostring(watch.generation) .. ' service=' .. tostring(state)
+            .. ' written=' .. tostring(statusAge) .. 's heartbeat=' .. tostring(serviceAge) .. 's')
+    end
+end
+
+-- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): a key or controller button the player chose for talk by voice, talk by text,
+-- group voice chat, group text chat or the Companion Manager. mod/key-bindings.lua decides whether the moment is allowed and runs the code path the CET key of
+-- the same action runs (voiceKeyEdge under the same key id, beginText, openManager), so the gating is the same; the redscript half (KeyBinds.reds) hears the keys.
+-- Event driven: nothing here runs per frame, and while no binding is saved the module is not even loaded. Global functions, so onUpdate reaches them without a
+-- new upvalue.
+function convaiKeyBindsModule()
+    if convaiKeyBinds then return convaiKeyBinds end
+    -- One load per session: a file that fails to load is not read and compiled again on every 0.1 s tick (callers get nil).
+    if convaiKeyBindsFailed then return nil end
+    local loaded, module = pcall(dofile, 'key-bindings.lua')
+    if not loaded or type(module) ~= 'table' then
+        convaiKeyBindsFailed = true
+        convaiLogOnce('key-bindings-load', 'Key bindings are unavailable: ' .. tostring(module))
+        return nil
+    end
+    convaiKeyBinds = module
+    convaiKeyBinds.deps = {
+        bindings = function() return manager.keyBindings() end,
+        save = function(action, name) return manager.setKeyBinding(Game.GetPlayer(), action, name) end,
+        voice = function(action, isDown) voiceKeyEdge(action, action == 'group_voice', isDown, action == 'johnny_voice') end,
+        tap = function(action)
+            if action == 'text' then beginText(false) elseif action == 'group_text' then beginText(true)
+            elseif action == 'johnny_text' then beginText(false, true) else openManager() end
+        end,
+        -- The phone's chat box: V types there with the game's controls still live. The text box and the menus are refused by the actions themselves.
+        typing = function(who) return who:ConvaiPhoneChatTyping() end,
+        observe = function(fn) Observe('PlayerPuppet', 'ConvaiKeyBindNotify', function(this) fn(this) end) end,
+        boundKey = function(id)
+            if type(IsBound) ~= 'function' then return nil, false end
+            return ui.boundKey(id), true
+        end,
+        readFile = function(path)
+            local file = io.open(path, 'rb')
+            if not file then return nil end
+            local text = file:read('*a')
+            file:close()
+            return text
+        end,
+        changed = function(result) managerUi.keyBindResult(result) end,
+        player = function() return Game.GetPlayer() end,
+        log = log,
+    }
+    return convaiKeyBinds
+end
+
+function convaiKeyBindsTick(player, ready)
+    if next(manager.keyBindings()) == nil then
+        -- Nothing saved: the module (if the page was opened) ends a Set that nobody answered and lets go of what it listened to; otherwise this is the whole cost.
+        if convaiKeyBinds then convaiKeyBinds.tick(player, ready) end
+        return
+    end
+    local module = convaiKeyBindsModule()
+    if module then module.tick(player, ready) end
+end
+
+-- A tap action runs once for one press of a key: a CET hotkey and an own binding on the same key both fire when it comes up. Nothing to compare while no own
+-- binding was ever loaded.
+function convaiTapOnce(action)
+    return convaiKeyBinds == nil or convaiKeyBinds.once(action)
+end
+registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', function() if convaiTapOnce('manager') then openManager() end end)
+-- Companions change outfits (Settings > Companion behavior, off by default; docs/COMPANION_OUTFITS.md): a party copy of a curated character changes into another
+-- look of its own template by the game's time of day, now and then for variety and into casual clothes at home, only while it is out of V's view. Our own
+-- copies only. The module is loaded on first use and not at all while the setting is off; its 10 Hz tick subtracts the elapsed time from one counter and looks
+-- at the party every 20 s. No per-frame work, no handle kept. Global functions, so onUpdate reaches them without a new upvalue.
+function convaiOutfitModule()
+    if convaiOutfits then return convaiOutfits end
+    -- One load per session (the setting is on by default): a file that fails to load is not read and compiled again on every 0.1 s tick.
+    if convaiOutfitsFailed then return nil end
+    local loaded, module = pcall(dofile, 'companion-outfits.lua')
+    if not loaded or type(module) ~= 'table' then
+        convaiOutfitsFailed = true
+        convaiLogOnce('outfits-load', 'Companion outfits are unavailable: ' .. tostring(module))
+        return nil
+    end
+    convaiOutfits = module
+    convaiOutfits.deps = {
+        enabled = function() return manager.companionOutfits() end,
+        rows = function() return companions.outfitRows(convaiOutfits.known) end,
+        current = function(row) return NameToString(row.npc:GetCurrentAppearanceName()) end,
+        prefetch = function(row, name) return companions.changeAppearance(row.serial, name, 'prefetch') end,
+        apply = function(row, name) return companions.changeAppearance(row.serial, name, 'apply') end,
+        remember = function(row, name) return companions.changeAppearance(row.serial, name, 'forget') end,
+        gameHours = function()
+            local seconds = worldKnowledgeModule.nativeGameTime and worldKnowledgeModule.nativeGameTime()
+            return seconds and seconds / 3600 or nil
+        end,
+        place = function() local where = currentDistrict(); return where and (where.area or where.district) or nil end,
+        -- Ordinary gameplay: no fight, scene, call, vehicle or V as a replacer (battle-observer's read, once per check that has a change to make).
+        world = function()
+            local sample = battleObserver.sample(Game.GetPlayer())
+            if sample.available ~= true then return 'unreadable' end
+            if sample.combat then return 'combat' end
+            if sample.blocked then
+                return sample.vehicle and 'vehicle' or sample.call and 'call' or sample.sitting and 'v-seated' or 'scene'
+            end
+            return nil
+        end,
+        busy = function(row) return companions.outfitBusy(row.serial) end,
+        standUp = function(row, hold) return companions.outfitStandUp(row.serial, hold) end,
+        -- The game's own "could be seen" test, with the margins its reaction and vehicle code uses for it.
+        frustum = function(npc) return Game.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75) end,
+        -- A wall between V's eyes and her (the same line-of-sight test the invitation spot search uses): true hidden, false visible, nil cannot say.
+        hidden = function(npc) return companions.hiddenFromPlayer(npc:GetWorldPosition()) end,
+        angle = function(npc, who)
+            local forward = Game.GetCameraSystem():GetActiveCameraForward()
+            local a, b = who:GetWorldPosition(), npc:GetWorldPosition()
+            local dx, dy, dz = b.x - a.x, b.y - a.y, b.z - a.z
+            local length = math.sqrt(dx * dx + dy * dy + dz * dz)
+            if length < 0.01 then return 0 end
+            local dot = (dx * forward.x + dy * forward.y + dz * forward.z) / length
+            return math.deg(math.acos(math.max(-1, math.min(1, dot))))
+        end,
+        log = log,
+    }
+    return convaiOutfits
+end
+
+function convaiOutfitTick(player, elapsed, ready)
+    if not manager.companionOutfits() then return end
+    local module = convaiOutfitModule()
+    if module then module.tick(player, elapsed, ready) end
+end
+
+-- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
+companions.spawnOutfit = function(record, key)
+    if not manager.companionOutfits() then return nil end
+    local module = convaiOutfitModule()
+    return module and module.spawnAppearance(record, key) or nil
+end
+companions.outfitCreated = function(serial, key, record, name)
+    if convaiOutfits then convaiOutfits.created(serial, key, record, name) end
+end
+companions.outfitForget = function(serial) if convaiOutfits then convaiOutfits.forget(serial) end end
+companions.outfitStatus = function(serial) return convaiOutfits and convaiOutfits.status(serial) or nil end
+
+-- The home outfit API for other features (docs/COMPANION_OUTFITS.md "Home outfit API"): convaiOutfitApi.setHome('judy-alvarez', true) puts that companion
+-- in casual home clothes (where the character has them) the next time nobody is looking; false keeps them out of home clothes; nil goes back to following
+-- whether V is in an apartment. Safe to call at any time, with the setting off too (it then only remembers the answer for the session).
+convaiOutfitApi = {
+    setHome = function(key, on) local module = convaiOutfitModule(); return module and module.setHome(key, on) or false end,
+    isHome = function(key) local module = convaiOutfitModule(); if module then return module.isHome(key) end return nil end,
+    hasHomeOutfit = function(record) local module = convaiOutfitModule(); return module ~= nil and module.hasHomeOutfit(record) end,
+}
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
 
@@ -4390,6 +5826,13 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if tactics then tactics.abandon() end
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
+    -- Immersive invitations: the references are dropped after the party's own, with no call into the game (mod/immersive-invitations.lua bind).
+    if convaiImmersiveReset then convaiImmersiveReset(reason, preserveTransit == true) end
+    -- Housemates: the registry is read again from the save that loads next; a fast travel keeps it (the bodies were deleted before it).
+    if convaiHousemateReset then convaiHousemateReset(reason, preserveTransit == true) end
+    if convaiSettleReset then convaiSettleReset(reason, preserveTransit == true) end
+    -- A new session forgets which look each copy wears and any home answers; fast travel keeps them (the copies are made again in the same clothes).
+    if convaiOutfits and preserveTransit ~= true then pcall(convaiOutfits.reset) end
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
     managerUi.resetSession()
     speech.abandon()
@@ -4419,6 +5862,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiNpcReactions then convaiNpcReactions.reset() end
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
+    if convaiSpeakUpReset then pcall(convaiSpeakUpReset, 'world-change') end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     if convaiJohnnyRelic then convaiJohnnyRelic:reset() end
@@ -4489,6 +5933,8 @@ registerForEvent('onInit', function()
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
     convaiGuarded('Subtitle hooks', subtitles.install)
+    -- Music and TV: the song-change events, only with the switch on (convaiMediaSongInstall; with it off nothing is loaded or hooked).
+    convaiGuarded('Media song hooks', convaiMediaSongInstall)
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()
@@ -4547,6 +5993,16 @@ registerForEvent('onInit', function()
     convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
     local ok, err = pcall(managerUi.install)
     if not ok then log('Manager registration failed: ' .. tostring(err)) end
+    -- Companions settle in V's flat (mod/companion-settle.lua): the game pushes a district change when V crosses into or out of a flat, and that
+    -- is the one thing that wakes the module. Away from home the callback finds nothing to do.
+    -- The housemates are woken by it too: their own hook (housemate-service.lua hookDistrict) is installed after onInit and is not relied on.
+    -- With Housemates Off convaiHousemateWake is one global read.
+    convaiGuarded('Settle district hook', function()
+        ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function()
+            if not worldSuspended and convaiSettleWake then convaiSettleWake() end
+            if not worldSuspended and convaiHousemateWake then convaiHousemateWake() end
+        end)
+    end)
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
         if not worldSuspended and sessionHasState then companions.chauffeurAutodriveToggled(enabled) end
     end)
@@ -4916,6 +6372,15 @@ registerForEvent('onUpdate', function(delta)
     -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
     if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end
+    -- Developer mode: the next two features (keys, outfits) are their own 'init:features' row in perf-probe.json, the rest of the tick goes back to 'init:tick'.
+    mark('init:features')
+    -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
+    local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
+    if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
+    -- Companions change outfits (Settings > Companion behavior, off by default): one boolean per tick while it is off; the module is not even loaded then.
+    local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
+    if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
+    mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
     if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
@@ -4947,6 +6412,14 @@ registerForEvent('onUpdate', function(delta)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then convaiLogOnce('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
+    if worldReady then
+        mark('init:homes')
+        local immersiveOk, immersiveError = pcall(convaiImmersiveTick, elapsedPoll)
+        if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
+        local housemateOk, housemateError = pcall(convaiHousemateTick, elapsedPoll)
+        if not housemateOk then convaiLogOnce('housemate-tick', 'Housemates failed: ' .. tostring(housemateError)) end
+        mark('init:tick')
+    end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
     if worldReady and convaiCompanionAdoption then
         local adoptionOk, adoptionError = pcall(convaiCompanionAdoption.update, elapsedPoll)
@@ -5176,6 +6649,10 @@ registerForEvent('onUpdate', function(delta)
                         if pending.reaction and pending.reaction.kind == 'addon' and convaiAddons and convaiAddons.live then
                             pcall(convaiAddons.replyText, pending, reply.text)
                         end
+                        -- A housemate's chat line: its text is the next speaker's context (mod/housemate-chat.lua).
+                        if pending.reaction and pending.reaction.kind == 'house' and convaiHouseReplyText then
+                            pcall(convaiHouseReplyText, pending, reply.text)
+                        end
                         speech.start(pending, reply)
                     end
                 end)
@@ -5226,6 +6703,8 @@ registerForEvent('onUpdate', function(delta)
     gameplayActions.update(worldReady)
     -- A reaction an ordinary NPC is waiting to start once its reply has been heard (one nil check while none waits).
     if convaiNpcReactions then convaiNpcReactions.update() end
+    -- A typed line handed to the service: whether the service took it (one nil check while none waits).
+    if convaiTalkReceipt then pcall(convaiTalkReceiptTick) end
     local ok, ready = pcall(convaiInvoke, player, 'ConvaiHasSubmission')
     if not ok or not ready then
         if active then
@@ -5251,6 +6730,13 @@ registerForEvent('onUpdate', function(delta)
                 context.text = message
                 context.sentAt = os.time()
                 sent = sendRequest(context)
+                if sent then
+                    -- A few seconds from now one probe line says whether the service took it (convaiTalkReceiptTick).
+                    convaiTalkReceipt = {requestId = context.requestId, generation = context.generation, at = os.clock()}
+                    if convaiTalkFallbackGeneration == context.generation then
+                        log('Talk fallback: request handed to the service: generation=' .. context.generation)
+                    end
+                end
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
             -- What V types is V's line: shown in the cinematic subtitles as V's own (docs/V_VOICE.md, "V's subtitle"), whether or not V's
@@ -5293,6 +6779,7 @@ registerForEvent('onShutdown', function()
     microphone.cancel()
     if convaiVoiceActivation then pcall(convaiVoiceActivation.off) end
     if convaiPadBinding then pcall(convaiPadBinding.stop, liveWorld and Game.GetPlayer() or nil) end
+    if convaiKeyBinds then pcall(convaiKeyBinds.stop, liveWorld and Game.GetPlayer() or nil) end
     if liveWorld then speech.stop('shutdown'); subtitles.clear()
     else speech.abandon(); subtitles.abandon() end
     active = nil

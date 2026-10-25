@@ -1,0 +1,238 @@
+{
+ "about": "Evidence for mod/companion-outfits-data.lua. For every record the data names: its entity template (entityTemplatePath from the shipped tweak sources, the same on game 2.5 and 2.31), the template default appearance, and the appearance names the template lists. Read with WolvenKit CLI 9.0.1 from the installed archives on 2026-10-25; game 2.5 (3.0.88) and game 2.31 (3.0.80) list identical names for these templates.",
+ "records": {
+  "Character.Claire": {
+   "template": "base/quest/tertiary_characters/claire.ent",
+   "templateDefault": "clair_default",
+   "listedAppearances": [
+    "clair_bartender",
+    "clair_default"
+   ]
+  },
+  "Character.Evelyn": {
+   "template": "base/quest/primary_characters/evelyn.ent",
+   "templateDefault": "evelyn_default",
+   "listedAppearances": [
+    "evelyn_braindance",
+    "evelyn_braindance_FPP",
+    "evelyn_dead",
+    "evelyn_default",
+    "evelyn_default_FPP",
+    "evelyn_disguised",
+    "evelyn_no_coat",
+    "evelyn_recovering",
+    "evelyn_transparent",
+    "evelyn_wounded"
+   ]
+  },
+  "Character.Jackie": {
+   "template": "base/quest/secondary_characters/jackie.ent",
+   "templateDefault": "jackie_welles_default",
+   "listedAppearances": [
+    "jackie_welles__q000_lizzies_club_no_jacket",
+    "jackie_welles__q000_lizzies_club_no_machete",
+    "jackie_welles__q005_suit",
+    "jackie_welles__q005_suit_bleeding",
+    "jackie_welles__q005_suit_dirty",
+    "jackie_welles__q005_suit_wounded",
+    "jackie_welles_default",
+    "jackie_welles_default_collar_down",
+    "jackie_welles_default_no_machete",
+    "jackie_welles_hologram",
+    "jackie_welles_valentino",
+    "jackie_welles_valentino_beaten_up",
+    "jackie_welles_valentino_beaten_up_alt",
+    "jackie_welles_valentino_collar_down",
+    "jackie_welles_wounded",
+    "jackie_welles_wounded_bleeding"
+   ]
+  },
+  "Character.Judy": {
+   "template": "base/quest/secondary_characters/judy.ent",
+   "templateDefault": "judy_default",
+   "listedAppearances": [
+    "judy__mq055__apartment_01",
+    "judy__q203__shower",
+    "judy_braindance_off",
+    "judy_braindance_on",
+    "judy_crying",
+    "judy_default",
+    "judy_default__no_makeup",
+    "judy_diving_suit",
+    "judy_diving_suit_mask",
+    "judy_diving_suit_no_mask",
+    "judy_ep__q307__two_years_later",
+    "judy_glove",
+    "judy_nude",
+    "judy_panties"
+   ]
+  },
+  "Character.Kerry": {
+   "template": "base/quest/tertiary_characters/kerry.ent",
+   "templateDefault": "kerry_eurodyne__q203__shower",
+   "listedAppearances": [
+    "kerry_ep__q307__two_years_later",
+    "kerry_eurodyne__mq055__apartment_01",
+    "kerry_eurodyne__q203__shower",
+    "kerry_eurodyne_kerry_eurodyne_bathrobe",
+    "kerry_eurodyne_kerry_eurodyne_old",
+    "kerry_eurodyne_kerry_eurodyne_old_no_sunglasses",
+    "kerry_eurodyne_kerry_eurodyne_undercover",
+    "kerry_eurodyne_kerry_eurodyne_undercover_backstage_pass",
+    "kerry_eurodyne_kerry_eurodyne_undercover_no_glasses",
+    "kerry_eurodyne_kerry_eurodyne_undercover_no_glasses_backstage_pass",
+    "kerry_eurodyne_kerry_eurodyne_undress_01",
+    "kerry_eurodyne_kerry_eurodyne_undress_02",
+    "kerry_eurodyne_kerry_eurodyne_undress_03",
+    "kerry_eurodyne_kerry_eurodyne_young",
+    "kerry_eurodyne_kerry_eurodyne_young_2013",
+    "kerry_eurodyne_nude",
+    "kerry_eurodyne_nude_censored",
+    "kerry_eurodyne_nude_no_penis",
+    "kerry_eurodyne_nude_no_penis_censored",
+    "man_average_q108_kerry",
+    "man_average_q108_kerry_old",
+    "man_average_q108_kerry_old_changing",
+    "man_average_sq017_kerr_old_disguise",
+    "man_average_sq017_kerry_old_disguise_off"
+   ]
+  },
+  "Character.Ozob": {
+   "template": "base/quest/tertiary_characters/ozob.ent",
+   "templateDefault": "ozob_default",
+   "listedAppearances": [
+    "ozob_default",
+    "ozob_exploded_head",
+    "ozob_no_jacket"
+   ]
+  },
+  "Character.Panam": {
+   "template": "base/quest/primary_characters/panam.ent",
+   "templateDefault": "panam_default",
+   "listedAppearances": [
+    "panam__mq055__apartment_01",
+    "panam__mq055__apartment_02",
+    "panam__q203__after_shower",
+    "panam__q203__shower",
+    "panam__q203__shower_censored",
+    "panam_default",
+    "panam_default_scars",
+    "panam_default_wounded",
+    "panam_no_jacket",
+    "panam_no_jacket_and_harness",
+    "panam_nude",
+    "panam_nude_censored",
+    "panam_nude_fpp",
+    "panam_nude_fpp_censored",
+    "panam_underwear"
+   ]
+  },
+  "Character.Rogue": {
+   "template": "base/quest/secondary_characters/rogue.ent",
+   "templateDefault": "rogue_rogue_old",
+   "listedAppearances": [
+    "rogue_ep__q307__two_years_later",
+    "rogue_rogue_date",
+    "rogue_rogue_date_nojacket",
+    "rogue_rogue_date_nojacket__no_breast_sim",
+    "rogue_rogue_old",
+    "rogue_rogue_old_solo",
+    "rogue_rogue_old_solo_thrusters",
+    "rogue_rogue_young",
+    "rogue_rogue_young_2013",
+    "rogue_rogue_young_cyberspace"
+   ]
+  },
+  "Character.Sobchak": {
+   "template": "base/quest/primary_characters/sobchak.ent",
+   "templateDefault": "river_ward_default",
+   "listedAppearances": [
+    "river_ep__q307__two_years_later",
+    "river_ward__mq055__apartment_01",
+    "river_ward__q203__shower",
+    "river_ward_default",
+    "river_ward_jail_overalls",
+    "river_ward_naked",
+    "river_ward_no_jacket",
+    "river_ward_underwear"
+   ]
+  },
+  "Character.Takemura": {
+   "template": "base/quest/primary_characters/takemura.ent",
+   "templateDefault": "goro_takemura_ronin_shirt",
+   "listedAppearances": [
+    "goro_takemura_finale_white",
+    "goro_takemura_ronin_shirt",
+    "goro_takemura_ronin_trench",
+    "goro_takemura_saburo_bodyguard",
+    "goro_takemura_saburo_bodyguard_wounded",
+    "takemura_ep__q307__two_years_later"
+   ]
+  },
+  "Character.Thompson": {
+   "template": "base/quest/secondary_characters/thompson.ent",
+   "templateDefault": "thompson_coat",
+   "listedAppearances": [
+    "thompson_coat",
+    "thompson_coat_no_galsses",
+    "thompson_coat_no_galsses_blood",
+    "thompson_coat_no_galsses_camera",
+    "thompson_coat_no_galsses_cyberspace",
+    "thompson_no_coat"
+   ]
+  },
+  "Character.Yorinobu": {
+   "template": "base/quest/secondary_characters/yorinobu.ent",
+   "templateDefault": "yorinobu_arasaka_yorinobu_default",
+   "listedAppearances": [
+    "yorinobu_arasaka_yorinobu_arasaka_ceo",
+    "yorinobu_arasaka_yorinobu_arasaka_ceo__coat",
+    "yorinobu_arasaka_yorinobu_default",
+    "yorinobu_arasaka_yorinobu_kimono_simulation"
+   ]
+  },
+  "Character.alex": {
+   "template": "ep1/quest/primary_characters/alex.ent",
+   "templateDefault": "alex_default",
+   "listedAppearances": [
+    "alex__q304__date",
+    "alex__q306__epilogue",
+    "alex_bartender",
+    "alex_bartender_morph",
+    "alex_default",
+    "alex_default_bartender"
+   ]
+  },
+  "Character.reed": {
+   "template": "ep1/quest/primary_characters/reed.ent",
+   "templateDefault": "reed_default",
+   "listedAppearances": [
+    "reed__q305__past_hallucinations",
+    "reed__q307__two_years_later",
+    "reed_bodyguard",
+    "reed_default",
+    "reed_default_wet",
+    "reed_default_wet_body",
+    "reed_default_wet_head",
+    "reed_paradise",
+    "reed_paradise_beaten",
+    "reed_paradise_no_glasses",
+    "reed_tshirt",
+    "reed_tshirt_blendable",
+    "reed_vest",
+    "reed_vest_leg_bandage",
+    "reed_vest_leg_wound",
+    "reed_vest_leg_wound_censored",
+    "reed_vest_with_bag"
+   ]
+  },
+  "Character.sq021_joss": {
+   "template": "base/quest/side_quests/sq021/characters/sq021_joss.ent",
+   "templateDefault": "random",
+   "listedAppearances": [
+    "citizen__lowlife_wa__sq029__joss",
+    "citizen__lowlife_wa__sq029__joss_piama"
+   ]
+  }
+ }
+}

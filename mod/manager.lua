@@ -87,18 +87,50 @@ local relationshipProfiles = {
 local relationshipKeys = {}
 for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] = true end
 -- Dynamic info (Settings > Dynamic info): the kinds of live game information a turn's context can carry. Each is one saved on/off value in
--- settings.dynamicInfo (on by default; a missing or malformed value is on). The bridge reads the same table from runtime/settings.json and drops an
+-- settings.dynamicInfo (on by default, except 'mods' (Other mods' state), which is off by default; a missing or malformed value takes the default). The bridge reads the same table from runtime/settings.json and drops an
 -- off kind from every provider's prompt (bridge/dynamic-info.mjs); this side stops reading the game for it (mod/turn-context.lua, init.lua).
 -- Order is the order of the page.
-local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+local dynamicInfoKinds = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
+-- The stored values of both speak-up lists: off, rare (about 2 an hour), medium (about 4, shown as Normally) and normal (about 6, shown as Often:
+-- 'normal' is the name it has had since 2026-10-19, so an older file reads as before).
+local SPEAK_UP_LEVELS = {off = true, rare = true, medium = true, normal = true}
 local dynamicInfoKnown = {}
 for _, kind in ipairs(dynamicInfoKinds) do dynamicInfoKnown[kind] = true end
+-- A kind's value when nothing valid is saved: on, except Other mods' state (reading other mods stays something the player opts into).
+local function dynamicInfoDefault(kind) return kind ~= 'mods' end
 -- The switches as a plain table in a global (convaiDynamicInfo, replaced only when the settings load or change): the one place something that
 -- runs every frame (the journal collector in init.lua) can ask without a call.
 local function publishDynamicInfo(from)
     local flags = {}
-    for _, kind in ipairs(dynamicInfoKinds) do flags[kind] = from.dynamicInfo[kind] ~= false end
+    for _, kind in ipairs(dynamicInfoKinds) do
+        local value = from.dynamicInfo[kind]
+        if type(value) ~= 'boolean' then value = dynamicInfoDefault(kind) end
+        flags[kind] = value
+    end
     convaiDynamicInfo = flags
+end
+-- Immersive invitations (Settings > Immersive invitations, docs/IMMERSIVE_INVITATIONS.md): one saved table. Off by default; with it Off an
+-- invitation is the instant one and nothing of the feature is loaded. arrival: how she travels; delay: real minutes until she arrives
+-- (0 = right now); wait: real minutes she waits when she arrives right now (a timed arrival waits as long as the delay).
+local immersiveArrivals, immersiveDelays, immersiveWaits = {'walk', 'car'}, {0, 2, 5, 10}, {2, 5, 10}
+local immersiveDefaults = {enabled = false, arrival = 'walk', delay = 0, wait = 5, waypoint = true, texts = true}
+local function cleanImmersive(value)
+    local from = type(value) == 'table' and value or {}
+    local result = {}
+    result.enabled = from.enabled == true
+    result.arrival = from.arrival == 'car' and 'car' or 'walk'
+    result.delay = (from.delay == 2 or from.delay == 5 or from.delay == 10) and from.delay or 0
+    result.wait = (from.wait == 2 or from.wait == 10) and from.wait or 5
+    result.waypoint = from.waypoint ~= false
+    result.texts = from.texts ~= false
+    return result
+end
+-- Housemates (Settings > Companion behavior > Housemates, docs/HOUSEMATES.md): one saved table. Off by default; with it Off no housemate module is
+-- loaded and nothing of the feature runs. chat: the housemates talk to each other.
+local housematesDefaults = {enabled = false, chat = true}
+local function cleanHousemates(value)
+    local from = type(value) == 'table' and value or {}
+    return {enabled = from.enabled == true, chat = from.chat ~= false}
 end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
@@ -640,6 +672,15 @@ local function isChoice(value, choices)
     return false
 end
 
+-- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
+-- choose is that module's business; here a stored name only has to look like one.
+local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager', 'johnny_voice', 'johnny_text'}
+local keyBindingActions = {}
+for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
+local function validKeyName(name)
+    return type(name) == 'string' and #name <= 40 and name:match('^IK_[%w_]+$') ~= nil
+end
+
 -- Maps any saved engine name to the nearest current choice. Unknown values
 -- take the default (Pocket TTS). Provider names stay stable so older saves keep
 -- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
@@ -722,9 +763,29 @@ local function loadSettings()
         if not dynamicInfoKnown[key] then settings.dynamicInfo[key], settingsNeedSave = nil, true end
     end
     for _, kind in ipairs(dynamicInfoKinds) do
-        if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = true, true end
+        if type(settings.dynamicInfo[kind]) ~= 'boolean' then settings.dynamicInfo[kind], settingsNeedSave = dynamicInfoDefault(kind), true end
     end
     publishDynamicInfo(settings)
+    do
+        local clean = cleanImmersive(settings.immersive)
+        for key, value in pairs(clean) do
+            if type(settings.immersive) ~= 'table' or settings.immersive[key] ~= value then settingsNeedSave = true end
+        end
+        if type(settings.immersive) == 'table' then
+            for key in pairs(settings.immersive) do if clean[key] == nil then settingsNeedSave = true end end
+        end
+        settings.immersive = clean
+    end
+    do
+        local clean = cleanHousemates(settings.housemates)
+        for key, value in pairs(clean) do
+            if type(settings.housemates) ~= 'table' or settings.housemates[key] ~= value then settingsNeedSave = true end
+        end
+        if type(settings.housemates) == 'table' then
+            for key in pairs(settings.housemates) do if clean[key] == nil then settingsNeedSave = true end end
+        end
+        settings.housemates = clean
+    end
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
@@ -790,9 +851,25 @@ local function loadSettings()
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
     -- Off by default: Voice activation (docs/VOICE_INPUT.md), talk with no key. Off, the microphone is closed, mod/voice-activation.lua is not loaded and the bridge runs no detector.
     if type(settings.voiceActivation) ~= 'boolean' then settings.voiceActivation, settingsNeedSave = false, true end
+    -- On by default: Companions change outfits (docs/COMPANION_OUTFITS.md). Off, mod/companion-outfits.lua is not loaded, nothing ticks and nothing is changed.
+    if type(settings.companionOutfits) ~= 'boolean' then settings.companionOutfits, settingsNeedSave = false, true end
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
+    -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
+    -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
+    if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
+    do
+        for action in pairs(settings.keyBindings) do
+            if not keyBindingActions[action] then settings.keyBindings[action], settingsNeedSave = nil, true end
+        end
+        local seen = {}
+        for _, action in ipairs(keyBindingOrder) do
+            local name = settings.keyBindings[action]
+            if name ~= nil and (not validKeyName(name) or seen[name]) then settings.keyBindings[action], settingsNeedSave = nil, true
+            elseif name ~= nil then seen[name] = true end
+        end
+    end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
@@ -800,10 +877,12 @@ local function loadSettings()
     -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal. The settings page has one
     -- list for both settings (Off, On, Speaks up rarely, Speaks up often); Off means not in V's head, so remarks are off with it (an older file
     -- with remarks set but Johnny in your head off reads as Off, and the remarks key is put right).
-    if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
+    if not SPEAK_UP_LEVELS[settings.johnnyRemarks] then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
     if settings.johnnyInHead ~= true and settings.johnnyRemarks ~= 'off' then settings.johnnyRemarks, settingsNeedSave = 'off', true end
+    -- On by default (Rarely): party companions start a conversation on their own now and then (docs/COMPANION_SPEAK_UP.md). Same values as Johnny's.
+    if not SPEAK_UP_LEVELS[settings.companionSpeakUp] then settings.companionSpeakUp, settingsNeedSave = 'rare', true end
     -- Off by default. A saved pairing with the Convai cloud voice on a Convai provider cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below. (Beside Mistral, Local AI or Custom the bridge plays Pocket for that voice, so it stands.)
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -969,11 +1048,29 @@ function M.voiceActivation()
     return settings.voiceActivation == true
 end
 
+-- Companions change outfits (Settings > Companion behavior, docs/COMPANION_OUTFITS.md): off by default. Read on the game's 10 Hz tick (one boolean), never per frame.
+function M.companionOutfits()
+    loadSettings()
+    return settings.companionOutfits == true
+end
+
 -- Controller talk button (Settings > Voices): hold the left stick click to talk by voice. Off by default. Read on the game's 10 Hz tick (one boolean),
 -- never per frame.
 function M.padTalk()
     loadSettings()
     return settings.padTalk == true
+end
+
+-- The saved own key bindings, {action = 'IK_F7'} (the table itself: callers read it and never change it). Read on the game's 10 Hz tick, never per frame.
+function M.keyBindings()
+    loadSettings()
+    return settings.keyBindings
+end
+
+-- Saves one own key binding (name nil clears it) in one validated transaction, for the Key bindings page.
+function M.setKeyBinding(player, action, name)
+    if name == nil then name = false end
+    return M.applySettings(player, {keyBindings = {[action] = name}})
 end
 
 -- Street reputation (docs/REPUTATION_DESIGN.md): ordinary NPCs' standing with V shapes how they talk to V. Off by default. Read when a
@@ -983,8 +1080,8 @@ function M.reputation()
     return settings.reputation == true
 end
 
--- Johnny in your head: the talk keys with nobody in front of V address Johnny Silverhand (mod/johnny-head.lua). Read on a talk key
--- press that found nobody and when the settings page is drawn, never per frame.
+-- Johnny in your head: the Talk to Johnny keys address Johnny Silverhand (mod/johnny-head.lua). Read on a Talk to Johnny key
+-- press and when the settings page is drawn, never per frame.
 function M.johnnyInHead()
     loadSettings()
     return settings.johnnyInHead == true
@@ -994,7 +1091,17 @@ end
 -- while a remark waits, never per frame.
 function M.johnnyRemarks()
     loadSettings()
-    return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
+    local level = settings.johnnyRemarks
+    return (level == 'rare' or level == 'medium' or level == 'normal') and level or 'off'
+end
+
+-- Companions speak up (docs/COMPANION_SPEAK_UP.md): 'off', 'rare', 'medium' or 'normal', the values of Johnny's list, so one rate table reads both
+-- (rare about 2 an hour, medium about 4, normal about 6; shown as Rarely, Normally, Often). Read on the 0.1 s game tick while the setting is
+-- on and when the settings page is drawn, never per frame.
+function M.companionSpeakUp()
+    loadSettings()
+    local level = settings.companionSpeakUp
+    return (level == 'rare' or level == 'medium' or level == 'normal') and level or 'off'
 end
 
 -- Is Mistral or the Local AI answering conversations right now (the bridge's applied provider)? Asked when a character the player made is
@@ -1060,6 +1167,7 @@ function M.characterVoiceLabel(profile, view, pack)
     if chosen == 'omni' and type(pack) == 'table' then
         local omni = M.voiceLabel('omni', settings.omniSteps, settings.omniReference)
         if pack.known and not pack.installed then return ui.t('{voice} · needs Omni pack', {voice = omni}) end
+        if pack.amdRoute then return ui.t('{voice} · AMD experimental', {voice = omni}) end
         if pack.noNvidia then return ui.t('{voice} · needs NVIDIA card', {voice = omni}) end
         if pack.smallCard then return ui.t('{voice} · needs 12 GB card', {voice = omni}) end
     end
@@ -1088,10 +1196,12 @@ function M.omniPack()
     local fresh = type(localVoiceState.updated) == 'number' and math.abs(os.time() - localVoiceState.updated / 1000) < 15
     local noNvidia = fresh and localVoiceState.omniNoNvidia == true
     local smallCard = fresh and localVoiceState.omniSmallCard == true
+    -- `amdRoute`: no NVIDIA card but a discrete AMD Radeon one, and no working own Python (docs/OMNIVOICE_AMD.md): the menu points to that experimental route.
+    local amdRoute = noNvidia and localVoiceState.omniAmdRoute == true
     if fresh and type(pack) == 'table' and pack.installed == false then
-        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard}
+        return {installed = false, known = true, missing = pack.missing or {}, noNvidia = noNvidia, smallCard = smallCard, amdRoute = amdRoute}
     end
-    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia, smallCard = smallCard}
+    return {installed = true, known = fresh and type(pack) == 'table', noNvidia = noNvidia, smallCard = smallCard, amdRoute = amdRoute}
 end
 
 -- The pending "chosen voice could not run" notice, once. The caller asks only
@@ -1243,15 +1353,30 @@ function M.relationshipChoices()
     return result
 end
 
+-- Settings > Immersive invitations. The live table (read every 0.1 s of play by mod/init.lua while the feature is on or off): never changed in
+-- place, replaced whole by an Apply.
+function M.immersive()
+    loadSettings()
+    return settings.immersive or immersiveDefaults
+end
+function M.immersiveChoices() return immersiveArrivals, immersiveDelays, immersiveWaits end
+-- Settings > Companion behavior > Housemates. The live table (read every 0.1 s of play by mod/init.lua, On or Off): never changed in place,
+-- replaced whole by an Apply.
+function M.housemates()
+    loadSettings()
+    return settings.housemates or housematesDefaults
+end
+
 -- The kinds of live game info of Settings > Dynamic info, in page order.
 function M.dynamicInfoKinds() return dynamicInfoKinds end
 
--- Whether one kind is on (true unless the player turned it off). A table lookup once the settings are loaded: the turn builders ask it at
--- send time, never per frame.
+-- Whether one kind is on (its default unless the player set it: on, except Other mods' state). A table lookup once the settings are loaded:
+-- the turn builders ask it at send time, never per frame.
 function M.dynamicInfo(kind)
     loadSettings()
     local value = settings.dynamicInfo and settings.dynamicInfo[kind]
-    return value ~= false
+    if type(value) ~= 'boolean' then return dynamicInfoDefault(kind) end
+    return value
 end
 
 function M.subtitleStyle()
@@ -1894,7 +2019,7 @@ function M.snapshot(player)
     local relationshipModes = {}
     for key in pairs(relationshipKeys) do relationshipModes[key] = settings.relationshipModes[key] end
     local dynamicInfo = {}
-    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = settings.dynamicInfo[kind] ~= false end
+    for _, kind in ipairs(dynamicInfoKinds) do dynamicInfo[kind] = M.dynamicInfo(kind) end
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
@@ -1903,6 +2028,8 @@ function M.snapshot(player)
             conversationProvider = settings.conversationProvider,
             relationshipModes = relationshipModes,
             dynamicInfo = dynamicInfo,
+            immersive = cleanImmersive(settings.immersive),
+            housemates = cleanHousemates(settings.housemates),
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
@@ -1930,9 +2057,12 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
             padTalk = settings.padTalk == true,
+            keyBindings = settings.keyBindings,
+            companionOutfits = settings.companionOutfits == true,
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
+            companionSpeakUp = M.companionSpeakUp(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1972,6 +2102,10 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     nextSettings.dynamicInfo = {}
     for key, value in pairs(settings.dynamicInfo) do nextSettings.dynamicInfo[key] = value end
+    nextSettings.keyBindings = {}
+    for action, name in pairs(settings.keyBindings or {}) do nextSettings.keyBindings[action] = name end
+    nextSettings.immersive = cleanImmersive(settings.immersive)
+    nextSettings.housemates = cleanHousemates(settings.housemates)
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -2004,6 +2138,34 @@ function M.applySettings(player, values)
                 if not dynamicInfoKnown[kind] or type(on) ~= 'boolean' then return false, 'This setting must be on or off.' end
                 nextSettings.dynamicInfo[kind] = on
             end
+        elseif key == 'immersive' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            local merged = cleanImmersive(nextSettings.immersive)
+            for field, item in pairs(value) do
+                if field == 'enabled' or field == 'waypoint' or field == 'texts' then
+                    if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                    merged[field] = item
+                elseif field == 'arrival' then
+                    if not isChoice(item, immersiveArrivals) then return false, 'Choose how she arrives.' end
+                    merged.arrival = item
+                elseif field == 'delay' then
+                    if not isChoice(item, immersiveDelays) then return false, 'Choose when she arrives.' end
+                    merged.delay = item
+                elseif field == 'wait' then
+                    if not isChoice(item, immersiveWaits) then return false, 'Choose how long she waits.' end
+                    merged.wait = item
+                else return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
+            end
+            nextSettings.immersive = merged
+        elseif key == 'housemates' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            local merged = cleanHousemates(nextSettings.housemates)
+            for field, item in pairs(value) do
+                if field ~= 'enabled' and field ~= 'chat' then return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
+                if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                merged[field] = item
+            end
+            nextSettings.housemates = merged
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
@@ -2016,6 +2178,21 @@ function M.applySettings(player, values)
         elseif key == 'padTalk' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.padTalk = value
+        elseif key == 'keyBindings' then
+            -- {action = 'IK_F7'} binds, {action = false} clears. A key another action already has is refused (the page says which).
+            if type(value) ~= 'table' then return false, 'Choose a key or a controller button.' end
+            for action, name in pairs(value) do
+                if not keyBindingActions[action] or (name ~= false and not validKeyName(name)) then return false, 'Choose a key or a controller button.' end
+                nextSettings.keyBindings[action] = name or nil
+            end
+            local seen = {}
+            for action, name in pairs(nextSettings.keyBindings) do
+                if seen[name] then return false, 'That key is already used for another action.' end
+                seen[name] = true
+            end
+        elseif key == 'companionOutfits' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.companionOutfits = value
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value
@@ -2023,8 +2200,11 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyInHead = value
         elseif key == 'johnnyRemarks' then
-            if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
+            if not SPEAK_UP_LEVELS[value] then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
+        elseif key == 'companionSpeakUp' then
+            if not SPEAK_UP_LEVELS[value] then return false, 'Choose how often companions speak up.' end
+            nextSettings.companionSpeakUp = value
         elseif RETIRED_SET[key] then
             -- A setting that is gone (RETIRED_SETTINGS): an old caller's value is ignored, nothing is saved for it.
         elseif key == 'conversationProvider' then

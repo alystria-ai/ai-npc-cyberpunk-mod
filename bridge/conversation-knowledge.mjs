@@ -183,7 +183,8 @@ export class KnowledgeRouter {
     if (!await this.current(prepared)) fail('STALE_WORLD');
     if (!prepared.localEligible) return {status: 'anonymous', sendAllowed: true, guard: null, remoteConfig: null};
     const result = await this.service.recordActivity({...prepared.route, requestId: state.requestId, guard: prepared.guard,
-      kind: 'submitted-input', ...(!prepared.input.reaction && prepared.input.source !== 'microphone'
+      // An appointment event's text is the mod's trigger for the character, not something V typed.
+      kind: 'submitted-input', ...(!prepared.input.reaction && !prepared.input.event && prepared.input.source !== 'microphone'
         ? {userText: prepared.input.text} : {})});
     if (result.status !== 'recorded' || result.sendAllowed !== true || !this.service.isCurrent(prepared.guard)) fail('SUBMISSION_NOT_ACKNOWLEDGED');
     return {...result, remoteConfig: prepared.remoteConfig};

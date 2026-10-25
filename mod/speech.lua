@@ -131,6 +131,7 @@ end
 function M.stop(reason)
     -- The AI line is over: the game's own ambient barks may play again after a short tail (vanilla-reactions.lua). One event.
     if M.requestId and convaiVanillaReactions then pcall(convaiVanillaReactions.speechEnded) end
+    local stoppedId = M.requestId
     if M.context and M.utterance and M.utterance.requestId == M.requestId then
         local delivered = M.lastDelivery
         M.utterance.finished, M.utterance.failed = true, reason ~= 'finished'
@@ -157,6 +158,8 @@ function M.stop(reason)
     M.state, M.position, M.paused = reason or 'idle', nil, false
     M.voiceOnly, M.holocall, M.head = false, false, false
     publish()
+    -- A line that was playing has ended (reason 'finished': heard to its end): the speak-up scheduler's cue (mod/init.lua convaiSpeakUpStopped). Set by init.lua.
+    if stoppedId and M.onStopped then pcall(M.onStopped, stoppedId, reason or 'idle') end
 end
 
 function M.transcript(requestId, generation, entity)

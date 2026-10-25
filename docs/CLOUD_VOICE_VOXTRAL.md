@@ -398,7 +398,23 @@ scheduler is paused or slowed.
   ends after its first part, in the cloud voice.
 - The routing log (`runtime/bridge.stderr.log`, `[VoiceRouting]`) names, under `ref=`, the reference Voxtral clones from (long set, else
   short, else Pocket), not the Pocket reference whose route it uses; before 2026-10-12 it showed the Pocket one (for Alex, `picked/autobest/pocket
-  16.59s` although the long set has an entry). Clips extracted for a character, the last resort, show as `-`.
+  16.59s` although the long set has an entry). Clips extracted for a character, the last resort, show as `-`. Since 2026-10-25 the line also says
+  `sent="omni-long ogg 28KB"`: the clip that really went out (its source, format and size), known once the voice's reference has been built; `ref` is the registry's first choice, so a
+  difference between the two means an earlier source could not be used. The bridge log then says why once, `[Voxtral] alex: the omni-long reference was not used (its hash no longer
+  matches); the next source is tried`, and `alex: cloned from the omni-short reference instead (...)` (a missing file, a changed hash or a clip that could not be prepared; before this it was silent).
+
+## "Her voice changes between turns" (2026-10-25, Alex in the Medieval content pack)
+
+**What was checked.** The reference is chosen by the base profile key (`alex`), never by a content pack's twin key (`alex-medieval`, Convai only) or memory key (`alex@medieval`): the
+routing log of that session shows `profile=alex` with `ref="picked/autobest/omni-long 11.62s"` on all 9 of Alex's Voxtral replies, plain or pack, and the installed clip matches its registry hash.
+No code picks a clip per turn, per emotion or at random, and nothing about the reference changed since 2026-10-21 (that day only the ordinary NPCs' reference was cut to one clip, the Voxtral 3
+model was asked for by name, and on 2026-10-22 the first ask was hedged). A twin key has no reference of its own (a test pins that).
+
+**What does vary.** Voxtral clones from the reference afresh on every request (no seed, no saved voice on a free plan), and the call-to-call spread of the clone is as large as the difference
+to the original (speaker similarity 0.50 and 0.65 for the same clip and text, measured 2026-10-13, `bridge/voxtral-reference.mjs`). A named character's reference is two game lines
+joined (Alex: two clips, 11.6 s, cut to 8.5 s for the upload, so the second line is cut short), and a long reply is two requests, so both parts can sound a little different. The only
+choice left is a decision about sound, not a bug: cutting the named characters to one clip as the ordinary NPCs are (`singleClip`) would make the clone steadier but changes every
+named voice, so it waits for an A/B listening.
 - The Characters sidebar names "Mistral cloud voice (Voxtral)" for every character routed locally while the voice is active,
   including any that have no clip (their replies are written only).
 

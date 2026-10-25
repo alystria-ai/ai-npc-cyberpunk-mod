@@ -7,6 +7,7 @@ import {promisify} from 'node:util';
 import {totalmem} from 'node:os';
 import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
+import {amdRoute, gpuVendors} from './gpu-vendors.mjs';
 import {checkRuntimeSteps} from './runtime-steps.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
@@ -433,6 +434,7 @@ const text = (value, size) => clip(value, size) ?? '';
  *   game, modRoot, project, stateDirectory, plugin; settings (an object, or a function returning one)
  *   localAi() -> {status, reason, packInstalled, tiers, matureOnly, ownServer, models}   omniPack() -> {installed, missing}
  *   browser() -> name|null   graphics() -> [{name, memoryMiB}]   modManagers() -> {managers}   reach(host) -> code
+ *   omniPython({light}) -> null | {used, backend, reason, module, device, vramMiB, testing?} (only with omni-python.txt)
  *   nestedPacks() -> [{pack, folder}]   placement() -> {fixed, conflicts, errors}|null   voice() -> null | {engine, reason} (the Pocket voice failed to start)
  *   now, request (the id this run answers, or null), light (no process started, no connection made: the graphics card, the browser
  *   and the internet test then read 'unknown').
@@ -564,8 +566,32 @@ export async function collectSetupCheck(options = {}) {
     return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket', ...(problem.cause === 'blocked' || problem.cause === 'virtual-memory' ? {cause: problem.cause} : {})};
   });
 
-  const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
-    ...(typeof options.voice === 'function' ? [voice()] : [])]);
+  // The player's own Python for OmniVoice (<data>/omni-python.txt, docs/OMNIVOICE_AMD.md): a row only when the file names one. omniPython({light}) -> null |
+  // {used, backend, reason, module, device, vramMiB, testing?} (bridge/omni-own-python.mjs ownPythonSummary). 'used' names the backend (CUDA or ROCm) and the card;
+  // 'refused' the reason code the game words; 'untested' or 'testing' until its self-test has run (it runs when OmniVoice is first wanted, or on the Help page's run).
+  const omniPython = async () => {
+    let found;
+    try { found = await call('omniPython', {light}); } catch { return null; }
+    if (!found || typeof found !== 'object' || found.configured === false) {
+      // No omni-python.txt: on a PC with a discrete AMD Radeon card and no NVIDIA one, the row points to the experimental AMD route (docs/OMNIVOICE_AMD.md). The
+      // card list is the cached one the GPU row reads; the start-up run (light) does not read it.
+      if (light || found === undefined) return null;
+      try {
+        const cards = await (options.graphics ? call('graphics') : cachedGraphicsCards());
+        const amd = (Array.isArray(cards) ? cards : []).filter(card => gpuVendors([card]).includes('amd'));
+        return amdRoute(cards) ? {id: 'omni-python', state: 'note', code: 'amd-route', device: clip(amd.find(card => amdRoute([card]))?.name, 80)} : null;
+      } catch { return null; }
+    }
+    const backend = ['cuda', 'rocm', 'none'].includes(found.backend) ? found.backend : null;
+    if (found.used === true) return {id: 'omni-python', state: 'ok', code: 'used', backend, device: clip(found.device, 80),
+      memoryMiB: Number.isFinite(found.vramMiB) && found.vramMiB > 0 ? Math.round(found.vramMiB) : null};
+    if (typeof found.reason === 'string' && found.reason) return {id: 'omni-python', state: 'problem', code: 'refused', reason: text(found.reason, 30),
+      module: clip(found.module, 60), backend};
+    return {id: 'omni-python', state: 'unknown', code: found.testing === true ? 'testing' : 'untested'};
+  };
+
+  const checks = (await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
+    ...(typeof options.voice === 'function' ? [voice()] : []), ...(typeof options.omniPython === 'function' ? [omniPython()] : [])])).filter(Boolean);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};
 }
 

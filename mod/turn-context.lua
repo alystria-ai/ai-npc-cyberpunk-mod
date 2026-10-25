@@ -39,6 +39,8 @@ local BOARDING = {releasing = true, ['waiting-to-board'] = true, boarding = true
 local TO_SEAT = {approach = true, placing = true, blending = true, settling = true}
 local SEATED = {entering = true, seated = true}
 local GETTING_UP = {leaving = true, standing = true, exiting = true}
+-- A companion settled at a standing place of V's flat (mod/companion-settle.lua): she stands where she is.
+local STANDING_AT_HOME = {post = true, ['post-turn'] = true, ['post-face'] = true}
 local STANDING = {settled = true, waiting = true, attend = true, attend_step = true, attend_settle = true, attend_turn = true}
 
 function M.classify(input)
@@ -63,6 +65,7 @@ function M.classify(input)
     if SEATED[seating] then return 'seated' end
     if GETTING_UP[seating] then return 'getting-up' end
     if TO_SEAT[seating] then return 'to-seat' end
+    if STANDING_AT_HOME[seating] then return 'standing' end
     local behavior = input.behavior
     if behavior == 'combat' then return 'combat' end
     if STANDING[behavior] then return 'standing' end
@@ -211,6 +214,29 @@ local function nativeAdapter()
         seconds = math.floor(seconds) % 86400
         return math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), 'seconds'
     end
+    -- The game time in whole seconds since the game's epoch (days and hours together), for the time since a character was last talked to.
+    -- Read the way mod/world-knowledge.lua gameSeconds and mod/journal-history.lua do (both proven in game): the struct's seconds field and
+    -- GameTime.GetSeconds, each validated, and a disagreement gives no time rather than a wrong one (a wrong clock would word a wrong gap).
+    -- Then the time system's own timestamp as the last resort.
+    function N.gameSeconds()
+        local system = Game.GetTimeSystem()
+        if system == nil then return nil end
+        local function valid(value)
+            value = tonumber(value)
+            return integer(value, 0, 4294967295) and value or nil
+        end
+        local okStamp, stamp = pcall(function() return system:GetGameTime() end)
+        if okStamp and stamp ~= nil then
+            local okField, field = pcall(function() return valid(stamp.seconds) end)
+            local okTotal, total = pcall(function() return valid(GameTime.GetSeconds(stamp)) end)
+            field, total = okField and field or nil, okTotal and total or nil
+            if field and total and field ~= total then return nil end
+            if field or total then return field or total end
+        end
+        local okLast, last = pcall(function() return tonumber(system:GetGameTimeStamp()) end)
+        if okLast and last and last == last and last >= 0 and last <= 4294967295 then return math.floor(last) end
+        return nil
+    end
     function N.gender(player) return player:GetResolvedGenderName() end
     -- V's voice tone ("brain gender" in the character creator), which can differ from the body. The game picks V's voice lines
     -- and how NPCs address V from it, so V's voice for typed lines follows it. Nil when the state cannot be read.
@@ -317,7 +343,7 @@ local function nativeAdapter()
         if interiorCall == nil then   -- a found function is remembered; "not found" is looked up again on the next read
             local viaGame = Game ~= nil and Game.IsEntityInInteriorArea
             interiorCall = type(viaGame) == 'function' and function(who) return Game.IsEntityInInteriorArea(who) end
-                or type(rawget(_G, 'IsEntityInInteriorArea')) == 'function' and function(who) return IsEntityInInteriorArea(who) end
+                or type(IsEntityInInteriorArea) == 'function' and function(who) return IsEntityInInteriorArea(who) end
                 or nil
         end
         if interiorCall == nil then error('IsEntityInInteriorArea is not exposed by this CET build', 0) end
@@ -336,8 +362,11 @@ Instance.__index = Instance
 --   location   the district and the named place, and whether V is indoors     time      the clock and the weather
 --   company    who is with V, the vehicle and V's motion                      condition V's health and the police heat
 --   money      V's money band                                                  about     V's gender and lifepath
+--   lastTalk   the game time in seconds (the bridge keeps when each character was last talked to and words the gap)
+--   media      options.media(player) -> the radio song and the TV near V (mod/media-context.lua)
+--   mods       options.mods(player) -> V's state according to other mods (mod/mod-state.lua: Dark Future)
 -- (V's voice for typed lines still reads V's voice gender and the dialogue volume: they are no part of the words the bridge writes.)
-local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
 
 -- options: enabled(kind) -> boolean (default: everything on), activity() -> {rows = {[profileKey] = inputs for M.classify}, motion = 'still'|'walking'|'running'}, now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
 -- place() -> {district =, area =} (init.lua's currentDistrict), party(player, radius) -> {{profileKey =, name =}}.
@@ -419,6 +448,7 @@ function Instance:read()
     local clockSource
     local wantTime, wantPlace, wantAbout = self:wants('time'), self:wants('location'), self:wants('about')
     local wantCompany, wantCondition, wantMoney = self:wants('company'), self:wants('condition'), self:wants('money')
+    local wantLastTalk, wantMedia, wantMods = self:wants('lastTalk'), self:wants('media'), self:wants('mods')
     local hour, minute, source
     if wantTime then hour, minute, source = call(N.clock) end
     if integer(hour, 0, 23) and integer(minute, 0, 59) then
@@ -527,7 +557,13 @@ function Instance:read()
             if type(info) == 'table' then
                 for _, row in ipairs(party) do
                     local inputs = type(info.rows) == 'table' and info.rows[row.key] or nil
-                    if type(inputs) == 'table' then row.activity = M.classify(inputs) end
+                    if type(inputs) == 'table' then
+                        row.activity = M.classify(inputs)
+                        -- Clothes other than the ones her appearance text describes (mod/companion-outfits.lua): 'home' or 'changed'.
+                        if inputs.outfit == 'home' or inputs.outfit == 'changed' then row.outfit = inputs.outfit end
+                        -- What is in her hand: 'weapon' or 'empty' (companions.activityInputs).
+                        if inputs.holding == 'weapon' or inputs.holding == 'empty' then row.holding = inputs.holding end
+                    end
                 end
                 if MOTIONS[info.motion] and not snapshot.vehicle then snapshot.motion = info.motion end
             end
@@ -536,7 +572,21 @@ function Instance:read()
     end
     -- With a Dynamic info switch off there may be nothing to say and still something for V's voice for typed lines (its gender, the dialogue
     -- volume): that much is kept. With every switch on, a snapshot of those alone is no snapshot.
-    local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney)
+    -- Time since the last talk, music and TV, other mods' state: each is read only when its switch is on. The game time is one clock read; media
+    -- and mods are the optional readers init.lua passes in (nil when their module is absent): plain tables, validated by the bridge, guarded here.
+    if wantLastTalk then
+        local seconds = self:optional('gameSeconds')
+        if integer(seconds, 0, 4294967295 * 4) then snapshot.gameTime = math.floor(seconds); count = count + 1 end
+    end
+    if wantMedia and type(self.options.media) == 'function' then
+        local media = call(self.options.media, player)
+        if type(media) == 'table' and next(media) ~= nil then snapshot.media = media; count = count + 1 end
+    end
+    if wantMods and type(self.options.mods) == 'function' then
+        local mods = call(self.options.mods, player)
+        if type(mods) == 'table' and next(mods) ~= nil then snapshot.mods = mods; count = count + 1 end
+    end
+    local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney and wantLastTalk and wantMedia and wantMods)
     if count == 0 and not (anyOff and (snapshot.voice ~= nil or snapshot.dialogueVolume ~= nil)) then return nil, 'nothing could be read' end
     return snapshot, count, clockSource, extras
 end
@@ -567,7 +617,7 @@ function Instance:capture()
             -- What each companion was found doing, and V's motion (only when there was something to say).
             local doing = {}
             for _, row in ipairs(snapshot.party or {}) do
-                if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity end
+                if row.activity then doing[#doing + 1] = row.key .. '=' .. row.activity .. (row.outfit and ('+' .. row.outfit) or '') end
             end
             if #doing > 0 then line = line .. ' activity=' .. table.concat(doing, ',') end
             if snapshot.driving ~= nil then line = line .. ' driving=' .. tostring(snapshot.driving) end

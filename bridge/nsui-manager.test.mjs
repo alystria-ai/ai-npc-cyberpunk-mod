@@ -47,14 +47,14 @@ test('every page builds on the tab and the tab always starts with the way back, 
       for _, option in ipairs(section.options) do assert(option.label ~= '', name .. ': a row without a label') end
     end
   end
-  -- Home: the five destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
+  -- Home: the six destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
-  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 5)
-  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Settings'}) do
+  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 6)
+  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
   for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Current party', 'Current party'}, {'Model browser', 'Installed character models'},
-      {'Settings', 'Interface'}}) do
+      {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
     assert(ns.sections()[2].label == page[2], page[1] .. ': ' .. ns.sections()[2].label)
@@ -368,7 +368,7 @@ test('Restore defaults goes through the same validated path, only on the Setting
   assert(ns.find('Judy Alvarez').selectedElementIndex == 1)
 `));
 
-test('Dynamic info is a page of its own on the Native Settings UI tab: nine switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
+test('Dynamic info is a page of its own on the Native Settings UI tab: twelve switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
   press('Settings')
   local open = assert(ns.find('Dynamic info'), 'no Dynamic info button on Settings')
   assert(open.type == 'button' and open.buttonText == 'Open')
@@ -376,9 +376,9 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: nine swit
   press('Dynamic info')
   assert(managerUi.inspect().view == 'dynamic-info')
   for _, name in ipairs({'Location', 'Time and weather', 'Company and vehicle', 'Health, heat and fights', 'V’s money', 'V’s gear and clothes',
-      'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue'}) do
+      'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue', 'Time since last talk', 'Music and TV', 'Other mods’ state'}) do
     local switch = assert(ns.find(name), 'no switch ' .. name)
-    assert(switch.type == 'switch' and switch.state == true, name .. ' is on by default')
+    assert(switch.type == 'switch' and switch.state == (name ~= 'Other mods’ state'), name .. ' is on by default, except Other mods’ state')
   end
   assert(ns.find('Back to settings'))
   -- A change is applied for real, as one saved transaction.
@@ -392,8 +392,8 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: nine swit
   -- Restore defaults works on this page, and the page does not need Settings to be open.
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   info = manager.snapshot(player).settings.dynamicInfo
-  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == true, kind) end
-  assert(ns.find('Location').state == true and managerUi.inspect().shown == 'Defaults restored.')
+  for _, kind in ipairs(manager.dynamicInfoKinds()) do assert(info[kind] == (kind ~= 'mods'), kind) end
+  assert(ns.find('Location').state == true and ns.find('Other mods’ state').state == false and managerUi.inspect().shown == 'Defaults restored.')
   assert(convaiDynamicInfo.location == true and saved.dynamicInfo.location == true)
   press('Back to settings')
   assert(managerUi.inspect().view == 'settings')
@@ -956,16 +956,19 @@ test('Custom endpoint is not offered without the provider module: no button on S
   assert(managerUi.inspect().view ~= 'custom-endpoint', 'the view falls back: ' .. tostring(managerUi.inspect().view))
 `));
 
-test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
+test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
   press('Settings')
   assert(ns.find('Johnny speaks up') == nil and ns.find('Johnny’s standing') == nil, 'the separate rows are gone')
   local row = ns.find('Johnny in your head')
-  assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up often', table.concat(row.elements, ' | '))
+  assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
   local function stored() return tostring(saved.johnnyInHead) .. '/' .. tostring(saved.johnnyRemarks) end
   ns.interact.select(ns.find('Johnny in your head'), 3); frames(8); ns.verify()
   assert(stored() == 'true/rare', stored())
   assert(ns.find('Johnny in your head').selectedElementIndex == 3, 'the row shows what is saved')
-  ns.interact.select(ns.find('Johnny in your head'), 4); frames(8); assert(stored() == 'true/normal', stored())
+  ns.interact.select(ns.find('Johnny in your head'), 4); frames(8); assert(stored() == 'true/medium', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 4)
+  ns.interact.select(ns.find('Johnny in your head'), 5); frames(8); assert(stored() == 'true/normal', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 5)
   ns.interact.select(ns.find('Johnny in your head'), 2); frames(8); assert(stored() == 'true/off', stored())
   assert(ns.find('Johnny in your head').selectedElementIndex == 2)
   ns.interact.select(ns.find('Johnny in your head'), 1); frames(8); assert(stored() == 'false/off', stored())
@@ -973,6 +976,18 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up ofte
   assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
   frames(10)
   assert(ns.find('Johnny in your head').selectedElementIndex == 3)
+`));
+
+test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; Rarely by default, stored as off, rare, medium, normal', () => run(`${harness()}
+  press('Settings')
+  local row = ns.find('Companions speak up')
+  assert(row.selectedElementIndex == 2 and table.concat(row.elements, ' | ') == 'Off | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
+  assert(saved.companionSpeakUp == 'rare', tostring(saved.companionSpeakUp))
+  for _, case in ipairs({{1, 'off'}, {3, 'medium'}, {4, 'normal'}, {2, 'rare'}}) do
+    ns.interact.select(ns.find('Companions speak up'), case[1]); frames(8); ns.verify()
+    assert(saved.companionSpeakUp == case[2] and ns.find('Companions speak up').selectedElementIndex == case[1], case[2])
+  end
+  assert(saved.johnnyRemarks == 'off' and saved.johnnyInHead == false, 'the Johnny list is its own')
 `));
 
 test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
@@ -1009,14 +1024,17 @@ test('React to battles and to collected loot are off by default, and Restore def
   press('Settings')
   assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
   ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
-  ns.interact.select(ns.find('Johnny in your head'), 4); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
+  ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
+  ns.interact.select(ns.find('Companions speak up'), 4)
   frames(10); ns.verify()
+  assert(saved.companionSpeakUp == 'normal')
   assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.companionSpeakUp == 'rare' and ns.find('Companions speak up').selectedElementIndex == 2, 'companions are back to Rarely')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
   assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
@@ -1036,7 +1054,7 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
   assert(fileWrites[#fileWrites].path == 'runtime/editor-command.json')
   assert(managerUi.inspect().view == 'home' and #ns.sections() == 1, 'no sub-page: Home stays')
-  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[6].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
+  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[7].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
   -- A second click is a new command (the host counts one click once, not twice).
   clock = clock + 2
   press('Character editor')
@@ -1056,10 +1074,62 @@ test('Native Settings UI: with the conversation service stopped the Character ed
     press('Character editor')
     assert(not files['runtime/editor-command.json'], 'nothing written')
     assert(managerUi.inspect().view == 'home')
-    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[6].label:find('The conversation service is not running', 1, true), shownOutline())
+    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[7].label:find('The conversation service is not running', 1, true), shownOutline())
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   run(`${harness({modules: bare, absent: ['character-editor.lua']})}
-    assert(#ns.sections()[1].options == 4 and not ns.find('Character editor'), shownOutline())
+    assert(#ns.sections()[1].options == 5 and not ns.find('Character editor'), shownOutline())
   `);
 });
+
+// ---------------------------------------------------------------------------------------------------- Key bindings (docs/KEY_BINDINGS.md)
+// The page on Native Settings UI: one section for each of the five actions (the key set here, the key set in Cyber Engine Tweaks, Set and Clear), the
+// Controller talk button, and Restore defaults. The redscript half is a fake player here.
+test('Native Settings UI: Key bindings sits between Character editor and Settings, Set waits for a key, the key shows on the page, Clear and Restore defaults take it away', () => run(`${harness()}
+  local keyQueue, keyList = {}, ''
+  function player:ConvaiKeyBindsReady() return true end
+  function player:ConvaiKeyBindsActive() return keyList end
+  function player:ConvaiKeyBindsConfigure(value) keyList = value; return true end
+  function player:ConvaiKeyBindsCapture(on) return true end
+  function player:ConvaiKeyBindTake() return table.remove(keyQueue, 1) or '' end
+  local function key(token) keyQueue[#keyQueue + 1] = token; convaiKeyBinds.take(player); frames(4); ns.verify() end
+  local function section(name) for _, s in ipairs(ns.sections()) do if s.label == name then return s end end end
+  local function option(name, label)
+    for _, o in ipairs(assert(section(name), 'no section ' .. name).options) do if o.label == label then return o end end
+  end
+  local home = ns.sections()[1].options
+  assert(home[4].label == 'Character editor' and home[5].label == 'Key bindings' and home[6].label == 'Settings' and home[5].buttonText == 'Open')
+  press('Key bindings')
+  assert(managerUi.inspect().view == 'key-bindings')
+  local names = {}
+  for _, s in ipairs(ns.sections()) do names[#names + 1] = s.label end
+  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Talk to Johnny by voice | Talk to Johnny by text | Companion Manager | Controller', table.concat(names, ' | '))
+  for _, name in ipairs({'Talk by voice', 'Talk by text', 'Group voice chat', 'Group text chat', 'Companion Manager'}) do
+    local keySection = ns.sections()
+    local target = name == 'Companion Manager' and keySection[6] or section(name)
+    assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == 'Not set', name)
+    assert(#target.options == 1, 'one look: only the key (no Cyber Engine Tweaks row), and no Clear while nothing is set: ' .. name)
+  end
+  assert(ns.find('Controller talk button').state == false)
+  ns.interact.press(option('Talk by voice', 'Key or button')); frames(4); ns.verify()
+  assert(managerUi.inspect().shown == 'Press the key or controller button for Talk by voice. Esc or B cancels.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Key or button').buttonText == 'Cancel')
+  clock = clock + 1; key('kIK_F7')
+  assert(managerUi.inspect().shown == 'Talk by voice is set to F7.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by voice', 'Clear'), 'the key shows, Clear appeared')
+  assert(manager.keyBindings().voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-')
+  -- A controller button, Clear, and Restore defaults.
+  ns.interact.press(option('Talk by text', 'Key or button')); frames(3)
+  clock = clock + 1; key('kIK_Pad_RightTrigger')
+  assert(option('Talk by text', 'Key or button').buttonText == 'Controller RT' and manager.keyBindings().text == 'IK_Pad_RightTrigger')
+  ns.interact.press(option('Talk by voice', 'Clear')); frames(4); ns.verify()
+  assert(manager.keyBindings().voice == nil and option('Talk by voice', 'Key or button').buttonText == 'Not set' and not option('Talk by voice', 'Clear'))
+  assert(managerUi.inspect().shown == 'Talk by voice cleared.', tostring(managerUi.inspect().shown))
+  ns.interact.toggle(ns.find('Controller talk button')); frames(10); ns.verify()
+  assert(manager.padTalk() == true)
+  ns.interact.restoreDefaults(); frames(10); ns.verify()
+  convaiKeyBinds.tick(player, true)
+  assert(next(manager.keyBindings()) == nil and manager.padTalk() == false and keyList == '', 'the keys and the button are back to the defaults')
+  assert(ns.find('Controller talk button').state == false and option('Talk by text', 'Key or button').buttonText == 'Not set')
+  assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
+`));

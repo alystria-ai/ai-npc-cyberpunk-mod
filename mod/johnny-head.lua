@@ -1,4 +1,4 @@
--- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with the setting on, the talk keys that find nobody in front of V address
+-- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with the setting on, the Talk to Johnny keys (docs/TALK_FALLBACK.md) address
 -- Johnny Silverhand, heard as the voice in V's head, while the story has him there.
 --
 -- Loaded by init.lua only while the setting is on, on the first talk key press that needs it (or the settings page drawing his

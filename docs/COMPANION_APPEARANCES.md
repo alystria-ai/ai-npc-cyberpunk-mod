@@ -53,3 +53,12 @@ Johnny uses his native `silverhand_riot__not_blendable` appearance at creation.
 His private companion record supplies the tested combat equipment and abilities;
 the attachment preparation disables the phantom controller on that managed
 copy. Story apparitions and their native appearance data remain separate.
+
+## Outfit changes after the spawn (2026-10-25)
+
+The first section's rule (an appearance is chosen in the spawn specification, before attachment) is still how a copy gets its first look. A later change is allowed
+for 15 curated characters by `mod/companion-outfits.lua` (docs/COMPANION_OUTFITS.md): `PrefetchAppearanceChange` then `ScheduleAppearanceChange` on the attached copy,
+only while it is out of V's view. The facial graph survives it because the redscript half prepares the rebuilt `face_rig` of our own copies again
+(`Face.reds` `OnReassemble`; docs/FACIAL_ANIMATION.md "A replaced model"). A new copy of a curated character is created in the look that suits the hour and the place,
+through the same spawn specification; Kerry's clothed appearance above stays the base look of his list.
+

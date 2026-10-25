@@ -408,12 +408,12 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatHolocall() -> Void {
     let player = this.m_player as PlayerPuppet;
-    if !IsDefined(player) || !IsDefined(this.m_contactEntry) { return; };
+    if !IsDefined(player) || StrLen(this.m_convaiChatId) == 0 { return; };
     if !this.m_phoneSystem.IsCallingEnabled() {
         this.ShowActionBlockedNotification();
         return;
     };
-    player.ConvaiHolocallRequest(this.m_contactEntry.GetId());
+    player.ConvaiHolocallRequest(this.m_convaiChatId);
 }
 
 // On the Chat list the Call key (the game's `call` action: V on a keyboard, Triangle on a pad; PhoneChatTabs.reds

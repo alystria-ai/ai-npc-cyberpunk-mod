@@ -133,7 +133,8 @@ test('wiring: the request poll and the microphone start ask for the provider (th
   assert.ok(body.indexOf('providerSwitching && waited') < body.indexOf('if (!mistral.pending) return;'));
   assert.match(body, /if \(mistral\.pending && mistral\.requested === 'local'\) lightApplyProvider\(\);/);
   // no group look-ahead is started while another provider than the one in use is chosen
-  assert.match(source, /textProvider: mistral\.active \|\| mistral\.requested !== 'convai'\}\);/);
+  assert.match(source, /const textProviderChosen = \(\) => mistral\.active \|\| mistral\.requested !== 'convai';/);
+  assert.match(source, /textProvider: textProviderChosen\(\), kind\}\);/);
   assert.match(source, /await adoptProviderSetting\(settings\);\n\s*await mistralControl\.poll\(\)/, 'the settings poll adopts the setting through the same function');
   // the microphone command carries the provider
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').split(String.fromCharCode(13)).join('');

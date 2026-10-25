@@ -20,8 +20,8 @@ unsuffixed default and 2.5 the `-for-2.5` option. The source tree is still the 2
 1. `native/core` is compiled twice (`scripts/Build-NativeCore.ps1 -Game 2.31|2.5`, CMake option `CONVAI_GAME`): the SDK pin, the declared runtime and
    `kGameLabel` change. No source line changed for the 2.5 SDK: the plugin only goes through RTTI, `ExecuteFunction` and the SDK's own types, and it built
    and passed its headless tests against the 2.5 SDK as is. It still needs the in-game check (below).
-2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds three helpers the rest of the scripts call
-   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`). The source tree holds the 2.31 file, and the 2.5 build (the default) replaces it with
+2. `r6/scripts/CyberpunkConvai/GameVariant.reds` is the only redscript that differs. It holds four helpers the rest of the scripts call
+   (`ConvaiCallbackSystem()`, `ConvaiServiceContainer()`, `ConvaiKeyTarget(key, action)`, `ConvaiKeyTargetsByAction()`: true on 2.31, false on 2.5, because a 2.5 target gets every action of the key; `KeyBinds.reds` adds one target per key there and a press and a release target on 2.31). The source tree holds the 2.31 file, and the 2.5 build (the default) replaces it with
    `packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds`, which differs in ONE function: Codeware 2.31's
    `InputTarget.Key(key, action)` filters by the key's action, 2.5's own `InputTarget.Key(key, <Float>)` has no action parameter, so the 2.5 target
    passes only the key and the three key handlers (Manager, PhoneChat, PhoneContacts) check `evt.GetAction()` themselves (a compare per key event of
@@ -95,7 +95,7 @@ RED4ext itself differs per game: v1.30.0 for 2.31, master (minimum game 2.50) fo
 | Cyber Engine Tweaks | 1.38.0 (official, "Game version 2.5") | 1.37.1 |
 | RED4ext | 1.31.0, the official release for 2.5 (Nexus 2380, 24 Oct), tested live on 2.5 on 25 Oct: all three plugins load. It refuses 2.31 ("ensure your game is updated to patch 2.5 or newer"). Before it: the build of wopss/RED4ext master 47ac01c ("RED4ext 1.30.0 Master 47ac01c 2.5 Unofficial", Nexus 35697: `bin/x64/winmm.dll`, `red4ext/RED4ext.dll`; its log says `v1.30.0+master.1.47ac01c`). 2.5 support is merged upstream and unreleased (latest official release v1.30.0 of 2026-03-09, for 2.31). The Codeware 2.5 zip holds only the Codeware plugin. | 1.30.0 |
 | redscript | 0.5.32 | 0.5.31 |
-| Codeware | 1.20.6 "2.5 Unofficial" (Nexus 35697, hidden by Nexus on 24 Oct; our copy: github.com/alystria-ai/codeware-game-2.5, MIT, upstream PR psiberx/cp2077-codeware#63) | 1.20.5 |
+| Codeware | 1.21.0 (official, Nexus 7780, 25 Oct; replaces the unofficial 1.20.6 from github.com/alystria-ai/codeware-game-2.5) | 1.20.5 |
 | Native Settings UI | 1.97 | 1.96 |
 | Mod Configuration Menu | 0.10.6-hf1, tested live on 2.5 by the owner (24 Oct): the Companion Manager opens, a setting changed and applied | 0.10.5 |
 

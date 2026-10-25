@@ -61,7 +61,8 @@ end
 local Instance = {}
 Instance.__index = Instance
 
--- options: now() (seconds), enabled(), log(line) (one line per real read, never per frame), native (adapter override).
+-- options: now() (seconds), enabled(), log(line) (one line per real read, never per frame), native (adapter override),
+-- outfit(player) (the visible outfit of a wardrobe mod or nil, set by init.lua).
 function M.new(options)
     options = options or {}
     return setmetatable({options = options, native = options.native or nativeAdapter(), snapshot = nil, at = nil}, Instance)
@@ -104,12 +105,20 @@ function Instance:read()
         rows[#rows + 1] = {slot = slot, name = name}
         count = count + 1
     end
-    for _, row in ipairs(M.CLOTHING) do
-        local area = call(N.area, row[2])
-        if area ~= nil then
-            local id = call(N.visual, data, area)
-            if not call(N.valid, id) then id = call(N.equipped, data, area, 0) end
-            add('clothing', row[1], self:itemName(id, player))
+    -- A wardrobe mod's active outfit (options.outfit, mod/equipment-ex.lua; only while Settings > Dynamic info > Other mods' state is on) hides the
+    -- equipped clothes: what it shows replaces them, and an outfit that shows nothing means V visibly wears nothing. No answer: the equipment as ever.
+    local outfit = self.options.outfit and call(self.options.outfit, player) or nil
+    if type(outfit) == 'table' and type(outfit.parts) == 'table' then
+        snapshot.layered = true
+        for _, part in ipairs(outfit.parts) do add('clothing', part.slot, self:itemName(part.id, player)) end
+    else
+        for _, row in ipairs(M.CLOTHING) do
+            local area = call(N.area, row[2])
+            if area ~= nil then
+                local id = call(N.visual, data, area)
+                if not call(N.valid, id) then id = call(N.equipped, data, area, 0) end
+                add('clothing', row[1], self:itemName(id, player))
+            end
         end
     end
     add('weapons', 'hand', self:itemName(call(N.hand, player), player))

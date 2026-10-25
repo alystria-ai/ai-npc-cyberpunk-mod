@@ -515,6 +515,43 @@ test('voice: a row only when the bridge can say, a problem only while the Pocket
   assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);
 }));
 
+test('omni-python: a row only with omni-python.txt; the backend it found (CUDA, ROCm) or why it was refused, never a folder', async () => temp(async root => {
+  const paths = await install(root);
+  const checks = async over => byId(await collectSetupCheck(options(paths, over)));
+  assert.equal((await checks({}))['omni-python'], undefined, 'a run without the source has no such row');
+  assert.equal((await checks({omniPython: () => null}))['omni-python'], undefined, 'no file, no row: nothing changes for NVIDIA or CPU players');
+  assert.equal((await collectSetupCheck(options(paths, {omniPython: () => null}))).checks.length, 8);
+  const rocm = {used: true, backend: 'rocm', reason: null, module: null, torch: '2.14.0+rocm10.1.0', hip: '10.1.0', cuda: null, device: 'AMD Radeon RX 9070 XT', vramMiB: 16304};
+  assert.deepEqual((await checks({omniPython: async () => rocm}))['omni-python'],
+    {id: 'omni-python', state: 'ok', code: 'used', backend: 'rocm', device: 'AMD Radeon RX 9070 XT', memoryMiB: 16304});
+  assert.equal((await checks({omniPython: async () => ({...rocm, backend: 'cuda', hip: null, cuda: '12.8'})}))['omni-python'].backend, 'cuda');
+  assert.deepEqual((await checks({omniPython: async () => ({used: false, backend: 'none', reason: 'no-gpu'})}))['omni-python'],
+    {id: 'omni-python', state: 'problem', code: 'refused', reason: 'no-gpu', module: null, backend: 'none'});
+  assert.deepEqual((await checks({omniPython: async () => ({used: false, backend: 'rocm', reason: 'missing-module', module: 'transformers'})}))['omni-python'],
+    {id: 'omni-python', state: 'problem', code: 'refused', reason: 'missing-module', module: 'transformers', backend: 'rocm'});
+  assert.deepEqual((await checks({omniPython: async () => ({used: false, backend: null, reason: 'not-found'})}))['omni-python'],
+    {id: 'omni-python', state: 'problem', code: 'refused', reason: 'not-found', module: null, backend: null});
+  assert.deepEqual((await checks({omniPython: async () => ({used: false, reason: null})}))['omni-python'], {id: 'omni-python', state: 'unknown', code: 'untested'});
+  assert.deepEqual((await checks({omniPython: async () => ({used: false, reason: null, testing: true})}))['omni-python'], {id: 'omni-python', state: 'unknown', code: 'testing'});
+  // The light run (start-up) asks without starting the self-test; the Help page's run may start it.
+  const asked = [];
+  await collectSetupCheck(options(paths, {light: true, omniPython: options => { asked.push(options); return null; }}));
+  await collectSetupCheck(options(paths, {omniPython: options => { asked.push(options); return null; }}));
+  assert.deepEqual(asked, [{light: true}, {light: false}]);
+  assert.equal((await checks({omniPython: () => { throw Error('x'); }}))['omni-python'], undefined);
+  // No file, but a discrete AMD Radeon card and no NVIDIA one: a pointer row to the experimental route. Never at start-up (light), never for other card lists.
+  const rx = {name: 'AMD Radeon RX 9070 XT', memoryMiB: 16304}, rtx = {name: 'NVIDIA GeForce RTX 4060', memoryMiB: 8188}, igpu = {name: 'AMD Radeon(TM) Graphics', memoryMiB: 512};
+  const pointer = {id: 'omni-python', state: 'note', code: 'amd-route', device: 'AMD Radeon RX 9070 XT'};
+  assert.deepEqual((await checks({omniPython: () => null, graphics: async () => [rx]}))['omni-python'], pointer);
+  assert.deepEqual((await checks({omniPython: () => null, graphics: async () => [igpu, rx]}))['omni-python'], pointer);
+  for (const cards of [[rtx], [rtx, rx], [igpu, rtx], [igpu], [{name: 'Intel(R) UHD Graphics 770'}], [{name: 'Mystery Adapter'}], []]) {
+    assert.equal((await checks({omniPython: () => null, graphics: async () => cards}))['omni-python'], undefined, JSON.stringify(cards));
+  }
+  assert.equal((await checks({omniPython: () => null, graphics: async () => { throw Error('x'); }}))['omni-python'], undefined, 'detection failing: no row');
+  assert.equal(byId(await collectSetupCheck(options(paths, {light: true, omniPython: () => null, graphics: async () => [rx]})))['omni-python'], undefined);
+  assert.equal((await checks({omniPython: async () => ({used: false, backend: 'none', reason: 'no-gpu'}), graphics: async () => [rx]}))['omni-python'].code, 'refused', 'an own Python file keeps its own row');
+}));
+
 test('a detector that fails turns only its own check into unknown', async () => temp(async root => {
   const paths = await install(root);
   const boom = () => { throw Error('detector failed'); };

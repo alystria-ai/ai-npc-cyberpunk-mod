@@ -102,7 +102,7 @@ test('the page modules the hidden browser loads are exactly the clientModules th
 test('every Python file the shipped bridge starts by path is a bridgeWorker (or comes with the OmniVoice pack)', () => {
   // The Python workers are not imports, so the closure cannot find them; the list is the only thing that puts them in the package.
   const shipped = new Set(config.bridgeWorkers.map(worker => worker.split('/').pop()));
-  const OMNI_PACK_ONLY = new Set(['tts_backend.py']); // the VoiceStudio adapter, shipped in the OmniVoice pack (omni-pack.mjs)
+  const OMNI_PACK_ONLY = new Set(['tts_backend.py', '__init__.py']); // the VoiceStudio adapter, shipped in the OmniVoice pack (omni-pack.mjs)
   const missing = [];
   for (const [rel, text] of closureText) {
     code(text).forEach((line, index) => {

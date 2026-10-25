@@ -146,6 +146,18 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
         },
         {
+          "source": "mod/key-bindings.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/key-bindings.lua"
+        },
+        {
+          "source": "mod/companion-outfits.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
+        },
+        {
+          "source": "mod/companion-outfits-data.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits-data.lua"
+        },
+        {
           "source": "mod/player-gear.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
         },
@@ -220,6 +232,10 @@
         {
           "source": "mod/companion-seating.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-seating.lua"
+        },
+        {
+          "source": "mod/companion-settle.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-settle.lua"
         },
         {
           "source": "mod/seated-look.lua",
@@ -310,6 +326,58 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/invitation-readiness.lua"
         },
         {
+          "source": "mod/immersive-invitations.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-invitations.lua"
+        },
+        {
+          "source": "mod/immersive-service.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-service.lua"
+        },
+        {
+          "source": "mod/immersive-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-world.lua"
+        },
+        {
+          "source": "mod/housemates.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemates.lua"
+        },
+        {
+          "source": "mod/housemate-registry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-registry.lua"
+        },
+        {
+          "source": "mod/housemate-plan.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-plan.lua"
+        },
+        {
+          "source": "mod/housemate-chat.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-chat.lua"
+        },
+        {
+          "source": "mod/housemate-world.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-world.lua"
+        },
+        {
+          "source": "mod/housemate-service.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-service.lua"
+        },
+        {
+          "source": "mod/housemate-spots-data.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-spots-data.lua"
+        },
+        {
+          "source": "mod/housemate-survey.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/housemate-survey.lua"
+        },
+        {
+          "source": "mod/immersive-car.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/immersive-car.lua"
+        },
+        {
+          "source": "mod/place-words.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/place-words.lua"
+        },
+        {
           "source": "mod/addons.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/addons.lua"
         },
@@ -346,6 +414,18 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-remarks.lua"
         },
         {
+          "source": "mod/speak-up.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speak-up.lua"
+        },
+        {
+          "source": "mod/mod-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mod-state.lua"
+        },
+        {
+          "source": "mod/equipment-ex.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/equipment-ex.lua"
+        },
+        {
           "source": "mod/johnny-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
         },
@@ -360,6 +440,18 @@
         {
           "source": "mod/combat-feats-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/combat-feats-probe.lua"
+        },
+        {
+          "source": "mod/media-context.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-context.lua"
+        },
+        {
+          "source": "mod/media-song.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-song.lua"
+        },
+        {
+          "source": "mod/media-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/media-probe.lua"
         },
         {
           "source": "mod/talk-target.lua",
@@ -541,6 +633,10 @@
           "target": "r6/scripts/CyberpunkConvai/PadTalk.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/KeyBinds.reds",
+          "target": "r6/scripts/CyberpunkConvai/KeyBinds.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/NpcNames.reds",
           "target": "r6/scripts/CyberpunkConvai/NpcNames.reds"
         },
@@ -627,10 +723,12 @@
             "bridge/addon-voice.mjs",
             "bridge/addons.mjs",
             "bridge/analysis-pcm.mjs",
+            "bridge/appointment-events.mjs",
             "bridge/ascii-temp.mjs",
             "bridge/audio-delay.mjs",
             "bridge/battle-context.mjs",
             "bridge/bridge-diagnostics.mjs",
+            "bridge/call-meet.mjs",
             "bridge/caption-cues.mjs",
             "bridge/character-editor-control.mjs",
             "bridge/character-editor-page.mjs",
@@ -682,6 +780,8 @@
             "bridge/group-lookahead.mjs",
             "bridge/group-prefetch.mjs",
             "bridge/guarded-file.mjs",
+            "bridge/home-requests.mjs",
+            "bridge/house-chat.mjs",
             "bridge/intrinsic-character-context.mjs",
             "bridge/jali-face-model.mjs",
             "bridge/jali-face.mjs",
@@ -694,6 +794,7 @@
             "bridge/language-lexicon.mjs",
             "bridge/language-ui-vocab.mjs",
             "bridge/last-reply-capture.mjs",
+            "bridge/last-talk.mjs",
             "bridge/live-voices.mjs",
             "bridge/local-ai-pack.mjs",
             "bridge/local-embed.mjs",
@@ -709,6 +810,8 @@
             "bridge/mature-guard-terms.mjs",
             "bridge/mature-guard.mjs",
             "bridge/mature-pack.mjs",
+            "bridge/media-context.mjs",
+            "bridge/meet-requests.mjs",
             "bridge/memory-scope.mjs",
             "bridge/memory-store.mjs",
             "bridge/mic-live.mjs",
@@ -720,11 +823,13 @@
             "bridge/mistral-memory.mjs",
             "bridge/mistral-prompt.mjs",
             "bridge/mistral-rate.mjs",
+            "bridge/mod-state.mjs",
             "bridge/mouth-cues.mjs",
             "bridge/multilingual.mjs",
             "bridge/natural-speech-talk.mjs",
             "bridge/natural-speech.mjs",
             "bridge/nearby-warm.mjs",
+            "bridge/omni-own-python.mjs",
             "bridge/omni-pack.mjs",
             "bridge/omni-pcm.mjs",
             "bridge/parsed-snapshot.mjs",
@@ -778,6 +883,7 @@
             "bridge/setup-check.mjs",
             "bridge/shared-key-guard.mjs",
             "bridge/slow-turns.mjs",
+            "bridge/speakup-context.mjs",
             "bridge/speech-audio.mjs",
             "bridge/speech-language.mjs",
             "bridge/speech-pace.mjs",

@@ -23,6 +23,8 @@ public class ConvaiPhoneChatDraft extends IScriptable {
 public class ConvaiPhoneChatInput extends HubTextInput {
     private let m_keys: array<ref<inkKeyInputEvent>>;
     private let m_submit: Bool;
+    // The Enter that opened the box is still down when focus arrives: its press (and a repeat) must not send.
+    private let m_enterHeld: Bool;
     private let m_owner: wref<PhoneMessagePopupGameController>;
 
     public static func Create(owner: wref<PhoneMessagePopupGameController>) -> ref<ConvaiPhoneChatInput> {
@@ -45,7 +47,8 @@ public class ConvaiPhoneChatInput extends HubTextInput {
 
     protected cb func OnInputKey(evt: ref<inkKeyInputEvent>) {
         if Equals(evt.GetKey(), EInputKey.IK_Enter) {
-            if Equals(evt.GetAction(), EInputAction.IACT_Press) { this.m_submit = true; };
+            if Equals(evt.GetAction(), EInputAction.IACT_Release) { this.m_enterHeld = false; };
+            if Equals(evt.GetAction(), EInputAction.IACT_Press) && !this.m_enterHeld { this.m_submit = true; };
             return;
         };
         if Equals(evt.GetKey(), EInputKey.IK_Escape) {
@@ -84,8 +87,12 @@ public class ConvaiPhoneChatInput extends HubTextInput {
 
     protected cb func OnFocusLost(evt: ref<inkEvent>) {
         this.m_submit = false;
+        this.m_enterHeld = false;
         super.OnFocusLost(evt);
     }
+
+    public final func HoldEnter() -> Void { this.m_enterHeld = true; }
+    public final func ReleaseEnter() -> Void { this.m_enterHeld = false; }
 
     public final func ReplaceDraft(value: String) -> Void {
         ArrayClear(this.m_keys);
@@ -106,6 +113,8 @@ public class ConvaiPhoneChatInput extends IScriptable {
     public final func SetWidth(width: Float) -> Void {}
     public final func Reparent(parent: ref<inkCompoundWidget>) -> Void {}
     public final func ReplaceDraft(value: String) -> Void {}
+    public final func HoldEnter() -> Void {}
+    public final func ReleaseEnter() -> Void {}
     public final func SetDisabled(disabled: Bool) -> Void {}
 }
 
@@ -117,11 +126,24 @@ private let m_convaiChatDraft: ref<ConvaiPhoneChatDraft>;
 private let m_convaiChatSubmission: ref<ConvaiPhoneChatDraft>;
 @addField(PlayerPuppet)
 private let m_convaiChatContacts: array<String>;
+// The name of each registered contact, same order: the list shows it for a character the game's journal has no entry for.
+@addField(PlayerPuppet)
+private let m_convaiChatContactNames: array<String>;
 
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatClearContacts() -> Void { ArrayClear(this.m_convaiChatContacts); }
+public final func ConvaiPhoneChatClearContacts() -> Void { ArrayClear(this.m_convaiChatContacts); ArrayClear(this.m_convaiChatContactNames); }
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneChatRegisterContact(contact: String) -> Void { ArrayPush(this.m_convaiChatContacts, contact); }
+public final func ConvaiPhoneChatRegisterContact(contact: String, name: String) -> Void {
+    ArrayPush(this.m_convaiChatContacts, contact);
+    ArrayPush(this.m_convaiChatContactNames, name);
+}
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatContactIds() -> array<String> { return this.m_convaiChatContacts; }
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneChatContactName(contact: String) -> String {
+    let index = ArrayFindFirst(this.m_convaiChatContacts, contact);
+    return index >= 0 ? this.m_convaiChatContactNames[index] : "";
+}
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneChatHasContact(contact: String) -> Bool { return ArrayContains(this.m_convaiChatContacts, contact); }
 
@@ -174,11 +196,14 @@ private let m_convaiChatInitialized: Bool;
 private let m_convaiChatEscape: Bool;
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatEscapeFrames: Int32;
+// The contact id of the open chat: the journal entry's, or the character's own for one the journal has no entry for.
+@addField(PhoneMessagePopupGameController)
+private let m_convaiChatId: String;
 
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatContact() -> String {
-    if !this.m_isFocused || !IsDefined(this.m_contactEntry) || !this.m_data.convaiChat { return ""; };
-    return this.m_contactEntry.GetId();
+    if !this.m_isFocused || !this.m_data.convaiChat { return ""; };
+    return this.m_convaiChatId;
 }
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatTyping() -> Bool {
@@ -194,6 +219,7 @@ private func SetupData() -> Void {
     this.ConvaiChatBlur();
     this.m_dialogViewController.ConvaiChatMode(this.m_data.convaiChat, this.m_journalMgr);
     if !this.m_data.convaiChat {
+        inkWidgetRef.SetVisible(this.m_hintClose, true);
         this.ConvaiChatPath(false);
         wrappedMethod();
         return;
@@ -201,19 +227,28 @@ private func SetupData() -> Void {
     // AI chat has no quest message, attachment or read receipt. In particular,
     // the native SetupData changes journal state, so it must not run here.
     this.m_contactEntry = this.m_data.journalEntry as JournalContact;
+    this.m_convaiChatId = IsDefined(this.m_contactEntry) ? this.m_contactEntry.GetId() : this.m_data.convaiChatId;
     this.m_entry = null;
     this.m_attachment = null;
     this.m_attachmentHash = 0u;
     this.m_activeEntry = null;
     this.m_journalEntryHash = 0;
-    inkTextRef.SetText(this.m_title, this.m_contactEntry.GetLocalizedName(this.m_journalMgr));
-    InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
+    if IsDefined(this.m_contactEntry) {
+        inkTextRef.SetText(this.m_title, this.m_contactEntry.GetLocalizedName(this.m_journalMgr));
+        InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
+    } else {
+        // A character with no journal entry: her name and the game's unknown-caller picture.
+        inkTextRef.SetText(this.m_title, this.m_data.convaiChatName);
+        InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, t"");
+    };
     inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
     inkWidgetRef.SetVisible(this.m_hintTrack, false);
     // The game's own Call hint stays hidden here: the game's call is a quest call, and the composer panel would cover
     // it. An open conversation shows no Call hint at all (calls start from the Chat list: its row icon and Call (V)).
     inkWidgetRef.SetVisible(this.m_hintCall, false);
     inkWidgetRef.SetVisible(this.m_hintReply, false);
+    // The native "C CLOSE" hint is replaced by our own line (Esc closes here, as well as C).
+    inkWidgetRef.SetVisible(this.m_hintClose, false);
     inkWidgetRef.SetVisible(this.m_scrollReply, false);
     inkWidgetRef.SetVisible(this.m_hintMessenger, false);
     inkWidgetRef.SetVisible(this.m_contactsPath, false);
@@ -248,6 +283,9 @@ private final func ConvaiChatCreate() -> Void {
         this.m_convaiChatKeys = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiChatKey")
             .AddTarget(ConvaiKeyTarget(EInputKey.IK_Enter, EInputAction.IACT_Press))
             .AddTarget(ConvaiKeyTarget(EInputKey.IK_Escape, EInputAction.IACT_Release));
+        if ConvaiKeyTargetsByAction() {
+            this.m_convaiChatKeys.AddTarget(ConvaiKeyTarget(EInputKey.IK_Enter, EInputAction.IACT_Release));
+        };
     };
     if IsDefined(this.m_convaiChatPanel) { return; };
     let parent = this.m_dialogViewController.ConvaiChatParent();
@@ -274,7 +312,7 @@ private final func ConvaiChatCreate() -> Void {
     hint.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
     hint.BindProperty(n"tintColor", n"MainColors.Blue");
     hint.SetMargin(new inkMargin(4.0, 8.0, 0.0, 0.0));
-    hint.SetText("ENTER  Write message   /   ESC  Stop typing");
+    hint.SetText("ENTER  Write message   /   ESC  Close");
     hint.Reparent(panel);
     this.m_convaiChatHint = hint;
 }
@@ -287,6 +325,11 @@ private final func ConvaiChatCreate() -> Void {
 @if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PhoneMessagePopupGameController)
 private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
+    // The Enter that opened the box ends here: from its release on, Enter in the box sends.
+    if Equals(evt.GetKey(), EInputKey.IK_Enter) && Equals(evt.GetAction(), EInputAction.IACT_Release) {
+        if IsDefined(this.m_convaiChatInput) { this.m_convaiChatInput.ReleaseEnter(); };
+        return;
+    };
     // Enter counts on its press and Escape on its release. The 2.5 key target cannot filter by action (GameVariant.reds), so the action is checked here.
     if NotEquals(evt.GetAction(), Equals(evt.GetKey(), EInputKey.IK_Escape) ? EInputAction.IACT_Release : EInputAction.IACT_Press) { return; };
     if Equals(evt.GetKey(), EInputKey.IK_Escape) {
@@ -301,6 +344,8 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
     // cannot also activate an authored reply choice in the same input frame.
     this.m_convaiChatEscape = true;
     this.m_convaiChatEscapeFrames = 2;
+    // The box gets focus while this Enter is still down: it must not also send what the box holds.
+    this.m_convaiChatInput.HoldEnter();
     this.RequestSetFocus(this.m_convaiChatInput.GetRootWidget());
     this.m_dialogViewController.ConvaiChatScroll();
 }
@@ -308,9 +353,9 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatSaveDraft() -> Void {
     let player = this.m_player as PlayerPuppet;
-    if IsDefined(player) && IsDefined(this.m_contactEntry) && IsDefined(this.m_convaiChatInput) && this.m_convaiChatInitialized {
+    if IsDefined(player) && StrLen(this.m_convaiChatId) > 0 && IsDefined(this.m_convaiChatInput) && this.m_convaiChatInitialized {
         let draft = new ConvaiPhoneChatDraft();
-        draft.contact = this.m_contactEntry.GetId();
+        draft.contact = this.m_convaiChatId;
         draft.text = this.m_convaiChatInput.GetText();
         player.m_convaiChatDraft = draft;
     };
@@ -348,7 +393,7 @@ public final func ConvaiChatSubmit() -> Void {
     let text = this.m_convaiChatInput.GetText();
     if StrLen(text) == 0 { return; };
     let request = new ConvaiPhoneChatDraft();
-    request.contact = this.m_contactEntry.GetId();
+    request.contact = this.m_convaiChatId;
     request.text = text;
     player.m_convaiChatSubmission = request;
     this.m_convaiChatBusy = true;
@@ -391,6 +436,14 @@ private final func ConvaiChatSwallowsRelease(evt: ref<inkPointerEvent>) -> Bool 
 protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
     if this.ConvaiChatTyping() {
         if this.ConvaiChatSwallowsAction(action) { ListenerActionConsumer.Consume(consumer); };
+        return false;
+    };
+    if this.m_data.convaiChat && this.m_isFocused && Equals(ListenerAction.GetName(action), n"OpenPauseMenu") {
+        // Esc outside the box closes the conversation as the game's own Close (C, the `cancel` action) does. The typing guard
+        // above keeps the Esc that ended typing from reaching this; only a fresh Esc press gets here. The pause menu stays shut.
+        if Equals(ListenerAction.GetType(action), gameinputActionType.BUTTON_PRESSED) { this.RequestUnfocus(); };
+        ListenerActionConsumer.Consume(consumer);
+        ListenerActionConsumer.DontSendReleaseEvent(consumer);
         return false;
     };
     if this.m_data.convaiChat && (Equals(ListenerAction.GetName(action), n"call")

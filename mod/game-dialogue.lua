@@ -116,6 +116,20 @@ local function nativeAdapter()
         return nil
     end
     function N.lineId(line) return tostring(line.id) end
+    -- What spoke a TV line (scnDialogLineData.speaker, a wref<GameObject>): {id = its EntityID when it is a TV (class TV, or a device whose
+    -- controller is a TVControllerPS), class = its class name}, or nil when the line has no speaker. Music and TV only (noteHeard).
+    function N.tvSource(line)
+        local speaker = line.speaker
+        if speaker == nil then return nil end
+        local named, class = pcall(function() return Game.NameToString(speaker:GetClassName()) end)
+        class = named and type(class) == 'string' and class ~= '' and class or '?'
+        local isTv = speaker:IsA('TV') == true
+        if not isTv then
+            local ok, ps = pcall(function() return speaker:GetDevicePS() end)
+            isTv = ok and ps ~= nil and ps:IsA('TVControllerPS') == true
+        end
+        return {id = isTv and speaker:GetEntityID() or nil, class = class}
+    end
     function N.lineNumber(line)
         local ok, value = pcall(function() return line.id.hash end)
         local digits = tostring(ok and value ~= nil and value or line.id):match('(%d+)')
@@ -201,6 +215,10 @@ function Instance:reset(reason)
     self.lines, self.seen, self.hubs, self.serial = {}, {}, {}, self.serial or 0
     self.noted, self.notedCount = {}, 0
     self.presentAt, self.presentKeys = nil, nil
+    -- The TV lines (Music and TV, noteHeard) are not game dialogue and survive the context being switched off; anything else clears them.
+    if reason ~= 'disabled' or self.heard == nil then
+        self.heard, self.heardIds, self.heardCount, self.heardTvSource, self.heardSpeaker = {}, {}, 0, nil, nil
+    end
     self.resetReason = reason
 end
 
@@ -286,6 +304,60 @@ function Instance:noteLine(line)
     local seconds, measured = self:lineSeconds(line)
     pcall(options.onGameLine, seconds, kind, measured)
     return true
+end
+
+-- What a TV nearby has said (Settings > Dynamic info > Music and TV, mod/media-context.lua): the last HEARD_KEEP lines of type GlobalTV or
+-- GlobalTVAlwaysVisible, each capped at HEARD_TEXT characters, with the time they were heard. Fed by the same subtitle callbacks as everything
+-- above (no hook of its own), only while options.heardWanted() is true (the Music and TV switch; one boolean read per line otherwise), and kept
+-- apart from the recorded game dialogue: it is not part of capture(), the policy table, the buffer or what Johnny's remarks and the add-ons hear.
+-- A car radio's DJ is a line of type Radio from a vehicle: the policy table skips those and so does this.
+M.HEARD_KEEP, M.HEARD_TEXT, M.HEARD_IDS = 3, 160, 8
+local HEARD_TYPES = {GlobalTV = true, GlobalTVAlwaysVisible = true}
+function Instance:noteHeard(line)
+    local wanted = self.options.heardWanted
+    if type(wanted) ~= 'function' or call(wanted) ~= true then return false end
+    local N = self.native
+    local id = call(N.lineId, line)
+    if not id or self.heardIds[id] then return false end
+    local kind = call(N.lineType, line.type)
+    if not HEARD_TYPES[kind] then return false end
+    -- The two subtitle hooks show the same line: remembered by its id for a few lines only.
+    if self.heardCount >= M.HEARD_IDS then self.heardIds, self.heardCount = {}, 0 end
+    self.heardIds[id], self.heardCount = true, self.heardCount + 1
+    -- Which TV said it, so mod/media-context.lua can find that TV by its ID (the targeting query does not list TVs). A few reads per TV line.
+    local source = call(N.tvSource, line)
+    self.heardSpeaker = {class = type(source) == 'table' and source.class or 'none', at = self:now()}
+    if type(source) == 'table' and source.id ~= nil then self.heardTvSource = {id = source.id, at = self:now()} end
+    local text = clean(call(N.text, line), M.HEARD_TEXT)
+    if not text then return false end
+    local now = self:now()
+    local last = self.heard[#self.heard]
+    if last and last.text == text and now - last.at <= DUPLICATE_WINDOW then last.at = now; return false end
+    self.heard[#self.heard + 1] = {text = text, at = now}
+    while #self.heard > M.HEARD_KEEP do table.remove(self.heard, 1) end
+    return true
+end
+
+-- The newest TV line heard at most maxAge seconds ago: its text and its age in seconds, or nil.
+function Instance:heardMedia(maxAge)
+    local now, last = self:now(), self.heard[#self.heard]
+    if not last then return nil end
+    local age = math.max(0, now - last.at)
+    if age > (tonumber(maxAge) or 60) then return nil end
+    return last.text, age
+end
+
+-- The TV that spoke a TV line at most maxAge seconds ago: its EntityID, the age in seconds, and the class of whatever spoke the newest TV
+-- line ('none' for a line without a speaker), for probe.log. nil when no TV spoke (the class is still given when a line was heard).
+function Instance:heardTv(maxAge)
+    local now, limit = self:now(), tonumber(maxAge) or 60
+    local speaker = self.heardSpeaker
+    local class = speaker and now - speaker.at <= limit and speaker.class or nil
+    local source = self.heardTvSource
+    if not source then return nil, nil, class end
+    local age = math.max(0, now - source.at)
+    if age > limit then return nil, nil, class end
+    return source.id, age, class
 end
 
 -- How long a game line lasts: its own duration when the game gives a sensible one, else an estimate from its words.
@@ -391,7 +463,10 @@ end
 -- One native scnDialogLineData (or a test table with the same fields).
 function Instance:line(line, source)
     if source then self:count('hooks', source) end
-    if type(line) == 'table' or type(line) == 'userdata' then pcall(self.noteLine, self, line) end
+    if type(line) == 'table' or type(line) == 'userdata' then
+        pcall(self.noteLine, self, line)
+        pcall(self.noteHeard, self, line)
+    end
     if not self:enabled() then return self:skip('disabled') end
     local N, now = self.native, self:now()
     if type(line) ~= 'table' and type(line) ~= 'userdata' then return self:skip('invalid') end

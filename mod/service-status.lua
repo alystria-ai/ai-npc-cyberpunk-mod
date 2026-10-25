@@ -256,5 +256,20 @@ function M.noReplyMessage(requestId, provider, seconds)
     return ui.t('No reply arrived within {seconds} s. Try again.', {seconds = seconds})
 end
 
+-- Whether the service took the turn `requestId`: the bridge's status names the turn it received ('received', then 'thinking', 'ready' or 'error').
+-- Asked a few seconds after a typed line was sent (init.lua convaiTalkReceiptTick), never per frame. Returns received, the state the bridge last wrote,
+-- and how many seconds ago the bridge wrote its status and the supervisor its heartbeat (nil when there is none).
+function M.receipt(requestId)
+    local status = readJson('runtime/bridge-status.json')
+    local service = readJson('runtime/bridge-service.json')
+    local nowMs = os.time() * 1000.0
+    local function age(value)
+        if type(value) ~= 'table' or type(value.updated) ~= 'number' then return nil end
+        return math.floor((nowMs - value.updated) / 1000 + 0.5)
+    end
+    local received = type(requestId) == 'string' and requestId ~= '' and type(status) == 'table' and status.requestId == requestId
+    return received, type(status) == 'table' and type(status.state) == 'string' and status.state or nil, age(status), age(service)
+end
+
 convaiServiceStatus = M
 return M

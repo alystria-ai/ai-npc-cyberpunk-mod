@@ -18,6 +18,7 @@ import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {CustomEndpoint, parseEndpointUrl} from './custom-endpoint.mjs';
 import {vGenderOf} from './v-voice.mjs';
+import {lastTalk} from './last-talk.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';   // the safe constant the other provider tests use
@@ -29,7 +30,13 @@ const book = new PersonaBook(roster);
 const MARKERS = {
   location: /Embers|Heywood/, time: /late night|2 AM|raining/, company: /Also with V|Panam|in a vehicle/,
   condition: /badly hurt|police chase|Maelstrom/, money: /nearly broke/, gear: /Samurai Jacket|Kyubi/, about: /Street Kid|woman \(she\/her\)/,
-  quest: /The Heist|Reach the vault door|broader current-save journal history/, dialogue: /Meet me at the Afterlife tonight/};
+  quest: /The Heist|Reach the vault door|broader current-save journal history/, dialogue: /Meet me at the Afterlife tonight/, lastTalk: /You last talked with V/,
+  media: /car radio|pocket radio|TV nearby/, mods: /exhausted|parched|dehydrated|starving|on edge/};
+// Time since the last talk: the turns below are Judy's, with the game clock at 02:10 of day 40 and the real clock fixed. Every turn is built with a distinct id, and
+// the shared store decides once per id, so each one is parsed after Judy's last talk is put back three days (game) and four days (real) before it.
+const GAME_NOW = 40 * 86400 + 2 * 3600 + 10 * 60, REAL_NOW = 1_800_000_000_000;
+await lastTalk.configure({path: null, now: () => REAL_NOW, keyFor: key => key});
+const seedLastTalk = () => lastTalk.record('judy-alvarez', GAME_NOW - 3 * 86400, REAL_NOW - 4 * 86400_000);
 let serial = 100;
 function rawTurn(extra = {}, entity = `${++serial}ULL`) {
   return {requestId: `${serial}-1-${entity}`, generation: 1, entity, profileKey: 'judy-alvarez', name: 'Judy', bodyType: 'WomanAverage', text: 'So what now?',
@@ -39,13 +46,15 @@ function rawTurn(extra = {}, entity = `${++serial}ULL`) {
     gameDialogue: {version: 1, status: 'ready', lines: [{id: 'g-1', age: 20, kind: 'line', channel: 'scene', speaker: 'npc', entity, profileKey: 'judy-alvarez',
       name: 'Judy', text: 'Meet me at the Afterlife tonight.'}]},
     battle: {version: 1, status: 'fighting', encounter: 'battle-12', ageSeconds: 5, durationSeconds: 20, opponents: [{name: 'Maelstrom Thug', count: 2}], witnesses: ['judy-alvarez']},
-    turnContext: {version: 1, status: 'ready', hour: 2, minute: 10, district: 'Heywood', area: 'Glen_Embers', indoors: true, gender: 'female', voice: 'female',
+    turnContext: {version: 1, status: 'ready', gameTime: GAME_NOW, hour: 2, minute: 10, district: 'Heywood', area: 'Glen_Embers', indoors: true, gender: 'female', voice: 'female',
       lifepath: 'streetkid', weather: 'rain', health: 'badly-hurt', heat: 3, money: 'broke', vehicle: true, driving: false,
+      media: {radio: {source: 'car', station: 'Growl FM', track: 'Rebel Path'}},
+      mods: {darkFuture: {energy: 4, hydration: 3}},
       party: [{key: 'judy-alvarez', name: 'Judy', activity: 'passenger'}, {key: 'panam-palmer', name: 'Panam'}]},
     ...extra};
 }
-const parsed = (extra, entity) => parseInput(JSON.stringify(rawTurn(extra, entity)));
-const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: Object.fromEntries(kinds.map(kind => [kind, false]))}); return info; };
+const parsed = (extra, entity) => { seedLastTalk(); return parseInput(JSON.stringify(rawTurn(extra, entity))); };
+const withOff = (...kinds) => { const info = new DynamicInfo(); info.update({dynamicInfo: {mods: true, ...Object.fromEntries(kinds.map(kind => [kind, false]))}}); return info; };
 
 // What the bridge hands a text provider for one turn (bridge/convai-bridge.mjs contextPartsOf): the same blocks, laid out by how often they change.
 function partsOf(blocks) {
@@ -96,26 +105,32 @@ function withInfo(info, build) {
   try { return build(); } finally { dynamicInfo.off = before; }
 }
 
-test('the kinds are the nine of the page, in page order, and every kind has a marker in this test turn', () => {
-  assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue']);
+test('the kinds are the twelve of the page, in page order, and every kind has a marker in this test turn', () => {
+  assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods']);
   assert.deepEqual(Object.keys(MARKERS), [...KINDS]);
-  const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([a-z]+)'/g).map(text => text.slice(1, -1));
+  const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([A-Za-z]+)'/g).map(text => text.slice(1, -1));
   assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
 });
 
-test('the setting follows settings.json: all on by default, only a saved false turns a kind off, anything unreadable changes nothing', () => {
+test('the setting follows settings.json: all on by default except mods, only a saved false turns a kind off, anything unreadable changes nothing', () => {
   const info = new DynamicInfo();
-  assert.equal(info.describe(), 'all on');
+  assert.equal(info.describe(), 'off: mods');
+  assert.equal(info.update({dynamicInfo: {mods: true}}), true); assert.equal(info.describe(), 'all on');
   assert.equal(info.update(undefined), false); assert.equal(info.update(null), false); assert.equal(info.update('x'), false);
-  assert.equal(info.update({}), false); assert.equal(info.update({dynamicInfo: 'off'}), false); assert.equal(info.update({dynamicInfo: ['location']}), false);
-  assert.equal(info.update({dynamicInfo: {location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
-  assert.equal(info.update({dynamicInfo: {location: false, gear: false, quest: true}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true}}), false);
+  assert.equal(info.update({dynamicInfo: 'off'}), true, 'a malformed table takes the defaults: mods is off again'); assert.equal(info.update({dynamicInfo: {mods: true}}), true);
+  assert.equal(info.update({dynamicInfo: ['location']}), true); assert.equal(info.update({dynamicInfo: {mods: true}}), true);
+  assert.equal(info.update({dynamicInfo: {mods: true, location: 'no', time: 0, gear: null, bogus: false}}), false, 'only the boolean false counts, and unknown kinds are ignored');
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false, quest: true}}), true);
   assert.deepEqual([...info.off], ['location', 'gear']);
   assert.equal(info.on('location'), false); assert.equal(info.on('time'), true); assert.equal(info.describe(), 'off: location, gear');
-  assert.equal(info.update({dynamicInfo: {location: false, gear: false}}), false, 'the same set is no change');
-  assert.equal(info.update({version: 2}), true, 'a file without the key counts as everything on');
-  assert.equal(info.off.size, 0);
-  assert.deepEqual(offKinds({dynamicInfo: {money: false}}), ['money']);
+  assert.equal(info.update({dynamicInfo: {mods: true, location: false, gear: false}}), false, 'the same set is no change');
+  assert.equal(info.update({version: 2}), true, 'a file without the key takes the defaults: only mods is off');
+  assert.deepEqual([...info.off], ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {mods: true, money: false}}), ['money']);
+  assert.deepEqual(offKinds({dynamicInfo: {money: false}}), ['money', 'mods']);
+  assert.deepEqual(offKinds({}), ['mods']);
+  assert.deepEqual(offKinds({dynamicInfo: {mods: 'yes'}}), ['mods'], 'only the boolean true turns Other mods state on');
 });
 
 test('stripSnapshot removes only what the off kinds own, and always keeps V\'s voice gender and the dialogue volume', () => {
@@ -145,6 +160,16 @@ test('with every kind on, each marker is in the Convai context and in the prompt
   }
 });
 
+test('a settings file without mods: the turn carries no mod-state block, and with mods saved as true it does', () => {
+  const info = new DynamicInfo(); info.update({version: 2, dynamicInfo: {location: true}});
+  assert.deepEqual([...info.off], ['mods']);
+  const without = withInfo(info, () => conversationContext(parsed()));
+  assert.doesNotMatch(without, MARKERS.mods);
+  for (const [kind, marker] of Object.entries(MARKERS)) if (kind !== 'mods') assert.match(without, marker, `${kind} stays`);
+  const on = new DynamicInfo(); on.update({dynamicInfo: {mods: true}});
+  assert.match(withInfo(on, () => conversationContext(parsed())), MARKERS.mods);
+});
+
 for (const kind of KINDS) {
   test(`${kind} off: it is absent from Convai, Mistral, Local AI and Custom, and every other kind is still there`, async () => {
     const info = withOff(kind);
@@ -161,7 +186,7 @@ for (const kind of KINDS) {
   });
 }
 
-test('every kind off at once: the character is still told it is with V, and none of the nine is anywhere in the prompt', async () => {
+test('every kind off at once: the character is still told it is with V, and none of the twelve is anywhere in the prompt', async () => {
   const info = withOff(...KINDS);
   const convai = withInfo(info, () => conversationContext(parsed()));
   assert.match(convai, /You are with V in person/);

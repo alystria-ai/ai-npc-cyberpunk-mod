@@ -6,6 +6,8 @@
 -- packet consumes the whole lease. The first speaker of a manual group round
 -- leases a leave offer only (docs/WORLD_COMPANIONS.md). An ordinary world NPC with none of those offers leases at most one
 -- reaction offer instead (leave, call the police, attack; docs/NPC_REACTIONS.md, mod/npc-reactions.lua), private turns only.
+-- A holocall line (the caller is not here) leases only a meeting offer (immersive invitations, docs/IMMERSIVE_INVITATIONS.md): come and meet V,
+-- or call a standing meeting off. The bridge answers it after her reply is complete, with the offer's own one-use token.
 local M = {}
 local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
 -- Why a world character cannot follow V now. Only these codes reach the bridge,
@@ -73,10 +75,36 @@ local function offeredMember(offer, target)
     return false
 end
 
+-- A housing packet (mod/housemates.lua): {op = 'stay', apartment} for a flat the offer listed, {op = 'move-out'} when the offer allowed it,
+-- {op = 'join', target = a listed member's entity | 'all'}.
+local function offeredHome(offer, home)
+    if type(offer) ~= 'table' or type(home) ~= 'table' then return false end
+    if home.op == 'stay' then
+        for _, apartment in ipairs(offer.apartments or {}) do if apartment.id == home.apartment then return true end end
+        return false
+    elseif home.op == 'move-out' then return offer.moveOut == true
+    elseif home.op == 'join' then
+        local members = offer.members or {}
+        if home.target == 'all' then return #members >= 1 end
+        for _, member in ipairs(members) do if member.id == home.target then return true end end
+    end
+    return false
+end
+
 local function offeredKind(offer, kind)
     if type(offer) ~= 'table' or type(offer.kinds) ~= 'table' or type(kind) ~= 'string' then return false end
     for _, value in ipairs(offer.kinds) do if value == kind then return true end end
     return false
+end
+
+-- A meeting packet names one kind the offer allows: meet-here and meet-waypoint need that place in the offer, cancel-meet a standing meeting.
+local MEET_KIND = {['meet-here'] = 'here', ['meet-waypoint'] = 'waypoint'}
+local function offeredMeet(offer, kind)
+    local meet = type(offer) == 'table' and offer.meet
+    if type(meet) ~= 'table' or type(kind) ~= 'string' then return false end
+    if kind == 'cancel-meet' then return meet.cancel == true end
+    local place = MEET_KIND[kind]
+    return place ~= nil and offeredKind(meet, place)
 end
 
 function M.new(options)
@@ -110,12 +138,14 @@ function M.new(options)
         if not normalized or not ownedOffer(captured, context) then return nil end
         return captured
     end
-    local lastAdvisory, lastTacticAdvisory, lastDriveAdvisory
+    local lastAdvisory, lastTacticAdvisory, lastDriveAdvisory, lastMeetNote
 
     local function assign(context, from)
         context.chauffeurOffer, context.tacticOffer = copy(from.offer), copy(from.tacticOffer)
         context.followOffer, context.leaveOffer = copy(from.followOffer), copy(from.leaveOffer)
         context.reactionOffer = copy(from.reactionOffer)
+        context.meetOffer = copy(from.meetOffer)
+        context.homeOffer = copy(from.homeOffer)
     end
 
     -- The one place a reaction offer's end is written when it ends for a reason that is not the ordinary one (the next message, or its own
@@ -145,7 +175,7 @@ function M.new(options)
         if type(context) ~= 'table' then return false end
         context.chauffeurOffer, context.tacticOffer, context.tacticUnavailable = nil, nil, nil
         context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
-        context.driveUnavailable, context.reactionOffer = nil, nil
+        context.driveUnavailable, context.reactionOffer, context.meetOffer, context.homeOffer = nil, nil, nil, nil
         local private = source == 'private-text' or source == 'private-voice'
         local group = source == 'group-text' or source == 'group-voice'
         if not (private or group) or (private and context.group ~= nil) or context.reaction
@@ -162,26 +192,41 @@ function M.new(options)
         if admission == lastAdmission then
             context.followUnavailable, context.tacticUnavailable = lastAdvisory, lastTacticAdvisory
             context.driveUnavailable = lastDriveAdvisory
+            context.meetOffer = copy(lastMeetNote)
             if lease then assign(context, lease); return true end
             return false
         end
         Q.revoke('new-conversation')
-        lastAdmission, lastAdvisory, lastTacticAdvisory, lastDriveAdvisory = admission, nil, nil, nil
+        lastAdmission, lastAdvisory, lastTacticAdvisory, lastDriveAdvisory, lastMeetNote = admission, nil, nil, nil, nil
         local drive, tactic, follow, refusal, tacticRefusal, driveRefusal
-        if private then
+        local meet, meetNote
+        -- A holocall's caller is not here: no ride, fight, follow, leave or reaction, only a meeting V may ask for.
+        local call = private and type(context.holocall) == 'table'
+        if call then
+            meet, meetNote = capturedOffer(options.meetOffer, context.entity, context)
+            if meet and (type(meet.meet) ~= 'table' or type(meet.meet.token) ~= 'string') then meet = nil end
+        elseif private then
             drive, driveRefusal = capturedOffer(options.offer, context.entity, context)
             tactic, tacticRefusal = capturedOffer(options.tacticOffer, context.entity, context)
             follow, refusal = capturedOffer(options.followOffer, context.entity, context)
         end
-        local leave = capturedOffer(options.leaveOffer, context.entity, context)
-        if leave and (type(leave.members) ~= 'table' or #leave.members < 1 or #leave.members > 3) then leave = nil end
+        local leave = not call and capturedOffer(options.leaveOffer, context.entity, context) or nil
+        if leave and (type(leave.members) ~= 'table' or #leave.members < 1 or #leave.members > 12) then leave = nil end
         -- An ordinary world NPC's reaction (docs/NPC_REACTIONS.md): only a private conversation, and only for a person with no
         -- companion offer at all.
         local reaction
-        if private and not drive and not tactic and not follow and not leave then
+        if private and not call and not drive and not tactic and not follow and not leave then
             reaction = capturedOffer(options.reactionOffer, context.entity, context)
             if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 3) then reaction = nil end
         end
+        -- A housing offer (mod/housemates.lua): V's flats to move into, the housemates V may call along, and moving out. Private turns
+        -- carry the apartments; the first speaker of a group round carries only the audience.
+        local home
+        if private then home = capturedOffer(options.homeOffer, context.entity, context)
+        elseif group then home = capturedOffer(options.groupHomeOffer, context.entity, context) end
+        if home and (type(home.apartments) ~= 'table' or #home.apartments > 5 or type(home.members) ~= 'table' or #home.members > 12) then home = nil end
+        -- A housing offer is a companion's: it replaces an ordinary person's reaction offer.
+        if home then reaction = nil end
         -- A follow the game refuses carries only its reason code: no lease, no action.
         if not follow and type(refusal) == 'table' and refusal.available == false
             and FOLLOW_UNAVAILABLE[refusal.reason] then
@@ -200,11 +245,20 @@ function M.new(options)
             lastTacticAdvisory = 'no-target'
             context.tacticUnavailable = 'no-target'
         end
-        if not drive and not tactic and not follow and not leave and not reaction then return false end
+        -- A call line she cannot answer with a meeting (a fight, nowhere to stand): the game's reason travels with the line for her note, and nothing is leased.
+        if call and not meet and type(meetNote) == 'table' and meetNote.available == false and type(meetNote.actor) == 'table'
+            and meetNote.actor.id == context.entity and meetNote.actor.key == context.profileKey and type(meetNote.meet) == 'table' then
+            local noted, normalized = pcall(options.normalizeOffer or normalizeOffer, meetNote)
+            if noted and type(normalized) == 'table' then
+                lastMeetNote = normalized
+                context.meetOffer = copy(normalized)
+            end
+        end
+        if not drive and not tactic and not follow and not leave and not reaction and not meet and not home then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
             profileKey = context.profileKey, source = source, worldToken = world.worldToken,
             worldGeneration = world.generation, offer = copy(drive), tacticOffer = copy(tactic),
-            followOffer = copy(follow), leaveOffer = copy(leave), reactionOffer = copy(reaction),
+            followOffer = copy(follow), leaveOffer = copy(leave), reactionOffer = copy(reaction), meetOffer = copy(meet), homeOffer = copy(home),
             group = group and context.group.id or nil, expiresAt = clock() + MAX_LEASE_MS}
         assign(context, lease)
         result = {state = 'available'}
@@ -247,10 +301,14 @@ function M.new(options)
             and offeredMember(lease.leaveOffer, packet.leave)
         local reaction = packet.action == 'npc-reaction' and lease.reactionOffer ~= nil
             and offeredKind(lease.reactionOffer, packet.reaction)
+        local homeAction = packet.action == 'companion-home' and lease.homeOffer ~= nil and offeredHome(lease.homeOffer, packet.home)
+        -- A meeting names a kind of the offer and carries the offer's own token.
+        local meet = packet.action == 'companion-meet' and lease.meetOffer ~= nil and offeredMeet(lease.meetOffer, packet.meet)
+            and type(lease.meetOffer.meet) == 'table' and packet.meetToken == lease.meetOffer.meet.token
         -- The first rule this packet breaks (nil: none). The reason is written for an ordinary NPC's reaction only, once per packet.
         local fault
         if packet.version ~= 1 then fault = 'version'
-        elseif not (drive or tactic or follow or leave or reaction) then fault = 'not-offered'
+        elseif not (drive or tactic or follow or leave or reaction or meet or homeAction) then fault = 'not-offered'
         elseif type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240 then fault = 'action-id'
         elseif packet.requestId ~= lease.requestId or packet.generation ~= lease.generation then fault = 'other-request'
         elseif packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey then fault = 'other-person'
@@ -264,9 +322,13 @@ function M.new(options)
             or (tactic and not equal(packet.tacticOffer, lease.tacticOffer))
             or (follow and not equal(packet.followOffer, lease.followOffer))
             or (leave and not equal(packet.leaveOffer, lease.leaveOffer))
-            or (reaction and not equal(packet.reactionOffer, lease.reactionOffer)) then fault = 'offer-differs' end
+            or (reaction and not equal(packet.reactionOffer, lease.reactionOffer))
+            or (meet and not equal(packet.meetOffer, lease.meetOffer)) 
+            or (homeAction and not equal(packet.homeOffer, lease.homeOffer)) then fault = 'offer-differs' end
         if fault then
             if packet.action == 'npc-reaction' then logReaction('NPC reaction packet refused: ' .. fault) end
+            if packet.action == 'companion-meet' then logReaction('Call meeting packet refused: ' .. fault) end
+            if packet.action == 'companion-home' then logReaction('Housemates failed:packet-' .. fault) end
             return
         end
         -- Consume before the native callback: even a throw after a side effect
@@ -283,6 +345,16 @@ function M.new(options)
                 driveQueued and '' or 'The driving request could not be queued.')
             return
         end
+        if meet then
+            -- A meeting from a holocall says nothing on screen either: the appointment's own notice ("on her way") is the answer.
+            local called, accepted, why = pcall(options.queueMeet or function() return false, 'not-available' end, packet.meet,
+                copy(admitted.meetOffer), admitted.profileKey, admitted.requestId)
+            result = {state = called and accepted == true and 'queued' or 'rejected', reason = called and why or nil}
+            if result.state == 'rejected' then
+                logReaction('Call meeting hand-over rejected: ' .. tostring(called and why or ('error: ' .. tostring(accepted):sub(1, 120))))
+            end
+            return
+        end
         if reaction then
             -- An ordinary NPC's reaction says nothing on screen, accepted or not: the log line of the service is its record.
             local called, accepted, why = pcall(options.queueReaction or function() return false, 'not-available' end, packet.reaction,
@@ -291,6 +363,15 @@ function M.new(options)
             if result.state == 'rejected' then
                 logReaction('NPC reaction hand-over rejected: ' .. tostring(called and why or ('error: ' .. tostring(accepted):sub(1, 120))))
             end
+            return
+        end
+        if homeAction then
+            if type(options.queueHome) ~= 'function' then report('rejected', nil, 'That action is not available.'); return end
+            local called, accepted, reason = pcall(options.queueHome, copy(packet.home), copy(admitted.homeOffer), admitted.entity,
+                admitted.requestId, admitted.group)
+            -- The controller writes what it did with the choice (mod/housemates.lua); a throw on the way is written here.
+            if not called then logReaction('Housemates failed:queue-error ' .. tostring(accepted):sub(1, 120)) end
+            report(called and accepted == true and 'queued' or 'rejected', called and reason or nil, 'That action is not available.')
             return
         end
         if follow or leave then
@@ -321,6 +402,8 @@ function M.new(options)
             reason = result and result.reason, drive = lease ~= nil and lease.offer ~= nil,
             tactic = lease ~= nil and lease.tacticOffer ~= nil, follow = lease ~= nil and lease.followOffer ~= nil,
             leave = lease ~= nil and lease.leaveOffer ~= nil, reaction = lease ~= nil and lease.reactionOffer ~= nil,
+            meet = lease ~= nil and lease.meetOffer ~= nil,
+            home = lease ~= nil and lease.homeOffer ~= nil,
             followUnavailable = lastAdvisory,
             tacticUnavailable = lastTacticAdvisory, driveUnavailable = lastDriveAdvisory}
     end

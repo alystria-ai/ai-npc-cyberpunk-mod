@@ -1,5 +1,8 @@
 import {headTrigger} from './johnny-head.mjs';
+import {meetTrigger} from './appointment-events.mjs';
+import {houseTrigger} from './house-chat.mjs';
 import {lootTrigger, lootFacts} from './loot-context.mjs';
+import {speakupTrigger} from './speakup-context.mjs';
 
 const unknown = () => ({version: 1, status: 'unavailable'});
 const sequence = value => Array.isArray(value) ? value : value && typeof value === 'object' && !Object.keys(value).length ? [] : null;
@@ -72,6 +75,9 @@ export function battleTrigger(input) {
   if (!input.reaction) return input.text;
   if (input.reaction.kind === 'loot') return lootTrigger(input);
   if (input.reaction.kind === 'head') return headTrigger(input);
+  if (input.reaction.kind === 'meet') return meetTrigger(input);
+  if (input.reaction.kind === 'house') return houseTrigger(input);
+  if (input.reaction.kind === 'speakup') return speakupTrigger(input);
   const battle = parseBattle(input.battle);
   if (!parseReaction(input.reaction, battle, input.loot)) throw Error('Invalid battle trigger');
   const opening = input.reaction.phase === 'start';
@@ -91,7 +97,7 @@ export function battleTrigger(input) {
 }
 
 export function battleContext(input) {
-  if (input.reaction?.kind === 'loot' || input.reaction?.kind === 'head') return '';
+  if (['loot', 'head', 'meet', 'house', 'speakup'].includes(input.reaction?.kind)) return '';
   const battle = parseBattle(input.battle);
   if (!battle) return '';
   if (battle.status === 'unavailable') return 'Current combat observations are unavailable. Do not infer that an earlier encounter happened in this loaded save.';

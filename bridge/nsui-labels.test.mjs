@@ -14,7 +14,7 @@ const everything = {
   'setup-check.lua': source('setup-check.lua'), 'custom-provider.lua': source('custom-provider.lua'),
 };
 const languages = ['en', 'zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
-const views = ['home', 'characters', 'party', 'models', 'settings', 'memory', 'relationships', 'dynamic-info', 'help', 'paid-tier', 'custom-endpoint'];
+const views = ['home', 'characters', 'party', 'models', 'settings', 'memory', 'relationships', 'dynamic-info', 'key-bindings', 'help', 'paid-tier', 'custom-endpoint'];
 
 for (const code of languages) {
   test(`${code}: every row of every page fits its width; only text lines are cut and they keep their whole text in the description`, () => run(`
@@ -56,7 +56,7 @@ for (const code of languages) {
       end
     end
     assert(rows > 100, 'the pages were not built: ' .. rows .. ' rows')
-    -- The Dynamic info page: nine switches, none cut, each one's whole name on the row.
+    -- The Dynamic info page: twelve switches, none cut, each one's whole name on the row.
     core.setView('dynamic-info'); frames(6); ns.verify()
     local switches = 0
     for _, section in ipairs(ns.sections()) do
@@ -64,7 +64,7 @@ for (const code of languages) {
         if option.type == 'switch' then switches = switches + 1; assert(option.label:sub(-3) ~= '…', 'a Dynamic info name was cut: ' .. option.label) end
       end
     end
-    assert(switches == 9, 'Dynamic info has ' .. switches .. ' switches')
+    assert(switches == 12, 'Dynamic info has ' .. switches .. ' switches')
     -- The Forget all row: its name carries the count (the number alone when the translation is wider), it is never cut, and the button is one word.
     core.setView('memory'); frames(6); ns.verify()
     local forget

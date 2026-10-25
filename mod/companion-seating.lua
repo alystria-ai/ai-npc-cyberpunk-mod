@@ -4,6 +4,11 @@
 -- the vanilla NPC sit workspot of that seat type, and stands up with the native
 -- fast exit when V gets up, moves away, or a fight starts.
 --
+-- Home settle (docs/COMPANION_SETTLE.md): while V stays in one of V's own flats
+-- mod/companion-settle.lua hands this controller a "home" (setHome). Each
+-- companion then claims one place from it, a seat (the same walk, workspot and
+-- stand-up as beside V) or a standing spot, and keeps it until the home ends.
+--
 -- Cost: V's workspot state is read at most four times a second (one native
 -- call while V stands). Seats are searched once per sit, with a bounded number
 -- of raycasts spread over two updates. Nothing here runs per frame or touches
@@ -96,6 +101,14 @@ M.policy = {
     standEvalMax = 5,
     openReach = 1.2,       -- openness: clear lines this long at the line heights
     failureCooldown = 30,
+    -- Home settle: a standing place instead of a seat.
+    homeReach = 25,        -- companions farther from V than this are not given a place
+    homeTry = 1.0,         -- seconds between two claims by a companion without a place
+    homeWaitV = 5,         -- V is sitting down and the seats beside V are not known yet: a home place waits this long for them
+    postArrive = .5,       -- close enough to a standing place: turn and stay
+    postTimeout = 25,      -- the walk to a standing place takes longer than this: she follows again
+    postTurn = 2.5,        -- the turn to the place's facing, at most
+    faceCool = 4,          -- seconds between two turns toward V while V talks to her
 }
 
 -- Seat types. band: seat surface height above V's feet; tolerance: allowed
@@ -368,6 +381,12 @@ function native.spawnDevice(position, orientation, template)
     end)
 end
 native.deviceEntity = workspot.deviceEntity
+-- The orientation of a device facing `yaw` degrees (game yaw): how a home seat's workspot is turned.
+function native.orientation(yaw)
+    local rad = math.rad(yaw or 0)
+    local ok, q = pcall(function() return Quaternion.BuildFromDirectionVector(Vector4.new(-math.sin(rad), math.cos(rad), 0, 0)) end)
+    return ok and q or nil
+end
 -- An archive from before seating has the device without sit components: never
 -- play a component the device does not carry. Unknown (no lookup) counts as present.
 function native.hasComponent(device, component)
@@ -516,7 +535,7 @@ function M.new(options)
     local nat, policy = self.native, M.policy
     local components = catalog.seatComponents or {}
     local template = catalog.device
-    local check, session = 0, nil
+    local check, session, home = 0, nil, nil
     self.disabledReason = (not next(components) or not template) and 'seat workspots missing from the installed archive' or nil
 
     local function note(kind, fields)
@@ -540,23 +559,52 @@ function M.new(options)
         if s.deviceID then nat.deleteDevice(s.deviceID) end
         s.deviceID, s.device = nil, nil
     end
+    -- Is the session this companion belongs to (V's seat, or the home) still the current one?
+    local function live(s)
+        if s.home then return home ~= nil and home.id == s.session end
+        return session ~= nil and session.id == s.session
+    end
+    local function endedReason(s) return s.home and 'home ended' or 'V stood up' end
+    -- Reasons that end a home place for good reasons; any other end of a place (a seat that never played, a walk that never got there)
+    -- is a failure the home is told about, so nobody else is sent to the same place.
+    local HOME_ENDS = {['home ended'] = true, ['V sits here'] = true, combat = true, transport = true, unobserved = true,
+        dismissed = true, ['fast-travel'] = true, ['stood up'] = true, ['left the seat on its own'] = true}
+    -- She lets go of her home place: the home forgets her claim (bad: the place did not work).
+    local function giveBack(s, reason)
+        local place = s.place
+        if not place then return end
+        s.place = nil
+        if home and s.home and home.freed then
+            pcall(home.freed, place, not (s.homeEnding or HOME_ENDS[reason]), reason, s.serial)
+        end
+        s.homeEnding = nil
+    end
     local function release(s, reason)
+        local wasLive = live(s)
         if s.seat then s.seat.taken = nil end
         dropDevice(s)
         note('seat-' .. (HOLDING[s.phase] and 'finished' or 'abandoned'), {serial = s.serial, reason = reason})
         s.phase, s.seat, s.exitAt, s.lookStyle = 'off', nil, nil, nil
+        giveBack(s, reason)
+        if s.rehome then
+            -- V sat on her place: she takes another one.
+            s.rehome = nil
+            if s.home and wasLive then s.session, s.cooldownUntil = nil, self.clock + (s.rehomeHold or 1) end
+            s.rehomeHold = nil
+        end
         if s.reseat then
             -- She stood up on her own while V is still seated: take a seat again.
             s.reseat = nil
-            if session and session.id == s.session and reason == 'left the seat on its own' then
+            if wasLive and reason == 'left the seat on its own' then
                 s.session, s.cooldownUntil = nil, self.clock + 1
                 note('seat-reseat', {serial = s.serial, reason = reason})
             end
         end
     end
+    local POSTING = {['post-walk'] = true, ['post-turn'] = true, post = true, ['post-face'] = true}
     local function requestExit(s, reason, instant)
         if s.phase == 'approach' or s.phase == 'settling' or s.phase == 'blending' or s.phase == 'choosing'
-            or s.phase == 'closing' or s.phase == 'placing' then release(s, reason); return end
+            or s.phase == 'closing' or s.phase == 'placing' or POSTING[s.phase] then release(s, reason); return end
         if s.phase == 'entering' and not s.playedAt then release(s, reason); return end
         if (s.phase == 'standing' or s.phase == 'leaving') and (reason == 'transport' or reason == 'unobserved') then
             release(s, reason); return
@@ -570,7 +618,7 @@ function M.new(options)
         if not session then return end
         note('player-stood', {session = session.id, reason = reason})
         session = nil
-        for _, s in pairs(self.states) do requestExit(s, reason, instant) end
+        for _, s in pairs(self.states) do if not s.home then requestExit(s, reason, instant) end end
     end
 
     -- V's seat, sampled at most every policy.checkEvery seconds.
@@ -598,6 +646,18 @@ function M.new(options)
                     session.forward = {x = seat.forward.x / len, y = seat.forward.y / len}
                     session.orientation = seat.orientation or session.orientation
                     session.search = {side = 1, samples = {}}
+                    -- V's seat root, where V's own workspot plays: housemates (mod/housemates.lua) learn it so none of them is ever given it.
+                    if type(options.onSettled) == 'function' then
+                        pcall(options.onSettled, copy(session.anchor), {x = session.forward.x, y = session.forward.y}, session.kind)
+                    end
+                    -- A companion holding that very place (a home seat) gets up and takes another.
+                    for _, other in pairs(self.states) do
+                        if other.home and other.seat and other.seat.root and flat(other.seat.root, session.anchor) < policy.occupiedRadius + .05
+                            and math.abs((other.seat.root.z or 0) - session.anchor.z) < .8 then
+                            other.rehome, other.homeEnding = true, true
+                            requestExit(other, 'V sits here', false)
+                        end
+                    end
                 end
             end
             return
@@ -734,7 +794,7 @@ function M.new(options)
     -- Judge a few walk-up points this update; true once the choice is made.
     local function choose(s, entry)
         local checked = 0
-        while s.points and #s.points > 0 and checked < policy.precheckPerUpdate do
+        while not s.stopChecking and s.points and #s.points > 0 and checked < policy.precheckPerUpdate do
             local point = table.remove(s.points, 1)
             checked = checked + 1
             local good, why = precheck(s, point, entry.position, entry)
@@ -884,16 +944,20 @@ function M.new(options)
     end
 
     local function begin(s, entry)
-        s.session = session.id
+        s.session, s.home = session.id, false
         if self.disabledReason then return nil end
         local best, bestGap
         for _, seat in ipairs(session.seats or {}) do
             if not seat.taken and seat.checked ~= false then
                 local root = M.seatPoints(session.anchor, session.forward, seat, session.profile)
+                local held = false
+                for _, other in pairs(self.states) do
+                    if other.home and other.seat and other.seat.root and flat(other.seat.root, root) < policy.occupiedRadius + .05 then held = true end
+                end
                 -- Next to V first; the companion's own distance breaks ties
                 -- (the seat on its side of V).
                 local gap = math.abs(seat.offset) + .25 * (entry.position and flat(entry.position, root) or 0)
-                if not bestGap or gap < bestGap then best, bestGap = seat, gap end
+                if not held and (not bestGap or gap < bestGap) then best, bestGap = seat, gap end
             end
         end
         if not best then note('seat-none', {serial = s.serial, session = session.id}); return nil end
@@ -1073,30 +1137,164 @@ function M.new(options)
         note('seat-play', {serial = s.serial, component = s.component, slide = slide})
     end
 
+    -- ---- home places (docs/COMPANION_SETTLE.md) --------------------------------------------------------------------------------
+    -- A place is {id, kind, x, y, z, yaw, approach = {x, y, z}, face = {x, y}}: a seat (kind couch, chair, bar or stool, the root of its
+    -- workspot with a way up to it) or a standing place (any other kind). The home's claim() chose it; this controller walks her there.
+    local function vPosition()
+        local ok, at = pcall(function() local p = self.player:GetWorldPosition(); return {x = p.x, y = p.y, z = p.z} end)
+        return ok and at or nil
+    end
+    local function forwardOf(yaw)
+        local rad = math.rad(yaw or 0)
+        return {x = -math.sin(rad), y = math.cos(rad)}
+    end
+    local function beginHome(s, entry, place)
+        s.session, s.home, s.place, s.homeEnding = home.id, true, place, nil
+        s.holdOp, s.playedAt, s.device, s.deviceID, s.failingSince, s.slide = nil, nil, nil, nil, nil, nil
+        s.stuck, s.walkFrom, s.arrivedAt, s.closingSince, s.blendSince = nil, nil, nil, nil, nil
+        local root = {x = place.x, y = place.y, z = place.z}
+        local profile = M.kinds[place.kind]
+        if not profile then
+            -- A standing place: a walk, a turn toward the facing, then a hold.
+            s.seat = {root = root, home = true}
+            s.phase, s.since = 'post-walk', self.clock
+            s.op = {ticket = nextTicket(s), kind = 'move', goal = copy(root), gait = 'Walk', finish = true, face = false}
+            note('home-post', {serial = s.serial, id = place.id, kind = place.kind, toPlace = entry.position and flat(entry.position, root)})
+            return {phase = 'home-walk', reason = 'Walk to a place in the flat', operation = s.op, look = 'none'}
+        end
+        local component = components[profile.component]
+        local orientation = nat.orientation and nat.orientation(place.yaw) or nil
+        if self.disabledReason or not component or not template or not orientation then
+            failNote('home seat unavailable: ' .. tostring(self.disabledReason or (not orientation and 'orientation') or 'component'))
+            s.cooldownUntil = self.clock + policy.failureCooldown
+            s.phase = 'off'; giveBack(s, 'unavailable')
+            return nil
+        end
+        local at = vPosition() or entry.position or root
+        s.seat = {root = root, home = true, taken = s.serial}
+        s.component, s.phase, s.since = component, 'choosing', self.clock
+        s.anchorCopy, s.forwardCopy, s.profileCopy = {x = at.x, y = at.y, z = place.z}, forwardOf(place.yaw), profile
+        s.points = M.approachPoints(root, s.forwardCopy, profile, s.anchorCopy, entry.position, policy)
+        s.good, s.chooseUpdates, s.rejectedPoints, s.lastReject, s.tries = {}, 0, 0, nil, 0
+        s.fallback = {}
+        -- The home prepared a way up to the seat (floor and navmesh checked): it is the first walk-up point, and the pre-check is skipped.
+        if place.approach then
+            s.good[1] = {x = place.approach.x, y = place.approach.y, z = place.approach.z, score = 0}
+            s.stopChecking = true
+        else s.stopChecking = nil end
+        local ok, id = nat.spawnDevice(root, orientation, template)
+        if ok then s.deviceID = id else failNote('seat device: ' .. tostring(id)) end
+        note('home-seat', {serial = s.serial, id = place.id, kind = place.kind, component = component,
+            toSeat = entry.position and flat(entry.position, root)})
+        return startWalk(s, entry)
+    end
+
+    -- A companion without a place, while a home exists: ask the home for one (at most once a second, never during a fight).
+    local function tryHome(s, entry, context)
+        if context.combat or self.clock < (s.cooldownUntil or 0) or self.clock < (s.homeTryAt or 0) then return nil end
+        if s.homeOut == home.id then return nil end
+        -- V's seats come first: while V sits down and the seats beside V are still being found, she waits a moment.
+        if session and not session.seats and self.clock - session.since < policy.homeWaitV then return nil end
+        s.homeTryAt = self.clock + policy.homeTry
+        if (tonumber(entry.playerGap) or math.huge) > policy.homeReach then return nil end
+        if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
+        local ok, place = pcall(home.claim, entry)
+        if not ok then failNote('home claim: ' .. tostring(place)); return nil end
+        if type(place) ~= 'table' then return nil end
+        s.homeTryAt = nil
+        return beginHome(s, entry, place)
+    end
+
+    local function postHold(s, context, look)
+        s.holdOp = s.holdOp or {ticket = nextTicket(s), kind = 'hold'}
+        return {phase = 'home-post', reason = 'Stay at her place in the flat', operation = s.holdOp,
+            look = look or (context.selected and 'full' or 'none')}
+    end
+    local function postGiveUp(s, why)
+        failNote('home place: ' .. why)
+        s.cooldownUntil = self.clock + policy.failureCooldown
+        release(s, why)
+    end
+    -- Walk, turn, then stay; a turn toward V while V talks to her.
+    local function posting(s, entry, context)
+        local place = s.place
+        local motion = context.motion or {}
+        if s.phase == 'post-walk' then
+            local ours = motion.ticket == s.op.ticket
+            local gap = entry.position and flat(entry.position, place) or math.huge
+            if gap <= policy.postArrive or (ours and motion.complete) then
+                s.phase, s.since, s.failingSince = 'post-turn', self.clock, nil
+                local f = forwardOf(place.yaw)
+                local point = place.face or {x = place.x + f.x * 3, y = place.y + f.y * 3}
+                s.op = {ticket = nextTicket(s), kind = 'turn', goal = {x = point.x, y = point.y, z = place.z}, finish = true, face = true}
+                note('home-arrived', {serial = s.serial, id = place.id, gap = gap})
+            else
+                if (ours and (motion.failed or motion.stalled)) or (not ours and self.clock - s.since >= policy.notOursAfter) then
+                    s.failingSince = s.failingSince or self.clock
+                    if self.clock - s.failingSince >= policy.routeGrace * 2 then postGiveUp(s, 'walk refused'); return nil end
+                else s.failingSince = nil end
+                if self.clock - s.since > policy.postTimeout then postGiveUp(s, 'walk timeout'); return nil end
+                return {phase = 'home-walk', reason = 'Walk to a place in the flat', operation = s.op, look = 'none'}
+            end
+        end
+        if s.phase == 'post-turn' or s.phase == 'post-face' then
+            local ours = motion.ticket == s.op.ticket
+            local lost = s.phase == 'post-face' and not context.selected
+            if (ours and (motion.complete or motion.failed)) or self.clock - s.since >= policy.postTurn or lost then
+                if s.phase == 'post-face' then s.faceCoolAt = self.clock + policy.faceCool end
+                s.phase, s.since, s.holdOp = 'post', self.clock, nil
+                note('home-posted', {serial = s.serial, id = place.id})
+            else
+                return {phase = 'home-turn', reason = 'Turn toward where she stands', operation = s.op, look = context.selected and 'full' or 'none'}
+            end
+        end
+        -- Standing: a turn toward V once while V talks to her.
+        if context.selected and (tonumber(context.facingError) or 0) > 40 and self.clock >= (s.faceCoolAt or 0)
+            and context.frame and context.frame.position then
+            local v = context.frame.position
+            s.phase, s.since = 'post-face', self.clock
+            s.op = {ticket = nextTicket(s), kind = 'turn', goal = {x = v.x, y = v.y, z = v.z}, finish = true, face = true}
+            return {phase = 'home-turn', reason = 'Turn toward V', operation = s.op, look = 'full'}
+        end
+        return postHold(s, context)
+    end
+
     -- Decision override for the companions loop (before behavior.decide):
     -- a walk to the assigned seat, then a hold while the workspot owns the body.
     function self.steer(entry, context)
         local s = stateFor(entry)
         if s.phase == 'off' then
-            if not session or not session.seats or s.session == session.id then return nil end
-            if context.combat or self.clock < (s.cooldownUntil or 0) then return nil end
-            if (tonumber(entry.playerGap) or math.huge) > policy.searchRadius then
-                if s.farSession ~= session.id then
-                    s.farSession = session.id
-                    note('seat-too-far', {serial = s.serial, session = session.id, gap = entry.playerGap})
+            -- V's seat first (beside V), then a place of the home.
+            if session and session.seats and s.session ~= session.id then
+                local skip = context.combat or self.clock < (s.cooldownUntil or 0)
+                if not skip and (tonumber(entry.playerGap) or math.huge) > policy.searchRadius then
+                    skip = true
+                    if s.farSession ~= session.id then
+                        s.farSession = session.id
+                        note('seat-too-far', {serial = s.serial, session = session.id, gap = entry.playerGap})
+                    end
                 end
-                return nil
+                -- (inWorkspot not false: a gesture stance is still leaving)
+                if not skip and nat.inWorkspot(entry.npc) == false then
+                    local decision = begin(s, entry)
+                    if decision or s.phase ~= 'off' then return decision end
+                end
             end
-            if nat.inWorkspot(entry.npc) ~= false then return nil end -- a gesture stance is still leaving
-            return begin(s, entry)
+            if home and s.session ~= home.id then return tryHome(s, entry, context) end
+            return nil
         end
         if s.phase == 'choosing' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             return startWalk(s, entry)
         end
+        if POSTING[s.phase] then
+            if not live(s) then release(s, endedReason(s)); return nil end
+            if context.combat then release(s, 'combat'); return nil end
+            return posting(s, entry, context)
+        end
         if s.phase == 'approach' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             local motion = context.motion or {}
             local ours = motion.ticket == s.op.ticket
@@ -1134,22 +1332,22 @@ function M.new(options)
             return {phase = 'seat-approach', reason = 'Walk to a seat beside V', operation = s.op, look = 'none'}
         end
         if s.phase == 'placing' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             return placing(s, entry)
         end
         if s.phase == 'closing' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             return slideOrWait(s, entry)
         end
         if s.phase == 'blending' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             return slideOrWait(s, entry)
         end
         if s.phase == 'settling' then
-            if not session or session.id ~= s.session then release(s, 'V stood up'); return nil end
+            if not live(s) then release(s, endedReason(s)); return nil end
             if context.combat then release(s, 'combat'); return nil end
             local motor = entry.motor or {}
             local stopped = motor.ticket == s.holdOp.ticket and motor.kind == 'hold' and (tonumber(entry.speed) or 0) < .3
@@ -1186,14 +1384,14 @@ function M.new(options)
             end
             if s.phase == 'seated' then
                 if context.combat then requestExit(s, 'combat', true); return end
-                if not session or session.id ~= s.session then requestExit(s, 'V stood up', false); return end
+                if not live(s) then requestExit(s, endedReason(s), false); return end
                 if nat.inWorkspot(npc) == false then
                     -- Live runs 20:53Z and 21:12Z: both seats ended by themselves
                     -- 95-105 s after she sat, V still seated (the vanilla sit
                     -- workspot runs out). Stand up cleanly, then sit again.
                     local held = self.clock - (s.seatedAt or self.clock)
-                    note('seat-left-on-own', {serial = s.serial, after = held, vSeated = session ~= nil and session.id == s.session})
-                    if session and session.id == s.session and held >= policy.reseatAfter then
+                    note('seat-left-on-own', {serial = s.serial, after = held, vSeated = live(s)})
+                    if live(s) and held >= policy.reseatAfter then
                         s.phase, s.exitAt, s.exitReason, s.escalated, s.exitInstant, s.reseat =
                             'exiting', self.clock, 'left the seat on its own', nil, false, true
                     else
@@ -1232,7 +1430,12 @@ function M.new(options)
     function self.tick(player, step, rows)
         local dt = tonumber(step) or 0
         self.clock, self.tickCount, self.player = self.clock + dt, self.tickCount + 1, player
-        if not self.swept then self.swept = true; nat.sweep() end
+        if not self.swept then
+            self.swept = true
+            nat.sweep()
+            -- The first tick with a party in a new world (or after fast travel): the home asks once whether V is in one of V's flats.
+            if type(options.onWorld) == 'function' then pcall(options.onWorld) end
+        end
         local present = {}
         for _, row in ipairs(rows or {}) do present[row.entry.serial] = row end
         for serial, s in pairs(self.states) do
@@ -1241,6 +1444,8 @@ function M.new(options)
                 if HOLDING[s.phase] and s.entry and s.entry.npc then pcall(nat.exit, s.entry.npc, true) end
                 if s.seat then s.seat.taken = nil end
                 dropDevice(s)
+                s.homeEnding = true
+                giveBack(s, 'dismissed')
                 self.states[serial] = nil
             else
                 s.entry = row.entry
@@ -1266,14 +1471,86 @@ function M.new(options)
         if HOLDING[s.phase] and entry.npc then pcall(nat.exit, entry.npc, true) end
         if s.seat then s.seat.taken = nil end
         dropDevice(s)
+        s.homeEnding = true
+        giveBack(s, reason)
         self.states[entry.serial] = nil
         note('seat-released', {serial = entry.serial, reason = reason})
     end
 
     function self.abandon()
         -- World teardown: devices are not persistent; no native calls here.
-        self.states, session, self.swept = {}, nil, false
+        self.states, session, home, self.swept = {}, nil, nil, false
         self.player = nil -- the tick stores V's handle; do not pin the old player across the unload
+    end
+
+    -- ---- the home (mod/companion-settle.lua) -------------------------------------------------------------------------------
+    -- spec = {claim = function(entry) -> place | nil, freed = function(place, bad, reason, serial)}. Returns the home's id.
+    function self.setHome(spec)
+        if home then self.clearHome('home replaced', false) end
+        self.sessions = self.sessions + 1
+        home = {id = self.sessions, claim = spec.claim, freed = spec.freed}
+        note('home-set', {home = home.id})
+        return home.id
+    end
+    -- The home ends: every place goes (seated ones stand up with the native exit, standing ones just follow again).
+    function self.clearHome(reason, instant)
+        if not home then return end
+        note('home-cleared', {home = home.id, reason = reason})
+        local ended = home
+        for _, s in pairs(self.states) do
+            if s.home and s.session == ended.id then s.homeEnding = true end
+        end
+        home = nil
+        for _, s in pairs(self.states) do
+            if s.home and s.session == ended.id then
+                -- giveBack needs the home to tell: it is already gone, so the place is simply dropped.
+                requestExit(s, reason or 'home ended', instant)
+            end
+        end
+    end
+    -- One companion lets go of her place and takes no other in this home (V asked her to follow).
+    function self.homeRelease(serial, reason, instant)
+        local s = self.states[serial]
+        if not s or not home then return false end
+        s.homeOut = home.id
+        if s.home and s.session == home.id and s.phase ~= 'off' then
+            s.homeEnding = true
+            requestExit(s, reason or 'home ended', instant)
+        end
+        return true
+    end
+    -- A change of clothes (mod/companion-outfits.lua): she lets go of her home place (a seated one stands up with the native exit) and takes no
+    -- place for `hold` seconds, then the home gives her one again. 'released': she goes now; 'waiting': she is already on her way up (the hold
+    -- is renewed); nil: she holds no place of the home (V's own seat session, nothing to release).
+    function self.homeStandUp(serial, hold)
+        local s = self.states[serial]
+        if not s or not home or not s.home or s.session ~= home.id or s.phase == 'off' then return nil end
+        s.rehome, s.rehomeHold = true, hold
+        if s.phase == 'exiting' or s.phase == 'leaving' or s.phase == 'standing' then return 'waiting' end
+        s.homeEnding = true
+        requestExit(s, 'outfit', false)
+        return 'released'
+    end
+    function self.homeActive() return home ~= nil end
+    -- The places companions hold now, and where V sits: the home never gives the same spot twice.
+    function self.homeHeld()
+        local list = {}
+        for serial, s in pairs(self.states) do
+            if s.place and s.phase ~= 'off' then list[#list + 1] = {serial = serial, id = s.place.id, x = s.place.x, y = s.place.y, z = s.place.z} end
+            if s.seat and s.seat.root and not s.home and s.phase ~= 'off' then
+                list[#list + 1] = {serial = serial, id = 'beside-v', x = s.seat.root.x, y = s.seat.root.y, z = s.seat.root.z}
+            end
+        end
+        return list
+    end
+    -- V's settled seat root, or nil while V is not sitting on a seat (the home learns it: V's own seats are never given away).
+    function self.vSeat() return session and session.anchor and copy(session.anchor) or nil end
+    function self.canSit() return self.disabledReason == nil end
+    function self.sitting() return session ~= nil and session.anchor ~= nil end
+    -- Who holds a place now (phase), for the home's progress check.
+    function self.placed(serial)
+        local s = self.states[serial]
+        return s ~= nil and s.place ~= nil and s.phase ~= 'off' and s.phase or nil
     end
 
     -- While seating owns her (walking to the seat, placing, seated, standing
@@ -1292,12 +1569,12 @@ function M.new(options)
         local rows = {}
         for serial, s in pairs(self.states) do
             rows[#rows + 1] = {serial = serial, phase = s.phase, offset = s.seat and s.seat.offset,
-                component = s.component, session = s.session}
+                component = s.component, session = s.session, home = s.home or nil, place = s.place and s.place.id or nil}
         end
         return {disabled = self.disabledReason,
             session = session and {id = session.id, kind = session.kind, settled = session.anchor ~= nil,
                 seats = session.seats and #session.seats or nil, path = session.path, anim = session.anim} or nil,
-            companions = rows, errors = self.errors}
+            home = home and home.id or nil, companions = rows, errors = self.errors}
     end
 
     return self

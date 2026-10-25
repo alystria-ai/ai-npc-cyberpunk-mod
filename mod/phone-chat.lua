@@ -1,7 +1,7 @@
 -- Display history and provider delivery have separate ownership. The current
 -- single-player policy retains local transcripts across saves; world/generation
 -- guards still prevent a delayed reply from crossing a load or memory reset.
-local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
+local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}, names = {}, groups = {}}
 local LOCAL_HISTORY = 'phone-local-player:v1'
 -- The status line when the bridge says the shared plan's daily allowance is used up (same wording as the game notice).
 local DAILY_LIMIT_STATUS = 'You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.'
@@ -404,11 +404,44 @@ function M.storeReady()
     loadStore()
     return true
 end
+-- Every character with a profile is a Chat contact, not only those the game's journal knows: the shipped phone contacts keep
+-- their own ids (listed from the journal), every other profile gets its key as contact id and its name (no journal row; the list
+-- builds one, PhoneChatTabs.reds). A group is one source of such rows ({key, name}): the roster, the player's own characters.
+-- Rebuilt on demand (load, a custom character saved), never per frame; the next 10 Hz tick registers the new list with the game.
+local function rebuildContacts()
+    for contact in pairs(M.names) do M.catalog[contact], M.names[contact] = nil, nil end
+    local mapped = {}
+    for _, key in pairs(M.catalog) do mapped[key] = true end
+    local ids = {}
+    for group, rows in pairs(M.groups) do
+        for _, row in ipairs(rows) do
+            if type(row) == 'table' and type(row.key) == 'string' and #row.key <= 80 and row.key:match('^[a-z0-9][a-z0-9%-]*$') then
+                ids[#ids + 1] = {key = row.key, name = type(row.name) == 'string' and row.name ~= '' and row.name or row.key}
+            end
+        end
+    end
+    table.sort(ids, function(a, b) return a.key < b.key end)
+    for _, row in ipairs(ids) do
+        if not mapped[row.key] and not M.catalog[row.key] then
+            mapped[row.key], M.catalog[row.key], M.names[row.key] = true, row.key, row.name
+            if M.store and type(M.store.contactProfiles) == 'table' and not M.resetStoreFault then M.store.contactProfiles[row.key] = row.key end
+        end
+    end
+    M.registered = false
+end
+function M.setContacts(group, rows)
+    M.groups[group] = type(rows) == 'table' and rows or nil
+    rebuildContacts()
+end
 function M.configure(profiles, manager, options)
     local supported = {}; for _, p in ipairs(profiles) do supported[p.key] = true end
     for _, c in ipairs(read('phone-contacts.json') or {}) do
         if c.key and supported[c.key] then M.catalog[c.contact] = c.key end
     end
+    -- Named people only: the two ambient residents are crowd stand-ins, not someone to text.
+    local roster = {}
+    for _, p in ipairs(profiles) do if p.kind == nil or p.kind == 'named' then roster[#roster + 1] = p end end
+    M.setContacts('roster', roster)
     M.manager = manager
     options = options or {}
     M.captureBinding = options.captureBinding or M.captureBinding
@@ -454,10 +487,11 @@ end
 
 function M.abandon()
     if M.world then publish(false) end
-    if M.pending then
+    if M.pending and not M.pending.event then
         if (M.drafts[M.pending.contact] or '') == '' then M.drafts[M.pending.contact] = M.pending.text end
         M.errors = {[M.pending.contact] = 'Conversation interrupted. Your message is in the draft.'}
     end
+    M.events, M.eventItem = nil, nil
     save()
     M.world, M.pending, M.contact, M.lastPaint, M.lastHeartbeat, M.registered = nil, nil, nil, nil, nil, nil
     M.saveIdentity, M.bindingKey, M.bucket, M.scope, M.captureDrafts = nil, nil, nil, nil, false
@@ -477,6 +511,57 @@ local function textInputMissing(player)
     if type(check) ~= 'table' or type(check.requirement) ~= 'function' then return false end
     local ok, present = pcall(check.requirement, 'codeware-textinput', player)
     return ok and present == false
+end
+
+-- ---- Texts a character sends on her own (docs/IMMERSIVE_INVITATIONS.md) ------------------------------------------------------------
+-- She arrived, she was stood up, the meeting was called off. The phone turn has no typed line: it carries an `event` and the bridge
+-- writes the text in her voice (bridge/appointment-events.mjs). Anything that stops it shows the plain line the caller prepared.
+function M.contactFor(profileKey)
+    for contact, key in pairs(M.catalog) do if key == profileKey then return contact end end
+    return nil
+end
+function M.sendEvent(item)
+    local contact = M.contactFor(item.profileKey)
+    if not contact or type(item.fallback) ~= 'string' then return false end
+    if M.manager and not M.manager.profileEnabled(item.profileKey) then return false end
+    M.events = M.events or {}
+    if #M.events >= 8 then return false end
+    M.events[#M.events + 1] = {contact = contact, item = item}
+    return true
+end
+function M.deliverEvent(contact, item, text)
+    append(contact, text, false)
+    M.dirty = true
+    if type(M.onEventDelivered) == 'function' then pcall(M.onEventDelivered, item, text) end
+end
+function M.startEvent(player, entry)
+    local contact, item = entry.contact, entry.item
+    local key = M.catalog[contact]
+    if not key then return false end
+    M.serial = M.serial + 1
+    local before = M.bindingKey
+    local worldKnowledge = capture(M.captureWorldKnowledge, player, key, copy(M.saveIdentity))
+    local journalHistory = capture(M.captureJournalHistory, player, key, copy(M.saveIdentity))
+    local journal, battle = capture(M.captureJournal), capture(M.captureBattle)
+    local gameDialogue = capture(M.captureGameDialogue)
+    local turnContext = capture(M.captureTurnContext, key)
+    local confirmed = binding(capture(M.captureBinding, player))
+    if bindingKey(confirmed) ~= before then return false end
+    M.saveIdentity = confirmed
+    local reset = phoneReset(key)
+    M.pending = {id = M.world .. '-' .. M.serial, contact = contact, profileKey = key, text = '',
+        event = {version = 1, kind = item.kind, place = item.place or '', minutes = math.max(0, math.min(120, tonumber(item.minutes) or 0)),
+            car = item.car == true},
+        memoryReset = reset, recentConversation = recentPhoneConversation(contact, key, reset),
+        saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version = 1, status = 'unavailable'},
+        journalHistory = journalHistory, journal = journal, battle = battle, gameDialogue = gameDialogue}
+    M.pending.turnContext = turnContext
+    M.eventItem = item
+    M.sentAt = os.time()
+    M.replyWaitSeconds = replyWait()
+    if publish(true) then return true end
+    M.pending, M.eventItem = nil, nil
+    return false
 end
 
 function M.update(player, delta)
@@ -536,7 +621,7 @@ function M.update(player, delta)
         player:ConvaiPhoneChatClearContacts()
         -- Without the text input no chat is offered (the tab lists nothing) instead of one that opens and cannot be typed in.
         if not textInputMissing(player) then
-            for id in pairs(M.catalog) do player:ConvaiPhoneChatRegisterContact(id) end
+            for id in pairs(M.catalog) do player:ConvaiPhoneChatRegisterContact(id, M.names[id] or '') end
         end
         M.registered = true
     end
@@ -591,7 +676,7 @@ function M.update(player, delta)
             local journal, battle = capture(M.captureJournal), capture(M.captureBattle)
             local gameDialogue = capture(M.captureGameDialogue)
             -- The clock, V's district and what V is doing: read once, when the message is sent (never per frame).
-            local turnContext = capture(M.captureTurnContext)
+            local turnContext = capture(M.captureTurnContext, key)
             local confirmed = binding(capture(M.captureBinding, player))
             if bindingKey(confirmed) ~= before then
                 M.abandon(); return
@@ -603,6 +688,10 @@ function M.update(player, delta)
                 saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version=1,status='unavailable'},
                 journalHistory = journalHistory, journal = journal, battle = battle, gameDialogue = gameDialogue}
             M.pending.turnContext = turnContext
+            -- Immersive invitations (mod/immersive-invitations.lua): the meeting V could ask for, nil while the setting is Off.
+            M.pending.meetOffer = capture(M.captureMeetOffer, submission.contact, key)
+            -- Housemates (mod/housemates.lua): moving in at V's place or moving out, for a contact who may be invited.
+            M.pending.homeOffer = capture(M.captureHomeOffer, submission.contact, key)
             M.sentAt = os.time()
             M.replyWaitSeconds = replyWait()
             M.errors[submission.contact] = nil
@@ -616,6 +705,12 @@ function M.update(player, delta)
             end
         end
         M.dirty = true
+    end
+    if M.pending and M.pending.event and M.sentAt and os.time() - M.sentAt > (M.replyWaitSeconds or DEFAULT_REPLY_WAIT) then
+        local item, contact = M.eventItem, M.pending.contact
+        M.pending, M.eventItem = nil, nil
+        publish(true)
+        if item then M.deliverEvent(contact, item, item.fallback) end
     end
     if M.pending and M.sentAt and os.time() - M.sentAt > (M.replyWaitSeconds or DEFAULT_REPLY_WAIT) then
         M.errors = M.errors or {}
@@ -632,6 +727,18 @@ function M.update(player, delta)
             if reply.state == 'reply' and type(reply.text) == 'string' and #reply.text <= 6000 and reply.text:find('%S') then
                 local accepted = M.pending
                 append(reply.contact, reply.text, false); M.pending = nil; M.dirty = true
+                if accepted.event then
+                    local item = M.eventItem
+                    M.eventItem = nil
+                    if item and type(M.onEventDelivered) == 'function' then pcall(M.onEventDelivered, item, reply.text) end
+                elseif accepted.homeOffer and type(reply.action) == 'table' and type(reply.action.token) == 'string'
+                    and reply.action.token:sub(1, 5) == 'home-' and type(M.onHomeAction) == 'function' then
+                    -- The bridge's answer to the housing offer (bridge/home-requests.mjs); the game checks it against the offer it sent.
+                    pcall(M.onHomeAction, accepted.profileKey, reply.action, accepted.contact)
+                elseif accepted.meetOffer and type(reply.action) == 'table' and type(M.onMeetAction) == 'function' then
+                    -- The bridge's answer to the offer (bridge/meet-requests.mjs); the game checks it against the offer it sent.
+                    pcall(M.onMeetAction, accepted.profileKey, reply.action, accepted.contact)
+                end
                 -- Acceptance is owned by this exact transcript scope, even if
                 -- another contact is selected. Publication alone is no receipt.
                 M.deliverySequence = (M.deliverySequence or 0) + 1
@@ -647,6 +754,10 @@ function M.update(player, delta)
                         contact = accepted.contact, profileKey = accepted.profileKey,
                         saveIdentity = copy(accepted.saveIdentity)})
                 end
+            elseif reply.state == 'error' and M.pending.event then
+                local item, contact = M.eventItem, M.pending.contact
+                M.pending, M.eventItem = nil, nil
+                if item then M.deliverEvent(contact, item, item.fallback) end
             elseif reply.state == 'error' then
                 M.errors = M.errors or {}
                 M.errors[reply.contact] = reply.errorCode == 'daily-limit' and DAILY_LIMIT_STATUS
@@ -656,6 +767,15 @@ function M.update(player, delta)
                 end
                 M.pending = nil; M.dirty = true; save()
             end
+        end
+    end
+    -- A text a character sends on her own (mod/immersive-invitations.lua): started when no message of V's is waiting for its reply.
+    if historyReady and not M.pending and M.events and M.events[1] and M.world then
+        local entry = table.remove(M.events, 1)
+        local key = M.catalog[entry.contact]
+        -- A plain text (item.plain: she could not come) is her fallback line at once: nothing for the bridge to write.
+        if entry.item.plain or M.blockAll or M.blockedProfiles[key] or not M.startEvent(player, entry) then
+            M.deliverEvent(entry.contact, entry.item, entry.item.fallback)
         end
     end
     -- Lease heartbeat: the bridge keeps phone-chat-input.json 15 s; refresh it every 3 s.

@@ -636,7 +636,7 @@ test('the reply-language block names the player\'s language, last in the context
   setting.observe('Hola, ¿cómo estás?');
   assert.match(setting.contextFor('[Microphone]'), /so far Spanish/);
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', multilingual\.contextFor\(input\.reaction \? '' : input\.text, input\.reaction \? null : speechLanguage\.evidence\?\.language\)\)\]/);
+  assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', multilingual\.contextFor\(input\.reaction \|\| input\.event \? '' : input\.text, input\.reaction \? null : speechLanguage\.evidence\?\.language\)\)\]/);
 });
 
 // ---- Text providers (Mistral, Local AI, Custom): the player's language, with no twins ---------------------------------------

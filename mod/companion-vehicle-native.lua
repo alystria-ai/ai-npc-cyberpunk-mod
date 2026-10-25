@@ -96,6 +96,37 @@ end
 -- A pedestrian navigation point alone cannot establish clearance for a car.
 -- Check a whole footprint on one floor, then a conservative 3.6 x 7.6 x 3.2 m
 -- body volume. Native traffic routing owns the road path after this placement.
+-- Is a car-sized space level and empty at `center` (a flat point whose z is the height to search from), the car pointing along `forward`
+-- (unit x, y)? Returns the spawn position (a little above the ground) or nil, and true when the query budget is spent (ask again later).
+local function clearSpot(center,forward,rotation)
+    local spatial=Game.GetSpatialQueriesSystem()
+    local low,high=nil,nil
+    for _,offset in ipairs({{0,0},{-1.5,-3.3},{1.5,-3.3},{-1.5,3.3},{1.5,3.3}}) do
+        local x=center.x-forward.y*offset[1]+forward.x*offset[2]
+        local y=center.y+forward.x*offset[1]+forward.y*offset[2]
+        local result
+        for _,group in ipairs({'Static','Terrain'}) do
+            if not clearance.take(1) then return nil,true end
+            local hit,trace=spatial:SyncRaycastByCollisionGroup(vector(x,y,center.z+1.8),
+                vector(x,y,center.z-2.0),group,false,false)
+            if hit and trace and (not result or trace.position.z>result.position.z) then result=trace end
+        end
+        if not result or result.normal.z<0.92 then return nil end
+        local z=result.position.z
+        low=math.min(low or z,z); high=math.max(high or z,z)
+    end
+    if not (high-low<0.4 and math.abs(high-center.z)<1.6) then return nil end
+    for _,group in ipairs({'Static','Dynamic','Terrain','Collider','Destructible','Vehicle','Character'}) do
+        if not clearance.take(1) then return nil,true end
+        if spatial:Overlap(vector(1.8,3.8,1.6),vector(center.x,center.y,high+1.85),
+            Quaternion.ToEulerAngles(rotation),CName.new(group)) then return nil end
+    end
+    return vector(center.x,center.y,high+0.35)
+end
+-- A clear car space at a given point, for a car the mod places on its own (immersive invitations): the position, or nil, deferred.
+function M.clearAt(center,forward,rotation)
+    return clearSpot(center,forward,rotation)
+end
 local function spawnPoint(primary,ordinal)
     local car=primary.entity
     if not car or not car:IsAttached() then
@@ -106,36 +137,34 @@ local function spawnPoint(primary,ordinal)
     end
     local origin,forward=car:GetWorldPosition(),car:GetWorldForward()
     local rotation=car:GetWorldOrientation()
-    local spatial=Game.GetSpatialQueriesSystem()
     for _,back in ipairs({9,15,21,27}) do
         local along=-(back+(ordinal-1)*8)
         local center=vector(origin.x+forward.x*along,origin.y+forward.y*along,origin.z)
-        local low,high,clear=nil,nil,true
-        for _,offset in ipairs({{0,0},{-1.5,-3.3},{1.5,-3.3},{-1.5,3.3},{1.5,3.3}}) do
-            local x=center.x-forward.y*offset[1]+forward.x*offset[2]
-            local y=center.y+forward.x*offset[1]+forward.y*offset[2]
-            local result
-            for _,group in ipairs({'Static','Terrain'}) do
-                if not clearance.take(1) then return nil,nil,true end
-                local hit,trace=spatial:SyncRaycastByCollisionGroup(vector(x,y,origin.z+1.8),
-                    vector(x,y,origin.z-2.0),group,false,false)
-                if hit and trace and (not result or trace.position.z>result.position.z) then result=trace end
-            end
-            if not result or result.normal.z<0.92 then clear=false; break end
-            local z=result.position.z
-            low=math.min(low or z,z); high=math.max(high or z,z)
-        end
-        if clear and high-low<0.4 and math.abs(high-origin.z)<1.6 then
-            local blocked=false
-            for _,group in ipairs({'Static','Dynamic','Terrain','Collider','Destructible','Vehicle','Character'}) do
-                if not clearance.take(1) then return nil,nil,true end
-                if spatial:Overlap(vector(1.8,3.8,1.6),vector(center.x,center.y,high+1.85),
-                    Quaternion.ToEulerAngles(rotation),CName.new(group)) then blocked=true; break end
-            end
-            if not blocked then return vector(center.x,center.y,high+0.35),rotation end
-        end
+        local spot,deferred=clearSpot(center,forward,rotation)
+        if deferred then return nil,nil,true end
+        if spot then return spot,rotation end
     end
     return nil,'No clear, level vehicle space behind you. Stop on a wider road.'
+end
+-- A car of her own for an immersive invitation (docs/IMMERSIVE_INVITATIONS.md). Not the party's carpool: its own tag, so the carpool's
+-- reload sweep never takes it, and destroy() below checks that tag. yaw: degrees; nil keeps the engine's default heading.
+function M.spawnAt(choice,position,yaw,tag)
+    local system=Game.GetDynamicEntitySystem()
+    if not system or not system:IsReady() then return nil,'Vehicle world is not ready.' end
+    local record=TweakDB:GetRecord(choice.record)
+    if not record or not record:IsA('gamedataVehicle_Record') then return nil,'Vehicle record unavailable: '..choice.record end
+    local spec=NewObject('DynamicEntitySpec')
+    spec.recordID=TweakDBID.new(choice.record)
+    if choice.appearance then spec.appearanceName=CName.new(choice.appearance) end
+    spec.position=vector(position.x,position.y,position.z)
+    if type(yaw)=='number' then spec.orientation=EulerAngles.ToQuat(EulerAngles.new(0,0,yaw)) end
+    spec.active,spec.alwaysSpawned,spec.spawnInView=true,true,true
+    spec.persistSpawn,spec.persistState=false,false
+    spec.tags={CName.new(tag or TAG)}
+    local entityID=system:CreateEntity(spec)
+    if not id(entityID) then return nil,'Could not create the car.' end
+    return {id=id(entityID),entityID=entityID,system=system,owned=true,tag=tag or TAG,
+        record=choice.record,appearance=choice.appearance,name=choice.name}
 end
 function M.spawn(choice,player,primary,ordinal)
     local system=Game.GetDynamicEntitySystem()
@@ -364,7 +393,7 @@ end
 local function spawnedService()
     local ok,service=pcall(function() return convaiSpawnedCharacters end)
     if ok and service then return service end
-    return rawget(_G,'convaiSpawnedCharacters')
+    return type(_G)=='table' and rawget(_G,'convaiSpawnedCharacters') or nil
 end
 local function plainDistance(value) return type(value)=='number' and math.floor(value*10+.5)/10 or nil end
 function M.foreignRiders(player,vehicle)
@@ -427,7 +456,7 @@ function M.destroy(vehicle)
     if not vehicle.owned or not vehicle.system then return false,'Unowned vehicle.' end
     if not vehicle.system:IsReady() then return false,'Vehicle world is not ready.' end
     if not vehicle.system:IsManaged(vehicle.entityID) then return true end
-    if not vehicle.system:IsTagged(vehicle.entityID,CName.new(TAG)) then return false,'Vehicle ownership tag changed.' end
+    if not vehicle.system:IsTagged(vehicle.entityID,CName.new(vehicle.tag or TAG)) then return false,'Vehicle ownership tag changed.' end
     -- Codeware returns true when despawn is accepted. The entity can remain
     -- managed for later frames, and its components may already be detaching.
     -- Poll only the system receipt once accepted; never resubmit or inspect
@@ -488,7 +517,7 @@ function M.recover(entry,player,occupied)
     local target,reason,deferred=placement.find(player,desired,occupied,entry.clearance,nil,{sweepRoute=true})
     if deferred then return nil,nil,true end
     if not target then return false,reason end
-    local hook=rawget(_G,'convaiTeleportLog')
+    local hook=convaiTeleportLog
     if hook then
         local from=entry.npc:GetWorldPosition()
         pcall(hook,{reason='vehicle-exit-recover',actor=tostring(entry.npc:GetEntityID().hash),

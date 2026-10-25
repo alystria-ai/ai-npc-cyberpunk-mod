@@ -833,7 +833,7 @@ end
 -- vehicle exit placement, and each leaves one probe line naming its reason ('Companion teleport',
 -- via the convaiTeleportLog global set in init.lua). `reason` says which code path asked.
 local function teleportLog(s,reason,destination,yaw)
-    local hook=rawget(_G,'convaiTeleportLog')
+    local hook=convaiTeleportLog
     if not hook then return end
     local from,actor
     pcall(function() from=space.copy(s.npc:GetWorldPosition()); actor=tostring(s.npc:GetEntityID().hash) end)

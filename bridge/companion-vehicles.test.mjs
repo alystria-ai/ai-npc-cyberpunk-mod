@@ -709,53 +709,34 @@ test('an adapter without isTaxi treats every car as an ordinary car',()=>run(`${
   assert(#world.spawned==2 and fleet.phase=='riding')
 `));
 
-// Alt Cunningham is a digital ghost: no car of her own, never a driver (mod/companion-vehicle-catalog.lua passengerOnly).
-test('the catalog never picks a passenger-only companion to drive, whatever profile or model alias she has',()=>run(`${fixture}
-  assert(not catalog.drives({key='alt-cunningham'}) and not catalog.drives({key='alt-copy',record='Character.Alt'}))
-  assert(catalog.drives({key='judy-alvarez',record='Character.Judy'}) and catalog.drives({key='person-1'}) and catalog.drives({}))
+// Alt Cunningham has a real body (our copy is an ordinary spawned character): she drives like anyone else, in the fallback car.
+test('the catalog treats Alt Cunningham like anyone else: no personal car, so the fallback, and she can be chosen to drive',()=>run(`${fixture}
+  assert(catalog.drives==nil and catalog.passengerOnly==nil,'the old passenger-only rule is gone')
   assert(not catalog.preferred['alt-cunningham'],'she owns no car record')
   local alt={entry={serial=1,key='alt-cunningham',record='Character.Alt'}}
   local judy={entry={serial=2,key='judy-alvarez'}}
   local plain={entry={serial=3,key='person-3'}}
   local choice,driver=catalog.choose({alt,plain})
-  assert(choice==catalog.fallback and driver==plain,'the first person who can drive')
+  assert(choice==catalog.fallback and driver==alt,'the first in the queue drives')
   choice,driver=catalog.choose({alt,judy,plain}); assert(driver==judy and choice.name=="Judy's van")
-  choice,driver=catalog.choose({alt}); assert(driver==nil and choice==catalog.fallback,'nobody can drive')
+  choice,driver=catalog.choose({alt}); assert(driver==alt and choice==catalog.fallback)
   assert(select(2,catalog.choose({}))==nil)
 `));
 
-test('Alt rides in V car first, however late she joined, and never drives an overflow car',()=>run(`${fixture}
+test('Alt is seated in serial order like anyone else and drives the overflow car when she is first to need one',()=>run(`${fixture}
   party(8); entries[8].key='alt-cunningham'; entries[8].record='Character.Alt'
   tick(100)
-  assert(fleet.people[8].vehicle==primary,'she rides with V')
+  assert(fleet.people[8].vehicle~=primary,'serial order: she is not seated first')
   assert(#world.spawned==2,#world.spawned)
-  for _,car in ipairs(world.spawned) do assert(car.driver~=8,'no overflow car is driven by her') end
+  assert(world.spawned[2].driver==8,'she drives the second overflow car')
   for _,p in pairs(fleet.people) do assert(p.phase=='riding',p.entry.serial..' '..tostring(p.phase)) end
-  local totals={}
-  for _,p in pairs(fleet.people) do totals[p.vehicle.id]=(totals[p.vehicle.id] or 0)+1 end
-  assert(totals['v-car']==3 and totals['overflow-1']==4 and totals['overflow-2']==1)
 `));
 
-test('Alt takes a free seat in a party car another companion drives, instead of getting a car',()=>run(`${fixture}
+test('Alt, first in serial order, takes the wheel of the one overflow car',()=>run(`${fixture}
   party(5); primary.info.seats[2].occupant='quest-npc'; primary.info.seats[3].reserved=true
   entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
   tick(100)
-  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_back_right','first in V car, the last free seat')
-  assert(#world.spawned==1 and world.spawned[1].driver==2,'someone who drives takes the wheel of the one overflow car')
-  assert(fleet.people[2].vehicle==world.spawned[1] and fleet.people[2].seat=='seat_front_left')
-`));
-
-test('a lone passenger-only companion with no free seat waits on foot and no car is created for her',()=>run(`${fixture}
-  party(1); entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
-  primary.info.seats[2].occupant='quest-npc'; primary.info.seats[3].reserved=true; primary.info.seats[4].reserved=true
-  tick(200)
-  assert(#world.spawned==0,'no car is created with nobody to drive it: '..#world.spawned)
-  assert(not fleet.people[1].vehicle and count('mount')==0)
-  assert(fleet.error and fleet.error:find('does not drive',1,true),tostring(fleet.error))
-  -- A seat that frees up (a foreign passenger leaves) is hers.
-  primary.info.seats[2].occupant=nil
-  tick(60)
-  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_front_right')
+  assert(#world.spawned==1,#world.spawned)
 `));
 
 // ---- another mod's riders (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders") -----------------------------------------------
@@ -800,14 +781,14 @@ test('three foreign riders take every passenger seat: nobody of ours shares one,
   for _,m in pairs(world.mounts) do assert(m.vehicle~='v-car',m.vehicle..' '..m.seat) end
 `));
 
-test('more foreign riders than seats hold only the seats that exist, and a companion who cannot drive waits',()=>run(`${foreignFixture}
+test('more foreign riders than seats hold only the seats that exist, and a companion drives her own car',()=>run(`${foreignFixture}
   world.foreign=7; party(1); entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
   tick(100)
-  assert(#world.spawned==0 and not fleet.people[1].vehicle and count('mount')==0)
+  assert(#world.spawned==1 and fleet.people[1].vehicle==world.spawned[1])
 `));
 
-test('the hold ends after twenty-five seconds: a companion still waiting then takes the seat that stayed empty',()=>run(`${foreignFixture}
-  world.foreign=3; party(1); entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
+test('the hold ends after twenty-five seconds: a companion still waiting (no overflow car can be made) then takes the seat that stayed empty',()=>run(`${foreignFixture}
+  world.foreign=3; world.spawnFail=true; party(1)
   tick(240)
   assert(not fleet.people[1].vehicle,'held at 24 s')
   tick(30)

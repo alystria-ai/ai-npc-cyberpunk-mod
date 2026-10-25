@@ -38,7 +38,7 @@ internal: an archive without the sit components disables it.
 
 ## First probe: V's apartment couch (October 8, seat watcher)
 
-V sat on the H10 couch with Judy nearby for about 5 s (`runtime/gesture-probe.log`
+V sat on the couch of the Corpo Plaza apartment (labelled "H10" until 2026-10-25: the seat root (-1602.30, 356.20, 48.62) is inside the sectors of `loc_dlc6_apart_cct_dtn`; Megabuilding H10 is at x -1395..-1375, y 1260..1280, docs/HOUSEMATES.md) with Judy nearby for about 5 s (`runtime/gesture-probe.log`
 `seat-watch`, at 602-613):
 
 - `IsActorInWorkspot(player)` true while seated; **`GetWorkspotInstance` returned
@@ -503,6 +503,15 @@ Seated: one `IsActorInWorkspot` per companion per update (the companions loop
 runs at 10 Hz).
 
 Free look while seated (see above): three Observe hooks that run only when V's player state machine enters or leaves Workspot, a few native calls per sit.
+
+## At home: places of the flat (October 25)
+
+While V stays in one of V's own flats the same controller seats companions at places of the flat, not only beside V: `setHome`, `clearHome`,
+`homeRelease`, `homeHeld`, `vSeat`, `sitting`, `canSit` and `placed`. A home (docs/COMPANION_SETTLE.md, mod/companion-settle.lua) hands out
+a place on request (`claim`): a seat is walked to, sat on and left exactly as a seat beside V (device entity with the vanilla workspot, fast exit,
+step out; the walk-up point comes ready-checked from the home), a standing place is a walk, a turn and a hold (phases `post-walk`, `post-turn`,
+`post`, `post-face`). V's own seats come first: a companion near V takes a seat beside V when V sits; a place held at home is never a seat beside V
+and the reverse. Probe lines: `home-set`, `home-cleared`, `home-seat`, `home-post`, `home-arrived`, `home-posted`. Away from home none of this runs.
 
 ## Probe lines
 

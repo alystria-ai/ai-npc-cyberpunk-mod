@@ -182,16 +182,11 @@ local function assign(s,person,vehicle,seat)
         report(s,'seat',{name=who(person),seat=seat,car=vehicle==s.primary and 'V' or ('party car '..tostring(vehicle.ordinal))})
     end
 end
--- A companion who never drives (catalog.passengerOnly: Alt Cunningham) is seated first, so she takes a seat in V's car
--- before anyone who could drive an overflow car; the rest keep their serial order.
 local function pending(s)
-    local list,passengers={},{}
+    local list={}
     for _,person in ipairs(ordered(s)) do
-        if person.owned and not person.vehicle then
-            if catalog.drives(person.entry) then list[#list+1]=person else passengers[#passengers+1]=person end
-        end
+        if person.owned and not person.vehicle then list[#list+1]=person end
     end
-    for index,person in ipairs(passengers) do table.insert(list,index,person) end
     return list
 end
 local function fill(s,vehicle)
@@ -386,8 +381,7 @@ local function allocate(s,player)
     if #s.cars>=math.max(8,2+math.ceil(travelling/4)) then s.error='Party vehicle limit reached.'; return end
     local choice,driver=catalog.choose(queue)
     if not driver then
-        -- Everyone still waiting is passenger-only: no car is created for them (nobody drives it); they keep waiting for a seat.
-        s.error='Waiting for a free passenger seat: this companion does not drive.'; return
+        s.error='No companion is available to drive the next party car.'; return
     end
     if s.spawnAttempts>0 then choice=catalog.fallback end
     local attempts,at=s.spawnAttempts,s.spawnAt

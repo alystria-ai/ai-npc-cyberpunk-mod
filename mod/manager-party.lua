@@ -457,6 +457,8 @@ function M.new(companions, readiness, options)
         Q.bind(owner)
         local result = {}
         for _, member in ipairs(companions.list()) do
+          -- A housemate's body is not a party copy (mod/housemates.lua lists her in its own block of this page).
+          if member.owner ~= 'housemates' then
             local item = {}
             for key, value in pairs(member) do item[key] = value end
             item.id = 'live:' .. member.serial
@@ -464,14 +466,18 @@ function M.new(companions, readiness, options)
             if leaves[member.serial] then item.state = 'leaving' end
             item.dismissError = dismissErrors[member.serial]
             result[#result + 1] = item
+          end
         end
         local states = {memory = 'preparing-memory', connecting = 'connecting', ready = 'ready-to-join',
             ['model-only'] = 'ready-to-join', error = 'failed'}
         for _, job in ipairs(joins) do
+          -- An immersive-invitation appointment is shown by its own row (mod/manager-ui.lua), not as an invitation being prepared.
+          if not job.appointment then
             local status = preparation(job)
             result[#result + 1] = {id = job.id, key = job.key, name = job.name, revision = job.revision,
                 record = job.record, profileKey = job.profileKey, profileName = job.profileName,
                 state = readiness and states[status.state] or (job.error and 'failed' or 'queued'), error = status.error}
+          end
         end
         return result
     end
@@ -480,7 +486,7 @@ function M.new(companions, readiness, options)
         Q.bind(owner)
         local count = #joins
         for _, member in ipairs(companions.list()) do
-            if not leaves[member.serial] then count = count + 1 end
+            if not leaves[member.serial] and member.owner ~= 'housemates' then count = count + 1 end
         end
         return count
     end
@@ -535,10 +541,17 @@ function M.new(companions, readiness, options)
             profileName = definition.profileName or definition.name,
             adoption = type(extra) == 'table' and type(extra.adoption) == 'table' and extra.adoption or nil,
             gate = type(extra) == 'table' and type(extra.gate) == 'function' and extra.gate or nil,
-            quiet = type(extra) == 'table' and extra.quiet == true or nil}
+            quiet = type(extra) == 'table' and extra.quiet == true or nil,
+            -- An immersive-invitation visitor (mod/immersive-invitations.lua): where and when she is created.
+            appointment = type(extra) == 'table' and type(extra.appointment) == 'table' and extra.appointment or nil}
         -- A generic person (no memory of its own to prepare) joins as a model
         -- and receives its conversation profile once attached.
         if type(extra) == 'table' and extra.modelOnly == true then job.profileKey, job.profileName = nil, nil end
+        -- A housemate's body (mod/housemates.lua): created at once with no memory or connection to prepare (it is opened when someone
+        -- talks to her), and given her conversation profile as she spawns, like a generic person.
+        if type(extra) == 'table' and extra.resident == true and job.profileKey then
+            job.attachProfileKey, job.attachProfileName, job.profileKey = job.profileKey, job.profileName, nil
+        end
         -- A generic profile (resident or NPC archetype, docs/NPC_ARCHETYPES.md) has no
         -- memory or bodiless connection to prepare: the copy joins as a model and its
         -- profile is assigned as it spawns, so it talks as that archetype.
@@ -631,6 +644,23 @@ function M.new(companions, readiness, options)
     -- other copy exists (a repeat press is then harmless), and a refused copy
     -- (a chauffeur driver) yields to another copy of the same character.
     -- Returns nil when the character is absent, else accepted, message, id.
+    -- An immersive-invitation appointment's job is not listed (the controller shows its own row), so it is cancelled and asked after by id.
+    function Q.hasJob(id)
+        for _, job in ipairs(joins) do if job.id == id then return true end end
+        return false
+    end
+    function Q.cancelJob(id)
+        for index, job in ipairs(joins) do
+            if job.id == id then
+                if readiness then readiness.cancel(job) end
+                if preparationId == id then preparationId = nil end
+                table.remove(joins, index)
+                return true
+            end
+        end
+        return false
+    end
+
     function Q.dismissCharacter(key)
         local ranked = {}
         for _, state in ipairs({'present', 'leaving'}) do
@@ -749,7 +779,7 @@ function M.new(companions, readiness, options)
             if leaves[serial] then
                 if readiness then readiness.cancel(job) end
                 attaching[serial] = nil
-            elseif member and member.state == 'ready' then
+            elseif member and (member.state == 'ready' or member.state == 'visiting') then
                 if readiness then readiness.finish(job) end
                 if not job.quiet or job.warning then
                     report('party-joined', ui.t('{name} joined your group.', {name = member.name}) .. (job.warning and (' ' .. job.warning) or ''),

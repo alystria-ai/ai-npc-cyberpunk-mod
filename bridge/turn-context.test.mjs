@@ -434,6 +434,52 @@ test('the default adapter reads the clock natively, falls back to the seconds co
   assert(lines[1]:find('^Turn context: 23:59%(seconds%) Watson'), lines[1])
 `));
 
+test('the game time for "time since last talk" is read the proven way: two readings that must agree, the timestamp as the last resort, only while the kind is on', () => runLua(`${fakeGame}
+  local function place() return {district = 'Watson'} end
+  local ctx = api.new({place = place})
+  local snap = ctx:capture()
+  assert(snap.gameTime == 9361340, tostring(snap.gameTime))
+  assert(math.type == nil or math.type(snap.gameTime) == 'integer', 'whole seconds')
+  -- The switch off: not read and not sent.
+  local reads = 0
+  local counting = Game.GetTimeSystem
+  Game.GetTimeSystem = function() reads = reads + 1; return counting() end
+  local off = api.new({enabled = function(kind) return kind ~= 'lastTalk' end, place = place})
+  local quiet = off:capture()
+  assert(quiet.gameTime == nil and quiet.hour == 8, 'the clock itself is another kind')
+  local withOff = reads
+  Game.GetTimeSystem = counting
+  -- The two readings disagree: no time rather than a wrong one (the same refusal as mod/world-knowledge.lua).
+  local total = GameTime.GetSeconds
+  GameTime.GetSeconds = function() return 5 end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == nil and snap.hour == 8, tostring(snap.gameTime))
+  -- The struct field fails and the accessor works, and the other way round.
+  local broken = setmetatable({}, {__index = function() error('no field') end})
+  Game.GetTimeSystem = function() return {GetGameTime = function() return broken end} end
+  GameTime.GetSeconds = function() return 777 end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 777, tostring(snap.gameTime))
+  Game.GetTimeSystem = counting
+  GameTime.GetSeconds = function() error('no accessor') end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 9361340, 'the field alone is accepted')
+  -- Neither works: the time system's own timestamp.
+  Game.GetTimeSystem = function() return {GetGameTime = function() return broken end, GetGameTimeStamp = function() return 4242.7 end} end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == 4242 and snap.hour == nil, 'the timestamp is a float: whole seconds ' .. tostring(snap.gameTime))
+  -- Nothing readable, or nothing sensible: no field, and the turn is still built from the rest.
+  for _, bad in ipairs({-5, 12.5, 0/0, 1e12, 'x'}) do
+    Game.GetTimeSystem = function() return {GetGameTime = function() return {seconds = bad} end, GetGameTimeStamp = function() return bad ~= 12.5 and bad or nil end} end
+    GameTime.GetSeconds = function() return bad end
+    ctx:reset('test'); snap = ctx:capture()
+    assert(snap.gameTime == nil and snap.gender == 'female', tostring(bad))
+  end
+  Game.GetTimeSystem = function() return nil end
+  ctx:reset('test'); snap = ctx:capture()
+  assert(snap.gameTime == nil)
+`));
+
 test('the module is on demand only: no frame hook, no observer, no file, no timer, and nothing is sent unless asked', () => {
   assert.doesNotMatch(source, /registerForEvent|onUpdate|Observe\(|ObserveAfter|Override\(|io\.open|os\.execute|json\./);
   assert.match(source, /^local M = \{\}/m);
@@ -446,20 +492,21 @@ test('the module is on demand only: no frame hook, no observer, no file, no time
 
 test('every manual send path captures the block (in person, microphone and phone); reactions never do', () => {
   const send = initSource.slice(initSource.indexOf('local function sendRequest(context)'), initSource.indexOf('-- A managed copy can be reassigned'));
-  assert.match(send, /if not context\.reaction and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
-  assert.match(initSource, /microphone\.captureTurnContext = function\(\) return convaiTurnContext and convaiTurnContext:capture\(\) or nil end/);
+  assert.match(send, /if \(not context\.reaction or speakUp or houseWelcome\) and convaiTurnContext then context\.turnContext = context\.turnContext or convaiTurnContext:capture\(\) end/);
+  // The wrapper takes the speaker's profile key so a pending appointment note (immersive invitations) can ride on a copy of the snapshot.
+  assert.match(initSource, /microphone\.captureTurnContext = function\(profileKey\)\s+local snapshot = convaiTurnContext and convaiTurnContext:capture\(\) or nil/);
   assert.match(initSource, /pcall\(dofile, 'turn-context\.lua'\)/);
   assert.match(initSource, /place = function\(\) return currentDistrict\(\) end/);
   assert.match(initSource, /companions\.conversationCandidates\(player, radius\)/);
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext:reset\(reason\) end/);
   assert.match(initSource, /if convaiTurnContext then convaiTurnContext\.options\.log = log end/);
-  assert.equal(microphoneSource.match(/context\.turnContext = M\.captureTurnContext and M\.captureTurnContext\(\)/g).length, 2);
+  assert.equal(microphoneSource.match(/context\.turnContext = M\.captureTurnContext and M\.captureTurnContext\(context\.profileKey\)/g).length, 2);
   // The phone reads it once, when a message is sent, through the same wrapper the microphone uses.
-  assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext\)/);
-  assert.equal(phoneSource.match(/captureTurnContext/g).length, 1, 'one read, on the send path');
+  assert.match(phoneSource, /local turnContext = capture\(M\.captureTurnContext, key\)/);
+  assert.equal(phoneSource.match(/captureTurnContext/g).length, 2, 'two reads: the send path and the start of a text she sends herself (immersive invitations)');
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
   // The only readers are those turn paths.
-  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 2, 'the send path and the microphone wrapper');
+  assert.equal((initSource.match(/convaiTurnContext:capture\(\)/g) || []).length, 3, 'the send path, the microphone wrapper and the speak-up request (captured when it is built, so a line prepared ahead is the one sent)');
 });
 
 test('the new files ship: the development install list, the release plan and the bridge layout', () => {
@@ -518,6 +565,32 @@ test('a stranger is told nothing about what it does; a phone contact is told the
   assert.match(phone, /You are somewhere else; where you are and what you are doing are not given/);
 });
 
+test('a companion in other clothes than her appearance text describes is told so, in person only; a word the game did not mean is dropped', () => {
+  const withOutfit = outfit => turnContext(turn({turnContext: scene({vehicle: false, gender: undefined, lifepath: undefined,
+    party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following', outfit}]})}));
+  assert.match(withOutfit('home'), /You are in casual clothes for home, not the outfit your appearance notes describe\. Your hair, face, tattoos and cyberware are the same\./);
+  assert.match(withOutfit('changed'), /You have changed clothes: you are not wearing the outfit your appearance notes describe\./);
+  // In her own base look nothing is said.
+  assert.doesNotMatch(withOutfit(undefined), /appearance notes/);
+  // It follows the place sentence (the first sentence stays where she is and what she does).
+  assert.match(withOutfit('home'), /^Right now \(from the game, this turn only\): You are with V in person, on foot, following V\. You are somewhere in Kabuki, Watson; exactly where is not given\. You are in casual clothes/);
+  // The words are a closed set: anything else is dropped at the parse.
+  assert.equal(parseTurnContext(scene({party: [{key: 'judy-alvarez', name: 'Judy', outfit: 'naked'}]})).party[0].outfit, undefined);
+  assert.equal(parseTurnContext(scene({party: [{key: 'judy-alvarez', name: 'Judy', outfit: 'home'}]})).party[0].outfit, 'home');
+  assert.equal(parseTurnContext(scene({party: [{key: 'judy-alvarez', name: 'Judy', outfit: {home: true}}]})).party[0].outfit, undefined);
+  // On the phone, in a call and for a stranger her clothes are nobody's business.
+  const phone = turnContext(turn({channel: 'phone', turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following', outfit: 'home'}]})}));
+  assert.doesNotMatch(phone, /appearance notes/);
+  const stranger = conversationContext(parseInput(JSON.stringify(resident({turnContext: scene({party: [{key: 'resident-male', name: 'X', outfit: 'changed'}]})}))));
+  assert.doesNotMatch(stranger, /appearance notes/);
+  // The Company and vehicle switch takes the party row, and her clothes with it.
+  assert.doesNotMatch(turnContext(turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', outfit: 'home'}]})}), {off: new Set(['company'])}), /appearance notes/);
+  // The cap holds with the longest wording.
+  const full = turnContext(turn({turnContext: scene({vehicle: false, motion: 'walking', party: [{key: 'judy-alvarez', name: 'Judy', activity: 'to-seat', outfit: 'home'},
+    ...Array.from({length: 4}, (_, i) => ({key: `person-${i}`, name: `Person ${i} `.padEnd(60, 'x')}))]})}));
+  assert.ok(full.length <= MAX_CHARS, `${full.length}`);
+});
+
 test('the Mistral and Local prompt carries the context line and one rule that outranks her own earlier lines', () => {
   const persona = {name: 'Judy', backstory: 'A braindance editor.', style: '', samples: [], ambient: false, known: true};
   const now = turnContext(turn({turnContext: scene({vehicle: false, party: [{key: 'judy-alvarez', name: 'Judy', activity: 'following'}]})}));
@@ -560,6 +633,7 @@ test('Lua: the activity of a companion comes from the states the companion modul
   is(c({behavior = 'combat'}), 'combat')
   is(c({seating = 'approach', behavior = 'alongside'}), 'to-seat'); is(c({seating = 'seated'}), 'seated'); is(c({seating = 'entering'}), 'seated')
   is(c({seating = 'standing'}), 'getting-up'); is(c({seating = 'closing', behavior = 'alongside'}), 'following')
+  is(c({seating = 'post'}), 'standing'); is(c({seating = 'post-turn'}), 'standing'); is(c({seating = 'post-face'}), 'standing')
   is(c({transport = {owned = true, phase = 'riding', mountedSeat = 'seat_back_left'}}), 'passenger')
   is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_left'}}), 'driving')
   is(c({transport = {owned = true, phase = 'riding', seat = 'seat_front_right', mountedSeat = 'seat_front_left'}}), 'driving')
@@ -590,6 +664,19 @@ test('Lua: the snapshot carries each companion\'s activity, V\'s driving and mot
   ctx.options.activity = function() return {rows = {['judy-alvarez'] = {behavior = 'alongside'}}, motion = 'flying'} end; ctx:reset('test')
   state.vehicle = false
   assert(ctx:capture().motion == nil)
+`));
+
+test('Lua: the outfit word of a companion travels with her row, only home or changed, and only from her own inputs', () => lua$(`
+  ctx.options.activity = function()
+    return {rows = {['judy-alvarez'] = {behavior = 'alongside', outfit = 'home'}, ['panam-palmer'] = {behavior = 'alongside', outfit = 'naked'}}}
+  end
+  local snap = ctx:capture()
+  local byKey = {}; for _, row in ipairs(snap.party) do byKey[row.key] = row end
+  assert(byKey['judy-alvarez'].outfit == 'home' and byKey['judy-alvarez'].activity == 'following')
+  assert(byKey['panam-palmer'].outfit == nil and byKey['panam-palmer'].activity == 'following', 'a word the game side does not use is dropped')
+  ctx.options.activity = function() return {rows = {['judy-alvarez'] = {outfit = 'changed'}}} end; ctx:reset('test')
+  local again = ctx:capture()
+  assert(again.party[1].outfit == 'changed' and again.party[2].outfit == nil)
 `));
 
 test('Lua: the init wiring and the companions hook exist and read nothing from the game', () => {
@@ -866,7 +953,7 @@ test('the default adapter survives a game with none of the calls: every field ab
 
 test('init and phone chat pass the same snapshot on, so the phone gets the weather with no change of its own', () => {
   assert.match(initSource, /phoneChat\.captureTurnContext = microphone\.captureTurnContext/);
-  assert.match(phoneSource, /capture\(M\.captureTurnContext\)/);
+  assert.match(phoneSource, /capture\(M\.captureTurnContext, key\)/);
   const bridgePhone = readFileSync(new URL('./phone-chat.mjs', import.meta.url), 'utf8');
   assert.match(bridgePhone, /parseTurnContext\(state\.request\.turnContext\)/);
 });

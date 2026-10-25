@@ -1339,6 +1339,43 @@ test('the routing log names the reference the cloud voice clones from (long, els
   assert.equal(cloudReferenceOf(voice, 'someone', sources), null);
 });
 
+test('a character is cloned from the same base-key reference on every turn, in every content pack; a source that cannot be used is said, and the line shows what was sent', async () => {
+  const long = wav(3), short = wav(2);
+  const entry = (set, bytes) => ({profiles: {alex: {reference: `runtime/voice-references/picked/autobest/${set}/alex.wav`, sha256: sha(bytes)}}});
+  const files = new Map([['omni-long', long], ['omni-short', short]]);
+  const logs = [];
+  const make = longHash => new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), onLog: line => logs.push(line),
+    registry: [{profiles: {alex: {...entry('omni-long', long).profiles.alex, ...(longHash ? {sha256: longHash} : {})}}}, entry('omni-short', short)],
+    read: async path => { const set = /omni-(long|short)/.exec(path)[0]; return files.get(set); }, scheduler: fastScheduler()});
+  // Turn after turn, and for the twin or memory keys of a content pack: the voice key is the base character's, so one reference, built once.
+  const voice = make();
+  const first = await voice.reference('alex');
+  for (let turn = 0; turn < 5; turn++) assert.equal(await voice.reference('alex'), first, 'the same built reference object every turn');
+  assert.equal(first.source, 'omni-long');
+  assert.deepEqual(voice.referenceInfo('alex'), {source: 'omni-long', format: 'wav', bytes: first.bytes});
+  assert.equal(logs.length, 0, 'nothing to say when the first source is used');
+  assert.equal(voice.hasReference('alex-medieval'), false, 'a twin key has no reference of its own: the bridge always asks with the base profile key');
+  assert.equal(voice.hasReference('alex@medieval'), false);
+  // The long clip no longer matches its hash: the short one speaks, and the log and referenceInfo say so (it was silent before).
+  const changed = make('0'.repeat(64));
+  const fell = await changed.reference('alex');
+  assert.equal(fell.source, 'omni-short');
+  assert.equal(changed.referenceInfo('alex').source, 'omni-short');
+  assert.ok(logs.some(line => /alex: the omni-long reference was not used \(its hash no longer matches\)/.test(line)), logs.join('|'));
+  assert.ok(logs.some(line => /alex: cloned from the omni-short reference instead/.test(line)), logs.join('|'));
+  // A rebuilt registry forgets what was sent.
+  changed.replaceReferences([entry('omni-long', long)], ['alex']);
+  assert.equal(changed.referenceInfo('alex'), null);
+  // The routing line carries it.
+  const cloudVoice = {cloudActive: true, requestedProvider: 'pocket', cloudFallback: null, omniVariants: {long: {registry: entry('omni-long', long)}}, registries: {}};
+  const line = formatVoiceRoute(describeVoiceRoute({voice: cloudVoice, input: {profileKey: 'alex'}, profile: {key: 'alex', name: 'Alex'},
+    plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, voiceKey: 'alex', sources: {}, sent: voice.referenceInfo('alex'), now: () => 0}));
+  assert.match(line, /ref="picked\/autobest\/omni-long" sent="omni-long wav \d+KB"/, line);
+  const quiet = formatVoiceRoute(describeVoiceRoute({voice: cloudVoice, input: {profileKey: 'alex'}, profile: {key: 'alex', name: 'Alex'},
+    plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, voiceKey: 'alex', sources: {}, now: () => 0}));
+  assert.doesNotMatch(quiet, /sent=/);
+});
+
 test('an Ogg reference the server refuses is prepared as MP3 from then on, and the reply that met the refusal falls to Pocket', async () => {
   const server = await serve((request, response) => { response.writeHead(400, {'content-type': 'application/json'});
     response.end(JSON.stringify({object: 'error', message: 'Failed to load audio file. Verify that the given file is valid mp3 or wav.', code: '3291'})); });

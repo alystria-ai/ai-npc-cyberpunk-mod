@@ -1,0 +1,193 @@
+-- The glue between mod/init.lua and immersive invitations (docs/IMMERSIVE_INVITATIONS.md): it builds the controller and the game adapter
+-- when Settings > Immersive invitations is On, ticks it, binds it to the save line, hands it the phone hooks, and drops all of it when the
+-- setting goes Off. init.lua holds one table of dependencies and four one-line globals; everything that has a rule lives here, where the tests
+-- can run it.
+--
+-- While the setting is Off tick() is one table read and nothing else is loaded: the controller and the adapter are `deps.load`ed on the first On.
+local M = {}
+
+-- deps: manager (immersive()), queue() -> the party queue, companions, phoneChat, load(name) -> module, notify(kind, text), log(line),
+--       logOnce(key, line), held(), districtOf(), greet(info), persist = {load, store}, wall(), random()
+function M.new(deps)
+    local S = {controller = nil, state = {acc = 0, key = false}}
+
+    -- A text from a character: a phone turn in her own voice (mod/phone-chat.lua sendEvent), or, when she has no phone contact, a notice.
+    function S.text(item)
+        -- A failure is her plain localized line: it needs no model and must reach V even when the bridge cannot word it.
+        if item.plain then
+            local phone = deps.phoneChat
+            local contact = phone.contactFor and phone.contactFor(item.profileKey)
+            if contact and phone.deliverEvent then
+                phone.deliverEvent(contact, item, tostring(item.fallback))
+            else
+                deps.notify('text', tostring(item.name) .. ': ' .. tostring(item.fallback))
+            end
+            return true
+        end
+        if deps.phoneChat.sendEvent and deps.phoneChat.sendEvent(item) then return true end
+        deps.notify('text', tostring(item.name) .. ': ' .. tostring(item.fallback))
+        return true
+    end
+
+    local function unhook()
+        local phone = deps.phoneChat
+        phone.captureMeetOffer, phone.onMeetAction, phone.onEventDelivered = nil, nil, nil
+        deps.companions.onVisitorLost = nil
+        convaiCompanionCar, convaiCompanionCarIs = nil, nil
+    end
+
+    -- The two modules are read and compiled once, and a build that fails is not tried again until the setting has been turned Off and On: the
+    -- 0.1 s tick asks for the controller every time, and a failure must not cost a file read and a compile ten times a second.
+    function S.ensure()
+        if S.controller then return S.controller end
+        if S.failed then return nil end
+        if not S.modules then
+            local loaded, module = pcall(deps.load, 'immersive-invitations.lua')
+            local worldLoaded, worldModule = pcall(deps.load, 'immersive-world.lua')
+            if not loaded or not worldLoaded or type(module) ~= 'table' or type(worldModule) ~= 'table' then
+                S.failed = true
+                deps.logOnce('immersive-load', 'Immersive invitations are unavailable: ' .. tostring(loaded and worldModule or module))
+                return nil
+            end
+            S.modules = {module, worldModule}
+        end
+        local queue = deps.queue()
+        if not queue then return nil end
+        local companions = deps.companions
+        local built, controller = pcall(function()
+            return S.modules[1].new({
+                settings = deps.manager.immersive, queue = queue, companions = companions,
+                world = S.modules[2].new({companions = companions, held = deps.held, districtOf = deps.districtOf}),
+                text = {send = S.text}, notify = deps.notify, greet = deps.greet, persist = deps.persist,
+                wall = deps.wall, random = deps.random, log = deps.log})
+        end)
+        if not built then
+            S.failed = true
+            deps.logOnce('immersive-load', 'Immersive invitations are unavailable: ' .. tostring(controller))
+            return nil
+        end
+        S.controller = controller
+        companions.onVisitorLost = function(serial, reason)
+            if S.controller then S.controller.visitorLost(serial, reason) end
+        end
+        -- Her car, for a ride in it (docs/IMMERSIVE_INVITATIONS.md): the chauffeur asks for it by profile while the setting is On.
+        -- Plain globals: CET gives this mod an environment without _G, so rawset(_G, ...) would throw there.
+        convaiCompanionCar = function(profileKey)
+            local controller = S.controller
+            return controller and controller.carEntity(profileKey) or nil
+        end
+        convaiCompanionCarIs = function(entity)
+            local controller = S.controller
+            return controller ~= nil and controller.isHerCar(entity) == true
+        end
+        local phone = deps.phoneChat
+        phone.captureMeetOffer = function(contact, profileKey)
+            local controller = S.controller
+            if not controller then return nil end
+            local key = companions.phoneContactKey(contact)
+            return key and controller.offer(profileKey, key) or nil
+        end
+        phone.onMeetAction = function(profileKey, action)
+            local controller = S.controller
+            if controller then controller.accept(profileKey, action) end
+        end
+        phone.onEventDelivered = function(item, text)
+            local line = tostring(text or item.fallback or '')
+            if #line > 140 then line = line:sub(1, 137):gsub('[\128-\191]+$', '') .. '...' end
+            deps.notify('text', tostring(item.name) .. ': ' .. line)
+        end
+        S.state = {acc = 0, key = false}
+        return S.controller
+    end
+
+    -- The controller for the manager's Invite button: nil while the setting is Off (the old instant path applies).
+    function S.get()
+        if not deps.manager.immersive().enabled then return nil end
+        return S.controller or S.ensure()
+    end
+
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate.
+    function S.tick(delta)
+        local options = deps.manager.immersive()
+        if not options.enabled then
+            S.failed, S.modules = nil, nil
+            if S.controller then
+                pcall(S.controller.disable)
+                S.controller = nil
+                unhook()
+            end
+            return
+        end
+        local controller = S.controller or S.ensure()
+        if not controller then return end
+        local state = S.state
+        state.acc = state.acc + delta
+        if state.acc >= 2 or state.key == false then
+            state.acc = 0
+            -- The save line (campaign and branch) when the game names it; otherwise only this session of the world (kept over a CET reload).
+            local identity = deps.phoneChat.saveIdentity
+            local key, sequence
+            if type(identity) == 'table' and identity.status == 'available' and identity.campaignId and identity.branchId then
+                key, sequence = tostring(identity.campaignId) .. ':' .. tostring(identity.branchId), identity.ledgerSequence
+            elseif deps.phoneChat.world then key = 'session:' .. tostring(deps.phoneChat.world) end
+            if key ~= nil then
+                state.key = key
+                controller.bind(key, sequence)
+            end
+        end
+        if state.key ~= false then controller.update(delta) end
+        -- Car arrival keeps a short trail of the roads V has driven (the one place a road is known for certain).
+        if options.arrival == 'car' then
+            state.trail = (state.trail or 0) + delta
+            if state.trail >= 2 then state.trail = 0; controller.sampleTrail() end
+        end
+    end
+
+    -- A save load or world loss ends what was simulated; a fast travel keeps the appointments (the visitors were deleted before it).
+    function S.reset(reason, preserve)
+        if preserve == true then return end
+        local controller = S.controller
+        if controller then pcall(controller.bind, nil, nil) end
+        S.state = {acc = 0, key = false}
+    end
+
+    -- A holocall line (mod/gameplay-actions.lua `meetOffer`): the meeting V could ask for on the call, wrapped as the lease wants it, or nil. The offer
+    -- is the phone's (controller.offer), with its one-use token and frozen places; a call line that cannot be answered with a meeting (a fight, nowhere
+    -- to stand) still carries the reason so she does not promise to come, and a character who is already with V has nothing to arrange.
+    function S.callOffer(context)
+        local controller = S.get()
+        local call = type(context) == 'table' and context.holocall
+        if not controller or type(call) ~= 'table' or type(call.contact) ~= 'string' or type(context.profileKey) ~= 'string' then return nil end
+        local key = deps.companions.phoneContactKey(call.contact)
+        if not key then return nil end
+        local ok, offer = pcall(controller.offer, context.profileKey, key)
+        if not ok or type(offer) ~= 'table' or offer.unavailable == 'already-here' then return nil end
+        return {available = offer.unavailable == nil or offer.cancel == true, actor = {id = context.entity, key = context.profileKey}, meet = offer}
+    end
+
+    -- The bridge's answer to a call offer (kind: 'meet-here' | 'meet-waypoint' | 'cancel-meet'): the same one-use token check and the same appointment
+    -- flow as a phone text's tag.
+    function S.callAccept(profileKey, kind, offer)
+        local controller = S.controller
+        if not controller or type(offer) ~= 'table' or type(offer.meet) ~= 'table' then return false, 'off' end
+        return controller.accept(profileKey, {kind = kind, token = offer.meet.token})
+    end
+
+    -- The note a turn with this character carries (bridge/turn-context.mjs `appointment`): on her way, waiting, stood up, called off.
+    -- The snapshot may be shared and cached, so the note goes on a copy.
+    function S.appointmentTurn(snapshot, profileKey)
+        local controller = S.controller
+        if not controller or type(snapshot) ~= 'table' or type(profileKey) ~= 'string' then return snapshot end
+        local ok, note = pcall(controller.note, profileKey)
+        if not ok or not note then return snapshot end
+        local copy = {}
+        for key, value in pairs(snapshot) do copy[key] = value end
+        copy.appointment = note
+        pcall(controller.noted, profileKey)
+        return copy
+    end
+
+    return S
+end
+
+return M

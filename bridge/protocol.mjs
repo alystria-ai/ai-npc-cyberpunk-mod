@@ -11,10 +11,16 @@ import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
+import {parseMeetReaction} from './appointment-events.mjs';
+import {parseCallMeetOffer} from './call-meet.mjs';
+import {parseHouseReaction} from './house-chat.mjs';
+import {parseSpeakUpReaction} from './speakup-context.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseReputationSnapshot} from './reputation.mjs';
-import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseHomeOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
+
+export {parseMeetReaction};
 
 export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
@@ -61,9 +67,17 @@ function parseRequest(raw) {
   const battle = parseBattle(value.battle);
   // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his own unprompted remark, only with his head field on his profile.
   const head = group ? null : parseHead(value.head);
+  // A companion speaks up on her own (docs/COMPANION_SPEAK_UP.md): a private turn of a named roster character with the journal, the right-now snapshot and,
+  // after a scene, the scene's lines. It carries no battle, loot or head field, no add-on and no group, or the whole turn is refused.
+  const speakUp = value.reaction?.kind === 'speakup';
   const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
-      : parseReaction(value.reaction, battle, loot);
+      // She met V at the place she was invited to (docs/IMMERSIVE_INVITATIONS.md): her own greeting, a private turn only (bridge/appointment-events.mjs).
+      : value.reaction?.kind === 'meet' ? parseMeetReaction(value.reaction, {group: !!group})
+        // A housemate speaks (docs/HOUSEMATES.md): a line of a chat with another housemate, or a welcome home; a private turn only (bridge/house-chat.mjs).
+        : value.reaction?.kind === 'house' ? parseHouseReaction(value.reaction, {group: !!group})
+          : speakUp ? (group || head || addon || loot || battle || value.holocall !== undefined || value.head !== undefined ? null : parseSpeakUpReaction(value.reaction, profileKey))
+            : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.
@@ -71,10 +85,12 @@ function parseRequest(raw) {
   const tacticOffer = parseTacticOffer(value.tacticOffer);
   // Party membership offers (docs/WORLD_COMPANIONS.md): join V, leave V's party, or why joining is refused.
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
+  // Housemates (docs/HOUSEMATES.md): stay at V's place, move out, join V's party from home. A malformed offer is dropped, the message stands.
+  const homeOffer = parseHomeOffer(value.homeOffer);
   // An ordinary world NPC's reaction offer (docs/NPC_REACTIONS.md); a person with any of the offers above is a companion and has none.
-  const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer ? null : parseReactionOffer(value.reactionOffer);
+  const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer || homeOffer ? null : parseReactionOffer(value.reactionOffer);
   // An offer the game sent that did not survive the parser is not silent: the turn's reaction line says so (bridge/companion-actions.mjs admit).
-  const reactionOfferDropped = value.reactionOffer !== undefined && !reactionOffer && !(chauffeurOffer || tacticOffer || followOffer || leaveOffer)
+  const reactionOfferDropped = value.reactionOffer !== undefined && !reactionOffer && !(chauffeurOffer || tacticOffer || followOffer || leaveOffer || homeOffer)
     ? 'malformed-offer' : undefined;
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
@@ -82,6 +98,9 @@ function parseRequest(raw) {
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);
+  // The meeting V could ask for on this call (docs/IMMERSIVE_INVITATIONS.md, bridge/call-meet.mjs): a holocall line only, kept as the game sent it (the
+  // packet that answers it echoes it, and the game compares); a malformed offer is no offer and never rejects the line.
+  const meetOffer = holocall ? parseCallMeetOffer(value.meetOffer)?.raw : undefined;
   // The Conversation provider the player had chosen when the game wrote this request (mod/init.lua sendRequest); the bridge follows it for the turn.
   const provider = typeof value.provider === 'string' && PROVIDER_NAMES.includes(value.provider) ? value.provider : undefined;
   // Street reputation (docs/REPUTATION_DESIGN.md): sent only while the setting is on, only for an ordinary NPC's private turn.
@@ -90,12 +109,12 @@ function parseRequest(raw) {
     ...(provider ? {provider} : {}), ...(reputation ? {reputation} : {}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
-    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
+    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(homeOffer ? {homeOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
     ...(reactionOfferDropped ? {reactionOfferDropped} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
-    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(head ? {head} : {})};
+    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(meetOffer ? {meetOffer} : {}), ...(head ? {head} : {})};
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.

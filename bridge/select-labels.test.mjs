@@ -26,10 +26,12 @@ const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · Hig
 const STATIC_OPTIONS = [
   '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai API key', 'Convai free tier',
   'Custom (OpenAI-compatible)', 'Default', 'Eyes only', 'Gentle (default)', 'Local AI', 'Mistral (free plan)', 'No model installed', 'Service not running', 'Service starting',
-  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'On', 'Speaks up rarely', 'Speaks up often', 'Pocket · On your PC',
+  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often', 'Pocket · On your PC',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral (recommended)', 'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key',
   'OmniVoice', 'OmniVoice · needs Omni voice', 'OmniVoice · needs Omni pack',
+  // Settings > Immersive invitations
+  'Walk', 'Car', 'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes', '2 minutes', '5 minutes', '10 minutes',
 ];
 
 function localeTable(code) {

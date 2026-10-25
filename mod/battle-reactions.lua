@@ -187,6 +187,9 @@ function M.new()
         return true, 'valid'
     end
 
+    -- Is a fight going on (a boolean, nothing built: the 0.1 s speak-up check asks this instead of status()).
+    function self.fighting() return current ~= nil and current.state == 'fighting' end
+
     function self.status()
         return {clock = clock, cooldownUntil = cooldown, state = current and current.state or 'none',
             encounter = current and current.id, eligible = current and current.eligible,

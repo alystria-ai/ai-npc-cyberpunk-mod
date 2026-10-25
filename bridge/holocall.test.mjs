@@ -143,7 +143,7 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.doesNotMatch(chat, /Write a message/);
   // Both entry points end in the one request, which refuses anything that is not a Chat contact.
   const code = read('../r6/scripts/CyberpunkConvai/Holocall.reds');
-  assert.match(code, /public final func ConvaiChatHolocall\(\) -> Void \{[^]*?player\.ConvaiHolocallRequest\(this\.m_contactEntry\.GetId\(\)\);/);
+  assert.match(code, /public final func ConvaiChatHolocall\(\) -> Void \{[^]*?player\.ConvaiHolocallRequest\(this\.m_convaiChatId\);/);
   assert.match(code, /public final func ConvaiChatListHolocall\(contact: wref<ContactData>\) -> Void \{[^]*?this\.m_player\.ConvaiHolocallRequest\(contact\.id\);/);
 });
 

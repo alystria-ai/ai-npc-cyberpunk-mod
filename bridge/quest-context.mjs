@@ -8,7 +8,8 @@ import {currentJournalHistory, parseJournalHistory, selectJournalHistory} from '
 import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs';
 import {gameDialogueContext} from './game-dialogue.mjs';
 import {gearContext, visibleGearContext} from './player-gear.mjs';
-import {turnContext, describeTurnContext, sceneryFor} from './turn-context.mjs';
+import {turnContext, describeTurnContext, sceneryFor, moneyNote} from './turn-context.mjs';
+import {lastTalkSentence} from './last-talk.mjs';
 import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
@@ -151,7 +152,9 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 }
 
 // The options the right-now block of a turn is built (and logged) with. `off`: the kinds Settings > Dynamic info turned off (bridge/dynamic-info.mjs).
-export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicInfo.off), off: dynamicInfo.off});
+// `gap`: the time since V last talked to this character (Time since last talk; built once per turn id, so the several builds of one turn agree).
+export const turnContextOptions = (input, ambient = false) => ({ambient, split: true, fresh: sceneryFor(input, undefined, dynamicInfo.off), off: dynamicInfo.off,
+  gap: dynamicInfo.on('lastTalk') && !ambient ? lastTalkSentence(input) : ''});
 // The blocks of a turn's base context, in the order Convai gets them, each tagged by how often it changes (layout v2 of
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
@@ -174,7 +177,7 @@ export function conversationContextBlocks(input) {
   if (ambient) {
     return [{tier: 'now', text: now}, {tier: 'volatile', text: background}, {tier: 'world', text: groupContext(input)}, {tier: 'volatile', text: dialogue},
       {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? visibleGearContext(input) : ''},
-      {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: followUpContext(input)}];
+      {tier: 'notes', text: SPOKEN_OUTPUT}, {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];
   }
   const attached = input[TRUSTED_KNOWLEDGE];
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
@@ -189,7 +192,7 @@ export function conversationContextBlocks(input) {
     {tier: 'world', key: 'journal', text: quest ? journalContext(input.journal) : ''}, {tier: 'volatile', text: dialogue},
     {tier: 'volatile', text: fight}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: on('gear') ? gearContext(input) : ''},
     {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
-    {tier: 'volatile', text: followUpContext(input)}];
+    {tier: 'volatile', text: moneyNote(input)}, {tier: 'volatile', text: followUpContext(input)}];
 }
 
 /**

@@ -532,6 +532,14 @@ class Assets(unittest.TestCase):
         with patch.object(Path, 'is_symlink', lambda path: path == self.player or real(path)):
             with self.assertRaisesRegex(ValueError, 'linked'):
                 self.validate(config)
+        # A link above the folder, outside the app folder, is the player's own layout (a moved Documents): accepted.
+        with patch.object(Path, 'is_symlink', lambda path: path == self.player.parent or real(path)):
+            self.validate(config)
+        # A link inside the app folder is refused, and the message names what kind and how far above the folder it is (never a path).
+        with patch.object(Path, 'is_symlink', lambda path: path == self.player.parent or real(path)), \
+                patch.object(runtime, 'app_directory', lambda: self.player.parent.parent):
+            with self.assertRaisesRegex(ValueError, r'linked directories inside the app folder \(symlink, 1 folders above it\)'):
+                self.validate(config)
         self.validate(config)   # unchanged afterwards
 
     # ---- voices changed while the worker runs (a clip given to a character or taken away: no restart, no reload of the model) ----
@@ -868,8 +876,7 @@ class UsvfsPaths(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'linked'):
                     self.validate()
             with patch.object(Path, 'is_symlink', lambda path: path == self.refs.parent or real(path)):
-                with self.assertRaisesRegex(ValueError, 'linked'):
-                    self.validate()
+                self.validate()   # above the app folder: accepted
 
     def test_a_real_symlink_planted_in_the_export_is_refused_inside_usvfs(self):
         outside = self.root / 'elsewhere.bin'
@@ -897,6 +904,85 @@ class UsvfsPaths(unittest.TestCase):
         self.assertFalse(runtime.spelled_inside(base / 'models' / '..' / '..' / 'a.bin', base))
         self.assertFalse(runtime.spelled_inside(self.root / 'app-other' / 'a.bin', base), 'a sibling that starts with the same letters is not inside')
         self.assertTrue(runtime.spelled_inside(str(base).upper() + os.sep + 'X', str(base).lower()) or os.name != 'nt')
+
+
+def make_junction(link, target):
+    """A real directory link (a junction on Windows, a symlink elsewhere); the test is skipped where none can be made."""
+    try:
+        if os.name == 'nt':
+            import subprocess
+            made = subprocess.run(['cmd', '/c', 'mklink', '/J', str(link), str(target)], capture_output=True)
+            if made.returncode != 0:
+                raise OSError(made.stderr)
+        else:
+            os.symlink(target, link, target_is_directory=True)
+    except (OSError, NotImplementedError) as error:
+        raise unittest.SkipTest(f'directory links are not available here: {error}')
+
+
+class AppLinks(unittest.TestCase):
+    """A link ABOVE the Runtime's app folder is accepted (junctioned Steam library, moved Documents, OneDrive); a link inside it is refused, as is one
+    that leaves it. Real junctions, with the app folder patched to a temporary one."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.cleanup)
+        self.base = Path(self.temp.name).resolve()
+        self.app = self.base / 'real' / 'app'
+        (self.app / 'models').mkdir(parents=True)
+        (self.base / 'outside').mkdir()
+        self.links = []
+
+    def cleanup(self):
+        for link in reversed(self.links):   # a junction: remove the link, never what it points at
+            try:
+                os.rmdir(link)
+            except OSError:
+                pass
+        self.temp.cleanup()
+
+    def link(self, link, target):
+        make_junction(link, target)
+        self.links.append(link)
+
+    def check(self, app, path):
+        with patch.object(runtime, 'app_directory', lambda: app):
+            return runtime.plain_absolute(str(path), 'sourceDirectory')
+
+    def test_a_link_above_the_app_folder_is_accepted(self):
+        self.link(self.base / 'library', self.base / 'real')
+        app = self.base / 'library' / 'app'
+        self.assertEqual(self.check(app, app / 'models'), (self.app / 'models').resolve())
+        # The Runtime root itself being the link counts as above the app folder too, and so does the app folder spelled by its real path.
+        self.link(self.base / 'appjunction', self.app)
+        self.assertEqual(self.check(self.base / 'appjunction', self.base / 'appjunction' / 'models'), (self.app / 'models').resolve())
+        self.assertEqual(self.check(self.base / 'library' / 'app', self.app / 'models'), (self.app / 'models').resolve())
+
+    def test_a_link_inside_the_app_folder_is_refused(self):
+        self.link(self.base / 'library', self.base / 'real')
+        self.link(self.app / 'inner', self.app / 'models')
+        app = self.base / 'library' / 'app'
+        with self.assertRaisesRegex(ValueError, r'linked directories inside the app folder \(junction, 1 folders above it\)'):
+            self.check(app, app / 'inner' / 'deeper')
+        with self.assertRaisesRegex(ValueError, 'inside the app folder'):
+            self.check(app, app / 'inner')
+
+    def test_a_link_that_leaves_the_app_folder_is_refused(self):
+        self.link(self.app / 'escape', self.base / 'outside')
+        with self.assertRaisesRegex(ValueError, 'inside the app folder'):
+            self.check(self.app, self.app / 'escape')
+        with self.assertRaisesRegex(ValueError, 'inside the app folder'):
+            self.check(self.app, self.app / 'escape' / 'child')
+
+    def test_a_link_from_outside_that_leads_into_the_app_folder_is_refused(self):
+        self.link(self.base / 'outside' / 'door', self.app / 'models')
+        with self.assertRaisesRegex(ValueError, 'inside the app folder'):
+            self.check(self.app, self.base / 'outside' / 'door')
+
+    def test_data_outside_the_app_folder_may_sit_behind_a_link_but_not_be_one(self):
+        self.link(self.base / 'documents', self.base / 'outside')
+        self.assertEqual(self.check(self.app, self.base / 'documents' / 'data'), (self.base / 'outside' / 'data').resolve())
+        with self.assertRaisesRegex(ValueError, 'must not be a linked directory'):
+            self.check(self.app, self.base / 'documents')
 
 
 class Pipe:

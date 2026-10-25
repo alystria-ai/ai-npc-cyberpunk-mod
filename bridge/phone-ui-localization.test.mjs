@@ -21,7 +21,7 @@ local translations = {
   fr={['TALK TO {character}']='PARLER À {character}',
     ['Type your message to the character.']='Écrivez votre message au personnage.',
     ['CHAT']='DISCUSSION',['Chat']='Discuter',
-    ['Press Enter to write  /  Esc to stop typing']='Entrée : écrire / Échap : arrêter',
+    ['Press Enter to write  /  Esc to close']='Entrée : écrire / Échap : fermer',
     ['Write a message...  /  Enter to send  /  Esc to stop typing']='Écrire... / Entrée : envoyer / Échap : arrêter',
     ['Message sent. Waiting for reply.']='Message envoyé. En attente de réponse.',
     ['Type a message first.']='Écrivez un message.',
@@ -36,7 +36,7 @@ local translations = {
   ja={['TALK TO {character}']='{character}と話す',
     ['Type your message to the character.']='キャラクターへのメッセージを入力してください。',
     ['CHAT']='チャット',['Chat']='チャットする',
-    ['Press Enter to write  /  Esc to stop typing']='Enterで入力 / Escで終了',
+    ['Press Enter to write  /  Esc to close']='Enterで入力 / Escで閉じる',
     ['Write a message...  /  Enter to send  /  Esc to stop typing']='メッセージ… / Enterで送信 / Escで終了',
     ['Message sent. Waiting for reply.']='送信済み。返信を待っています。',
     ['Type a message first.']='メッセージを入力してください。',
@@ -348,7 +348,7 @@ local glyph=widget('text');glyph:Reparent(c:GetRootWidget())
 glyph.controller={GetRootWidget=function()return glyph end,IsEmpty=function()return true end}
 m.composer(n)
 m.composerFonts(n)
-assert(c.placeholder==translations.fr['Press Enter to write  /  Esc to stop typing'])
+assert(c.placeholder==translations.fr['Press Enter to write  /  Esc to close'])
 assert(glyph.tint==focus.tint and glyph.opacity==.75 and not hint.visible)
 c.focused=true;m.input(c)
 assert(c.placeholder==translations.fr['Write a message...  /  Enter to send  /  Esc to stop typing'])
@@ -476,7 +476,7 @@ local n,c,title=notification(data);m.apply(n)
 assert(title.text==data.title and c.placeholder=='' and c.case==textLetterCase.OriginalCase)
 local p=(function()${phone}end)()
 local _,phoneInput=popup('judy');p.input(phoneInput)
-assert(phoneInput.placeholder=='Press Enter to write  /  Esc to stop typing')
+assert(phoneInput.placeholder=='Press Enter to write  /  Esc to close')
 `));
 
 test('native phone feedback localizes exact owned messages without native queries or content translation', () => runLua(setup + `

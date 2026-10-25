@@ -11,6 +11,12 @@ pending invitation. The queue can still change a pending copy's conversation
 profile (the manager no longer offers it); that invalidates the previous
 preparation before starting its replacement.
 
+## Immersive invitations
+
+With Settings > Companion behavior > Immersive invitations On, the Invite button and the Contacts J key do not spawn at once: they make an appointment
+(`mod/immersive-invitations.lua`). The same queue prepares her (a quiet job whose `gate` holds the spawn), and she is created as a visiting copy away from V.
+See [IMMERSIVE_INVITATIONS.md](IMMERSIVE_INVITATIONS.md). Off, everything below is unchanged.
+
 ## Duplicate copies
 
 The same character or conversation profile can be in the party more than once.
@@ -174,3 +180,9 @@ diagnostic code and stage without exposing provider responses or identifiers.
 After the October 4 CET reload, the user confirmed that Hanako joins. This
 accepts the retry/spawn path. The earlier discarded cause remains unknown;
 no additional failure was induced just to repeat the notification check.
+
+## Housemates (2026-10-25, docs/HOUSEMATES.md)
+
+A housemate's body is a visiting copy that belongs to the housemates (`entry.owner = 'housemates'`, `entry.home`): it is created by a quiet job with no preparation (`extra.resident`:
+no memory or connection is prepared, the profile is assigned as she spawns, the connection opens when someone talks to her), it is not listed in Current party and does not count in
+`Q.count()`. Tagging along gives her the follower role on the same body (`joinVisitor`); resting at home takes it away again (`companions.releaseToHome`).

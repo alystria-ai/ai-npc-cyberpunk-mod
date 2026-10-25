@@ -408,3 +408,32 @@ end
 values.record='Vehicle.test'
 assert(native.sample(player,entry,nil,api).car.id=='2001ULL')
 `));
+
+// Her car (docs/IMMERSIVE_INVITATIONS.md): a car the mod made for an invited companion, not one V owns. Only while the immersive-invitation glue
+// has set the two hooks, only when V has no car of V's own to use, and the lease keeps the flag so every later read accepts it.
+test('her car: with no car of V\'s own and the hooks set, the companion drives the car she arrived in; without them nothing changes', () => run(`
+values.owned=false;values.summoned='0ULL';values.nearby={}
+assert(native.sample(player,entry,nil,api).car==nil,'a car that is not V\\'s own is not offered')
+local asked
+rawset(_G,'convaiCompanionCar',function(profileKey) asked=profileKey; return carEntity end)
+rawset(_G,'convaiCompanionCarIs',function(entity) return entity==carEntity end)
+local sample=native.sample(player,entry,nil,api)
+assert(asked=='panam-palmer','the hook is asked for her profile')
+assert(sample.car,'car'); assert(sample.carValid,'valid'); assert(sample.carSource=='companion','source '..tostring(sample.carSource)); assert(sample.car.companionCar==true,'flag'); assert(not sample.car.owned)
+-- the lease keeps the flag: later samples of the trip still accept the car
+local lease=sample.car
+local again=native.sample(player,entry,lease,api)
+assert(again.car,'lease car'); assert(again.carValid,'lease valid'); assert(again.car.companionCar==true)
+-- a car that is not one of hers is refused
+rawset(_G,'convaiCompanionCarIs',function() return false end)
+assert(not native.sample(player,entry,lease,api).carValid,'refused')
+-- V's own car wins when there is one
+rawset(_G,'convaiCompanionCarIs',function(entity) return entity==carEntity end)
+values.owned=true;values.nearby={carEntity}
+local own=native.sample(player,entry,nil,api); assert(own.carSource=='nearby-owned' and own.car.companionCar==nil,'v own wins '..tostring(own.carSource))
+values.nearby={}
+-- the hooks removed: back to the old rules
+rawset(_G,'convaiCompanionCar',nil);rawset(_G,'convaiCompanionCarIs',nil)
+values.owned=false
+assert(native.sample(player,entry,nil,api).car==nil,'hooks removed')
+`));

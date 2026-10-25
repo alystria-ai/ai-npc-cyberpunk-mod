@@ -44,9 +44,19 @@ local function commandID(handle)
     local value=handle and tonumber(handle.id)
     if value and value>=0 and value<4294967295 and value==math.floor(value) then return value end
 end
+-- The car an immersive-invitation companion arrived in (docs/IMMERSIVE_INVITATIONS.md, "Her car"): a car the mod made for her, not one V
+-- owns. convaiCompanionCar(profileKey) -> the live entity while it exists and stands near V; convaiCompanionCarIs(entity) -> whether an
+-- entity is one of those cars. Both are nil while the setting is Off, so nothing else changes.
+local function companionCarIs(entity)
+    local check=convaiCompanionCarIs
+    if type(check)~='function' then return false end
+    local ok,result=pcall(check,entity)
+    return ok and result==true
+end
 local function liveCar(car)
     local entity=car and Game.FindEntityByID(car.entityID)
-    if not entity or not entity:IsAttached() or not entity:IsVehicle() or not entity:IsPlayerVehicle()
+    if not entity or not entity:IsAttached() or not entity:IsVehicle()
+        or not (entity:IsPlayerVehicle() or (car.companionCar==true and companionCarIs(entity)))
         or entityID(entity:GetEntityID())~=car.id
         or (car.record and tostring(entity:GetRecordID())~=car.record) then return nil end
     return entity
@@ -273,13 +283,23 @@ function M.sample(player,entry,leasedCar,api,operation)
             car,sample.carSelectionError=nearbyOwnedCar(player)
             sample.carSource=car and 'nearby-owned' or nil
         end
+        -- No car of V's own to use: the car this companion arrived in, while it stands near.
+        if not car then
+            local hook=convaiCompanionCar
+            local called,found=false,nil
+            if type(hook)=='function' then called,found=pcall(hook,entry.profileKey or entry.key) end
+            if called and found and found:IsAttached() and found:IsVehicle() then
+                car,sample.carSource,sample.carSelectionError=found,'companion',nil
+            end
+        end
     end
     if car and car:IsAttached() and car:IsVehicle() then
         local record=car:GetRecord()
         local recordId=tostring(car:GetRecordID())
+        local hers=sample.carSource=='companion' or (leasedCar and leasedCar.companionCar==true) or nil
         sample.car={id=entityID(car:GetEntityID()),entityID=car:GetEntityID(),entity=car,owned=false,
-            record=recordId,name=vehicleName(record,recordId)}
-        sample.carValid=car:IsPlayerVehicle() and not car:IsDestroyed()
+            record=recordId,name=vehicleName(record,recordId),companionCar=hers}
+        sample.carValid=(car:IsPlayerVehicle() or (hers and companionCarIs(car))) and not car:IsDestroyed()
             and enum(record:Type():Type(),'gamedataVehicleType','Car')
         sample.info=api.inspect(sample.car)
         sample.drive=M.inspectDrive(sample.car,operation)
@@ -702,6 +722,7 @@ local bypass=false -- true while the original sample runs for a comparison: its 
 
 function M.inspectDrive(car,operation)
     local api,class=active()
+    if type(car)=='table' and car.companionCar==true then return luaInspectDrive(car,operation) end
     if bypass or not api or type(car)~='table' or car.entityID==nil or type(car.id)~='string' or not plain(car.id) then
         return luaInspectDrive(car,operation)
     end
@@ -810,6 +831,9 @@ end
 
 function M.sample(player,entry,leasedCar,api,operation)
     local nativeApi,class=active()
+    if type(leasedCar)=='table' and leasedCar.companionCar==true then
+        return luaSample(player,entry,leasedCar,api,operation)
+    end
     if not nativeApi or not leasedCar or type(leasedCar)~='table' or type(entry)~='table' or not bound(player)
         or type(api)~='table' or type(api.mounting)~='function' or type(api.inspect)~='function'
         or leasedCar.entityID==nil or not plain(leasedCar.id) then

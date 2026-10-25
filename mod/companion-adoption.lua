@@ -289,12 +289,19 @@ function M.new(options)
         if context.group then
             local ok, list = pcall(options.groupEntities, context)
             entities = ok and type(list) == 'table' and list or {}
+            -- A round answers with at most three voices, but V may send the whole party away: every party member is offered.
+            local listed = {}
+            for _, id in ipairs(entities) do listed[id] = true end
+            local okParty, party = pcall(function() return companions.partyEntities and companions.partyEntities() or {} end)
+            for _, id in ipairs(okParty and type(party) == 'table' and party or {}) do
+                if not listed[id] then listed[id] = true; entities[#entities + 1] = id end
+            end
         end
         local members, seen = {}, {}
         for _, id in ipairs(entities) do
             local member = type(id) == 'string' and not seen[id] and guard(companions.partyMember, id) or nil
             seen[id] = true
-            if member and not member.driving and not leaving[member.serial] and #members < 3 then
+            if member and not member.driving and not leaving[member.serial] and #members < 12 then
                 members[#members + 1] = {serial = member.serial, id = member.id, key = member.key,
                     name = clip(member.name or member.key)}
             end

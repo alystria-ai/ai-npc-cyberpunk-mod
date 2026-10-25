@@ -34,6 +34,12 @@ M.catalog = {
     -- A character the player made, talked to while Convai answers: it speaks as an ordinary person (docs/CHARACTER_EDITOR.md)
     ['custom-needs-provider'] = {class = PLAYER, repeatS = 86400},
     ['phone-queue-refused'] = {class = PLAYER, repeatS = 20},
+    -- Immersive invitations (docs/IMMERSIVE_INVITATIONS.md)
+    ['immersive-on-the-way'] = {class = PLAYER, repeatS = 5},  -- Invite with the setting On: she is on her way
+    ['immersive-text'] = {class = PLAYER, repeatS = 5},        -- a text she sent: she arrived, V was stood up, the meeting was called off
+    ['immersive-greeting'] = {class = PLAYER, repeatS = 20},   -- the plain greeting when her spoken one could not be played
+    -- Housemates (docs/HOUSEMATES.md)
+    ['housemate-notice'] = {class = PLAYER, repeatS = 5},      -- she moved in or out, joined the party, or is back at home
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
@@ -87,6 +93,8 @@ M.catalog = {
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
+    ['talk-johnny-off'] = {class = PLAYER, repeatS = 20},    -- the Talk to Johnny keys with Settings > Johnny in your head off (docs/TALK_FALLBACK.md)
+    ['talk-johnny-away'] = {class = PLAYER, repeatS = 20},   -- ... while the story does not have Johnny in V's head (before, after, unreadable) or his profile is switched off
     ['talk-busy'] = {class = PLAYER, repeatS = 10},          -- a story character the game has in a scene, a fight or a ride is not talked to (mod/world-talk.lua)
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},

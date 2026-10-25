@@ -9,11 +9,11 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
-  'mod/manager-ui.lua', 'mod/nsui.lua', 'mod/mcm-host.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
+  'mod/manager-ui.lua', 'mod/key-bindings.lua', 'mod/nsui.lua', 'mod/mcm-host.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
-  'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
+  'mod/immersive-invitations.lua', 'mod/housemates.lua', 'mod/housemate-service.lua', 'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
   'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua', 'mod/error-reports.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
@@ -162,6 +162,19 @@ const reviewed = {
     'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.',
     'Recent game dialogue',
     'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.',
+    'Time since last talk',
+    'How long it has been since V last talked to this character, in the game and in real days: since last night, or days ago. Said only when the gap is long enough to matter, and not again in the same conversation.\n\nOff: it is not sent, and the mod stops reading the game clock for it.',
+    'Music and TV',
+    'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.',
+    'Other mods’ state',
+    'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example. Also what V visibly wears while an Equipment-EX outfit is on, so characters describe the outfit and not the clothes it hides.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.',
+  ],
+  // The words of Companion Manager > Key bindings that are a key's own name: mod/key-bindings.lua holds them as literals and mod/manager-ui.lua keyText
+  // passes each through ui.t. A letter, a digit or a symbol is the same in every language and is not listed. Cancel is the key button's text while it waits for a key.
+  'page.key-bindings': [
+    'Space', 'Enter', 'Tab', 'Backspace', 'Insert', 'Delete', 'Home', 'End', 'Page up', 'Page down',
+    'Up arrow', 'Down arrow', 'Left arrow', 'Right arrow', 'Caps lock', 'Num lock', 'Scroll lock', 'Pause', 'Print screen',
+    'D-pad up', 'D-pad down', 'D-pad left', 'D-pad right', 'View', 'Menu', 'Cancel',
   ],
   'page.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',
@@ -284,7 +297,7 @@ const reviewed = {
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
     "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
     'Write a message...  /  Enter to send  /  Esc to stop typing',
-    'Press Enter to write  /  Esc to stop typing',
+    'Press Enter to write  /  Esc to close',
   ],
   'world.conversation': ['Player unavailable', 'Face a nearby character to talk.', 'Type your message to the character.'],
   'phone.native-feedback': [
@@ -423,7 +436,7 @@ for (const [file, tokens] of tokenByFile) {
   const page = file === 'mod/manager-ui.lua';
   // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/manager-ui.lua): its name and its two helps are source strings.
   // refused(text) turns a change down in M.apply: its text is a source string too.
-  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], refused: [0] } : {};
+  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], refused: [0], bindingSection: [3, 4] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {

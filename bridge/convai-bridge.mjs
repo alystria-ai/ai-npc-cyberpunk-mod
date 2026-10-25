@@ -33,8 +33,9 @@ import {conversationScope} from './group-context.mjs';
 import {conversationContext as baseConversationContext, conversationContextBlocks as baseConversationBlocks, firstPersonReminder, voiceConversationBlocks, turnContextOptions} from './quest-context.mjs';
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
+import {eventExchange} from './appointment-events.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
-import {GroupLookahead, lookaheadAllowed, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
+import {GroupLookahead, lookaheadAllowed, lookaheadKind, validateLookahead, validateFollow, validateAhead, PREPARED_HOLD_MS, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections, spawnedWarmLimit} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
@@ -58,13 +59,15 @@ import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
 import {gearDiagnostic} from './player-gear.mjs';
 import {turnContextDiagnostic} from './turn-context.mjs';
+import {lastTalk} from './last-talk.mjs';
 import {sceneryMemory} from './scenery-memory.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 import {resolveVoiceConfigPaths} from './voice-config-paths.mjs';
 import {detectOmniPack} from './omni-pack.mjs';
+import {ownPythonLine, ownPythonSummary, readOwnPythonSetting, resolveOwnPython} from './omni-own-python.mjs';
 import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
-import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
+import {PhoneChat, parsePhoneState, phoneRecentConversationContext, rosterContacts} from './phone-chat.mjs';
 import {PhoneWarm, PHONE_HOST_IDLE_MS} from './phone-warm.mjs';
 import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
@@ -77,7 +80,7 @@ import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
 import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
-import {gpuVendors, nvidiaCardMiB} from './gpu-vendors.mjs';
+import {gpuVendors, nvidiaCardMiB, amdRoute} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
@@ -98,6 +101,7 @@ import {RelationshipRouting, retireRelationshipConnections} from './relationship
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyLanguageFrom, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
+import {callMeetNote, callLine, parseCallMeetOffer, planCallMeet} from './call-meet.mjs';
 import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
@@ -354,20 +358,51 @@ const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiK
 // OmniVoice is wanted (chosen or starting; VoiceSelection passes `wanted`), never at start-up, which runs no process of its own. null until the list is read;
 // the voice state is published again when it arrives.
 // The same list gives the NVIDIA card's memory (nvidiaCardMiB: a number, no name): OmniVoice's "needs 12 GB" hint, and a timeout on a card of 8 GB or less read as too little graphics memory.
+// With the player's own Python for OmniVoice (<data>/omni-python.txt, bridge/omni-own-python.mjs, docs/OMNIVOICE_AMD.md) its self-test runs beside the card list,
+// and OmniVoice waits for both: a Python that passed is the worker's, and the card memory its PyTorch reads (an AMD card has no NVIDIA size) is the one the
+// small-card rules use. Without the file nothing more happens than before.
 let graphicsVendors = null;
 let graphicsCardMiB = null;
 let graphicsLookup = false, graphicsKnown = false;
+let omniOwnPython = null, omniOwnPythonRun = null, graphicsCards = [];
+const cardMiB = () => omniOwnPython?.used && omniOwnPython.vramMiB ? omniOwnPython.vramMiB : nvidiaCardMiB(graphicsCards);
+let omniOwnPythonBusy = false;
+// Until its self-test has run, a file that names a Python is only known to be there (one small read at start-up, no process): the voice menu does not
+// say "needs NVIDIA" while it may still pass.
+let omniOwnPythonNamed = null;
+readOwnPythonSetting({stateDirectory}).then(setting => { if (setting.configured && !setting.problem) omniOwnPythonNamed = {configured: true, used: false, pending: true, reason: null}; }, () => {});
+const checkOwnPython = ({again = false} = {}) => {
+  if (omniOwnPythonRun && (omniOwnPythonBusy || !(again && omniOwnPython?.configured && !omniOwnPython.used))) return omniOwnPythonRun;
+  omniOwnPythonBusy = true;
+  omniOwnPythonRun = resolveOwnPython({stateDirectory, runtimePython: process.env.CYBERPUNK_CONVAI_PYTHON,
+    packInstalled: detectOmniPack({project, config: omniVoiceConfigs.long}).installed})
+    .catch(() => ({configured: false}))
+    .then(result => {
+      omniOwnPython = result; omniOwnPythonBusy = false;
+      if (graphicsKnown) graphicsCardMiB = cardMiB();
+      if (result.configured) process.stderr.write(`[LocalVoice] [OmniPython] ${ownPythonLine(result)}\n`);
+      try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      return result;
+    });
+  return omniOwnPythonRun;
+};
 const lookUpGraphics = wanted => {
   if (wanted && !graphicsLookup) {
     graphicsLookup = true;
-    cachedGraphicsCards().then(cards => { graphicsVendors = gpuVendors(cards); graphicsCardMiB = nvidiaCardMiB(cards); }, () => {}).finally(() => { graphicsKnown = true; try { if (!localVoice.closed) localVoice.publish(); } catch {} });
+    Promise.all([cachedGraphicsCards().then(found => { graphicsCards = found; graphicsVendors = gpuVendors(found); }, () => {}), checkOwnPython()])
+      .finally(() => {
+        graphicsCardMiB = cardMiB();
+        graphicsKnown = true; try { if (!localVoice.closed) localVoice.publish(); } catch {}
+      });
   }
 };
 const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphicsVendors; };
 // undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
+const graphicsAmdRouteSource = wanted => { lookUpGraphics(wanted); return graphicsKnown && amdRoute(graphicsCards); };
 const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  gpuVendors: graphicsVendorsSource, gpuMemoryMiB: graphicsMemorySource,
+  gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
+  omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
@@ -604,7 +639,11 @@ const singleSession = () => keys.singleSession || mistral.active;
 let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
 const spawnedConnections = () => spawnedWarmLimit({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
-const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active || mistral.requested !== 'convai'});
+// `kind`: 'group' (the next speaker of a round), or 'follow' / 'ahead' (one line prepared beside a line that is playing: Johnny's follow-on, a companion's
+// after-scene line). The text providers take only the second kind, as background-priority work (docs/COMPANION_SPEAK_UP.md, "Bridge side").
+const textProviderChosen = () => mistral.active || mistral.requested !== 'convai';
+const lookaheadAllowedFor = kind => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: textProviderChosen(), kind});
+const groupLookaheadAllowed = () => lookaheadAllowedFor('group');
 // A text provider answered in a language the chosen voice cannot speak (Pocket speaks English only, Voxtral the languages its model lists): the reply is shown as text, and
 // the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
 const voiceLanguageNotice = new VoiceLanguageNotice();
@@ -825,6 +864,9 @@ const phoneOutput = resolve(runtime, 'phone-chat-output.json');
 const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
+// Every named character is a Chat contact (rosterContacts): the shipped phone contacts plus one per other profile.
+const shippedPhoneContacts = await requiredJson('characters/phone-contacts.json');
+const phoneContacts = [...shippedPhoneContacts, ...rosterContacts(shippedPhoneContacts, roster)];
 // Why a Phone Chat message failed (bridge/phone-failure.mjs): one log line, the small state file the support report carries, and the
 // automatic error report. The player's phone only says "Message could not be delivered"; this says why. No message or reply text.
 const phoneFailureStatePath = resolve(runtime, 'phone-failure-state.json');
@@ -837,7 +879,7 @@ const phoneFailures = new PhoneFailureLog({
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? localUnavailableCode(error) : undefined); },
-  contacts: await requiredJson('characters/phone-contacts.json'), ids,
+  contacts: phoneContacts, ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),
@@ -862,6 +904,9 @@ const phone = new PhoneChat({
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       ...textProviderContext(prepared.input),
+      // An appointment event is a message the character starts (bridge/appointment-events.mjs): its text is a trigger, so the local memory routes record a
+      // bracketed note in V's place (or nothing) instead of it.
+      ...(options.input.event ? {phoneEvent: {v: eventExchange(options.input.event)}} : {}),
       text: options.input.text, ttsEnabled: false, local: localTurn(prepared.input, prepared)}), options.profileKey), {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
@@ -954,6 +999,8 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options),
   // One line for every turn that carried an ordinary NPC's reaction offer (docs/NPC_REACTIONS.md): where it stopped, or that it was handed over.
   log: line => console.error('[NPCReaction] ' + line),
+  // One line for every turn that carried a housing offer (docs/HOUSEMATES.md): the choice the reply asked for and whether it reached the game.
+  homeLog: line => console.error('[Housing] ' + line),
   // The Convai route's part nobody could see: what its page did with the offer (armed or not, proposals seen). Read from the existing
   // diagnostics of the pages, once, only for a turn that asked for no action; never on the reply's path.
   probe: async () => {
@@ -1033,6 +1080,8 @@ const promptProfiles = await PromptProfiles.open({dir: resolve(stateDirectory, '
 // Convai's own memory is not part of it (a pack's Convai twins have ids of their own); an add-on speaker's and a player-made character's keys are never changed.
 // With no pack, or a pack with a shared memory, every key is the profile key, as before.
 const memoryNamespace = memoryScopes(addonContent);
+// When V last talked to each character (Settings > Dynamic info > Time since last talk, bridge/last-talk.mjs): kept per memory key, so a pack's characters have their own, read before the first turn.
+await lastTalk.configure({path: resolve(stateDirectory, 'last-talk.json'), keyFor: memoryNamespace.keyFor, log: message => console.error('[LastTalk] ' + message)});
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent, promptProfiles,
   memoryKeyFor: memoryNamespace.keyFor,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
@@ -1232,8 +1281,11 @@ function logVoiceRoute(input, profile, reply, extra = {}) {
       const route = routeFor(input), characterId = route?.guard?.characterId;
       if (characterId) character = {key: route.route?.providerProfileKey ?? input.profileKey, id: characterId};
     } catch {}
+    // What the Mistral voice really clones from (known once the reference was built; the line's ref is the registry's first choice).
+    let sent;
+    try { if (reply?.engine === 'pocket' && localVoice.cloudActive) sent = voxtralVoice.referenceInfo(voiceKey ?? input.profileKey, reply.language); } catch {}
     routingLog.record(describeVoiceRoute({voice: localVoice, input, profile, plan: turnVoice(input), reply,
-      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, ...extra}));
+      sources: voiceSources, voiceKey, character, languageSet: languagePackFor(reply?.engine, reply?.language, voiceKey)?.set, pocketModel, sent, ...extra}));
   } catch {}
 }
 // The multilingual pack's entry that speaks a reply, or null (the English reference speaks): OmniVoice and the Mistral voice, a reply in a language that has a pack,
@@ -1316,7 +1368,7 @@ const expressiveEmotionsContext = input => {
 const followUpContext = input => {
   if (!followUp.enabled) return '';
   return followUp.contextFor({sessionId: sessionKey(input), turn: input?.requestId || input?.id, trait: traitFor(input.profileKey),
-    text: input.text, reaction: !!input.reaction, battle: input.battle, group: !!input.group});
+    text: input.text, reaction: !!input.reaction || !!input.event, battle: input.battle, group: !!input.group});
 };
 // One line per reply while the setting is on: whether a pull was offered and why, and whether the reply ended in a question
 // (so the effect can be checked without the game). The reply's ending is also remembered: no pull right after a question.
@@ -1451,6 +1503,10 @@ const conversationBlocks = input => {
     block('world', admitted ? relationshipContext(prepared.relationship, prepared.route.channel,
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
+    // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
+    // A holocall line carries the game's meeting offer the same way, as a note without tags (bridge/call-meet.mjs).
+    block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : input.holocall && input.meetOffer ? callMeetNote(parseCallMeetOffer(input.meetOffer), input.text) : ''),
+    block('volatile', typeof input.homeInstruction === 'string' ? input.homeInstruction : ''),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
@@ -1467,8 +1523,8 @@ const conversationBlocks = input => {
     // notes are the same every turn for a given setting.
     block('volatile', naturalSpeechContext(input)), block('notes', expressiveEmotionsContext(input)),
     block('volatile', firstPersonReminder(input)),
-    // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md).
-    block('volatile', multilingual.contextFor(input.reaction ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
+    // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md). An appointment event (the character texting first) has the mod's English trigger as its text, which says nothing of the player's language: the last turns do.
+    block('volatile', multilingual.contextFor(input.reaction || input.event ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
 };
 const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).join('\n\n');
 const conversationContext = input => joinedContext(conversationBlocks(input));
@@ -1499,6 +1555,8 @@ const realtimeConfig = input => memoryPolicy({key: currentKey(), characterId: ro
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   ...textProviderContext(input), text: battleTrigger(input), reaction: input.reaction,
   companionAction: companionActions.configFor(input), local: localTurn(input),
+  // A line prepared beside another (startAhead): the text route sends it as the lowest-priority work and never starts it ahead of a turn of V's.
+  ...(preparedRequests.has(input.requestId) ? {prepared: true} : {}),
   ...(companionVision.active && typeof input.requestId === 'string' ? {visionTurn: input.requestId} : {}),
   ttsEnabled: convaiSpeaks(input),
   // The player's own voice is not Convai's (Pocket, OmniVoice, Voxtral): Convai sends no audio for such a turn (ttsEnabled above is false; a chosen Convai voice is
@@ -2047,7 +2105,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     },
     onText: (text, userText) => {
       if (typeof userText === 'string') noteKnowledgeTurn(receiptPrepared, {userText});
-      lookahead.setSource({input, text, userText, current: current.sourceValid || current});
+      lookahead.setSource({input, text, userText, current: current.sourceValid || current, signal});
     },
     readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
     leaseWake: () => leaseWake.next(),
@@ -2213,8 +2271,23 @@ function logEmotionTimeline(input, profile, {provider, text, plan, face, signal}
   } catch { /* logging never affects speech */ }
 }
 
+// A holocall reply is complete: V may have asked her to come and meet them, and she may have agreed (docs/IMMERSIVE_INVITATIONS.md, "Holocalls"). On a text
+// provider one small request decides it, after the reply and beside everything else (never awaited, never in front of a turn); on Convai the action list of the
+// turn did (bridge/companion-actions.mjs). A line that cannot be about a meeting sends nothing to any model.
+function decideCallMeet(input, result, signal) {
+  try {
+    const pending = companionActions.pending;
+    if (!pending?.meet || pending.packet.requestId !== input.requestId || typeof result?.text !== 'string') return;
+    const userText = callLine(input, result);
+    const plan = planCallMeet(pending.meet, userText);
+    if (!plan) return;
+    void mistralHost.decideMeet({plan, userText, replyText: result.text, token: pending.packet.actionId, profileKey: input.profileKey, signal}).catch(() => {});
+  } catch { /* the call's reply never depends on this */ }
+}
+
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
+  if (input.holocall && input.meetOffer && mistral.active) decideCallMeet(input, result, signal);
   // A reply published as a whole (OmniVoice) is ready now: V's typed line, if it is audible, finishes first; if it is not, it is dropped.
   await current.vLine?.()?.waitClear(signal);
   if (!await current()) return false;
@@ -2246,7 +2319,7 @@ async function publishResult(input, profile, result, current = async () => true,
   // written reply, with the reason when the voice could not be had.
   const audioError = result.audioError;
   // The next group speaker may be prepared from this reply's text from now on.
-  lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current});
+  lookahead.setSource({input, text: result.text, userText: result.userText, current: current.sourceValid || current, signal});
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audioError,
     updated: Date.now(), ...keyNotice()}), {signal, isCurrent: current, isCurrentSync: current.sync});
@@ -2456,6 +2529,7 @@ async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
     if (scope === 'all' && (await vendorMemory.forgetAll({scope: pack})).ok !== true) throw Error('Vendor memory could not be cleared');
     // The text providers keep their own conversation memory here (bridge/memory-store.mjs): Forget clears it too, records and vectors included.
     mistralMemory.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});
+    lastTalk.forget({all: scope === 'all', profileKeys: (profileKeys ?? []).map(memoryNamespace.keyFor), scope: pack});   // a forgotten character does not remember when it last met V
     await mistralMemory.flush().catch(() => {});
     return {quiesced: true};
   } finally { memoryQuiescing--; }
@@ -2571,7 +2645,7 @@ async function pollMicrophone() {
         // snapshot and native input data refresh at microphone completion.
         preparedInputs.set(refreshed.input, refreshed);
         const signal = mic.current?.controller.signal;
-        // A group recording arms only a leave offer for its round (docs/WORLD_COMPANIONS.md).
+        // A group recording arms only a leave and/or home offer for its round (docs/WORLD_COMPANIONS.md, docs/HOUSEMATES.md).
         companionActions.admit(refreshed, {source: refreshed.input.group ? 'group-voice' : 'private-voice', signal,
           isCurrent: async () => !stopped && !signal?.aborted && await knowledgeRouter.current(refreshed)
             && await readFile(micPath, 'utf8').catch(() => '') === raw,
@@ -2681,6 +2755,11 @@ function noteReactionLease(requestId, update) {
 }
 // Why a reaction request stopped being current, when its lease said so (the add-on log line of a remark nobody heard).
 const reactionLeaseRefusal = requestId => reactionLeaseSeen.get(requestId)?.problem ?? null;
+// Requests the game has already submitted (the last few): a line prepared ahead for one of them is useless and is never started (pollLookahead).
+const submittedRequests = new Set();
+const noteSubmitted = requestId => { submittedRequests.delete(requestId); submittedRequests.add(requestId); while (submittedRequests.size > 24) submittedRequests.delete(submittedRequests.values().next().value); };
+// Lines prepared ahead that are in flight, by request id: the text route sends these as background work (realtimeConfig).
+const preparedRequests = new Map();
 
 async function tick() {
   if (polling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
@@ -2724,6 +2803,7 @@ async function tick() {
     observed = signature; observedIdentity = stampIdentity;
     if (!lease) return;
     lastAcceptedIdentity = identity;
+    noteSubmitted(input.requestId);
     void companionActions.revoke();
     active?.controller.abort();
     // The provider the player chose is in the request (mod/init.lua sendRequest): a line sent right after picking Local AI is answered by Local AI even if the
@@ -2755,7 +2835,10 @@ async function tick() {
 function startAhead(entry) {
   const request = {input: entry.input, raw: null, owner: entry.owner, controller: entry.controller,
     receivedAt: entry.startedAt, lookahead: entry};
-  void processInput(request);
+  // A line prepared beside another (Johnny's follow-on, an after-scene line) is marked for the text route, which sends it as background work.
+  const prepared = entry.kind !== 'group' ? entry.input.requestId : null;
+  if (prepared) preparedRequests.set(prepared, entry.kind);
+  void processInput(request).catch(() => {}).finally(() => { if (prepared) preparedRequests.delete(prepared); });
   return request;
 }
 
@@ -2763,6 +2846,13 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
+  // A submitted turn (not one prepared ahead) is the bridge's from here, and its status says so at once (the game's probe line a few seconds after a
+  // typed turn reads it, mod/service-status.lua receipt): a request that never shows as received was never read. One log line, codes only. Not awaited.
+  const input = request.input;
+  if (!request.lookahead && input) {
+    void status('received', '', {requestId: input.requestId, provider: input.provider}).catch(() => {});
+    console.error(`[Turn] received ${String(input.requestId).slice(0, 80)} generation=${input.generation}${input.reaction ? ' reaction' : ''}`);
+  }
   return withTurnClock(request, clock => runInput(request, prepared, clock));
 }
 async function withTurnClock(request, run) {
@@ -3003,7 +3093,9 @@ async function runInput(request, prepared, clock) {
     // and on any identity change its exact bytes, detect every replacement,
     // including changed context under the same request ID, without rereading
     // or reparsing the large journal on every playback poll and PCM packet.
-    return await request.owner.current() && await reactionCurrent(input)
+    // A reaction held for the game to submit (a prepared follow-on or after-scene line) has no lease yet: the lease is the game's word that it is playing
+    // the request it submitted, and it writes it with that submission. Held, such a turn only has to be wanted by its owner; once claimed the lease governs.
+    return await request.owner.current() && (ahead?.isHeld() === true || await reactionCurrent(input))
       && (!knowledgeTurn || await knowledgeRouter.current(knowledgeTurn));
   };
   current.sync = () => !controller.signal.aborted && (active === request || !!ahead?.isHeld()) && !stopped
@@ -3204,37 +3296,74 @@ async function pollPrefetch() {
 // as the speaker being heard has complete reply text (and clears the file when
 // that prediction stops being valid). Run that turn now, held back from the
 // game, so the speaker change no longer pays a whole provider request.
+//
+// Two more kinds of command use the same file and the same hold-and-claim (bridge/group-lookahead.mjs, PREPARED_KINDS): Johnny's remark on a line that
+// is still playing ({kind: 'follow', sourceRequestId, input}) and a companion's after-scene line ({kind: 'ahead', input}). They differ from a group
+// speaker in three ways: the text providers may prepare them (as background-priority work, see realtimeConfig and bridge/text-provider-host.mjs), they are never allowed to stand in
+// front of V (V opening the text box or the voice key, a recording, or any request of V's drops them at once), and they are held for 90 s at most.
 let lookaheadPolling = false, lookaheadWaiting = {raw: '', at: 0}, lookaheadHandled = '';
+// V is about to talk, is typing or is recording: a line prepared ahead gives way. A recording that is only finishing the source's own turn does not count.
+// The composer hint (runtime/conversation-prewarm.json: the talk key was pressed, whom V is about to talk to) is read here itself: pollPrefetch applies it to the
+// connections only while no turn is active, and a companion's line is exactly such a turn. A hint it has already applied is old news (the game leaves the hint of
+// V's last typed line in the file): only one that is new since then is V talking now. Read only while a prepared line is being decided or is held.
+async function vEngaged(sourceRequestId) {
+  if (connections.composer) return true;
+  if (mic.current && !(mic.current.finishing && sourceRequestId !== undefined && mic.current.requestId === sourceRequestId)) return true;
+  const raw = await readFile(prewarmPath, 'utf8').catch(() => '');
+  if (raw === prewarmObserved) return false;
+  try { return !!parsePrewarm(JSON.parse(raw), ids); } catch { return false; }
+}
 async function pollLookahead() {
-  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation || !groupLookaheadAllowed()) return;
+  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation) return;
+  // Nothing is allowed on this key and plan (a player's free Convai key): the file is not even read, as before.
+  if (!lookaheadAllowedFor('group') && !lookaheadAllowedFor('follow')) { if (lookahead.entry) lookahead.cancel(); return; }
   lookaheadPolling = true;
   try {
     lookahead.prune();
+    const held = lookahead.entry;
+    if (held && held.kind !== 'group') {
+      // A held prepared line is dropped when V engages, when the plan or provider no longer allows it, or when its source turn is gone.
+      if (await vEngaged(held.sourceRequestId) || !lookaheadAllowedFor(held.kind)) lookahead.cancel();
+      else {
+        await lookahead.watchSource(entry => {
+          const source = lookahead.source;
+          return source?.input.requestId !== entry.sourceRequestId || source.signal?.aborted === true;
+        });
+      }
+    }
     const raw = await readFile(prefetchPath, 'utf8').catch(() => '');
     if (raw === prefetchObserved || raw === lookaheadHandled) return;
     let command;
     try { command = JSON.parse(raw); } catch { prefetchObserved = raw; dropPrefetch(); return; }
     // `{}` withdraws the prediction: audience change, an undelivered or
     // interrupted speaker, a new message or a dismissal.
-    if (!command?.input) { prefetchObserved = raw; dropPrefetch(); return; }
+    if (!command?.input) { prefetchObserved = raw; lookaheadHandled = ''; dropPrefetch(); return; }
+    const kind = lookaheadKind(command);
+    if (kind === null) { prefetchObserved = raw; dropPrefetch(); return; }
+    // Not allowed on this provider or plan: the command is passed over (once; it would only be read again on every poll), the game's own submission runs as usual.
+    // A group prediction on a Convai plan that may allow it later (the paid plan is read a moment after the start) is looked at again; everything else is not.
+    if (!lookaheadAllowedFor(kind)) { if (kind !== 'group' || textProviderChosen()) lookaheadHandled = raw; return; }
     const source = lookahead.source;
-    if (!source || source.input.requestId !== command.sourceRequestId) {
+    if (kind !== 'ahead' && (!source || source.input.requestId !== command.sourceRequestId)) {
       // The source reply is recorded just before the game can see it complete;
       // allow a late arrival a moment before giving up on this prediction.
       if (lookaheadWaiting.raw !== raw) lookaheadWaiting = {raw, at: Date.now()};
       if (Date.now() - lookaheadWaiting.at < 1500) return;
     }
     prefetchObserved = raw;
-    const predicted = validateLookahead(command, source);
+    const predicted = kind === 'group' ? validateLookahead(command, source) : kind === 'follow' ? validateFollow(command, source) : validateAhead(command);
     // A recording microphone owns the device; the first speaker's own reply
     // phase (which this prediction follows) does not.
     const micAllows = !mic.current || (mic.current.finishing && mic.current.requestId === source?.input.requestId);
     if (!predicted || !micAllows || !Object.hasOwn(ids, predicted.profileKey) || !profileFor(predicted, roster)
-        || !await source.current() || !await audioReady(runtime) || stopped) {
+        || (kind !== 'ahead' && !await source.current()) || !await audioReady(runtime) || stopped) {
       dropPrefetch(); return;
     }
     lookaheadHandled = raw;
-    lookahead.offer(predicted);
+    if (kind === 'group') { lookahead.offer(predicted); return; }
+    // A prepared line is not started while V is engaged, nor for a request the game has already submitted: the command is dropped for good.
+    if (await vEngaged(command.sourceRequestId) || submittedRequests.has(predicted.requestId)) { dropPrefetch(); return; }
+    lookahead.offer(predicted, {kind, sourceRequestId: command.sourceRequestId, maxHoldMs: Number(process.env.CYBERPUNK_CONVAI_TEST_PREPARED_HOLD_MS) || PREPARED_HOLD_MS});
   } finally { lookaheadPolling = false; }
 }
 
@@ -3732,6 +3861,19 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         playerServer: state === 'failed' && reason === 'start-failed' && isPlayerServerDetail(detail)};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    // The player's own Python for OmniVoice (only with omni-python.txt): a light run reports what is known, the Help page's run tests it (again after a refusal).
+    omniPython: async ({light: lightRun} = {}) => {
+      // The Help page follows its request for 15 s: a self-test still running after 8 s is reported as being tested, and the next check shows its result.
+      if (!lightRun) {
+        const done = await Promise.race([checkOwnPython({again: true}), new Promise(wait => setTimeout(wait, 8000).unref?.())]);
+        if (done) return ownPythonSummary(done);
+        const setting = await readOwnPythonSetting({stateDirectory});
+        return setting.configured ? {...ownPythonSummary({configured: true, used: false, reason: setting.problem ?? null}), testing: !setting.problem} : null;
+      }
+      if (omniOwnPython) return ownPythonSummary(omniOwnPython);
+      const setting = await readOwnPythonSetting({stateDirectory});
+      return ownPythonSummary(setting.configured ? {configured: true, used: false, reason: setting.problem ?? null} : setting);
+    },
     // Whether the Pocket voice (V's voice, the companions') has failed to start: a row of the Help page when it has.
     voice: () => localVoice.voiceProblem(),
     // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.
@@ -3833,6 +3975,7 @@ async function shutdown() {
   await Promise.allSettled([realtime.close(), phoneRealtime.close(), jaliFace?.close()]);
   mistralHost.close();
   await mistralMemory.flush().catch(() => {});
+  await lastTalk.flush().catch(() => {});
   await Promise.allSettled([localServer.stop(), localEmbedder.close()]);
   await reputation.flush().catch(() => {});
   await vendorMemory.idle().catch(() => {});

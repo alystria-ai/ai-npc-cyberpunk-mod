@@ -1,6 +1,6 @@
 # Controller talk button
 
-Settings > Voices > **Controller talk button** (off by default, in Mod Configuration Menu and Native Settings UI alike). On, **hold the left stick click (L3)** at a character, speak, and let go to send: the same hold-to-talk as the CET talk key (`docs/VOICE_INPUT.md`), by voice, for the private talk only. The text composer and the group voice key stay on the keyboard (a controller cannot type, and one controller button is all the pad has to give).
+Settings > Voices > **Controller talk button** (off by default, in Mod Configuration Menu and Native Settings UI alike; the same row is on **Companion Manager > Key bindings**, see `docs/KEY_BINDINGS.md`). On, **hold the left stick click (L3)** at a character, speak, and let go to send: the same hold-to-talk as the CET talk key (`docs/VOICE_INPUT.md`), by voice, for the private talk only. Facing nobody, the hold talks to the first member of the party (`docs/TALK_FALLBACK.md`). A button for Talk to Johnny by voice is set on Key bindings. The text composer and the group voice key stay on the keyboard (a controller cannot type, and one controller button is all the pad has to give).
 
 Checked 2026-10-24 against game 2.31 (`r6/config/inputUserMappings.xml`, `r6/config/inputContexts.xml`, `r6/cache/final.redscripts`, read only).
 
@@ -30,6 +30,10 @@ Every pad button has a meaning in the game. From the 2.31 files:
 The listener sees the action, it does not own it (and the walking actions are read by the game's own state machines, so this mod does not try to take one away). So a safe button is one whose game action is harmless when the player stands in front of someone, and the only one is L3. If the sprint toggle should ever matter (V is walking while it is held), the stick-at-rest rule already keeps the hold from starting.
 
 Combos would need raw gamepad key events (Codeware's `Input/Key` target, or the native plugin). Whether Codeware delivers gamepad keys was not verifiable offline, and both combos above collide with real actions anyway. If a second binding is wanted later, the Lua side is already the place: add a preset and a source for it.
+
+## Other buttons and keys: Key bindings
+
+The L3 hold above is one fixed button. For any other controller button (or any keyboard key) and for the other four actions (talk by text, group voice chat, group text chat, the Companion Manager) there is **Companion Manager > Key bindings** (2026-10-25, `docs/KEY_BINDINGS.md`): **Set**, then press the button. That page cannot use this document's mechanism, because `RegisterInputListener` only hears the actions a button is mapped to; it reads the raw key events through Codeware (`r6/scripts/CyberpunkConvai/KeyBinds.reds`), which is why the D-pad, LB and the rest can be chosen there although each of them already means something in the game (the game still sees the button too: the page tells the player to pick one the game does not use). A controller button set there is a hold for the voice actions (down begins, up sends) and a tap for the others. The two features do not depend on each other: the L3 hold keeps working whether or not a key is set, and a key set there on L3 (`IK_Pad_LeftThumb`) acts on the press and release of the click, with no 0.3 s wait and no stick-at-rest rule.
 
 ## Live checks (not run yet)
 

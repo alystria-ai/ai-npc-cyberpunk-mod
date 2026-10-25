@@ -157,6 +157,70 @@ class PortableVoicePaths(unittest.TestCase):
             with self.assertRaises(worker.ReferenceUnavailable):
                 worker.validate_portable_source(paths)
 
+    def packaged_source(self, base):
+        package = base / 'python/Lib/site-packages/omnivoice'
+        (package / 'models').mkdir(parents=True)
+        (package / '__init__.py').write_text('# source fixture\n', encoding='utf-8')
+        (package / 'models/__init__.py').write_text('', encoding='utf-8')
+        (package / 'models/omnivoice.py').write_text('# model source fixture\n', encoding='utf-8')
+        return package
+
+    def own_python(self, source):
+        return {worker.OWN_PYTHON_VARIABLE: '1', worker.OMNI_SOURCE_VARIABLE: str(source)}
+
+    def test_the_own_python_loads_omnivoice_from_the_pack_and_the_source_check_still_holds(self):
+        paths = worker.resolve_worker_paths(self.app, self.environment())
+        package = self.packaged_source(self.app)
+        before = list(worker.sys.meta_path)
+        try:
+            self.assertEqual(worker.use_packaged_omnivoice(paths, self.own_python(package)), package.resolve())
+            # The real lookup now finds the pack's copy, whatever this Python has installed, and the packaged-source check accepts it.
+            self.assertEqual(Path(worker.importlib.util.find_spec('omnivoice').origin).resolve(), (package / '__init__.py').resolve())
+            self.assertEqual(Path(worker.importlib.util.find_spec('omnivoice.models.omnivoice').origin).resolve(), (package / 'models/omnivoice.py').resolve())
+            worker.validate_portable_source(paths)
+        finally:
+            worker.sys.meta_path[:] = before
+            for name in [name for name in worker.sys.modules if name == 'omnivoice' or name.startswith('omnivoice.')]:
+                del worker.sys.modules[name]
+
+    def test_without_the_flag_nothing_changes_and_a_source_outside_the_app_or_incomplete_is_refused(self):
+        paths = worker.resolve_worker_paths(self.app, self.environment())
+        before = list(worker.sys.meta_path)
+        self.assertIsNone(worker.use_packaged_omnivoice(paths, {worker.OMNI_SOURCE_VARIABLE: str(self.app)}))
+        self.assertEqual(worker.sys.meta_path, before)
+        # An OmniVoice copy outside the application directory (the player's own install) is refused like an editable checkout.
+        elsewhere = self.packaged_source(self.root / 'player venv')
+        with self.assertRaisesRegex(RuntimeError, 'outside the application directory'):
+            worker.use_packaged_omnivoice(paths, self.own_python(elsewhere))
+        for invalid in ('', 'relative/omnivoice', None):
+            with self.subTest(source=invalid), self.assertRaises(ValueError):
+                worker.use_packaged_omnivoice(paths, {worker.OWN_PYTHON_VARIABLE: '1', **({worker.OMNI_SOURCE_VARIABLE: invalid} if invalid is not None else {})})
+        package = self.packaged_source(self.app)
+        (package / 'models/omnivoice.py').unlink()
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.use_packaged_omnivoice(paths, self.own_python(package))
+        self.assertEqual(worker.sys.meta_path, before, 'a refused source installs no finder')
+
+    def test_the_cuda_graph_is_off_by_default_on_rocm_and_on_by_default_on_cuda(self):
+        rocm = SimpleNamespace(version=SimpleNamespace(hip='10.1.0', cuda=None))
+        cuda = SimpleNamespace(version=SimpleNamespace(hip=None, cuda='12.8'))
+        self.assertFalse(worker.cuda_graph_wanted(rocm, {}))
+        self.assertTrue(worker.cuda_graph_wanted(rocm, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '1'}))
+        self.assertTrue(worker.cuda_graph_wanted(cuda, {}))
+        self.assertFalse(worker.cuda_graph_wanted(cuda, {'CYBERPUNK_CONVAI_CUDA_GRAPH': '0'}))
+
+    def test_the_backend_line_names_rocm_or_cuda_and_the_card_from_pytorch(self):
+        def fake(hip, cuda, available=True):
+            properties = SimpleNamespace(name='AMD Radeon RX 9070 XT' if hip else 'NVIDIA GeForce RTX 4070', total_memory=16304 * 1048576)
+            return SimpleNamespace(__version__='2.x', version=SimpleNamespace(hip=hip, cuda=cuda),
+                                   cuda=SimpleNamespace(is_available=lambda: available, get_device_properties=lambda index: properties))
+        with patch.dict(os.environ, {worker.OWN_PYTHON_VARIABLE: '1'}):
+            self.assertEqual(worker.gpu_backend_line(fake('10.1.0', None)), '[gpu] PyTorch 2.x, ROCm/HIP 10.1.0, AMD Radeon RX 9070 XT, 16304 MiB (own Python, experimental)')
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(worker.gpu_backend_line(fake(None, '12.8')), '[gpu] PyTorch 2.x, CUDA 12.8, NVIDIA GeForce RTX 4070, 16304 MiB')
+            self.assertEqual(worker.gpu_backend_line(fake(None, None, available=False)), '[gpu] PyTorch 2.x, no GPU build')
+            self.assertTrue(worker.gpu_backend_line(SimpleNamespace()).startswith('[gpu] backend unknown'))
+
     def test_changed_data_reference_cannot_render_from_an_old_prompt(self):
         registry = self.registry()
         renders, frames = [], []
@@ -611,6 +675,78 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertFalse((self.app / 'runtime').exists())
 
 
+def make_junction(link, target):
+    """A real directory link (a junction on Windows, a symlink elsewhere); the test is skipped where none can be made."""
+    try:
+        if os.name == 'nt':
+            import subprocess
+            made = subprocess.run(['cmd', '/c', 'mklink', '/J', str(link), str(target)], capture_output=True)
+            if made.returncode != 0:
+                raise OSError(made.stderr)
+        else:
+            os.symlink(target, link, target_is_directory=True)
+    except (OSError, NotImplementedError) as error:
+        raise unittest.SkipTest(f'directory links are not available here: {error}')
+
+
+class AppLinks(PortableVoicePaths):
+    """A link ABOVE the Runtime's app folder (a junctioned Steam library, a moved Documents, OneDrive) is accepted; a link inside it is refused, as is
+    one that leaves it. Real junctions."""
+
+    def setUp(self):
+        super().setUp()
+        self.links = []
+        self.addCleanup(self.unlink)
+
+    def unlink(self):
+        for link in reversed(self.links):   # a junction: remove the link, never what it points at
+            try:
+                os.rmdir(link)
+            except OSError:
+                pass
+
+    def link(self, link, target):
+        make_junction(link, target)
+        self.links.append(link)
+
+    def test_a_link_above_the_app_folder_is_accepted(self):
+        library = self.root / 'library'
+        self.link(library, self.root)
+        app = library / self.app.name   # the whole layout spelled through the junction
+        environment = {worker.PATH_OVERRIDES[field]: str(library / path.relative_to(self.root)) for field, path in self.paths.items()}
+        paths = worker.resolve_worker_paths(app, environment)
+        self.assertEqual(paths['modelDirectory'], self.paths['modelDirectory'].resolve())
+        self.assertEqual(worker.validate_config(self.config, app, paths=paths)['model'], self.paths['modelDirectory'].resolve())
+        # The app folder itself being the link counts as above it.
+        self.link(self.root / 'app-link', self.app)
+        app = self.root / 'app-link'
+        environment.update({worker.PATH_OVERRIDES['modelDirectory']: str(app / 'models/omnivoice'),
+                            worker.PATH_OVERRIDES['adapterDirectory']: str(app / 'voice/voicestudio/backend')})
+        self.assertTrue(worker.resolve_worker_paths(app, environment)['portable'])
+
+    def test_a_link_inside_the_app_folder_is_refused(self):
+        self.link(self.app / 'models/linked', self.paths['modelDirectory'])
+        with self.assertRaisesRegex(ValueError, 'Linked directories inside the application directory'):
+            worker.resolve_worker_paths(self.app, {**self.environment(), 'CYBERPUNK_CONVAI_OMNI_MODEL': str(self.app / 'models/linked')})
+
+    def test_a_link_that_leaves_the_app_folder_is_refused(self):
+        outside = self.root / 'elsewhere'
+        (outside / 'omnivoice').mkdir(parents=True)
+        self.link(self.app / 'models/escape', outside)
+        with self.assertRaisesRegex(ValueError, 'Linked directories inside the application directory'):
+            worker.resolve_worker_paths(self.app, {**self.environment(), 'CYBERPUNK_CONVAI_OMNI_MODEL': str(self.app / 'models/escape/omnivoice')})
+
+    def test_a_package_outside_the_pack_is_still_refused_when_the_app_is_behind_a_link(self):
+        library = self.root / 'library'
+        self.link(library, self.root)
+        stray = self.data / 'stray-model'
+        stray.mkdir()
+        environment = {worker.PATH_OVERRIDES[field]: str(library / path.relative_to(self.root)) for field, path in self.paths.items()}
+        environment[worker.PATH_OVERRIDES['modelDirectory']] = str(stray)
+        with self.assertRaisesRegex(ValueError, 'must remain in the application directory'):
+            worker.resolve_worker_paths(library / self.app.name, environment)
+
+
 class UsvfsVoicePaths(unittest.TestCase):
     """Mod Organizer 2 (USVFS): the OmniVoice pack is its own mod, so its model and adapter really live outside the Runtime's app folder, and Path.resolve()
     of a file answers with the mod that holds it. USVFS does not exist here: the pack is a real folder beside the app, and where a merged folder is needed
@@ -673,10 +809,12 @@ class UsvfsVoicePaths(unittest.TestCase):
 
     def test_a_link_in_the_pack_is_refused_as_it_is_outside_usvfs(self):
         real = Path.is_symlink
-        for linked in (self.pack_paths['modelDirectory'], self.pack, self.pack.parent):
+        for linked in (self.pack_paths['modelDirectory'], self.pack):
             with self.subTest(linked=str(linked)), patch.object(Path, 'is_symlink', lambda path, linked=linked: path == linked or real(path)):
                 with self.assertRaisesRegex(ValueError, 'Linked'):
                     self.resolved()
+        with patch.object(Path, 'is_symlink', lambda path: path == self.pack.parent or real(path)):
+            self.resolved()   # a link above the pack is the player's layout
         with patch.object(Path, 'is_symlink', lambda path: path.name == 'model.safetensors' or real(path)):
             with self.assertRaisesRegex(ValueError, 'Linked'):
                 self.resolved()

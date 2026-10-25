@@ -61,6 +61,14 @@ local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
 -- without the file its rows and notes are not shown. `factory` is what the file returned (or the error text), `instance` is made in
 -- M.configure.
 local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
+-- Key bindings (docs/KEY_BINDINGS.md): the mod's own keys for its five actions, set from a page of their own. The module that listens for them
+-- (mod/key-bindings.lua) is loaded by init.lua (convaiKeyBindsModule) when this page opens or a binding is saved, so a player who never opens the page
+-- and sets nothing loads nothing.
+local function keyBinds()
+    if type(convaiKeyBindsModule) ~= 'function' then return nil end
+    local ok, module = pcall(convaiKeyBindsModule)
+    return ok and type(module) == 'table' and module or nil
+end
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -230,6 +238,8 @@ end
 
 -- Moves to another page of the manager. Its long list starts at the first page, and the line of the last action is dropped.
 local function navigate(nextView)
+    -- A Set that is waiting belongs to its page (mod/key-bindings.lua, loaded only once the page was opened).
+    if view == 'key-bindings' and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     view, listPage, listGroup = nextView, 1, 1
     modelFind.text, modelFind.words = '', {}
     actionFeedback, preparationActionFeedback = nil, false
@@ -1098,7 +1108,14 @@ local function settingsDigest(settings)
     local info = {}
     for key, on in pairs(settings.dynamicInfo or {}) do info[#info + 1] = key .. '=' .. tostring(on) end
     table.sort(info)
-    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',')
+    local immersive = {}
+    for key, value in pairs(settings.immersive or {}) do immersive[#immersive + 1] = key .. '=' .. tostring(value) end
+    table.sort(immersive)
+    local housemates = {}
+    for key, value in pairs(settings.housemates or {}) do housemates[#housemates + 1] = key .. '=' .. tostring(value) end
+    table.sort(housemates)
+    return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',') .. ';' .. table.concat(immersive, ',')
+        .. ';' .. table.concat(housemates, ',')
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1137,7 +1154,7 @@ local function pageSignature(snapshot)
     if view == 'characters' then
         local voice, pack = snapshot.localVoice, manager.omniPack()
         add(table.concat({voice.provider or '', tostring(voice.cloudVoice), tostring(voice.omniSteps), tostring(voice.omniReference),
-            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.smallCard),
+            table.concat(voice.routedProfiles or {}, ','), tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard),
             tostring((snapshot.mistral or {}).saved)}, '|'))
     end
     if view == 'models' then
@@ -1158,7 +1175,13 @@ local function pageSignature(snapshot)
         local read, signature = pcall(customProvider.instance.signature)
         add('custom-page:' .. (read and signature or ''))
     end
-    if view == 'relationships' or view == 'dynamic-info' then add(settingsDigest(snapshot.settings)) end
+    if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' or view == 'housemates' then add(settingsDigest(snapshot.settings)) end
+    if view == 'key-bindings' then
+        add(settingsDigest(snapshot.settings))
+        -- A capture waiting or ended, and the saved keys (the page shows no Cyber Engine Tweaks key, so CET is not asked).
+        local module = keyBinds()
+        if module then add('keys:' .. tostring(module.capturing()) .. '|' .. module.list(snapshot.settings.keyBindings)) end
+    end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1170,7 +1193,7 @@ local function pageSignature(snapshot)
             own.daily and (tostring(own.daily.left) .. '/' .. tostring(own.daily.blocked)) or ''}, '|'))
         add(table.concat({'provider', tostring(mistral.saved), mistral.tail or '', mistral.provider or '', mistral.effective or '',
             mistral.localAi or '', tostring(mistral.maturePack), tostring(mistral.pending), mistral.result or '', mistral.limit or '', tostring(mistral.stt),
-            tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
+            tostring(pack.known), tostring(pack.installed), tostring(pack.noNvidia), tostring(pack.amdRoute), tostring(pack.smallCard), tostring(snapshot.settings.developerMode)}, '|'))
         -- The Local AI model row lists what is installed.
         local modelKey = {'models'}
         modelKey[#modelKey + 1] = 'd:' .. tostring(mistral.localModelDefault) .. ':' .. tostring(mistral.localModelMatureDefault)
@@ -1196,6 +1219,96 @@ end
 -- Set by M.update when the game has no world (the main menu, a loading screen): Game.GetPlayer() can still hand back an object there,
 -- and the pages must not offer invitations without a loaded save.
 local noWorld = false
+
+local function keyActionName(id)
+    if id == 'voice' then return ui.t('Talk by voice')
+    elseif id == 'text' then return ui.t('Talk by text')
+    elseif id == 'group_voice' then return ui.t('Group voice chat')
+    elseif id == 'group_text' then return ui.t('Group text chat')
+    elseif id == 'johnny_voice' then return ui.t('Talk to Johnny by voice')
+    elseif id == 'johnny_text' then return ui.t('Talk to Johnny by text') end
+    return ui.t('Companion Manager')
+end
+-- A key as the page says it: the key's name, 'Controller LB' for a controller button, or 'Not set'. The keys that have a word of their own (Space, Page up,
+-- D-pad up ...) are literals in mod/key-bindings.lua, which the catalogue reads (scripts/Extract-UiCatalog.mjs, page.key-bindings); the other keys are a
+-- letter, a digit or a symbol, the same in every language.
+local function keyText(module, name)
+    local kind, word = module.describe(name)
+    if not kind then return ui.t('Not set') end
+    if kind == 'pad' then return ui.t('Controller {button}', {button = ui.t(word)}) end
+    return ui.t(word)
+end
+-- One section of the page: an action with the key set for it here (its button sets it) and Clear.
+local function bindingSection(snapshot, module, id, name, how)
+    local mine = (snapshot.settings.keyBindings or {})[id]
+    local waiting = module.capturing() == id
+    -- Every row is a button row, so the page has one look (the hosts draw a read-only text row bigger and indented, the owner's check
+    -- of 2026-10-25): the key's own button shows the key and starts the capture. The Cyber Engine Tweaks key is not shown (the owner: no row for it).
+    local rows = {
+        action('kb:set:' .. id, 'Key or button', waiting and ui.t('Cancel') or keyText(module, mine),
+            ui.t(how) .. '\n\n' .. ui.t('Press it, then the key or controller button you want. Esc or B cancels. It works at once.'),
+            function()
+                local currentPlayer = player()
+                if waiting then module.abandonCapture(currentPlayer); return true end
+                local ok, reason = module.beginCapture(currentPlayer, id)
+                if ok then return true, ui.t('Press the key or controller button for {action}. Esc or B cancels.', {action = keyActionName(id)}) end
+                if reason == 'codeware' then return false, ui.t('Key bindings need Codeware, and this game does not have it. Open Help for what is missing.') end
+                return false, ui.t('The mod’s scripts did not load, so no key can be set. Open Help for what is wrong.')
+            end, nil, {value = true, description = true}),
+    }
+    if mine then
+        rows[#rows + 1] = action('kb:clear:' .. id, 'Clear', 'Clear', 'Remove the key or button you set here.', function()
+            module.abandonCapture(player())
+            local ok, reason = manager.setKeyBinding(player(), id, nil)
+            if not ok then return false, reason end
+            return true, ui.t('{action} cleared.', {action = keyActionName(id)})
+        end)
+    end
+    return category('kb:' .. id, name, rows, how)
+end
+local function keyBindingSections(snapshot)
+    local module = keyBinds()
+    if not module then
+        return {category('key-bindings', 'Key bindings', {readonly('kb:missing', 'Key bindings', 'Not available',
+            'The mod’s key bindings could not be loaded. Open Help for what is wrong.')})}
+    end
+    local sections = {
+        bindingSection(snapshot, module, 'voice', 'Talk by voice', 'Hold the key or button while you speak and let go to send, like the Cyber Engine Tweaks talk key. Facing nobody, you talk to the first member of your party.'),
+        bindingSection(snapshot, module, 'text', 'Talk by text', 'Press it to type to the character you face. Facing nobody, you type to the first member of your party.'),
+        bindingSection(snapshot, module, 'group_voice', 'Group voice chat', 'Hold it to talk to the characters around you at once, and let go to send. Facing nobody, you talk to the first member of your party and two others from it.'),
+        bindingSection(snapshot, module, 'group_text', 'Group text chat', 'Press it to type to the characters around you at once. Facing nobody, you type to the first member of your party and two others from it.'),
+        bindingSection(snapshot, module, 'johnny_voice', 'Talk to Johnny by voice', 'Hold it to talk to Johnny, the voice in your head, wherever you face, and let go to send. It needs Johnny in your head turned on in Settings.'),
+        bindingSection(snapshot, module, 'johnny_text', 'Talk to Johnny by text', 'Press it to type to Johnny, the voice in your head, wherever you face. It needs Johnny in your head turned on in Settings.'),
+        bindingSection(snapshot, module, 'manager', 'Companion Manager', 'Press it to open the Companion Manager while you play.'),
+    }
+    -- The same setting as Settings > Voices (a row of its own there): changing it here changes it there.
+    sections[#sections + 1] = category('kb:controller', 'Controller', {
+        setting('padTalk', 'Controller talk button', 'bool', snapshot.settings.padTalk == true, false,
+            'Talk with a controller: hold the left stick click (L3) at a character, speak, and let go to send. Hold it with the stick at rest.\n\nOn foot only, never in menus, scenes, dialogue choices, calls, combat or a vehicle. The click still toggles sprint, which does nothing while you stand.'),
+    }, 'The same setting as Settings > Voices > Controller talk button.')
+    return sections
+end
+
+-- A Set ended (mod/key-bindings.lua, from the game's key event): the line under the way back says what came of it, and the page is drawn again.
+function M.keyBindResult(result)
+    if type(result) ~= 'table' then return end
+    local named = {action = keyActionName(result.action)}
+    local module = keyBinds()
+    if result.kind == 'bound' and module then
+        named.key = keyText(module, result.name)
+        actionFeedback = ui.t('{action} is set to {key}.', named)
+    elseif result.kind == 'duplicate' and module then
+        named.key, named.other = keyText(module, result.name), keyActionName(result.other)
+        actionFeedback = ui.t('{key} is already used for {other}. Choose another.', named)
+    elseif result.kind == 'timeout' then
+        actionFeedback = ui.t('No key was pressed, so nothing changed.')
+    elseif result.kind == 'failed' then
+        actionFeedback = ui.t(result.reason or 'The settings could not be saved. Nothing was changed.')
+    else
+        actionFeedback = ui.t('Cancelled.')
+    end
+    refreshQueued = true
+end
 -- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) /
 -- Ordinary. A page of its own, opened from the Conversations section of Settings (both hosts draw it from here).
 local function relationshipRows(snapshot)
@@ -1218,7 +1331,11 @@ end
 local function dynamicInfoRows(snapshot)
     local on = snapshot.settings.dynamicInfo or {}
     local function row(kind, label, description)
-        return setting('dynamic:' .. kind, label, 'bool', on[kind] ~= false, true, description)
+        -- All on by default except Other mods' state.
+        local default = kind ~= 'mods'
+        local value = on[kind]
+        if type(value) ~= 'boolean' then value = default end
+        return setting('dynamic:' .. kind, label, 'bool', value, default, description)
     end
     return {
         row('location', 'Location',
@@ -1237,8 +1354,63 @@ local function dynamicInfoRows(snapshot)
             'Whether V is a woman or a man, and V’s lifepath: Nomad, Street Kid or Corpo.\n\nOff: it is not sent with a turn, and the mod stops reading it for that. Your story’s own facts may still reflect your lifepath.'),
         row('quest', 'Quest and journal',
             'V’s tracked quest and its objectives, the jobs V has open and the journal history.\n\nWhat each character knows about your story stays on.\n\nOff: none of this is sent. The mod stops scanning the journal for it, unless Johnny’s remarks are on.'),
+        row('lastTalk', 'Time since last talk',
+            'How long it has been since V last talked to this character, in the game and in real days: since last night, or days ago. Said only when the gap is long enough to matter, and not again in the same conversation.\n\nOff: it is not sent, and the mod stops reading the game clock for it.'),
+        row('media', 'Music and TV',
+            'The song playing on the car radio while V rides with the character, or on V’s pocket radio, and what is on a TV near V.\n\nOff: it is not sent, and the mod stops reading it from the game.'),
+        row('mods', 'Other mods’ state',
+            'How V is doing according to other mods, when they are installed: Dark Future’s tiredness, hunger, thirst, nerve and addictions, for example. Also what V visibly wears while an Equipment-EX outfit is on, so characters describe the outfit and not the clothes it hides.\n\nOff by default. Off: it is not sent, and nothing is read from those mods.'),
         row('dialogue', 'Recent game dialogue',
             'The last lines spoken in scenes and V’s chosen replies, so a character can pick up from what was just said.\n\nOff: they are not sent.'),
+    }
+end
+
+-- Invite (Characters, Model browser): with Settings > Immersive invitations On it is an appointment she travels to; Off, or when it
+-- takes no part (the character is already in the party), the old instant invitation (docs/IMMERSIVE_INVITATIONS.md).
+local function inviteKey(key)
+    local service = convaiImmersiveGet and convaiImmersiveGet() or nil
+    if service then
+        local accepted, message = service.requestInvite(key)
+        if accepted ~= nil then return accepted, message end
+    end
+    return queue.invite(key)
+end
+
+-- Immersive invitations: its own page, opened from Companion behavior. The list values are positions in the lists of manager.immersiveChoices.
+local function immersiveRows(snapshot)
+    local value = snapshot.settings.immersive or {}
+    local arrivals, delays, waits = manager.immersiveChoices()
+    local function index(list, wanted, fallback)
+        for position, item in ipairs(list) do if item == wanted then return position end end
+        return fallback
+    end
+    return {
+        setting('immersive:enabled', 'Immersive invitations', 'bool', value.enabled == true, false,
+            'Off: Invite brings a companion to your side at once.\n\nOn: a companion you invite, by the Invite button, the Contacts tab or a text, travels to you and arrives after the time you choose here. She texts you when she is there, waits, and leaves angry (and remembers it) if you never come.'),
+        setting('immersive:arrival', 'How she arrives', 'select', index(arrivals, value.arrival, 1), 1,
+            'Walk: she appears out of your sight and walks to you.\n\nCar: when a road is near she drives in, stops on the road, gets out and walks the rest. Without a road she walks. The car stays near for a ride, and is removed when she leaves your group or you both go far from it.',
+            {'Walk', 'Car'}),
+        setting('immersive:delay', 'When she arrives', 'select', index(delays, value.delay, 1), 1,
+            'Right now: she is on her way as soon as she is ready.\n\nIn 2, 5 or 10 minutes: real minutes of play, so she arrives at that time. She then waits as long as that delay.',
+            {'Right now', 'In 2 minutes', 'In 5 minutes', 'In 10 minutes'}),
+        setting('immersive:wait', 'How long she waits', 'select', index(waits, value.wait, 2), 2,
+            'How long she waits for you after arriving right now. After a timed arrival she waits as long as the delay you chose. The wait stops while you are in a fight, a scene or a menu.',
+            {'2 minutes', '5 minutes', '10 minutes'}),
+        setting('immersive:waypoint', 'Meet at my waypoint when I ask', 'bool', value.waypoint ~= false, true,
+            'When you ask her to come to your waypoint and a map pin is set, she goes there and says so. Off: she always comes to where you are.'),
+        setting('immersive:texts', 'She texts you', 'bool', value.texts ~= false, true,
+            'She texts you when she arrives, when you cancel and when she gives up. Off: no texts (she still remembers being stood up).'),
+    }
+end
+
+-- Housemates: its own page, opened from Companion behavior (docs/HOUSEMATES.md). Off by default: nothing of the feature is loaded while it is Off.
+local function housemateSettingRows(snapshot)
+    local value = snapshot.settings.housemates or {}
+    return {
+        setting('housemates:enabled', 'Housemates', 'bool', value.enabled == true, false,
+            'On: characters you tell they can stay at your place move into your apartments and live there, and you can call them along.\n\nOff: nothing of this runs. Turning it off removes them from your apartments but remembers who lived there, so turning it on brings them back.'),
+        setting('housemates:chat', 'Housemates talk to each other', 'bool', value.chat ~= false, true,
+            'When two or more housemates are home with you, they talk to each other now and then.'),
     }
 end
 
@@ -1257,14 +1429,15 @@ local function schema()
     local canInvite = owner ~= nil
     -- The first section of every page: the way back (or, on the home page, the destinations) and the line of the last action.
     local nav = {}
-    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings'}
+    local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
+        ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings',
+        ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
         -- the editor module loaded, and above Settings (the owner's order). Built with the page, never per frame.
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
-            {'models', 'Model browser'}, {'editor'}, {'settings', 'Settings'}}) do
+            {'models', 'Model browser'}, {'editor'}, {'key-bindings', 'Key bindings'}, {'settings', 'Settings'}}) do
             if tab[1] == 'editor' then
                 if editor then
                     nav[#nav + 1] = action('character-editor:home', 'Character editor', 'Open',
@@ -1275,6 +1448,8 @@ local function schema()
                 -- The Model browser lists every character model in the game, so it says that and what joining means.
                 local description = tab[1] == 'models'
                     and ui.t('Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.')
+                    or tab[1] == 'key-bindings'
+                    and ui.t('Choose the keys and controller buttons for talking by voice or text, the group chats and the Companion Manager. They work at once.')
                     or ui.t('Browse {section}. {query}', {section = ui.t(tab[2]):lower(), query = ''})
                 nav[#nav + 1] = action('tab:' .. tab[1], tab[2], 'Open', description, function() return navigate(tab[1]) end)
             end
@@ -1303,7 +1478,7 @@ local function schema()
             local available = manager.definition(key) ~= nil
             rows[#rows + 1] = action('invite:' .. key, profile.name,
                 available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
-                profileDescription(profile, snapshot, shared, count), function() return queue.invite(key) end, canInvite and available)
+                profileDescription(profile, snapshot, shared, count), function() return inviteKey(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters to invite', rows)
     elseif view == 'party' then
@@ -1331,6 +1506,22 @@ local function schema()
         local copies = {}
         for _, member in ipairs(party) do if member.state ~= 'leaving' then copies[#copies + 1] = member end end
         local shown = #copies
+        -- Meetings still on their way (Settings > Immersive invitations) that have no body yet: one row each, Cancel.
+        local meetings = {}
+        local service = convaiImmersiveGet and convaiImmersiveGet() or nil
+        if service then
+            for _, row in ipairs(service.rows()) do if not row.serial then meetings[#meetings + 1] = row end end
+        end
+        for _, row in ipairs(meetings) do
+            local meetingId = row.id
+            local state = row.phase == 'waiting' and ui.t('waiting at {place}', {place = tostring(row.place or '')}) or ui.t('on her way')
+            rows[#rows + 1] = action('meeting:' .. meetingId, ui.t('{name} · {state}', {name = row.name, state = state}), 'Cancel',
+                ui.t('Cancel this meeting. She is not told.'),
+                function()
+                    local live = convaiImmersiveGet and convaiImmersiveGet() or nil
+                    return live ~= nil and live.cancelById(meetingId)
+                end, nil, {description = true})
+        end
         local first, last, pages = pageRange(shown)
         if pages > 1 then
             for _, row in ipairs(pageRows(first, last, pages, function(index)
@@ -1356,9 +1547,23 @@ local function schema()
                 end
             end
         end
+        -- Housemates (mod/housemates.lua, docs/HOUSEMATES.md): the characters who live at V's place, and a Move out for each.
+        local housemates = convaiHousemateRows and convaiHousemateRows() or {}
+        for index, housemate in ipairs(housemates) do
+            if index > 30 then
+                rows[#rows + 1] = readonly('housemates-more', ui.t('{count} more housemates', {count = #housemates - 30}), '', ui.t('{count} more housemates', {count = #housemates - 30}))
+                break
+            end
+            local where = housemate.state == 'party' and ui.t('with you') or housemate.state == 'home' and ui.t('at home') or ui.t('out')
+            local key = housemate.key
+            rows[#rows + 1] = action('housemate:' .. key, ui.t('{name} · lives in {apartment} · {state}',
+                    {name = housemate.name, apartment = ui.t(housemate.apartmentName), state = where}), 'Move out',
+                ui.t('{name} stops living at your place. She stays as she is otherwise.', {name = housemate.name}),
+                function() return convaiHousemateMoveOut ~= nil and convaiHousemateMoveOut(key) end, canInvite, {label = true, description = true})
+        end
         if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
                 'Inviting characters and managing your party need a loaded game.')
-        elseif shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
+        elseif shown == 0 and #meetings == 0 and #housemates == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
@@ -1401,7 +1606,7 @@ local function schema()
                 rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
                     model.record .. '\n\n' .. conversation
                         .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
-                    function() return queue.invite(key) end, canInvite)
+                    function() return inviteKey(key) end, canInvite)
             end
         end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
@@ -1501,9 +1706,17 @@ local function schema()
     elseif view == 'relationships' then
         local rows = relationshipRows(snapshot)
         if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
+    elseif view == 'immersive-invitations' then
+        categories[#categories + 1] = category('immersive-invitations', 'Immersive invitations', immersiveRows(snapshot),
+            'Invite a companion and she really travels to you: she appears out of sight, walks or drives in, texts you when she is there and waits for you.')
+    elseif view == 'housemates' then
+        categories[#categories + 1] = category('housemates', 'Housemates', housemateSettingRows(snapshot),
+            'Characters you tell they can stay at your place move into your apartments and live there.')
     elseif view == 'dynamic-info' then
         categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
             'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
+    elseif view == 'key-bindings' then
+        for _, section in ipairs(keyBindingSections(snapshot)) do categories[#categories + 1] = section end
     elseif view == 'settings' then
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
@@ -1525,16 +1738,22 @@ local function schema()
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand, with their own voice and memory.\n\nNothing else about them changes: they do not turn, move, gesture or follow, and stay quiet during scenes, quest conversations, fights and rides.\n\nTakes effect after you reload your save.'),
             setting('reputation', 'Street reputation', 'bool', snapshot.settings.reputation == true, false,
                 'Gangs, the NCPD, corporations and the locals of each district remember what V did: Street Cred, choices in jobs, fights, crimes the police saw and how you treat people. It shapes their greeting, trust and help.\n\nOnly ordinary people, never named or story characters. It changes their words, nothing in the game.'),
-            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up often.
+            -- One list for both stored settings (johnnyInHead, johnnyRemarks): 1 Off, 2 On (he answers the talk keys), 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often.
             setting('johnnyInHead', 'Johnny in your head', 'select',
-                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 4
-                    or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
-                'Johnny Silverhand answers the talk keys when nobody is in front of you, as the voice in V’s head. Only while the story has him there, never during scenes, calls or fights.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, at most twice an hour. Often: at most six an hour, five minutes apart at least.',
-                {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
+                snapshot.settings.johnnyInHead ~= true and 1 or snapshot.settings.johnnyRemarks == 'normal' and 5
+                    or snapshot.settings.johnnyRemarks == 'medium' and 4 or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
+                'Johnny Silverhand answers the Talk to Johnny keys, as the voice in V’s head, once the story has him there.\n\nOn: he answers when you talk to him. Rarely: he also speaks up on his own, about 2 an hour. Normally: about 4. Often: about 6.\n\nWith companions speaking up too, the rates add up and they take turns.',
+                {'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
+            -- Party companions start a conversation on their own (stored companionSpeakUp): 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
+            setting('companionSpeakUp', 'Companions speak up', 'select',
+                snapshot.settings.companionSpeakUp == 'normal' and 4 or snapshot.settings.companionSpeakUp == 'medium' and 3
+                    or snapshot.settings.companionSpeakUp == 'rare' and 2 or 1, 2,
+                'Companions in your party sometimes start talking on their own: now and then at a calm moment, and after a scene or a conversation they were part of. Never during fights, scenes, calls or menus.\n\nRarely: about 2 an hour. Normally: about 4. Often: about 6.\n\nWith Johnny speaking up too, the rates add up and they take turns.',
+                {'Off', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'}),
         })
         -- Which live game info the characters are told: a page of its own (one switch per kind), a button beside Memory.
         table.insert(conversations.settings, 2, action('dynamic-info', 'Dynamic info', 'Open',
-            'Choose which live game info the characters are told: location, time and weather, company, health, money, gear, V’s gender and lifepath, quest and journal, and recent game dialogue.\n\nAll on by default. An off kind is not sent to any conversation provider.',
+            'Choose which live game info the characters are told, such as location, time, weather, company, health, money, gear, quests, music and TV, and other mods’ state.\n\nAll on by default except other mods’ state, which is off. An off kind is not sent to any conversation provider.',
             function() return navigate('dynamic-info') end))
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
@@ -1558,6 +1777,15 @@ local function schema()
             setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
                 'Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.',
                 {'Eyes only', 'Subtle', 'Gentle (default)', 'Strong'}),
+            -- Off by default (the owner's call, 2026-10-25): party copies change into other looks of their own (docs/COMPANION_OUTFITS.md), only out of sight. Off: nothing is loaded or run.
+            setting('companionOutfits', 'Companions change outfits', 'bool', snapshot.settings.companionOutfits == true, false,
+                'Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now.'),
+            action('immersive-invitations', 'Immersive invitations', 'Open',
+                'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
+                function() return navigate('immersive-invitations') end),
+            action('housemates', 'Housemates', 'Open',
+                'Characters you tell they can stay at your place move into your apartments and live there.\n\nOff by default.',
+                function() return navigate('housemates') end),
         })
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
@@ -1580,6 +1808,7 @@ local function schema()
         local voiceName = ui.t('Companion voices')
         if pack.known and not pack.installed then voiceName = voiceName .. ' (' .. ui.t('no Omni pack') .. ')'
         -- The bridge knows this PC has no NVIDIA graphics card: the OmniVoice entries stay choosable (they fall back), the row says what they need.
+        elseif pack.amdRoute then voiceName = voiceName .. ' (' .. ui.t('OmniVoice on AMD: experimental') .. ')'
         elseif pack.noNvidia then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs NVIDIA') .. ')'
         -- The NVIDIA card has under 12 GB (the bridge's card list): the entries stay choosable, the row says what OmniVoice needs.
         elseif pack.smallCard then voiceName = voiceName .. ' (' .. ui.t('OmniVoice needs 12 GB') .. ')' end
@@ -1634,7 +1863,10 @@ local function schema()
                 voiceRow.disabledElements, voiceRow.disabledReason = voiceDisabledShown, ui.t('Requires the optional OmniVoice pack (GPU)')
             end
             -- First paragraph, so a long description that is cut keeps it.
-            if voiceRow.id == 'voiceProvider' and pack.noNvidia then
+            if voiceRow.id == 'voiceProvider' and pack.amdRoute then
+                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices.')
+                    .. '\n\n' .. voiceRow.description
+            elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
                 voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
                     .. '\n\n' .. voiceRow.description
             elseif voiceRow.id == 'voiceProvider' and pack.smallCard then
@@ -1721,7 +1953,10 @@ local function schema()
         nav[#nav + 1] = readonly('feedback', feedback, '', feedback, {label = true, description = true})
     end
     table.insert(categories, 1, category('navigation', LABEL, nav))
-    return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
+    return {name = ui.t(LABEL), categories = categories,
+        description = view == 'key-bindings'
+            and ui.t('Choose the keys and controller buttons for the mod’s actions. Press Set, then the key or button you want. Esc or B cancels. A change works at once, and the keys you set in Cyber Engine Tweaks keep working. Pick keys the game does not already use.')
+            or ui.t('Your companions, character models and conversation settings.')}
 end
 function M.configure(domain, companions, queueFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness, {developerMode = domain.developerMode})
@@ -1769,7 +2004,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
 
@@ -1799,6 +2034,7 @@ function M.search() return modelFind.text end
 function M.setView(name)
     if not PAGES[name] or (name == 'help' and not support) or (name == 'paid-tier' and not paidTier)
         or (name == 'custom-endpoint' and not customProvider.instance) then name = 'home' end
+    if view == 'key-bindings' and name ~= view and convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
     local changed = name ~= view or listPage ~= 1 or listGroup ~= 1 or modelFind.text ~= ''
     view, listPage, listGroup = name, 1, 1
     modelFind.text, modelFind.words = '', {}
@@ -1899,16 +2135,17 @@ end
 -- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
 function M.defaults()
     local previous = view
-    local changes, atDefault, turningMatureOff = {}, {}, false
-    -- Settings, and the Relationships and Dynamic info pages that open from it.
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info'}) do
+    local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
+    -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
         for _, section in ipairs(model.categories) do
             for _, row in ipairs(section.settings) do
                 local kind = row.type
-                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
+                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') and not listed[row.id] then
+                    listed[row.id] = true
                     local target = row.defaultValue
                     if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
                     if row.value ~= target then
@@ -1926,6 +2163,8 @@ function M.defaults()
             if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
+    -- The own key bindings are cleared: one change for all five (the default is none).
+    if next(manager.keyBindings()) ~= nil then changes[#changes + 1] = {value = true, id = 'keyBindings:clear'} end
     -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.
     view = previous
     pcall(schema)
@@ -1940,7 +2179,7 @@ function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
     local batch, record, names, refusal = stageMature(changes, snapshot)
-    local values, applied = {relationshipModes = {}, dynamicInfo = {}}, {}
+    local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}, housemates = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
     if addonSettingsInUse() then convaiAddons.discardSettings() end
@@ -2032,6 +2271,21 @@ function M.apply(changes)
                 return refused('Choose one of the listed relationship options.')
             end
             values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
+        elseif key:sub(1, 10) == 'immersive:' then
+            local field = key:sub(11)
+            local arrivals, delays, waits = manager.immersiveChoices()
+            local lists = {arrival = arrivals, delay = delays, wait = waits}
+            if field == 'enabled' or field == 'waypoint' or field == 'texts' then
+                if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+                values.immersive[field] = change.value
+            elseif lists[field] then
+                local picked = type(change.value) == 'number' and change.value == math.floor(change.value) and lists[field][change.value] or nil
+                if picked == nil then return refused('Choose one of the listed options.') end
+                values.immersive[field] = picked
+            else return refused('That setting is read-only.') end
+        elseif key == 'housemates:enabled' or key == 'housemates:chat' then
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.housemates[key:sub(12)] = change.value
         elseif key:sub(1, 8) == 'dynamic:' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.dynamicInfo[key:sub(9)] = change.value
@@ -2039,12 +2293,20 @@ function M.apply(changes)
         elseif key == 'storyConversations' then values.storyConversations = change.value
         elseif key == 'voiceActivation' then values.voiceActivation = change.value
         elseif key == 'padTalk' then values.padTalk = change.value
+        elseif key == 'keyBindings:clear' then values.keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false, johnny_voice = false, johnny_text = false}
+        elseif key == 'companionOutfits' then values.companionOutfits = change.value
         elseif key == 'reputation' then values.reputation = change.value
         elseif key == 'johnnyInHead' then
-            -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
-            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 and change.value ~= 4 then return refused('Choose how often Johnny speaks up.') end
+            -- Order: 1 Off, 2 On, 3 Speaks up rarely, 4 Speaks up normally, 5 Speaks up often. One row writes both stored settings: Off is not in his head (no remarks).
+            local pick = ({'off', 'off', 'rare', 'medium', 'normal'})[change.value]
+            if not pick or change.value ~= math.floor(change.value) then return refused('Choose how often Johnny speaks up.') end
             values.johnnyInHead = change.value ~= 1
-            values.johnnyRemarks = ({'off', 'off', 'rare', 'normal'})[change.value]
+            values.johnnyRemarks = pick
+        elseif key == 'companionSpeakUp' then
+            -- Order: 1 Off, 2 Speaks up rarely, 3 Speaks up normally, 4 Speaks up often.
+            local pick = ({'off', 'rare', 'medium', 'normal'})[change.value]
+            if not pick or change.value ~= math.floor(change.value) then return refused('Choose how often companions speak up.') end
+            values.companionSpeakUp = pick
         elseif key:sub(1, 6) == 'addon:' and addonSettingsInUse() then
             local staged, problem = convaiAddons.stageSetting(key, change.value)
             if not staged then convaiAddons.discardSettings(); return refused(problem) end
@@ -2260,6 +2522,7 @@ function M.resetSession()
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     view, listPage, listGroup = 'home', 1, 1
     modelFind.text, modelFind.words = '', {}
+    if convaiKeyBinds then pcall(convaiKeyBinds.abandonCapture) end
 end
 
 function M.shutdown()

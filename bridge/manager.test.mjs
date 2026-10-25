@@ -433,7 +433,7 @@ test('Current party has no drive initiation and defers active-trip stopping unti
   `);
 });
 
-test('manager home owns the four destinations and every inner page has one parent Back action at the top', () => {
+test('manager home owns the five destinations and every inner page has one parent Back action at the top', () => {
   run(`${nsuiFixture}
     local function category(id)
       for _, item in ipairs(loaded.categories) do if item.id == id then return item end end
@@ -444,7 +444,7 @@ test('manager home owns the four destinations and every inner page has one paren
       assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
       local first = loaded.categories[1].settings
       assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
-      for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+      for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
       local count = 0
@@ -461,8 +461,8 @@ test('manager home owns the four destinations and every inner page has one paren
         'party status, the limit or the last action leaked onto the page')
     end
     assert(managerUi.inspect().view == 'home' and #loaded.categories == 1)
-    assert(#category('navigation').settings == 4 and not row('party-count'))
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+    assert(#category('navigation').settings == 5 and not row('party-count'))
+    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do
       local destination = row('tab:' .. name)
       assert(destination and destination.value == 'Open' and not destination.disabled)
       assert(invoke(destination.id).ok)
@@ -817,7 +817,7 @@ test('Voice activation is off by default, offered under Voices, saved with the s
   `);
 });
 
-test('Johnny in your head and Johnny speaks up are one select row: Off by default, four entries mapped onto the two stored settings both ways, and no standing row', () => {
+test('Johnny in your head and Johnny speaks up are one select row: Off by default, five entries mapped onto the two stored settings both ways, and no standing row', () => {
   run(`${nsuiFixture}
     assert(manager.johnnyInHead() == false and manager.snapshot(player).settings.johnnyInHead == false, 'a missing key is off')
     assert(manager.johnnyRemarks() == 'off' and manager.snapshot(player).settings.johnnyRemarks == 'off')
@@ -825,8 +825,8 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
     assert(invoke('tab:settings').ok)
     local johnny = assert(row('johnnyInHead'), 'the setting is not offered')
     assert(johnny.type == 'select' and johnny.value == 1 and johnny.defaultValue == 1 and johnny.label == 'Johnny in your head')
-    assert(#johnny.elements == 4 and johnny.elements[1] == 'Off' and johnny.elements[2] == 'On'
-      and johnny.elements[3] == 'Speaks up rarely' and johnny.elements[4] == 'Speaks up often', 'four entries')
+    assert(#johnny.elements == 5 and johnny.elements[1] == 'Off' and johnny.elements[2] == 'On'
+      and johnny.elements[3] == 'Speaks up rarely' and johnny.elements[4] == 'Speaks up normally' and johnny.elements[5] == 'Speaks up often', 'five entries')
     assert(row('johnnyRemarks') == nil and row('johnnyStanding') == nil, 'no second row and no standing row')
     local conversations, ids = nil, {}
     for _, category in ipairs(loaded.categories) do
@@ -837,9 +837,9 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
     end
     assert(conversations and conversations.id == 'conversation-controls', 'in Conversations')
     assert(not ids.johnnyStanding and not ids.johnnyRemarks)
-    -- Apply: 1 Off (not in his head, no remarks), 2 On (no remarks), 3 rare, 4 normal; the snapshot and the row read each back.
-    local cases = {{1, false, 'off'}, {2, true, 'off'}, {3, true, 'rare'}, {4, true, 'normal'}}
-    for _, case in ipairs({cases[4], cases[2], cases[3], cases[1], cases[3]}) do
+    -- Apply: 1 Off (not in his head, no remarks), 2 On (no remarks), 3 rare, 4 medium (Normally), 5 normal (Often, the name it has always had in the file).
+    local cases = {{1, false, 'off'}, {2, true, 'off'}, {3, true, 'rare'}, {4, true, 'medium'}, {5, true, 'normal'}}
+    for _, case in ipairs({cases[5], cases[4], cases[2], cases[3], cases[1], cases[3]}) do
       assert(registered.applyBatch('manager', {{id = 'johnnyInHead', value = case[1]}}).ok, case[1])
       assert(manager.johnnyInHead() == case[2] and manager.johnnyRemarks() == case[3], case[1])
       assert(saved.johnnyInHead == case[2] and saved.johnnyRemarks == case[3], case[1])
@@ -847,8 +847,8 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
       assert(state.johnnyInHead == case[2] and state.johnnyRemarks == case[3], case[1])
       loaded = registered.loadMod('manager'); assert(row('johnnyInHead').value == case[1], case[1])
     end
-    -- Only the four positions are accepted; the apply key johnnyRemarks is gone from the page.
-    for _, invalid in ipairs({0, 5, '2', true, false}) do
+    -- Only the five positions are accepted; the apply key johnnyRemarks is gone from the page.
+    for _, invalid in ipairs({0, 6, 2.5, '2', true, false}) do
       assert(not registered.applyBatch('manager', {{id = 'johnnyInHead', value = invalid}}).ok, tostring(invalid))
       assert(manager.johnnyRemarks() == 'rare' and manager.johnnyInHead() == true)
     end
@@ -866,11 +866,11 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
   `);
 });
 
-test('Johnny in your head: a saved file maps to the row at load (false with remarks is Off, true with none is On, true with rare is 3, true with normal is 4) and the remarks of an Off are put to off once', () => {
+test('Johnny in your head: a saved file maps to the row at load (false with remarks is Off, true with none is On, true with rare is 3, true with medium is 4, true with normal is 5) and the remarks of an Off are put to off once', () => {
   run(`${managerFixture}
     -- A case is {saved johnnyInHead, saved johnnyRemarks, loaded johnnyInHead, loaded johnnyRemarks, row position}.
     for _, case in ipairs({{false, 'rare', false, 'off', 1}, {false, 'normal', false, 'off', 1}, {false, 'off', false, 'off', 1},
-        {true, 'off', true, 'off', 2}, {true, 'rare', true, 'rare', 3}, {true, 'normal', true, 'normal', 4},
+        {true, 'off', true, 'off', 2}, {true, 'rare', true, 'rare', 3}, {true, 'medium', true, 'medium', 4}, {true, 'normal', true, 'normal', 5},
         {true, 'sometimes', true, 'off', 2}, {'yes', 'rare', false, 'off', 1}}) do
       seed = {version = 2, voiceProvider = 'pocket', johnnyInHead = case[1], johnnyRemarks = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
@@ -882,7 +882,7 @@ test('Johnny in your head: a saved file maps to the row at load (false with rema
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
-    for _, case in ipairs({{false, 'rare', 1}, {true, 'off', 2}, {true, 'rare', 3}, {true, 'normal', 4}}) do
+    for _, case in ipairs({{false, 'rare', 1}, {true, 'off', 2}, {true, 'rare', 3}, {true, 'medium', 4}, {true, 'normal', 5}}) do
       seed = {version = 2, voiceProvider = 'pocket', johnnyInHead = case[1], johnnyRemarks = case[2], enabledByKey = {}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
@@ -891,6 +891,47 @@ test('Johnny in your head: a saved file maps to the row at load (false with rema
     end
   `);
 });
+test('Companions speak up is one select row, Rarely by default: four entries (Off, Rarely, Normally, Often) stored as off, rare, medium, normal, and a bad stored value reads as Rarely', () => {
+  run(`${nsuiFixture}
+    assert(manager.companionSpeakUp() == 'rare' and manager.snapshot(player).settings.companionSpeakUp == 'rare', 'a missing key is Rarely')
+    assert(saved.companionSpeakUp == 'rare', 'a new install saves the default')
+    assert(invoke('tab:settings').ok)
+    local speak = assert(row('companionSpeakUp'), 'the setting is not offered')
+    assert(speak.type == 'select' and speak.value == 2 and speak.defaultValue == 2 and speak.label == 'Companions speak up')
+    assert(#speak.elements == 4 and speak.elements[1] == 'Off' and speak.elements[2] == 'Speaks up rarely'
+      and speak.elements[3] == 'Speaks up normally' and speak.elements[4] == 'Speaks up often', 'four entries')
+    local cases = {{1, 'off'}, {2, 'rare'}, {3, 'medium'}, {4, 'normal'}}
+    for _, case in ipairs({cases[4], cases[3], cases[1], cases[2]}) do
+      assert(registered.applyBatch('manager', {{id = 'companionSpeakUp', value = case[1]}}).ok, case[1])
+      assert(manager.companionSpeakUp() == case[2] and saved.companionSpeakUp == case[2], case[1])
+      assert(manager.snapshot(player).settings.companionSpeakUp == case[2], case[1])
+      loaded = registered.loadMod('manager'); assert(row('companionSpeakUp').value == case[1], case[1])
+    end
+    for _, invalid in ipairs({0, 5, 2.5, '2', true, false}) do
+      assert(not registered.applyBatch('manager', {{id = 'companionSpeakUp', value = invalid}}).ok, tostring(invalid))
+      assert(manager.companionSpeakUp() == 'rare')
+    end
+    assert(not manager.applySettings(player, {companionSpeakUp = 'often'}) and manager.companionSpeakUp() == 'rare')
+    assert(manager.applySettings(player, {companionSpeakUp = 'normal'}) and manager.companionSpeakUp() == 'normal')
+    -- Restore defaults puts it back to Rarely, and Johnny's list is left to its own default.
+    local back
+    for _, change in ipairs(core.defaults()) do if change.id == 'companionSpeakUp' then back = change.value end end
+    assert(back == 2, tostring(back))
+    assert(registered.applyBatch('manager', core.defaults()).ok)
+    assert(manager.companionSpeakUp() == 'rare' and manager.johnnyRemarks() == 'off')
+  `);
+  run(`${managerFixture}
+    -- A saved value that is not one of the four reads as Rarely and is put right once; a saved Off stays Off.
+    for _, case in ipairs({{'off', 'off'}, {'rare', 'rare'}, {'medium', 'medium'}, {'normal', 'normal'}, {'often', 'rare'}, {true, 'rare'}, {7, 'rare'}}) do
+      seed = {version = 2, voiceProvider = 'pocket', companionSpeakUp = case[1], enabledByKey = {}, future = {keep = 'unchanged'}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.companionSpeakUp() == case[2], tostring(case[1]))
+      assert(saved.companionSpeakUp == case[2] and saved.future.keep == 'unchanged', tostring(case[1]))
+    end
+  `);
+});
+
 test('Companions can see has no setting any more: no row, an old saved companionVision (even false) is dropped on load, and an Apply for it is refused', () => {
   run(`${managerFixture}
     seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, companionVision = false}
@@ -1254,9 +1295,18 @@ test('a PC the bridge knows has no NVIDIA card gets a note on the OmniVoice entr
     assert(#elements == 7 and elements[3] == 'OmniVoice · Balanced', 'the entries are not renamed (they must fit the box)')
     assert(row('voiceProvider').disabledElements == nil, 'no entry is greyed out or removed: a card the list does not show may still work')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok and saved.voiceProvider == 'omni')
+    -- An AMD Radeon card without an NVIDIA one: the row points to the experimental AMD route instead of 'needs NVIDIA'.
+    show('amd-route', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniAmdRoute = true, gpuVendors = {'amd'}})
+    assert(manager.omniPack().amdRoute == true)
+    assert(row('voiceProvider').label == 'Companion voices (OmniVoice on AMD: experimental)', row('voiceProvider').label)
+    description = row('voiceProvider').description
+    assert(description:find('^Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental.'), description)
+    assert(description:find('docs/OMNIVOICE_AMD.md', 1, true) and description:find('Pocket: the lightest', 1, true))
+    show('amd-route-integrated', {omniPack = {installed = true, missing = {}}, omniNoNvidia = true, omniAmdRoute = false, gpuVendors = {'intel'}})
+    assert(manager.omniPack().amdRoute == false and row('voiceProvider').label == 'Companion voices (OmniVoice needs NVIDIA)')
     -- A stale report claims nothing.
     clock = clock + 60
-    assert(manager.omniPack().noNvidia == false)
+    assert(manager.omniPack().noNvidia == false and manager.omniPack().amdRoute == false)
     -- The missing pack comes first in the row's name.
     show('both', {omniPack = {installed = false, missing = {'model'}}, omniNoNvidia = true})
     assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
@@ -5906,7 +5956,7 @@ test('Natural speech beside other providers is unaffected by a retired Multiling
   `);
 });
 
-test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, and Companion behavior keeps its two rows', () => {
+test('Settings that are gone (Auto-connect nearby characters, Expressive emotions, Continue from game dialogue, Live holocall picture, Body gestures): no row, no snapshot key, no getter, no text on the page, no Apply branch, and Companion behavior keeps its rows (the two gaze rows, Companions change outfits, the Immersive invitations button and the Housemates button)', () => {
   run(`${nsuiFixture}
     local GONE = {autoConnectNearby = 'Auto-connect nearby characters', expressiveEmotions = 'Expressive emotions', gameDialogueContext = 'Continue from game dialogue',
       holocallLiveImage = 'Live holocall picture', bodyGestures = 'Body gestures'}
@@ -5938,14 +5988,14 @@ test('Settings that are gone (Auto-connect nearby characters, Expressive emotion
         assert(not text:find(key, 1, true), key .. ' is on the page')
         assert(not text:find(label, 1, true), label .. ' is on the page')
       end
-      -- No category is empty, and Companion behavior keeps its two rows.
+      -- No category is empty, and Companion behavior keeps its three rows.
       for _, category in ipairs(loaded.categories) do
         assert(#category.settings > 0, 'an empty category: ' .. tostring(category.id))
       end
       local behavior
       for _, category in ipairs(loaded.categories) do if category.id == 'companion-behavior' then behavior = category end end
-      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 2, 'Companion behavior')
-      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength')
+      assert(behavior and behavior.name == 'Companion behavior' and #behavior.settings == 5, 'Companion behavior: two gaze rows, Companions change outfits, the Immersive invitations button and the Housemates button')
+      assert(behavior.settings[1].id == 'eyeContactHeight' and behavior.settings[2].id == 'headFollowStrength' and behavior.settings[3].id == 'companionOutfits' and behavior.settings[4].id == 'immersive-invitations' and behavior.settings[5].id == 'housemates')
     end
     -- The page has no Apply branch for them: a batch carrying one is refused and nothing in it is saved; Restore defaults never names them.
     for key in pairs(GONE) do
@@ -6154,20 +6204,20 @@ const homeEditorFixture = (options = {}) => `${nsuiHarness({modules: homeEditorM
   local function commandWrites() local n = 0 for _, write in ipairs(fileWrites) do if write.path == 'runtime/editor-command.json' then n = n + 1 end end return n end
 `;
 
-test('Home offers the Character editor as the fourth row, above Settings, an action with its own id, and the Settings row stays', () => {
+test('Home offers the Character editor as the fourth row, then Key bindings, above Settings, an action with its own id, and the Settings row stays', () => {
   run(`${homeEditorFixture()}
     assert(managerUi.inspect().view == 'home')
     local nav = loaded.categories[1].settings
-    -- The owner's order: the Character editor sits above Settings, which stays last.
-    assert(#nav == 5 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:settings', 'five rows, the editor above Settings: ' .. #nav)
+    -- The owner's order: the Character editor, then Key bindings, above Settings, which stays last.
+    assert(#nav == 6 and nav[4].id == 'character-editor:home' and nav[5].id == 'tab:key-bindings' and nav[6].id == 'tab:settings', 'six rows, the editor and Key bindings above Settings: ' .. #nav)
     local open = row('character-editor:home')
     assert(open and open.type == 'action' and open.label == 'Character editor' and open.value == 'Open' and not open.disabled)
     assert(open.description:find('bios, rules and memories, and the prompting for each AI option', 1, true), open.description)
     assert(open.description:find('Mistral, Local AI and Custom, not Convai', 1, true) and open.description:find('Changes apply from the next reply', 1, true))
-    -- Ids are unique on the page and the four navigations keep theirs.
+    -- Ids are unique on the page and the navigations keep theirs.
     local seen = {}
     for _, item in ipairs(nav) do assert(not seen[item.id], 'id twice: ' .. item.id); seen[item.id] = true end
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do assert(row('tab:' .. name)) end
+    for _, name in ipairs({'characters', 'party', 'models', 'key-bindings', 'settings'}) do assert(row('tab:' .. name)) end
     -- It is on Home only: an inner page has neither it nor a second Back.
     assert(invoke('tab:settings').ok and not row('character-editor:home'))
     local settingsRow = row('character-editor:open')
@@ -6224,9 +6274,9 @@ test('Home > Character editor says so when the service is stopped or the write f
   `);
 });
 
-test('Home has no Character editor row without the editor module, and the four destinations are as before', () => {
+test('Home has no Character editor row without the editor module, and the other destinations are as before', () => {
   run(`${homeEditorFixture({modules: {'service-status.lua': homeEditorModules['service-status.lua'], 'support-report.lua': homeEditorModules['support-report.lua']}, absent: ['character-editor.lua']})}
-    assert(#loaded.categories[1].settings == 4 and not row('character-editor:home'), 'no row without the module')
+    assert(#loaded.categories[1].settings == 5 and not row('character-editor:home'), 'no row without the module')
     assert(not invoke('character-editor:home').ok, 'a stale press does nothing')
     assert(invoke('tab:settings').ok and not row('character-editor:open'))
   `);
@@ -6277,5 +6327,68 @@ test('V speaks your microphone lines is off by default, only a boolean is kept, 
     loaded = registered.loadMod('manager')
     assert(row('vVoiceMic').value == true)
     assert(registered.applyBatch('manager', {{id = 'vVoiceMic', value = false}}).ok and saved.vVoiceMic == false)
+  `);
+});
+
+test('own key bindings: none by default, only game key names of the seven actions are kept, no key twice, and a binding is set and cleared in one validated save', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(type(saved.keyBindings) == 'table' and next(saved.keyBindings) == nil and next(manager.keyBindings()) == nil, 'none by default, and saved so')
+    assert(next(manager.snapshot(player).settings.keyBindings) == nil)
+    -- A saved file is cleaned up: an unknown action, a value that is no game key name and a key another action already has are dropped; the rest is kept.
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, future = {keep = 'unchanged'},
+      keyBindings = {voice = 'IK_F7', text = 'IK_F7', group_voice = 'IK_Pad_Start', group_text = 5, manager = 'not a key', nonsense = 'IK_A', johnny_voice = 'IK_J', johnny_text = 'IK_J'}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    local keys = manager.keyBindings()
+    assert(keys.voice == 'IK_F7' and keys.text == nil and keys.group_voice == 'IK_Pad_Start' and keys.group_text == nil and keys.manager == nil and keys.nonsense == nil)
+    assert(keys.johnny_voice == 'IK_J' and keys.johnny_text == nil, 'the Johnny actions are kept, and a key twice is dropped for them too')
+    assert(saved.keyBindings.voice == 'IK_F7' and saved.keyBindings.nonsense == nil and saved.future.keep == 'unchanged', 'the cleaned table was saved, the rest untouched')
+    -- A file that holds something else than a table gets the default.
+    for _, wrong in ipairs({'IK_F7', 5, true}) do
+      seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}, keyBindings = wrong}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(next(manager.keyBindings()) == nil and type(saved.keyBindings) == 'table', tostring(wrong))
+    end
+    seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
+    files['runtime/settings.json'], saved = 'seed', nil
+    manager.configure(api, profiles); manager.prepare(player)
+    -- One save sets a binding; another action keeps its own; setKeyBinding clears with nil.
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and saved.keyBindings.voice == 'IK_F7')
+    assert(manager.setKeyBinding(player, 'text', 'IK_Pad_LeftShoulder') and saved.keyBindings.text == 'IK_Pad_LeftShoulder' and saved.keyBindings.voice == 'IK_F7')
+    assert(manager.setKeyBinding(player, 'voice', nil) and saved.keyBindings.voice == nil and saved.keyBindings.text == 'IK_Pad_LeftShoulder')
+    -- Refused, and nothing changes: a key another action has, a name that is no key, an unknown action, a value of the wrong kind.
+    local ok, why = manager.setKeyBinding(player, 'voice', 'IK_Pad_LeftShoulder')
+    assert(ok == false and why == 'That key is already used for another action.' and manager.keyBindings().voice == nil)
+    for _, bad in ipairs({{'voice', 'F7'}, {'voice', 7}, {'voice', ''}, {'voice', 'IK_' .. string.rep('A', 60)}, {'nonsense', 'IK_A'}}) do
+      local accepted, reason = manager.setKeyBinding(player, bad[1], bad[2])
+      assert(accepted == false and reason == 'Choose a key or a controller button.', tostring(bad[2]))
+    end
+    assert(manager.applySettings(player, {keyBindings = 'IK_F7'}) == false)
+    -- It survives other changes, and a batch with a bad binding changes nothing at all.
+    assert(manager.applySettings(player, {followUpInterest = false}) and manager.keyBindings().text == 'IK_Pad_LeftShoulder')
+    local mixed = manager.applySettings(player, {followUpInterest = true, keyBindings = {voice = 'bad'}})
+    assert(mixed == false and manager.snapshot(player).settings.followUpInterest == false)
+    -- Every action at once, as Restore defaults clears them.
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.setKeyBinding(player, 'manager', 'IK_F4'))
+    assert(manager.applySettings(player, {keyBindings = {voice = false, text = false, group_voice = false, group_text = false, manager = false}}))
+    assert(next(manager.keyBindings()) == nil and next(saved.keyBindings) == nil)
+  `);
+});
+
+test('Key bindings page: Restore defaults lists one clearing change for the keys and the Controller talk button once, and nothing when both are at their defaults', () => {
+  run(`${nsuiFixture}
+    assert(next(core.defaults()) == nil, 'nothing to restore')
+    assert(manager.setKeyBinding(player, 'voice', 'IK_F7') and manager.applySettings(player, {padTalk = true}))
+    local changes = core.defaults()
+    local ids = {}
+    for _, change in ipairs(changes) do ids[#ids + 1] = change.id end
+    table.sort(ids)
+    assert(table.concat(ids, ',') == 'keyBindings:clear,padTalk', table.concat(ids, ','))
+    local result = core.apply(changes)
+    assert(result.ok, tostring(result.error))
+    assert(next(manager.keyBindings()) == nil and manager.padTalk() == false)
+    assert(next(core.defaults()) == nil)
   `);
 });

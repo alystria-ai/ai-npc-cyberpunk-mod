@@ -64,6 +64,9 @@ PATH_OVERRIDES = {
 # of every path is still refused when it is a symlink or junction. Outside USVFS none of this applies and the checks are exactly as before.
 USVFS_VARIABLE = 'CYBERPUNK_CONVAI_USVFS'
 PACK_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_PACK'
+# The player's own Python (bridge/omni-own-python.mjs): set to '1' by the bridge, with the pack's OmniVoice source folder beside it.
+OWN_PYTHON_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_OWN_PYTHON'
+OMNI_SOURCE_VARIABLE = 'CYBERPUNK_CONVAI_OMNI_SOURCE'
 
 
 def usvfs_active(environ=None):
@@ -114,17 +117,34 @@ def linked_path(path):
             or (hasattr(path, 'is_junction') and path.is_junction()))
 
 
-def checked_absolute_directory(value, name, *, usvfs=None):
-    """Explicit package paths must be absolute and cannot redirect through links."""
+def link_inside_app(candidate, app, usvfs):
+    """(the first link, True) from `candidate` up to (not including) the app folder, or (candidate, False) when only a path outside it is itself a link, or None. Links at or above the app folder are the player's own layout
+    (a junctioned Steam library, a moved Documents, OneDrive, MO2) and are accepted. A path outside the app folder (the player's data) only has itself
+    checked; one that is outside by spelling but really leads into the app folder is refused. Inside USVFS the comparison is by spelling."""
+    chain = (candidate, *candidate.parents)
+    app_real = Path(os.path.abspath(app)) if usvfs else app.resolve()
+    def is_app(part):
+        return (Path(os.path.abspath(part)) if usvfs else part.resolve()) == app_real
+    for depth, part in enumerate(chain):
+        if is_app(part):
+            return next(((link, True) for link in chain[:depth] if linked_path(link)), None)
+    if not usvfs and candidate.resolve().is_relative_to(app_real):
+        return next(((link, True) for link in chain if linked_path(link)), (candidate, True))
+    return (candidate, False) if linked_path(candidate) else None
+
+
+def checked_absolute_directory(value, name, *, usvfs=None, app=None):
+    """Explicit package paths must be absolute and cannot redirect through links inside the application directory."""
     if (not isinstance(value, str) or not value or value != value.strip()
             or re.search(r'[\x00-\x1f\x7f]', value) or not Path(value).is_absolute()):
         raise ValueError(f'{name} must be an absolute filesystem path')
     candidate = Path(value)
-    for part in reversed((candidate, *candidate.parents)):
-        if linked_path(part):
-            raise ValueError('Linked runtime directories are not supported')
+    usvfs = usvfs_active() if usvfs is None else usvfs
+    linked = link_inside_app(candidate, ROOT if app is None else app, usvfs)
+    if linked:
+        raise ValueError('Linked directories inside the application directory are not supported' if linked[1] else 'Linked runtime directories are not supported')
     # Inside USVFS the folder stays as spelled: its resolved form is only where one mod happens to hold it.
-    resolved = Path(os.path.abspath(candidate)) if (usvfs_active() if usvfs is None else usvfs) else candidate.resolve()
+    resolved = Path(os.path.abspath(candidate)) if usvfs else candidate.resolve()
     if resolved.exists() and not resolved.is_dir():
         raise ValueError('Expected a runtime directory')
     return resolved
@@ -150,6 +170,59 @@ def validate_portable_source(paths):
     asset_file(package, 'models/omnivoice.py')
 
 
+class PackagedOmniVoice:
+    """Imports `omnivoice` (and its submodules, through the package's own path) from one folder of the pack, whatever the running Python has."""
+
+    def __init__(self, folder):
+        self.folder = folder
+
+    def find_spec(self, name, path=None, target=None):
+        if name != 'omnivoice':
+            return None
+        return importlib.util.spec_from_file_location('omnivoice', self.folder / '__init__.py', submodule_search_locations=[str(self.folder)])
+
+
+def use_packaged_omnivoice(paths, environ=None):
+    """The player's own Python (docs/OMNIVOICE_AMD.md): its PyTorch and libraries, but OmniVoice's code from the pack, never the player's copy.
+
+    Only with OWN_PYTHON_VARIABLE set by the bridge. The folder must be a plain absolute folder holding the packaged source and, in a package, inside the
+    application directory or the named pack (approved_roots), so validate_portable_source then checks the same folder as for the Runtime's Python.
+    Returns the folder, or None without the override.
+    """
+    environ = os.environ if environ is None else environ
+    if environ.get(OWN_PYTHON_VARIABLE) != '1':
+        return None
+    folder = checked_absolute_directory(environ.get(OMNI_SOURCE_VARIABLE), OMNI_SOURCE_VARIABLE)
+    if paths['portable'] and not any(folder.is_relative_to(base) for base in approved_roots(paths)):
+        raise RuntimeError('The packaged OmniVoice source is outside the application directory')
+    asset_file(folder, '__init__.py')
+    asset_file(folder, 'models/omnivoice.py')
+    sys.meta_path.insert(0, PackagedOmniVoice(folder))
+    return folder
+
+
+def gpu_backend_line(torch):
+    """One stderr line naming what PyTorch runs on: ROCm (HIP) or CUDA, the card and its memory. Never raises."""
+    try:
+        hip, cuda = getattr(torch.version, 'hip', None), getattr(torch.version, 'cuda', None)
+        build = f'ROCm/HIP {hip}' if hip else f'CUDA {cuda}' if cuda else 'no GPU build'
+        card = ''
+        if torch.cuda.is_available():
+            properties = torch.cuda.get_device_properties(0)
+            card = f', {properties.name}, {properties.total_memory // 1048576} MiB'
+        own = ' (own Python, experimental)' if os.environ.get(OWN_PYTHON_VARIABLE) == '1' else ''
+        return f'[gpu] PyTorch {torch.__version__}, {build}{card}{own}'
+    except Exception as error:  # noqa: BLE001 - a diagnostic never stops the worker.
+        return f'[gpu] backend unknown ({str(error)[:120]})'
+
+
+def cuda_graph_wanted(torch, environ=None):
+    """The CUDA graph replay: on unless turned off, and off by default on a ROCm PyTorch (graphs through HIP are untested here); '1' turns it on there."""
+    environ = os.environ if environ is None else environ
+    hip = getattr(getattr(torch, 'version', None), 'hip', None)
+    return environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '0' if hip else '1') != '0'
+
+
 def resolve_worker_paths(root=ROOT, environ=None):
     """Separate immutable package assets from the user's persistent voice data.
 
@@ -169,13 +242,16 @@ def resolve_worker_paths(root=ROOT, environ=None):
                 'hfDirectory': root / 'vendor/voice-models'}
     if not all(supplied):
         raise ValueError('Portable OmniVoice requires model, adapter, reference and cache paths together')
-    paths = {field: checked_absolute_directory(value, PATH_OVERRIDES[field], usvfs=usvfs)
-             for field, value in values.items()}
     # The pack's own folder (USVFS only): where the service says the pack is. The model and the adapter must be inside it, as they otherwise
-    # must be inside the application directory; it never overlaps the persistent data either.
+    # must be inside the application directory; it never overlaps the persistent data either. Links above the pack are accepted like links above
+    # the application directory, links inside it are not.
     pack = None
     if usvfs and environ.get(PACK_VARIABLE):
-        pack = checked_absolute_directory(environ[PACK_VARIABLE], PACK_VARIABLE, usvfs=True)
+        pack = checked_absolute_directory(environ[PACK_VARIABLE], PACK_VARIABLE, usvfs=True, app=root)
+    paths = {}
+    for field, value in values.items():
+        base = pack if pack is not None and isinstance(value, str) and Path(value).is_absolute() and Path(value).is_relative_to(pack) else root
+        paths[field] = checked_absolute_directory(value, PATH_OVERRIDES[field], usvfs=usvfs, app=base)
     bases = [root] if pack is None else [root, pack]
     for field in ('modelDirectory', 'adapterDirectory'):
         if any(paths[field] == base for base in bases) or not any(paths[field].is_relative_to(base) for base in bases):
@@ -821,6 +897,7 @@ def run_worker(registry):
     os.environ.update(voice_environment(registry))
     send({'op': 'state', 'state': 'loading'})
     sys.path.insert(0, str(paths['adapterDirectory']))
+    use_packaged_omnivoice(paths)
     validate_portable_source(paths)
     import numpy as np
     import soundfile as sf
@@ -828,8 +905,9 @@ def run_worker(registry):
     from services import tts_backend
     if paths['portable'] and Path(tts_backend.__file__).resolve() != asset_file(paths['adapterDirectory'], 'services/tts_backend.py'):
         raise RuntimeError('The voice adapter does not belong to the application directory')
+    print(gpu_backend_line(torch), file=sys.stderr, flush=True)
     if not torch.cuda.is_available():
-        print('[no-cuda] OmniVoice requires CUDA, which this PC does not have (it needs an NVIDIA graphics card)', file=sys.stderr, flush=True)
+        print('[no-cuda] OmniVoice requires a graphics card its PyTorch can use: CUDA on an NVIDIA card, or ROCm through omni-python.txt (docs/OMNIVOICE_AMD.md)', file=sys.stderr, flush=True)
         raise SystemExit(NO_CUDA_EXIT_CODE)
     # Progress marks. The bridge's startup limit restarts at every frame it receives, so a start that is slow
     # (a throttled CPU while the game loads) is told apart from one that is stuck. Same frame, no protocol change.
@@ -850,7 +928,7 @@ def run_worker(registry):
         if backend.dtype != 'torch.float16':
             raise RuntimeError('OmniVoice did not load with the expected FP16 weights')
         send({'op': 'state', 'state': 'loading'})
-        if os.environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '1') != '0':
+        if cuda_graph_wanted(torch):
             spec = importlib.util.spec_from_file_location('voice_cuda_graph', ROOT / 'bridge/voice-cuda-graph.py')
             replay = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(replay)
