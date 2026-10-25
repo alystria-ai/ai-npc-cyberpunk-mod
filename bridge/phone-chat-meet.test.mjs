@@ -117,6 +117,20 @@ test('a pending meeting is cancelled by "never mind" through the unavailable off
   assert.equal(replies(output)[0].text, 'All right, I will stay put.');
 });
 
+test('live 2026-10-25: "actually no sorry" cancels a standing meeting even when she answers in words only', async () => {
+  const {chat, calls, output} = fixture(answer("Oh, no worries. I'll just head back then."));
+  await finish(chat, state({text: 'actually no sorry', meetOffer: {version: 1, unavailable: 'pending', place: 'Pacifica', cancel: true, token: TOKEN}}));
+  assert.match(calls[0].text, /calls that off/);
+  assert.deepEqual(replies(output)[0].action, {kind: 'cancel-meet', token: TOKEN});
+  assert.equal(replies(output)[0].text, "Oh, no worries. I'll just head back then.");
+});
+
+test('a chat line that only sounds like a cancel does not cancel a standing meeting', async () => {
+  const {chat, output} = fixture(answer('Ha. Still on my way.'));
+  await finish(chat, state({text: 'I never mind waiting', meetOffer: {version: 1, unavailable: 'pending', place: 'Pacifica', cancel: true, token: TOKEN}}));
+  assert.equal(replies(output)[0].action, undefined);
+});
+
 test('a malformed offer never rejects the message', async () => {
   for (const meetOffer of [{version: 1, token: 'bad', kinds: ['here']}, 'x', [], {version: 1, unavailable: 'nap'}, {...offer(), etaMinutes: 4}]) {
     const {chat, calls, output} = fixture(answer('[meet-here] Hello.'));

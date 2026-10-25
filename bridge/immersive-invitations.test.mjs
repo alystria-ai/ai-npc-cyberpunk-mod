@@ -72,6 +72,11 @@ function world.carReady(a, dt) return fake.carReady or 'ready', 'not on a road' 
 function world.carStep(a, dt)
   fake.cars.steps = fake.cars.steps + 1
   if fake.carFails then return 'failed', 'stuck' end
+  if fake.haltedAt then
+    local v = findVisitorByAppointment(a.id)
+    if v then v.position = {x = fake.haltedAt.x + 2, y = fake.haltedAt.y, z = 0} end
+    return 'arrived'
+  end
   if fake.cars.steps >= (fake.carStepsToArrive or 3) then
     local at = fake.cars.positions[a.car.handle.id]
     fake.cars.positions[a.car.handle.id] = {x = a.roadEnd.x, y = a.roadEnd.y, z = 0}
@@ -82,6 +87,13 @@ function world.carStep(a, dt)
   return true
 end
 function world.carPosition(handle) return fake.cars.positions[handle.id] end
+function world.carHalt(a)
+  if fake.noHalt then return false end
+  fake.cars.halted = (fake.cars.halted or 0) + 1
+  local at = fake.cars.positions[a.car.handle.id]
+  fake.haltedAt = {x = at.x, y = at.y, z = 0}
+  return true
+end
 function world.carDelete(handle)
   if fake.cars.deleteFails > 0 then fake.cars.deleteFails = fake.cars.deleteFails - 1; return false end
   fake.cars.deleted[#fake.cars.deleted + 1] = handle.id
@@ -749,4 +761,92 @@ test('a job that is still preparing is waited for however long; a job that vanis
   assert(a and a.phase == 'preparing' and #fake.visitors == 0, 'a slow preparation is not a failure')
   fake.jobs[1].cancelled = true
   tick(3); assert(ctl.appointment('judy-alvarez') == nil and texts('failed') == 1, 'a vanished job is noticed')
+`));
+
+// ---- Meeting her on the way, the car stop, the cancel on the way (live findings of 2026-10-25) -----------------------------------------------------------
+
+test('V running into her while she walks in joins her at once (1 s, same floor), with the greeting and no leftovers', () => run(`
+  ask('judy'); tick(5)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a.phase == 'en-route', a.phase)
+  local v = fake.visitors[1]
+  fake.pos = {x = v.position.x + 3, y = v.position.y, z = 0}
+  tick(0.5); assert(#fake.joined == 0, 'one step is not a meeting')
+  tick(1)
+  assert(#fake.joined == 1 and #fake.greets == 1, 'joined on the way')
+  assert(ctl.appointment('judy-alvarez') == nil)
+  assert(texts('arrived') == 0 and texts('stood-up') == 0, 'no arrival text, no stood-up memory')
+  assert(ctl.note('judy-alvarez') == nil)
+`));
+
+test('passing her on the way without stopping, another floor, or a scene is no meeting', () => run(`
+  ask('judy'); tick(5)
+  local v = fake.visitors[1]
+  fake.pos = {x = v.position.x + 3, y = v.position.y, z = 0}; tick(0.5)
+  fake.pos = {x = v.position.x + 60, y = v.position.y, z = 0}; tick(2)
+  fake.pos = {x = v.position.x + 3, y = v.position.y, z = 8}; tick(3)
+  assert(#fake.joined == 0, 'another floor')
+  fake.pos = {x = v.position.x + 3, y = v.position.y, z = 0}; fake.held = 'scene'; tick(3)
+  assert(#fake.joined == 0, 'held')
+`));
+
+test('V reaching her driving car: the car brakes, she gets out, walks to V and joins; the car becomes hers', () => run(`
+  opts.arrival = 'car'; fake.carStepsToArrive = 1000
+  ask('judy'); tick(8)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a.phase == 'en-route' and a.leg == 'drive', a.phase .. tostring(a.leg))
+  local car = fake.cars.positions[a.car.handle.id]
+  fake.pos = {x = car.x + 6, y = car.y, z = 0}
+  tick(0.5)
+  assert(fake.cars.halted == 1, 'the car was told to stop')
+  assert(waitFor(function() return #fake.joined == 1 end, 30), 'she joined V')
+  assert(#fake.greets == 1)
+  assert(#fake.cars.deleted == 0 and ctl.carOf('judy-alvarez') ~= nil, 'the car is hers now')
+`));
+
+test('a car far from V keeps driving; a halt that does not take is asked again, not counted', () => run(`
+  opts.arrival = 'car'; fake.carStepsToArrive = 1000
+  ask('judy'); tick(2)
+  assert((fake.cars.halted or 0) == 0)
+  fake.noHalt = true
+  local a = ctl.appointment('judy-alvarez')
+  local car = fake.cars.positions[a.car.handle.id]
+  fake.pos = {x = car.x + 6, y = car.y, z = 0}
+  tick(1)
+  assert(not a.metEarly)
+  fake.noHalt = false
+  tick(0.5)
+  assert(fake.cars.halted == 1 and a.metEarly)
+`));
+
+test('the car stops as near to V as the road end point, and never right on V', () => run(`
+  opts.arrival = 'car'
+  ask('judy'); tick(3)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a.roadEnd, 'a drive target')
+  assert(dist(a.roadEnd, a.dest) >= 7.9, 'moved off V: ' .. dist(a.roadEnd, a.dest))
+  local plain = {x = a.dest.x + 20, y = a.dest.y, z = 0}
+  assert(dist(plain, a.dest) == 20)
+`));
+
+test('never mind while she drives in: the body and the car go at once, a cancelled text and memory remain', () => run(`
+  opts.arrival = 'car'; fake.carStepsToArrive = 1000
+  ask('judy'); tick(8)
+  local a = ctl.appointment('judy-alvarez')
+  assert(a.leg == 'drive' and #fake.cars.created == 1)
+  local offer = ctl.offer('judy-alvarez', 'judy')
+  assert(offer.unavailable == 'pending' and offer.cancel)
+  assert(ctl.accept('judy-alvarez', {kind = 'cancel-meet', token = offer.token}))
+  tick(3)
+  assert(ctl.appointment('judy-alvarez') == nil and #fake.cars.deleted == 1 and #fake.dismissed == 1, 'nothing half-done')
+  assert(texts('cancelled') == 1 and ctl.note('judy-alvarez').kind == 'cancelled')
+  assert(ctl.offer('judy-alvarez', 'judy').token ~= nil and ctl.offer('judy-alvarez', 'judy').kinds ~= nil, 'a new offer, no leftover pending')
+`));
+
+test('never mind on the way on foot: she walks off and the offer is spent', () => run(`
+  ask('judy'); tick(5)
+  local offer = ctl.offer('judy-alvarez', 'judy')
+  assert(ctl.accept('judy-alvarez', {kind = 'cancel-meet', token = offer.token}))
+  assert(ctl.appointment('judy-alvarez').phase == 'leaving')
+  assert(not ctl.accept('judy-alvarez', {kind = 'cancel-meet', token = offer.token}), 'one use')
 `));

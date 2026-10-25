@@ -177,7 +177,7 @@ test('cancel wins over a coming word, and the booleans say what was found', () =
   assert.equal(both.kind, 'cancel');
   assert.equal(both.cancel, true);
   assert.equal(both.meet, true);
-  assert.deepEqual(screenMeet('hello there'), {kind: null, meet: false, waypoint: false, cancel: false});
+  assert.deepEqual(screenMeet('hello there'), {kind: null, meet: false, waypoint: false, cancel: false, sure: false});
   assert.equal(meetKind("Come meet me, I’m at the bar"), 'here', 'the curly apostrophe of a phone keyboard');
   assert.equal(meetKind('x'.repeat(2000) + ' come over'), null, 'only the start of a very long message is read');
 });
@@ -323,4 +323,58 @@ test('everything else drops the action silently', () => {
 test('a pending meeting can be cancelled through its unavailable offer', () => {
   const pending = parseMeetOffer({version: 1, unavailable: 'pending', place: 'Pacifica', cancel: true, token: TOKEN});
   assert.deepEqual(meetAction('cancel-meet', pending, screenMeet('forget it')), {kind: 'cancel-meet', token: TOKEN});
+});
+
+// ---- Cancel while she is on her way (live 2026-10-25: "actually no sorry" passed no screen, and the game never heard of it) ----------------------------
+
+const callOffs = {
+  en: ['actually no sorry', 'Actually, no.', 'never mind, stay where you are', 'forget it', "don't come", 'cancel', 'stay home', 'no need', 'nope, sorry', 'no thanks', 'nvm', 'hold off'],
+  de: ['nein danke', 'doch nicht', 'lass gut sein, bleib wo du bist', 'schon gut', 'komm nicht'],
+  fr: ['non merci', 'laisse tomber', 'finalement non', 'ne viens pas', 'pas la peine'],
+  es: ['mejor no', 'olvídalo', 'no hace falta', 'no vengas', 'no, gracias'],
+  it: ['meglio di no', 'lascia perdere', 'non serve', 'non venire', 'no, grazie'],
+  pt: ['melhor não', 'esquece', 'não precisa vir', 'não venha', 'não, obrigada'],
+  pl: ['jednak nie', 'zapomnij', 'nie trzeba', 'nie przychodź', 'nie, dzięki'],
+  ru: ['отбой', 'не надо', 'лучше не', 'не приходи', 'нет, спасибо'],
+  uk: ['відбій', 'не треба', 'краще не', 'не приходь', 'ні, дякую'],
+  tr: ['vazgeçtim', 'boşver', 'gelme', 'gerek yok', 'hayır, teşekkürler'],
+  cs: ['radši ne', 'zapomeň na to', 'nemusíš', 'nechoď', 'ne, díky'],
+  hu: ['inkább nem', 'felejtsd el', 'nem kell', 'ne jöjj', 'nem, kösz'],
+  ja: ['やっぱいい', 'キャンセル', '来なくていい', 'いらない'],
+  ko: ['아니야', '취소', '오지 마', '괜찮아'],
+  zh: ['不用了', '算了', '别来', '还是不了', '不来了'],
+};
+test('plain call-offs are sure in every menu language', () => {
+  for (const [language, lines] of Object.entries(callOffs)) {
+    for (const line of lines) {
+      const screen = screenMeet(line);
+      assert.equal(screen.kind, 'cancel', `${language}: ${line}`);
+      assert.equal(screen.sure, true, `${language}: ${line} (sure)`);
+    }
+  }
+});
+
+test('plain chat lines are no cancel', () => {
+  for (const line of ['I never mind waiting', 'I will never mind the rain', 'stay with me', 'come over', "I'll wait for you", 'how are you', 'wait, one second', 'forget your keys',
+    'meet me at my place', 'no problem, see you at Lizzie\'s', 'I\'m in Watson']) {
+    assert.notEqual(screenMeet(line).sure, true, line);
+  }
+  for (const line of ['I never mind waiting', 'stay with me', 'how are you']) assert.equal(screenMeet(line).kind, null, line);
+});
+
+test('a call-off that still asks her to come is not sure (her tag decides)', () => {
+  const screen = screenMeet('never mind the mess, come over to my place');
+  assert.equal(screen.sure, false);
+  assert.equal(screenMeet('forget the marker').sure, false, 'a waypoint word is not a plain call-off');
+});
+
+test('a sure call-off of a standing meeting cancels without her tag, and without a standing meeting it does nothing', () => {
+  const pending = parseMeetOffer({version: 1, unavailable: 'pending', place: 'Pacifica', cancel: true, token: TOKEN});
+  const screen = screenMeet('actually no sorry');
+  assert.deepEqual(meetAction(null, pending, screen), {kind: 'cancel-meet', token: TOKEN});
+  assert.deepEqual(meetAction('meet-here', pending, screen), {kind: 'cancel-meet', token: TOKEN}, 'a wrong tag changes nothing');
+  assert.equal(meetAction(null, parseMeetOffer(offer()), screen), null, 'no standing meeting: nothing to cancel');
+  assert.equal(meetAction(null, pending, screenMeet('never mind the mess, come over')), null);
+  assert.equal(meetAction(null, pending, screenMeet('I never mind waiting')), null);
+  assert.match(meetInstruction(pending, screen), /calls that off[\s\S]*\[cancel-meet\]/);
 });

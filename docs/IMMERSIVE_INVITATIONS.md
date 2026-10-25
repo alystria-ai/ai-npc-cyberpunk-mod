@@ -105,7 +105,8 @@ cap of `max(90 s, 2 x estimate)`: delete her and appear 14 to 30 m away; at most
   (reaction kind `meet`, `mod/init.lua` `convaiMeetGreeting`) waits up to 20 s for a free channel and falls back to a notice.
 * **Stood up**: the wait ends (not while held): an angry text (`stood-up` event), a ledger entry, and she walks off (`leaving`) until V cannot see her, is 50 m away, or 90 s pass; nothing
   is simulated when V is far.
-* **Never mind**: `cancel-meet` (offered while an appointment exists): a short `cancelled` text, a ledger entry, the visitor walks off, no stood-up memory.
+* **Meeting her on the way** (2026-10-25): the same meeting counts while she is still `en-route`. On foot: V within 5 m, same floor, for 1 s (`MEET_DWELL_ROUTE`) and she stops her walk and joins with the normal greeting. In her car: V within 10 m of the car halts the drive (`sequencer.halt`: brake, animated exit), she walks to V and joins at 5 m, and the car becomes hers. A virtual appointment has no body, so nothing can be met.
+* **Never mind**: `cancel-meet` (offered while an appointment exists). A plain call-off in V's words (`screen.sure` in `bridge/meet-requests.mjs`: "actually no sorry", "never mind, stay where you are", ... in the 15 languages, no meeting word left over, not "I never mind waiting") cancels **without her tag**; she is told to answer briefly in character, her tag is the second route. While she drives, body and car go at once. A short `cancelled` text, a ledger entry, the visitor walks off, no stood-up memory.
 * Dismissing a visitor in Current party ends the appointment quietly. A scheduled one shows as a row with **Cancel**.
 
 ### Memory
@@ -207,7 +208,7 @@ a Lua VM over the real service and controller, and the whole path for the text r
 1. A copy **with no follower role** idles for minutes (no crowd behaviour) and takes `AIMoveToCommand` walks over 100 m; she stands still after arriving. (Fallback: give her the role from the start.)
 2. Hidden spawn at 35 m reads as natural, she walks in at about 1.5 m/s and arrives within a few seconds of the chosen delay; the out-of-sight rule agrees with what V sees at the edge of the view.
 3. `GetNearestRoadFromPlayerInfo` (via `Game.GetPreventionSpawnSystem()`; the out-parameter return form) gives a usable road point where V stands, and the AutoDrive end point does for a far pin.
-4. A spawned car answers `IsInTrafficLane()` true on a lane within 2 s; trail points are accepted; ring candidates mostly fail (then Walk); the drive stops on the road, not at the kerb; the animated boarding and
+4. A spawned car answers `IsInTrafficLane()` true on a lane within 2 s; trail points are accepted; ring candidates mostly fail (then Walk); the drive stops on the road, not at the kerb, and about as close to V as the road end point (target aimed with a 3 m stop distance, moved 8 m back along the car's approach when it would lie on V's spot); the animated boarding and
    exit work in the dark, and the driver ends on the sidewalk side.
 5. Her car in drive-me: the offer is made (`IsPlayerVehicle()` may be false for it, handled by the hook), `GetInitCmd()` does not make the car look "busy", V can enter a passenger seat.
 6. Fast travel points list a position through their mappin; otherwise the geometric words.

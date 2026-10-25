@@ -13,7 +13,7 @@ M.LANE_PATIENCE = 2       -- seconds a new car may take to report that it stands
 M.BOARD_TIMEOUT = 20
 M.DRIVE_CAP = 240
 M.STALL_WINDOW = 25       -- seconds without 2 m of progress on the road
-M.STOP_DISTANCE = 14      -- she has arrived when the car is this close to the road end point and slower than STOP_SPEED
+M.STOP_DISTANCE = 10      -- she has arrived when the car is this close to the road end point and slower than STOP_SPEED
 M.STOP_SPEED = 0.8
 M.BRAKE_TIMEOUT = 8
 M.EXIT_TIMEOUT = 16
@@ -59,6 +59,13 @@ function M.sequencer(api)
         car.stage, car.stageAt, car.sent, car.attempts = stage, now, false, 0
     end
 
+    -- V reached her car on the way: it brakes where it is, she gets out and the trip ends as if it had arrived. True when it took effect.
+    function S.halt(car)
+        if car.stage ~= 'driving' then return false end
+        enter(car, 'braking', car.clock or 0)
+        return true
+    end
+
     -- One step of her trip. Returns true (going on), 'arrived' (she stands outside the car near the destination) or 'failed', why.
     function S.step(a, dt)
         local car = a.car
@@ -80,13 +87,13 @@ function M.sequencer(api)
             return true
         elseif car.stage == 'driving' then
             if not car.operation then
-                local operation, why = api.drive(car.handle, a.road)
+                local operation, why = api.drive(car.handle, a.roadEnd or a.road)
                 if not operation then return 'failed', why or 'The car cannot drive.' end
                 car.operation = operation
                 return true
             end
             local state = api.driveState(car.operation)
-            local gap = status.position and ground(status.position, a.road) or math.huge
+            local gap = status.position and ground(status.position, a.roadEnd or a.road) or math.huge
             if state == 'success' or (gap <= M.STOP_DISTANCE and (status.speed or 0) <= M.STOP_SPEED) then
                 enter(car, 'braking', now)
                 return true
@@ -124,7 +131,8 @@ end
 -- deps: companions (visitorMount, visitorMounted), vehicle (mod/companion-vehicle-native.lua instance with its query budget set),
 --       catalog (mod/companion-vehicle-catalog.lua), tag
 local DRIVE_CLASS = 'AIVehicleDriveToPointAutonomousCommand'
-local DRIVE_SPEED, DRIVE_STOP = 12.0, 6.0
+-- The drive command ends this far from the target: as near to V as the road allows (the old 6 m left her car a street away).
+local DRIVE_SPEED, DRIVE_STOP = 12.0, 3.0
 
 function M.nativeApi(deps)
     local api = {}

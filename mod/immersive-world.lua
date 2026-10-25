@@ -256,6 +256,10 @@ function M.new(deps)
         if not sequence or not a.car then return 'failed', 'There is no car.' end
         return sequence.step(a, dt)
     end
+    function W.carHalt(a)
+        local sequence = cars()
+        return sequence and a.car and sequence.halt(a.car) == true or false
+    end
     function W.carPosition(handle)
         return cars() and carApi.position(handle) or nil
     end

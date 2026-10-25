@@ -24,6 +24,9 @@ M.FAR_RADIUS = 350           -- V farther than this: a simulated body is removed
 M.MATERIALIZE_RADIUS = 120   -- a virtual waiting companion gets a body when V comes this close
 M.MEET_RADIUS = 5            -- V this close to her (and still for MEET_DWELL) is a meeting
 M.MEET_DWELL = 1.5
+M.MEET_DWELL_ROUTE = 1.0     -- the same while she is still on her way (V ran into her)
+M.CAR_MEET_RADIUS = 10       -- V this close to her driving car stops it: she gets out and joins
+M.CAR_SHIFT = 8              -- the car never stops closer than this to V's own spot
 M.ARRIVE_DISTANCE = 2.5
 M.PREP_LEAD = 45             -- preparation starts this long before she has to spawn
 M.OFFER_TTL = 180            -- wall seconds an offer can be answered
@@ -318,7 +321,8 @@ function M.new(env)
         if reason == 'never-mind' then
             queueText(a, 'cancelled', 0)
             remember(profileKey, 'cancelled', a.place, 0)
-            if a.serial then
+            -- Sitting in her car she cannot walk off: body and car go quietly (the text and the memory are queued above).
+            if a.serial and a.leg ~= 'drive' then
                 a.phase, a.leaveAt, a.silent = 'leaving', clock, true
                 endJob(a)
                 a.exitGoal = nil
@@ -566,6 +570,16 @@ function M.new(env)
             a.goal = copyPoint(spot.goal or a.dest)
             if a.leg == 'drive' then
                 a.roadEnd = copyPoint(spot.roadEnd or a.road)
+                -- Not on V's own spot: a road end point right under V is moved back along the approach of the car.
+                local from, car = a.roadEnd, spot.car and spot.car.position
+                local gap = from and ground(from, a.dest) or nil
+                if gap and car and gap < M.CAR_SHIFT then
+                    local run = ground(car, from)
+                    if run > 1 then
+                        local push = M.CAR_SHIFT - gap
+                        a.roadEnd = {x = from.x + (car.x - from.x) / run * push, y = from.y + (car.y - from.y) / run * push, z = from.z}
+                    end
+                end
                 a.carSpot = spot.car
                 a.carChoice = env.world.carChoice and env.world.carChoice(a) or nil
                 a.hold = true
@@ -634,12 +648,31 @@ function M.new(env)
         local feedback = env.companions.visitorSense(a.serial, M.STEP)
         local pos = feedback and feedback.position or row.position
         if not pos then return end
+        -- V found her before she reached the place: on foot, V within MEET_RADIUS (same floor) for a moment joins her at once; in her car, V close to
+        -- the car stops it, she gets out and walks to V. Nothing counts while V is held (combat, a scene, a call).
+        if a.leg ~= 'drive' and st.position and not st.held
+            and ground(pos, st.position) <= M.MEET_RADIUS and math.abs((pos.z or 0) - (st.position.z or 0)) <= 3 then
+            a.meetFor = (a.meetFor or 0) + M.STEP
+            if a.meetFor >= M.MEET_DWELL_ROUTE then return meet(a, st) end
+        else
+            a.meetFor = 0
+            if a.leg == 'drive' and a.car and not a.metEarly and st.position and not st.held and env.world.carHalt then
+                local car = env.world.carPosition(a.car.handle)
+                if car and ground(car, st.position) <= M.CAR_MEET_RADIUS and math.abs((car.z or 0) - (st.position.z or 0)) <= 6
+                    and env.world.carHalt(a) then
+                    a.metEarly = true
+                    log(tostring(a.name) .. ': V reached her car on the way')
+                end
+            end
+        end
         if a.leg == 'drive' then
             -- The car trip: board, drive to the road end point, brake, get out (mod/immersive-car.lua); then she walks the rest.
             local result, why = env.world.carStep(a, M.STEP)
             if result == 'arrived' then
                 a.leg, a.commandSent, a.arrivedByCar = 'walk', false, true
                 a.tripStart, a.bestD, a.bestAt, a.stuck = clock, nil, clock, 0
+                -- V is the one she walks to now (V came to the car), not the place V once asked for.
+                if a.metEarly and st.position then a.goal = copyPoint(st.position) end
             elseif result == 'failed' then
                 log(tostring(a.name) .. ': the car trip failed (' .. tostring(why) .. ')')
                 removeBody(a, 'module')
