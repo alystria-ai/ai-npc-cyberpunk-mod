@@ -1864,7 +1864,7 @@ local function schema()
             end
             -- First paragraph, so a long description that is cut keeps it.
             if voiceRow.id == 'voiceProvider' and pack.amdRoute then
-                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md on the mod’s GitHub page (alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices.')
+                voiceRow.description = ui.t('Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md in the mod’s repository (github.com/alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices.')
                     .. '\n\n' .. voiceRow.description
             elseif voiceRow.id == 'voiceProvider' and pack.noNvidia then
                 voiceRow.description = ui.t('This PC has no NVIDIA graphics card, which OmniVoice needs. OmniVoice will not start here. Choose Pocket to hear voices.')
