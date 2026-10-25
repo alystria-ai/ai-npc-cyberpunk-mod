@@ -1699,7 +1699,8 @@ local function visitorBands(request)
     if mode=='close' then list={30,24,18,14}
     elseif mode=='standing' then list={6,4,8,3}
     elseif mode=='exit' then list={55,45,38,30}
-    else list={90,70,50,40,30,24,18,14,11,8} end
+    -- On foot she is out of sight but not far: about 45 m first (live: 90 m took over a minute to walk), the far rings only when those are seen.
+    else list={45,40,55,70,90,30,24,18,14,11,8} end
     local maximum=request.maxDistance or 90
     local minimum=mode=='walk' and 35 or mode=='close' and 15 or mode=='exit' and 28 or 0
     if relax>=2 and mode=='walk' then minimum=14 end
