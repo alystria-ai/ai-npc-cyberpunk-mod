@@ -163,11 +163,11 @@ const street = (degrees, half) => `
     return {status='OK',point=Vector4.new(along*dx-keep*dy,along*dy+keep*dx,0)}
   end
   Game.GetAINavigationSystem=function() return {
-    FindPointInSphereForCharacter=function(_,position,radius) queries=queries+1; return snap(position,radius) end,
-    FindPointInBoxForCharacter=function(_,position) return snap(position,3) end,
-    CalculatePathForCharacter=function(_,origin,destination)
+    FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,position,radius) queries=queries+1; return snap(position,radius) end),
+    FindPointInBoxForCharacter=strictNative('FindPointInBoxForCharacter',{1,2},function(_,position) return snap(position,3) end),
+    CalculatePathForCharacter=strictNative('CalculatePathForCharacter',{1,2},function(_,origin,destination)
       return {path={origin,destination},CalculateLength=function() return math.sqrt((destination.x-origin.x)^2+(destination.y-origin.y)^2) end}
-    end} end
+    end)} end
   companions.visibleFromCrosshair=function() return false end
   local function search(relax)
     local request={destination=Vector4.new(0,0,0),mode='walk',relax=relax,maxDistance=90}
@@ -194,9 +194,9 @@ test('a street that no ring bearing lines up with still gives her a spot on the 
 test('a street she cannot reach gives a final answer that says which checks turned the candidates away', () => run(`${visitor}
   ${street(30, 3)}
   Game.GetAINavigationSystem=function() return {
-    FindPointInSphereForCharacter=function(_,position) return {status=(position.x==0 and position.y==0) and 'OK' or 'Failed',point=position} end,
-    FindPointInBoxForCharacter=function(_,position) return {status='OK',point=position} end,
-    CalculatePathForCharacter=function(_,o,d) return {path={o,d},CalculateLength=function() return 1 end} end} end
+    FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,position) return {status=(position.x==0 and position.y==0) and 'OK' or 'Failed',point=position} end),
+    FindPointInBoxForCharacter=strictNative('FindPointInBoxForCharacter',{1,2},function(_,position) return {status='OK',point=position} end),
+    CalculatePathForCharacter=strictNative('CalculatePathForCharacter',{1,2},function(_,o,d) return {path={o,d},CalculateLength=function() return 1 end} end)} end
   local spot,reason=search(0)
   assert(spot==nil and reason:find('of=%d+ nav=%d+'),tostring(reason))
 `));

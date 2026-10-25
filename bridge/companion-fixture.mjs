@@ -44,6 +44,26 @@ export const companionModules = `
   end
 `;
 
+// The game rejects a plain Lua table where a native wants Vector4 ("Function 'X' parameter N must be Vector4."). Vector4.new returns
+// a table carrying a marker metatable; strictNative(name, {positions}, fn) raises that same error for any other value, so a copied
+// {x=,y=,z=} point that reaches the game cannot pass in a test (live 2026-10-25: Immersive invitations, CalculatePathForCharacter).
+export const strictVector = `
+  if not strictNative then
+    local VECTOR4={}
+    Vector4={new=function(x,y,z,w) return setmetatable({x=x,y=y,z=z or 0,w=w or 1},VECTOR4) end}
+    function isVector4(value) return getmetatable(value)==VECTOR4 end
+    function strictNative(name,positions,fn)
+      return function(self,...)
+        local args={...}
+        for _,n in ipairs(positions) do
+          if not isVector4(args[n]) then error("Function '"..name.."' parameter "..n.." must be Vector4.",2) end
+        end
+        return fn(self,...)
+      end
+    end
+  end
+`;
+
 // Known empty physics world. Obstacle suites replace this with real geometric
 // intersections; an absent/invalid native answer is never presumed empty.
 export const flatSpatial = `
@@ -51,18 +71,23 @@ export const flatSpatial = `
   Quaternion={
     BuildFromDirectionVector=function(direction) return {yaw=math.deg(math.atan(-direction.x,direction.y))} end,
     ToEulerAngles=function(rotation) return {roll=0,pitch=0,yaw=rotation.yaw or 0} end}
-  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end} end
+  ${strictVector}
+  Game.GetSpatialQueriesSystem=function() return {
+    Overlap=strictNative('Overlap',{1,2},function() return false,{} end),
+    SyncRaycastByCollisionGroup=strictNative('SyncRaycastByCollisionGroup',{1,2},function() return false,{} end)} end
 `;
 
 // An open, flat navmesh. Individual placement cases override the native adapter.
 export const flatNavigation = `
+  ${strictVector}
   Game.GetAINavigationSystem=function() return {
-    FindPointInSphereForCharacter=function(_,position) return {status='OK',point=position} end,
-    CalculatePathForCharacter=function(_,origin,destination)
+    FindPointInSphereForCharacter=strictNative('FindPointInSphereForCharacter',{1},function(_,position) return {status='OK',point=position} end),
+    FindPointInBoxForCharacter=strictNative('FindPointInBoxForCharacter',{1,2},function(_,position) return {status='OK',point=position} end),
+    CalculatePathForCharacter=strictNative('CalculatePathForCharacter',{1,2},function(_,origin,destination)
       return {path={origin,destination}, CalculateLength=function()
         return math.sqrt((destination.x-origin.x)^2+(destination.y-origin.y)^2+(destination.z-origin.z)^2)
       end}
-    end
+    end)
   } end
 `;
 
@@ -70,7 +95,7 @@ const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), '
 export const companionEngine = `
   io.open=function() return nil end
   ${companionModules}
-  Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z or 0,w=w or 1} end}
+  ${strictVector}
   Enum={new=function(_, value) return value end}; CName={new=function(value) return value end}
   TweakDBID={new=function(value) return value end}
   TweakDB={GetRecord=function() return {IsA=function() return true end} end}
