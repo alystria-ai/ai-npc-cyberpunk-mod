@@ -611,6 +611,78 @@ class PortableVoicePaths(unittest.TestCase):
         self.assertFalse((self.app / 'runtime').exists())
 
 
+def make_junction(link, target):
+    """A real directory link (a junction on Windows, a symlink elsewhere); the test is skipped where none can be made."""
+    try:
+        if os.name == 'nt':
+            import subprocess
+            made = subprocess.run(['cmd', '/c', 'mklink', '/J', str(link), str(target)], capture_output=True)
+            if made.returncode != 0:
+                raise OSError(made.stderr)
+        else:
+            os.symlink(target, link, target_is_directory=True)
+    except (OSError, NotImplementedError) as error:
+        raise unittest.SkipTest(f'directory links are not available here: {error}')
+
+
+class AppLinks(PortableVoicePaths):
+    """A link ABOVE the Runtime's app folder (a junctioned Steam library, a moved Documents, OneDrive) is accepted; a link inside it is refused, as is
+    one that leaves it. Real junctions."""
+
+    def setUp(self):
+        super().setUp()
+        self.links = []
+        self.addCleanup(self.unlink)
+
+    def unlink(self):
+        for link in reversed(self.links):   # a junction: remove the link, never what it points at
+            try:
+                os.rmdir(link)
+            except OSError:
+                pass
+
+    def link(self, link, target):
+        make_junction(link, target)
+        self.links.append(link)
+
+    def test_a_link_above_the_app_folder_is_accepted(self):
+        library = self.root / 'library'
+        self.link(library, self.root)
+        app = library / self.app.name   # the whole layout spelled through the junction
+        environment = {worker.PATH_OVERRIDES[field]: str(library / path.relative_to(self.root)) for field, path in self.paths.items()}
+        paths = worker.resolve_worker_paths(app, environment)
+        self.assertEqual(paths['modelDirectory'], self.paths['modelDirectory'].resolve())
+        self.assertEqual(worker.validate_config(self.config, app, paths=paths)['model'], self.paths['modelDirectory'].resolve())
+        # The app folder itself being the link counts as above it.
+        self.link(self.root / 'app-link', self.app)
+        app = self.root / 'app-link'
+        environment.update({worker.PATH_OVERRIDES['modelDirectory']: str(app / 'models/omnivoice'),
+                            worker.PATH_OVERRIDES['adapterDirectory']: str(app / 'voice/voicestudio/backend')})
+        self.assertTrue(worker.resolve_worker_paths(app, environment)['portable'])
+
+    def test_a_link_inside_the_app_folder_is_refused(self):
+        self.link(self.app / 'models/linked', self.paths['modelDirectory'])
+        with self.assertRaisesRegex(ValueError, 'Linked directories inside the application directory'):
+            worker.resolve_worker_paths(self.app, {**self.environment(), 'CYBERPUNK_CONVAI_OMNI_MODEL': str(self.app / 'models/linked')})
+
+    def test_a_link_that_leaves_the_app_folder_is_refused(self):
+        outside = self.root / 'elsewhere'
+        (outside / 'omnivoice').mkdir(parents=True)
+        self.link(self.app / 'models/escape', outside)
+        with self.assertRaisesRegex(ValueError, 'Linked directories inside the application directory'):
+            worker.resolve_worker_paths(self.app, {**self.environment(), 'CYBERPUNK_CONVAI_OMNI_MODEL': str(self.app / 'models/escape/omnivoice')})
+
+    def test_a_package_outside_the_pack_is_still_refused_when_the_app_is_behind_a_link(self):
+        library = self.root / 'library'
+        self.link(library, self.root)
+        stray = self.data / 'stray-model'
+        stray.mkdir()
+        environment = {worker.PATH_OVERRIDES[field]: str(library / path.relative_to(self.root)) for field, path in self.paths.items()}
+        environment[worker.PATH_OVERRIDES['modelDirectory']] = str(stray)
+        with self.assertRaisesRegex(ValueError, 'must remain in the application directory'):
+            worker.resolve_worker_paths(library / self.app.name, environment)
+
+
 class UsvfsVoicePaths(unittest.TestCase):
     """Mod Organizer 2 (USVFS): the OmniVoice pack is its own mod, so its model and adapter really live outside the Runtime's app folder, and Path.resolve()
     of a file answers with the mod that holds it. USVFS does not exist here: the pack is a real folder beside the app, and where a merged folder is needed
@@ -673,10 +745,12 @@ class UsvfsVoicePaths(unittest.TestCase):
 
     def test_a_link_in_the_pack_is_refused_as_it_is_outside_usvfs(self):
         real = Path.is_symlink
-        for linked in (self.pack_paths['modelDirectory'], self.pack, self.pack.parent):
+        for linked in (self.pack_paths['modelDirectory'], self.pack):
             with self.subTest(linked=str(linked)), patch.object(Path, 'is_symlink', lambda path, linked=linked: path == linked or real(path)):
                 with self.assertRaisesRegex(ValueError, 'Linked'):
                     self.resolved()
+        with patch.object(Path, 'is_symlink', lambda path: path == self.pack.parent or real(path)):
+            self.resolved()   # a link above the pack is the player's layout
         with patch.object(Path, 'is_symlink', lambda path: path.name == 'model.safetensors' or real(path)):
             with self.assertRaisesRegex(ValueError, 'Linked'):
                 self.resolved()

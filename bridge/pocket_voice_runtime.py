@@ -326,6 +326,29 @@ def spelled_inside(path, root):
     return path == root or path.startswith(root.rstrip("\\/") + os.sep)
 
 
+def app_directory():
+    """The Runtime's app folder: this file is app/bridge/pocket_voice_runtime.py. Links above it are accepted, links below it are not."""
+    here = Path(os.path.abspath(__file__))
+    return here.parents[1] if usvfs_active() else here.resolve().parents[1]
+
+
+def link_inside_app(path, app):
+    """None, or (the first link, its distance above `path`, True) when a component from `path` up to (not including) the app folder is a link.
+    A path outside the app folder (the player's data) only has itself checked: (path, 0, False). A path outside by spelling that really
+    leads into the app folder is refused too (a link entering the app from outside). Inside USVFS the comparison is by spelling."""
+    usvfs = usvfs_active()
+    chain = (path, *path.parents)
+    app_real = None if usvfs else app.resolve()
+    def is_app(candidate):
+        return os.path.normcase(os.path.abspath(candidate)) == os.path.normcase(os.path.abspath(app)) if usvfs else candidate.resolve() == app_real
+    for depth, candidate in enumerate(chain):
+        if is_app(candidate):
+            return next(((c, d, True) for d, c in enumerate(chain[:depth]) if is_linked(c)), None)
+    if not usvfs and path.resolve().is_relative_to(app_real):
+        return next(((c, d, True) for d, c in enumerate(chain) if is_linked(c)), (path, 0, True))
+    return (path, 0, False) if is_linked(path) else None
+
+
 def plain_absolute(value, label):
     if (not isinstance(value, str) or not value or value != value.strip()
             or any(ord(char) < 32 or ord(char) == 127 for char in value)):
@@ -333,13 +356,15 @@ def plain_absolute(value, label):
     path = Path(value)
     if not path.is_absolute():
         raise ValueError(f"Pocket {label} must be an absolute local path")
-    # Check ancestors too: a symlink/junction must not mix one export with
-    # another owner's references or move writes into an immutable asset tree.
-    for depth, candidate in enumerate((path, *path.parents)):
-        if is_linked(candidate):
-            # Which link, so a report can tell the game folder's own layout (a junctioned library, far above) from a link inside the Runtime (near).
-            kind = "symlink" if candidate.is_symlink() else "junction"
-            raise ValueError(f"Pocket {label} must not use linked directories ({kind}, {depth} folders above it)")
+    # A link inside the Runtime's app folder must not mix one export with another owner's references or move writes into an immutable asset
+    # tree. A link above the app folder (a junctioned Steam library, a moved Documents, OneDrive, MO2) is the player's own layout and is fine.
+    linked = link_inside_app(path, app_directory())
+    if linked:
+        candidate, depth, inside = linked
+        kind = "symlink" if candidate.is_symlink() else "junction"
+        if inside:
+            raise ValueError(f"Pocket {label} must not use linked directories inside the app folder ({kind}, {depth} folders above it)")
+        raise ValueError(f"Pocket {label} must not be a linked directory ({kind})")
     # Inside USVFS the path stays as spelled: its resolved form is only where one mod happens to hold it (see above).
     return Path(os.path.abspath(path)) if usvfs_active() else path.resolve()
 
