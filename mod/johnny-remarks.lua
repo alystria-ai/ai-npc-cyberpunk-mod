@@ -256,7 +256,10 @@ function M.placeTracker()
     return tracker
 end
 
--- options.level(): 'off', 'rare' or 'normal'. Times are os.time seconds, passed in.
+-- options.level(): 'off', 'rare', 'medium' or 'normal'. Times are os.time seconds, passed in.
+-- options.paced (optional, set by mod/init.lua): the unified speak-up scheduler (mod/speak-up.lua) paces Johnny's unprompted lines by target rates
+-- together with the companions', so `allowed` no longer applies the old per-level gap and hourly count; the queue, the quiet time, the
+-- cooldowns and the time limits below stay as they were.
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local service = {queue = {}, said = {}, subjects = {}, cooldowns = {}}
@@ -286,6 +289,7 @@ function M.new(options)
     function service:allowed(now)
         local cfg = level()
         if not cfg then return false end
+        if options.paced == true then return true end
         local recent = 0
         for index = #self.said, 1, -1 do
             local at = self.said[index]

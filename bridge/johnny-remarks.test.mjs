@@ -182,25 +182,31 @@ test('loader: nothing is loaded unless both settings are on; events reach the qu
     assert(#convaiJohnnyRemarks.queue == 3 and loads == 1)
   `);
   // The collectors hand events to it.
-  assert.match(init, /onRow = function\(row\) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote\('person', row\) end end,/);
+  assert.match(init, /onRow = function\(row\)\s+if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote\('person', row\) end\s+--[^\n]*\s+if convaiSpeakUpScene then convaiSpeakUpScene\(row\) end/);
   assert.match(init, /journalHistory\.onFinished = function\(quests\)\s+if not convaiJohnnyRemarkNote then return end\s+for _, quest in ipairs\(quests\) do convaiJohnnyRemarkNote\('quest', quest\) end/);
   assert.match(init, /relationshipState\.onFact = function\(fact\) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote\('romance', fact\) end end/);
 });
 
 test('automatic turn: battle and loot first, then a waiting remark on the 0.1 s tick; its own validity, delivery check and release', () => {
   const battles = between('local function updateBattles(player, elapsed, worldReady)', '-- The bridge adds errorCode');
-  assert.match(battles, /if automatic and automatic\.reaction\.kind == 'head' then\s+convaiJohnnyRemarkTick\(player, now, worldReady, outputs, manual\)\s+elseif automatic then/);
-  assert.match(battles, /if not event then\s+if convaiJohnnyRemarks then convaiJohnnyRemarkTick\(player, now, worldReady, outputs, manual, busy, mayFollow\) end\s+return\s+end/);
-  const tick = between('function convaiJohnnyRemarkTick(', 'local function updateBattles');
-  assert.match(tick, /if busy or not remarks or not remarks:pending\(\) then return false end/, 'one length check while nothing waits');
-  assert.match(tick, /if not head or head:refusal\(player\) then return false end/, 'the busy and story gates of phase 1');
-  assert.match(tick, /reaction = \{kind = 'head', event = entry\.kind, facts = entry\.facts,/);
-  assert.match(tick, /profileKey = partner\.profileKey, voiceOnly = true, head = partner\.head/);
-  assert.match(tick, /if reactionLease\(true\) and sendRequest\(context\) then\s+remarks:claim\(entry, now\)/);
+  assert.match(battles, /if automatic and automatic\.reaction\.kind == 'head' then\s+convaiJohnnyRemarkTick\(player, now, worldReady, outputs, manual\)\s+elseif automatic and automatic\.reaction\.kind == 'speakup' then\s+convaiSpeakUpManage\(player, now, worldReady, outputs, manual\)\s+elseif automatic then/);
+  assert.match(battles, /if not event then\s+if speakUpOn then convaiSpeakUpOffer\(player, now, worldReady, outputs, manual, busy, mayFollow\) end\s+return\s+end/);
+  // The scheduler (mod/speak-up.lua) decides who starts: Johnny's remark competes with the companions' candidate, one length check while nothing waits.
+  const tick = between('function convaiJohnnyRemarkTick(', '-- Companions and Johnny speak up on their own');
   assert.match(tick, /cancelAutomatic\('head-' \.\. reason\)/);
+  assert.doesNotMatch(tick, /sendRequest/, 'starting a remark is the scheduler\'s job');
+  const offer = between('function convaiSpeakUpOffer(', 'function convaiSpeakUpManage(');
+  assert.match(offer, /if remarks and remarks:pending\(\) then/, 'one length check while nothing waits');
+  assert.match(offer, /if head and not head:refusal\(player\) then entry = remarks:offer\(now\) end/, 'the busy and story gates of phase 1');
+  assert.match(offer, /sched:pick\(\{companion = person ~= nil, johnny = entry ~= nil\}\)/);
+  const start = between('function convaiSpeakUpStartJohnny(', 'function convaiSpeakUpOffer(');
+  assert.match(start, /reaction = \{kind = 'head', event = entry\.kind, facts = entry\.facts,/);
+  assert.match(start, /profileKey = partner\.profileKey, voiceOnly = true, head = partner\.head/);
+  assert.match(start, /convaiJohnnyRemarks:claim\(entry, now\)/);
+  assert.match(between('function convaiSpeakUpSubmit(', 'function convaiSpeakUpStartJohnny('), /if reactionLease\(true\) and sendRequest\(context\) then/);
   assert.match(init, /if context\.reaction\.kind == 'head' then\s+local head = convaiJohnnyHeadService\(\)\s+local why = head == nil and 'off' or head:refusal\(player\)\s+if why then cancelAutomatic\('head-' \.\. why\); return false end/);
   assert.match(init, /if automatic\.reaction\.kind == 'head' and convaiJohnnyRemarks then\s+pcall\(convaiJohnnyRemarks\.release, convaiJohnnyRemarks, convaiJohnnyRemarks\.current, automatic\.playbackAt ~= nil\)/);
-  assert.match(init, /context\.reaction and \(context\.reaction\.kind == 'loot' or context\.reaction\.kind == 'head'\) then context\.battle = nil/);
+  assert.match(init, /context\.reaction and \(context\.reaction\.kind == 'loot' or context\.reaction\.kind == 'head' or speakUp\) then context\.battle = nil/);
   assert.match(init, /if convaiJohnnyRemarks then convaiJohnnyRemarks:reset\(\) end/);
   // Never per frame: onUpdate does not mention it, and the module has no update entry point.
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));

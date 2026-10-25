@@ -161,9 +161,29 @@ function M.new(options)
     -- first: while the companion still holds the floor this is false, and claim would refuse too) and the dice say so
     -- (followChance, default M.FOLLOW_CHANCE: random() < chance). Never when Johnny himself holds the floor or the source is
     -- unknown. The caller then claims with {follow = true}.
-    function sched:followOn(source)
-        if not FOLLOW_SOURCES[source] or holder or not sched:ready('johnny') then return false end
+    -- options.during = true: the decision is taken WHILE the companion's own line is still playing (so the follow-on can be written and
+    -- voiced ahead, bridge/group-lookahead.mjs): the floor may then be held by that companion and by nobody else. The caller still releases her
+    -- line when it is over and only then claims {follow = true}; if anything changed meanwhile the claim refuses.
+    function sched:followOn(source, followOptions)
+        if not FOLLOW_SOURCES[source] or not sched:ready('johnny') then return false end
+        if holder then
+            local during = type(followOptions) == 'table' and followOptions.during == true
+            if not (during and source == 'companion' and holder == 'companion') then return false end
+        end
         return unit() < followChance
+    end
+
+    -- Another feature's proactive exchange (the housemates' chat, convaiProactive in mod/init.lua): may one start now, and it has started.
+    -- It shares the floor-free rule and the gap with the two speakers; noting one moves the end of the last line to the end of the exchange
+    -- (about EXTERNAL_LINE_SECONDS a line) and draws the companion's timer again, so the merged pace counts it.
+    M.EXTERNAL_LINE_SECONDS = 5
+    function sched:externalAllowed() return holder == nil and gapOk() end
+    function sched:external(kind, lines)
+        local count = type(lines) == 'number' and lines == lines and lines > 0 and lines < 60 and lines or 1
+        lastEnd = clock + count * M.EXTERNAL_LINE_SECONDS
+        last = 'companion'
+        if companion.level then companion.due = draw(companion.level) end
+        return true
     end
 
     function sched:holder() return holder end

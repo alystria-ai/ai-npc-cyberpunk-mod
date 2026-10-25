@@ -975,7 +975,7 @@ function convaiJohnnyRemarksService()
     if convaiJohnnyRemarks == nil then
         local loaded, module = pcall(dofile, 'johnny-remarks.lua')
         convaiJohnnyRemarksModule = loaded and type(module) == 'table' and type(module.new) == 'function' and module or nil
-        convaiJohnnyRemarks = convaiJohnnyRemarksModule and module.new({level = function() return manager.johnnyRemarks() end}) or false
+        convaiJohnnyRemarks = convaiJohnnyRemarksModule and module.new({level = function() return manager.johnnyRemarks() end, paced = true}) or false
         if not convaiJohnnyRemarks then print('[CyberpunkConvai] johnny-remarks.lua unavailable: ' .. tostring(module)) end
     end
     return convaiJohnnyRemarks or nil
@@ -1388,7 +1388,11 @@ local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
     -- Always on (the setting was removed 2026-10-20): no `enabled` option, so the recorder is on.
     -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
-    onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
+    onRow = function(row)
+        if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end
+        -- Companions speak up (docs/COMPANION_SPEAK_UP.md): a scene she may comment on once it is over. A few table writes per scene line.
+        if convaiSpeakUpScene then convaiSpeakUpScene(row) end
+    end,
     -- Music and TV (Settings > Dynamic info): the last TV lines are kept only while the switch is on, for mod/media-context.lua (one boolean read per subtitle line).
     heardWanted = function() return manager.dynamicInfo == nil or manager.dynamicInfo('media') end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
@@ -3129,16 +3133,17 @@ local function sendRequest(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()
     -- Manual turns only: an automatic reaction has its own single subject.
-    if not context.reaction and convaiGameDialogue then
+    local speakUp = context.reaction ~= nil and context.reaction.kind == 'speakup'
+    if (not context.reaction or (speakUp and context.reaction.event == 'scene')) and convaiGameDialogue then
         context.gameDialogue = context.gameDialogue or convaiGameDialogue:capture()
     end
     if not context.reaction and convaiPlayerGear then context.gear = context.gear or convaiPlayerGear:capture() end
-    if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
+    if (not context.reaction or speakUp) and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     -- Street reputation (docs/REPUTATION_DESIGN.md): nil checks only while the setting is off.
     if convaiReputation or convaiReputationPending then pcall(convaiReputationAttach, context) end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
-    if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
+    if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head' or speakUp) then context.battle = nil
     -- A battle reaction already carries its own fight (battles.offer); a manual turn reads it through battles.captureManual (Health, heat and
     -- fights off: nothing). The module's own capture is the reaction's and is never gated.
     else context.battle = context.battle or (battles.captureManual or battles.capture)() end
@@ -3195,6 +3200,7 @@ do
     sendRequest = function(context)
         local sent = submit(context)
         if sent then requestFileId = context.requestId; claimPrivateReply(context, 'text') end
+        if sent and not context.reaction and convaiSpeakUpManualSent then pcall(convaiSpeakUpManualSent, context) end
         if sent and context.holocall and convaiHolocall then convaiHolocall.touch() end
         return sent
     end
@@ -3435,6 +3441,12 @@ cancelAutomatic = function(reason, abandoning)
     if lastAutomatic and lastAutomatic.requestId == automatic.requestId then
         lastAutomatic.finishedAt = os.time()
     end
+    -- An unprompted line (a companion's speak-up, Johnny's remark or follow-on) gives the floor back to the scheduler; one nobody heard does not count.
+    local hold = convaiSpeakUpState and convaiSpeakUpState.hold
+    if hold and hold.requestId == automatic.requestId then
+        convaiSpeakUpState.hold = nil
+        if convaiSpeakUp then pcall(convaiSpeakUp.release, convaiSpeakUp, hold.who, automatic.playbackAt ~= nil) end
+    end
     automatic, reactionGuard = nil, nil
 end
 
@@ -3516,11 +3528,201 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
         return true
     end
-    if busy or not remarks or not remarks:pending() then return false end
-    local head = convaiJohnnyRemarksService() and convaiJohnnyHeadService() or nil
-    if not head or head:refusal(player) then return false end
-    local entry = remarks:offer(now)
-    if not entry or not mayFollow(entry, 'head') then return false end
+    -- Starting one is the speak-up scheduler's job (convaiSpeakUpOffer below): it lets Johnny's queued remark and the companions compete.
+    return false
+end
+
+-- Companions and Johnny speak up on their own (docs/COMPANION_SPEAK_UP.md). One scheduler (mod/speak-up.lua) paces both by target rates and
+-- lets one unprompted speaker talk at a time; this block is the game side: who may speak (a party companion's calm moment, a companion after a
+-- scene she was in, Johnny's queued remarks), the request each one sends, and Johnny's follow-on to a line that is playing, which is written and
+-- voiced ahead (bridge/group-lookahead.mjs: runtime/group-prefetch.json) and submitted the moment that line has been heard. Everything runs on the
+-- 0.1 s game tick inside updateBattles, on a game event (a recorded scene line, the end of a line of speech) or on demand; nothing per frame, and
+-- nothing is loaded while both lists are Off. Globals, so updateBattles and the callbacks gain no upvalues.
+convaiSpeakUpState = {plan = nil, hold = nil, scene = nil, lastManual = nil, lastManualAt = -1000, calmFor = 0, withFor = 0,
+    decided = {}, decidedCount = 0, lastPerson = nil, people = {}, peopleAt = nil}
+-- QUIET: seconds after V's last manual turn before a companion speaks up on her own. CALM: seconds of calm play (and of a companion being with V)
+-- before a calm line. SCENE_*: a scene is over after SCENE_QUIET seconds without a line; her line is prepared from SCENE_PREP on. LINE_MAX: the
+-- longest line Johnny follows up (the bridge compares it with the whole source text). SEND: seconds a line has to be heard once sent.
+convaiSpeakUpConfig = {QUIET = 45, CALM = 20, SCENE_QUIET = 6, SCENE_PREP = 2.5, SCENE_TTL = 120, SCENE_MIN_LINES = 2, PLAN_TTL = 120,
+    LINE_MAX = 500, SEND = 60, FOLLOW_SEND = 120}
+
+function convaiSpeakUpService()
+    -- A manager without these settings (an old or partial one) counts as Off.
+    local askCompanion, askHead = manager.companionSpeakUp, manager.johnnyInHead
+    local companion = askCompanion and askCompanion() or 'off'
+    local johnny = askHead and askHead() and manager.johnnyRemarks() or 'off'
+    if companion == 'off' and johnny == 'off' then
+        -- Unload what is not used: the scheduler goes with the last list that was on.
+        if convaiSpeakUp then convaiSpeakUpReset('off'); convaiSpeakUp = nil end
+        return nil
+    end
+    if convaiSpeakUp == nil then
+        local loaded, module = pcall(dofile, 'speak-up.lua')
+        convaiSpeakUp = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+            companionLevel = function() return manager.companionSpeakUp() end,
+            johnnyLevel = function() if manager.johnnyInHead() then return manager.johnnyRemarks() end return 'off' end}) or false
+        if not convaiSpeakUp then print('[CyberpunkConvai] speak-up.lua unavailable: ' .. tostring(module)) end
+    end
+    return convaiSpeakUp or nil
+end
+
+-- Withdraw whatever was prepared ahead (the bridge drops the held line) and give the floor back unheard.
+function convaiSpeakUpWithdraw(reason)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    local plan = st.plan
+    if not plan then return end
+    st.plan = nil
+    pcall(convaiSpeakUpPublish, nil)
+    -- An 'ahead' plan holds the floor from the moment it was prepared; a follow-on takes it only when it is submitted.
+    local hold = st.hold
+    if plan.kind == 'ahead' and hold and hold.requestId == plan.context.requestId then
+        st.hold = nil
+        if sched then pcall(sched.release, sched, hold.who, false) end
+    end
+    if convaiLogLine then convaiLogLine('Speak up: prepared line withdrawn (' .. tostring(reason) .. ') kind=' .. tostring(plan.kind)) end
+end
+
+-- A world change, a save load or both lists turned Off: nothing is kept.
+function convaiSpeakUpReset(reason)
+    local st = convaiSpeakUpState
+    pcall(convaiSpeakUpWithdraw, reason)
+    st.hold, st.scene, st.lastManual, st.calmFor, st.withFor, st.decided, st.decidedCount = nil, nil, nil, 0, 0, {}, 0
+    if convaiSpeakUp then pcall(convaiSpeakUp.reset, convaiSpeakUp) end
+end
+
+-- The prediction file (the one the bridge's look-ahead reads): {kind = 'follow', sourceRequestId, input} or {kind = 'ahead', input}; nil writes {}.
+function convaiSpeakUpPublish(command)
+    local encoded = '{}'
+    if command then
+        if not attachKnowledge(command.input) then return false end
+        local ok, text = pcall(json.encode, command)
+        if not ok then return false end
+        encoded = text
+    end
+    local file = io.open('runtime/group-prefetch.json', 'wb')
+    if not file then return false end
+    file:write(encoded); file:close()
+    return true
+end
+
+-- The party companions that may speak up: our own copies (never a character another mod spawned, never Johnny), cached per battle sample.
+function convaiSpeakUpPeople()
+    local st = convaiSpeakUpState
+    if st.peopleAt ~= battleSampleAt then
+        st.peopleAt = battleSampleAt
+        local list = {}
+        for _, person in ipairs(battlePeople) do
+            if not person.spawned and person.profileKey ~= 'johnny-silverhand' then list[#list + 1] = person end
+        end
+        st.people = list
+    end
+    return st.people
+end
+
+-- A calm moment: the game is ours (open gameplay), nothing is playing, V is not talking or typing and has not for a while.
+function convaiSpeakUpEligible(now, worldReady, manual, outputs)
+    if not worldReady or manual or not outputs.enabled then return false end
+    local sample = battleSample
+    if not sample or sample.available ~= true or sample.blocked or sample.combat then return false end
+    if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
+    if battles.status().state == 'fighting' then return false end
+    return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
+end
+
+-- The scheduler's clock, once per tick: the eligible time only. Returns the scheduler, or nil while both lists are Off.
+function convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
+    local sched = convaiSpeakUpService()
+    if not sched then return nil end
+    local st = convaiSpeakUpState
+    local eligible = convaiSpeakUpEligible(now, worldReady, manual, outputs)
+    local step = elapsed < 1 and elapsed or 1
+    st.calmFor = eligible and st.calmFor + step or 0
+    st.withFor = (eligible and #convaiSpeakUpPeople() > 0) and st.withFor + step or 0
+    sched:tick(elapsed, eligible)
+    return sched
+end
+
+-- A recorded game line (mod/game-dialogue.lua onRow): the scene a companion was in. Event-driven, a few table writes.
+function convaiSpeakUpScene(row)
+    if type(row) ~= 'table' or row.channel ~= 'scene' then return end
+    if (manager.companionSpeakUp and manager.companionSpeakUp() or 'off') == 'off' or not manager.dynamicInfo('dialogue') then return end
+    local st, at = convaiSpeakUpState, os.clock()
+    local scene = st.scene
+    if not scene or at - scene.lastAt > convaiSpeakUpConfig.SCENE_TTL then
+        scene = {count = 0, present = {}, failed = false}
+        st.scene = scene
+    end
+    scene.lastAt, scene.count = at, scene.count + 1
+    for _, key in ipairs(type(row.present) == 'table' and row.present or {}) do
+        if type(key) == 'string' then scene.present[key] = true end
+    end
+    if type(row.profileKey) == 'string' then scene.present[row.profileKey] = true end
+end
+
+-- Who of the party may speak now, and about what: a companion who was in a scene that has just ended (event 'scene', with how long it has been
+-- quiet), else any companion at a calm moment (event 'calm'). nil when nobody may.
+function convaiSpeakUpCompanion()
+    if (manager.companionSpeakUp and manager.companionSpeakUp() or 'off') == 'off' then return nil end
+    local st, cfg = convaiSpeakUpState, convaiSpeakUpConfig
+    local people = convaiSpeakUpPeople()
+    if #people == 0 then return nil end
+    local scene = st.scene
+    if scene then
+        local quiet = os.clock() - scene.lastAt
+        if quiet > cfg.SCENE_TTL then st.scene = nil
+        elseif scene.count >= cfg.SCENE_MIN_LINES and not scene.failed and quiet >= cfg.SCENE_PREP then
+            local pool = {}
+            for _, person in ipairs(people) do
+                if person.available == true and person.voiceBusy ~= true and scene.present[person.profileKey] then pool[#pool + 1] = person end
+            end
+            if #pool > 0 then return pool[math.random(#pool)], 'scene', quiet end
+        end
+    end
+    if st.calmFor >= cfg.CALM and st.withFor >= cfg.CALM then
+        local pool = {}
+        for _, person in ipairs(people) do
+            if person.available == true and person.voiceBusy ~= true and (#people == 1 or person.profileKey ~= st.lastPerson) then pool[#pool + 1] = person end
+        end
+        if #pool > 0 then return pool[math.random(#pool)], 'calm', 0 end
+    end
+    return nil
+end
+
+-- The request of a companion's speak-up: a reaction like a battle line, with the tracked quest, the right-now facts and (after a scene) the
+-- scene's lines. The text is a placeholder; the bridge writes the trigger (bridge/speakup-context.mjs).
+function convaiSpeakUpBuild(person, event, now)
+    generation = generation + 1
+    local context = {generation = generation, entity = person.entity, name = person.name, bodyType = person.bodyType,
+        profileKey = person.profileKey, sentAt = now, text = 'A companion speaks up unprompted. Give one brief in-character line.',
+        reaction = {kind = 'speakup', event = event, facts = {v = 1}, expiresAt = math.floor((now + convaiSpeakUpConfig.SEND) * 1000)}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    -- Captured here so a request prepared ahead is the very request that is sent later (the bridge compares them).
+    context.journal = questContext.capture()
+    if event == 'scene' and convaiGameDialogue then context.gameDialogue = convaiGameDialogue:capture() end
+    if convaiTurnContext then context.turnContext = convaiTurnContext:capture() end
+    return context
+end
+
+-- Send an unprompted request now: the floor is already claimed by `who`. person is nil for Johnny.
+function convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, who, label)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    automatic = context
+    captureReactionGuard(worldReady, outputs, person)
+    if reactionLease(true) and sendRequest(context) then
+        speech.target = person and person.npc or player
+        if person and person.spawned then pcall(function() return person.npc:ConvaiFaceRequest() end) end
+        st.hold = {who = who, requestId = context.requestId}
+        lastAutomatic = {at = now, requestId = context.requestId, kind = context.reaction.kind == 'head' and 'head' or 'speakup'}
+        log('Speak up: ' .. label)
+        return true
+    end
+    cancelAutomatic('request-write-failed')
+    if sched then pcall(sched.release, sched, who, false) end
+    return false
+end
+
+-- Johnny's own queued remark (a person, a job, a place...): the request of mod/johnny-remarks.lua, now paced by the scheduler.
+function convaiSpeakUpStartJohnny(player, now, worldReady, outputs, entry, head)
     local partner = head:partner(player)
     if not partner then return false end
     generation = generation + 1
@@ -3530,17 +3732,213 @@ function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, 
         reaction = {kind = 'head', event = entry.kind, facts = entry.facts,
             expiresAt = math.floor((now + convaiJohnnyRemarksModule.SEND_SECONDS) * 1000)}}
     context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
-    automatic = context
-    captureReactionGuard(worldReady, outputs, nil)
-    if reactionLease(true) and sendRequest(context) then
-        remarks:claim(entry, now)
-        speech.target = player
-        convaiHeadTalk = {entity = partner.entity}
-        lastAutomatic = {at = now, requestId = context.requestId, kind = 'head'}
-        log('Automatic head reaction: ' .. entry.subject .. ' stage=' .. tostring(partner.head.stage))
-    else cancelAutomatic('request-write-failed') end
+    if not convaiSpeakUpSubmit(player, now, worldReady, outputs, context, nil, 'johnny', 'Johnny ' .. entry.subject .. ' stage=' .. tostring(partner.head.stage)) then
+        return false
+    end
+    convaiJohnnyRemarks:claim(entry, now)
+    convaiHeadTalk = {entity = partner.entity}
     return true
 end
+
+-- The unprompted turn of the tick: Johnny's queued remark and the companions' candidate compete; the scheduler says who (or nobody).
+function convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayFollow)
+    local sched, st = convaiSpeakUp, convaiSpeakUpState
+    if not sched or busy or st.plan then return end
+    local entry, remarks = nil, convaiJohnnyRemarks
+    if remarks and remarks:pending() then
+        local head = convaiJohnnyHeadService()
+        if head and not head:refusal(player) then entry = remarks:offer(now) end
+    end
+    local person, event, quiet = convaiSpeakUpCompanion()
+    local who = sched:pick({companion = person ~= nil, johnny = entry ~= nil})
+    if who == 'johnny' then
+        if not mayFollow(entry, 'head') or not sched:claim('johnny') then return end
+        local head = convaiJohnnyHeadService()
+        if not head or not convaiSpeakUpStartJohnny(player, now, worldReady, outputs, entry, head) then
+            if sched:holder() == 'johnny' then sched:release('johnny', false) end
+        end
+    elseif who == 'companion' then
+        if not mayFollow(true, 'speakup') or not sched:claim('companion') then return end
+        local context = convaiSpeakUpBuild(person, event, now)
+        st.lastPerson = person.profileKey
+        if event == 'scene' and quiet < convaiSpeakUpConfig.SCENE_QUIET then
+            -- The scene's last line may still be playing: write and voice her line now, say it once the scene is over (or drop it).
+            st.hold = {who = 'companion', requestId = context.requestId}
+            if convaiSpeakUpPublish({kind = 'ahead', input = context}) then
+                st.plan = {kind = 'ahead', context = context, person = person, createdAt = now, sceneStamp = st.scene.lastAt}
+                log('Speak up: companion scene line prepared speaker=' .. person.profileKey)
+            else
+                st.hold = nil
+                sched:release('companion', false)
+                st.scene.failed = true
+            end
+            return
+        end
+        if event == 'scene' then st.scene = nil end
+        convaiSpeakUpSubmit(player, now, worldReady, outputs, context, person, 'companion', 'companion ' .. event .. ' speaker=' .. person.profileKey)
+    end
+end
+
+-- A companion's unprompted line that is on its way or playing: kept, or released when the game takes the floor back.
+function convaiSpeakUpManage(player, now, worldReady, outputs, manual)
+    local speaker
+    for _, person in ipairs(battlePeople) do
+        if person.entity == automatic.entity and person.profileKey == automatic.profileKey then speaker = person; break end
+    end
+    captureReactionGuard(worldReady, outputs, speaker)
+    local waiting = reactionSpeakerWait(speaker)
+    local sample = battleSample or {}
+    local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+        or not speaker and 'speaker-missing' or (not speaker.available and not waiting) and 'speaker-unavailable'
+        or sample.combat and 'combat' or sample.blocked and 'scene-blocked'
+        or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+    if reason then cancelAutomatic(reason)
+    elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+    elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+end
+
+-- Johnny follows a line that is playing: decided and prepared once the line's whole text is known (his turn is written and voiced ahead and held),
+-- submitted by convaiSpeakUpStopped when the line has been heard to its end.
+function convaiSpeakUpPlanFollow(player, now)
+    local sched, st = convaiSpeakUp, convaiSpeakUpState
+    if not sched or st.plan or not sched:ready('johnny') then return end
+    local rid = speech.requestId
+    if not rid or st.decided[rid] then return end
+    local via, name
+    if automatic and automatic.requestId == rid and automatic.reaction and automatic.reaction.kind == 'speakup'
+        and st.hold and st.hold.who == 'companion' and st.hold.requestId == rid then
+        via, name = 'companion', automatic.name
+    else
+        local manual = st.lastManual
+        if manual and manual.requestId == rid and manual.eligible then via, name = 'talk', manual.name end
+    end
+    if not via then return end
+    local spoken = speech.context
+    local transcript = type(spoken) == 'table' and speech.transcript(rid, spoken.generation, spoken.entity) or nil
+    if not transcript or transcript.textComplete ~= true or type(transcript.text) ~= 'string' then return end
+    if st.decidedCount >= 8 then st.decided, st.decidedCount = {}, 0 end
+    st.decided[rid], st.decidedCount = true, st.decidedCount + 1
+    local text = transcript.text
+    if #text < 4 or #text > convaiSpeakUpConfig.LINE_MAX or type(name) ~= 'string' or #name < 1 or #name > 60 then return end
+    if not sched:followOn(via == 'companion' and 'companion' or 'talk', {during = via == 'companion'}) then return end
+    local head = convaiJohnnyHeadService()
+    if not head or head:refusal(player) then return end
+    local partner = head:partner(player)
+    if not partner then return end
+    generation = generation + 1
+    local context = {generation = generation, entity = partner.entity, name = partner.name, bodyType = '',
+        profileKey = partner.profileKey, voiceOnly = true, head = partner.head, sentAt = now,
+        text = 'Johnny speaks up unprompted. Give one brief in-character remark.',
+        reaction = {kind = 'head', event = 'follow', facts = {who = name, line = text, via = via},
+            expiresAt = math.floor((now + convaiSpeakUpConfig.FOLLOW_SEND) * 1000)}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    context.journal = questContext.capture()
+    if not convaiSpeakUpPublish({kind = 'follow', sourceRequestId = rid, input = context}) then return end
+    st.plan = {kind = 'follow', context = context, sourceRequestId = rid, createdAt = now, via = via}
+    log('Speak up: Johnny follow-on prepared via=' .. via)
+end
+
+-- Johnny's prepared follow-on: the source line has been heard to its end, so the very request that was prepared is sent now.
+function convaiSpeakUpSubmitFollow(plan)
+    local st, sched = convaiSpeakUpState, convaiSpeakUp
+    local player = Game.GetPlayer()
+    local head = convaiJohnnyHeadService()
+    local outputs = battleOutputs or (player and reactionOutputs(player)) or {enabled = true}
+    if not sched or not player or not head or head:refusal(player) or pending ~= nil or automatic ~= nil or not outputs.enabled then
+        return convaiSpeakUpWithdraw('follow-not-possible')
+    end
+    if not sched:claim('johnny', {follow = true}) then return convaiSpeakUpWithdraw('follow-refused') end
+    st.plan = nil
+    local context = plan.context
+    if convaiSpeakUpSubmit(player, os.time(), true, outputs, context, nil, 'johnny', 'Johnny follow-on via=' .. tostring(plan.via)) then
+        convaiHeadTalk = {entity = context.entity}
+    end
+end
+
+-- A line of speech ended (mod/speech.lua M.stop, reason 'finished' when it was heard to its end): a companion's unprompted line is over at
+-- once (not when its caption has faded), and a prepared follow-on to it, or to a conversation reply, starts.
+function convaiSpeakUpStopped(requestId, reason)
+    local st = convaiSpeakUpState
+    if automatic and automatic.requestId == requestId and automatic.reaction and automatic.reaction.kind == 'speakup' and reason == 'finished' then
+        cancelAutomatic('finished', true)
+    end
+    local plan = st.plan
+    if plan and plan.kind == 'follow' and plan.sourceRequestId == requestId then
+        if reason == 'finished' then convaiSpeakUpSubmitFollow(plan)
+        else convaiSpeakUpWithdraw('source-' .. tostring(reason)) end
+    end
+end
+speech.onStopped = function(requestId, reason)
+    if convaiSpeakUp or convaiSpeakUpState.plan then pcall(convaiSpeakUpStopped, requestId, reason) end
+end
+
+-- V sent a line of their own: it cancels anything prepared, and a reply to it may get a follow-on from Johnny.
+function convaiSpeakUpManualSent(context)
+    local st = convaiSpeakUpState
+    st.lastManualAt = os.time()
+    st.calmFor = 0
+    if st.plan then convaiSpeakUpWithdraw('manual') end
+    local key = context.profileKey
+    local ordinary = type(key) ~= 'string' or key:find('^resident%-') or key:find('^npc%-') or key:find('^addon%-') or key:find('^custom%-')
+        or key == 'johnny-silverhand'
+    st.lastManual = {requestId = context.requestId, name = context.name, profileKey = key,
+        eligible = not ordinary and not context.group and not context.holocall and not context.head and not context.voiceOnly and not context.archetype}
+end
+
+-- The prepared line and the plan, once per tick: dropped when V talks or the game takes the floor; an 'ahead' line is sent when its scene is over.
+function convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual)
+    local st = convaiSpeakUpState
+    local plan = st.plan
+    if not plan then return end
+    local sched, sample = convaiSpeakUp, battleSample or {}
+    local why
+    if not sched then why = 'off'
+    elseif not worldReady then why = 'world-not-ready'
+    elseif manual then why = 'manual'
+    elseif not outputs.enabled then why = 'outputs-disabled'
+    elseif now - plan.createdAt > convaiSpeakUpConfig.PLAN_TTL then why = 'stale' end
+    if not why and plan.kind == 'follow' then
+        local head = convaiJohnnyHeadService()
+        why = head == nil and 'head-off' or head:refusal(player)
+        if why then why = 'head-' .. why end
+    elseif not why then
+        local scene = st.scene
+        if not scene or scene.lastAt ~= plan.sceneStamp then why = 'scene-continued'
+        elseif sample.combat then why = 'combat'
+        elseif sample.blocked then why = 'scene-blocked'
+        elseif automatic ~= nil or pending ~= nil or speech.requestId ~= nil then why = 'busy' end
+        if not why and os.clock() - scene.lastAt >= convaiSpeakUpConfig.SCENE_QUIET then
+            local person
+            for _, candidate in ipairs(battlePeople) do
+                if candidate.entity == plan.person.entity and candidate.profileKey == plan.person.profileKey then person = candidate; break end
+            end
+            if not person or person.available ~= true then why = 'speaker-unavailable'
+            else
+                st.plan, st.scene = nil, nil
+                convaiSpeakUpSubmit(player, now, worldReady, outputs, plan.context, person, 'companion',
+                    'companion scene speaker=' .. person.profileKey .. ' (prepared ahead)')
+                return
+            end
+        end
+        if why and scene then scene.failed = true end
+    end
+    if why then convaiSpeakUpWithdraw(why) end
+end
+
+-- Other features' proactive exchanges (the housemates' chat and welcome) share the pace and the gaps. Always present; with both speak-up
+-- lists Off there is nothing to merge with, so everything is allowed and nothing is kept.
+convaiProactive = {
+    allow = function(kind, lines)
+        local sched = convaiSpeakUp
+        if not sched then return true end
+        local ok, allowed = pcall(sched.externalAllowed, sched)
+        return not ok or allowed == true
+    end,
+    note = function(kind, lines)
+        local sched = convaiSpeakUp
+        if sched then pcall(sched.external, sched, kind, lines) end
+    end}
+
 
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
@@ -3578,8 +3976,14 @@ local function updateBattles(player, elapsed, worldReady)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
+    -- Companions and Johnny speak up: the scheduler's clock counts calm time only; a prepared line is kept or dropped (one nil check while none).
+    local speakUpOn = convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
+    if convaiSpeakUpState.plan then convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual) end
+    if speakUpOn and not convaiSpeakUpState.plan then convaiSpeakUpPlanFollow(player, now) end
     if automatic and automatic.reaction.kind == 'head' then
         convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
+    elseif automatic and automatic.reaction.kind == 'speakup' then
+        convaiSpeakUpManage(player, now, worldReady, outputs, manual)
     elseif automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
@@ -3648,7 +4052,7 @@ local function updateBattles(player, elapsed, worldReady)
     end
     -- Battle and loot reactions first; then a waiting Johnny remark (one length check while nothing is queued).
     if not event then
-        if convaiJohnnyRemarks then convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow) end
+        if speakUpOn then convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayFollow) end
         return
     end
     generation = generation + 1
@@ -3915,7 +4319,7 @@ local function reactionCanDeliver(context, player)
     -- player scene/combat state and the owned speaker before playback.
     for _, person in ipairs(battlePeople) do
         if person.entity == context.entity and person.profileKey == context.profileKey then
-            person.available, person.availableReason, person.voiceBusy = battleObserver.canDeliver(player, person.npc, context.reaction.phase)
+            person.available, person.availableReason, person.voiceBusy = battleObserver.canDeliver(player, person.npc, context.reaction.phase or 'end')
             captureReactionGuard(true, reactionOutputs(player), person)
             local waiting = reactionSpeakerWait(person)
             if not person.available and not waiting then cancelAutomatic('speaker-unavailable') end
@@ -4452,6 +4856,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiNpcReactions then convaiNpcReactions.reset() end
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
+    if convaiSpeakUpReset then pcall(convaiSpeakUpReset, 'world-change') end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     if convaiJohnnyRelic then convaiJohnnyRelic:reset() end

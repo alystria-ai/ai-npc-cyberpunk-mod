@@ -206,6 +206,17 @@ test('nothing is said or stored for reactions, ordinary NPCs, add-on speakers, a
   }
 });
 
+test('a housemate\'s welcome ("house" reaction) reads the gap and counts as a talk; every other reaction still does not', () => {
+  const {instance} = store();
+  instance.record('judy-alvarez', at(40, 22, 30), T0 - 10 * MIN);
+  const input = turn('judy-alvarez', at(41, 8), {reaction: {kind: 'house', event: 'welcome'}});
+  const welcome = instance.sentenceFor(input);
+  assert.match(welcome, /^You last talked with V last night\./);
+  assert.equal(instance.sentenceFor(input), welcome, 'once per turn id');
+  assert.equal(instance.peek('judy-alvarez').gameSeconds, at(41, 8), 'and it is the new last talk');
+  for (const kind of ['speakup', 'head', 'battle', 'loot', 'addon']) assert.equal(instance.sentenceFor(turn('panam-palmer', at(41, 8), {reaction: {kind}})), '', kind);
+});
+
 test('the ambient-NPC rule here is the one in bridge/protocol.mjs', () => {
   for (const key of ['resident-male', 'resident-female', 'npc-fixer', 'npc-a-b-c', 'judy-alvarez', 'johnny-silverhand', 'custom-npc', 'addon-npc', 'residents', 'npc', 'npc-', 'x-npc-fixer', 'resident-male2']) {
     const {instance} = store();

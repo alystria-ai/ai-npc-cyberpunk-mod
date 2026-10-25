@@ -15,7 +15,7 @@
 // ends by telling the character not to dwell on it (the scenery lesson of docs/DYNAMIC_CONTEXT_AUDIT.md: a fact that arrives fresh on every turn gets
 // reacted to on every turn).
 //
-// Only a manual turn with a named character counts: an automatic reaction (a battle, loot, a head remark, a speak-up line) is not V talking, an ordinary
+// Only a manual turn with a named character counts (and a housemate's 'house' reaction, the welcome): an automatic reaction (a battle, loot, a head remark, a speak-up line) is not V talking, an ordinary
 // NPC (resident, archetype) is a stranger with no memory of V, and an add-on speaker is not one of the mod's characters. Phone chat, holocalls, group
 // rounds (each addressed speaker) and Johnny in V's head all count, under the character's own key.
 //
@@ -175,7 +175,9 @@ export class LastTalk {
    * words the gap and records this talk; the others return the same sentence.
    */
   sentenceFor(input) {
-    if (!input || input.reaction || !this.enabled()) return '';
+    // An automatic reaction is not V talking, except a housemate's ('house': the welcome when V comes home, a chat with V: bridge of the housemates feature),
+    // which is a talk with V and may say "haven't seen you since last night".
+    if (!input || (input.reaction && input.reaction.kind !== 'house') || !this.enabled()) return '';
     const profileKey = input.profileKey, turn = input.requestId ?? input.id;
     if (typeof profileKey !== 'string' || !profileKey || AMBIENT.test(profileKey) || profileKey.startsWith('addon-')) return '';
     if (typeof turn !== 'string' || !turn) return '';

@@ -420,6 +420,41 @@ test('followOn: the follow-on counts toward his rate; his own lines wait for a f
   assert(math.abs(rate - 6) / 6 < 0.12, 'rate ' .. rate)
 `));
 
+test('followOn during her line: decided while the companion holds the floor, never while Johnny or nobody else could be talking over her', () => withModule(`
+  local S = make('normal', 'normal', true)
+  ticks(S, 600, 1, true)
+  assert(S:claim('companion'))
+  r = 0.1
+  assert(S:followOn('companion') == false, 'by default the floor must be free')
+  assert(S:followOn('companion', {during = true}) == true, 'decided while she speaks')
+  assert(S:followOn('talk', {during = true}) == false, 'only a companion source may hold the floor')
+  assert(S:claim('johnny', {follow = true}) == false, 'the claim itself still refuses while she holds the floor')
+  assert(S:release('companion', true))
+  assert(S:claim('johnny', {follow = true}) == true, 'and works once she is done')
+  local J = make('normal', 'normal', true)
+  ticks(J, 600, 1, true)
+  assert(J:claim('johnny'))
+  assert(J:followOn('companion', {during = true}) == false, 'never while Johnny himself holds the floor')
+`));
+
+test('external exchanges (housemates): allowed only with the floor free and the gap passed; noting one moves the gap and the companion timer', () => withModule(`
+  local S = make('rare', 'off', true)
+  assert(S:externalAllowed() == true, 'a fresh scheduler has no previous line')
+  ticks(S, 4000, 1, true)
+  assert(S:ready('companion'))
+  assert(S:external('house', 4) == true)
+  assert(not S:ready('companion'), 'the companion timer was drawn again')
+  assert(S:externalAllowed() == false, 'the exchange counts as the last line: its end plus the gap')
+  assert(S:pick({companion = true}) == nil, 'and nobody else starts inside the gap')
+  ticks(S, 20 + 150, 1, true)
+  assert(S:externalAllowed() == true)
+  local T = make('rare', 'rare', true)
+  ticks(T, 4000, 1, true)
+  assert(T:claim('companion'))
+  assert(T:externalAllowed() == false, 'not while a speaker holds the floor')
+  assert(S:external('house', 'x') == true and S:external('house', -3) == true, 'bad line counts are tolerated')
+`));
+
 test('followOn: never when Johnny is off or on-only, not due, someone holds the floor, or the source is unknown', () => withModule(`
   r = 0.1
   local S = make('normal', 'off', true)
