@@ -299,7 +299,7 @@ export class PocketVoice {
     });
     // The last of the worker's stderr is the reason it gives when it dies (a Python exception, a Windows fatal exception from faulthandler).
     this.stderrTail = '';
-    child.stderr.on('data', part => { const text = part.toString('utf8'); this.stderrTail = (this.stderrTail + text).slice(-2000); try { this.onLog(text.slice(0, 4000)); } catch {} });
+    child.stderr.on('data', part => { const text = part.toString('utf8'); this.stderrTail = (this.stderrTail + text).slice(-6000); try { this.onLog(text.slice(0, 4000)); } catch {} });
     child.stdin.on('error', error => { if (!this.restarting) this.fail(error); }); child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
       this.rejectExited = reject;

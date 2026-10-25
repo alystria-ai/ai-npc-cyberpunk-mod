@@ -46,3 +46,14 @@ test('the failure classes that repeat are recognised by their words', () => {
   assert.equal(missingFilesFailed('ModuleNotFoundError: No module named torch'), true);
   assert.equal(missingFilesFailed('Local voice startup timed out'), false);
 });
+
+test('the reason of a worker that died on a native fault names the innermost frames of the crashing thread, not its outermost <module> line', () => {
+  const dump = ['loading', 'Windows fatal exception: access violation', '', 'Thread 0x00001a2c (most recent call first):', '  File "C:\\r\\threading.py", line 324 in wait', '',
+    'Current thread 0x00000c10 (most recent call first):', '  File "C:\\Games\\app\\python\\Lib\\site-packages\\torch\\nn\\modules\\linear.py", line 117 in forward',
+    '  File "C:\\Games\\app\\python\\Lib\\site-packages\\torch\\nn\\modules\\module.py", line 1750 in _call_impl', '  File "C:\\Games\\app\\bridge\\pocket-voice-worker.py", line 520 in generate',
+    '  File "C:\\Games\\app\\bridge\\pocket-voice-worker.py", line 640 in serve', '  File "C:\\Games\\app\\bridge\\pocket-voice-worker.py", line 881 in <module>', ''].join('\r\n');
+  assert.equal(stderrReason(dump), 'fault in linear.py:117 forward < module.py:1750 _call_impl < pocket-voice-worker.py:520 generate < pocket-voice-worker.py:640 serve');
+  assert.equal(stderrReason(dump).includes('Games'), false, 'no folder');
+  assert.equal(stderrReason(dump.split('Current thread')[0]), 'Windows fatal exception: access violation', 'no crashing-thread block: the old rule');
+  assert.match(stderrReason('OSError: The paging file is too small for this operation to complete. (os error 1455)\r\n' + dump), /paging file/, 'a paging-file line still wins');
+});

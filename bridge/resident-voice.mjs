@@ -297,7 +297,7 @@ export class ResidentVoice {
     // The last of what the worker wrote to stderr: when it dies, the last error line is the reason (an opaque "exited (1)" hid a CUDA out-of-memory
     // error and a fault with no stack, and every one was retried the same way).
     child.stderr.setEncoding('utf8'); this.stderrTail = '';
-    child.stderr.on('data', part => { this.startupProgress(); this.stderrTail = (this.stderrTail + part).slice(-2000); try { this.onLog(part); } catch {} });
+    child.stderr.on('data', part => { this.startupProgress(); this.stderrTail = (this.stderrTail + part).slice(-6000); try { this.onLog(part); } catch {} });
     child.stdin.on('error', error => this.fail(error));
     child.on('error', error => this.fail(error));
     this.exited = new Promise((done, reject) => {
