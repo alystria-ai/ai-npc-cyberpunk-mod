@@ -306,3 +306,55 @@ test('a greeting when V comes home after a long absence, once, from someone clos
     assert(#greeted == 1)
   `);
 });
+
+test('a scene fact holds the flat for the offer too: no offer of it, nobody leaves the party for it; a free-roaming V mid-quest can move someone in', () => {
+  lua(`${WORLD}${PARTY}
+    local c = control({})
+    local serial, entity = inParty('panam-palmer')
+    local function ids(offer) local out = {} for _, a in ipairs(offer.apartments) do out[#out + 1] = a.id end return table.concat(out, ',') end
+    -- the persistent "the chain is active" flags are not a scene
+    for _, name in ipairs({'mq055_02_active', 'mq055_02_downtown_active', 'web_apartment_website_start', 'dlc6_apart_cct_dtn_purchase'}) do
+      world.facts[name] = 1
+      local offer = c.homeOffer(entity, {profileKey = 'panam-palmer'})
+      assert(offer.unavailable == nil and ids(offer) == 'h10,corpo,glen', name .. ' held the offer: ' .. ids(offer))
+      world.facts[name] = 0
+    end
+    -- every scene fact of the shared list and of this flat: offer and hold agree
+    local data = world.data.reservedFacts
+    for _, list in ipairs({data.any, data.corpo}) do
+      for _, name in ipairs(list) do
+        world.facts[name] = 1
+        local offer = c.homeOffer(entity, {profileKey = 'panam-palmer'})
+        assert(offer.unavailable == 'quest-reserved' and ids(offer) == 'h10,glen', name .. ': ' .. ids(offer))
+        local ok = c.queueHome({op = 'stay', apartment = 'corpo'}, {actor = {key = 'panam-palmer'}, apartments = {{id = 'corpo'}}}, entity, 'r')
+        assert(ok == false and c.homeOf('panam-palmer') == nil and world.party[serial], name .. ' took her out of the party')
+        world.facts[name] = 0
+      end
+    end
+    -- facts of another flat do not hold this one
+    for _, name in ipairs(data.h10) do
+      world.facts[name] = 1
+      assert(c.homeOffer(entity, {profileKey = 'panam-palmer'}).unavailable == nil, name)
+      world.facts[name] = 0
+    end
+    -- with only the chain flag set she moves in and is released into the flat (not held)
+    world.facts['mq055_02_active'] = 1
+    local offer = c.homeOffer(entity, {profileKey = 'panam-palmer'})
+    assert(c.queueHome({op = 'stay', apartment = 'corpo'}, offer, entity, 'r2') == true and c.homeOf('panam-palmer') == 'corpo')
+  `);
+});
+
+test('the hold-facts probe line is written once per change', () => {
+  lua(`${WORLD}
+    local c = control({['judy-alvarez'] = 'corpo'})
+    run(c, 12)
+    local function lines() local n, last = 0, nil for _, l in ipairs(world.logs) do if l:find('Housemates hold-facts', 1, true) then n = n + 1; last = l end end return n, last end
+    local n, last = lines()
+    assert(n == 1 and last == 'Housemates hold-facts apt=corpo facts=-', tostring(last))
+    run(c, 10); assert(lines() == 1)
+    world.facts['mq055_04_intimate_action_on'] = 1
+    run(c, 4)
+    n, last = lines()
+    assert(n == 2 and last == 'Housemates hold-facts apt=corpo facts=mq055_04_intimate_action_on', tostring(last))
+  `);
+});

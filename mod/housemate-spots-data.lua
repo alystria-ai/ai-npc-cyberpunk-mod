@@ -24,16 +24,19 @@
 -- The kind 'bed' needs `anchor` (V's lying root), `across` (yaw of the line across the bed) and `sides` (the offsets from the anchor, metres).
 local D = {version = 1}
 
--- The quest facts that mean "the game is directing this flat": a flat with one of them above 0 hosts no housemate (read at 1 Hz at most,
--- docs/HOUSEMATES.md "Quest and scene safety"). Regenerated from the cooked quest phases by scripts/Extract-ApartmentFacts.mjs.
+-- The quest facts that mean "a scripted scene is running in this flat": a flat with one of them above 0 hosts no housemate (read at 1 Hz at
+-- most, docs/HOUSEMATES.md "Quest and scene safety"). Regenerated from the cooked quest phases by scripts/Extract-ApartmentFacts.mjs, then
+-- narrowed by hand: the "chain is active" flags (mq055_02_active, mq055_02_<flat>_active) and the bare purchase-tour flags are left out, because
+-- they stay above 0 for a whole questline (the live log shows mq055_02_active while V roams their own flat) and a bought flat must work
+-- for housemates mid-quest. Only facts that are on for the length of a scene or a romance/intimate scene are listed.
 D.reservedFacts = {
-    any = {'mq055_02_active', 'mq055_apt_interactions_off', 'mq055_04_intimate_action_on', 'web_apartment_website_start'},
+    any = {'mq055_apt_interactions_off', 'mq055_04_intimate_action_on'},
     -- q001_in_v_room is deliberately not listed: nobody can be invited in the prologue, and whether that fact is reset afterwards is not known.
-    h10 = {'q305_johnny_scene_active', 'mq055_02_megabuilding_active', 'mq055_megabuilding_partner_on_sofa'},
-    corpo = {'dlc6_apart_cct_dtn_purchase', 'dlc6_apart_cct_dtn_purchase_setup', 'mq055_02_downtown_active', 'mq055_05_downtown_activities_off'},
-    glen = {'dlc6_apart_hey_gle_purchase', 'dlc6_apart_hey_gle_purchase_setup', 'mq055_02_heywood_active'},
-    japan = {'dlc6_apart_wbr_jpn_purchase', 'dlc6_apart_wbr_jpn_purchase_setup', 'mq055_02_japantown_active'},
-    north = {'dlc6_apart_wat_nid_purchase', 'dlc6_apart_wat_nid_purchase_setup', 'mq055_02_northside_active', 'mq055_northside_shower'},
+    h10 = {'q305_johnny_scene_active', 'mq055_megabuilding_partner_on_sofa'},
+    corpo = {'dlc6_apart_cct_dtn_purchase_setup', 'mq055_05_downtown_activities_off'},
+    glen = {'dlc6_apart_hey_gle_purchase_setup'},
+    japan = {'dlc6_apart_wbr_jpn_purchase_setup'},
+    north = {'dlc6_apart_wat_nid_purchase_setup', 'mq055_northside_shower'},
 }
 
 D.apartments = {
