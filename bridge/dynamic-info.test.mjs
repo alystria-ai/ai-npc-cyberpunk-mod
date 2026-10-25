@@ -96,8 +96,8 @@ function withInfo(info, build) {
   try { return build(); } finally { dynamicInfo.off = before; }
 }
 
-test('the kinds are the nine of the page, in page order, and every kind has a marker in this test turn', () => {
-  assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue']);
+test('the kinds are the twelve of the page, in page order, and every kind has a marker in this test turn', () => {
+  assert.deepEqual([...KINDS], ['location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods']);
   assert.deepEqual(Object.keys(MARKERS), [...KINDS]);
   const luaKinds = /local dynamicInfoKinds = \{([^}]*)\}/.exec(readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8'))[1].match(/'([a-z]+)'/g).map(text => text.slice(1, -1));
   assert.deepEqual(luaKinds, [...KINDS], 'the game side and the bridge name the same kinds in the same order');
@@ -161,7 +161,7 @@ for (const kind of KINDS) {
   });
 }
 
-test('every kind off at once: the character is still told it is with V, and none of the nine is anywhere in the prompt', async () => {
+test('every kind off at once: the character is still told it is with V, and none of the twelve is anywhere in the prompt', async () => {
   const info = withOff(...KINDS);
   const convai = withInfo(info, () => conversationContext(parsed()));
   assert.match(convai, /You are with V in person/);

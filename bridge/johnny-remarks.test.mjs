@@ -279,16 +279,16 @@ test('shared key: remarks count as turns and may use at most REMARK_SHARE of the
   assert.match(bridge, /'remark-usage\.json'/);
 });
 
-test('shipping: the module ships and dev-installs; the one select row (Johnny in your head, four options) has its texts in all languages; the separate row is gone', () => {
+test('shipping: the module ships and dev-installs; the one select row (Johnny in your head, five options) has its texts in all languages; the separate row is gone', () => {
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-remarks\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-remarks\.lua"/, plan);
   }
   const managerUiSource = read('../mod/manager-ui.lua');
   assert.doesNotMatch(managerUiSource, /setting\('johnnyRemarks'/);
-  assert.match(managerUiSource, /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up often'\}\)/);
+  assert.match(managerUiSource, /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up normally', 'Speaks up often'\}\)/);
   const en = JSON.parse(read('../localization/en.json')).strings;
-  const keys = Object.keys(en).filter(key => /^Speaks up rarely$|^Speaks up often$|^Choose how often Johnny speaks up\.$|^Johnny in your head$/.test(key));
-  assert.equal(keys.length, 4);
+  const keys = Object.keys(en).filter(key => /^Speaks up rarely$|^Speaks up normally$|^Speaks up often$|^Choose how often Johnny speaks up\.$|^Johnny in your head$/.test(key));
+  assert.equal(keys.length, 5);
   for (const locale of ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
     const source = read(`../mod/locales/${locale}.lua`);
     for (const key of keys) assert.ok(source.includes(`["${key.replace(/\n/g, '\\n')}"]`), `${locale}: ${key.slice(0, 40)}`);

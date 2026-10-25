@@ -1529,18 +1529,19 @@ test('Custom endpoint is not offered without the provider module: no button on S
   assert(mcm.row('Mistral key') ~= nil or mcm.row('Conversation provider') ~= nil, 'the rest of the page is there')
 `));
 
-test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up often; it stores both settings together, and the old rows are gone', () => withScreen(`
+test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => withScreen(`
   press('Settings')
   assert(mcm.row('Johnny speaks up') == nil and mcm.row('Johnny’s standing') == nil, 'the separate rows are gone')
   local row = mcm.row('Johnny in your head')
   assert(row.type == 'select' and row.default == nil and row.value == 1, 'Off by default')
-  assert(table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up often', table.concat(row.elements, ' | '))
+  assert(table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
   local function stored() return tostring(saved.johnnyInHead) .. '/' .. tostring(saved.johnnyRemarks) end
   assert(stored() == 'false/off', stored())
   assert(mcm.set('Johnny in your head', 3) and mcm.apply())
   assert(stored() == 'true/rare', stored())
   assert(mcm.row('Johnny in your head').value == 3, 'the page shows what is saved')
-  assert(mcm.set('Johnny in your head', 4) and mcm.apply()); assert(stored() == 'true/normal', stored())
+  assert(mcm.set('Johnny in your head', 4) and mcm.apply()); assert(stored() == 'true/medium', stored())
+  assert(mcm.set('Johnny in your head', 5) and mcm.apply()); assert(stored() == 'true/normal', stored())
   assert(mcm.set('Johnny in your head', 2) and mcm.apply()); assert(stored() == 'true/off', stored())
   assert(mcm.row('Johnny in your head').value == 2)
   assert(mcm.set('Johnny in your head', 1) and mcm.apply()); assert(stored() == 'false/off', stored())
@@ -1638,8 +1639,10 @@ test('the OmniVoice entry of V’s voice is a normal choice with the pack instal
 test('React to battles and to collected loot are off by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions off', () => withScreen(`
   press('Settings')
   assert(mcm.row('React to battles').value == false and mcm.row('React to collected loot').value == false)
-  assert(mcm.set('React to battles', true) and mcm.set('React to collected loot', true) and mcm.set('Johnny in your head', 4) and mcm.set('V’s voice for typed lines', 1))
+  assert(mcm.set('React to battles', true) and mcm.set('React to collected loot', true) and mcm.set('Johnny in your head', 5) and mcm.set('V’s voice for typed lines', 1)
+    and mcm.set('Companions speak up', 4))
   assert(mcm.apply())
+  assert(saved.companionSpeakUp == 'normal')
   assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   frames(6)
@@ -1648,6 +1651,7 @@ test('React to battles and to collected loot are off by default, and Restore def
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.companionSpeakUp == 'rare' and mcm.row('Companions speak up').value == 2, 'companions are back to Rarely')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
   assert(mcm.row('React to battles').value == false and mcm.row('React to collected loot').value == false)

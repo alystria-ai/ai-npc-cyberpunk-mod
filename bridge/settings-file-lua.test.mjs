@@ -137,7 +137,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     conversationProvider: 7, battleReactions: 'on', lootReactions: [], bodyGestures: 'no', autoConnectNearby: 'yes', holocallLiveImage: 'x',
     gameDialogueContext: 2, decisionLedger: 'y', witnessReceipts: 9, eyeContactHeight: 'high', headFollowStrength: 99,
     voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
-    johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
+    johnnyRemarks: 5, companionSpeakUp: 'often', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', replyLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
     errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes',
@@ -176,7 +176,7 @@ test('Dynamic info: every kind is on unless saved as the boolean false, unknown 
     report('badTable', {notTable[1]})
     report('after', settingsText())
   `);
-  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true};
+  const all = {location: true, time: true, company: true, condition: true, money: true, gear: true, about: true, quest: true, dialogue: true, lastTalk: true, media: true, mods: true};
   assert.deepEqual(out.info, {...all, location: false, gear: false});
   assert.deepEqual(JSON.parse(out.text).dynamicInfo, {...all, location: false, gear: false}, 'the file is rewritten clean');
   assert.deepEqual(out.flags, {...all, location: false, gear: false}, 'the table the per-frame collectors read');
@@ -576,6 +576,8 @@ test('Johnny: remarks saved beside Johnny in your head off read as Off and the f
     [{johnnyInHead: false, johnnyRemarks: 'off'}, {johnnyInHead: false, johnnyRemarks: 'off'}, 0],
     [{johnnyInHead: true, johnnyRemarks: 'rare'}, {johnnyInHead: true, johnnyRemarks: 'rare'}, 0],
     [{johnnyInHead: true, johnnyRemarks: 'normal'}, {johnnyInHead: true, johnnyRemarks: 'normal'}, 0],
+    [{johnnyInHead: true, johnnyRemarks: 'medium'}, {johnnyInHead: true, johnnyRemarks: 'medium'}, 0],
+    [{johnnyInHead: false, johnnyRemarks: 'medium'}, {johnnyInHead: false, johnnyRemarks: 'off'}, 1],
     [{johnnyInHead: true, johnnyRemarks: 'off'}, {johnnyInHead: true, johnnyRemarks: 'off'}, 0],
     [{johnnyInHead: true, johnnyRemarks: 'loud'}, {johnnyInHead: true, johnnyRemarks: 'off'}, 1],
   ];

@@ -368,7 +368,7 @@ test('Restore defaults goes through the same validated path, only on the Setting
   assert(ns.find('Judy Alvarez').selectedElementIndex == 1)
 `));
 
-test('Dynamic info is a page of its own on the Native Settings UI tab: nine switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
+test('Dynamic info is a page of its own on the Native Settings UI tab: twelve switches, applied and saved like any setting, and Restore defaults puts them back on', () => run(`${harness()}
   press('Settings')
   local open = assert(ns.find('Dynamic info'), 'no Dynamic info button on Settings')
   assert(open.type == 'button' and open.buttonText == 'Open')
@@ -376,7 +376,7 @@ test('Dynamic info is a page of its own on the Native Settings UI tab: nine swit
   press('Dynamic info')
   assert(managerUi.inspect().view == 'dynamic-info')
   for _, name in ipairs({'Location', 'Time and weather', 'Company and vehicle', 'Health, heat and fights', 'V’s money', 'V’s gear and clothes',
-      'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue'}) do
+      'V’s gender and lifepath', 'Quest and journal', 'Recent game dialogue', 'Time since last talk', 'Music and TV', 'Other mods’ state'}) do
     local switch = assert(ns.find(name), 'no switch ' .. name)
     assert(switch.type == 'switch' and switch.state == true, name .. ' is on by default')
   end
@@ -956,16 +956,19 @@ test('Custom endpoint is not offered without the provider module: no button on S
   assert(managerUi.inspect().view ~= 'custom-endpoint', 'the view falls back: ' .. tostring(managerUi.inspect().view))
 `));
 
-test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
+test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up normally, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
   press('Settings')
   assert(ns.find('Johnny speaks up') == nil and ns.find('Johnny’s standing') == nil, 'the separate rows are gone')
   local row = ns.find('Johnny in your head')
-  assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up often', table.concat(row.elements, ' | '))
+  assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
   local function stored() return tostring(saved.johnnyInHead) .. '/' .. tostring(saved.johnnyRemarks) end
   ns.interact.select(ns.find('Johnny in your head'), 3); frames(8); ns.verify()
   assert(stored() == 'true/rare', stored())
   assert(ns.find('Johnny in your head').selectedElementIndex == 3, 'the row shows what is saved')
-  ns.interact.select(ns.find('Johnny in your head'), 4); frames(8); assert(stored() == 'true/normal', stored())
+  ns.interact.select(ns.find('Johnny in your head'), 4); frames(8); assert(stored() == 'true/medium', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 4)
+  ns.interact.select(ns.find('Johnny in your head'), 5); frames(8); assert(stored() == 'true/normal', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 5)
   ns.interact.select(ns.find('Johnny in your head'), 2); frames(8); assert(stored() == 'true/off', stored())
   assert(ns.find('Johnny in your head').selectedElementIndex == 2)
   ns.interact.select(ns.find('Johnny in your head'), 1); frames(8); assert(stored() == 'false/off', stored())
@@ -973,6 +976,18 @@ test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up ofte
   assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
   frames(10)
   assert(ns.find('Johnny in your head').selectedElementIndex == 3)
+`));
+
+test('Companions speak up is one list: Off, Speaks up rarely, Speaks up normally, Speaks up often; Rarely by default, stored as off, rare, medium, normal', () => run(`${harness()}
+  press('Settings')
+  local row = ns.find('Companions speak up')
+  assert(row.selectedElementIndex == 2 and table.concat(row.elements, ' | ') == 'Off | Speaks up rarely | Speaks up normally | Speaks up often', table.concat(row.elements, ' | '))
+  assert(saved.companionSpeakUp == 'rare', tostring(saved.companionSpeakUp))
+  for _, case in ipairs({{1, 'off'}, {3, 'medium'}, {4, 'normal'}, {2, 'rare'}}) do
+    ns.interact.select(ns.find('Companions speak up'), case[1]); frames(8); ns.verify()
+    assert(saved.companionSpeakUp == case[2] and ns.find('Companions speak up').selectedElementIndex == case[1], case[2])
+  end
+  assert(saved.johnnyRemarks == 'off' and saved.johnnyInHead == false, 'the Johnny list is its own')
 `));
 
 test('V’s voice is one list: Off, Pocket, Voxtral, OmniVoice; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
@@ -1009,14 +1024,17 @@ test('React to battles and to collected loot are off by default, and Restore def
   press('Settings')
   assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)
   ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
-  ns.interact.select(ns.find('Johnny in your head'), 4); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
+  ns.interact.select(ns.find('Johnny in your head'), 5); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
+  ns.interact.select(ns.find('Companions speak up'), 4)
   frames(10); ns.verify()
+  assert(saved.companionSpeakUp == 'normal')
   assert(saved.battleReactions == true and saved.lootReactions == true and saved.battleReactionsChosen == nil and saved.lootReactionsChosen == nil)
   assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
   assert(settings.battleReactions == false and settings.lootReactions == false, 'the reactions are off again')
   assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.companionSpeakUp == 'rare' and ns.find('Companions speak up').selectedElementIndex == 2, 'companions are back to Rarely')
   assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
   assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
   assert(ns.find('React to battles').state == false and ns.find('React to collected loot').state == false)

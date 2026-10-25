@@ -817,7 +817,7 @@ test('Voice activation is off by default, offered under Voices, saved with the s
   `);
 });
 
-test('Johnny in your head and Johnny speaks up are one select row: Off by default, four entries mapped onto the two stored settings both ways, and no standing row', () => {
+test('Johnny in your head and Johnny speaks up are one select row: Off by default, five entries mapped onto the two stored settings both ways, and no standing row', () => {
   run(`${nsuiFixture}
     assert(manager.johnnyInHead() == false and manager.snapshot(player).settings.johnnyInHead == false, 'a missing key is off')
     assert(manager.johnnyRemarks() == 'off' and manager.snapshot(player).settings.johnnyRemarks == 'off')
@@ -825,8 +825,8 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
     assert(invoke('tab:settings').ok)
     local johnny = assert(row('johnnyInHead'), 'the setting is not offered')
     assert(johnny.type == 'select' and johnny.value == 1 and johnny.defaultValue == 1 and johnny.label == 'Johnny in your head')
-    assert(#johnny.elements == 4 and johnny.elements[1] == 'Off' and johnny.elements[2] == 'On'
-      and johnny.elements[3] == 'Speaks up rarely' and johnny.elements[4] == 'Speaks up often', 'four entries')
+    assert(#johnny.elements == 5 and johnny.elements[1] == 'Off' and johnny.elements[2] == 'On'
+      and johnny.elements[3] == 'Speaks up rarely' and johnny.elements[4] == 'Speaks up normally' and johnny.elements[5] == 'Speaks up often', 'five entries')
     assert(row('johnnyRemarks') == nil and row('johnnyStanding') == nil, 'no second row and no standing row')
     local conversations, ids = nil, {}
     for _, category in ipairs(loaded.categories) do
@@ -837,9 +837,9 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
     end
     assert(conversations and conversations.id == 'conversation-controls', 'in Conversations')
     assert(not ids.johnnyStanding and not ids.johnnyRemarks)
-    -- Apply: 1 Off (not in his head, no remarks), 2 On (no remarks), 3 rare, 4 normal; the snapshot and the row read each back.
-    local cases = {{1, false, 'off'}, {2, true, 'off'}, {3, true, 'rare'}, {4, true, 'normal'}}
-    for _, case in ipairs({cases[4], cases[2], cases[3], cases[1], cases[3]}) do
+    -- Apply: 1 Off (not in his head, no remarks), 2 On (no remarks), 3 rare, 4 medium (Normally), 5 normal (Often, the name it has always had in the file).
+    local cases = {{1, false, 'off'}, {2, true, 'off'}, {3, true, 'rare'}, {4, true, 'medium'}, {5, true, 'normal'}}
+    for _, case in ipairs({cases[5], cases[4], cases[2], cases[3], cases[1], cases[3]}) do
       assert(registered.applyBatch('manager', {{id = 'johnnyInHead', value = case[1]}}).ok, case[1])
       assert(manager.johnnyInHead() == case[2] and manager.johnnyRemarks() == case[3], case[1])
       assert(saved.johnnyInHead == case[2] and saved.johnnyRemarks == case[3], case[1])
@@ -847,8 +847,8 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
       assert(state.johnnyInHead == case[2] and state.johnnyRemarks == case[3], case[1])
       loaded = registered.loadMod('manager'); assert(row('johnnyInHead').value == case[1], case[1])
     end
-    -- Only the four positions are accepted; the apply key johnnyRemarks is gone from the page.
-    for _, invalid in ipairs({0, 5, '2', true, false}) do
+    -- Only the five positions are accepted; the apply key johnnyRemarks is gone from the page.
+    for _, invalid in ipairs({0, 6, 2.5, '2', true, false}) do
       assert(not registered.applyBatch('manager', {{id = 'johnnyInHead', value = invalid}}).ok, tostring(invalid))
       assert(manager.johnnyRemarks() == 'rare' and manager.johnnyInHead() == true)
     end
@@ -866,11 +866,11 @@ test('Johnny in your head and Johnny speaks up are one select row: Off by defaul
   `);
 });
 
-test('Johnny in your head: a saved file maps to the row at load (false with remarks is Off, true with none is On, true with rare is 3, true with normal is 4) and the remarks of an Off are put to off once', () => {
+test('Johnny in your head: a saved file maps to the row at load (false with remarks is Off, true with none is On, true with rare is 3, true with medium is 4, true with normal is 5) and the remarks of an Off are put to off once', () => {
   run(`${managerFixture}
     -- A case is {saved johnnyInHead, saved johnnyRemarks, loaded johnnyInHead, loaded johnnyRemarks, row position}.
     for _, case in ipairs({{false, 'rare', false, 'off', 1}, {false, 'normal', false, 'off', 1}, {false, 'off', false, 'off', 1},
-        {true, 'off', true, 'off', 2}, {true, 'rare', true, 'rare', 3}, {true, 'normal', true, 'normal', 4},
+        {true, 'off', true, 'off', 2}, {true, 'rare', true, 'rare', 3}, {true, 'medium', true, 'medium', 4}, {true, 'normal', true, 'normal', 5},
         {true, 'sometimes', true, 'off', 2}, {'yes', 'rare', false, 'off', 1}}) do
       seed = {version = 2, voiceProvider = 'pocket', johnnyInHead = case[1], johnnyRemarks = case[2], enabledByKey = {}, future = {keep = 'unchanged'}}
       files['runtime/settings.json'], saved = 'seed', nil
@@ -882,7 +882,7 @@ test('Johnny in your head: a saved file maps to the row at load (false with rema
   `);
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
-    for _, case in ipairs({{false, 'rare', 1}, {true, 'off', 2}, {true, 'rare', 3}, {true, 'normal', 4}}) do
+    for _, case in ipairs({{false, 'rare', 1}, {true, 'off', 2}, {true, 'rare', 3}, {true, 'medium', 4}, {true, 'normal', 5}}) do
       seed = {version = 2, voiceProvider = 'pocket', johnnyInHead = case[1], johnnyRemarks = case[2], enabledByKey = {}}
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles); manager.prepare(player)
@@ -891,6 +891,47 @@ test('Johnny in your head: a saved file maps to the row at load (false with rema
     end
   `);
 });
+test('Companions speak up is one select row, Rarely by default: four entries (Off, Rarely, Normally, Often) stored as off, rare, medium, normal, and a bad stored value reads as Rarely', () => {
+  run(`${nsuiFixture}
+    assert(manager.companionSpeakUp() == 'rare' and manager.snapshot(player).settings.companionSpeakUp == 'rare', 'a missing key is Rarely')
+    assert(saved.companionSpeakUp == 'rare', 'a new install saves the default')
+    assert(invoke('tab:settings').ok)
+    local speak = assert(row('companionSpeakUp'), 'the setting is not offered')
+    assert(speak.type == 'select' and speak.value == 2 and speak.defaultValue == 2 and speak.label == 'Companions speak up')
+    assert(#speak.elements == 4 and speak.elements[1] == 'Off' and speak.elements[2] == 'Speaks up rarely'
+      and speak.elements[3] == 'Speaks up normally' and speak.elements[4] == 'Speaks up often', 'four entries')
+    local cases = {{1, 'off'}, {2, 'rare'}, {3, 'medium'}, {4, 'normal'}}
+    for _, case in ipairs({cases[4], cases[3], cases[1], cases[2]}) do
+      assert(registered.applyBatch('manager', {{id = 'companionSpeakUp', value = case[1]}}).ok, case[1])
+      assert(manager.companionSpeakUp() == case[2] and saved.companionSpeakUp == case[2], case[1])
+      assert(manager.snapshot(player).settings.companionSpeakUp == case[2], case[1])
+      loaded = registered.loadMod('manager'); assert(row('companionSpeakUp').value == case[1], case[1])
+    end
+    for _, invalid in ipairs({0, 5, 2.5, '2', true, false}) do
+      assert(not registered.applyBatch('manager', {{id = 'companionSpeakUp', value = invalid}}).ok, tostring(invalid))
+      assert(manager.companionSpeakUp() == 'rare')
+    end
+    assert(not manager.applySettings(player, {companionSpeakUp = 'often'}) and manager.companionSpeakUp() == 'rare')
+    assert(manager.applySettings(player, {companionSpeakUp = 'normal'}) and manager.companionSpeakUp() == 'normal')
+    -- Restore defaults puts it back to Rarely, and Johnny's list is left to its own default.
+    local back
+    for _, change in ipairs(core.defaults()) do if change.id == 'companionSpeakUp' then back = change.value end end
+    assert(back == 2, tostring(back))
+    assert(registered.applyBatch('manager', core.defaults()).ok)
+    assert(manager.companionSpeakUp() == 'rare' and manager.johnnyRemarks() == 'off')
+  `);
+  run(`${managerFixture}
+    -- A saved value that is not one of the four reads as Rarely and is put right once; a saved Off stays Off.
+    for _, case in ipairs({{'off', 'off'}, {'rare', 'rare'}, {'medium', 'medium'}, {'normal', 'normal'}, {'often', 'rare'}, {true, 'rare'}, {7, 'rare'}}) do
+      seed = {version = 2, voiceProvider = 'pocket', companionSpeakUp = case[1], enabledByKey = {}, future = {keep = 'unchanged'}}
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.companionSpeakUp() == case[2], tostring(case[1]))
+      assert(saved.companionSpeakUp == case[2] and saved.future.keep == 'unchanged', tostring(case[1]))
+    end
+  `);
+});
+
 test('Companions can see has no setting any more: no row, an old saved companionVision (even false) is dropped on load, and an Apply for it is refused', () => {
   run(`${managerFixture}
     seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, companionVision = false}

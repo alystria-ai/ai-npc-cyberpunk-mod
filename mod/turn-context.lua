@@ -211,6 +211,19 @@ local function nativeAdapter()
         seconds = math.floor(seconds) % 86400
         return math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), 'seconds'
     end
+    -- The game time in whole seconds since the game's epoch (days and hours together), for the time since a character was last talked to.
+    function N.gameSeconds()
+        local system = Game.GetTimeSystem()
+        local stamp = system and system:GetGameTime()
+        if stamp == nil then return nil end
+        local ok, seconds = pcall(function() return stamp.seconds end)
+        seconds = ok and tonumber(seconds) or nil
+        if not seconds then
+            local okTotal, total = pcall(function() return GameTime.GetSeconds(stamp) end)
+            seconds = okTotal and tonumber(total) or nil
+        end
+        return seconds
+    end
     function N.gender(player) return player:GetResolvedGenderName() end
     -- V's voice tone ("brain gender" in the character creator), which can differ from the body. The game picks V's voice lines
     -- and how NPCs address V from it, so V's voice for typed lines follows it. Nil when the state cannot be read.
@@ -336,8 +349,11 @@ Instance.__index = Instance
 --   location   the district and the named place, and whether V is indoors     time      the clock and the weather
 --   company    who is with V, the vehicle and V's motion                      condition V's health and the police heat
 --   money      V's money band                                                  about     V's gender and lifepath
+--   lastTalk   the game time in seconds (the bridge keeps when each character was last talked to and words the gap)
+--   media      options.media(player) -> the radio song and the TV near V (mod/media-context.lua)
+--   mods       options.mods(player) -> V's state according to other mods (mod/mod-state.lua: Dark Future)
 -- (V's voice for typed lines still reads V's voice gender and the dialogue volume: they are no part of the words the bridge writes.)
-local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue'}
+local KINDS = {'location', 'time', 'company', 'condition', 'money', 'gear', 'about', 'quest', 'dialogue', 'lastTalk', 'media', 'mods'}
 
 -- options: enabled(kind) -> boolean (default: everything on), activity() -> {rows = {[profileKey] = inputs for M.classify}, motion = 'still'|'walking'|'running'}, now() (seconds), log(line) (one line per real read, never per frame), native (adapter override),
 -- place() -> {district =, area =} (init.lua's currentDistrict), party(player, radius) -> {{profileKey =, name =}}.
@@ -419,6 +435,7 @@ function Instance:read()
     local clockSource
     local wantTime, wantPlace, wantAbout = self:wants('time'), self:wants('location'), self:wants('about')
     local wantCompany, wantCondition, wantMoney = self:wants('company'), self:wants('condition'), self:wants('money')
+    local wantLastTalk, wantMedia, wantMods = self:wants('lastTalk'), self:wants('media'), self:wants('mods')
     local hour, minute, source
     if wantTime then hour, minute, source = call(N.clock) end
     if integer(hour, 0, 23) and integer(minute, 0, 59) then
@@ -536,7 +553,21 @@ function Instance:read()
     end
     -- With a Dynamic info switch off there may be nothing to say and still something for V's voice for typed lines (its gender, the dialogue
     -- volume): that much is kept. With every switch on, a snapshot of those alone is no snapshot.
-    local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney)
+    -- Time since the last talk, music and TV, other mods' state: each is read only when its switch is on. The game time is one clock read; media
+    -- and mods are the optional readers init.lua passes in (nil when their module is absent): plain tables, validated by the bridge, guarded here.
+    if wantLastTalk then
+        local seconds = self:optional('gameSeconds')
+        if integer(seconds, 0, 4294967295 * 4) then snapshot.gameTime = math.floor(seconds); count = count + 1 end
+    end
+    if wantMedia and type(self.options.media) == 'function' then
+        local media = call(self.options.media, player)
+        if type(media) == 'table' and next(media) ~= nil then snapshot.media = media; count = count + 1 end
+    end
+    if wantMods and type(self.options.mods) == 'function' then
+        local mods = call(self.options.mods, player)
+        if type(mods) == 'table' and next(mods) ~= nil then snapshot.mods = mods; count = count + 1 end
+    end
+    local anyOff = not (wantTime and wantPlace and wantAbout and wantCompany and wantCondition and wantMoney and wantLastTalk and wantMedia and wantMods)
     if count == 0 and not (anyOff and (snapshot.voice ~= nil or snapshot.dialogueVolume ~= nil)) then return nil, 'nothing could be read' end
     return snapshot, count, clockSource, extras
 end

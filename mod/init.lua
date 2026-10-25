@@ -1478,6 +1478,22 @@ do
             for _, person in ipairs(ridersRead and riders or {}) do rows[#rows + 1] = person end
             return rows
         end,
+        -- Music and TV, and other mods' state (Settings > Dynamic info): the readers are loaded the first time a turn is built with their switch on,
+        -- so nothing is loaded while a switch is off or the module is absent. Each answers a plain table or nothing (mod/media-context.lua, mod/mod-state.lua).
+        media = function(player)
+            if convaiMediaContext == nil then
+                local loaded, module = pcall(dofile, 'media-context.lua')
+                convaiMediaContext = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+            end
+            return convaiMediaContext and convaiMediaContext.read(player) or nil
+        end,
+        mods = function(player)
+            if convaiModState == nil then
+                local loaded, module = pcall(dofile, 'mod-state.lua')
+                convaiModState = loaded and type(module) == 'table' and type(module.read) == 'function' and module or false
+            end
+            return convaiModState and convaiModState.read(player) or nil
+        end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
         -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
