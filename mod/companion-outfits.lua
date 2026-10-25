@@ -19,6 +19,7 @@ local M = {}
 --   prefetch(row, name)    ask the game to load the appearance (no visible change)
 --   apply(row, name)       schedule the change and remember it for a recreated copy
 --   remember(row, name)    forget a change that did not take (the name a recreated copy should use)
+--   sitAgain(row, delay)   the change of a copy that stood up for it is over or given up: the flat may give her a place again in `delay` seconds
 --   gameHours()            the game clock as absolute hours (days * 24 + hour + minutes / 60), or nil
 --   place()                the game's district record name where V is (the specific one, e.g. 'LittleChina_VApartment'), or nil
 --   world()                nil when ordinary gameplay is open, else a reason (combat, scene, call, vehicle, menu)
@@ -35,7 +36,8 @@ local UNSEEN_S = 5         -- real seconds a copy must stay out of view before a
 local LOOK_S = 5            -- real seconds between looks at a copy that waits for the camera to look away (one view read per waiting copy)
 local WANT_S = 600          -- a variety change that waited this long for the camera to look away is dropped
 local STAGE_S = 1.0         -- real seconds between the prefetch and the change, and between read-backs
-local STAND_HOLD_S = 90     -- real seconds a copy that stood up for a change takes no place of the flat (stand, stay unseen UNSEEN_S, load, change)
+local STAND_HOLD_S = 90     -- real seconds a copy that stood up for a change takes no place of the flat at most (stand, stay unseen UNSEEN_S, load, change); the end of the change lifts it
+local SIT_AGAIN_S = 3       -- real seconds after the change (or its giving up) before the flat gives her a place again
 local GIVE_UP_S = 20.0     -- a change that never shows is given up, and that look is not tried again this session
 local MIN_DWELL_H = 4       -- game hours between two changes made for variety
 local VARIETY_CHANCE = 0.3  -- per hour change, once the dwell has passed
@@ -247,6 +249,16 @@ end
 
 local function describe(m) return tostring(m.key or m.record or m.serial) end
 
+-- A copy that stood up for a change is let back to the flat's places: the change is over, given up, or no longer wanted.
+local function sitAgain(m, row, why)
+    if not m.stood then return end
+    m.stood = nil
+    local deps = M.deps
+    if not deps.sitAgain then return end
+    local ok, result = pcall(deps.sitAgain, row, SIT_AGAIN_S)
+    say('Companion outfits: ' .. describe(m) .. ' may sit again (' .. why .. ')' .. (ok and result == false and ', no hold on her' or ''))
+end
+
 -- One copy, one look: read back a started change, schedule a prefetched one, or begin one that is due.
 local function step(row, player, ctx)
     local deps = M.deps
@@ -261,10 +273,12 @@ local function step(row, player, ctx)
         if live == p.name then
             m.current, m.changedAt, m.pending = p.name, ctx.hours, nil
             say('Companion outfits: ' .. describe(m) .. ' now wears ' .. p.name .. ' (' .. p.why .. ')')
+            sitAgain(m, row, 'changed')
         elseif now - p.at >= GIVE_UP_S then
             m.bad[p.name], m.pending = true, nil
             pcall(deps.remember, row, p.from)
             say('Companion outfits: ' .. describe(m) .. ' did not change into ' .. p.name .. ' (still ' .. tostring(live) .. '); that look is not tried again')
+            sitAgain(m, row, 'given up')
         end
         return
     end
@@ -283,6 +297,7 @@ local function step(row, player, ctx)
         if not ok then
             m.bad[stage.name] = true
             say('Companion outfits: ' .. describe(m) .. ' could not be changed into ' .. stage.name .. ' (' .. tostring(err):sub(1, 120) .. ')')
+            sitAgain(m, row, 'failed')
             return
         end
         m.pending = {name = stage.name, why = stage.why, at = now, from = m.current}
@@ -296,7 +311,11 @@ local function step(row, player, ctx)
         hourChanged = ctx.hourChanged, bad = m.bad, random = deps.random or M.random})
     -- A variety look is rolled once, at the hour change: it stays wanted while she waits for the camera to look away.
     if not target and m.wanted and m.wanted.from == m.current and now - m.wanted.at < WANT_S then target, why = m.wanted.name, m.wanted.why end
-    if not target then m.waiting, m.wanted, m.unseenSince, m.seenWhy = nil, nil, nil, nil; return end
+    if not target then
+        m.waiting, m.wanted, m.unseenSince, m.seenWhy = nil, nil, nil, nil
+        sitAgain(m, row, 'no change wanted')
+        return
+    end
     if not (m.wanted and m.wanted.name == target) then m.wanted = {name = target, why = why, from = m.current, at = now} end
     -- A blocker is said once per change of reason, as a code: combat, scene, call, vehicle, v-seated (V's world), seated, command, vehicle (hers).
     local function blockedBy(code)
@@ -331,6 +350,7 @@ local function step(row, player, ctx)
         local okStand, result = pcall(deps.standUp, row, STAND_HOLD_S)
         m.unseenSince = nil
         if okStand and (result == 'released' or result == 'waiting') then
+            m.stood = true
             if result == 'released' then say('Companion outfits: ' .. describe(m) .. ' stands up from her place to change into ' .. target) end
             ctx.looking = true
             return
@@ -344,6 +364,7 @@ local function step(row, player, ctx)
     if not ok then
         m.bad[target] = true
         say('Companion outfits: ' .. describe(m) .. ' could not prepare ' .. target .. ' (' .. tostring(err):sub(1, 120) .. ')')
+        sitAgain(m, row, 'failed')
         return
     end
     m.stage = {name = target, why = why, at = now}

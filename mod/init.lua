@@ -2275,6 +2275,14 @@ do
             local ok, result = pcall(s.homeStandUp, serial, hold)
             return ok and result or nil
         end,
+        -- The change of clothes is over: the flat gives her a place again after `delay` seconds.
+        sitAgain = function(serial, delay)
+            local s = currentSeating()
+            if not s or not s.homeSitAgain then return nil end
+            local ok, result = pcall(s.homeSitAgain, serial, delay)
+            if ok then return result end
+            return nil
+        end,
         -- Decision override before behavior (a walk to a seat, then a hold).
         steer = function(entry, context, step)
             local s = currentSeating()
@@ -5779,6 +5787,7 @@ function convaiOutfitModule()
         end,
         busy = function(row) return companions.outfitBusy(row.serial) end,
         standUp = function(row, hold) return companions.outfitStandUp(row.serial, hold) end,
+        sitAgain = function(row, delay) return companions.outfitSitAgain(row.serial, delay) end,
         -- The game's own "could be seen" test, with the margins its reaction and vehicle code uses for it.
         frustum = function(npc) return Game.GetCameraSystem():IsInCameraFrustum(npc, 2.0, 0.75) end,
         -- A wall between V's eyes and her (the same line-of-sight test the invitation spot search uses): true hidden, false visible, nil cannot say.

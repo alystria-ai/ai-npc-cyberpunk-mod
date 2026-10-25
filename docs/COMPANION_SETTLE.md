@@ -70,8 +70,9 @@ facing. Until 2026-10-25 the couch rule was used for stools too: every bar stool
   V's view) and the stand-up step-out.
 * **V sits on the place she holds**: she stands up and takes another.
 * **A change of clothes** (docs/COMPANION_OUTFITS.md, "Seated at home"): out of V's view she lets go of the place (`homeStandUp`: native exit for a seat, at once for a post;
-  `freed` with reason `outfit`, not bad) and takes no place for the hold the outfit module names (90 s). After it the home's claim gives her a place again, so the settle
-  timers never re-seat her mid-change.
+  `freed` with reason `outfit`, not bad) and takes no place for the hold the outfit module names (90 s at most). When the change is over the outfit module ends the hold (`homeSitAgain`, 3 s of grace) and the home's claim
+  gives her a place again within seconds; the cap only covers a change that never ends. The settle timers never re-seat her mid-change. The seating probe says why a standing companion
+  takes no place: `home-wait {serial, why}` once per change of reason (`outfit`, `cooldown`, `far`, `gesture`, `no place`).
 
 ## When it ends
 
@@ -118,7 +119,7 @@ asked of it.
 | --- | --- |
 | `bridge/companion-settle.test.mjs` | the module against a fake seating controller and spot preparer: idle costs nothing, walking is not staying, 10 s and quiet, V sitting, spreading (no two on one place, a two-seat sofa is two seats, seats first, standing, procedural), housemates' places, V's seat, bad places, no sit component, release on combat/scene/car/far/district, settle again after a quiet spell, follow offer, `taken`, bounded preparation, source checks (no game call in the module, the one hook, the nil global tick) |
 | `bridge/companion-settle-seating.test.mjs` | the home half of the seating controller: standing place, seat, combat, two companions, V sits on the place, dismissal, a failed seat reported bad, release of one, far companions, claim rate, V's seats before home places, replacing a home |
-| `bridge/companion-settle-seating.test.mjs` (outfit stand-up) | `homeStandUp`: released with the native exit, no claim during the hold, a place afterwards, a post let go at once, nothing to release without a home |
+| `bridge/companion-settle-seating.test.mjs` (outfit stand-up) | `homeStandUp`: released with the native exit, no claim during the hold, a place afterwards, a post let go at once, nothing to release without a home; `homeSitAgain`: the end of the change lifts the hold (also while she is still on her way up), `home-wait` says why once |
 | `bridge/companion-settle-flow.test.mjs` | the whole chain on the Corpo Plaza data: three companions sit on three distinct seats, V walks off and they stand up and follow, a fight, "come with me", two more arrive |
 
 ## What only a live run can settle

@@ -71,9 +71,12 @@ vehicle` was V boarding a car at 12:20:10Z; the three bar-stool minutes before i
 **Seated at home.** A copy that sits or stands on a place of V's flat (`mod/companion-settle.lua`, the seating controller's home places) is not changed on the seat: no code of ours
 swaps an appearance on a workspot, so the safe route is used. When a change is wanted and she has been out of view for `UNSEEN_S`, the module calls `standUp` (`companions.outfitStandUp`
 -> `seating.homeStandUp`): a seated copy leaves with the native exit, a standing post is let go, her place goes back to the flat unharmed (`settle-freed`, reason `outfit`) and she
-takes no place for `STAND_HOLD_S` = 90 s (`cooldownUntil`; the flat's claim waits). The probe line is `<name> stands up from her place to change into <look>`. Once she stands the change runs
-as always (out of view for 5 s again, load, schedule, read back); afterwards the flat gives her a place again by its own timers. A copy that is still on her way up renews the hold at
-each look (5 s). Housemates' own workspots are not touched, and V's own seat session (beside V) is not a home place: it stays a `seated` blocker.
+takes no place for at most `STAND_HOLD_S` = 90 s (`cooldownUntil`; the flat's claim waits). The probe line is `<name> stands up from her place to change into <look>`. Once she stands the change runs
+as always (out of view for 5 s again, load, schedule, read back). The 90 s is only the safety cap: when the change is over (`now wears`), failed, given up, or no longer wanted, the module
+calls `sitAgain` (`companions.outfitSitAgain` -> `seating.homeSitAgain`, `SIT_AGAIN_S` = 3 s) and the flat's claim gives her a place again within seconds (probe line
+`<name> may sit again (changed|failed|given up|no change wanted)`). Until 2026-10-26 nothing ended the hold early, so a copy that changed in 8 s sat down again only after the full 90 s
+(live flat: `settle-freed` outfit at 21:46:30Z, next `settle-claim` at 21:48:00Z). A copy that is still on her way up renews the hold at each look (5 s). While she waits for the camera to
+look away she stays standing, up to the cap. Housemates' own workspots are not touched, and V's own seat session (beside V) is not a home place: it stays a `seated` blocker.
 
 **Applied.** On the party copy's puppet: `PrefetchAppearanceChange(name)` to load the look (no visible change), a second later `ScheduleAppearanceChange(name)` when
 the copy is still unseen, and `GetCurrentAppearanceName()` a second after that to confirm. A look that does not show within 20 s is given up (the name a recreated

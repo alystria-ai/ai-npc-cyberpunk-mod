@@ -511,7 +511,7 @@ While V stays in one of V's own flats the same controller seats companions at pl
 a place on request (`claim`): a seat is walked to, sat on and left exactly as a seat beside V (device entity with the vanilla workspot, fast exit,
 step out; the walk-up point comes ready-checked from the home), a standing place is a walk, a turn and a hold (phases `post-walk`, `post-turn`,
 `post`, `post-face`). V's own seats come first: a companion near V takes a seat beside V when V sits; a place held at home is never a seat beside V
-and the reverse. Probe lines: `home-set`, `home-cleared`, `home-seat`, `home-post`, `home-arrived`, `home-posted`. Away from home none of this runs.
+and the reverse. Probe lines: `home-set`, `home-cleared`, `home-seat`, `home-post`, `home-arrived`, `home-posted`, `home-wait` (why a companion without a place takes none, once per reason). `homeStandUp` / `homeSitAgain` serve the outfit change. Away from home none of this runs.
 
 ## Probe lines
 
