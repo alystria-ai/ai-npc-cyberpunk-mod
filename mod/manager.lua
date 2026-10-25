@@ -640,6 +640,15 @@ local function isChoice(value, choices)
     return false
 end
 
+-- The mod's own key bindings (mod/key-bindings.lua): the five actions, and a key is stored by the game's name for it ('IK_F7'). Which names the player can
+-- choose is that module's business; here a stored name only has to look like one.
+local keyBindingOrder = {'voice', 'text', 'group_voice', 'group_text', 'manager'}
+local keyBindingActions = {}
+for _, action in ipairs(keyBindingOrder) do keyBindingActions[action] = true end
+local function validKeyName(name)
+    return type(name) == 'string' and #name <= 40 and name:match('^IK_[%w_]+$') ~= nil
+end
+
 -- Maps any saved engine name to the nearest current choice. Unknown values
 -- take the default (Pocket TTS). Provider names stay stable so older saves keep
 -- working: Pocket TTS was and remains 'pocket', OmniVoice 'omni' (old 'hybrid'),
@@ -793,6 +802,20 @@ local function loadSettings()
     -- Off by default: the Controller talk button (docs/CONTROLLER_BINDING.md), hold the left stick click to talk by voice. Off, mod/pad-binding.lua is not loaded
     -- and the redscript listener is not registered.
     if type(settings.padTalk) ~= 'boolean' then settings.padTalk, settingsNeedSave = false, true end
+    -- The mod's own key bindings (Companion Manager > Key bindings, docs/KEY_BINDINGS.md): none by default, so nothing changes for an existing player. Only an
+    -- action of the mod with a game key name is kept, and two actions never share a key. With none, mod/key-bindings.lua is not loaded and nothing is registered.
+    if type(settings.keyBindings) ~= 'table' then settings.keyBindings, settingsNeedSave = {}, true end
+    do
+        for action in pairs(settings.keyBindings) do
+            if not keyBindingActions[action] then settings.keyBindings[action], settingsNeedSave = nil, true end
+        end
+        local seen = {}
+        for _, action in ipairs(keyBindingOrder) do
+            local name = settings.keyBindings[action]
+            if name ~= nil and (not validKeyName(name) or seen[name]) then settings.keyBindings[action], settingsNeedSave = nil, true
+            elseif name ~= nil then seen[name] = true end
+        end
+    end
     -- Off by default: Street reputation, how ordinary NPCs feel about V (docs/REPUTATION_DESIGN.md). Off, mod/reputation.lua is not loaded.
     if type(settings.reputation) ~= 'boolean' then settings.reputation, settingsNeedSave = false, true end
     -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
@@ -974,6 +997,18 @@ end
 function M.padTalk()
     loadSettings()
     return settings.padTalk == true
+end
+
+-- The saved own key bindings, {action = 'IK_F7'} (the table itself: callers read it and never change it). Read on the game's 10 Hz tick, never per frame.
+function M.keyBindings()
+    loadSettings()
+    return settings.keyBindings
+end
+
+-- Saves one own key binding (name nil clears it) in one validated transaction, for the Key bindings page.
+function M.setKeyBinding(player, action, name)
+    if name == nil then name = false end
+    return M.applySettings(player, {keyBindings = {[action] = name}})
 end
 
 -- Street reputation (docs/REPUTATION_DESIGN.md): ordinary NPCs' standing with V shapes how they talk to V. Off by default. Read when a
@@ -1930,6 +1965,7 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             voiceActivation = settings.voiceActivation == true,
             padTalk = settings.padTalk == true,
+            keyBindings = settings.keyBindings,
             reputation = settings.reputation == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
@@ -1972,6 +2008,8 @@ function M.applySettings(player, values)
     for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     nextSettings.dynamicInfo = {}
     for key, value in pairs(settings.dynamicInfo) do nextSettings.dynamicInfo[key] = value end
+    nextSettings.keyBindings = {}
+    for action, name in pairs(settings.keyBindings or {}) do nextSettings.keyBindings[action] = name end
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -2016,6 +2054,18 @@ function M.applySettings(player, values)
         elseif key == 'padTalk' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.padTalk = value
+        elseif key == 'keyBindings' then
+            -- {action = 'IK_F7'} binds, {action = false} clears. A key another action already has is refused (the page says which).
+            if type(value) ~= 'table' then return false, 'Choose a key or a controller button.' end
+            for action, name in pairs(value) do
+                if not keyBindingActions[action] or (name ~= false and not validKeyName(name)) then return false, 'Choose a key or a controller button.' end
+                nextSettings.keyBindings[action] = name or nil
+            end
+            local seen = {}
+            for action, name in pairs(nextSettings.keyBindings) do
+                if seen[name] then return false, 'That key is already used for another action.' end
+                seen[name] = true
+            end
         elseif key == 'reputation' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.reputation = value

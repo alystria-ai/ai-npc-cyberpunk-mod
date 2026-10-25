@@ -47,14 +47,14 @@ test('every page builds on the tab and the tab always starts with the way back, 
       for _, option in ipairs(section.options) do assert(option.label ~= '', name .. ': a row without a label') end
     end
   end
-  -- Home: the five destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
+  -- Home: the six destinations and nothing else (the Character editor opens the browser page at once, see its own test below).
   local home = ns.sections()
-  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 5)
-  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Settings'}) do
+  assert(#home == 1 and home[1].label == 'Companion Manager' and #home[1].options == 6)
+  for index, label in ipairs({'Characters to invite', 'Current party', 'Model browser', 'Character editor', 'Key bindings', 'Settings'}) do
     assert(home[1].options[index].label == label and home[1].options[index].buttonText == 'Open', label)
   end
   for _, page in ipairs({{'Characters to invite', 'Characters to invite'}, {'Current party', 'Current party'}, {'Model browser', 'Installed character models'},
-      {'Settings', 'Interface'}}) do
+      {'Key bindings', 'Talk by voice'}, {'Settings', 'Interface'}}) do
     press(page[1])
     check(page[1], 'Back to Companion Manager')
     assert(ns.sections()[2].label == page[2], page[1] .. ': ' .. ns.sections()[2].label)
@@ -1036,7 +1036,7 @@ test('Native Settings UI: the Character editor row of Home writes one editor com
   assert(commandWrites() == before + 1, 'exactly one command, got ' .. (commandWrites() - before))
   assert(fileWrites[#fileWrites].path == 'runtime/editor-command.json')
   assert(managerUi.inspect().view == 'home' and #ns.sections() == 1, 'no sub-page: Home stays')
-  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[6].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
+  assert(managerUi.inspect().shown == 'Opening the editor in your browser. Switch to your browser if it does not come to the front.' and ns.sections()[1].options[7].label:find('Opening the editor in your browser', 1, true), 'the notice shows under the way back: ' .. shownOutline())
   -- A second click is a new command (the host counts one click once, not twice).
   clock = clock + 2
   press('Character editor')
@@ -1056,10 +1056,67 @@ test('Native Settings UI: with the conversation service stopped the Character ed
     press('Character editor')
     assert(not files['runtime/editor-command.json'], 'nothing written')
     assert(managerUi.inspect().view == 'home')
-    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[6].label:find('The conversation service is not running', 1, true), shownOutline())
+    assert(managerUi.inspect().shown == 'The conversation service is not running, so the editor cannot open. Restart the game.' and ns.sections()[1].options[7].label:find('The conversation service is not running', 1, true), shownOutline())
   `);
   const bare = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'character-editor.lua'));
   run(`${harness({modules: bare, absent: ['character-editor.lua']})}
-    assert(#ns.sections()[1].options == 4 and not ns.find('Character editor'), shownOutline())
+    assert(#ns.sections()[1].options == 5 and not ns.find('Character editor'), shownOutline())
   `);
 });
+
+// ---------------------------------------------------------------------------------------------------- Key bindings (docs/KEY_BINDINGS.md)
+// The page on Native Settings UI: one section for each of the five actions (the key set here, the key set in Cyber Engine Tweaks, Set and Clear), the
+// Controller talk button, and Restore defaults. The redscript half is a fake player here.
+test('Native Settings UI: Key bindings sits between Character editor and Settings, Set waits for a key, the key shows on the page, Clear and Restore defaults take it away', () => run(`${harness()}
+  local keyQueue, keyList = {}, ''
+  function player:ConvaiKeyBindsReady() return true end
+  function player:ConvaiKeyBindsActive() return keyList end
+  function player:ConvaiKeyBindsConfigure(value) keyList = value; return true end
+  function player:ConvaiKeyBindsCapture(on) return true end
+  function player:ConvaiKeyBindTake() return table.remove(keyQueue, 1) or '' end
+  local function key(token) keyQueue[#keyQueue + 1] = token; convaiKeyBinds.take(player); frames(4); ns.verify() end
+  local function section(name) for _, s in ipairs(ns.sections()) do if s.label == name then return s end end end
+  local function option(name, label)
+    for _, o in ipairs(assert(section(name), 'no section ' .. name).options) do if o.label == label then return o end end
+  end
+  local home = ns.sections()[1].options
+  assert(home[4].label == 'Character editor' and home[5].label == 'Key bindings' and home[6].label == 'Settings' and home[5].buttonText == 'Open')
+  press('Key bindings')
+  assert(managerUi.inspect().view == 'key-bindings')
+  local names = {}
+  for _, s in ipairs(ns.sections()) do names[#names + 1] = s.label end
+  assert(table.concat(names, ' | ') == 'Companion Manager | Talk by voice | Talk by text | Group voice chat | Group text chat | Companion Manager | Controller', table.concat(names, ' | '))
+  for _, name in ipairs({'Talk by voice', 'Talk by text', 'Group voice chat', 'Group text chat', 'Companion Manager'}) do
+    local keySection = ns.sections()
+    local target = name == 'Companion Manager' and keySection[6] or section(name)
+    assert(target.options[1].label == 'Key or button' and target.options[1].buttonText == 'Not set', name)
+    assert(target.options[2].label == 'In Cyber Engine Tweaks' and target.options[3].label == 'Set key or button' and target.options[3].buttonText == 'Set', name)
+    assert(#target.options == 3, 'no Clear while nothing is set: ' .. name)
+  end
+  assert(ns.find('Controller talk button').state == false)
+  ns.interact.press(option('Talk by voice', 'Set key or button')); frames(4); ns.verify()
+  assert(managerUi.inspect().shown == 'Press the key or controller button for Talk by voice. Esc or B cancels.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Set key or button').buttonText == 'Cancel')
+  clock = clock + 1; key('kIK_F7')
+  assert(managerUi.inspect().shown == 'Talk by voice is set to F7.', tostring(managerUi.inspect().shown))
+  assert(option('Talk by voice', 'Key or button').buttonText == 'F7' and option('Talk by voice', 'Clear'), 'the key shows, Clear appeared')
+  assert(manager.keyBindings().voice == 'IK_F7' and keyList == 'IK_F7,-,-,-,-')
+  -- What Cyber Engine Tweaks has, read from its file.
+  keyFile = '{"x": {"cyberpunk_convai_voice": 33495522228568064}}'
+  clock = clock + 6; frames(12); ns.verify()
+  assert(option('Talk by voice', 'In Cyber Engine Tweaks').buttonText == 'F8')
+  -- A controller button, Clear, and Restore defaults.
+  ns.interact.press(option('Talk by text', 'Set key or button')); frames(3)
+  clock = clock + 1; key('kIK_Pad_RightTrigger')
+  assert(option('Talk by text', 'Key or button').buttonText == 'Controller RT' and manager.keyBindings().text == 'IK_Pad_RightTrigger')
+  ns.interact.press(option('Talk by voice', 'Clear')); frames(4); ns.verify()
+  assert(manager.keyBindings().voice == nil and option('Talk by voice', 'Key or button').buttonText == 'Not set' and not option('Talk by voice', 'Clear'))
+  assert(managerUi.inspect().shown == 'Talk by voice cleared.', tostring(managerUi.inspect().shown))
+  ns.interact.toggle(ns.find('Controller talk button')); frames(10); ns.verify()
+  assert(manager.padTalk() == true)
+  ns.interact.restoreDefaults(); frames(10); ns.verify()
+  convaiKeyBinds.tick(player, true)
+  assert(next(manager.keyBindings()) == nil and manager.padTalk() == false and keyList == '', 'the keys and the button are back to the defaults')
+  assert(ns.find('Controller talk button').state == false and option('Talk by text', 'Key or button').buttonText == 'Not set')
+  assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
+`));
