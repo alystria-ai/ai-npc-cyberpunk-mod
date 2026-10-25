@@ -197,7 +197,7 @@ export function actionMenu(offer) {
 }
 
 // Housemates (docs/HOUSEMATES.md): the rows STAY / MOVEOUT / JOIN of a turn whose offer carries `home` ({apartments: [{id, name}], members: [{name, self}],
-// moveOut?, here?, lives?, asked?}; bridge/companion-actions.mjs homeConfig). The model only picks among the offered names: an apartment id is resolved
+// moveOut?, here?, lives?, asked?, pick?}; bridge/companion-actions.mjs homeConfig). The model only picks among the offered names: an apartment id is resolved
 // against the offer, a member by name, and anything else is no action. Standing sentences for the reply go into `standing`.
 function homeRows(offer, base, standing) {
   const home = offer.home && typeof offer.home === 'object' ? offer.home : null;
@@ -230,6 +230,7 @@ function homeRows(offer, base, standing) {
     rows.push({code: 'STAY', what: `let the companion live at V's place (V says she can stay, live or move in: "you can stay at my place", "move in with me", "you can crash at my place", "this can be your home"); `
         + `answer STAY followed by the id of the apartment V means (${list}). `
         + (askedAt && back ? `V was just asked whether she stays in ${data(askedAt.name, 60)} or goes back to ${data(back, 60)}: V saying she stays here is STAY ${askedAt.id}, V saying she goes back is NONE. ` : '')
+        + (home.pick ? 'V already said she may live at V\'s place and she asked which apartment: V naming or pointing to one now ("the Glen one", "Corpo Plaza", "that one") is STAY with its id. ' : '')
         + `If V names none: ${fallback() ? `it is ${fallback().id}` : 'answer NONE (the companion asks which one)'}`,
       tell: `V is telling you that you may live at V's place (${apartments.map(item => data(item.name, 60)).join(', ')}${here ? `; V is in ${data(here.name, 60)} now` : ''}). You move in, and the game does it right after your reply: say so in your own words, briefly, like someone who was just offered a home`,
       resolve: argument => {
@@ -274,6 +275,8 @@ function homeRows(offer, base, standing) {
     screen: (text, found, all) => {
       const out = [...found], add = code => { if (all.some(row => row.code === code) && !out.includes(code)) out.push(code); };
       if (home.asked && String(text ?? '').trim().split(/\s+/).length <= 8) { add('STAY'); add('LEAVE'); }
+      // The answer to her "which apartment?" may be a word or two ("the loft", "that one").
+      if (home.pick && String(text ?? '').trim().split(/\s+/).length <= 8) add('STAY');
       if (apartments.length && mentioned(text).length) add('STAY');
       return out;
     },

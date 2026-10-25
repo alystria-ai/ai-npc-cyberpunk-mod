@@ -79,11 +79,21 @@ function M.new(env)
     local lastHome = {}       -- flat id -> game hours when V last stood in it
     local welcome, lastWelcomeAt
     local rowCache, rowsBySerial = {}, {}
-    local chat
+    local chat, noData
     local busy = false
     local counter = 0
 
     local function log(line) if env.log then pcall(env.log, line) end end
+    -- One probe line per event of the pipeline, codes and names only, so that a live run shows where it stopped: offer-shown, action-received,
+    -- registered, flat-entered, spot-chosen, body-spawned, placed, held, flat-left and failed:<code>. Each is written when its event happens, never per step.
+    local function stage(kind, fields)
+        local parts, names = {'Housemates ' .. kind}, {}
+        for name in pairs(fields or {}) do names[#names + 1] = name end
+        table.sort(names)
+        for _, name in ipairs(names) do parts[#parts + 1] = name .. '=' .. tostring(fields[name]) end
+        log(table.concat(parts, ' '))
+    end
+    local offerShown = {}     -- profileKey -> the last offer written to the log (one line per change, not one per turn)
     local function translate(text, vars) if env.t then return env.t(text, vars) end if vars then return (text:gsub('{(%w+)}', function(k) return tostring(vars[k]) end)) end return text end
     -- `ui.t('literal')` so that scripts/Extract-UiCatalog.mjs finds every text of this file.
     local ui = {t = translate}
@@ -293,7 +303,7 @@ function M.new(env)
         local row = r.serial and rowsBySerial[r.serial] or nil
         if r.serial and (not row or row.lost or row.state == 'failed' or row.state == 'missing') then
             if row and row.state == 'failed' then guard(env.bodies.delete, r.serial) end
-            log('Housemates: the body of ' .. r.key .. ' is gone')
+            stage('failed:body-lost', {key = r.key, state = row and row.state or 'missing'})
             r.serial, r.entity, r.handle, r.spot, r.nextSpot = nil, nil, nil, nil, nil
             if r.state ~= 'party' then r.state = 'virtual' end
             r.retryAt = clock + 10
@@ -303,16 +313,20 @@ function M.new(env)
         if state == 'planning' then
             if not r.spot then
                 local spot, why = procedural(r)
-                if not spot then if why ~= 'wait' then r.tries = r.tries + 1 end if r.tries > 5 then r.state, r.retryAt = 'virtual', clock + 30 end return end
+                if not spot then
+                    if why ~= 'wait' then r.tries = r.tries + 1 end
+                    if r.tries > 5 then r.state, r.retryAt = 'virtual', clock + 30; stage('failed:no-spot', {key = r.key, apt = r.apt, why = why}) end
+                    return
+                end
                 r.spot = spot
             end
             local snapped, why, wait = env.seats.prepare(r.spot, r)
             if wait then return end
             if not snapped then
                 if r.spot.id and not r.spot.procedural then rejected[r.spot.id] = true end
-                log('Housemates spot-rejected id=' .. tostring(r.spot.id) .. ' why=' .. tostring(why))
+                stage('spot-rejected', {key = r.key, id = r.spot.id, why = why})
                 r.tries = r.tries + 1
-                if r.tries > 6 then r.state, r.retryAt, r.spot = 'virtual', clock + 30, nil; return end
+                if r.tries > 6 then r.state, r.retryAt, r.spot = 'virtual', clock + 30, nil; stage('failed:no-spot', {key = r.key, apt = r.apt}); return end
                 local choice = plan.next{resident = {key = r.key, canBed = rigOk(r), canDoze = true}, spots = usableSpots(r.apt),
                     fixed = fixedSpots(r.apt, r.key), sleep = r.sleep, random = random, v = guard(env.vpos), day = day()}
                 r.spot = choice and choice.spot or nil
@@ -321,6 +335,7 @@ function M.new(env)
             end
             snapped.id = r.spot.id; snapped.procedural = r.spot.procedural
             r.spot = snapped
+            stage('spot-chosen', {key = r.key, id = snapped.id, kind = snapped.kind, sleep = r.sleep == true})
             if r.serial then
                 -- She already has a body (a party member released into the flat): she walks to her place, nothing is created.
                 r.state, r.handle = 'placing', nil
@@ -331,7 +346,7 @@ function M.new(env)
             local ok, err = env.bodies.spawn(r, snapped)
             if ok then r.state, r.spawnedAt = 'spawning', clock
             else
-                log('Housemates: ' .. r.key .. ' could not be created: ' .. tostring(err))
+                stage('failed:spawn', {key = r.key, why = tostring(err):sub(1, 80)})
                 r.state, r.retryAt = 'virtual', clock + 30
             end
         elseif state == 'spawning' then
@@ -339,10 +354,11 @@ function M.new(env)
                 if b.profileKey == r.key and b.appointmentId == 'hm:' .. r.key and b.state == 'visiting' and not b.lost then
                     r.serial, r.entity = b.serial, b.entityID
                     r.state = 'placing'
+                    stage('body-spawned', {key = r.key, serial = b.serial})
                 end
             end
             if r.state == 'spawning' and clock - (r.spawnedAt or clock) > M.SPAWN_TIMEOUT then
-                log('Housemates: the copy of ' .. r.key .. ' was not created in time')
+                stage('failed:spawn-timeout', {key = r.key, after = M.SPAWN_TIMEOUT})
                 r.state, r.retryAt = 'virtual', clock + 30
                 for _, b in ipairs(rowCache) do if b.appointmentId == 'hm:' .. r.key then guard(env.bodies.delete, b.serial) end end
             end
@@ -350,15 +366,20 @@ function M.new(env)
             if not r.handle then
                 r.handle = env.seats.occupy(r.serial, r.spot, {sleep = r.sleep})
                 r.placingAt = clock
-                if not r.handle then r.fails = r.fails + 1; r.spot = nil; r.sleep = false; chooseNext(r, false); return end
+                if not r.handle then
+                    stage('failed:occupy', {key = r.key, id = r.spot and r.spot.id})
+                    r.fails = r.fails + 1; r.spot = nil; r.sleep = false; chooseNext(r, false); return
+                end
             end
             local status = env.seats.status(r.handle)
             if status == 'ready' then
+                -- The first place this body takes (her later changes of place are not written).
+                if r.placed ~= r.serial then r.placed = r.serial; stage('placed', {key = r.key, id = r.spot and r.spot.id, kind = r.spot and r.spot.kind}) end
                 r.state = 'at'; r.fails = 0
                 dwellFor(r)
             elseif status == 'failed' or clock - (r.placingAt or clock) > M.OCCUPY_TIMEOUT then
                 if r.spot and r.spot.id then rejected[r.spot.id] = true end
-                log('Housemates: ' .. r.key .. ' could not take ' .. tostring(r.spot and r.spot.id))
+                stage('failed:place', {key = r.key, id = r.spot and r.spot.id, why = status == 'failed' and 'failed' or 'timeout'})
                 guard(env.seats.release, r.handle, true)
                 r.handle = nil
                 r.fails = r.fails + 1
@@ -416,7 +437,7 @@ function M.new(env)
                     r.state, r.serial, r.entity, r.spot = 'party', nil, nil, nil
                     say(ui.t('{name} joins you.', {name = r.name}))
                 else
-                    log('Housemates: ' .. r.key .. ' could not join: ' .. tostring(err))
+                    stage('failed:join', {key = r.key, why = tostring(err):sub(1, 80)})
                     r.state = 'placing'; r.handle = nil
                 end
             end
@@ -442,6 +463,7 @@ function M.new(env)
         if chat and chat.interrupt then chat.interrupt(reason, true) end
         if not heldSince then
             heldSince = clock
+            stage('held', {apt = apt, reason = reason})
             if anyBodies() then hideAll(true) end
         end
         clearSince = nil
@@ -517,6 +539,9 @@ function M.new(env)
             leftAt = nil
             if zone ~= here then
                 zone, zoneSince = here, clock
+                local living = 0
+                for _, r in pairs(rec) do if r.apt == here then living = living + 1 end end
+                stage('flat-entered', {apt = here, residents = living})
                 local h = hours()
                 local last = lastHome[here]
                 welcome = h and last and (h - last) >= M.WELCOME_AWAY and (h - last) < 2000 and {apt = here, away = h - last} or nil
@@ -527,11 +552,14 @@ function M.new(env)
             if combatUntil and clock < combatUntil then return end
             local reason = guard(env.held)
             local reserved = loadData() and reservedReason(here) or nil
-            if reserved then reason = reason or 'quest' end
+            if reserved then reason = reason or ('quest:' .. reserved) end
             if reason then applyHeld(reason, here) return end
             clearHeld()
             if heldSince then return end
-            if not loadData() then return end
+            if not loadData() then
+                if not noData then noData = true; stage('failed:no-data', {apt = here}) end
+                return
+            end
             planResidents(here)
             busy = false
             for key, r in pairs(rec) do
@@ -568,7 +596,7 @@ function M.new(env)
             end
         else
             -- Not in a flat of V's (or nobody lives anywhere).
-            if zone then zone = nil; leftAt = clock; heldSince, clearSince = nil, nil end
+            if zone then stage('flat-left', {apt = zone}); zone = nil; leftAt = clock; heldSince, clearSince = nil, nil end
             if chat and chat.interrupt and chat.active and chat.active() then chat.interrupt('left', true) end
             if leftAt and clock - leftAt >= M.LEAVE_GRACE then unload(); leftAt = nil end
             if not leftAt and anyBodies() then leftAt = clock end
@@ -628,11 +656,11 @@ function M.new(env)
 
     -- ---- moving in and out --------------------------------------------------------------------------------------------------------
     function C.stay(key, apt)
-        if not key or not M.NAMES[apt] then return false, 'unknown' end
-        if not guard(env.eligible, key) then return false, 'not-eligible' end
-        if not C.owned()[apt] then return false, 'not-owned' end
+        if not key or not M.NAMES[apt] then stage('failed:unknown-apartment', {key = key, apt = apt}); return false, 'unknown' end
+        if not guard(env.eligible, key) then stage('failed:not-eligible', {key = key}); return false, 'not-eligible' end
+        if not C.owned()[apt] then stage('failed:not-owned', {key = key, apt = apt}); return false, 'not-owned' end
         local ok, why = registry.write(env.store, key, apt)
-        if not ok then return false, why end
+        if not ok then stage('failed:store', {key = key, why = tostring(why):sub(1, 80)}); return false, why end
         local previous = homes[key]
         homes[key] = apt
         local r = rec[key] or newRecord(key, apt)
@@ -651,7 +679,7 @@ function M.new(env)
             end
         end
         say(ui.t('{name} moves into {apartment}.', {name = r.name, apartment = aptName(apt)}))
-        log('Housemates: ' .. key .. ' lives at ' .. apt)
+        stage('registered', {key = key, apt = apt, party = member ~= nil, here = hereId() or '-'})
         acc = 0
         return true
     end
@@ -757,6 +785,12 @@ function M.new(env)
         if asked and eligible then offer.asked = {from = asked.from, here = asked.here} end
         offer.members = zone and members(vp) or {}
         if #apartments == 0 and #offer.members == 0 and not offer.moveOut then return nil end
+        local ids = {}
+        for _, a in ipairs(apartments) do ids[#ids + 1] = a.id end
+        local shown = {key = key, apartments = #ids > 0 and table.concat(ids, ',') or '-', here = offer.here or '-', lives = homes[key] or '-',
+            members = #offer.members}
+        local signature = shown.apartments .. '|' .. shown.here .. '|' .. shown.lives .. '|' .. shown.members
+        if offerShown[key] ~= signature then offerShown[key] = signature; stage('offer-shown', shown) end
         return offer
     end
 
@@ -805,10 +839,11 @@ function M.new(env)
     function C.queueHome(home, offer, entity, requestId)
         if type(home) ~= 'table' or type(offer) ~= 'table' then return false, ui.t('That action is not available.') end
         local key = offer.actor and offer.actor.key
+        stage('action-received', {key = key, op = home.op, apt = home.apartment or '-'})
         if home.op == 'stay' then
             local allowed = false
             for _, a in ipairs(offer.apartments or {}) do if a.id == home.apartment then allowed = true end end
-            if not allowed then return false, ui.t('That action is not available.') end
+            if not allowed then stage('failed:not-offered', {key = key, apt = home.apartment}); return false, ui.t('That action is not available.') end
             local ok, why = C.stay(key, home.apartment)
             if not ok then return false, why == 'not-owned' and ui.t('You do not have that apartment.') or ui.t('That action is not available.') end
             return true, nil
@@ -849,8 +884,12 @@ function M.new(env)
         return offer
     end
     function C.phoneAction(profileKey, action)
-        if type(action) ~= 'table' or phoneTokens[profileKey] ~= action.token then return false end
+        if type(action) ~= 'table' or phoneTokens[profileKey] ~= action.token then
+            stage('failed:phone-token', {key = profileKey, op = type(action) == 'table' and action.action or '-'})
+            return false
+        end
         phoneTokens[profileKey] = nil
+        stage('action-received', {key = profileKey, op = action.action, apt = action.apartment or '-', route = 'phone'})
         if action.action == 'stay' then return C.stay(profileKey, action.apartment) end
         if action.action == 'move-out' then return C.moveOut(profileKey) end
         return false
@@ -916,10 +955,10 @@ function M.new(env)
         end
         zone, leftAt, heldSince, clearSince, combatUntil = nil, nil, nil, nil, nil
         rowCache, rowsBySerial = {}, {}
-        welcome = nil
+        welcome, noData = nil, nil
         restAsk = {}
         if chat and chat.reset then chat.reset() end
-        if preserve ~= true then homes, rec = {}, {}; rejected = {}; lastHome = {} end
+        if preserve ~= true then homes, rec = {}, {}; rejected = {}; lastHome = {}; offerShown = {} end
         data = nil
     end
 

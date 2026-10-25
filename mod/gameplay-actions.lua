@@ -328,6 +328,7 @@ function M.new(options)
         if fault then
             if packet.action == 'npc-reaction' then logReaction('NPC reaction packet refused: ' .. fault) end
             if packet.action == 'companion-meet' then logReaction('Call meeting packet refused: ' .. fault) end
+            if packet.action == 'companion-home' then logReaction('Housemates failed:packet-' .. fault) end
             return
         end
         -- Consume before the native callback: even a throw after a side effect
@@ -368,6 +369,8 @@ function M.new(options)
             if type(options.queueHome) ~= 'function' then report('rejected', nil, 'That action is not available.'); return end
             local called, accepted, reason = pcall(options.queueHome, copy(packet.home), copy(admitted.homeOffer), admitted.entity,
                 admitted.requestId, admitted.group)
+            -- The controller writes what it did with the choice (mod/housemates.lua); a throw on the way is written here.
+            if not called then logReaction('Housemates failed:queue-error ' .. tostring(accepted):sub(1, 120)) end
             report(called and accepted == true and 'queued' or 'rejected', called and reason or nil, 'That action is not available.')
             return
         end

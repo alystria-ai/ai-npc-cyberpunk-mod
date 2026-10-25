@@ -733,6 +733,41 @@ Differences from the design text above, found while building:
 * A talk with a housemate uses eyes and head only (like a character another mod spawned), so her workspot is never disturbed; the talk wakes a sleeper.
 * The old per-flat `usable` seeds of Glen, Japantown and Northside stay off; those flats use the procedural standing places until the recorder measured them.
 
+## First live run (2026-10-25) and what it changed
+
+Game 2.5, Convai. In the corridor of the Corpo Plaza building (the district read `CityCenter`, so V was in none of the flats) V typed "you can stay at my
+place" to Blue Moon, a party member. The offer reached her turn (`homeOffer` with H10, Corpo Plaza, Heywood Glen, no `here`), so she asked which, as the
+rules say. V answered with the flat's name; she said yes; no `Housemates` line followed, no fact was written, and when V walked into Corpo Plaza nobody was
+there because nobody lived there. The break was the answer turn: its instruction allowed `Stay At` only when V's new message itself said she could live
+there, and every route repeats "only the new user message can authorize the action". "The Corpo Plaza one" says neither, and the "asked which" memory the
+design describes (`homeAsk`) had never been built (`asked` only exists for the rest-in-another-flat question).
+
+Changes:
+
+* **The answer counts.** `HomePicks` (bridge/home-requests.mjs) remembers, per character, that V said she could live at V's place without naming one of
+  several flats (V in none of them). Her next turns (at most 3, within 10 minutes) carry `pick`: in person the window config (`homeConfig`, never part of
+  the game's offer, so the packet still matches the lease), on the phone the screen. Convai, the text routes and the phone are told that V's message is the
+  answer and the go-ahead; a short answer ("that one") is screened as a stay. A stay or a move-out closes it.
+* **Probe lines for every stage** (probe.log, codes and names only, once per event): `Housemates offer-shown` (once per change of the offer, not per
+  turn), `action-received`, `registered`, `flat-entered`, `spot-chosen`, `spot-rejected`, `body-spawned`, `placed`, `held`, `flat-left`, and
+  `Housemates failed:<code>` (`packet-<rule>` from the lease, `queue-error`, `no-service`, `no-controller`, `not-offered`, `not-owned`, `not-eligible`,
+  `store`, `phone-token`, `no-spot`, `spawn`, `spawn-timeout`, `occupy`, `place`, `body-lost`, `join`, `no-data`). The bridge writes one `[Housing]`
+  line per turn with a housing offer (bridge.stderr.log): the flats, `pick`, the action the reply asked for or `none(<why>)`, and whether it was
+  delivered; on Convai a turn that asked for nothing adds what its page saw of the action list.
+* **Waking.** The district hook that is proven to fire (`Settle settle-enter`, installed in onInit) now also calls `convaiHousemateWake`; the glue's own hook
+  is installed after onInit and is not relied on. The controller also looks at the district every 5 s while anybody lives anywhere.
+
+Live check for the next run (Housemates On, one of V's flats besides H10 owned):
+
+1. Outside the flats (or in the lobby), talk to a party member: "you can stay at my place". probe.log: `Housemates offer-shown ... here=-`; she asks which.
+   bridge.stderr.log: `[Housing] ... pick=no action=none(no-action-requested)`.
+2. Answer with a flat's name. `[Housing] ... pick=yes action=stay:<id> delivered=yes`; probe.log: `Housemates action-received`, `Housemates registered
+   apt=<id>`; the notice "{name} moves into {apartment}."; she walks off. If instead `pick=yes action=none(...)`: the model still asked for nothing (the
+   Convai extra on that line says whether its page had the action list).
+3. Walk into that flat. probe.log: `Housemates flat-entered apt=<id> residents=1`, then `spot-chosen`, `body-spawned`, `placed`. A `failed:<code>` line
+   says where it stopped.
+4. Inside a flat, "you can stay here" to another party member: no question (`here=<id>`), `registered` at once, and she settles there.
+
 ## Live test, step by step
 
 Everything below is for a **throwaway copy of a save** (never one of the owner's saves). The commands go through the gesture probe:

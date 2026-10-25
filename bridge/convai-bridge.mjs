@@ -964,6 +964,8 @@ const companionActions = new CompanionActions({createToken: () => 'drive-' + ran
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options),
   // One line for every turn that carried an ordinary NPC's reaction offer (docs/NPC_REACTIONS.md): where it stopped, or that it was handed over.
   log: line => console.error('[NPCReaction] ' + line),
+  // One line for every turn that carried a housing offer (docs/HOUSEMATES.md): the choice the reply asked for and whether it reached the game.
+  homeLog: line => console.error('[Housing] ' + line),
   // The Convai route's part nobody could see: what its page did with the offer (armed or not, proposals seen). Read from the existing
   // diagnostics of the pages, once, only for a turn that asked for no action; never on the reply's path.
   probe: async () => {

@@ -4034,7 +4034,7 @@ do
     end
     function convaiHousemateQueue(home, offer, entity, requestId, groupId)
         local glue = service()
-        if not glue then return false, 'That action is not available.' end
+        if not glue then log('Housemates failed:no-service'); return false, 'That action is not available.' end
         return glue.queueHome(home, offer, entity, requestId, groupId)
     end
     function convaiHousemateLeaveOffer(offer)
@@ -5946,9 +5946,12 @@ registerForEvent('onInit', function()
     if not ok then log('Manager registration failed: ' .. tostring(err)) end
     -- Companions settle in V's flat (mod/companion-settle.lua): the game pushes a district change when V crosses into or out of a flat, and that
     -- is the one thing that wakes the module. Away from home the callback finds nothing to do.
+    -- The housemates are woken by it too: their own hook (housemate-service.lua hookDistrict) is installed after onInit and is not relied on.
+    -- With Housemates Off convaiHousemateWake is one global read.
     convaiGuarded('Settle district hook', function()
         ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', function()
             if not worldSuspended and convaiSettleWake then convaiSettleWake() end
+            if not worldSuspended and convaiHousemateWake then convaiHousemateWake() end
         end)
     end)
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)

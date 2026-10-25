@@ -144,8 +144,12 @@ function M.new(d)
         return controller and controller.groupOffer(entity, context) or nil
     end
     function S.queueHome(home, offer, entity, requestId, groupId)
-        local controller = S.controller
-        if not controller then return false, ui.t('That action is not available.') end
+        -- The offer this choice answers built the controller; without one (it could not be loaded) the choice is refused, and written down.
+        local controller = S.controller or ensure()
+        if not controller then
+            if d.log then d.log('Housemates failed:no-controller') end
+            return false, ui.t('That action is not available.')
+        end
         return controller.queueHome(home, offer, entity, requestId)
     end
     function S.decorateLeave(offer)
