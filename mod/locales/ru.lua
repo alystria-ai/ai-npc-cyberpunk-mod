@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "Обычная память",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "Удалить воспоминания очищает только память, показанную здесь. Другая память остаётся без изменений.",
     ["This clears the memory in use: {memory}."] = "Это очистит используемую память: {memory}.",
+    ["Companions change outfits"] = "Напарники меняют наряд",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Напарники из вашей группы время от времени меняют наряд: другой образ днём и ночью, а дома — повседневную одежду, если она есть у персонажа.\n\nТолько когда вы на них не смотрите, никогда на виду, и только для собственных копий вашей группы, никогда для персонажей самой игры. Если выключить эту опцию, они останутся в том, что носят сейчас.",
 }

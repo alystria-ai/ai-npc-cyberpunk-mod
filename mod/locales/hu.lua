@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "Normál emlékek",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "Az Emlékek elfelejtése csak az itt látható emlékeket törli. A másik emlékek változatlanul maradnak.",
     ["This clears the memory in use: {memory}."] = "Ez törli a használt emlékeket: {memory}.",
+    ["Companions change outfits"] = "Társak ruhát váltanak",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "A csapatod társai időnként átöltöznek: más öltözet nappal és más éjjel, illetve hétköznapi ruha otthon, ha a karakternek van ilyen.\n\nCsak akkor, ha nem látod őket, sosem a szemed előtt, és csak a csapatod saját másolatainál, sosem a játék saját karaktereinél. Ha ezt kikapcsolod, megtartják azt, amit éppen viselnek.",
 }

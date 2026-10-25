@@ -484,6 +484,12 @@ local function spawnCopy(key, invitation, returning)
     local appearance=returning and returning.appearance or (adoption and type(adoption.appearance)=='string'
         and adoption.appearance~='' and adoption.appearance) or nil
     if appearance and spawnRecordName and spawnAppearance then appearance=nil end
+    -- Companions change outfits (mod/companion-outfits.lua): a new copy of a curated character is created in the clothes that fit the hour and
+    -- the place, so nothing is ever changed in front of V. Not for a copy whose appearance is already decided above, nor Johnny's physical copy.
+    if not appearance and not (spawnRecordName and spawnAppearance) and M.spawnOutfit then
+        local okOutfit,outfit=pcall(M.spawnOutfit,definition.id or tostring(recordID),invitation and invitation.profileKey or definition.profileKey)
+        if okOutfit and type(outfit)=='string' and outfit~='' then appearance=outfit end
+    end
     if appearance then spec.appearanceName = CName.new(appearance)
     elseif spawnAppearance then spec.appearanceName = CName.new(spawnAppearance) end
     -- The navmesh stands up to 30 cm above the real floor in some interiors; the AI undoes any later transform
@@ -528,6 +534,8 @@ local function spawnCopy(key, invitation, returning)
     if returning then
         for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
     else entries[#entries + 1] = entry end
+    -- The outfit module learns which look this copy was created in (nil: the game's default or companion-records.lua's choice).
+    if M.outfitCreated then pcall(M.outfitCreated, entry.serial, assignedKey, entry.record, appearance) end
     if convaiLocomotion then convaiLocomotion.active=true end
     -- Transfer the invitation's prepared connection to the attaching copy.
     if M.onPartyChanged then pcall(M.onPartyChanged) end
@@ -786,11 +794,14 @@ function M.activityInputs(seats)
             local okVehicle,snapshot=pcall(vehicles.snapshot,fleet,entry.serial)
             local transport=okVehicle and snapshot and snapshot.people and snapshot.people[1] or nil
             local owned=okTactic and tactic and tactic.active and tactic.serial==entry.serial
+            -- 'home' or 'changed' when the copy wears other clothes than its appearance text describes (mod/companion-outfits.lua status).
+            local okOutfit,outfit=pcall(function() return M.outfitStatus and M.outfitStatus(entry.serial) end)
             rows[entry.profileKey]={transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
                 mountedSeat=transport.mountedSeat} or nil,
                 tactic=owned and {kind=tactic.kind,phase=tactic.phase} or nil,
                 seating=type(seats)=='table' and seats[entry.serial] or nil,
-                behavior=entry.person and entry.person.phase or nil}
+                behavior=entry.person and entry.person.phase or nil,
+                outfit=okOutfit and outfit or nil}
         end
     end
     return {rows=rows,motion=motion}
@@ -2237,6 +2248,50 @@ local function stanceBlocker(entry)
     if M.tactics and M.tactics.owns(entry.serial) then return 'tactic' end
     if M.bodyAnimation and M.bodyAnimation.owns and M.bodyAnimation.owns(entry) then return 'seated' end
     if entry.floorTeleport then return 'placing' end
+end
+
+-- Companions change outfits (mod/companion-outfits.lua, docs/COMPANION_OUTFITS.md). Three calls, all on demand from that module's check (every 20 s at most,
+-- never per frame), all for a ready managed copy only.
+-- The ready copies whose model record the outfit list knows: {serial, key, record, npc}. known(record) -> boolean.
+function M.outfitRows(known)
+    local rows={}
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and entry.npc and not entry.removed and type(entry.record)=='string' and known(entry.record) then
+            rows[#rows+1]={serial=entry.serial,key=entry.profileKey,record=entry.record,npc=entry.npc}
+        end
+    end
+    return rows
+end
+
+-- Why this copy must not change its clothes now (a car, a lift, a seat, a fight, a command), or nil.
+function M.outfitBusy(serial)
+    for _,entry in ipairs(entries) do
+        if entry.serial==serial then
+            if entry.state~='ready' or entry.removed then return 'not ready' end
+            local reason=stanceBlocker(entry)
+            if reason then return reason end
+            if entry.person and (entry.person.phase=='combat' or entry.person.phase=='recover') then return entry.person.phase end
+            return nil
+        end
+    end
+    return 'gone'
+end
+
+-- mode 'prefetch': load the appearance (no visible change). mode 'apply': schedule it, and remember it as the look a recreated copy is made in
+-- (fast travel). mode 'forget': a change that never showed; remember the previous name. Errors are the caller's to log.
+function M.changeAppearance(serial,name,mode)
+    for _,entry in ipairs(entries) do
+        if entry.serial==serial then
+            if mode=='forget' then entry.appearance=name; return true end
+            local npc=entry.npc
+            if entry.state~='ready' or entry.removed or not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() then error('the copy is not ready') end
+            if mode=='prefetch' then npc:PrefetchAppearanceChange(name); return true end
+            npc:ScheduleAppearanceChange(name)
+            entry.appearance=name
+            return true
+        end
+    end
+    error('the copy is gone')
 end
 
 function M.update(player,delta,focusEntity)

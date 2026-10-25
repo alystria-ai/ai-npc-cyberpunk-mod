@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "Звичайна пам’ять",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "Забути пам’ять очищає лише пам’ять, показану тут. Інша пам’ять лишається без змін.",
     ["This clears the memory in use: {memory}."] = "Це очищає використовувану пам’ять: {memory}.",
+    ["Companions change outfits"] = "Компаньйони змінюють одяг",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Компаньйони з твоєї групи час від часу змінюють одяг: інший образ удень і вночі, а вдома — повсякденний одяг, якщо він є в персонажа.\n\nТільки поза полем твого зору, ніколи на очах у тебе, і лише для власних копій твоєї групи, ніколи для персонажів самої гри. Якщо вимкнути цю опцію, вони залишаться в тому, що мають на собі зараз.",
 }

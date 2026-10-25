@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "普通记忆",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "清除记忆只会清除这里显示的记忆，另一份记忆保持不变。",
     ["This clears the memory in use: {memory}."] = "这会清除正在使用的记忆：{memory}。",
+    ["Companions change outfits"] = "伙伴更换服装",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "队伍中的伙伴会不时更换服装：白天和夜晚各有不同造型，在家时还会换上休闲服（前提是角色有这套衣服）。\n\n仅在你看不到他们时才会更换，绝不会在你面前更换，而且只针对队伍中的伙伴分身，绝不会更换游戏原本的角色。关闭此选项后，他们会保持当前的服装。",
 }

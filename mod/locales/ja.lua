@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "通常の記憶",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "記憶を消去すると、ここに表示されている記憶だけが消去されます。もう一方の記憶はそのまま残ります。",
     ["This clears the memory in use: {memory}."] = "使用中の記憶を消去します: {memory}。",
+    ["Companions change outfits"] = "コンパニオンの衣装替え",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "パーティーのコンパニオンは、ときどき衣装を変えます。昼用と夜用の別の見た目、そして家で着る普段着（そのキャラクターが持っている場合）です。\n\nあなたの視界の外でだけ行われ、目の前では決して変わりません。対象はパーティー内のあなた専用のコピーだけで、ゲームのオリジナルキャラクターには適用されません。この設定をオフにすると、今着ている衣装のまま変わりません。",
 }

@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "Běžná paměť",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "Zapomenout vzpomínky smaže jen paměť zobrazenou zde. Ostatní paměť zůstane beze změny.",
     ["This clears the memory in use: {memory}."] = "Smaže používanou paměť: {memory}.",
+    ["Companions change outfits"] = "Společníci mění oblečení",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Společníci tvé skupiny se čas od času převlékají: jiný vzhled za dne a jiný v noci, a domácí oblečení doma, pokud ho postava má.\n\nJen mimo tvůj dohled, nikdy přímo před tebou, a jen u vlastních kopií tvé skupiny, nikdy u postav ze hry. Když to vypneš, zůstanou v tom, co mají oblečené právě teď.",
 }

@@ -1295,4 +1295,6 @@ return {
     ["Normal memory"] = "Memória normal",
     ["Forget memories clears only the memory shown here. The other memory stays as it is."] = "Esquecer lembranças limpa só a memória mostrada aqui. A outra memória continua como está.",
     ["This clears the memory in use: {memory}."] = "Isso limpa a memória em uso: {memory}.",
+    ["Companions change outfits"] = "Companheiros trocam de roupa",
+    ["Your party’s companions change outfits now and then: another look by day and by night, and casual clothes at home, where the character has them.\n\nOnly out of your sight, never in front of you, and only for your party’s own copies, never the game’s own characters. Turning this off keeps what they wear now."] = "Os companheiros do seu grupo trocam de roupa de tempos em tempos: outro visual de dia e outro à noite, e roupas casuais em casa, quando o personagem as tiver.\n\nSomente fora da sua vista, nunca na sua frente, e apenas para as cópias do próprio grupo, nunca para os personagens do jogo. Desligar essa opção mantém as roupas que eles estão usando agora.",
 }

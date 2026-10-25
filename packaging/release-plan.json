@@ -146,6 +146,14 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/pad-binding.lua"
         },
         {
+          "source": "mod/companion-outfits.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits.lua"
+        },
+        {
+          "source": "mod/companion-outfits-data.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-outfits-data.lua"
+        },
+        {
           "source": "mod/player-gear.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
         },

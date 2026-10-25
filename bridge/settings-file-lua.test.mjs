@@ -140,7 +140,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', replyLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
-    errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes',
+    errorReports: 'off', dynamicInfo: 'all', voiceActivation: 'yes', padTalk: 'yes', companionOutfits: 'yes',
   };
   const out = run(`${managerLua}
     files['runtime/settings.json'] = ${luaString(JSON.stringify({version: 2, ...wrong}))}
