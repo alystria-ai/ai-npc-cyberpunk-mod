@@ -11,7 +11,7 @@ import {parseTurnContext} from './turn-context.mjs';
 import {describePhoneFailure} from './phone-failure.mjs';
 import {parseMeetOffer, parseMeetEvent, screenMeet, meetInstruction, splitMeetTags, meetAction} from './meet-requests.mjs';
 import {eventTrigger} from './appointment-events.mjs';
-import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction} from './home-requests.mjs';
+import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction, HomePicks} from './home-requests.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -189,6 +189,8 @@ export class PhoneChat {
     // text, for the bridge log and the support report (bridge/phone-failure.mjs). It never changes what the player sees and never throws into a send.
     this.onFailure = typeof onFailure === 'function' ? onFailure : null;
     this.store = sessionStore(sessions); this.transientSessions = new Map(); this.seen = new Set();
+    // Housemates: she asked which of V's apartments; V's next message is the answer (bridge/home-requests.mjs HomePicks).
+    this.homePicks = new HomePicks({now: () => this.now()});
     this.world = null; this.binding = null; this.writes = Promise.resolve(); this.sessionWrites = Promise.resolve();
   }
   emit(active, value) {
@@ -264,7 +266,8 @@ export class PhoneChat {
         const meetScreen = meetOffer ? screenMeet(input.text) : null;
         // A message can carry both offers. When V's words screen as a meeting request the meet path wins, unless they plainly say she may live there
         // ("you can stay at my place" also names a place and would otherwise always be taken as "come over"): then the home path wins.
-        const homeScreen = homeOffer ? screenHome(input.text, homeOffer) : null;
+        const picking = homeOffer ? this.homePicks.turn(contact.profile, input.text, homeOffer.apartments, homeOffer.here) : false;
+        const homeScreen = homeOffer ? screenHome(input.text, homeOffer, picking) : null;
         const homeWins = !!homeScreen?.kind && (!meetScreen?.kind || (meetScreen.kind === 'here' && homeScreen.strong));
         const screen = homeWins ? null : meetScreen;
         const instruction = screen ? meetInstruction(meetOffer, screen) : '';
@@ -333,6 +336,7 @@ export class PhoneChat {
         const met = meetOutcome(result, meetOffer, screen);
         const {text: shown, action: homeDone} = homeOutcome(met.text, result, homeOffer, homeWins ? homeScreen : null);
         const action = met.action ?? homeDone;
+        if (homeDone) this.homePicks.done(contact.profile);
         if (!shown.trim()) throw Error('Invalid reply');
         const reply = {...identity, state: 'reply', text: shown, ...(action ? {action} : {})};
         if (sessionless) {

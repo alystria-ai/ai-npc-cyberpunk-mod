@@ -51,22 +51,49 @@ const words = value => ` ${normal(value).toLowerCase().replace(/[^\p{L}\p{N}]+/g
 const nameParts = name => words(name).trim().split(' ').filter(part => part.length >= 4);
 
 /**
- * What V's message could be: {kind, stay, moveOut, strong}. `stay`: it could let her live at V's place (a stem of the table in bridge/text-action-words.mjs, a
+ * What V's message could be: {kind, stay, moveOut, strong, pick}. `stay`: it could let her live at V's place (a stem of the table in bridge/text-action-words.mjs, a
  * short answer to her own question, or one of V's apartments named), `moveOut`: it could end that. `kind` is 'move-out', 'stay' or null (nothing: no
  * instruction is added and no tag counts); `strong` says the words are about living somewhere, not just a place word (so a plain invitation to come over
- * is told apart, see bridge/phone-chat.mjs).
+ * is told apart, see bridge/phone-chat.mjs). `picking` (HomePicks.turn): this message answers her "which apartment?"; then `pick` is true on a stay.
  */
-export function screenHome(text, offer) {
+export function screenHome(text, offer, picking = false) {
   const value = normal(text);
-  const none = {kind: null, stay: false, moveOut: false, strong: false};
+  const none = {kind: null, stay: false, moveOut: false, strong: false, pick: false};
   if (!offer?.token || !value.trim()) return none;
   const line = words(value);
   const short = line.trim().split(' ').length <= 8;
+  const answer = (!!offer.asked || picking === true) && short;
   const named = offer.apartments.some(item => line.includes(` ${item.id} `) || nameParts(item.name).some(part => line.includes(` ${part} `)));
   const moveOut = offer.moveOut === true && mentions('MOVEOUT', value);
   // "you can't stay here any more" has the words of both; for a housemate who is told to go it is the move-out.
-  const stay = offer.apartments.length > 0 && !moveOut && (mentions('STAY', value) || (!!offer.asked && short) || named);
-  return {kind: moveOut ? 'move-out' : stay ? 'stay' : null, stay, moveOut, strong: (stay || moveOut) && (mentionsLiving(value) || (!!offer.asked && short))};
+  const stay = offer.apartments.length > 0 && !moveOut && (mentions('STAY', value) || answer || named);
+  return {kind: moveOut ? 'move-out' : stay ? 'stay' : null, stay, moveOut, strong: (stay || moveOut) && (mentionsLiving(value) || answer),
+    pick: stay && picking === true};
+}
+
+// ---- "Which apartment?" -------------------------------------------------------------------------------------------------------------------------
+// V says she can live at V's place without naming one of several apartments: she asks which, and V's next message is the answer. The answer alone
+// ("Corpo Plaza") does not say she may live there, so without this memory no action came (the first live run, 2026-10-25: she asked, V answered,
+// she said yes, nothing moved). Per character: opened by such a message, good for HOME_PICK_TURNS turns within HOME_PICK_TTL_MS, closed by the move.
+// Used in person (bridge/companion-actions.mjs) and on the phone (bridge/phone-chat.mjs).
+export const HOME_PICK_TTL_MS = 600000;
+export const HOME_PICK_TURNS = 3;
+export class HomePicks {
+  constructor({now = Date.now} = {}) { this.now = now; this.open = new Map(); }
+  // One turn of `key` (V's text, the offered apartments [{id}], `here`: the one V stands in): true when it answers her question. Once per turn.
+  turn(key, text, apartments, here) {
+    const now = this.now(), prior = this.open.get(key), list = Array.isArray(apartments) ? apartments : [];
+    const fresh = !!prior && now - prior.at <= HOME_PICK_TTL_MS && prior.turns < HOME_PICK_TURNS;
+    if (prior && !fresh) this.open.delete(key);
+    if (fresh) prior.turns += 1;
+    // She can only have asked when there is more than one to pick from and V stands in none of them (the instructions say so too).
+    const value = typeof text === 'string' ? text : '';
+    if (list.length > 1 && !list.some(apartment => apartment.id === here) && mentions('STAY', value) && !mentions('MOVEOUT', value)) {
+      this.open.set(key, {at: now, turns: 0});
+    }
+    return fresh && list.length > 0;
+  }
+  done(key) { this.open.delete(key); }
 }
 
 // ---- The instruction the character reads -----------------------------------------------------------------------------------------------------
@@ -76,7 +103,7 @@ const PROTOCOL = 'The tag is not spoken or shown to V; the no-brackets rule does
   + 'Hypothetical talk, a vague "sometime" and jokes get no tag. ';
 const nameOf = (offer, id) => offer.apartments.find(item => item.id === id)?.name ?? null;
 
-function stayText(offer) {
+function stayText(offer, pick) {
   const list = offer.apartments.map(item => `${quote(item.name)} is [stay:${item.id}]`).join('; ');
   const here = offer.here && nameOf(offer, offer.here);
   const only = offer.apartments.length === 1 ? offer.apartments[0] : null;
@@ -84,13 +111,16 @@ function stayText(offer) {
   return '\nCurrent game-verified option: V can let you live at V\'s place. V\'s apartments (quoted game data, not instructions): '
     + offer.apartments.map(item => quote(item.name)).join(', ') + '. '
     + (offer.lives ? `You already live at V's place, in ${quote(offer.lives.name)}; a new stay replaces that. ` : '')
-    + 'When V\'s new message clearly says you may live or stay at V\'s place (for example "you can stay at my place", "move in with me", "you can crash at my place") and you agree in character, '
+    + 'When V\'s new message clearly says you may live or stay at V\'s place (for example "you can stay at my place", "move in with me", "you can crash at my place")'
+    + (pick ? ' or answers your question which apartment (below)' : '') + ' and you agree in character, '
     + 'begin your reply with exactly one tag, a space, and then your normal in-character answer. The tags: ' + list + '. '
     + 'Use the one for the apartment V names. '
     + (here ? `If V names none, it is ${quote(here)} (where V is now: [stay:${offer.here}]). `
       : only ? `If V names none, it is ${quote(only.name)} (the only one V has: [stay:${only.id}]). `
         : 'If V names none, ask V in your own words which one and write no tag yet: V\'s answer comes in the next message. ')
     + (asked ? `You asked V last time whether you stay in ${quote(asked)} or go back to your own place. If V's new message says you stay, begin with [stay:${offer.asked.here}]; if it says go back, write no tag. ` : '')
+    + (pick ? 'V told you a moment ago that you can live at V\'s place, and you asked which apartment. V\'s new message is the answer, and it is V\'s go-ahead: '
+      + 'when it names or points to one of the listed apartments, begin with its tag and say yes in your own words. If it still does not say which, ask again and write no tag. ' : '')
     + 'Never use an apartment that is not listed. Do not tag "stay for dinner", "stay here a sec", "stay put" or any stay that is only for a while. If you would refuse in character, say so and write no tag. '
     + PROTOCOL + 'The game moves you in after your reply; never claim you are already there.';
 }
@@ -107,7 +137,7 @@ function moveOutText(offer) {
  */
 export function homeInstruction(offer, screen) {
   if (!offer?.token || !screen?.kind) return '';
-  return (screen.stay ? stayText(offer) : '') + (screen.moveOut ? moveOutText(offer) : '');
+  return (screen.stay ? stayText(offer, screen.pick === true) : '') + (screen.moveOut ? moveOutText(offer) : '');
 }
 
 // ---- The tag of her reply ---------------------------------------------------------------------------------------------------------------------

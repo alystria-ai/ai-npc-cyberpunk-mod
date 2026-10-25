@@ -118,3 +118,17 @@ test('a leave offer may name up to twelve members', () => run(`
  local second={requestId='r2',generation=7,entity='22ULL',profileKey='judy'};q.capture(second,'private-text')
  assert(second.leaveOffer==nil)
 `));
+
+test('a refused housing packet writes one line with the rule it broke, and a throw in the hand-over is written too', () => run(`
+ local logs={}
+ q.options.log=function(line) logs[#logs+1]=line end
+ local input=context();assert(q.capture(input,'private-text'))
+ local p=packet(input,{op='stay',apartment='corpo'});p.homeOffer.here='h10';q.update(true)
+ assert(#queued==0 and #logs==1 and logs[1]=='Housemates failed:packet-offer-differs',tostring(logs[1]))
+ q.update(true);assert(#logs==1,'once per packet')
+ packet(input,{op='stay',apartment='glen'});q.update(true)
+ assert(logs[2]=='Housemates failed:packet-not-offered',tostring(logs[2]))
+ q.options.queueHome=function() error('boom') end
+ packet(input,{op='stay',apartment='corpo'});q.update(true)
+ assert(logs[3]:find('Housemates failed:queue-error',1,true),tostring(logs[3]))
+`));

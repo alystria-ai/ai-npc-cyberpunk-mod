@@ -1,4 +1,5 @@
 import {parseCallMeetOffer, offeredKinds} from './call-meet.mjs';
+import {HomePicks} from './home-requests.mjs';
 
 // One native offer authorizes one semantic proposal. Coordinates, actor IDs and
 // vehicle IDs always come from the game snapshot, never from model arguments.
@@ -261,13 +262,29 @@ export function reactionTraceLine({person, kinds, admitted = true, route, tag, w
 }
 const LATE_TRACE_MS = LATE_ACTION_MS + 1000;
 
+// One line per turn that carried a housing offer (docs/HOUSEMATES.md): the first live run (2026-10-25) left nothing to read between "she said yes" and
+// "she wasn't there". Codes and names only, never V's words or the reply:
+//   Housing: person=blue-moon apartments=h10,corpo,glen here=- pick=yes action=stay:corpo delivered=yes
+//   Housing: person=blue-moon apartments=h10,corpo,glen here=- pick=no action=none(no-action-requested) delivered=- convai=allowed:true ...
+// pick: V's message answered her "which apartment?"; action: the choice the reply asked for, or none(<why>); delivered: yes, no(<why>) or -.
+export function homeTraceLine({person, apartments, here, pick, action, why, delivered, extra} = {}) {
+  const list = Array.isArray(apartments) && apartments.length ? apartments.join(',') : '-';
+  return `Housing: person=${person ?? '?'} apartments=${list} here=${here ?? '-'} pick=${pick ? 'yes' : 'no'}`
+    + ` action=${action ?? (why ? `none(${why})` : 'none')} delivered=${delivered === true ? 'yes' : delivered ? `no(${delivered})` : '-'}${extra ? ' ' + extra : ''}`;
+}
+const homeChoiceText = choice => !object(choice) ? 'invalid' : choice.op === 'stay' ? `stay:${choice.apartment}` : choice.op === 'join' ? `join:${choice.target}` : String(choice.op);
+
 // Host-side ownership survives completed text/audio for a bounded late event.
 // A new input, cancellation, world/reset change or expired offer revokes it.
 export class CompanionActions {
   // log: one line per reaction turn (reactionTraceLine); probe: async () => text, what the Convai page saw of the offer (appended to the line
   // of a turn that asked for no action).
-  constructor({publish, createToken, now = Date.now, log = () => {}, probe = null}) {
-    Object.assign(this, {publish, createToken, now, log, probe}); this.revision = 0; this.pending = null;
+  // homeLog: one line per turn with a housing offer (homeTraceLine); the reaction log when not given.
+  constructor({publish, createToken, now = Date.now, log = () => {}, probe = null, homeLog = null}) {
+    Object.assign(this, {publish, createToken, now, log, probe, homeLog: homeLog ?? log}); this.revision = 0; this.pending = null;
+    // Housemates: V said she could live at V's place without naming one of several apartments, so she asks which (homeContextText); her next turns
+    // carry `pick` so that V naming a flat is the go-ahead (bridge/home-requests.mjs HomePicks).
+    this.homePicks = new HomePicks({now: () => this.now()});
   }
   // The text host says what the reply's tag was ({tag: kind} before it hands the reaction over; {tag: null, why} when the reply asked for none).
   traceReaction(token, {route = 'text', tag = null, why = null} = {}) {
@@ -280,6 +297,10 @@ export class CompanionActions {
   // (the window stays open for a few seconds), so its line comes when the window has closed.
   endTurn(input) {
     const pending = this.pending;
+    if (pending?.homeTrace && pending.input === input && !pending.homeTrace.logged) {
+      const timer = setTimeout(() => this.#closeHomeTrace(pending, {why: 'no-action-requested'}), LATE_TRACE_MS);
+      timer.unref?.();
+    }
     if (!pending?.trace || pending.input !== input || pending.trace.logged) return;
     if (pending.trace.tag) return;   // chosen: deliver() closes it
     const timer = setTimeout(() => this.#closeTrace(pending, 'no-action-requested'), LATE_TRACE_MS);
@@ -297,8 +318,20 @@ export class CompanionActions {
       Promise.resolve().then(() => this.probe()).then(emit, () => emit());
     } else emit();
   }
+  #closeHomeTrace(pending, {action = null, why = null, delivered = null} = {}) {
+    const trace = pending?.homeTrace;
+    if (!trace || trace.logged) return;
+    trace.logged = true;
+    const emit = extra => { try { this.homeLog(homeTraceLine({...trace, action, why, delivered, extra})); } catch { /* a log line never breaks a turn */ } };
+    // The Convai route asked for nothing: what its page did with the offer is the part nobody could see.
+    if (!action && pending.input?.provider === 'convai' && typeof this.probe === 'function') {
+      Promise.resolve().then(() => this.probe()).then(emit, () => emit());
+    } else emit();
+  }
   revoke(reason = 'revoked') {
     this.#closeTrace(this.pending, reason);
+    // A turn replaced before its reply ended: its housing line says so (an ordinary next turn has closed it already).
+    this.#closeHomeTrace(this.pending, {why: reason});
     const revision = ++this.revision; this.pending = null;
     // Invalidate an unconsumed file too. An already running native journey has
     // its own cancellation policy and is not undone by this empty mailbox.
@@ -370,8 +403,10 @@ export class CompanionActions {
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    this.pending = {input, packet, tactic, follow, leave, home, reaction, meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
-      ...(reaction ? {trace: {person: input.profileKey, kinds: [...reaction.kinds], logged: false}} : {})};
+    const homePick = home && !group ? this.homePicks.turn(input.profileKey, input.text, home.apartments, home.here) : false;
+    this.pending = {input, packet, tactic, follow, leave, home, homePick, reaction, meet, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
+      ...(reaction ? {trace: {person: input.profileKey, kinds: [...reaction.kinds], logged: false}} : {}),
+      ...(home ? {homeTrace: {person: input.profileKey, apartments: home.apartments.map(apartment => apartment.id), here: home.here, pick: homePick, logged: false}} : {})};
     return this.configFor(input);
   }
   current(pending) {
@@ -392,7 +427,7 @@ export class CompanionActions {
         self: member.id === pending.leave.actor.id, ...(member.away === true ? {away: true} : {}),
         ...(member.homeName !== undefined ? {homeName: member.homeName} : {}), ...(member.hereName !== undefined ? {hereName: member.hereName} : {}),
         ...(member.confirmed === true ? {confirmed: true} : {})}))}} : {}),
-      ...(pending.home ? {home: homeConfig(pending.home)} : {}),
+      ...(pending.home ? {home: homeConfig(pending.home, pending.homePick)} : {}),
       ...(pending.reaction ? {reaction: {kinds: [...pending.reaction.kinds]}} : {}),
       ...(pending.meet ? {meet: meetSummary(pending.meet.meet)} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
@@ -409,6 +444,16 @@ export class CompanionActions {
       // No tag came from the text host first: the model asked for the action itself (the Convai route).
       if (!trace.route) { trace.route = 'convai'; trace.tag = String(message.reaction); }
       this.#closeTrace(pending, null, attempt.value ? true : attempt.why ?? 'not-published');
+    }
+    // A housing choice: its line, and a stay or a move-out answers her "which apartment?" for good. A refused one is written and the turn's line stays open.
+    if (object(message) && message.home !== undefined && pending?.homeTrace) {
+      const action = homeChoiceText(message.home);
+      if (attempt.value) {
+        if (message.home?.op !== 'join') this.homePicks.done(pending.input.profileKey);
+        this.#closeHomeTrace(pending, {action, delivered: true});
+      } else if (!pending.homeTrace.logged) {
+        try { this.homeLog(homeTraceLine({...pending.homeTrace, action, delivered: attempt.why ?? 'not-published'})); } catch { /* never breaks a turn */ }
+      }
     }
     return attempt.value;
   }
@@ -519,14 +564,17 @@ function windowLeave(value) {
 }
 
 // What the page and the text host get of a home offer: names and fixed apartment ids only (member entities stay in the bridge).
-function homeConfig(offer) {
+// `pick`: V's message answers her question which apartment (CompanionActions.#homePick); bridge-side, never part of the game's offer.
+function homeConfig(offer, pick = false) {
   return {apartments: offer.apartments.map(apartment => ({id: apartment.id, name: apartment.name})),
     members: offer.members.map(member => ({name: member.name, self: member.id === offer.actor.id})),
     ...(offer.moveOut === true ? {moveOut: true} : {}), ...(offer.here !== undefined ? {here: offer.here} : {}),
-    ...(offer.lives ? {lives: offer.lives.name} : {}), ...(offer.asked ? {asked: {from: offer.asked.from, here: offer.asked.here}} : {})};
+    ...(offer.lives ? {lives: offer.lives.name} : {}), ...(offer.asked ? {asked: {from: offer.asked.from, here: offer.asked.here}} : {}),
+    ...(pick === true && offer.apartments.length ? {pick: true} : {})};
 }
 function windowHome(value) {
-  return object(value) && only(value, ['apartments', 'members'], ['moveOut', 'here', 'lives', 'asked'])
+  return object(value) && only(value, ['apartments', 'members'], ['moveOut', 'here', 'lives', 'asked', 'pick'])
+    && (value.pick === undefined || (value.pick === true && Array.isArray(value.apartments) && value.apartments.length > 0))
     && Array.isArray(value.apartments) && value.apartments.length <= HOME_MAX_APARTMENTS
     && value.apartments.every(apartment => object(apartment) && keys(apartment, ['id', 'name']) && apartmentId(apartment.id) && string(apartment.name, 60))
     && new Set(value.apartments.map(apartment => apartment.id)).size === value.apartments.length
@@ -626,6 +674,7 @@ function homeContextText(offered) {
       + 'Available actions, each optionally targeting ' + offered.token + ': '
       + stays.map(row => quoted(row.name) + ' means you live in ' + quoted(homeApartmentName(home, row.apartment)) + ' from now on' + (home.lives ? ' instead of where you live now' : '') + '.').join(' ') + ' '
       + 'Request one of them only when V\'s new message clearly says you may live or stay at V\'s place, for example "you can stay at my place", "move in with me" or "you can crash at my place", '
+      + (home.pick ? 'or answers your question which apartment (below), ' : '')
       + 'and you agree. Do not request it for "stay for dinner", "stay here a sec", "stay put", "stay away", "stay with me a minute" or any stay that is only for a while. '
       + 'Which apartment: the one V names. '
       + (home.here !== undefined && stays.some(row => row.apartment === home.here)
@@ -633,6 +682,11 @@ function homeContextText(offered) {
         : stays.length === 1 ? 'If V names none, it is ' + quoted(homeApartmentName(home, stays[0].apartment)) + ', the only one V has. '
           : 'If V names none, ask V in your own words which of them it is and request nothing yet: V\'s answer comes in the next message, and then you request it. ')
       + 'Never request an apartment that is not listed and never invent one. ';
+    if (home.pick) {
+      text += 'V told you a moment ago that you can live at V\'s place, and you asked which apartment. V\'s new message is the answer, and it is V\'s go-ahead: '
+        + 'when it names or points to one of the listed apartments (its name or part of it, its district, "that one", "the first one"), request that apartment\'s action now, in this reply, '
+        + 'and say yes in your own words. If it still does not say which, ask again and request nothing. If V takes the offer back, request nothing. ';
+    }
     if (askedAt) {
       text += 'You asked V in your last reply whether you should stay in ' + quoted(homeApartmentName(home, askedAt.here)) + ' or go back to ' + quoted(homeApartmentName(home, askedAt.from))
         + '. If V\'s new message says you stay here, request ' + quoted(stays.find(row => row.apartment === askedAt.here)?.name) + '. If it says you go back, request no housing action. ';
