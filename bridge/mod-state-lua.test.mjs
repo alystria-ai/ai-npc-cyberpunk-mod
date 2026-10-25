@@ -89,8 +89,11 @@ test('read: every notable stage of every system becomes one small table; stages 
 test('read: nothing notable is nil, so the snapshot drops the field', () => withModule(`
   install()
   assert(M.read(nil, log) == nil)
-  install({hydration = 2, nutrition = 1, energy = 2, nerve = 2, alcohol = 2, alcoholStage = 4, nicotine = 1, injury = 2, humanity = 2})
-  assert(M.read(nil, log) == nil, 'quiet stages and an addiction without withdrawal say nothing')
+  install({hydration = 0, nutrition = 0, energy = 0, nerve = 2, alcohol = 2, alcoholStage = 4, nicotine = 1, injury = 2, humanity = 2})
+  assert(M.read(nil, log) == nil, 'quiet stages of nerve and the conditions and an addiction without withdrawal say nothing')
+  install({hydration = 1, nutrition = 1, energy = 2, nerve = 1})
+  local d = M.read(nil, log).darkFuture
+  assert(d.hydration == 1 and d.nutrition == 1 and d.energy == 2 and d.nerve == nil, 'hunger, thirst and tiredness are sent from stage 1 (Dark Future shows a status effect there), nerve is not')
 `));
 
 test('read: a system that is not running answers -1 (needs) or 0 (addictions, conditions): unknown, never a guess', () => withModule(`

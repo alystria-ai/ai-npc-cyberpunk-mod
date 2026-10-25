@@ -38,7 +38,7 @@ test('a companion in person is told what she is doing, who is with V and what is
   assert.match(text, /You are with V in person, standing near V\./);
   assert.match(text, /You have a weapon drawn in your hand\./);
   assert.match(text, /Also with V: Panam\./);
-  assert.match(turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'empty'}]})})), /Your hands are empty\./);
+  assert.match(turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'empty'}]})})), /You have no weapon drawn right now, your hands are empty./);
   assert.ok(!/in your hand|hands are empty/.test(turnContext(turn({turnContext: scene({party: [{key: 'judy-alvarez', name: 'Judy', holding: 'sword'}]})}))));
 });
 

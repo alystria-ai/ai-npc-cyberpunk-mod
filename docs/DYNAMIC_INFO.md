@@ -14,7 +14,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | --- | --- | --- | --- | --- |
 | Location (`dynamic:location`) | `dynamicInfo.location` | the district, V's apartment or the named place, indoors or outdoors; an ordinary NPC's "where you are now" | the place sentence of the right-now block (every form), `archetypeContext` | `currentDistrict()`, the indoors read, Johnny's arrival-at-a-place sampling. Not covered: the picture Convai gets of what V sees, and an add-on's own text |
 | Time and weather (`dynamic:time`) | `dynamicInfo.time` | the hour and the weather | the Background line (and the clock in the block) | the game clock, the weather |
-| Company and vehicle (`dynamic:company`) | `dynamicInfo.company` | who is with V, in a vehicle, driving, V's motion, what a companion is doing, whether a weapon is drawn in her hand ("You have a weapon drawn in your hand." / "Your hands are empty.") and whether she wears other clothes than her appearance text (docs/COMPANION_OUTFITS.md) | "Also with V", "V is in a vehicle / driving / walking" and the companion's own activity | the party read, the activity inputs, the vehicle read |
+| Company and vehicle (`dynamic:company`) | `dynamicInfo.company` | who is with V, in a vehicle, driving, V's motion, what a companion is doing, whether a weapon is drawn in her hand ("You have a weapon drawn in your hand." / "You have no weapon drawn right now, your hands are empty.") and whether she wears other clothes than her appearance text (docs/COMPANION_OUTFITS.md) | "Also with V", "V is in a vehicle / driving / walking" and the companion's own activity | the party read, the activity inputs, the vehicle read |
 | Health, heat and fights (`dynamic:condition`) | `dynamicInfo.condition` | V's health band, the police heat, the last fight | "V is hurt", the heat sentence, the battle block of a manual turn | the health and heat reads, and the fight read of a manual turn (`battles.captureManual`: group, phone, microphone and typed text). The battle module's own capture is never gated: battle reactions carry their own fight whatever the switch says |
 | V's money (`dynamic:money`) | `dynamicInfo.money` | a rough band: nearly broke ... rich | the money sentence | the money read |
 | V's gear and clothes (`dynamic:gear`) | `dynamicInfo.gear` | clothes, weapons, cyberware | the gear block (and what a bystander can see) | `playerGear:capture()` |
@@ -116,27 +116,29 @@ The Lua side sends only what is worth saying (need and condition stages 3 and 4,
 screen, so a first miss is not remembered for the session; a mod added while the game runs is found within a minute of the next turn). Present: the module is
 loaded once, and a module that fails to load is not retried.
 
-**What is said** (`bridge/mod-state.mjs`). Only stage 3 and 4 (and a withdrawal level of 3 or more): Dark Future passes through stages 1 and 2 ("slightly
-thirsty", "a bit tired") all day, and a model told so on every turn makes it the topic. The words: energy "worn out" / "exhausted", thirst "parched" /
-"badly dehydrated", hunger "very hungry" / "starving", nerve "badly on edge" / "at the end of their nerve", humanity "losing their grip on their humanity" /
-"close to cyberpsychosis", injuries "worn down by lasting injuries" / "badly battered by lasting injuries", withdrawal "in withdrawal from alcohol" (nicotine,
-narcotics; several are one phrase). At most two sentences (the body, then the rest), three phrases each, the worst first. Never the mod's name, a stage, a
-number, or a verdict on an addiction.
+**What is said** (`bridge/mod-state.mjs`). Hunger, thirst and tiredness from stage 1 (Dark Future itself starts a status effect on V there: a live test of
+2026-10-26 read nutrition=1 while the owner was hungry, and the old bar of stage 3 said nothing); nerve, injuries and humanity from stage 3 (nerve sits at 1 all
+day); withdrawal from level 3. The words: energy "a little tired" / "tired" / "worn out" / "exhausted", thirst "a little thirsty" / "thirsty" / "parched" /
+"badly dehydrated", hunger "a little hungry" / "hungry" / "very hungry" / "starving" (stages 1 to 4), nerve "badly on edge" / "at the end of their nerve",
+humanity "losing their grip on their humanity" / "close to cyberpsychosis", injuries "worn down by lasting injuries" / "badly battered by lasting injuries",
+withdrawal "in withdrawal from alcohol" (nicotine, narcotics; several are one phrase). At most two sentences (the body, then the rest), three phrases each,
+the worst first. Never the mod's name, a stage, a number, or a verdict on an addiction. A steady stage is told once (below), not recited, so the mild
+words do not make a topic of it.
 
 | Form | What it gets |
 | --- | --- |
 | a companion in person, Johnny in V's head | both sentences (the same wording: Johnny feels it from inside V, a companion sees and hears it) |
-| a stranger (an ordinary NPC) | one sentence of what shows on a body: "V looks exhausted and parched." Never nerve, withdrawal, injuries or humanity |
+| a stranger (an ordinary NPC) | one sentence of what shows on a body, from stage 3 only: "V looks exhausted and parched." Never nerve, withdrawal, injuries or humanity |
 | a phone chat, a call, an add-on voice | nothing |
 
 The sentences ride the **Background** line with the weather and the time, and are told when the conversation has not heard them: the first turn, a change (a
 stage that moves, a new state, a substance added), or after a long silence (`bridge/scenery-memory.mjs` with `modsSignature`). A steady state is not repeated on
-every turn, and a change below stage 3 changes nothing.
+every turn, and a change below the bar (stage 1 for the body, 3 for the rest) changes nothing.
 
 **Not verified** (the live check in the captain's log): that a build of Dark Future for game 2.5 exists and keeps these names (none was published on 2026-10-25:
 the GitHub releases end at 2.0 for game 2.31, 2026-01-06; the Nexus page answered 403 to a plain fetch, but its Files tab, read in a browser on 2026-10-25 without logging in, lists one main file, 2.0.3-for-2.31 (20 January 2026), and the older 2.0.2, 2.0.1, 2.0.0, 1.4.2 and earlier: no build for game 2.5); that CET returns nil for a class name that does
 not exist; that CET calls `:GetNeedStage()` on the handle `Get()` returns. The first reading writes one `probe.log` line per distinct reading:
-`Mod state: dark-future hydration=3 nutrition=0 energy=4 nerve=? alcohol=3 nicotine=0 narcotic=0 injury=0 humanity=0` (the raw stages; `?` unknown or not running,
+`Mod state: dark-future hydration=3 nutrition=1 energy=4 nerve=? alcohol=3 nicotine=0 narcotic=0 injury=0 humanity=0` (the raw stages; `?` unknown or not running,
 `-` the system was not found; the addictions show the withdrawal level), and one line per name that answered or failure kind. The status effects Dark Future applies
 (a gameplay tag per need) were left out as a fallback: they go blank in cutscenes and menus, and no live read showed they are needed.
 

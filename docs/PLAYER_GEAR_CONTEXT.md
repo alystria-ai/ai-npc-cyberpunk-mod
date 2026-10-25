@@ -88,3 +88,8 @@ contained), and the wiring of each send path.
 
 
 Only what V has on is ever listed; an empty slot is not mentioned. The guidance (and the stranger's line) also says never to remark on what V is not wearing (2026-10-25: a companion kept saying V wore no mask).
+
+**Live check of 2026-10-26.** The owner's game copies (2.31 and 2.5) had no Equipment-EX installed (no `EquipmentEx` redscript, no archive), so the reader answered
+nil each time (an absent mod is silent in `probe.log`: no `equipment-ex outfit=` line was written) and the equipped inventory was listed, as designed. The reader has
+not been seen against the real mod yet: with it installed and an outfit on, `probe.log` must show `equipment-ex outfit=...`; if it shows nothing, check the class
+name `EquipmentEx.OutfitSystem` first.

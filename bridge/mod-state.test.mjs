@@ -37,9 +37,14 @@ test('a companion in person and Johnny in V\'s head get the same plain wording; 
   assert.doesNotMatch(person.join(' '), /Dark Future|mod\b|stage|level|\d/i, 'no mod name, stage or number reaches the model');
 });
 
-test('stages one and two, and a mild withdrawal, are left out; stage three and four are said', () => {
-  assert.deepEqual(modsSentences(mods({energy: 2, hydration: 1, nutrition: 2, nerve: 2, injury: 2, humanity: 2, alcohol: {stage: 4, withdrawal: 2}}), 'person'), []);
-  assert.equal(modsSignature(mods({energy: 2, nerve: 1, alcohol: {stage: 1, withdrawal: 2}})), undefined);
+test('a mild withdrawal and the quiet stages of nerve and the conditions are left out; hunger, thirst and tiredness are said from stage one', () => {
+  assert.deepEqual(modsSentences(mods({nerve: 2, injury: 2, humanity: 2, alcohol: {stage: 4, withdrawal: 2}}), 'person'), []);
+  assert.equal(modsSignature(mods({nerve: 1, alcohol: {stage: 1, withdrawal: 2}})), undefined);
+  assert.deepEqual(modsSentences(mods({nutrition: 1}), 'person'), ['V is a little hungry.']);
+  assert.deepEqual(modsSentences(mods({nutrition: 2, hydration: 1, energy: 2}), 'person'), ['V is tired, hungry and a little thirsty.']);
+  assert.deepEqual(modsSentences(mods({nutrition: 1, energy: 2}), 'head'), ['V is tired and a little hungry.']);
+  assert.deepEqual(modsSentences(mods({nutrition: 2, hydration: 1, energy: 2}), 'ambient'), [], 'a stranger sees a body only when it is bad');
+  assert.deepEqual(modsSentences(mods({nutrition: 1}), 'phone'), []);
   assert.deepEqual(modsSentences(mods({energy: 3}), 'person'), ['V is worn out.']);
   assert.deepEqual(modsSentences(mods({energy: 4}), 'person'), ['V is exhausted.']);
   assert.deepEqual(modsSentences(mods({hydration: 4}), 'person'), ['V is badly dehydrated.']);
@@ -93,7 +98,7 @@ test('a phone chat, a call, an add-on voice and an unknown form get nothing', ()
 
 test('the signature changes exactly when the wording would, and is undefined when there is nothing to say', () => {
   assert.equal(modsSignature(undefined), undefined);
-  assert.equal(modsSignature(mods({energy: 1})), undefined);
+  assert.equal(modsSignature(mods({energy: 0})), undefined);
   const exhausted = modsSignature(mods({energy: 4}));
   assert.ok(exhausted && exhausted.length < 80);
   assert.equal(modsSignature(mods({energy: 4, nerve: 1})), exhausted, 'a quiet state does not change it');
@@ -146,7 +151,7 @@ test('the scenery memory tells a state when it is new or changed, not on every t
   assert.equal(said({darkFuture: {energy: 4, hydration: 3}}), true, 'a new state is told');
   assert.equal(said({darkFuture: {energy: 4, hydration: 3}}), false);
   assert.equal(said({darkFuture: {energy: 3, hydration: 3}}), true, 'a stage that moves is told');
-  assert.equal(said({darkFuture: {energy: 1}}), undefined, 'nothing to say: no verdict, the memory forgets it');
+  assert.equal(said({darkFuture: {energy: 0}}), undefined, 'nothing to say: no verdict, the memory forgets it');
   assert.equal(said({darkFuture: {energy: 3, hydration: 3}}), true, 'when it comes back it is new again');
 });
 

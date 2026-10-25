@@ -57,7 +57,7 @@ const OUTFITS = {
   changed: 'You have changed clothes: you are not wearing the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.',
   home: 'You are in casual clothes for home, not the outfit your appearance notes describe. Your hair, face, tattoos and cyberware are the same.'};
 // What a companion has in her hand (mod/companions.lua activityInputs): the game reads only whether a real weapon is drawn.
-const HOLDING = {weapon: 'You have a weapon drawn in your hand.', empty: 'Your hands are empty.'};
+const HOLDING = {weapon: 'You have a weapon drawn in your hand.', empty: 'You have no weapon drawn right now, your hands are empty.'};
 // Said last in every form: the facts are scenery unless the talk needs them.
 const MENTION = ' Do not recite it, and mention a place or the time only if it matters to what V says.';
 // What a remote character is told to hold to: not with V, no view of V's surroundings, no invented place or doing of her own.
