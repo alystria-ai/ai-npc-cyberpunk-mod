@@ -3600,18 +3600,26 @@ do
             file:write(encoded); file:close()
         end}
     -- The glue module is loaded on the first tick with the setting On; with it Off nothing but the setting is ever read.
+    -- One try per load: a glue that cannot be loaded or built is not read, compiled and run again on every 0.1 s tick.
+    local failed = false
     local function service()
         if convaiImmersiveService then return convaiImmersiveService end
+        if failed then return nil end
         local loaded, module = pcall(dofile, 'immersive-service.lua')
-        if not loaded or type(module) ~= 'table' then
-            convaiLogOnce('immersive-service', 'Immersive invitations are unavailable: ' .. tostring(module))
+        local built, glue = false, module
+        if loaded and type(module) == 'table' and type(module.new) == 'function' then
+            built, glue = pcall(module.new, {
+                manager = manager, queue = function() return managerUi.party and managerUi.party() end, companions = companions,
+                phoneChat = phoneChat, load = dofile, notify = notify, log = log, logOnce = convaiLogOnce, held = held,
+                districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random})
+        end
+        if not built then
+            failed = true
+            convaiLogOnce('immersive-service', 'Immersive invitations are unavailable: ' .. tostring(glue))
             return nil
         end
-        convaiImmersiveService = module.new({
-            manager = manager, queue = function() return managerUi.party and managerUi.party() end, companions = companions,
-            phoneChat = phoneChat, load = dofile, notify = notify, log = log, logOnce = convaiLogOnce, held = held,
-            districtOf = currentDistrict, greet = convaiMeetGreeting, persist = persist, wall = os.clock, random = math.random})
-        return convaiImmersiveService
+        convaiImmersiveService = glue
+        return glue
     end
     -- The controller for the manager's Invite button and the Contacts J key: nil while the setting is Off (the old instant path applies).
     function convaiImmersiveGet()
@@ -4176,7 +4184,7 @@ function convaiSpeakUpEligible(now, worldReady, manual, outputs)
     if not sample or sample.available ~= true or sample.blocked or sample.combat then return false end
     if automatic ~= nil or pending ~= nil or speech.requestId ~= nil or subtitles.ownsUtterance() then return false end
     if convaiUnpromptedBusy and convaiUnpromptedBusy() then return false end
-    if battles.status().state == 'fighting' then return false end
+    if battles.fighting() then return false end
     return now - convaiSpeakUpState.lastManualAt >= convaiSpeakUpConfig.QUIET
 end
 
@@ -4299,7 +4307,10 @@ function convaiSpeakUpOffer(player, now, worldReady, outputs, manual, busy, mayF
         local head = convaiJohnnyHeadService()
         if head and not head:refusal(player) then entry = remarks:offer(now) end
     end
-    local person, event, quiet = convaiSpeakUpCompanion()
+    -- Nobody is due: no candidate list is built and no table made on this tick (the companions' timer is due about twice an hour).
+    if entry == nil and not sched:ready('companion') then return end
+    local person, event, quiet
+    if sched:ready('companion') then person, event, quiet = convaiSpeakUpCompanion() end
     local who = sched:pick({companion = person ~= nil, johnny = entry ~= nil})
     if who == 'johnny' then
         if not mayFollow(entry, 'head') or not sched:claim('johnny') then return end
@@ -4527,9 +4538,11 @@ local function updateBattles(player, elapsed, worldReady)
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
     -- Companions and Johnny speak up: the scheduler's clock counts calm time only; a prepared line is kept or dropped (one nil check while none).
+    if convaiPerfMark then convaiPerfMark('init:speakUp') end -- Developer mode: its own row in perf-probe.json; the battle work below returns to 'init:battles'
     local speakUpOn = convaiSpeakUpAdvance(now, elapsed, worldReady, manual, outputs)
     if convaiSpeakUpState.plan then convaiSpeakUpPlanTick(player, now, worldReady, outputs, manual) end
     if speakUpOn and not convaiSpeakUpState.plan then convaiSpeakUpPlanFollow(player, now) end
+    if convaiPerfMark then convaiPerfMark('init:battles') end
     if automatic and automatic.reaction.kind == 'meet' then
         convaiMeetGreetingTick(player, now, worldReady, outputs, manual)
     elseif automatic and automatic.reaction.kind == 'house' then
@@ -5361,7 +5374,15 @@ end
 -- new upvalue.
 function convaiKeyBindsModule()
     if convaiKeyBinds then return convaiKeyBinds end
-    convaiKeyBinds = dofile('key-bindings.lua')
+    -- One load per session: a file that fails to load is not read and compiled again on every 0.1 s tick (callers get nil).
+    if convaiKeyBindsFailed then return nil end
+    local loaded, module = pcall(dofile, 'key-bindings.lua')
+    if not loaded or type(module) ~= 'table' then
+        convaiKeyBindsFailed = true
+        convaiLogOnce('key-bindings-load', 'Key bindings are unavailable: ' .. tostring(module))
+        return nil
+    end
+    convaiKeyBinds = module
     convaiKeyBinds.deps = {
         bindings = function() return manager.keyBindings() end,
         save = function(action, name) return manager.setKeyBinding(Game.GetPlayer(), action, name) end,
@@ -5396,7 +5417,8 @@ function convaiKeyBindsTick(player, ready)
         if convaiKeyBinds then convaiKeyBinds.tick(player, ready) end
         return
     end
-    convaiKeyBindsModule().tick(player, ready)
+    local module = convaiKeyBindsModule()
+    if module then module.tick(player, ready) end
 end
 
 -- A tap action runs once for one press of a key: a CET hotkey and an own binding on the same key both fire when it comes up. Nothing to compare while no own
@@ -5411,7 +5433,15 @@ registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion mana
 -- at the party every 20 s. No per-frame work, no handle kept. Global functions, so onUpdate reaches them without a new upvalue.
 function convaiOutfitModule()
     if convaiOutfits then return convaiOutfits end
-    convaiOutfits = dofile('companion-outfits.lua')
+    -- One load per session (the setting is on by default): a file that fails to load is not read and compiled again on every 0.1 s tick.
+    if convaiOutfitsFailed then return nil end
+    local loaded, module = pcall(dofile, 'companion-outfits.lua')
+    if not loaded or type(module) ~= 'table' then
+        convaiOutfitsFailed = true
+        convaiLogOnce('outfits-load', 'Companion outfits are unavailable: ' .. tostring(module))
+        return nil
+    end
+    convaiOutfits = module
     convaiOutfits.deps = {
         enabled = function() return manager.companionOutfits() end,
         rows = function() return companions.outfitRows(convaiOutfits.known) end,
@@ -5451,13 +5481,15 @@ end
 
 function convaiOutfitTick(player, elapsed, ready)
     if not manager.companionOutfits() then return end
-    convaiOutfitModule().tick(player, elapsed, ready)
+    local module = convaiOutfitModule()
+    if module then module.tick(player, elapsed, ready) end
 end
 
 -- What a new copy is created in, what it was created in, and what it wears (for the talk context): the three hooks of companions.lua.
 companions.spawnOutfit = function(record, key)
     if not manager.companionOutfits() then return nil end
-    return convaiOutfitModule().spawnAppearance(record, key)
+    local module = convaiOutfitModule()
+    return module and module.spawnAppearance(record, key) or nil
 end
 companions.outfitCreated = function(serial, key, record, name)
     if convaiOutfits then convaiOutfits.created(serial, key, record, name) end
@@ -5469,9 +5501,9 @@ companions.outfitStatus = function(serial) return convaiOutfits and convaiOutfit
 -- in casual home clothes (where the character has them) the next time nobody is looking; false keeps them out of home clothes; nil goes back to following
 -- whether V is in an apartment. Safe to call at any time, with the setting off too (it then only remembers the answer for the session).
 convaiOutfitApi = {
-    setHome = function(key, on) return convaiOutfitModule().setHome(key, on) end,
-    isHome = function(key) return convaiOutfitModule().isHome(key) end,
-    hasHomeOutfit = function(record) return convaiOutfitModule().hasHomeOutfit(record) end,
+    setHome = function(key, on) local module = convaiOutfitModule(); return module and module.setHome(key, on) or false end,
+    isHome = function(key) local module = convaiOutfitModule(); if module then return module.isHome(key) end return nil end,
+    hasHomeOutfit = function(record) local module = convaiOutfitModule(); return module ~= nil and module.hasHomeOutfit(record) end,
 }
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
@@ -6048,12 +6080,15 @@ registerForEvent('onUpdate', function(delta)
     -- Controller talk button (Settings > Voices, off by default): one boolean per tick while it is off; the module is not even loaded then.
     local padOk, padError = pcall(convaiPadBindingTick, player, worldReady)
     if not padOk then convaiLogOnce('Controller talk button failed: ' .. tostring(padError)) end
+    -- Developer mode: the next two features (keys, outfits) are their own 'init:features' row in perf-probe.json, the rest of the tick goes back to 'init:tick'.
+    mark('init:features')
     -- The mod's own key bindings (Companion Manager > Key bindings): one table check per tick while none is saved; the module is not even loaded then.
     local keysOk, keysError = pcall(convaiKeyBindsTick, player, worldReady)
     if not keysOk then convaiLogOnce('Key bindings failed: ' .. tostring(keysError)) end
     -- Companions change outfits (Settings > Companion behavior, on by default): one boolean per tick while it is off; the module is not even loaded then.
     local outfitOk, outfitError = pcall(convaiOutfitTick, player, elapsedPoll, worldReady)
     if not outfitOk then convaiLogOnce('Companion outfits failed: ' .. tostring(outfitError)) end
+    mark('init:tick')
     -- The talk key's microphone lingers after a voice turn unless the game is busy: a clock compare per tick.
     local warmOk, warmError = pcall(convaiMicLingerTick, player, worldReady)
     if not warmOk then convaiLogOnce('Microphone linger check failed: ' .. tostring(warmError)) end
@@ -6086,10 +6121,12 @@ registerForEvent('onUpdate', function(delta)
     if not managerOk then convaiLogOnce('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
     if worldReady then
+        mark('init:homes')
         local immersiveOk, immersiveError = pcall(convaiImmersiveTick, elapsedPoll)
         if not immersiveOk then convaiLogOnce('immersive-tick', 'Immersive invitations failed: ' .. tostring(immersiveError)) end
         local housemateOk, housemateError = pcall(convaiHousemateTick, elapsedPoll)
         if not housemateOk then convaiLogOnce('housemate-tick', 'Housemates failed: ' .. tostring(housemateError)) end
+        mark('init:tick')
     end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
     if worldReady and convaiCompanionAdoption then

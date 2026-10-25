@@ -56,7 +56,7 @@ battlePeople = {person}
 automatic, pending, lastAutomatic = nil, nil, nil
 speech = {requestId = nil, context = nil, transcript = function() return nil end}
 subtitles = {ownsUtterance = function() return false end}
-battles = {status = function() return {state = 'idle'} end}
+battles = {fighting = function() return false end}
 generation = 10
 questContext = {capture = function() return {journal = true} end}
 convaiGameDialogue = {capture = function() return {dialogue = true} end}

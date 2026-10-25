@@ -54,10 +54,13 @@ function M.new(deps)
         end
     end)
 
+    local carsFailed = false
     local function cars()
         if not sequencer then
+            -- One try: a car module that cannot be loaded is not read and compiled again at every step of an arrival.
+            if carsFailed then return nil end
             local loaded, module = pcall(dofile, 'immersive-car.lua')
-            if not loaded or type(module) ~= 'table' then return nil end
+            if not loaded or type(module) ~= 'table' then carsFailed = true; return nil end
             carModule = module
             carApi = module.nativeApi({vehicle = deps.companions.vehicleAdapter, companions = deps.companions, tag = HER_CAR_TAG})
             sequencer = module.sequencer(carApi)

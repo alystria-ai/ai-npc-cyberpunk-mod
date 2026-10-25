@@ -36,22 +36,37 @@ function M.new(deps)
         convaiCompanionCar, convaiCompanionCarIs = nil, nil
     end
 
+    -- The two modules are read and compiled once, and a build that fails is not tried again until the setting has been turned Off and On: the
+    -- 0.1 s tick asks for the controller every time, and a failure must not cost a file read and a compile ten times a second.
     function S.ensure()
         if S.controller then return S.controller end
-        local loaded, module = pcall(deps.load, 'immersive-invitations.lua')
-        local worldLoaded, worldModule = pcall(deps.load, 'immersive-world.lua')
-        if not loaded or not worldLoaded or type(module) ~= 'table' or type(worldModule) ~= 'table' then
-            deps.logOnce('immersive-load', 'Immersive invitations are unavailable: ' .. tostring(loaded and worldModule or module))
-            return nil
+        if S.failed then return nil end
+        if not S.modules then
+            local loaded, module = pcall(deps.load, 'immersive-invitations.lua')
+            local worldLoaded, worldModule = pcall(deps.load, 'immersive-world.lua')
+            if not loaded or not worldLoaded or type(module) ~= 'table' or type(worldModule) ~= 'table' then
+                S.failed = true
+                deps.logOnce('immersive-load', 'Immersive invitations are unavailable: ' .. tostring(loaded and worldModule or module))
+                return nil
+            end
+            S.modules = {module, worldModule}
         end
         local queue = deps.queue()
         if not queue then return nil end
         local companions = deps.companions
-        S.controller = module.new({
-            settings = deps.manager.immersive, queue = queue, companions = companions,
-            world = worldModule.new({companions = companions, held = deps.held, districtOf = deps.districtOf}),
-            text = {send = S.text}, notify = deps.notify, greet = deps.greet, persist = deps.persist,
-            wall = deps.wall, random = deps.random, log = deps.log})
+        local built, controller = pcall(function()
+            return S.modules[1].new({
+                settings = deps.manager.immersive, queue = queue, companions = companions,
+                world = S.modules[2].new({companions = companions, held = deps.held, districtOf = deps.districtOf}),
+                text = {send = S.text}, notify = deps.notify, greet = deps.greet, persist = deps.persist,
+                wall = deps.wall, random = deps.random, log = deps.log})
+        end)
+        if not built then
+            S.failed = true
+            deps.logOnce('immersive-load', 'Immersive invitations are unavailable: ' .. tostring(controller))
+            return nil
+        end
+        S.controller = controller
         companions.onVisitorLost = function(serial, reason)
             if S.controller then S.controller.visitorLost(serial, reason) end
         end
@@ -95,6 +110,7 @@ function M.new(deps)
     function S.tick(delta)
         local options = deps.manager.immersive()
         if not options.enabled then
+            S.failed, S.modules = nil, nil
             if S.controller then
                 pcall(S.controller.disable)
                 S.controller = nil

@@ -499,8 +499,8 @@ test('init.lua: the tick is in the 10 Hz branch after the poll gate, off costs o
   const tick = initSource.indexOf('pcall(convaiOutfitTick, player, elapsedPoll, worldReady)');
   assert.ok(gate > 0 && tick > gate, 'the outfit tick comes after the 0.1 s gate of onUpdate');
   assert.ok(tick < initSource.indexOf('registerForEvent(\'onShutdown\''));
-  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)\s*if not manager\.companionOutfits\(\) then return end\s*convaiOutfitModule\(\)\.tick\(player, elapsed, ready\)/);
-  assert.match(initSource, /convaiOutfits = dofile\('companion-outfits\.lua'\)/);
+  assert.match(initSource, /function convaiOutfitTick\(player, elapsed, ready\)\s*if not manager\.companionOutfits\(\) then return end\s*local module = convaiOutfitModule\(\)\s*if module then module\.tick\(player, elapsed, ready\) end/);
+  assert.match(initSource, /pcall\(dofile, 'companion-outfits\.lua'\)/);
   // Only companions.lua's three hooks and the API global leave init.lua; the module is not on the onUpdate path any other way.
   assert.equal([...initSource.matchAll(/convaiOutfitTick/g)].length, 2, 'defined once and called once (the pcall in the 10 Hz branch)');
   assert.match(initSource, /if convaiOutfits and preserveTransit ~= true then pcall\(convaiOutfits\.reset\) end/);
