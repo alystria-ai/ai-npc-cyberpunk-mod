@@ -75,6 +75,20 @@ outfit by attaching preview items to extra slots while the game's own equipment 
 - **Log.** `probe.log` once per change: `equipment-ex outfit=<saved name, unsaved or off> parts=N`.
 - **Not confirmed in the game:** the class and method names are cited from the mod's scripts, but the CET side is untested: that `TweakDBID.new(name) == slotID` compares ids, that `IsEquipped(CName)` picks the name overload, and that `Game.NameToString` exists. A wrong one fails quietly (the real clothes are listed, or the outfit goes unnamed in the log).
 
+## The game's own Wardrobe (patch 2.0+)
+
+Added 2026-10-26 after a live report: with a saved Wardrobe outfit applied, a companion described the equipped inventory items instead of the outfit V visibly wears.
+
+- **Order.** An active Equipment-EX outfit first (above), then the game's active clothing set, then the equipped inventory.
+- **What is read.** `Game.GetWardrobeSystem():GetActiveClothingSet()` (the scripted `WardrobeSystem`; the equipment system's `GetActiveWardrobeSet(V)` is the second route): a
+  `ClothingSet` with `setID` and `clothingList` (rows of `slotID` and `visualItem`). Each `visualItem` is named like every gear item and placed by the equipment area of its item
+  record (`record:EquipArea():Type()`), not by `slotID`. A slot the set does not cover keeps the visible or equipped item as before. A set with no placeable item counts as no set.
+  Both game versions (2.31 and 2.5) carry the class and these methods (checked in their compiled `final.redscripts`; the vanilla source is not on disk, so the signatures come from the
+  names and types in that file). Every call is guarded: a missing class or a failing call leaves the equipment read.
+- **Log.** `probe.log`, once per change: `wardrobe outfit=<set index> items=N` or `wardrobe outfit=off`.
+- **Not confirmed in the game:** the exact return type of `GetActiveClothingSet` (a `ClothingSet` handle, nil when none), that `setID.value` gives a readable index, that `clothingList`
+  and `visualItem` are readable from CET, and whether the engine's `GetVisualItemInSlot` already followed the set before this change. Check `probe.log` for the `wardrobe outfit=` line.
+
 ## Install
 
 CET reload for `mod/player-gear.lua` (new), `mod/init.lua`, `mod/group-chat.lua`, `mod/microphone.lua`; bridge restart for
