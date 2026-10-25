@@ -518,6 +518,7 @@ test('init.lua: only our own copies are ever listed; the rows come from the mana
   assert.match(rows, /for _,entry in ipairs\(entries\) do/);
   assert.match(rows, /outfitEligible\(entry\)/);
   const eligible = companions.slice(companions.indexOf('local function outfitEligible'), companions.indexOf('function M.outfitRows'));
-  assert.match(eligible, /entry\.state=='ready' or \(entry\.state=='visiting' and entry\.owner=='housemates'\)/, 'a resident of the flat counts, an immersive visitor does not');
+  assert.match(eligible, /entry\.state=='ready' then return true end/);
+  assert.match(eligible, /entry\.state=='visiting' and entry\.owner=='housemates' and \(M\.housematesOn==nil or M\.housematesOn\(\)==true\)/, 'a resident of the flat counts while Settings > Housemates is On, an immersive visitor does not');
   assert.doesNotMatch(rows, /GetTargetingSystem|GetLookAtObject|Game\./, 'nobody the game placed is reachable from here');
 });

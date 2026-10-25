@@ -119,6 +119,13 @@ local function cleanImmersive(value)
     result.texts = from.texts ~= false
     return result
 end
+-- Housemates (Settings > Companion behavior > Housemates, docs/HOUSEMATES.md): one saved table. Off by default; with it Off no housemate module is
+-- loaded and nothing of the feature runs. chat: the housemates talk to each other.
+local housematesDefaults = {enabled = false, chat = true}
+local function cleanHousemates(value)
+    local from = type(value) == 'table' and value or {}
+    return {enabled = from.enabled == true, chat = from.chat ~= false}
+end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
@@ -763,6 +770,16 @@ local function loadSettings()
         end
         settings.immersive = clean
     end
+    do
+        local clean = cleanHousemates(settings.housemates)
+        for key, value in pairs(clean) do
+            if type(settings.housemates) ~= 'table' or settings.housemates[key] ~= value then settingsNeedSave = true end
+        end
+        if type(settings.housemates) == 'table' then
+            for key in pairs(settings.housemates) do if clean[key] == nil then settingsNeedSave = true end end
+        end
+        settings.housemates = clean
+    end
     -- The retired Follow-up questions setting: an old saved key is dropped (nothing reads it).
     if settings.followUpQuestions ~= nil then settings.followUpQuestions, settingsNeedSave = nil, true end
     if type(settings.developerMode) ~= 'boolean' then settings.developerMode, settingsNeedSave = false, true end
@@ -1334,6 +1351,12 @@ function M.immersive()
     return settings.immersive or immersiveDefaults
 end
 function M.immersiveChoices() return immersiveArrivals, immersiveDelays, immersiveWaits end
+-- Settings > Companion behavior > Housemates. The live table (read every 0.1 s of play by mod/init.lua, On or Off): never changed in place,
+-- replaced whole by an Apply.
+function M.housemates()
+    loadSettings()
+    return settings.housemates or housematesDefaults
+end
 
 -- The kinds of live game info of Settings > Dynamic info, in page order.
 function M.dynamicInfoKinds() return dynamicInfoKinds end
@@ -1996,6 +2019,7 @@ function M.snapshot(player)
             relationshipModes = relationshipModes,
             dynamicInfo = dynamicInfo,
             immersive = cleanImmersive(settings.immersive),
+            housemates = cleanHousemates(settings.housemates),
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             decisionLedger = settings.decisionLedger,
@@ -2071,6 +2095,7 @@ function M.applySettings(player, values)
     nextSettings.keyBindings = {}
     for action, name in pairs(settings.keyBindings or {}) do nextSettings.keyBindings[action] = name end
     nextSettings.immersive = cleanImmersive(settings.immersive)
+    nextSettings.housemates = cleanHousemates(settings.housemates)
     for key, value in pairs(values) do
         if key == 'vVoice' then nextSettings.vVoiceChosen = true end
         if key == 'voice' or key == 'subtitles' or key == 'developerMode' or key == 'useOwnConvaiKey'
@@ -2122,6 +2147,15 @@ function M.applySettings(player, values)
                 else return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
             end
             nextSettings.immersive = merged
+        elseif key == 'housemates' then
+            if type(value) ~= 'table' then return false, 'This setting must be on or off.' end
+            local merged = cleanHousemates(nextSettings.housemates)
+            for field, item in pairs(value) do
+                if field ~= 'enabled' and field ~= 'chat' then return false, ui.t('Unknown setting: {setting}', {setting = tostring(field)}) end
+                if type(item) ~= 'boolean' then return false, 'This setting must be on or off.' end
+                merged[field] = item
+            end
+            nextSettings.housemates = merged
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value

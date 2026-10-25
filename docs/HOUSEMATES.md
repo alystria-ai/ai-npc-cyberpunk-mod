@@ -495,6 +495,7 @@ Housemates exist **only while V is in the apartment or has just left it**. Outsi
 
 | Part | Cost |
 | --- | --- |
+| Housemates setting Off (the default) | one table read per 0.1 s tick; no module loaded, no hook installed |
 | No housemates | the hook's first line; world ready: nothing |
 | Housemates, V elsewhere | the hook's first line (a table check and one string compare per district crossing), no timers |
 | Bodies exist | the module step: 1 Hz settled / 4 Hz moving, from the existing 10 Hz tick via a counter (like the outfits tick); no per-frame call |
@@ -512,17 +513,50 @@ Nothing is called from `onUpdate` per frame. Movement is AI commands only (walks
 | Fast travel out | immediate (the visitor deletion in `beginFastTravel`) |
 | World end / load | everything; `homes` is reloaded from the new save's facts at world ready |
 | Last resident gone | connections prepared for residents; the limiter's local state stays (tiny) |
-| Feature never used | nothing is loaded: `mod/housemates.lua` is `dofile`d lazily on the first non-empty `homes` or the first `home` offer |
+| Feature never used, or Settings > Housemates Off | nothing is loaded: `mod/housemates.lua` is `dofile`d lazily on the first non-empty `homes` or the first `home` offer, and only while the setting is On |
+| Settings > Housemates switched Off | the bodies (quietly), the seats, the chat and the glue; the saved flats stay |
 
 ## Settings
 
-None for the feature. The owner prefers none unless needed, and nothing here needs one:
+### The settings page (2026-10-26)
 
-* Pair chat frequency follows the existing **Companion speak-up** setting (Off disables chats).
-* Moving in is a conversation act, moving out is a conversation act or the manager row.
-* Every tunable is a named constant at the top of the module (gaps, dwell times, day weights).
+The owner's decision: "make the housemate thing a submenu setting off by default, that way these new things we add when offed cant affect the game".
+`settings.housemates` (one saved table, `mod/manager.lua`; the page is `housemateSettingRows` in `mod/manager-ui.lua`, view `housemates`, opened by the
+**Housemates** button of Settings > Companion behavior, Back goes to Settings, Restore defaults covers it, MCM and Native Settings UI share the page):
 
-If the owner wants a master switch it is one row (`housemates`, On by default) in the same Settings page as Companion speak-up; it is not proposed.
+| Row | Values | Default | Key |
+| --- | --- | --- | --- |
+| Housemates | Off, On | Off | `enabled` |
+| Housemates talk to each other | Off, On | On | `chat` |
+
+A bad saved value falls back to the default and the file is rewritten clean; an Apply with an unknown field or a non-boolean value is refused whole.
+Everything else stays as it was: the pair chat's frequency still follows **Companion speak-up** (Off: no chat), moving in is a conversation act and
+moving out is a conversation act or the Move out row of Current party, and every tunable is a named constant at the top of the module.
+
+**While Housemates is Off nothing of the feature runs or is loaded**, the same rule as Immersive invitations (docs/IMMERSIVE_INVITATIONS.md):
+
+* `convaiHousemateTick` (every 0.1 s of play, `mod/init.lua`) is one table read (`manager.housemates()`) and returns. `mod/housemate-service.lua`, the
+  controller, the game adapter, the chat scheduler and the spot data are never `dofile`d, so a player who never switches it on pays nothing.
+* The district hook (`ObserveAfter('PreventionSystem', 'OnDistrictAreaEntered', ...)`) is installed by the glue's build, so only on the first On. A CET
+  observer cannot be removed: after an Off its callback does nothing (`convaiHousemateWake` checks the setting).
+* No offer: "stay at my place" is not offered in person, in a group round, on the phone or on a call (`convaiHousemateOffer`, `GroupOffer`, `Queue`,
+  `phoneChat.captureHomeOffer` and `onHomeAction` return nothing without building the service), the leave offer is the old one
+  (`convaiHousemateLeaveOffer`, `QueueLeave`), a turn carries no housemate note (`convaiHousemateTurn`), and the bridge adds no housemate text when the
+  game sends none (it only reads what the game's offer and turn context carry).
+* No Move out rows in Current party (`convaiHousemateRows` is empty), no pair chat, no welcome line, no seat learning, no talk hook, and no outfit change
+  for a resident (`companions.outfitRows` and `changeAppearance` skip a body owned by the housemates while `companions.housematesOn()` is false).
+* Every one of these checks the setting first, so an Off takes effect at once, before the next tick.
+
+**Turning it Off while housemates exist.** The next tick calls `service.disable()`: the controller removes the bodies of the housemates quietly (the
+same `dismissVisitor` call as when V leaves the flat, a housemate who is in the party stays a party member), lets go of the seats it holds, drops the
+pair chat, and the glue and the world adapter are dropped. The saved residency records (quest facts, `mod/housemate-registry.lua`) are **not written
+or cleared**, so turning it On again builds the service on the next tick, reads them again and the housemates come back when V enters their flat.
+
+**Housemates talk to each other.** The pair chat module (`mod/housemate-chat.lua`) is loaded only while this is On and dropped (with a chat in progress
+interrupted) when it goes Off, checked on the tick of the controller. The welcome line when V comes home is not part of it.
+
+Tests: `bridge/housemates-settings.test.mjs` (the page, saving, Restore defaults, bad values) and `bridge/housemates-off.test.mjs` (the housemate block
+of `mod/init.lua` against a counting `dofile`: Off loads nothing and makes no game call, On then Off then On).
 
 ## Many housemates
 
@@ -663,6 +697,7 @@ Unit (pure Lua with injected seams, the `bridge/companion-seating.test.mjs` Feng
 9. Scope as designed (no Dogtown, no romance partners' places, no quest penthouses).
 10. Shower out.
 11. Greeting when V comes home after a long absence (built: one housemate, once per return, after at least 6 game hours away, from the housemate nearest V).
+12. A settings page, Off by default, so that nothing the feature adds can affect the game when it is Off (2026-10-26): "Settings", "The settings page".
 
 ## What was built
 

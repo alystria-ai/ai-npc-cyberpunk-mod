@@ -3721,9 +3721,11 @@ do
 end
 
 -- ---- Housemates (docs/HOUSEMATES.md) -------------------------------------------------------------------------------------------------------
--- Characters V told "you can stay at my place" live in V's flats. The glue (mod/housemate-service.lua) is loaded on the first world-ready tick; the
--- controller, the game adapter, the chat scheduler and the spot data only when somebody lives somewhere or a conversation offer asks. Nothing
--- runs per frame. Globals and one do-block: the main chunk is near Lua's limit of locals.
+-- Characters V told "you can stay at my place" live in V's flats. Settings > Companion behavior > Housemates (Off by default) switches it all: while it is
+-- Off the tick below is one table read, nothing is offered or listed, and no housemate module is loaded. With it On the glue
+-- (mod/housemate-service.lua) is loaded on the first world-ready tick; the controller, the game adapter, the chat scheduler and the spot data only
+-- when somebody lives somewhere or a conversation offer asks. Nothing runs per frame. Globals and one do-block: the main chunk is near Lua's limit
+-- of locals.
 convaiHousemates = nil
 convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
 do
@@ -3756,6 +3758,12 @@ do
         local player = Game.GetPlayer()
         if player and type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'housemate-notice', text) end
     end
+    -- Settings > Companion behavior > Housemates: one table read.
+    local function on()
+        local options = manager.housemates and manager.housemates()
+        return options ~= nil and options.enabled == true
+    end
+    companions.housematesOn = on
     local function gameHours()
         local system = Game.GetTimeSystem()
         local stamp = system and system:GetGameTime()
@@ -3849,6 +3857,11 @@ do
             speak = convaiHouseSpeak, speakStatus = convaiHouseSpeakStatus, speakCancel = convaiHouseSpeakCancel,
             greet = convaiHouseGreeting,
             level = function() return manager.companionSpeakUp and manager.companionSpeakUp() or 'rare' end,
+            -- "Housemates talk to each other" (Settings > Housemates): the pair chat is loaded only while it is On.
+            chatOn = function()
+                local options = manager.housemates and manager.housemates()
+                return options == nil or options.chat ~= false
+            end,
             mayChat = mayChat,
             -- The shared arbiter of unprompted lines (Johnny, companions speaking up) when that feature is installed; nil: only the cooldown.
             -- Plain global reads: CET gives this mod an environment without _G (rawget(_G, ...) throws there).
@@ -3880,6 +3893,7 @@ do
     end
     -- One build per load: a failed one is not retried every 0.1 s (that would load and compile the module again on every tick).
     local function service()
+        if not on() then return nil end
         if convaiHousemates then return convaiHousemates end
         if convaiHousematesFailed then return nil end
         local ok, glue = pcall(build)
@@ -3888,12 +3902,26 @@ do
         if not ok then convaiLogOnce('housemate-build', 'Housemates are unavailable: ' .. tostring(glue)) end
         return nil
     end
+    -- The district hook cannot be removed once installed: while the setting is Off its callback does nothing.
     function convaiHousemateWake()
         local glue = convaiHousemates
-        if glue and glue.controller then glue.controller.wake() end
+        if glue and glue.controller and on() then glue.controller.wake() end
     end
-    -- Every 0.1 s of play time, from the world-ready part of onUpdate.
+    -- Switched Off: her line is dropped, the controller goes (the bodies are removed quietly, the seats let go) and so does the glue, so nothing stays
+    -- loaded. The saved flats stay where they are: switching On again builds the service on the next tick and the housemates come back.
+    local function switchOff()
+        local glue = convaiHousemates
+        convaiHousemates, convaiHousematesFailed = nil, nil
+        if convaiHouseWaiting or convaiHouseCurrent then pcall(convaiHouseSpeakCancel) end
+        convaiHouseWaiting, convaiHouseCurrent, convaiHouseResult, convaiHouseText = nil, nil, nil, nil
+        if glue then pcall(glue.disable) end
+    end
+    -- Every 0.1 s of play time, from the world-ready part of onUpdate. Off: one table read.
     function convaiHousemateTick(delta)
+        if not on() then
+            if convaiHousemates or convaiHousematesFailed then switchOff() end
+            return
+        end
         local glue = convaiHousemates or service()
         if glue then glue.tick(delta) end
     end
@@ -3916,35 +3944,36 @@ do
         return glue.queueHome(home, offer, entity, requestId, groupId)
     end
     function convaiHousemateLeaveOffer(offer)
-        if not convaiHousemates then return offer end
+        if not convaiHousemates or not on() then return offer end
         return convaiHousemates.decorateLeave(offer)
     end
     function convaiHousemateQueueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
-        if not convaiHousemates then return adoptionQueue(target, offer, entity, requestId, groupId) end
+        if not convaiHousemates or not on() then return adoptionQueue(target, offer, entity, requestId, groupId) end
         return convaiHousemates.queueLeave(target, offer, entity, requestId, groupId, adoptionQueue)
     end
     function convaiHousemateTurn(snapshot, profileKey)
-        if not convaiHousemates then return snapshot end
+        if not convaiHousemates or not on() then return snapshot end
         return convaiHousemates.turn(snapshot, profileKey)
     end
     function convaiHousemateTalk(entity)
         -- A chat line that is only waiting for the channel gives way to V's talk at once.
         if convaiHouseWaiting then convaiHouseSpeakCancel() end
-        if convaiHousemates then convaiHousemates.talkStarted(entity) end
+        if convaiHousemates and on() then convaiHousemates.talkStarted(entity) end
     end
     function convaiHousemateLearn(anchor, forward, kind)
-        if convaiHousemates then convaiHousemates.learnV(anchor, forward, kind) end
+        if convaiHousemates and on() then convaiHousemates.learnV(anchor, forward, kind) end
     end
     -- The manager's page: the housemates and a Move out for each.
     function convaiHousemateRows()
-        if not convaiHousemates then return {} end
+        if not convaiHousemates or not on() then return {} end
         return convaiHousemates.rows()
     end
     function convaiHousemateMoveOut(key)
-        return convaiHousemates ~= nil and convaiHousemates.moveOut(key) == true
+        return convaiHousemates ~= nil and on() and convaiHousemates.moveOut(key) == true
     end
     -- Is this body one of the housemates' own? (A talk with her keeps her workspot: eyes and head only.)
     function convaiResidentNpc(npc)
+        if not on() then return false end
         local ok, id = pcall(function() return tostring(npc:GetEntityID().hash) end)
         if not ok then return false end
         for _, row in ipairs(companions.visitors()) do
@@ -3959,7 +3988,7 @@ do
         return glue and key and glue.phoneOffer(key, profileKey) or nil
     end
     phoneChat.onHomeAction = function(profileKey, action)
-        if convaiHousemates then convaiHousemates.phoneAction(profileKey, action) end
+        if convaiHousemates and on() then convaiHousemates.phoneAction(profileKey, action) end
     end
 
     -- The spoken lines (a chat line, a greeting): one automatic reaction of kind 'house' at a time, spoken like any reply. It waits for the

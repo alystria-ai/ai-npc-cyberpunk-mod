@@ -10,7 +10,7 @@
 --       notify(text), t(text, vars), log(line), devLog(kind, fields), talking(), random(),
 --       speak(request) / speakStatus() / speakCancel() (the automatic spoken lines), greet(info), level(), mayChat(), limiter,
 --       outfits() -> {setHome}, leave(serial, entity, key, name) -> a departure, persist = {load, store} (the seats V sat on),
---       hookDistrict(fn), storeMode()
+--       hookDistrict(fn), storeMode(), chatOn() -> boolean (nil: the pair chat is on; Settings > Housemates > Housemates talk to each other)
 local M = {}
 
 function M.new(d)
@@ -28,11 +28,27 @@ function M.new(d)
         return S.factStore
     end
 
+    -- The pair chat module exists only while "Housemates talk to each other" is On: it is loaded when it is wanted and dropped when it is not.
+    local function syncChat(controller)
+        local wanted = not d.chatOn or d.chatOn() ~= false
+        if not wanted then
+            if S.chat then controller.setChat(nil); S.chat = nil end
+            return
+        end
+        if S.chat then return end
+        local chatLoaded, Chat = pcall(d.load, 'housemate-chat.lua')
+        if not chatLoaded or type(Chat) ~= 'table' then return end
+        S.chat = Chat.new({
+            random = d.random, level = d.level, mayStart = d.mayChat, vPos = d.vpos, limiter = d.limiter,
+            people = function() return controller.people() end,
+            speak = d.speak, status = d.speakStatus, cancelSpeak = d.speakCancel, log = d.log})
+        controller.setChat(S.chat)
+    end
+
     local function ensure()
         if S.controller then return S.controller end
         local loaded, Housemates = pcall(d.load, 'housemates.lua')
         local worldLoaded, World = pcall(d.load, 'housemate-world.lua')
-        local chatLoaded, Chat = pcall(d.load, 'housemate-chat.lua')
         if not loaded or not worldLoaded or type(Housemates) ~= 'table' or type(World) ~= 'table' then
             if d.log then d.log('Housemates are unavailable: ' .. tostring(loaded and World or Housemates)) end
             return nil
@@ -68,13 +84,7 @@ function M.new(d)
         }
         controller = Housemates.new(env)
         S.controller = controller
-        if chatLoaded and type(Chat) == 'table' then
-            local chat = Chat.new({
-                random = d.random, level = d.level, mayStart = d.mayChat, vPos = d.vpos, limiter = d.limiter,
-                people = function() return controller.people() end,
-                speak = d.speak, status = d.speakStatus, cancelSpeak = d.speakCancel, log = d.log})
-            controller.setChat(chat)
-        end
+        syncChat(controller)
         controller.setHomes(S.state.homes or {})
         if d.persist then
             local ok, file = pcall(d.persist.load)
@@ -99,7 +109,22 @@ function M.new(d)
             elseif next(state.homes) ~= nil then ensure() end
             return
         end
-        if S.controller then S.controller.update(delta) end
+        if S.controller then
+            syncChat(S.controller)
+            S.controller.update(delta)
+        end
+    end
+
+    -- Settings > Housemates went Off: the controller removes the bodies quietly and goes, the world adapter lets go of its seats, and the glue forgets
+    -- what it read. The saved flats stay: a new glue reads them when the setting is On again. (onResidentLost stays as it is: it does nothing without a
+    -- controller, and a body that is lost must not be handed to the immersive visitors.)
+    function S.disable()
+        local controller = S.controller
+        if controller and controller.shutdown then pcall(controller.shutdown) end
+        S.controller, S.chat = nil, nil
+        if S.world and S.world.abandon then pcall(S.world.abandon, false) end
+        S.world = nil
+        S.state = {acc = 0, read = false, homes = nil}
     end
 
     -- A world ended (preserve == false) or V fast travelled (preserve == true).

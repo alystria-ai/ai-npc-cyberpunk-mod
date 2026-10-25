@@ -1111,7 +1111,11 @@ local function settingsDigest(settings)
     local immersive = {}
     for key, value in pairs(settings.immersive or {}) do immersive[#immersive + 1] = key .. '=' .. tostring(value) end
     table.sort(immersive)
+    local housemates = {}
+    for key, value in pairs(settings.housemates or {}) do housemates[#housemates + 1] = key .. '=' .. tostring(value) end
+    table.sort(housemates)
     return table.concat(parts, ',') .. ';' .. table.concat(modes, ',') .. ';' .. table.concat(info, ',') .. ';' .. table.concat(immersive, ',')
+        .. ';' .. table.concat(housemates, ',')
 end
 
 -- What the current page shows that can change without the player touching it, as one string: the page is drawn again only
@@ -1171,7 +1175,7 @@ local function pageSignature(snapshot)
         local read, signature = pcall(customProvider.instance.signature)
         add('custom-page:' .. (read and signature or ''))
     end
-    if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' then add(settingsDigest(snapshot.settings)) end
+    if view == 'relationships' or view == 'dynamic-info' or view == 'immersive-invitations' or view == 'housemates' then add(settingsDigest(snapshot.settings)) end
     if view == 'key-bindings' then
         add(settingsDigest(snapshot.settings))
         -- A capture waiting or ended, and the saved keys (the page shows no Cyber Engine Tweaks key, so CET is not asked).
@@ -1391,6 +1395,17 @@ local function immersiveRows(snapshot)
     }
 end
 
+-- Housemates: its own page, opened from Companion behavior (docs/HOUSEMATES.md). Off by default: nothing of the feature is loaded while it is Off.
+local function housemateSettingRows(snapshot)
+    local value = snapshot.settings.housemates or {}
+    return {
+        setting('housemates:enabled', 'Housemates', 'bool', value.enabled == true, false,
+            'On: characters you tell they can stay at your place move into your apartments and live there, and you can call them along.\n\nOff: nothing of this runs. Turning it off removes them from your apartments but remembers who lived there, so turning it on brings them back.'),
+        setting('housemates:chat', 'Housemates talk to each other', 'bool', value.chat ~= false, true,
+            'When two or more housemates are home with you, they talk to each other now and then.'),
+    }
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -1408,7 +1423,7 @@ local function schema()
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', ['key-bindings'] = 'home', memory = 'settings', help = 'settings',
         ['paid-tier'] = 'settings', relationships = 'settings', ['dynamic-info'] = 'settings', ['custom-endpoint'] = 'settings',
-        ['immersive-invitations'] = 'settings'}
+        ['immersive-invitations'] = 'settings', housemates = 'settings'}
     if view == 'home' then
         -- The character editor has no page in the game: Open is the same request as Settings > Edit characters (one small command file, the
         -- page opens in the browser), so this row is an action that answers with the request's result, not a navigation. Shown only when
@@ -1686,6 +1701,9 @@ local function schema()
     elseif view == 'immersive-invitations' then
         categories[#categories + 1] = category('immersive-invitations', 'Immersive invitations', immersiveRows(snapshot),
             'Invite a companion and she really travels to you: she appears out of sight, walks or drives in, texts you when she is there and waits for you.')
+    elseif view == 'housemates' then
+        categories[#categories + 1] = category('housemates', 'Housemates', housemateSettingRows(snapshot),
+            'Characters you tell they can stay at your place move into your apartments and live there.')
     elseif view == 'dynamic-info' then
         categories[#categories + 1] = category('dynamic-info', 'Dynamic info', dynamicInfoRows(snapshot),
             'What the game tells each character about this moment. A character mentions it only when it fits the talk.\n\nAn off kind is left out of every conversation provider (Convai, Mistral, Local AI and Custom).')
@@ -1757,6 +1775,9 @@ local function schema()
             action('immersive-invitations', 'Immersive invitations', 'Open',
                 'Companions travel to you when you invite them: they walk or drive in, text you, wait, and remember if you never come.\n\nOff by default.',
                 function() return navigate('immersive-invitations') end),
+            action('housemates', 'Housemates', 'Open',
+                'Characters you tell they can stay at your place move into your apartments and live there.\n\nOff by default.',
+                function() return navigate('housemates') end),
         })
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
@@ -1971,7 +1992,7 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
-    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true}
+    relationships = true, ['dynamic-info'] = true, ['custom-endpoint'] = true, ['key-bindings'] = true, ['immersive-invitations'] = true, housemates = true}
 
 function M.view() return view end
 
@@ -2104,7 +2125,7 @@ function M.defaults()
     local previous = view
     local changes, atDefault, turningMatureOff, listed = {}, {}, false, {}
     -- Settings, and the Relationships and Dynamic info pages that open from it, and Key bindings.
-    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations'}) do
+    for _, name in ipairs({'settings', 'relationships', 'dynamic-info', 'key-bindings', 'immersive-invitations', 'housemates'}) do
         view = name
         local ok, model = pcall(schema)
         if not ok then lastError = tostring(model); break end
@@ -2146,7 +2167,7 @@ function M.apply(changes)
     local currentPlayer = player()
     local snapshot = manager.snapshot(currentPlayer)
     local batch, record, names, refusal = stageMature(changes, snapshot)
-    local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}}, {}
+    local values, applied = {relationshipModes = {}, dynamicInfo = {}, immersive = {}, housemates = {}}, {}
     -- Add-on settings (docs/ADDON_API.md) are held until the main settings save succeeds.
     local addonChanges = 0
     if addonSettingsInUse() then convaiAddons.discardSettings() end
@@ -2250,6 +2271,9 @@ function M.apply(changes)
                 if picked == nil then return refused('Choose one of the listed options.') end
                 values.immersive[field] = picked
             else return refused('That setting is read-only.') end
+        elseif key == 'housemates:enabled' or key == 'housemates:chat' then
+            if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
+            values.housemates[key:sub(12)] = change.value
         elseif key:sub(1, 8) == 'dynamic:' then
             if type(change.value) ~= 'boolean' then return refused('This setting must be on or off.') end
             values.dynamicInfo[key:sub(9)] = change.value

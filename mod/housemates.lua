@@ -562,7 +562,10 @@ function M.new(env)
         end
     end
 
-    function C.setChat(module) chat = module end
+    function C.setChat(module)
+        if chat and chat ~= module and chat.interrupt then chat.interrupt('off', true) end
+        chat = module
+    end
     -- Is a pair chat in progress (between lines too)? The speak-up arbiter reads it (init.lua convaiUnpromptedBusy).
     function C.chatActive() return chat ~= nil and chat.active ~= nil and chat.active() == true end
     -- Development (mod/housemate-survey.lua): the next chat and the welcome line now.
@@ -878,6 +881,15 @@ function M.new(env)
             out.residents[key] = {state = r.state, serial = r.serial, spot = r.spot and r.spot.id, sleep = r.sleep, apt = r.apt}
         end
         return out
+    end
+
+    -- Settings > Housemates went Off: every body of ours is removed quietly (a housemate in the party stays a party member), the seats are let go and the
+    -- controller forgets everything. The saved flats are not touched (the glue reads them again when the setting is On).
+    function C.shutdown()
+        pollRows()
+        for _, b in ipairs(rowCache) do guard(env.bodies.delete, b.serial) end
+        unload()
+        C.reset('off', false)
     end
 
     -- A world ended (preserve = false: a load, death or the main menu) or V fast travelled (preserve = true: the bodies were deleted by
