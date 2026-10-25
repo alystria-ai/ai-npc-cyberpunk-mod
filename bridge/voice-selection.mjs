@@ -162,7 +162,7 @@ export class VoiceSelection {
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // The graphics card vendors (bridge/gpu-vendors.mjs: ['nvidia','amd',...], or null until the card list is read): the start line names them, and the
     // menu says OmniVoice needs an NVIDIA card when none is there. omniNoCuda: a worker told us this PC has no CUDA; Omni is not started again until restart.
-    this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.omniNoCuda=false;
+    this.gpuVendorsSource=typeof options.gpuVendors==='function'?options.gpuVendors:()=>null;this.gpuAmdRouteSource=typeof options.gpuAmdRoute==='function'?options.gpuAmdRoute:()=>false;this.omniNoCuda=false;
     // The memory of the NVIDIA card (MiB, or null until the same lazy card list is read) and omniNoMemory: Omni ran out of its time with its graphics memory spilled into shared
     // memory, or on a card of 8 GB or less (not enough graphics memory next to the game). Like omniNoCuda, it is for the life of the service: Omni is not tried again,
     // and Pocket speaks in its place (resolve), told once (fallback.reason 'omni-memory').
@@ -578,7 +578,7 @@ export class VoiceSelection {
       omniReference:this.omniReference,requestedOmniReference:this.requestedOmniReference,
       previewOmniReference:this.preview?.omniReference,
       omniPack:{installed:this.omniPack.installed,missing:this.omniPack.missing},
-      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniSmallCard:this.omniSmallCard,omniPython:ownPythonSummary(this.omniOwnPython),
+      gpuVendors:this.graphicsVendors,omniNoNvidia:this.omniNoNvidia,omniAmdRoute:this.omniAmdRoute,omniSmallCard:this.omniSmallCard,omniPython:ownPythonSummary(this.omniOwnPython),
       keepPreparedVoices:this.keepPrepared,
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
@@ -792,6 +792,9 @@ export class VoiceSelection {
   // True when the game should say OmniVoice needs an NVIDIA card: a worker found no CUDA, or the cards are all known non-NVIDIA ones and no own Python with a
   // working GPU PyTorch (ROCm) is used or still to be tested (pending). Unknown claims nothing.
   get omniNoNvidia(){const own=this.omniOwnPython;return this.omniNoCuda||(lacksNvidia(this.graphicsVendors)&&!own?.used&&!own?.pending);}
+  // True when the PC has a discrete AMD Radeon card and no NVIDIA one (bridge/gpu-vendors.mjs amdRoute) and no own Python is working or still being tested: the menu and
+  // the Help page then point to the experimental AMD route (docs/OMNIVOICE_AMD.md) instead of "needs NVIDIA". Nothing is downloaded or started for it.
+  get omniAmdRoute(){const own=this.omniOwnPython;try{return this.gpuAmdRouteSource(this.omniWanted)===true&&!own?.used&&!own?.pending;}catch{return false;}}
   // The player's own Python for OmniVoice (bridge/omni-own-python.mjs resolveOwnPython), or null: without the file, and until its self-test has run.
   get omniOwnPython(){try{const found=this.options.omniOwnPython?.();return found?.configured?found:null;}catch{return null;}}
   // The python.exe and environment of an OmniVoice worker: the player's own Python only when its self-test passed (with OmniVoice's code from the pack,

@@ -903,6 +903,24 @@ test('an Omni worker with no CUDA is never tried again, says so once, is not rep
   await h.voice.close(); assert.equal(h.live(), 0, 'the failed worker is released');
 });
 
+test('the menu fact omniAmdRoute follows the AMD-route source, steps aside for an own Python, and never throws', async () => {
+  let amd = false;
+  const h = retryFixture({options: {gpuVendors: () => ['amd'], gpuAmdRoute: () => amd}});
+  h.voice.publish(); assert.equal(h.states.at(-1).omniAmdRoute, false);
+  amd = true; h.voice.publish(); assert.equal(h.states.at(-1).omniAmdRoute, true); assert.equal(h.states.at(-1).omniNoNvidia, true);
+  const used = retryFixture({options: {gpuVendors: () => ['amd'], gpuAmdRoute: () => true, omniOwnPython: () => ({configured: true, used: true, path: 'C:\\p\\python.exe', source: 'C:\\s'})}});
+  used.voice.publish(); assert.equal(used.states.at(-1).omniAmdRoute, false, 'an own Python that passed needs no pointer');
+  const pending = retryFixture({options: {gpuVendors: () => ['amd'], gpuAmdRoute: () => true, omniOwnPython: () => ({configured: true, used: false, pending: true})}});
+  pending.voice.publish(); assert.equal(pending.states.at(-1).omniAmdRoute, false, 'not while it is being tested');
+  const refused = retryFixture({options: {gpuVendors: () => ['amd'], gpuAmdRoute: () => true, omniOwnPython: () => ({configured: true, used: false, reason: 'no-gpu'})}});
+  refused.voice.publish(); assert.equal(refused.states.at(-1).omniAmdRoute, true, 'a refused one still points to the steps');
+  const broken = retryFixture({options: {gpuAmdRoute: () => { throw Error('x'); }}});
+  broken.voice.publish(); assert.equal(broken.states.at(-1).omniAmdRoute, false, 'detection failing is the old behaviour');
+  const none = retryFixture({});
+  none.voice.publish(); assert.equal(none.states.at(-1).omniAmdRoute, false, 'no source, no claim');
+  for (const x of [h, used, pending, refused, broken, none]) await x.voice.close();
+});
+
 test('the menu fact omniNoNvidia needs a known card list without an NVIDIA card; unknown claims nothing', async () => {
   let vendors = null;
   const h = retryFixture({options: {gpuVendors: () => vendors}});

@@ -80,7 +80,7 @@ import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
 import {installStageMarker, markBridgeStage} from './stage-marker.mjs';
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
-import {gpuVendors, nvidiaCardMiB} from './gpu-vendors.mjs';
+import {gpuVendors, nvidiaCardMiB, amdRoute} from './gpu-vendors.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {PromptProfiles} from './prompt-profile-store.mjs';
@@ -398,9 +398,10 @@ const lookUpGraphics = wanted => {
 };
 const graphicsVendorsSource = wanted => { lookUpGraphics(wanted); return graphicsVendors; };
 // undefined while the list is being read, so OmniVoice is not started on a card that turns out to be 8 GB or less (VoiceSelection.omniCardPending); null once read and unknown.
+const graphicsAmdRouteSource = wanted => { lookUpGraphics(wanted); return graphicsKnown && amdRoute(graphicsCards); };
 const graphicsMemorySource = wanted => { lookUpGraphics(wanted); return wanted && !graphicsKnown ? undefined : graphicsCardMiB; };
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
-  gpuVendors: graphicsVendorsSource, gpuMemoryMiB: graphicsMemorySource,
+  gpuVendors: graphicsVendorsSource, gpuAmdRoute: graphicsAmdRouteSource, gpuMemoryMiB: graphicsMemorySource,
   omniOwnPython: () => omniOwnPython ?? omniOwnPythonNamed,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,

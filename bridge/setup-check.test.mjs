@@ -539,6 +539,17 @@ test('omni-python: a row only with omni-python.txt; the backend it found (CUDA, 
   await collectSetupCheck(options(paths, {omniPython: options => { asked.push(options); return null; }}));
   assert.deepEqual(asked, [{light: true}, {light: false}]);
   assert.equal((await checks({omniPython: () => { throw Error('x'); }}))['omni-python'], undefined);
+  // No file, but a discrete AMD Radeon card and no NVIDIA one: a pointer row to the experimental route. Never at start-up (light), never for other card lists.
+  const rx = {name: 'AMD Radeon RX 9070 XT', memoryMiB: 16304}, rtx = {name: 'NVIDIA GeForce RTX 4060', memoryMiB: 8188}, igpu = {name: 'AMD Radeon(TM) Graphics', memoryMiB: 512};
+  const pointer = {id: 'omni-python', state: 'note', code: 'amd-route', device: 'AMD Radeon RX 9070 XT'};
+  assert.deepEqual((await checks({omniPython: () => null, graphics: async () => [rx]}))['omni-python'], pointer);
+  assert.deepEqual((await checks({omniPython: () => null, graphics: async () => [igpu, rx]}))['omni-python'], pointer);
+  for (const cards of [[rtx], [rtx, rx], [igpu, rtx], [igpu], [{name: 'Intel(R) UHD Graphics 770'}], [{name: 'Mystery Adapter'}], []]) {
+    assert.equal((await checks({omniPython: () => null, graphics: async () => cards}))['omni-python'], undefined, JSON.stringify(cards));
+  }
+  assert.equal((await checks({omniPython: () => null, graphics: async () => { throw Error('x'); }}))['omni-python'], undefined, 'detection failing: no row');
+  assert.equal(byId(await collectSetupCheck(options(paths, {light: true, omniPython: () => null, graphics: async () => [rx]})))['omni-python'], undefined);
+  assert.equal((await checks({omniPython: async () => ({used: false, backend: 'none', reason: 'no-gpu'}), graphics: async () => [rx]}))['omni-python'].code, 'refused', 'an own Python file keeps its own row');
 }));
 
 test('a detector that fails turns only its own check into unknown', async () => temp(async root => {

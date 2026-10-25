@@ -1448,4 +1448,8 @@ return {
     ["the OmniVoice pack is not installed"] = "das OmniVoice-Paket ist nicht installiert",
     ["the file does not name a python.exe that exists"] = "die Datei enthält keine existierende python.exe",
     ["the module {module} is missing in it"] = "das Modul {module} fehlt darin",
+    ["OmniVoice on AMD: experimental"] = "OmniVoice auf AMD: experimentell",
+    ["{voice} · AMD experimental"] = "{voice} · AMD experimentell",
+    ["Your AMD Radeon card can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md on the mod’s GitHub page (alystria-ai/ai-npc-cyberpunk-mod). Until it is set up, OmniVoice will not start here. Choose Pocket to hear voices."] = "Deine AMD-Radeon-Grafikkarte kann OmniVoice mit deinem eigenen Python und AMDs ROCm-PyTorch ausführen. Experimentell. Schritte: docs/OMNIVOICE_AMD.md auf der GitHub-Seite des Mods (alystria-ai/ai-npc-cyberpunk-mod). Solange das nicht eingerichtet ist, startet OmniVoice hier nicht. Wähle Pocket, um Stimmen zu hören.",
+    ["Your AMD Radeon card ({card}) can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md on the mod’s GitHub page (alystria-ai/ai-npc-cyberpunk-mod). The mod downloads nothing for it."] = "Deine AMD-Radeon-Grafikkarte ({card}) kann OmniVoice mit deinem eigenen Python und AMDs ROCm-PyTorch ausführen. Experimentell. Schritte: docs/OMNIVOICE_AMD.md auf der GitHub-Seite des Mods (alystria-ai/ai-npc-cyberpunk-mod). Der Mod lädt dafür nichts herunter.",
 }

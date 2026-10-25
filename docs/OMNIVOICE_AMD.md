@@ -6,6 +6,16 @@ Added 2026-10-25 after a player request: an RX 9070 XT owner runs OmniVoice on i
 
 ## For players
 
+### The game points you here by itself
+
+The mod reads the display adapters Windows lists (the same registry read the Help page's graphics row uses, once, the first time OmniVoice is wanted or when Help checks, never per frame). When the PC has a discrete AMD Radeon card (an RX, Pro or Instinct name, or 6 GB or more of video memory) **and no NVIDIA card**, and no `omni-python.txt` is working yet:
+
+- the Voices row reads "Companion voices (OmniVoice on AMD: experimental)" and its text says "Your AMD Radeon card can run OmniVoice with your own Python and AMD's ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md ...";
+- the character voice line reads "OmniVoice · AMD experimental";
+- Settings > Help > Setup check has an **OmniVoice Python** note with the same pointer.
+
+It never downloads or installs anything. Other PCs are unchanged: an Intel or AMD integrated-only PC keeps "OmniVoice needs NVIDIA", a PC with an NVIDIA card (also next to an AMD integrated one) stays on the NVIDIA route, and an unknown or failed card read says nothing. Once `omni-python.txt` passes its test the pointer goes away. Code: `gpu-vendors.mjs amdRoute`, `VoiceSelection.omniAmdRoute` (voice state `omniAmdRoute`), the `amd-route` code of the `omni-python` setup check.
+
 ### Why OmniVoice does not start on an AMD card
 
 The OmniVoice pack brings its own Python with a CUDA build of PyTorch (torch 2.8.0+cu128). A CUDA build can only see NVIDIA cards. On an AMD card it finds no graphics card, the voice worker stops with "needs CUDA", and the mod does not try OmniVoice again until the game restarts. Your companions then speak with Pocket, or their replies show as text. Never with a cloud voice.
@@ -99,7 +109,7 @@ What was **not** a blocker: the worker's `device.startsWith('cuda')` and FP16 ch
 - **Admission:** with a passed test the card memory comes from PyTorch (`vramMiB`), so `isSmallCard` / `underNeeded` / the 8 GB no-start rule work on AMD like on NVIDIA. `omniNoNvidia` is false while the own Python is used or still pending. A worker that still exits 78 sets `omniNoCuda` as before.
 - **Fallback:** any refusal keeps the Runtime's Python, so a failure ends exactly as today (Pocket or text, never cloud: docs rule "a local voice failure never goes to the cloud").
 - **Messages:** Help > Setup check row `omni-python` (`bridge/setup-check.mjs`, `mod/setup-check.lua`), one English line in `probe.log` per changed answer (`Setup check: omni-python used backend=rocm card=... memoryMiB=...` or `... refused backend=... reason=...`), the bridge log line `[OmniPython] ...`, `local-voice-state.json omniPython` and the support report's `summary.json` (`providers.omniPython`). A refused own Python is the player's setup: no automatic error report (`error-events.mjs setupChecked`).
-- **Tests:** `bridge/omni-own-python.test.mjs` (ROCm, CUDA and CPU-only reports, a broken path, a hung or garbled self-test, no pack), `bridge/voice-selection.test.mjs` (worker hooks, the NVIDIA hint, the graph retry), `bridge/setup-check.test.mjs` and `bridge/setup-check-lua.test.mjs` (the row and probe.log), `scripts/test_resident_voice_paths.py` (the packaged-source finder, an OmniVoice copy outside the application directory refused, the ROCm graph default, the backend line).
+- **Tests:** `bridge/gpu-vendors.test.mjs` (`amdRoute`: AMD only, NVIDIA only, both, Intel only, AMD integrated, unknown, empty), the AMD-route cases in `bridge/voice-selection.test.mjs`, `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` and `bridge/manager.test.mjs`, `bridge/omni-own-python.test.mjs` (ROCm, CUDA and CPU-only reports, a broken path, a hung or garbled self-test, no pack), `bridge/voice-selection.test.mjs` (worker hooks, the NVIDIA hint, the graph retry), `bridge/setup-check.test.mjs` and `bridge/setup-check-lua.test.mjs` (the row and probe.log), `scripts/test_resident_voice_paths.py` (the packaged-source finder, an OmniVoice copy outside the application directory refused, the ROCm graph default, the backend line).
 
 ## omni-requirements.txt
 

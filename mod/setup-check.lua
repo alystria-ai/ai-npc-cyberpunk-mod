@@ -604,6 +604,9 @@ local function bridgeLines(out)
             elseif reason == 'omnivoice-failed' then why = ui.t('OmniVoice’s code could not load in it')
             else why = ui.t('it did not start or did not answer in time') end
             out[#out + 1] = line('omni-python', label, 'problem', ui.t('Your own Python (omni-python.txt) was not used: {reason}. OmniVoice uses the Runtime’s Python, which needs an NVIDIA card.', {reason = why}))
+        elseif ownPython.code == 'amd-route' then
+            out[#out + 1] = line('omni-python', label, 'note', ui.t('Your AMD Radeon card ({card}) can run OmniVoice with your own Python and AMD’s ROCm PyTorch. Experimental. Steps: docs/OMNIVOICE_AMD.md on the mod’s GitHub page (alystria-ai/ai-npc-cyberpunk-mod). The mod downloads nothing for it.',
+                {card = text(ownPython.device, 80) or 'AMD Radeon'}))
         elseif ownPython.code == 'testing' then
             out[#out + 1] = line('omni-python', label, 'note', ui.t('Your own Python (omni-python.txt) is being tested. Open this page again in a minute.'))
         else

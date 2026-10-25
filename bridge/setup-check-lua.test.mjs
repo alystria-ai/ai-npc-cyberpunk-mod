@@ -350,6 +350,9 @@ test('omni-python: the own Python for OmniVoice names its backend or why it was 
   assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('being tested', 1, true))
   answer({['omni-python'] = {id = 'omni-python', state = 'unknown', code = 'untested'}}); check.run()
   assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('tested when OmniVoice starts', 1, true))
+  answer({['omni-python'] = {id = 'omni-python', state = 'note', code = 'amd-route', device = 'AMD Radeon RX 9070 XT'}}); check.run()
+  assert(lineOf('omni-python').state == 'note' and lineOf('omni-python').description:find('^Your AMD Radeon card %(AMD Radeon RX 9070 XT%) can run OmniVoice with your own Python') and lineOf('omni-python').description:find('Experimental. Steps: docs/OMNIVOICE_AMD.md', 1, true), tostring(lineOf('omni-python').description))
+  assert(#check.problems() == 0 and files['runtime/probe.log']:find('omni-python amd-route', 1, true))
 `));
 
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`

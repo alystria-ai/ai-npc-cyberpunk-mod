@@ -7,6 +7,7 @@ import {promisify} from 'node:util';
 import {totalmem} from 'node:os';
 import {atomicFile} from './guarded-file.mjs';
 import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
+import {amdRoute, gpuVendors} from './gpu-vendors.mjs';
 import {checkRuntimeSteps} from './runtime-steps.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
@@ -571,7 +572,16 @@ export async function collectSetupCheck(options = {}) {
   const omniPython = async () => {
     let found;
     try { found = await call('omniPython', {light}); } catch { return null; }
-    if (!found || typeof found !== 'object') return null;
+    if (!found || typeof found !== 'object' || found.configured === false) {
+      // No omni-python.txt: on a PC with a discrete AMD Radeon card and no NVIDIA one, the row points to the experimental AMD route (docs/OMNIVOICE_AMD.md). The
+      // card list is the cached one the GPU row reads; the start-up run (light) does not read it.
+      if (light || found === undefined) return null;
+      try {
+        const cards = await (options.graphics ? call('graphics') : cachedGraphicsCards());
+        const amd = (Array.isArray(cards) ? cards : []).filter(card => gpuVendors([card]).includes('amd'));
+        return amdRoute(cards) ? {id: 'omni-python', state: 'note', code: 'amd-route', device: clip(amd.find(card => amdRoute([card]))?.name, 80)} : null;
+      } catch { return null; }
+    }
     const backend = ['cuda', 'rocm', 'none'].includes(found.backend) ? found.backend : null;
     if (found.used === true) return {id: 'omni-python', state: 'ok', code: 'used', backend, device: clip(found.device, 80),
       memoryMiB: Number.isFinite(found.vramMiB) && found.vramMiB > 0 ? Math.round(found.vramMiB) : null};
