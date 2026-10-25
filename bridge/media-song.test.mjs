@@ -12,7 +12,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
-const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
+const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const mediaSource = read('../mod/media-context.lua');
 const songSource = read('../mod/media-song.lua');
 const dialogueSource = read('../mod/game-dialogue.lua');
