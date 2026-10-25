@@ -94,7 +94,7 @@ A visitor is a normal managed copy with `entry.visitor` and state `visiting` (`m
 party loop (they key on `ready`). She walks by `companion-actuator.lua` `board(..., {navigate = true})` (native `AIMoveToCommand`), never by teleport. The hidden spot
 (`companions.findVisitorSpot`): rings around the meeting place, starting behind where V looks, at 90 down to 18 m (35 m minimum on foot, relaxed in steps to 8 m), each
 candidate on the navmesh, out of sight (`hiddenFromPlayer`), with a route that is no detour (at most 1.35 x straight + 6 m, 160 m, within 2.5 m of the floor), a body that fits,
-and not near another visitor; at most 3 candidates per call within the shared query budget (a spent budget means "ask again"). Stuck (no 1 m progress in 10 s): re-issue; three stalls or a trip
+and not near another visitor; at most 3 candidates judged and 12 ring points looked at per call within the shared query budget (a spent budget means "ask again"). Ring points are every 15 degrees and snap to the nearest walkable ground within 2.5 m, or 6 m from 14 m out, so a narrow street is found; later rungs also accept a longer way round (2 x + 15 m) and a 4 m slope. A spent ladder logs ONE probe line, `failed: no spot (walk0 of=.. nav=.. dup=.. floor=.. near=.. seen=.. route=.. body=.. avoid=.. | walk1 ...)`, the counts of the check that turned candidates away on each rung. Stuck (no 1 m progress in 10 s): re-issue; three stalls or a trip
 cap of `max(90 s, 2 x estimate)`: delete her and appear 14 to 30 m away; at most two respawns, then a plain failure text.
 
 ### Arrival, waiting, meeting, leaving
@@ -134,7 +134,7 @@ sampler knows only cars V owns). Everything after that is the existing chauffeur
 
 | Case | Decision |
 | --- | --- |
-| Stuck, very far, no route | Stuck ladder above; spot search relaxes (minimum distance 35 -> 14 -> 8 m, then visible but 8+ m away), then a plain failure text and no memory. |
+| Stuck, very far, no route | Stuck ladder above; spot search relaxes (minimum distance 35 -> 14 -> 8 m, then visible but 8+ m away), then a plain failure text and no memory (the phone history gets her line directly, no bridge turn, plus a notice). |
 | Interior, lift, no navmesh | Spots need a route within 2.5 m of the floor, so a lift or a different floor is not a route; in a room with no outside route she appears in the nearest connected space. Nothing rides lifts. |
 | No road for Car | Walk (logged). Car cannot be made, does not stand on a lane, cannot attach: Walk. |
 | V in a scene/combat/call | Held (text queued, clock paused). A menu or the phone is a zero delta: the clock is paused anyway. |

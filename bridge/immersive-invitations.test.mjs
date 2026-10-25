@@ -155,7 +155,7 @@ local env = {
   text = {send = function(item) if not fake.sent then return false end fake.texts[#fake.texts + 1] = item return true end},
   notify = function(kind, text) fake.notices[#fake.notices + 1] = {kind = kind, text = text} end,
   greet = function(info) fake.greets[#fake.greets + 1] = info end,
-  log = function(line) if fake.verbose then print(line) end end,
+  log = function(line) fake.lines = fake.lines or {}; fake.lines[#fake.lines + 1] = line; if fake.verbose then print(line) end end,
   wall = function() return fake.wall or 0 end, random = function() return 0.5 end,
   persist = {load = function() return fake.store end, store = function(file) fake.store = file end},
 }
@@ -731,6 +731,15 @@ test('a failed appointment sends a plain text: marked plain, so the phone shows 
   ask('judy'); tick(10)
   assert(texts('failed') == 1 and last(fake.texts).plain == true)
   assert(texts('arrived') == 0)
+`));
+
+test('a spent ladder fails once, and the one probe line says what every rung found', () => run(`
+  fake.spotFail = 100
+  ask('judy'); tick(10)
+  local failures = 0
+  for _, line in ipairs(fake.lines) do if line:find('no spot', 1, true) then failures = failures + 1; assert(line:find('walk0 none', 1, true) and line:find('walk5 none', 1, true), line) end end
+  assert(failures == 1, failures)
+  assert(#fake.modes == 6, 'six rungs of the ladder were tried: ' .. #fake.modes)
 `));
 
 test('a job that is still preparing is waited for however long; a job that vanished without a copy is given up', () => run(`

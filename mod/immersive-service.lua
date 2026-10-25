@@ -13,6 +13,17 @@ function M.new(deps)
 
     -- A text from a character: a phone turn in her own voice (mod/phone-chat.lua sendEvent), or, when she has no phone contact, a notice.
     function S.text(item)
+        -- A failure is her plain localized line: it needs no model and must reach V even when the bridge cannot word it.
+        if item.plain then
+            local phone = deps.phoneChat
+            local contact = phone.contactFor and phone.contactFor(item.profileKey)
+            if contact and phone.deliverEvent then
+                phone.deliverEvent(contact, item, tostring(item.fallback))
+            else
+                deps.notify('text', tostring(item.name) .. ': ' .. tostring(item.fallback))
+            end
+            return true
+        end
         if deps.phoneChat.sendEvent and deps.phoneChat.sendEvent(item) then return true end
         deps.notify('text', tostring(item.name) .. ': ' .. tostring(item.fallback))
         return true

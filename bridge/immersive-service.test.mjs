@@ -142,6 +142,17 @@ test('her text goes to the phone when she has a contact, and to a notice when sh
   assert(log.notices[1] == 'text:Rita: Hi.')
 `));
 
+test('a failure text is her plain line, delivered to the phone history without the bridge, or as a notice with no contact', () => run(`
+  local sent, delivered = 0, {}
+  phoneChat.sendEvent = function() sent = sent + 1; return true end
+  phoneChat.contactFor = function(key) return key == 'judy-alvarez' and 'Judy' or nil end
+  phoneChat.deliverEvent = function(contact, item, text) delivered[#delivered + 1] = contact .. ':' .. text end
+  assert(service.text({profileKey = 'judy-alvarez', name = 'Judy', plain = true, kind = 'failed', fallback = 'Sorry.'}) == true)
+  assert(sent == 0 and delivered[1] == 'Judy:Sorry.')
+  assert(service.text({profileKey = 'rita', name = 'Rita', plain = true, kind = 'failed', fallback = 'No.'}) == true and sent == 0)
+  assert(log.notices[#log.notices] == 'text:Rita: No.')
+`));
+
 test('a module that cannot be loaded leaves the feature off without an error', () => run(`
   modules['immersive-world.lua'] = nil
   options.enabled = true; phoneChat.world = 'w'

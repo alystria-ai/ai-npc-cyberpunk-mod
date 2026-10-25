@@ -545,13 +545,18 @@ function M.new(env)
                     log(tostring(a.name) .. ': no road spot, walking')
                     return
                 end
-                return fail(a, 'no spot')
+                return fail(a, 'no spot (' .. table.concat(a.spotLog or {}, ' | ') .. ')')
             end
             local mode = a.standing and 'standing' or a.close and 'close' or a.method
             a.maxDistance = a.tArrive and math.max(35, math.min(90, (a.tArrive - clock) * M.WALK_SPEED)) or 90
             local spot, reason, deferred = env.world.findSpot(a, mode)
             if deferred then return end
             if not spot then
+                -- One entry per rung, for the one failure line: which check turned the candidates away, and how many.
+                a.spotLog = a.spotLog or {}
+                if #a.spotLog < M.SPOT_TRIES then
+                    a.spotLog[#a.spotLog + 1] = a.method .. a.spotTries .. ' ' .. (clip(tostring(reason):gsub('^No hidden, reachable spot was found%. ', ''), 90) or '?')
+                end
                 a.spotTries = a.spotTries + 1
                 if a.method == 'car' and a.spotTries >= 2 then a.method, a.spotTries = 'walk', 0 end
                 return

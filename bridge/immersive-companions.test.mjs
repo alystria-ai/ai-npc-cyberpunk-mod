@@ -149,3 +149,63 @@ test('a spot search that spends the query budget asks again instead of failing',
   local first,reason,deferred=companions.findVisitorSpot('judy-alvarez',request,state)
   assert(first or deferred==true or reason==nil,'a batch of candidates: found, or ask again')
 `));
+
+// A street is a narrow corridor between buildings: the navmesh exists only within a few metres of its axis, and V stands in the middle of it.
+const street = (degrees, half) => `
+  local axis=math.rad(${degrees})
+  local dx,dy=math.cos(axis),math.sin(axis)
+  local queries=0
+  local function snap(position,radius)
+    local along=position.x*dx+position.y*dy
+    local across=position.x*dy*-1+position.y*dx
+    if math.abs(across)-${half}>radius then return {status='Failed'} end
+    local keep=math.max(-${half},math.min(${half},across))
+    return {status='OK',point=Vector4.new(along*dx-keep*dy,along*dy+keep*dx,0)}
+  end
+  Game.GetAINavigationSystem=function() return {
+    FindPointInSphereForCharacter=function(_,position,radius) queries=queries+1; return snap(position,radius) end,
+    FindPointInBoxForCharacter=function(_,position) return snap(position,3) end,
+    CalculatePathForCharacter=function(_,origin,destination)
+      return {path={origin,destination},CalculateLength=function() return math.sqrt((destination.x-origin.x)^2+(destination.y-origin.y)^2) end}
+    end} end
+  companions.visibleFromCrosshair=function() return false end
+  local function search(relax)
+    local request={destination=Vector4.new(0,0,0),mode='walk',relax=relax,maxDistance=90}
+    local state={}
+    local spot,reason,deferred
+    local calls=0
+    repeat
+      calls=calls+1
+      spot,reason,deferred=companions.findVisitorSpot('judy-alvarez',request,state)
+    until spot or reason or calls>60
+    return spot,reason,calls
+  end
+`;
+
+test('a street that no ring bearing lines up with still gives her a spot on the first rung, 35 m or more away', () => {
+  for (const angle of [8, 22, 37, 52, 75, 100]) run(`${visitor}
+    ${street(angle, 3)}
+    local spot,reason=search(0)
+    assert(spot,'${angle} degrees: '..tostring(reason))
+    assert(math.sqrt(spot.position.x^2+spot.position.y^2)>=35,'far enough')
+  `);
+});
+
+test('a street she cannot reach gives a final answer that says which checks turned the candidates away', () => run(`${visitor}
+  ${street(30, 3)}
+  Game.GetAINavigationSystem=function() return {
+    FindPointInSphereForCharacter=function(_,position) return {status=(position.x==0 and position.y==0) and 'OK' or 'Failed',point=position} end,
+    FindPointInBoxForCharacter=function(_,position) return {status='OK',point=position} end,
+    CalculatePathForCharacter=function(_,o,d) return {path={o,d},CalculateLength=function() return 1 end} end} end
+  local spot,reason=search(0)
+  assert(spot==nil and reason:find('of=%d+ nav=%d+'),tostring(reason))
+`));
+
+test('the search never examines more than a dozen ring points in one call, so a dense street cannot stall a frame', () => run(`${visitor}
+  ${street(30, 3)}
+  local request={destination=Vector4.new(0,0,0),mode='walk',relax=0,maxDistance=90}
+  companions.visibleFromCrosshair=function() return true end
+  local before=queries
+  companions.findVisitorSpot('judy-alvarez',request,{})
+  assert(queries-before<=2*12+1,'queries in one call: '..(queries-before))
+`));
