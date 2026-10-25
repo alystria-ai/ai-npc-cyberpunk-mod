@@ -1038,6 +1038,31 @@ function M.partyInOrder(player, radius)
     return result
 end
 
+-- The weapon a copy carries, for her turn context: 'weapon' (drawn in her hand), 'holstered' (in her inventory, hand empty) or 'empty'
+-- (carries none), and its display name. The hand is one cheap read; the inventory read is kept CARRIED_AGE seconds per copy. A failed read says nothing.
+local CARRIED_AGE=5
+function M.carriedWeapon(entry)
+    local draw=equipment.draw
+    local okHand,record=pcall(draw.handItem,entry.npc)
+    if not okHand then return nil end
+    if record then
+        local okName,name=pcall(draw.nameOf,record)
+        return 'weapon',okName and name or nil
+    end
+    local now=os.clock()
+    local read=entry.carriedRead
+    if not read or now-read.at>=CARRIED_AGE then
+        local okList,item=pcall(draw.primaryItem,entry.npc)
+        local okName,name=false,nil
+        if okList and item then okName,name=pcall(draw.nameOf,item) end
+        read={at=now,ok=okList,has=item~=nil,name=okName and name or nil}
+        entry.carriedRead=read
+    end
+    if not read.ok then return nil end
+    if read.has then return 'holstered',read.name end
+    return 'empty'
+end
+
 -- What each ready copy is doing right now, for a conversation turn (mod/turn-context.lua words it): the raw inputs, by profile
 -- key, and how V is moving. Read on demand when a turn is built (never per frame); every read is guarded. `seats` maps a copy's
 -- serial to its seating phase (init.lua passes the seating controller's snapshot).
@@ -1056,9 +1081,8 @@ function M.activityInputs(seats)
             local owned=okTactic and tactic and tactic.active and tactic.serial==entry.serial
             -- 'home' or 'changed' when the copy wears other clothes than its appearance text describes (mod/companion-outfits.lua status).
             local okOutfit,outfit=pcall(function() return M.outfitStatus and M.outfitStatus(entry.serial) end)
-            -- 'weapon' when a real weapon is drawn in her hand, 'empty' when not (one guarded read of the hand slot; a failed read says nothing).
-            local okHand,drawn=pcall(function() return equipment.draw.weapon(entry.npc) end)
-            rows[entry.profileKey]={holding=okHand and (drawn and 'weapon' or 'empty') or nil,transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
+            local holding,weapon=M.carriedWeapon(entry)
+            rows[entry.profileKey]={holding=holding,weapon=weapon,transport=transport and {owned=transport.owned,phase=transport.phase,seat=transport.seat,
                 mountedSeat=transport.mountedSeat} or nil,
                 tactic=owned and {kind=tactic.kind,phase=tactic.phase} or nil,
                 seating=type(seats)=='table' and seats[entry.serial] or nil,

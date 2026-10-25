@@ -561,8 +561,11 @@ function Instance:read()
                         row.activity = M.classify(inputs)
                         -- Clothes other than the ones her appearance text describes (mod/companion-outfits.lua): 'home' or 'changed'.
                         if inputs.outfit == 'home' or inputs.outfit == 'changed' then row.outfit = inputs.outfit end
-                        -- What is in her hand: 'weapon' or 'empty' (companions.activityInputs).
-                        if inputs.holding == 'weapon' or inputs.holding == 'empty' then row.holding = inputs.holding end
+                        -- The weapon she carries: 'weapon' (drawn), 'holstered' or 'empty', and its name (companions.carriedWeapon).
+                        if inputs.holding == 'weapon' or inputs.holding == 'holstered' or inputs.holding == 'empty' then
+                            row.holding = inputs.holding
+                            if type(inputs.weapon) == 'string' then row.weapon = inputs.weapon end
+                        end
                     end
                 end
                 if MOTIONS[info.motion] and not snapshot.vehicle then snapshot.motion = info.motion end
