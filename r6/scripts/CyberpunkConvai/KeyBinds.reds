@@ -9,10 +9,11 @@ module CyberpunkConvai
 // Codeware these scripts still compile (a compile error would disable every redscript mod) and the bindings do nothing; mod/setup-check.lua tells the
 // player Codeware is missing and the page says so.
 //
-// What it reports to Lua (mod/key-bindings.lua), as short texts in a bounded queue:
+// What it reports to Lua (mod/key-bindings.lua), as short texts in two bounded queues:
 //   d1..d5       the key bound to slot 1..5 went down (the slots are the five actions, in the order Lua gives them)
 //   u1..u5       that key came back up
-//   kIK_F7       while a key is being chosen (Set): the key that went down, by the name of the game's EInputKey
+//   kIK_F7       while a key is being chosen (Set): the key that went down, by the name of the game's EInputKey (the capture's own queue)
+//   x            the capture closed itself: it met more key events or lasted longer than any Set does (the capture's own queue)
 // A key pressed while Shift, Ctrl or Alt is held is not a binding of this mod and reports nothing, and a key that stays down reports one d, not one per
 // key repeat. Lua decides whether the moment is allowed (menus, scenes, calls, the text box ...) when it takes the event, and runs the same code path
 // the Cyber Engine Tweaks key of that action runs.
@@ -33,6 +34,26 @@ private let m_convaiKeyEvents: array<String>;
 // The key that was chosen last (Set): it is still down when the new binding starts listening, so its key repeat is not a press until it has come up.
 @addField(PlayerPuppet)
 private let m_convaiKeyChosen: EInputKey;
+
+// The capture (Set) keeps to itself: its results wait in their own queue, which only Lua's 10 Hz tick reads (ConvaiKeyBindCaptureTake). Nothing it hears
+// calls into Lua, saves a setting or registers or unregisters a listener while the game is still delivering that key event (game 2.31 froze while a
+// key was being set, 25 Oct, with Dark Future's input mods beside it). It counts what it handles and when it started; past either limit it closes
+// itself (it ignores every later event and says "x") and Lua unregisters it on its next tick, outside the event.
+@addField(PlayerPuppet)
+private let m_convaiKeyCaptured: array<String>;
+
+@addField(PlayerPuppet)
+private let m_convaiKeyCaptureEvents: Int32;
+
+@addField(PlayerPuppet)
+private let m_convaiKeyCaptureStart: Float;
+
+@addField(PlayerPuppet)
+private let m_convaiKeyCaptureClosed: Bool;
+
+// A handler of this file is running: an event that arrives inside it (the game delivering another key from the code it calls) is dropped.
+@addField(PlayerPuppet)
+private let m_convaiKeyBusy: Bool;
 
 @if(ModuleExists("Codeware"))
 @addField(PlayerPuppet)
@@ -63,17 +84,34 @@ public final func ConvaiKeyBindTake() -> String {
     return value;
 }
 
-// Called after each event is queued, and observed by Lua (Observe on this method) so a key is handled at the moment it goes down or up. It does nothing
-// itself. Lua also drains the queue on its 10 Hz tick when the observer could not be installed.
+// Called after each event is queued (game 2.5; GameVariant.reds ConvaiKeyNotifyInEvent), and observed by Lua (Observe on this method) so a key is handled
+// at the moment it goes down or up. It does nothing itself. Lua drains the queue on its 10 Hz tick when the observer could not be installed, and on game
+// 2.31, where it is not called.
 @addMethod(PlayerPuppet)
 public final func ConvaiKeyBindNotify() -> Void {
+}
+
+// The capture's queue (kIK_.. and x), read by Lua's tick while a Set waits: "" when empty.
+@addMethod(PlayerPuppet)
+public final func ConvaiKeyBindCaptureTake() -> String {
+    if ArraySize(this.m_convaiKeyCaptured) == 0 { return ""; };
+    let value: String = this.m_convaiKeyCaptured[0];
+    ArrayErase(this.m_convaiKeyCaptured, 0);
+    return value;
 }
 
 @addMethod(PlayerPuppet)
 private final func ConvaiKeyBindPush(value: String) -> Void {
     if ArraySize(this.m_convaiKeyEvents) >= 16 { ArrayErase(this.m_convaiKeyEvents, 0); };
     ArrayPush(this.m_convaiKeyEvents, value);
-    this.ConvaiKeyBindNotify();
+    // Game 2.31: not from inside the key event (GameVariant.reds); Lua's tick reads the queue.
+    if ConvaiKeyNotifyInEvent() { this.ConvaiKeyBindNotify(); };
+}
+
+// Whether ConvaiKeyBindNotify is called as a key event happens (game 2.5), or Lua must read the queue on its tick (game 2.31). Lua asks once.
+@addMethod(PlayerPuppet)
+public final func ConvaiKeyBindsObservable() -> Bool {
+    return ConvaiKeyNotifyInEvent();
 }
 
 // The keys to listen to, as the names of EInputKey in slot order, "-" for a slot without a binding ("IK_F7,-,IK_Pad_LeftShoulder,-,-"). An empty list
@@ -122,25 +160,49 @@ public final func ConvaiKeyBindsConfigure(list: String) -> Bool {
     return false;
 }
 
-// While a key is being chosen: every key that goes down is reported (kIK_..), the bound keys report nothing. Lua switches it off when the key is chosen,
-// cancelled or no longer wanted.
+// While a key is being chosen: the keys a binding may use (the EInputKey names Lua lists, comma separated: the keys and buttons it offers, and Escape
+// to cancel) report when they go down (kIK_..), the bound keys report nothing. An empty list stops. Lua stops it when the key is chosen, cancelled or
+// no longer wanted, always from its tick. The listener has a target for each listed key, as every other key listener of the mod has: no listener of
+// this mod hears every key of the game.
 @if(ModuleExists("Codeware"))
 @addMethod(PlayerPuppet)
-public final func ConvaiKeyBindsCapture(on: Bool) -> Bool {
+public final func ConvaiKeyBindsCapture(keys: String) -> Bool {
     if IsDefined(this.m_convaiKeyCaptureHandler) {
         this.m_convaiKeyCaptureHandler.Unregister();
         this.m_convaiKeyCaptureHandler = null;
     };
-    if on {
-        this.m_convaiKeyChosen = EInputKey.IK_None;
-        this.m_convaiKeyCaptureHandler = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiCaptureKey");
+    ArrayClear(this.m_convaiKeyCaptured);
+    this.m_convaiKeyCaptureClosed = false;
+    if StrLen(keys) == 0 { return true; };
+    let names: array<String> = StrSplit(keys, ",");
+    let handler: ref<CallbackSystemHandler> = ConvaiCallbackSystem().RegisterCallback(n"Input/Key", this, n"OnConvaiCaptureKey");
+    let count: Int32 = 0;
+    let i: Int32 = 0;
+    while i < ArraySize(names) && i < 256 {
+        let value: Int64 = EnumValueFromString("EInputKey", names[i]);
+        if value > 0l {
+            let key: EInputKey = IntEnum<EInputKey>(Cast<Int32>(value));
+            handler.AddTarget(ConvaiKeyTarget(key, EInputAction.IACT_Press));
+            // The release too: the chosen key that comes up before its binding listens is not left counted as still down.
+            if ConvaiKeyTargetsByAction() { handler.AddTarget(ConvaiKeyTarget(key, EInputAction.IACT_Release)); };
+            count += 1;
+        };
+        i += 1;
     };
+    if count == 0 {
+        handler.Unregister();
+        return false;
+    };
+    this.m_convaiKeyChosen = EInputKey.IK_None;
+    this.m_convaiKeyCaptureEvents = 0;
+    this.m_convaiKeyCaptureStart = EngineTime.ToFloat(GameInstance.GetEngineTime(this.GetGame()));
+    this.m_convaiKeyCaptureHandler = handler;
     return true;
 }
 
 @if(!ModuleExists("Codeware"))
 @addMethod(PlayerPuppet)
-public final func ConvaiKeyBindsCapture(on: Bool) -> Bool {
+public final func ConvaiKeyBindsCapture(keys: String) -> Bool {
     return false;
 }
 
@@ -167,6 +229,8 @@ private cb func OnConvaiBoundKey(evt: ref<KeyInputEvent>) -> Void {
     // The 2.5 key target cannot filter by action (GameVariant.reds), so every action of the bound keys arrives: only a press and a release count.
     let pressed: Bool = Equals(evt.GetAction(), EInputAction.IACT_Press);
     if !pressed && NotEquals(evt.GetAction(), EInputAction.IACT_Release) { return; };
+    if this.m_convaiKeyBusy { return; };
+    this.m_convaiKeyBusy = true;
     let key: EInputKey = evt.GetKey();
     let i: Int32 = 0;
     while i < ArraySize(this.m_convaiKeySlots) {
@@ -188,20 +252,42 @@ private cb func OnConvaiBoundKey(evt: ref<KeyInputEvent>) -> Void {
         };
         i += 1;
     };
+    this.m_convaiKeyBusy = false;
 }
 
+// A Set needs a few key events and Lua gives up after 12 s: past 64 events or 30 s the capture closes itself.
 @if(ModuleExists("Codeware"))
 @addMethod(PlayerPuppet)
 private cb func OnConvaiCaptureKey(evt: ref<KeyInputEvent>) -> Void {
-    if NotEquals(evt.GetAction(), EInputAction.IACT_Press) { return; };
-    this.m_convaiKeyChosen = evt.GetKey();
-    this.ConvaiKeyBindPush("k" + EnumValueToString("EInputKey", Cast<Int64>(EnumInt(evt.GetKey()))));
+    if this.m_convaiKeyCaptureClosed || this.m_convaiKeyBusy { return; };
+    this.m_convaiKeyBusy = true;
+    this.m_convaiKeyCaptureEvents += 1;
+    let action: EInputAction = evt.GetAction();
+    let key: EInputKey = evt.GetKey();
+    let age: Float = EngineTime.ToFloat(GameInstance.GetEngineTime(this.GetGame())) - this.m_convaiKeyCaptureStart;
+    if this.m_convaiKeyCaptureEvents > 64 || age > 30.0 || age < 0.0 {
+        this.m_convaiKeyCaptureClosed = true;
+        ArrayPush(this.m_convaiKeyCaptured, "x");
+    } else {
+        if Equals(action, EInputAction.IACT_Press) {
+            let value: String = "k" + EnumValueToString("EInputKey", Cast<Int64>(EnumInt(key)));
+            let size: Int32 = ArraySize(this.m_convaiKeyCaptured);
+            // A key held down repeats its press: one entry for it while Lua has not read the last one.
+            if size < 8 && (size == 0 || NotEquals(this.m_convaiKeyCaptured[size - 1], value)) {
+                this.m_convaiKeyChosen = key;
+                ArrayPush(this.m_convaiKeyCaptured, value);
+            };
+        } else {
+            if Equals(action, EInputAction.IACT_Release) && Equals(key, this.m_convaiKeyChosen) { this.m_convaiKeyChosen = EInputKey.IK_None; };
+        };
+    };
+    this.m_convaiKeyBusy = false;
 }
 
 // Everything stops with the player: the callbacks hold the player, so they are unregistered when it goes.
 @addMethod(PlayerPuppet)
 private final func ConvaiKeyBindsStop() -> Void {
-    this.ConvaiKeyBindsCapture(false);
+    this.ConvaiKeyBindsCapture("");
     this.ConvaiKeyBindsRelease();
     ArrayClear(this.m_convaiKeyEvents);
 }

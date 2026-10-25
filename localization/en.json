@@ -3486,7 +3486,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5523"
+        "mod/init.lua:5664"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -3494,7 +3494,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5326"
+        "mod/init.lua:5446"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -3502,7 +3502,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5372"
+        "mod/init.lua:5492"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -3510,7 +3510,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5325"
+        "mod/init.lua:5445"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -3518,7 +3518,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5371"
+        "mod/init.lua:5491"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by text": {
@@ -3526,7 +3526,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5374"
+        "mod/init.lua:5494"
       ]
     },
     "AI NPC Cyberpunk Mod: talk to Johnny by voice": {
@@ -3534,7 +3534,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:5375"
+        "mod/init.lua:5495"
       ]
     },
     "Above the speaker": {
@@ -3853,7 +3853,7 @@
         "page.reply-language"
       ],
       "references": [
-        "mod/init.lua:4758",
+        "mod/init.lua:4878",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -3928,8 +3928,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:122",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:138",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Behavior: {list}": {
@@ -4127,8 +4127,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:122",
-        "mod/key-bindings.lua:60"
+        "mod/key-bindings.lua:138",
+        "mod/key-bindings.lua:63"
       ]
     },
     "Car": {
@@ -4187,7 +4187,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4947"
+        "mod/init.lua:5067"
       ]
     },
     "Characters": {
@@ -5133,7 +5133,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4814"
+        "mod/init.lua:4934"
       ]
     },
     "Convai could not start the payment. Try again later.": {
@@ -5166,7 +5166,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4790"
+        "mod/init.lua:4910"
       ]
     },
     "Convai does not show a paid plan for your key yet.": {
@@ -5541,7 +5541,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:91"
+        "mod/housemates.lua:92"
       ]
     },
     "Could not save. Try again.": {
@@ -5684,7 +5684,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:364",
-        "mod/init.lua:4915"
+        "mod/init.lua:5035"
       ]
     },
     "Custom: free daily limit reached": {
@@ -5765,7 +5765,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:75"
+        "mod/key-bindings.lua:78"
       ]
     },
     "D-pad left": {
@@ -5773,7 +5773,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:75"
+        "mod/key-bindings.lua:78"
       ]
     },
     "D-pad right": {
@@ -5781,7 +5781,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:75"
+        "mod/key-bindings.lua:78"
       ]
     },
     "D-pad up": {
@@ -5789,7 +5789,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:75"
+        "mod/key-bindings.lua:78"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -5841,8 +5841,8 @@
       ],
       "references": [
         "mod/character-editor.lua:61",
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Delete character": {
@@ -5987,8 +5987,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:59"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:62"
       ]
     },
     "Drag the slider, or press left and right, to turn the page.": {
@@ -6095,8 +6095,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:123",
-        "mod/key-bindings.lua:58"
+        "mod/key-bindings.lua:139",
+        "mod/key-bindings.lua:61"
       ]
     },
     "English": {
@@ -6112,8 +6112,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:122",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:138",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Error reports go to the developer automatically. Turn them off in Settings > Privacy.": {
@@ -6209,7 +6209,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2395"
+        "mod/init.lua:2407"
       ]
     },
     "Facts the character noticed while you talked. Change or delete the ones that are wrong.": {
@@ -6433,7 +6433,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4902",
+        "mod/init.lua:5022",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -6572,7 +6572,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4902",
+        "mod/init.lua:5022",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -6637,8 +6637,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2761",
-        "mod/init.lua:2892"
+        "mod/init.lua:2773",
+        "mod/init.lua:2905"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -6647,8 +6647,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2760",
-        "mod/init.lua:2891"
+        "mod/init.lua:2772",
+        "mod/init.lua:2904"
       ]
     },
     "Group text chat": {
@@ -6780,7 +6780,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:92"
+        "mod/housemates.lua:93"
       ]
     },
     "Hold it to talk to Johnny, the voice in your head, wherever you face, and let go to send. It needs Johnny in your head turned on in Settings.": {
@@ -6828,8 +6828,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:123",
-        "mod/key-bindings.lua:58"
+        "mod/key-bindings.lua:139",
+        "mod/key-bindings.lua:61"
       ]
     },
     "Housemates": {
@@ -7038,8 +7038,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Install or update: {names}. Then restart the game.": {
@@ -7174,7 +7174,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4902",
+        "mod/init.lua:5022",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -7208,7 +7208,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2659"
+        "mod/init.lua:2671"
       ]
     },
     "Joining...": {
@@ -7321,8 +7321,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:59"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:62"
       ]
     },
     "Length limits": {
@@ -7433,7 +7433,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4863"
+        "mod/init.lua:4983"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -7441,8 +7441,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4851",
-        "mod/init.lua:4855",
+        "mod/init.lua:4971",
+        "mod/init.lua:4975",
         "mod/manager-ui.lua:100"
       ]
     },
@@ -7519,7 +7519,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4877"
+        "mod/init.lua:4997"
       ]
     },
     "Local AI stopped working and was restarted.": {
@@ -7527,7 +7527,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4873"
+        "mod/init.lua:4993"
       ]
     },
     "Local AI switched to {model}: the game is using most of your graphics memory.": {
@@ -7535,7 +7535,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4894"
+        "mod/init.lua:5014"
       ]
     },
     "Local AI, Lite": {
@@ -7671,7 +7671,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:90"
+        "mod/housemates.lua:91"
       ]
     },
     "Memories": {
@@ -7775,7 +7775,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:76"
+        "mod/key-bindings.lua:79"
       ]
     },
     "Message could not be delivered. Please try again.": {
@@ -7883,7 +7883,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4818",
+        "mod/init.lua:4938",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -7909,7 +7909,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4909"
+        "mod/init.lua:5029"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -7917,7 +7917,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4911"
+        "mod/init.lua:5031"
       ]
     },
     "Mistral takes only the settings shown here. Top K, Min P and the advanced JSON are for Local AI and Custom models.": {
@@ -7958,7 +7958,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4820",
+        "mod/init.lua:4940",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -8340,7 +8340,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:6336"
+        "mod/init.lua:6485"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -8449,7 +8449,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4849",
+        "mod/init.lua:4969",
         "mod/manager-ui.lua:99",
         "mod/setup-check.lua:593"
       ]
@@ -8551,8 +8551,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:125",
-        "mod/key-bindings.lua:60"
+        "mod/key-bindings.lua:141",
+        "mod/key-bindings.lua:63"
       ]
     },
     "OK": {
@@ -8962,8 +8962,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:123",
-        "mod/key-bindings.lua:58"
+        "mod/key-bindings.lua:139",
+        "mod/key-bindings.lua:61"
       ]
     },
     "Page up": {
@@ -8971,8 +8971,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:123",
-        "mod/key-bindings.lua:58"
+        "mod/key-bindings.lua:139",
+        "mod/key-bindings.lua:61"
       ]
     },
     "Page {page} / {pages}": {
@@ -9063,8 +9063,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:122",
-        "mod/key-bindings.lua:60"
+        "mod/key-bindings.lua:138",
+        "mod/key-bindings.lua:63"
       ]
     },
     "Pending departure lost its vehicle binding.": {
@@ -9144,7 +9144,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2312"
+        "mod/init.lua:2324"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -9227,7 +9227,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4902",
+        "mod/init.lua:5022",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -9396,8 +9396,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:60"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:63"
       ]
     },
     "Privacy": {
@@ -9668,7 +9668,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4898"
+        "mod/init.lua:5018"
       ]
     },
     "Replies shown to the model after the rules. A small model may copy them word for word, so add none, or keep them short and plain.": {
@@ -9817,8 +9817,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:59"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:62"
       ]
     },
     "Right now": {
@@ -10107,8 +10107,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:125",
-        "mod/key-bindings.lua:60"
+        "mod/key-bindings.lua:141",
+        "mod/key-bindings.lua:63"
       ]
     },
     "Search characters": {
@@ -10475,8 +10475,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:123",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:139",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Spanish": {
@@ -10485,7 +10485,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4902",
+        "mod/init.lua:5022",
         "mod/manager-ui.lua:203"
       ]
     },
@@ -10519,7 +10519,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3172"
+        "mod/init.lua:3187"
       ]
     },
     "Speaks up normally": {
@@ -10587,7 +10587,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:5142"
+        "mod/init.lua:5262"
       ]
     },
     "Starting": {
@@ -10819,8 +10819,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:122",
-        "mod/key-bindings.lua:57"
+        "mod/key-bindings.lua:138",
+        "mod/key-bindings.lua:60"
       ]
     },
     "Talk by text": {
@@ -10876,7 +10876,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:900"
+        "mod/init.lua:904"
       ]
     },
     "Talk to story characters": {
@@ -10959,15 +10959,15 @@
       "references": [
         "mod/companion-adoption.lua:381",
         "mod/housemate-service.lua:148",
-        "mod/housemates.lua:792",
-        "mod/housemates.lua:797",
-        "mod/housemates.lua:799",
-        "mod/housemates.lua:802",
-        "mod/housemates.lua:804",
-        "mod/housemates.lua:817",
-        "mod/init.lua:431",
+        "mod/housemates.lua:806",
+        "mod/housemates.lua:811",
+        "mod/housemates.lua:813",
+        "mod/housemates.lua:816",
+        "mod/housemates.lua:818",
+        "mod/housemates.lua:831",
         "mod/init.lua:435",
-        "mod/init.lua:451"
+        "mod/init.lua:439",
+        "mod/init.lua:455"
       ]
     },
     "That address is a web page, not the API. For OpenRouter use https://openrouter.ai/api/v1.": {
@@ -11024,7 +11024,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:814"
+        "mod/housemates.lua:828"
       ]
     },
     "That confirmation is no longer active.": {
@@ -11178,7 +11178,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4887"
+        "mod/init.lua:5007"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -11211,7 +11211,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4822",
+        "mod/init.lua:4942",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -11350,7 +11350,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4859"
+        "mod/init.lua:4979"
       ]
     },
     "The car has stopped. Step out so your companion can leave the driver seat.": {
@@ -11549,7 +11549,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4786"
+        "mod/init.lua:4906"
       ]
     },
     "The conversation service cannot reach the internet. See Help in Settings.": {
@@ -11573,7 +11573,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4927"
+        "mod/init.lua:5047"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -11733,7 +11733,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:352",
-        "mod/init.lua:4827",
+        "mod/init.lua:4947",
         "mod/phone-chat-style.lua:56",
         "mod/phone-chat.lua:13"
       ]
@@ -11745,7 +11745,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:362",
-        "mod/init.lua:4844",
+        "mod/init.lua:4964",
         "mod/phone-chat-style.lua:62",
         "mod/phone-chat.lua:19"
       ]
@@ -11757,7 +11757,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:354",
-        "mod/init.lua:4831",
+        "mod/init.lua:4951",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:15"
       ]
@@ -11768,7 +11768,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:363",
-        "mod/init.lua:4913"
+        "mod/init.lua:5033"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -11778,7 +11778,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:355",
-        "mod/init.lua:4833",
+        "mod/init.lua:4953",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:16"
       ]
@@ -11790,7 +11790,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:353",
-        "mod/init.lua:4829",
+        "mod/init.lua:4949",
         "mod/phone-chat-style.lua:57",
         "mod/phone-chat.lua:14"
       ]
@@ -11825,7 +11825,7 @@
       ],
       "references": [
         "mod/gameplay-actions.lua:344",
-        "mod/init.lua:477"
+        "mod/init.lua:481"
       ]
     },
     "The editor could not be opened. Try again.": {
@@ -11955,7 +11955,7 @@
       "references": [
         "mod/custom-provider.lua:234",
         "mod/custom-provider.lua:358",
-        "mod/init.lua:4838"
+        "mod/init.lua:4958"
       ]
     },
     "The free daily limit for this model was reached. Try again after it resets.": {
@@ -11965,7 +11965,7 @@
       "references": [
         "mod/custom-provider.lua:235",
         "mod/custom-provider.lua:359",
-        "mod/init.lua:4840"
+        "mod/init.lua:4960"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -12509,7 +12509,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4881"
+        "mod/init.lua:5001"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -12600,7 +12600,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4946",
+        "mod/init.lua:5066",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:451"
       ]
     },
@@ -12676,7 +12676,7 @@
       "references": [
         "mod/custom-provider.lua:237",
         "mod/custom-provider.lua:361",
-        "mod/init.lua:4842"
+        "mod/init.lua:4962"
       ]
     },
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware or redscript, or a game version other than {game}, can also cause it.": {
@@ -12766,7 +12766,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4781"
+        "mod/init.lua:4901"
       ]
     },
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -12774,7 +12774,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4779"
+        "mod/init.lua:4899"
       ]
     },
     "Tone line": {
@@ -13062,8 +13062,8 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:124",
-        "mod/key-bindings.lua:59"
+        "mod/key-bindings.lua:140",
+        "mod/key-bindings.lua:62"
       ]
     },
     "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI": {
@@ -13275,7 +13275,7 @@
         "page.key-bindings"
       ],
       "references": [
-        "mod/key-bindings.lua:76"
+        "mod/key-bindings.lua:79"
       ]
     },
     "Voice": {
@@ -13300,7 +13300,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:5420"
+        "mod/init.lua:5540"
       ]
     },
     "Voice conversation failed. Check your microphone and try again.": {
@@ -13308,7 +13308,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4929"
+        "mod/init.lua:5049"
       ]
     },
     "Voice input could not reach Convai. Hold the voice key again, or type.": {
@@ -13744,7 +13744,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:94"
+        "mod/housemates.lua:95"
       ]
     },
     "Westbrook Japantown": {
@@ -13752,7 +13752,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:93"
+        "mod/housemates.lua:94"
       ]
     },
     "What V wears and carries: clothes, weapons and cyberware that can be seen.\n\nOff: it is not sent, and the mod stops reading it from the game.": {
@@ -13979,7 +13979,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:799"
+        "mod/housemates.lua:813"
       ]
     },
     "You have as many voice clips as the editor keeps ({max}). Remove one first.": {
@@ -14036,7 +14036,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4788"
+        "mod/init.lua:4908"
       ]
     },
     "Your Convai plan": {
@@ -14052,7 +14052,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4792"
+        "mod/init.lua:4912"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -14060,7 +14060,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4809"
+        "mod/init.lua:4929"
       ]
     },
     "Your Convai plan is active.": {
@@ -14220,7 +14220,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2993"
+        "mod/init.lua:3006"
       ]
     },
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": {
@@ -14229,7 +14229,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4867",
+        "mod/init.lua:4987",
         "mod/phone-chat-style.lua:73",
         "mod/phone-chat.lua:27"
       ]
@@ -14240,7 +14240,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4869",
+        "mod/init.lua:4989",
         "mod/phone-chat-style.lua:74",
         "mod/phone-chat.lua:28"
       ]
@@ -14365,8 +14365,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4886",
-        "mod/init.lua:4893"
+        "mod/init.lua:5006",
+        "mod/init.lua:5013"
       ]
     },
     "at home": {
@@ -14596,7 +14596,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4905"
+        "mod/init.lua:5025"
       ]
     },
     "{message} The change is active, but could not be saved for next time.": {
@@ -14653,7 +14653,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2742"
+        "mod/init.lua:2754"
       ]
     },
     "{name} answers typed messages only for now. Use {key}.": {
@@ -14661,7 +14661,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2741"
+        "mod/init.lua:2753"
       ]
     },
     "{name} can't come along right now.": {
@@ -14677,7 +14677,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:904"
+        "mod/init.lua:908"
       ]
     },
     "{name} could not join: {reason}": {
@@ -14717,8 +14717,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2793",
-        "mod/init.lua:4938"
+        "mod/init.lua:2806",
+        "mod/init.lua:5058"
       ]
     },
     "{name} has moved out.": {
@@ -14726,7 +14726,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:655"
+        "mod/housemates.lua:669"
       ]
     },
     "{name} is a child and cannot be talked to.": {
@@ -14734,7 +14734,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:902"
+        "mod/init.lua:906"
       ]
     },
     "{name} is a story character. Turn on Talk to story characters in Esc > Mods.": {
@@ -14742,7 +14742,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:897"
+        "mod/init.lua:901"
       ]
     },
     "{name} is already on the way.": {
@@ -14775,9 +14775,9 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2672",
-        "mod/init.lua:2826",
-        "mod/init.lua:2844"
+        "mod/init.lua:2684",
+        "mod/init.lua:2839",
+        "mod/init.lua:2857"
       ]
     },
     "{name} is coming with you.": {
@@ -14827,7 +14827,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:903"
+        "mod/init.lua:907"
       ]
     },
     "{name} is not in your group.": {
@@ -14837,7 +14837,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:5217"
+        "mod/init.lua:5337"
       ]
     },
     "{name} is not in your head right now.": {
@@ -14846,7 +14846,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2676"
+        "mod/init.lua:2688"
       ]
     },
     "{name} is on her way.": {
@@ -14871,7 +14871,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2788"
+        "mod/init.lua:2801"
       ]
     },
     "{name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.": {
@@ -14879,7 +14879,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4933"
+        "mod/init.lua:5053"
       ]
     },
     "{name} joined your group.": {
@@ -14904,7 +14904,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:403"
+        "mod/housemates.lua:417"
       ]
     },
     "{name} moves into {apartment}.": {
@@ -14912,7 +14912,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/housemates.lua:639"
+        "mod/housemates.lua:653"
       ]
     },
     "{name} selected for memory controls.": {
@@ -15008,7 +15008,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3728"
+        "mod/init.lua:3743"
       ]
     },
     "{name}: chat {state}.": {
@@ -15384,8 +15384,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2760",
-        "mod/init.lua:2891"
+        "mod/init.lua:2772",
+        "mod/init.lua:2904"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -15673,8 +15673,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2793",
-        "mod/init.lua:4938"
+        "mod/init.lua:2806",
+        "mod/init.lua:5058"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -15698,7 +15698,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:5217"
+        "mod/init.lua:5337"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

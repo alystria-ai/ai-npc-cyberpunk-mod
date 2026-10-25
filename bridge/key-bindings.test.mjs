@@ -29,18 +29,41 @@ local kb = (function() ${moduleSource} end)()
 kb.clock = function() return clock end
 local saved = {}
 local runs, logs, results, observer = {}, {}, {}, nil
-local flags = {typing = false, observerFails = false, saveFails = false, cet = nil, cetAvailable = false, file = nil}
-local player = {queue = {}, list = '', ready = true, absent = false, configures = {}, captures = {}, calls = {}}
+local flags = {typing = false, observerFails = false, saveFails = false, cet = nil, cetAvailable = false, file = nil, observable = true}
+local player = {queue = {}, captured = {}, list = '', ready = true, absent = false, configures = {}, captures = {}, calls = {}, inEvent = false,
+  listening = false, keys = nil}
 local function called(name) player.calls[name] = (player.calls[name] or 0) + 1 end
+-- Registering or unregistering a key listener from inside the game's own key event is what froze game 2.31 (25 Oct): the stand-in refuses it.
+local function outsideEvent(name) if player.inEvent then error(name .. ' called from inside a key event') end end
 function player:ConvaiKeyBindsReady() called('Ready'); return self.ready end
 function player:ConvaiKeyBindsActive() called('Active'); if self.absent then error('no such method') end return self.list end
-function player:ConvaiKeyBindsConfigure(list) called('Configure'); self.configures[#self.configures + 1] = list
+function player:ConvaiKeyBindsConfigure(list) called('Configure'); outsideEvent('ConvaiKeyBindsConfigure')
+  assert(type(list) == 'string', 'ConvaiKeyBindsConfigure takes a String')
+  self.configures[#self.configures + 1] = list
   if not self.ready then return false end
   self.list = list; return true end
-function player:ConvaiKeyBindsCapture(on) called('Capture'); self.captures[#self.captures + 1] = on; return true end
+-- KeyBinds.reds ConvaiKeyBindsCapture(keys: String): the keys to listen to, '' stops (CET refuses a boolean for a String parameter).
+function player:ConvaiKeyBindsCapture(keys) called('Capture'); outsideEvent('ConvaiKeyBindsCapture')
+  if type(keys) ~= 'string' then error('ConvaiKeyBindsCapture takes a String, got ' .. type(keys)) end
+  self.captures[#self.captures + 1] = keys ~= ''
+  self.captured, self.listening, self.keys = {}, keys ~= '', keys ~= '' and keys or self.keys
+  return true end
 function player:ConvaiKeyBindTake() called('Take'); return table.remove(self.queue, 1) or '' end
--- What the redscript does when a key goes down or up, and tells the observer.
-function player:push(token) self.queue[#self.queue + 1] = token; if observer then observer(self) end end
+-- KeyBinds.reds ConvaiKeyBindsObservable: whether the key events call into Lua as they happen (GameVariant.reds: 2.5 yes, 2.31 no).
+function player:ConvaiKeyBindsObservable() called('Observable'); return flags.observable end
+function player:ConvaiKeyBindCaptureTake() called('CaptureTake'); outsideEvent('ConvaiKeyBindCaptureTake'); return table.remove(self.captured, 1) or '' end
+-- What the redscript does when a bound key goes down or up, and tells the observer (inside the game's key event; game 2.31 tells nobody).
+function player:push(token)
+  self.queue[#self.queue + 1] = token
+  if observer and flags.observable then self.inEvent = true; local ok, err = pcall(observer, self); self.inEvent = false; if not ok then error(err) end end
+end
+-- A key going down while a Set waits: the capture queues it and calls nothing (Lua reads it on its tick). Only a listed key is heard.
+function player:key(name)
+  if not self.listening then return end
+  local listed = false
+  for listedName in (self.keys or ''):gmatch('[^,]+') do if listedName == name then listed = true; break end end
+  if listed then self.captured[#self.captured + 1] = 'k' .. name end
+end
 kb.deps = {
   bindings = function() return saved end,
   save = function(action, name)
@@ -111,7 +134,7 @@ test('Talk to Johnny: the voice action is a hold (slot 6), the text action a tap
   local found = kb.decodeCet('{"AiNpcCyberpunkMod": {"cyberpunk_convai_johnny_voice": 33214047251857408, "cyberpunk_convai_johnny_text": 32932572275146752}}')
   assert(found.johnny_voice == 'F7' and found.johnny_text == 'F6')
   -- A key another action has is refused for them too.
-  kb.beginCapture(player, 'johnny_text'); clock = clock + 0.5; player:push('kIK_J')
+  kb.beginCapture(player, 'johnny_text'); clock = clock + 0.5; player:key('IK_J'); tick()
   assert(results[#results].kind == 'duplicate' and results[#results].other == 'johnny_voice')
 `));
 
@@ -169,46 +192,89 @@ test('the Cyber Engine Tweaks line: CET\'s own live answer wins when CET answers
 `));
 
 // ---- Set -------------------------------------------------------------------------------------------------------------------------------------------
-test('Set: the key that goes down after the grace is saved at once, the redscript capture is switched off, and the page is told', () => run(fixture + `
+test('Set: the key that goes down after the grace is saved on the next tick, the redscript capture is switched off, and the page is told', () => run(fixture + `
   assert(kb.beginCapture(player, 'text') == true and kb.capturing() == 'text')
   assert(player.captures[1] == true and kb.observed() == true, 'capture on, the observer installed')
-  clock = clock + 0.1; player:push('kIK_F7')
+  player:key('IK_F7'); tick()
   assert(saved.text == nil and kb.capturing() == 'text', 'the key that chose Set (a held Enter repeating) is not the choice')
-  clock = clock + 0.5; player:push('kIK_F7')
-  assert(saved.text == 'IK_F7' and kb.capturing() == nil, 'saved at once')
-  assert(player.list == '-,IK_F7,-,-,-' and #player.configures == 1, 'and registered at once, so the release of the key just chosen is heard')
-  assert(player.captures[2] == false, 'the redscript stops listening to every key')
+  clock = clock + 0.5; player:key('IK_F7')
+  assert(saved.text == nil and kb.capturing() == 'text', 'nothing happens inside the key event')
+  tick()
+  assert(saved.text == 'IK_F7' and kb.capturing() == nil, 'saved on the tick')
+  assert(player.list == '-,IK_F7,-,-,-' and #player.configures == 1, 'and registered on that tick, so the release of the key just chosen is heard')
+  assert(player.captures[2] == false and not player.listening, 'the redscript stops listening')
   assert(#results == 1 and results[1].kind == 'bound' and results[1].action == 'text' and results[1].name == 'IK_F7')
   assert(logged('text: bound IK_F7'))
+  tick(); tick()
+  assert(#player.configures == 1 and player.list == '-,IK_F7,-,-,-', 'the tick keeps the new list (it does not put the old one back)')
+`));
+
+test('Set listens to the keys a player may choose and Escape, never to every key; a key outside them is not heard', () => run(fixture + `
+  kb.beginCapture(player, 'voice')
+  local keys = player.keys
+  assert(type(keys) == 'string' and keys == kb.captureKeys() and rawequal(kb.captureKeys(), kb.captureKeys()), 'one list, made once')
+  local listed, count = {}, 0
+  for name in keys:gmatch('[^,]+') do listed[name] = true; count = count + 1 end
+  assert(listed.IK_Escape and listed.IK_Pad_B_CIRCLE and listed.IK_F7 and listed.IK_A and listed.IK_Pad_LeftShoulder and listed.IK_NumPad0)
+  for name in pairs(listed) do assert(name == 'IK_Escape' or kb.valid(name), name .. ' is not a key a player may choose') end
+  assert(not listed.IK_LeftMouse and not listed.IK_Shift and not listed.IK_Pad_LeftAxisX, 'no mouse, modifier or stick')
+  assert(count > 100 and count <= 256, 'the redscript takes at most 256: ' .. count)
+  clock = clock + 1; player:key('IK_LeftMouse'); tick()
+  assert(kb.capturing() == 'voice' and #results == 0)
+`));
+
+test('Set: the redscript capture that closes itself (too many key events, or too long) ends the Set as cancelled on the next tick', () => run(fixture + `
+  kb.beginCapture(player, 'voice')
+  clock = clock + 1
+  player.captured[#player.captured + 1] = 'x'
+  tick()
+  assert(kb.capturing() == nil and lastResult().kind == 'cancelled' and saved.voice == nil)
+  assert(player.captures[#player.captures] == false and not player.listening, 'unregistered from the tick')
+  assert(logged('cancelled (the capture closed itself)'))
+`));
+
+test('Set: nothing that registers or unregisters a listener runs inside a key event, even while bound keys are pressed during the Set', () => run(fixture + `
+  saved.voice, saved.text = 'IK_F8', 'IK_T'
+  tick()
+  kb.beginCapture(player, 'manager')
+  clock = clock + 1
+  player:key('IK_G')
+  player:push('d1'); player:push('u1'); player:push('d2'); player:push('u2')
+  assert(saved.manager == nil, 'a bound key event does not read the capture')
+  tick()
+  assert(saved.manager == 'IK_G' and player.list == 'IK_F8,IK_T,-,-,IK_G' and runList() == '')
 `));
 
 test('Set: Esc and the controller B cancel, a key that cannot be bound keeps waiting, and a key another action has is refused with its name', () => run(fixture + `
   saved.voice = 'IK_F8'
   kb.beginCapture(player, 'text'); clock = clock + 1
-  for _, ignored in ipairs({'kIK_LeftMouse', 'kIK_Shift', 'kIK_LControl', 'kIK_Alt', 'kIK_Pad_LeftAxisX', 'kIK_Unknown5B', 'kIK_Joy2'}) do player:push(ignored) end
+  -- Not on the capture's list, so the redscript never queues them; and should one arrive anyway, Lua ignores it too.
+  for _, ignored in ipairs({'IK_LeftMouse', 'IK_Shift', 'IK_LControl', 'IK_Alt', 'IK_Pad_LeftAxisX', 'IK_Unknown5B', 'IK_Joy2'}) do
+    player:key(ignored); player.captured[#player.captured + 1] = 'k' .. ignored end
+  tick(); tick()
   assert(kb.capturing() == 'text' and #results == 0, 'still waiting')
-  player:push('kIK_Escape')
+  player:key('IK_Escape'); tick()
   assert(kb.capturing() == nil and lastResult().kind == 'cancelled' and saved.text == nil)
   kb.beginCapture(player, 'text'); clock = clock + 1
-  player:push('kIK_Pad_B_CIRCLE')
+  player:key('IK_Pad_B_CIRCLE'); tick()
   assert(lastResult().kind == 'cancelled' and saved.text == nil)
   kb.beginCapture(player, 'text'); clock = clock + 1
-  player:push('kIK_F8')
+  player:key('IK_F8'); tick()
   local result = lastResult()
   assert(result.kind == 'duplicate' and result.action == 'text' and result.name == 'IK_F8' and result.other == 'voice' and saved.text == nil and saved.voice == 'IK_F8')
   -- The same key for the action that already has it is no conflict (pressing Set again and choosing it again).
   kb.beginCapture(player, 'voice'); clock = clock + 1
-  player:push('kIK_F8')
+  player:key('IK_F8'); tick()
   assert(lastResult().kind == 'bound' and saved.voice == 'IK_F8')
   -- A controller button works the same as a key.
   kb.beginCapture(player, 'manager'); clock = clock + 1
-  player:push('kIK_Pad_LeftShoulder')
+  player:key('IK_Pad_LeftShoulder'); tick()
   assert(saved.manager == 'IK_Pad_LeftShoulder')
 `));
 
 test('Set: a save that fails is reported and nothing is kept; a Set nobody answers ends after 12 s; Set again replaces a waiting one; leaving the page drops it silently', () => run(fixture + `
   flags.saveFails = true
-  kb.beginCapture(player, 'text'); clock = clock + 1; player:push('kIK_F6')
+  kb.beginCapture(player, 'text'); clock = clock + 1; player:key('IK_F6'); tick()
   assert(lastResult().kind == 'failed' and lastResult().reason == 'The settings could not be saved. Nothing was changed.' and saved.text == nil)
   flags.saveFails = false
   kb.beginCapture(player, 'text')
@@ -299,7 +365,7 @@ test('while a key is being chosen, and for half a second after, the bound keys d
   kb.beginCapture(player, 'manager')
   player:push('d1'); player:push('d2'); player:push('u2'); player:push('u1')
   assert(runList() == '', 'a bound key pressed during Set is not an action')
-  clock = clock + 1; player:push('kIK_G')
+  clock = clock + 1; player:key('IK_G'); tick()
   assert(saved.manager == 'IK_G')
   player:push('d1'); assert(runList() == '', 'the key just chosen is still down')
   player:push('u1')
@@ -357,6 +423,20 @@ test('a change of the keys while a hold is down ends the hold; a world that is n
   assert(runList() == 'voice:down,voice:up,voice:down,voice:up', 'loading screen')
   player.list = ''
   tick(); assert(player.list == 'IK_F9,-,-,-,-', 'registered again')
+`));
+
+test('game 2.31: the key events never call into Lua, nothing is observed, and the tick reads the queue (a key acts on the next tick)', () => run(fixture + `
+  flags.observable = false
+  saved.voice, saved.text = 'IK_F8', 'IK_T'
+  tick()
+  assert(kb.observed() == false and observer == nil and logged('read on the tick'), 'no Observe at all')
+  player:push('d1'); assert(runList() == '', 'nothing inside the key event')
+  tick(); assert(runList() == 'voice:down')
+  player:push('u1'); player:push('d2'); tick(); assert(runList() == 'voice:down,voice:up')
+  clock = clock + 0.1; player:push('u2'); tick(); assert(runList() == 'voice:down,voice:up,text')
+  -- A Set works the same way: read on the tick.
+  kb.beginCapture(player, 'manager'); clock = clock + 1; player:key('IK_G'); tick()
+  assert(saved.manager == 'IK_G')
 `));
 
 test('without the observer the 10 Hz tick reads the same queue', () => run(fixture + `
@@ -478,18 +558,46 @@ test('init.lua: the CET hotkeys ask convaiTapOnce, the CET voice keys are unchan
 });
 
 // ---- the redscript half, read as text ----------------------------------------------------------------------------------------------------------
-test('KeyBinds.reds: Codeware key callbacks for the chosen keys only, a catch-all only while a key is being chosen, never per frame', () => {
+// The body of one method or callback of KeyBinds.reds (the Codeware variant: the first one), up to the next top-level closing brace.
+const redsBody = signature => {
+  const start = redsSource.indexOf(signature);
+  assert.ok(start >= 0, signature);
+  return redsSource.slice(start, redsSource.indexOf('\n}\n', start) + 3);
+};
+
+test('KeyBinds.reds: Codeware key callbacks with a target for each key, for the bound keys and for the capture alike; no catch-all, never per frame', () => {
   assert.equal([...redsSource.matchAll(/RegisterCallback\(n"Input\/Key"/g)].length, 2, 'the bound keys and the capture, nothing else');
-  const configure = redsSource.slice(redsSource.indexOf('func ConvaiKeyBindsConfigure(list: String) -> Bool {'), redsSource.indexOf('func ConvaiKeyBindsConfigure(list: String) -> Bool {', redsSource.indexOf('func ConvaiKeyBindsConfigure(list: String) -> Bool {') + 10));
+  const configure = redsBody('func ConvaiKeyBindsConfigure(list: String) -> Bool {');
   assert.match(configure, /OnConvaiBoundKey/);
   assert.match(configure, /AddTarget\(ConvaiKeyTarget\(this\.m_convaiKeySlots\[i\], EInputAction\.IACT_Press\)\)/);
   assert.match(configure, /if ConvaiKeyTargetsByAction\(\) \{\s*this\.m_convaiKeyHandler\.AddTarget\(ConvaiKeyTarget\(this\.m_convaiKeySlots\[i\], EInputAction\.IACT_Release\)\)/,
     'a release target only where the target filters by action');
-  const capture = redsSource.slice(redsSource.indexOf('func ConvaiKeyBindsCapture(on: Bool) -> Bool {'));
-  assert.match(capture, /if on \{[\s\S]*RegisterCallback\(n"Input\/Key", this, n"OnConvaiCaptureKey"\)/, 'the catch-all exists only inside the on branch');
+  const capture = redsBody('func ConvaiKeyBindsCapture(keys: String) -> Bool {');
+  assert.match(capture, /if StrLen\(keys\) == 0 \{ return true; \};[\s\S]*RegisterCallback\(n"Input\/Key", this, n"OnConvaiCaptureKey"\)/, 'an empty list only stops');
+  assert.match(capture, /handler\.AddTarget\(ConvaiKeyTarget\(key, EInputAction\.IACT_Press\)\)/, 'a target for each listed key');
+  assert.match(capture, /i < 256/, 'a bounded list');
+  assert.match(capture, /if count == 0 \{\s*handler\.Unregister\(\);\s*return false;/, 'a list with no key the game knows is no capture');
   assert.match(redsSource, /m_convaiKeyHandler\.Unregister\(\)/);
   assert.match(redsSource, /m_convaiKeyCaptureHandler\.Unregister\(\)/);
   assert.ok(!/OnUpdate|OnTick|Tick\(|GetTimeSystem|DelayCallback/.test(redsSource), 'no per-frame work, no timers');
+});
+
+test('KeyBinds.reds: the capture calls nothing while the game delivers its key event, caps its events and its time, and guards against re-entry', () => {
+  const handler = redsBody('cb func OnConvaiCaptureKey(');
+  assert.match(handler, /^[\s\S]*?if this\.m_convaiKeyCaptureClosed \|\| this\.m_convaiKeyBusy \{ return; \};/, 'closed or re-entered: nothing');
+  assert.match(handler, /this\.m_convaiKeyCaptureEvents > 64/);
+  assert.match(handler, /age > 30\.0/);
+  assert.match(handler, /this\.m_convaiKeyCaptureClosed = true;\s*ArrayPush\(this\.m_convaiKeyCaptured, "x"\);/);
+  assert.match(handler, /size < 8/, 'its queue is bounded');
+  assert.match(handler, /this\.m_convaiKeyBusy = false;\s*\}\s*$/, 'the guard is let go at the end');
+  // No call out of the handler: not the notify Lua observes, not a register or unregister, not the bound keys' queue.
+  assert.ok(!/ConvaiKeyBindNotify|ConvaiKeyBindPush|Unregister|RegisterCallback|ConvaiKeyBindsCapture|ConvaiKeyBindsConfigure/.test(handler), handler);
+  const bound = redsBody('cb func OnConvaiBoundKey(');
+  assert.match(bound, /if this\.m_convaiKeyBusy \{ return; \};\s*this\.m_convaiKeyBusy = true;/);
+  assert.match(bound, /this\.m_convaiKeyBusy = false;\s*\}\s*$/);
+  assert.equal([...bound.matchAll(/return;/g)].length, 2, 'no return between taking the guard and letting it go');
+  const take = redsBody('public final func ConvaiKeyBindCaptureTake() -> String {');
+  assert.match(take, /ArrayErase\(this\.m_convaiKeyCaptured, 0\)/);
 });
 
 test('KeyBinds.reds: a key with Shift, Ctrl or Alt held is not a binding, a repeat is not a second press, and the chosen key is not pressed again until it has come up', () => {
@@ -499,7 +607,10 @@ test('KeyBinds.reds: a key with Shift, Ctrl or Alt held is not a binding, a repe
   assert.match(handler, /NotEquals\(key, this\.m_convaiKeyChosen\)/);
   assert.match(handler, /Equals\(key, this\.m_convaiKeyChosen\) \{ this\.m_convaiKeyChosen = EInputKey\.IK_None; \}/);
   assert.match(handler, /IACT_Press/); assert.match(handler, /IACT_Release/);
-  assert.match(redsSource, /this\.m_convaiKeyChosen = evt\.GetKey\(\)/, 'the capture remembers what was chosen');
+  const capture = redsBody('cb func OnConvaiCaptureKey(');
+  assert.match(capture, /this\.m_convaiKeyChosen = key;/, 'the capture remembers what was chosen');
+  assert.match(capture, /Equals\(action, EInputAction\.IACT_Release\) && Equals\(key, this\.m_convaiKeyChosen\) \{ this\.m_convaiKeyChosen = EInputKey\.IK_None; \}/,
+    'and forgets it when it comes up before its binding listens');
   // The events Lua reads: d<slot>, u<slot>, k<name>.
   assert.match(handler, /"d" \+ IntToString\(i \+ 1\)/); assert.match(handler, /"u" \+ IntToString\(i \+ 1\)/);
   assert.match(redsSource, /"k" \+ EnumValueToString\("EInputKey"/);
@@ -514,6 +625,8 @@ test('KeyBinds.reds compiles without Codeware: every method that needs it has a 
   assert.match(redsSource, /@if\(ModuleExists\("Codeware"\)\)\s*@addField\(PlayerPuppet\)\s*private let m_convaiKeyHandler: ref<CallbackSystemHandler>/);
   assert.match(redsSource, /wrapMethod\(PlayerPuppet\)\s*protected cb func OnDetach\(\) -> Bool \{\s*this\.ConvaiKeyBindsStop\(\);\s*return wrappedMethod\(\);/);
   assert.match(redsSource, /public final func ConvaiKeyBindNotify\(\) -> Void \{\s*\}/, 'the method Lua observes exists with or without Codeware');
+  assert.match(redsSource, /\n@addMethod\(PlayerPuppet\)\s*public final func ConvaiKeyBindCaptureTake\(\) -> String \{/, 'and so does the capture queue Lua reads');
+  assert.match(redsSource, /ConvaiKeyBindsStop\(\) -> Void \{\s*this\.ConvaiKeyBindsCapture\(""\);/);
 });
 
 test('GameVariant: both game builds say whether a key target filters by action (2.31 yes, 2.5 no)', () => {
@@ -521,6 +634,11 @@ test('GameVariant: both game builds say whether a key target filters by action (
   const v25 = readSource('../packaging/game-variants/2.5/r6/scripts/CyberpunkConvai/GameVariant.reds');
   assert.match(v231, /public func ConvaiKeyTargetsByAction\(\) -> Bool \{\s*return true;/);
   assert.match(v25, /public func ConvaiKeyTargetsByAction\(\) -> Bool \{\s*return false;/);
+  // A key event calls into Lua as it happens on 2.5 only; neither needs Codeware for the answer.
+  assert.match(v231, /\npublic func ConvaiKeyNotifyInEvent\(\) -> Bool \{\s*return false;/);
+  assert.match(v25, /\npublic func ConvaiKeyNotifyInEvent\(\) -> Bool \{\s*return true;/);
+  assert.match(redsSource, /ArrayPush\(this\.m_convaiKeyEvents, value\);\s*if ConvaiKeyNotifyInEvent\(\) \{ this\.ConvaiKeyBindNotify\(\); \};/);
+  assert.match(redsSource, /public final func ConvaiKeyBindsObservable\(\) -> Bool \{\s*return ConvaiKeyNotifyInEvent\(\);/);
 });
 
 test('the shipped file lists carry both new files', () => {

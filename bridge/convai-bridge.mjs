@@ -2809,6 +2809,13 @@ function startAhead(entry) {
 // and the continuous speech) lands in this turn's record (bridge/turn-clock.mjs). The clock watches the event loop until the
 // turn is published.
 async function processInput(request, prepared) {
+  // A submitted turn (not one prepared ahead) is the bridge's from here, and its status says so at once (the game's probe line a few seconds after a
+  // typed turn reads it, mod/service-status.lua receipt): a request that never shows as received was never read. One log line, codes only. Not awaited.
+  const input = request.input;
+  if (!request.lookahead && input) {
+    void status('received', '', {requestId: input.requestId, provider: input.provider}).catch(() => {});
+    console.error(`[Turn] received ${String(input.requestId).slice(0, 80)} generation=${input.generation}${input.reaction ? ' reaction' : ''}`);
+  }
   return withTurnClock(request, clock => runInput(request, prepared, clock));
 }
 async function withTurnClock(request, run) {
