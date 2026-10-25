@@ -11,6 +11,7 @@ import {parseTurnContext} from './turn-context.mjs';
 import {describePhoneFailure} from './phone-failure.mjs';
 import {parseMeetOffer, parseMeetEvent, screenMeet, meetInstruction, splitMeetTags, meetAction} from './meet-requests.mjs';
 import {eventTrigger} from './appointment-events.mjs';
+import {parseHomeOffer, screenHome, homeInstruction, splitHomeTags, homeAction} from './home-requests.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -138,8 +139,10 @@ export function parsePhoneState(raw) {
   if (state.request.recentConversation!==undefined && !recent) return null;
   // The offer to meet (bridge/meet-requests.mjs): a typed line only, never an event turn; malformed means no offer.
   const meetOffer = event ? null : parseMeetOffer(state.request.meetOffer);
+  // The offer to let her live at V's place (bridge/home-requests.mjs): a typed line only, never an event turn; malformed means no offer.
+  const homeOffer = event ? null : parseHomeOffer(state.request.homeOffer);
   result.request = {id, contact, text: text.trim(), saveIdentity: requestBinding,
-    ...(event ? {event} : {}), ...(meetOffer ? {meetOffer} : {}),
+    ...(event ? {event} : {}), ...(meetOffer ? {meetOffer} : {}), ...(homeOffer ? {homeOffer} : {}),
     ...(memoryReset?{memoryReset}:{}),...(recent?{recentConversation:recent}:{}),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(worldKnowledge ? {worldKnowledge} : {}),
     ...(journalHistory ? {journalHistory} : {}), ...(gameDialogue ? {gameDialogue} : {}), ...(turnContext ? {turnContext} : {})};
@@ -160,6 +163,13 @@ function meetOutcome(result, offer, screen) {
   let kind = own.kind;
   if (!kind && offer && typeof result.speechText === 'string') kind = splitMeetTags(result.speechText).kind;
   return {text: own.text, action: offer ? meetAction(kind, offer, screen) : null};
+}
+// The same for the tags of a home offer ([stay:corpo], [move-out]): they come off the text whatever happens; the action only goes out when the offer allows it.
+function homeOutcome(text, result, offer, screen) {
+  const own = splitHomeTags(text);
+  let tag = own;
+  if (!tag.kind && offer && typeof result.speechText === 'string') tag = splitHomeTags(result.speechText);
+  return {text: own.text, action: offer ? homeAction(tag, offer, screen) : null};
 }
 
 function sessionStore(value) {
@@ -249,11 +259,18 @@ export class PhoneChat {
         let scope = phoneScope(input.saveIdentity);
         // The meet offer stays out of the request the providers see; the instruction made from it (only when V's words can be a meeting request) goes with it,
         // and an event turn carries the trigger the model is told in place of V's (empty) words.
-        const {meetOffer, ...typed} = input;
+        const {meetOffer, homeOffer, ...typed} = input;
         const requestInput = {...typed, profileKey: contact.profile, channel: 'phone'};
-        const screen = meetOffer ? screenMeet(input.text) : null;
+        const meetScreen = meetOffer ? screenMeet(input.text) : null;
+        // A message can carry both offers. When V's words screen as a meeting request the meet path wins, unless they plainly say she may live there
+        // ("you can stay at my place" also names a place and would otherwise always be taken as "come over"): then the home path wins.
+        const homeScreen = homeOffer ? screenHome(input.text, homeOffer) : null;
+        const homeWins = !!homeScreen?.kind && (!meetScreen?.kind || (meetScreen.kind === 'here' && homeScreen.strong));
+        const screen = homeWins ? null : meetScreen;
         const instruction = screen ? meetInstruction(meetOffer, screen) : '';
         if (instruction) requestInput.meetInstruction = instruction;
+        const housing = homeWins ? homeInstruction(homeOffer, homeScreen) : '';
+        if (housing) requestInput.homeInstruction = housing;
         if (input.event) requestInput.text = eventTrigger(input.event);
         if (requestInput.recentConversation && requestInput.recentConversation.profileKey!==contact.profile) throw Error('Phone history audience changed');
         if (requestInput.worldKnowledge?.status === 'ready') {
@@ -302,7 +319,7 @@ export class PhoneChat {
         const result = await this.reply({characterId: selectedCharacterId, profileKey: contact.profile, sessionId,
           input: requestInput, saveIdentity: clone(input.saveIdentity), context, ...(endUserId ? {endUserId} : {}),
           ...(active.playerContext ? {scope, sessionKey: routeSessionKey, remoteGeneration} : {}),
-          text: providerText(context, instruction, requestInput.text, !!input.event),
+          text: providerText(context, instruction || housing, requestInput.text, !!input.event),
           voice: false, signal: active.controller.signal});
         if (!await active.isCurrent()) return;
         stage = 'reply';
@@ -313,7 +330,9 @@ export class PhoneChat {
           throw Error('Invalid reply');
         }
         // Her tag, if any, comes off the text whatever happens; the action it asks for only goes out when the game's own offer allows it.
-        const {text: shown, action} = meetOutcome(result, meetOffer, screen);
+        const met = meetOutcome(result, meetOffer, screen);
+        const {text: shown, action: homeDone} = homeOutcome(met.text, result, homeOffer, homeWins ? homeScreen : null);
+        const action = met.action ?? homeDone;
         if (!shown.trim()) throw Error('Invalid reply');
         const reply = {...identity, state: 'reply', text: shown, ...(action ? {action} : {})};
         if (sessionless) {

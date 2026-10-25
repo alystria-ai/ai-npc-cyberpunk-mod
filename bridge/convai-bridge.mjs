@@ -1457,6 +1457,8 @@ const conversationBlocks = input => {
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
     // A phone message that can be a request to meet carries the game's offer as an instruction (bridge/meet-requests.mjs); '' for every other turn.
     block('volatile', typeof input.meetInstruction === 'string' ? input.meetInstruction : ''),
+    // A phone message that can let her live at V's place carries the apartments as an instruction (bridge/home-requests.mjs); '' for every other turn.
+    block('volatile', typeof input.homeInstruction === 'string' ? input.homeInstruction : ''),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
     // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
     // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
@@ -2577,7 +2579,7 @@ async function pollMicrophone() {
         // snapshot and native input data refresh at microphone completion.
         preparedInputs.set(refreshed.input, refreshed);
         const signal = mic.current?.controller.signal;
-        // A group recording arms only a leave offer for its round (docs/WORLD_COMPANIONS.md).
+        // A group recording arms only a leave and/or home offer for its round (docs/WORLD_COMPANIONS.md, docs/HOUSEMATES.md).
         companionActions.admit(refreshed, {source: refreshed.input.group ? 'group-voice' : 'private-voice', signal,
           isCurrent: async () => !stopped && !signal?.aborted && await knowledgeRouter.current(refreshed)
             && await readFile(micPath, 'utf8').catch(() => '') === raw,

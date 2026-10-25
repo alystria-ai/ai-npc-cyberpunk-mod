@@ -91,8 +91,82 @@ const STEMS = {
   },
 };
 
+// Housemates (docs/HOUSEMATES.md): a character may be told she can live at V's place (STAY), that she can no longer (MOVEOUT), or be called from there
+// into V's party (JOIN). Like the stems above these only have to let every real request through; the decision (and V's clear words) settle the rest, and
+// the game checks the exact offer. They are added after the table so the existing stems read as they did.
+STEMS.STAY = {
+  words: String.raw`stay(?![\p{L}])|stays(?![\p{L}])|staying|move (?:in|into)|moving in|moved in|crash(?![\p{L}])|live (?:at|in|with|here|there)|living (?:at|in|with|here)|my (?:place|home|apartment|flat|pad|house|crib|spot|couch)|your (?:own )?(?:room|place|home|bed)|roomie|roommate|housemate|settle (?:in|down)|make yourself at home|spare room|bunk|sleep (?:here|over|at)|home sweet|` // en
+    + String.raw`bleib|bleiben|zieh(?:e|st)? (?:ein|bei|zu)|einzieh|wohn(?:e|en|st)(?![\p{L}])|bei mir|mein(?:e|em|en)? (?:wohnung|zuhause|haus|bleibe)|dein zuhause|mitbewohner|unterkunft|` // de
+    + String.raw`reste(?:s|r)?(?![\p{L}])|emm[eé]nage|habite|habiter|vis (?:ici|chez)|vivre|chez moi|mon (?:appart|appartement|logement|chez-moi)|colocataire|h[eé]berg|dors (?:ici|chez)|` // fr
+    + String.raw`qu[eé]date|quedarte|mud[aá]te|mudarte|vive (?:aqu[ií]|conmigo|en)|vivir|mi (?:casa|piso|apartamento|depa)|duerme (?:aqu[ií]|en)|compa[nñ]er[oa] de (?:piso|casa)|` // es
+    + String.raw`resta(?![\p{L}])|rimani|restare|trasferisc|vieni a vivere|vivi (?:qui|da me)|abita|casa mia|il mio (?:appartamento|posto)|coinquilin|` // it
+    + String.raw`fica(?:r)?(?![\p{L}])|fique|mude-?se|mudar|mora (?:aqui|comigo|na)|morar|viver|minha casa|meu (?:apartamento|ap[eê])|colega de casa|` // pt
+    + String.raw`zosta[nń]|zosta[cć]|zamieszkaj|wprowad[zź]|mieszkaj|mieszka[cć]|u mnie|moje mieszkanie|m[oó]j dom|wsp[oó][lł]lokator|przenie[sś] si[eę]|` // pl
+    + String.raw`остан|остат|оставайся|оставаться|поселись|переезжай|переехать|живи|жить|у меня (?:дома|жить)|моя квартира|мой дом|в моей квартире|сосед|` // ru
+    + String.raw`залиш|лишайся|оселись|переїжджай|живи|жити|у мене (?:вдома|жити)|моя квартира|мій дім|сусід|` // uk
+    + String.raw`kal(?![\p{L}])|kalabilirsin|kalsan|ta[sş][ıi]n|yerle[sş]|ya[sş]a(?![\p{L}])|evimde|benim ev|dairem|oda arkada|` // tr
+    + String.raw`z[uů]sta[nň]|z[uů]stat|nast[eě]huj|bydlet|bydli|u m[eě](?![\p{L}])|m[uů]j byt|m[uů]j d[uů]m|spolubyd|` // cs
+    + String.raw`maradj|maradhatsz|k[oö]lt[oö]z|lakj|lakhatsz|n[aá]lam|a lak[aá]som|a h[aá]zam|lak[oó]t[aá]rs|`, // hu
+  spaceless: '泊まって|泊まれ|住んで|住め|うちに住|一緒に住|引っ越|いていい|居ていい|うちにいて|ここにいて|俺の家|私の家|家に住'
+    + '|살아|살래|지내|머물|묵어|같이 살|이사|우리 집|내 집|여기 있어'
+    + '|住在|搬来|搬进|留下|住我|我家|同住|借住|可以住|住下|住这',
+};
+STEMS.MOVEOUT = {
+  words: String.raw`move out|moving out|moved out|move on out|find (?:your|a) (?:own )?(?:place|apartment|flat|home)|your own (?:place|apartment|flat|home)|pack your|(?:can'?t|cannot|can not) (?:stay|live)|no longer (?:stay|live|welcome)|not welcome|kick(?:ing)? you out|out of my (?:place|apartment|flat|home|house)|leave my (?:place|apartment|flat|home|house)|get out of my|time to go|time you left|you (?:have|need) to go|` // en
+    + String.raw`zieh(?:e|st)? aus|auszieh|such dir (?:eine|ne) (?:eigene )?wohnung|eigene wohnung|raus aus meiner|nicht mehr (?:bleiben|wohnen)|pack deine|` // de
+    + String.raw`d[eé]m[eé]nage|trouve-?toi (?:un|ton)|ton propre|ne peux plus|fais tes valises|sors de chez moi|plus (?:rester|habiter)|` // fr
+    + String.raw`mud[aá]te|m[uú]date|busca(?:te)? (?:tu|un) (?:propio )?(?:piso|casa|lugar|apartamento)|ya no puedes|haz las maletas|fuera de mi casa|vete de mi|` // es
+    + String.raw`trasloca|cerca(?:ti)? (?:un|il tuo)|non puoi pi[uù]|fai le valigie|fuori da casa mia|esci da casa|` // it
+    + String.raw`mude-?se|muda-?te|procura (?:um|o teu)|arranje|n[aã]o pode mais|faz as malas|fora da minha casa|sai da minha|` // pt
+    + String.raw`wyprowad[zź]|poszukaj|znajd[zź] sobie|nie mo[zż]esz ju[zż]|spakuj|wyno[sś] si[eę] z|` // pl
+    + String.raw`съезжай|выезжай|съехать|выселя|найди себе|больше не можешь|собирай вещи|убирайся из|` // ru
+    + String.raw`виїжджай|з'їжджай|виселя|знайди собі|більше не можеш|збирай речі|` // uk
+    + String.raw`ç[ıi]k evimden|kendi (?:evini|yerini)|art[ıi]k kalamaz|e[sş]yalar[ıi]n[ıi] topla|` // tr
+    + String.raw`odst[eě]huj|vyst[eě]huj|najdi si|u[zž] nem[uů][zž]e[sš]|sbal si|vypadni z|` // cs
+    + String.raw`k[oö]lt[oö]zz ki|keress magadnak|m[aá]r nem maradhatsz|pakolj|`, // hu
+  spaceless: '出て行って|出ていって|引っ越して|出て行け|もう住めない|自分の家|荷物をまとめ|나가|이사 가|이사가|더는 못|짐 싸|搬出|搬走|不能再住|自己找|收拾东西|滚出',
+};
+// Coming along from home: the stems of following V plus a few for "get your things".
+STEMS.JOIN = {
+  words: STEMS.FOLLOW.words + String.raw`go with|grab your|get your|out with me|out with us|come out|party|gear up|suit up|pack up|` // en
+    + String.raw`nimm deine|hol deine|bereit|` // de
+    + String.raw`prends tes|prends ton|` // fr
+    + String.raw`coge tus|agarra tus|` // es
+    + String.raw`prendi le tue|` // it
+    + String.raw`pega nas tuas|pega as tuas|` // pt
+    + String.raw`we[zź] swoje|we[zź] rzeczy|` // pl
+    + String.raw`бери свои|собирайся|` // ru
+    + String.raw`бери свої|збирайся|` // uk
+    + String.raw`e[sş]yalar[ıi]n[ıi] al|haz[ıi]rlan|` // tr
+    + String.raw`vezmi si|sbal se|` // cs
+    + String.raw`vedd a|k[eé]sz[uü]lj|`, // hu
+  spaceless: STEMS.FOLLOW.spaceless + '|連れて|出かけ|準備して|나가자|준비해|出发|出门|准备好',
+};
+
 const compiled = Object.fromEntries(Object.entries(STEMS).map(([code, {words, spaceless}]) => [code,
   [new RegExp(`(?<![\\p{L}\\p{N}])(?:${words.replace(/\|$/, '')})`, 'iu'), new RegExp(spaceless, 'u')]]));
+
+// The words of STAY that say "live there" and are not just a place word ("my place" alone can be an invitation to come over, bridge/meet-requests.mjs).
+// Used by the phone (bridge/home-requests.mjs) to tell "you can stay at my place" from "come to my place".
+const STRONG_STAY = [new RegExp(`(?<![\\p{L}\\p{N}])(?:${[
+  String.raw`stay(?![\p{L}])|stays(?![\p{L}])|staying|move (?:in|into)|moving in|moved in|crash(?![\p{L}])|live (?:at|in|with|here|there)|living (?:at|in|with|here)|roomie|roommate|housemate|settle (?:in|down)|spare room|your (?:own )?(?:room|bed)`,
+  String.raw`bleib|bleiben|zieh(?:e|st)? (?:ein|bei|zu)|einzieh|wohn(?:e|en|st)(?![\p{L}])|mitbewohner`,
+  String.raw`reste(?:s|r)?(?![\p{L}])|emm[eé]nage|habite|habiter|vis (?:ici|chez)|colocataire`,
+  String.raw`qu[eé]date|quedarte|mud[aá]te|vive (?:aqu[ií]|conmigo|en)|vivir|compa[nñ]er[oa] de (?:piso|casa)`,
+  String.raw`resta(?![\p{L}])|rimani|restare|trasferisc|vieni a vivere|vivi (?:qui|da me)|coinquilin`,
+  String.raw`fica(?:r)?(?![\p{L}])|fique|mude-?se|mora (?:aqui|comigo|na)|morar|viver|colega de casa`,
+  String.raw`zosta[nń]|zamieszkaj|wprowad[zź]|mieszkaj|mieszka[cć]|wsp[oó][lł]lokator`,
+  String.raw`остан|остат|оставайся|поселись|переезжай|живи|жить|сосед`,
+  String.raw`залиш|лишайся|оселись|переїжджай|живи|жити|сусід`,
+  String.raw`kal(?![\p{L}])|kalabilirsin|kalsan|yerle[sş]|ya[sş]a(?![\p{L}])`,
+  String.raw`z[uů]sta[nň]|nast[eě]huj|bydlet|bydli|spolubyd`,
+  String.raw`maradj|maradhatsz|k[oö]lt[oö]z|lakj|lakhatsz|lak[oó]t[aá]rs`,
+].join('|')})`, 'iu'), new RegExp('泊まって|泊まれ|住んで|住め|一緒に住|引っ越|살아|지내|머물|묵어|같이 살|이사|住在|搬来|搬进|留下|同住|借住|可以住|住下', 'u')];
+/** Whether `text` says that someone may live somewhere or has to move out (not merely names a place): the phone tells this from an invitation to come over. */
+export const mentionsLiving = text => {
+  const value = String(text ?? '').slice(0, 600);
+  return STRONG_STAY[0].test(value) || STRONG_STAY[1].test(value) || mentions('MOVEOUT', value);
+};
 
 /** Whether `text` has a word a request for the action `code` could use. */
 export const mentions = (code, text) => {

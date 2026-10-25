@@ -17,13 +17,16 @@
 // the persona picks the code by mood: 74% recall and 56% precision, and it used the leave code to mean "no". A separate decision is
 // reliable because the classifier sees only V's words and the list.
 //
-// Offered here: drive to the map destination, fight the marked target, follow V (a world character), leave V's party. Distract is gone.
+// Offered here: drive to the map destination, fight the marked target, follow V (a world character), leave V's party, and the housemate
+// choices STAY (live at V's place, the apartment id follows), MOVEOUT and JOIN (come along from home; a name or ALL follows). Distract is gone.
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
-import {parseDriveUnavailable, SEATED_MODES} from './companion-actions.mjs';
+import {parseDriveUnavailable, SEATED_MODES, HOME_APARTMENT_NAMES} from './companion-actions.mjs';
 import {screenWords, explicitRequest, certainWords} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
+// Housemates (docs/HOUSEMATES.md): live at V's place (an apartment id follows), move out, join V's party from home (a member name or ALL follows).
+export const HOME_CODES = Object.freeze(['STAY', 'MOVEOUT', 'JOIN']);
 
 // Why the game cannot let this companion drive V right now (codes: bridge/companion-actions.mjs). Each becomes one short sentence of what
 // V has to do first.
@@ -89,35 +92,48 @@ export function actionMenu(offer) {
     tell: 'V is asking you to come along and travel with them. You join V and the game does it right after your reply', resolve: () => ({...base, follow: true})});
   else if (offer.followUnavailable && Object.hasOwn(FOLLOW_LIMIT, offer.followUnavailable)) limits.push(`you cannot come along with V (${FOLLOW_LIMIT[offer.followUnavailable]})`);
   const members = Array.isArray(offer.leave?.members) ? offer.leave.members : [];
-  if (members.length) {
+  // A companion who lives in another of V's flats than the one V stands in is not sent home on V's first word: she asks first (bridge/companion-actions.mjs
+  // leaveAwayText). `asking` members have no leave this turn; once the question was asked (`confirmed`) V's answer is an ordinary leave.
+  const asking = member => member.away === true && member.confirmed !== true;
+  const standing = [];
+  for (const member of members.filter(asking)) {
+    const where = member.homeName ? data(member.homeName, 60) : "another of V's flats", here = member.hereName ? data(member.hereName, 60) : 'a different flat';
+    standing.push(`${member.self ? 'You live' : `${data(member.name, 40)} lives`} in ${where} and V is in ${here} now. If V sends ${member.self ? 'you' : 'them'} away (go, go home, rest, leave), nobody leaves yet: `
+      + `${member.self ? 'you ask' : 'the one concerned asks'} V in your own words whether ${member.self ? 'you' : 'she'} should stay here (then ${member.self ? 'you live' : 'she lives'} here from now on) or go back to ${where}, and nothing is carried out until V answers`);
+  }
+  if (members.some(member => !asking(member))) {
     const own = members.findIndex(member => member.self);
     if (members.length === 1 && own === 0) {
       rows.push({code: 'LEAVE', what: `leave V's company (V sends the companion away: "you can go", "go home", "we're done here", "I don't need you anymore", "I'll go on without you")`,
         tell: 'V is sending you away. You go your own way, and the game removes you from V\'s company right after your reply: say a short goodbye that fits you',
         resolve: () => ({...base, leave: 1})});
     } else {
-      rows.push({code: 'LEAVE', what: `a companion leaves V's party (V sends one of ${members.map(member => data(member.name, 40)).join(', ')} away, or all of them); answer DISMISSED followed by that name, or DISMISSED ALL`,
+      rows.push({code: 'LEAVE', what: `a companion leaves V's party (V sends one of ${members.filter(member => !asking(member)).map(member => data(member.name, 40)).join(', ')} away, or all of them); answer DISMISSED followed by that name, or DISMISSED ALL`,
         tell: 'V is sending a companion away. The game removes them from V\'s party right after your reply: the one leaving says a short goodbye that fits them',
         resolve: argument => {
           const wanted = word(argument);
-          if (wanted === 'all' && members.length > 1) return {...base, leave: 'all'};
+          if (wanted === 'all' && members.length > 1 && !members.some(asking)) return {...base, leave: 'all'};
           // One unambiguous companion by the whole name or its first word.
           const hits = members.map((member, index) => ({index, full: word(member.name)}))
-            .filter(row => wanted && (row.full === wanted || row.full.split(' ')[0] === wanted || wanted.split(' ')[0] === row.full.split(' ')[0]));
+            .filter(row => !asking(members[row.index]) && wanted && (row.full === wanted || row.full.split(' ')[0] === wanted || wanted.split(' ')[0] === row.full.split(' ')[0]));
           return hits.length === 1 ? {...base, leave: hits[0].index + 1} : null;
         }});
     }
   }
-  if (!rows.length && !limits.length) return null;
+  // Housemates (docs/HOUSEMATES.md): STAY (the apartment V names), MOVEOUT, JOIN (the people V calls into the party).
+  const home = homeRows(offer, base, standing);
+  rows.push(...home.rows);
+  if (!rows.length && !limits.length && !standing.length) return null;
   const tail = [
     limits.length ? `Right now ${limits.join('; ')}. If V asks for that, say what is needed, in your own words, briefly.` : '',
-    'You cannot wait on a spot, stay behind, sit on command or do any other task, whatever V says: do not agree to it or promise it.',
+    ...standing,
+    `You cannot wait on a spot, ${home.rows.length ? '' : 'stay behind, '}sit on command or do any other task, whatever V says: do not agree to it or promise it.`,
   ].filter(Boolean);
   const named = rows.find(row => row.code === 'LEAVE' && /DISMISSED followed/.test(row.what));
   return {
     codes: rows.map(row => row.code), rows, limits,
     /** The offered codes V's words could be about (bridge/text-action-words.mjs); [] means no decision request is worth sending. */
-    screen: (text, last) => screenWords(text, {codes: rows.map(row => row.code), last}),
+    screen: (text, last) => home.screen(text, screenWords(text, {codes: rows.map(row => row.code), last}), rows),
     /**
      * What the reply should be written for while the decision is out: 'NONE' for a question about the character ("do you know how to
      * drive?", "did you ever fight?"), the only action the screen found, or null (the reply waits). A wrong guess costs a second
@@ -131,7 +147,7 @@ export function actionMenu(offer) {
       // 2026-10-13 ("what are some of the services you excel at specifically" was written as "V sends you away").
       if ((TALK.test(sentence) || OPEN_QUESTION.test(sentence)) && !REQUEST_QUESTION.test(sentence)) return 'NONE';
       if (sentences.every(part => REMARK.test(part) && !ADDRESSES_HER.test(part))) return 'NONE';
-      return found.length === 1 ? found[0] : null;
+      return found.length === 1 ? (home.guessable(text, found[0]) ? found[0] : null) : null;
     },
     /**
      * The safety net under a decision that failed or said none: the offered action V's line plainly asks for in plain words ("drive me", "take the
@@ -142,38 +158,127 @@ export function actionMenu(offer) {
       return code && rows.some(row => row.code === code) ? {code, argument: ''} : null;
     },
     /** What the words settle with no model (bridge/text-action-words.mjs certainWords): {code, argument}, {none: true} or null. */
-    settle: (text, found) => certainWords(text, {codes: rows.map(row => row.code), found}),
+    settle: (text, found) => found.some(code => HOME_CODES.includes(code)) ? null : certainWords(text, {codes: rows.map(row => row.code), found}),
     notes(code) {
       const row = rows.find(item => item.code === code);
       const head = row ? `GAME ACTIONS: ${row.tell}: agree in your own words, in one or two short sentences, and promise nothing more. Never speak of codes or the game.`
-        : rows.length ? 'GAME ACTIONS: V is not asking you to do anything the game can carry out this time; just answer.' : 'GAME ACTIONS: none is possible right now.';
+        : rows.length || standing.length ? 'GAME ACTIONS: V is not asking you to do anything the game can carry out this time; just answer.' : 'GAME ACTIONS: none is possible right now.';
       return [head, ...tail].join('\n');
     },
     classifier({text, last}) {
       if (!rows.length) return null;
-      const lines = rows.map(row => `${row.code === 'LEAVE' ? 'DISMISSED' : row.code}: ${row.what}`);
+      const wording = row => (row.code === 'LEAVE' ? 'DISMISSED' : row.code);
+      const lines = rows.map(row => `${wording(row)}: ${row.what}`);
       // What exists in the game but cannot be done this turn: asked for, it is NONE. Without this a small model picks the nearest listed action.
       const blocked = ['drive V somewhere or be driven ("drive for me", "take the wheel", "take me there")', 'attack an enemy ("attack", "take him out")', 'come along with V ("follow me", "come with me")', 'leave V\'s company ("you can go")'].filter((_text, index) => !rows.some(row => row.code === ACTION_CODES[index]));
       return [{role: 'system', content: 'You read one message from V, the player of a video game, to a companion character and decide which game action, if any, V is asking the companion to do right now.\n'
         + 'Actions:\n' + lines.join('\n') + '\nNONE: anything else (conversation, questions, jokes, stories, remarks, thanks, "leave it", "forget it", or a request for something not listed).\n'
         + (blocked.length ? `These are not possible right now, so asking for any of them is NONE, never another action: ${blocked.join('; ')}.\n` : '')
+        + home.rules
         + 'Rules: only V\'s new message counts. A request is a request even phrased as a question ("can you drive for me?", "could you take him out?"). A question about whether the companion could, would, knows how or has done it ("do you know how to drive?", "would you ever follow me?", "remember when you drove?") is NONE, and so is a hypothetical, a joke or a wish for later. "Let\'s leave this place", "leave it" and "I\'m leaving" do not send the companion away. The message may be in any language, in slang or with typos ("folow me", "u drive"): judge what V means. A story or remark that only contains the word ("I followed the news", "that drive-by scared me", "I\'m leaving the city someday") is NONE.\n'
-        + `Answer with one word only: ${[...rows.map(row => row.code === 'LEAVE' ? 'DISMISSED' : row.code), 'NONE'].join(', ')}${named ? ' (DISMISSED may be followed by a name or ALL)' : ''}.`},
+        + `Answer with one word only: ${[...rows.map(wording), 'NONE'].join(', ')}${named ? ' (DISMISSED may be followed by a name or ALL)' : ''}${home.answerHint}.`},
       {role: 'user', content: `${last ? `Just before, V said: ${JSON.stringify(String(last.v ?? '').slice(0, 160))} and the companion answered: ${JSON.stringify(String(last.r ?? '').slice(0, 200))}\n\n` : ''}V's new message: ${JSON.stringify(String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 400))}`}];
     },
     decide(raw) {
-      const match = /^\W*(drive|fight|follow|dismissed|leave|none)\b[\s:,=-]*([^\n]{0,40})/i.exec(String(raw ?? ''));
+      const match = /^\W*(drive|fight|follow|dismissed|leave|stay|move[ _-]?out|join|none)\b[\s:,=-]*([^\n]{0,40})/i.exec(String(raw ?? ''));
       if (!match) return null;
-      const code = match[1].toUpperCase() === 'DISMISSED' ? 'LEAVE' : match[1].toUpperCase();
+      const upper = match[1].toUpperCase().replace(/[ _-]/g, '');
+      const code = upper === 'DISMISSED' ? 'LEAVE' : upper;
       const argument = match[2].trim().replace(/[.\s]+$/, '');
-      // Only a leave may carry a name; any other code followed by words is not a clear answer.
-      if (code === 'NONE' || !rows.some(row => row.code === code) || (code !== 'LEAVE' && argument)) return null;
+      // Only a leave, a stay (the apartment) or a join (the name) may carry a word; any other code followed by words is not a clear answer.
+      if (code === 'NONE' || !rows.some(row => row.code === code) || (!['LEAVE', 'STAY', 'JOIN'].includes(code) && argument)) return null;
       return {code, argument};
     },
     message(decision) {
       const row = decision && rows.find(item => item.code === decision.code);
       return row ? row.resolve(decision.argument) : null;
     },
+  };
+}
+
+// Housemates (docs/HOUSEMATES.md): the rows STAY / MOVEOUT / JOIN of a turn whose offer carries `home` ({apartments: [{id, name}], members: [{name, self}],
+// moveOut?, here?, lives?, asked?}; bridge/companion-actions.mjs homeConfig). The model only picks among the offered names: an apartment id is resolved
+// against the offer, a member by name, and anything else is no action. Standing sentences for the reply go into `standing`.
+function homeRows(offer, base, standing) {
+  const home = offer.home && typeof offer.home === 'object' ? offer.home : null;
+  const rows = [];
+  const idle = {rows, screen: (_text, found) => found, guessable: () => true, rules: '', answerHint: ''};
+  if (!home) return idle;
+  const apartments = (Array.isArray(home.apartments) ? home.apartments : []).filter(item => item && typeof item.id === 'string' && typeof item.name === 'string');
+  const people = (Array.isArray(home.members) ? home.members : []).filter(item => item && typeof item.name === 'string');
+  const aptOf = id => apartments.find(item => item.id === id) ?? null;
+  const first = value => word(value).split(' ')[0];
+  // The apartment V means when the model named one (the id, the name or its first word), else null.
+  const apartmentIn = argument => {
+    const wanted = word(argument);
+    const hits = wanted ? apartments.filter(item => item.id === wanted || word(item.name) === wanted || first(item.name) === first(wanted) || item.id === first(wanted)) : [];
+    return hits.length === 1 ? hits[0] : null;
+  };
+  // Where she moves in when V named no apartment: the answer to her question, the flat V is in, or the only one V has.
+  const fallback = () => aptOf(home.asked?.here) ?? aptOf(home.here) ?? (apartments.length === 1 ? apartments[0] : null);
+  const mentioned = text => {
+    const line = ` ${word(text)} `;
+    return apartments.filter(item => line.includes(` ${item.id} `) || word(item.name).split(' ').some(part => part.length >= 4 && line.includes(` ${part} `)));
+  };
+  const self = people.findIndex(item => item.self), many = people.length > 1;
+  const kinds = [];
+  if (typeof home.lives === 'string' && home.lives) standing.push(`You live at V's place, in ${data(home.lives, 60)}.`);
+  if (apartments.length) {
+    kinds.push('STAY');
+    const here = aptOf(home.here), askedAt = aptOf(home.asked?.here), back = home.asked ? (aptOf(home.asked.from)?.name ?? HOME_APARTMENT_NAMES[home.asked.from]) : null;
+    const list = apartments.map(item => `${item.id} = ${data(item.name, 60)}`).join(', ');
+    rows.push({code: 'STAY', what: `let the companion live at V's place (V says she can stay, live or move in: "you can stay at my place", "move in with me", "you can crash at my place", "this can be your home"); `
+        + `answer STAY followed by the id of the apartment V means (${list}). `
+        + (askedAt && back ? `V was just asked whether she stays in ${data(askedAt.name, 60)} or goes back to ${data(back, 60)}: V saying she stays here is STAY ${askedAt.id}, V saying she goes back is NONE. ` : '')
+        + `If V names none: ${fallback() ? `it is ${fallback().id}` : 'answer NONE (the companion asks which one)'}`,
+      tell: `V is telling you that you may live at V's place (${apartments.map(item => data(item.name, 60)).join(', ')}${here ? `; V is in ${data(here.name, 60)} now` : ''}). You move in, and the game does it right after your reply: say so in your own words, briefly, like someone who was just offered a home`,
+      resolve: argument => {
+        const apartment = word(argument) ? apartmentIn(argument) : fallback();
+        return apartment ? {...base, home: {op: 'stay', apartment: apartment.id}} : null;
+      }});
+    if (!fallback()) standing.push(`If V says you may stay or live at V's place without saying which of V's apartments (${apartments.map(item => data(item.name, 60)).join(', ')}), ask V in your own words which one: nothing happens until V answers.`);
+  }
+  if (home.moveOut === true) {
+    kinds.push('MOVEOUT');
+    rows.push({code: 'MOVEOUT', what: `the companion can no longer live at V's place (V says she has to move out: "you can't stay here any more", "time to find your own place", "pack your things"); "go home", "leave" and "you can go" are about V's company, not this`,
+      tell: 'V is telling you that you can no longer live at V\'s place. You move out, and the game does it right after your reply: answer in character, briefly',
+      resolve: () => ({...base, home: {op: 'move-out'}})});
+  }
+  if (people.length) {
+    kinds.push('JOIN');
+    rows.push({code: 'JOIN', what: many
+        ? `people from V's place join V's party and come along (V asks one of ${people.map(item => data(item.name, 40)).join(', ')} to come along, or all of them: "come with me", "join us", "tag along", "everyone, let's go"); answer JOIN followed by that name, or JOIN ALL${!offer.group && self >= 0 ? ', or JOIN alone when V asks the companion she is talking to' : ''}`
+        : 'come along with V from V\'s place and join the party (V asks the companion to come with them: "come with me", "join us", "tag along", "let\'s go" said to her)',
+      tell: many ? 'V is asking people from V\'s place to come along and join V\'s party. The game does it right after your reply: the ones addressed agree in character, briefly'
+        : 'V is asking you to come along and join V\'s party. You get ready, and the game does it right after your reply: agree in character, briefly',
+      resolve: argument => {
+        const wanted = word(argument);
+        const to = target => ({...base, home: {op: 'join', target}});
+        if (!wanted) return people.length === 1 ? to(1) : !offer.group && self >= 0 ? to(self + 1) : null;
+        if (wanted === 'all') return many ? to('all') : to(1);
+        const hits = people.map((item, index) => ({index, full: word(item.name)}))
+          .filter(item => item.full === wanted || item.full.split(' ')[0] === wanted || wanted.split(' ')[0] === item.full.split(' ')[0]);
+        return hits.length === 1 ? to(hits[0].index + 1) : null;
+      }});
+  }
+  if (!kinds.length) return idle;
+  const rules = [
+    kinds.includes('STAY') ? '"Stay for dinner", "stay here a second", "stay put", "stay away" and keeping close for a while are NONE: STAY is only for letting the companion live at V\'s place.' : '',
+    kinds.includes('MOVEOUT') ? 'MOVEOUT is only for telling the companion she can no longer live at V\'s place.' : '',
+    kinds.includes('JOIN') ? 'JOIN is only for asking someone to come along and join V\'s party now: a "let\'s go" that does not include her, V going alone or talk about somebody else coming is NONE.' : '',
+  ].filter(Boolean);
+  return {
+    rows, rules: rules.length ? rules.join('\n') + '\n' : '',
+    answerHint: `${kinds.includes('STAY') ? ' (STAY must be followed by the apartment id)' : ''}${kinds.includes('JOIN') ? ' (JOIN may be followed by a name or ALL)' : ''}`,
+    // A short answer to her own question, or a line that names one of V's apartments, may be about moving in even without a stem of the table.
+    screen: (text, found, all) => {
+      const out = [...found], add = code => { if (all.some(row => row.code === code) && !out.includes(code)) out.push(code); };
+      if (home.asked && String(text ?? '').trim().split(/\s+/).length <= 8) { add('STAY'); add('LEAVE'); }
+      if (apartments.length && mentioned(text).length) add('STAY');
+      return out;
+    },
+    // A move-in with no apartment named and none to fall back on is not written as agreed: the reply waits for the decision (and asks which).
+    guessable: (text, code) => code !== 'STAY' || !!fallback() || mentioned(text).length > 0,
   };
 }
 
