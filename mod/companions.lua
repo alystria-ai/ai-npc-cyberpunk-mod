@@ -1806,7 +1806,8 @@ function M.findVisitorSpot(key,request,state)
             if accepted then
                 local from,to=point,mode=='exit' and point or origin
                 if mode=='exit' then from,to=origin,point end
-                route=nav:CalculatePathForCharacter(from,to,.3,player)
+                -- The game takes Vector4 values: a copied point is a plain table (live 2026-10-25: "parameter 1 must be Vector4", every candidate failed).
+                route=nav:CalculatePathForCharacter(copyPosition(from),copyPosition(to),.3,player)
                 local points=route and route.path
                 local straight=space.ground(from,to)
                 accepted=points and #points>0 and clearance.isPoint(points[#points])
