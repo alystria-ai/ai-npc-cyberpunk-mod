@@ -504,7 +504,9 @@ const between = (from, to, text = init) => {
 test('loader: the module is loaded lazily, once, only through the turn-context option; a broken module is not retried', () => {
   const loader = between('media = function(player)', 'mods = function(player)');
   run(`
-    local loads, broken, reads = 0, false, 0
+    local loads, broken, reads, installs = 0, false, 0, 0
+    -- the song hooks (mod/media-song.lua) are asked for once from here too; the installer itself decides whether the switch is on
+    function convaiMediaSongInstall() installs = installs + 1; convaiMediaSong = false end
     local real = {read = function(player) reads = reads + 1; return {radio = {source = 'car', track = 'x'}} end}
     function dofile(path)
       assert(path == 'media-context.lua'); loads = loads + 1
@@ -515,8 +517,8 @@ test('loader: the module is loaded lazily, once, only through the turn-context o
       ${loader}
       mods = function() end}
     assert(loads == 0, 'nothing is loaded when the table is built')
-    assert(options.media({}).radio.track == 'x' and loads == 1 and reads == 1)
-    options.media({}); assert(loads == 1 and reads == 2, 'loaded once')
+    assert(options.media({}).radio.track == 'x' and loads == 1 and reads == 1 and installs == 1)
+    options.media({}); assert(loads == 1 and reads == 2 and installs == 1, 'loaded once, the song hooks asked for once')
     convaiMediaContext, broken = nil, true
     assert(options.media({}) == nil and loads == 2)
     assert(options.media({}) == nil and loads == 2, 'a failed load is not retried every turn')

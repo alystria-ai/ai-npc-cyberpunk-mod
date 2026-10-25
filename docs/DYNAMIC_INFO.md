@@ -22,7 +22,7 @@ Restore defaults (Native Settings UI's own button, and the Defaults footer butto
 | Quest and journal (`dynamic:quest`) | `dynamicInfo.quest` | the tracked quest and objectives, open jobs, the journal history | the journal, jobs and history blocks (not even the "history is unavailable" line) | `questContext.capture()`, and the journal-history scan is not stepped, asked for or sent (unless Johnny's remarks need it) |
 | Recent game dialogue (`dynamic:dialogue`) | `dynamicInfo.dialogue` | the last lines of scenes and V's chosen replies | the game-dialogue block | `gameDialogue:capture()` (the recorder stays: Johnny's remarks and the add-ons hear the game's lines through it, and it only works when the game shows a line) |
 | Time since last talk (`dynamic:lastTalk`) | `dynamicInfo.lastTalk` | how long since V last talked to this character, in the game and in real days | the Background line "You last talked with V ..." (and nothing is stored for the character) | the game clock in seconds (one read inside the turn-context snapshot) |
-| Music and TV (`dynamic:media`) | `dynamicInfo.media` | the song on the car radio while V rides in a car, or on V's pocket radio on foot; a TV that is on near V (its channel and what it just said) | the Background line's radio and TV sentences, for a companion in person and for Johnny in V's head | `mod/media-context.lua` (the radio and TV reads) and the TV line ring in `mod/game-dialogue.lua` |
+| Music and TV (`dynamic:media`) | `dynamicInfo.media` | the song on the car radio while V rides in a car, or on V's pocket radio on foot; a TV that is on near V (its channel and what it just said) | the Background line's radio and TV sentences, for a companion in person and for Johnny in V's head | `mod/media-context.lua` (the radio and TV reads), `mod/media-song.lua` (the game's song-change events, hooked only while on) and the TV line ring in `mod/game-dialogue.lua` |
 | Other mods' state (`dynamic:mods`) | `dynamicInfo.mods` | V's thirst, hunger, tiredness, nerve, withdrawal, humanity and lasting injuries, from the Dark Future mod when it is installed | the "V is exhausted and parched" sentences of the Background line | `mod/mod-state.lua` is not loaded and Dark Future's classes are not asked (with the switch off nothing at all is read from other mods and no probe line is logged; with the switch on and the mod absent: one failed lookup a minute at most, while a turn is built) |
 
 What is deliberately not a switch: what each character knows about the story (the world facts and the recent shared events, they are the character's own
@@ -180,7 +180,23 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
   and an answer that is empty, equal to the key or still a `LocKey` is rejected. A receiver that names no station falls back to `GetRadioStationLocalizedName(index)`.
   The first live pass (2026-10-25) read the station on both radios but never the track (`track=none`). The track now has a second route: when the receiver's own track name is empty or raises,
   the station's current track by its index (`RadioStationDataProvider.GetStationNameByIndex`, then `GetRadioStationCurrentTrackName`, the pair the pocket radio's `GetTrackName` is made of), and the
-  probe.log line carries `trackWhy=` (raised, or what the first read answered) while no track is read. The song is still unconfirmed live.
+  probe.log line carries `trackWhy=` (raised, or what the first read answered) while no track is read.
+  **The song, second live pass (2026-10-25 11:33Z):** `track=none trackWhy=none:` with nothing after the colon. That empty text is the cause: the track CName is a real
+  hash, but its text is not in CET's name pool, so `NameToString` and `tostring` both give '' and the resolver gave up before asking the game (a `None` name prints `None`).
+  The game's own now-playing toast (`VehicleSummonWidgetGameController.TryShowVehicleRadioNotification`) does exactly `GetLocalizedTextByKey(vehicle.GetRadioReceiverTrackName())`,
+  so a CName with a hash and no text is now localised by its hash (shown in probe.log as `track=[#<hash>]->[...](ByKey)`). A third route is the game's own song-change
+  events (`mod/media-song.lua`, below), cached and read at the turn (`event/ByKey`). `trackWhy=` now has two codes: the first read (`none:nil`, `none:None`, `none:#<hash>`
+  for a hash the game would not localise, `none:unnamed`, `error:...`) and the event cache (`event:off` not hooked, `event:none` no song change seen yet, `event:empty`,
+  `event:old` over 6 minutes, `event:otherStation`, `event:unresolved`).
+- **Song events** (`mod/media-song.lua`, loaded and hooked only while the switch is on: at start when it is on then, else at the first turn built with it on; with the switch
+  off nothing is loaded or hooked, and once hooked a callback with the switch off returns after one boolean read). Three `ObserveAfter`s, each in its own `pcall`; one that
+  does not exist logs once (`Media song: <class>.<method> could not be hooked`) and the others still work. probe.log says `Media song: N of 3 song events hooked`.
+  Derived from the game's script cache (`vendor/compiler-cache/final.redscripts`, decoded definition by definition: class, method and parameter type):
+  `VehicleSummonWidgetGameController.OnVehicleRadioSongChanged(evt: ref<VehicleRadioSongChanged>)` (the HUD toast), `VehicleRadioPopupGameController.OnVehicleRadioSongChanged`
+  (the radio list while open; it calls `SetTrackName(evt.radioSongName)`) and `PlayerPuppet.OnVehicleRadioStationChanged(evt: ref<VehicleRadioStationChanged>)` (station and song).
+  The event fields are in `vendor/reference-game-scripts/scripts/core/gameplay/vehicleRadio.script` lines 1-12. Each fires once per song or station change; the callback stores
+  the song CName, the station tuned then (the same receiver or pocket-radio read) and the time, nothing else. The cached song counts while that station is still tuned and for
+  6 minutes. Whether the game sends these for the pocket radio as well as the car is not known (no pocket-radio song event exists in the scripts).
   The line is told on the first turn and on a change, and again whenever V's words ask about music, the radio, a song or the TV (`MEDIA_ASK` in `bridge/scenery-memory.mjs`), so "what song is this?" always gets it.
   `said=no` in the probe.log line is only the TV's last spoken line, not the prompt.
   There is no separate artist field: the track's text may or may not include the artist. A radio that is on but whose names do not resolve reads as nothing, never as a key.
@@ -194,6 +210,12 @@ switch on, through the `media` option in `mod/init.lua`; nothing is read or load
   `GlobalTVAlwaysVisible` (160 characters each, with when they were heard) from the subtitle callbacks it already has, only while this switch is on. They are kept apart from
   the recorded game dialogue: nothing changes in what Recent game dialogue records or sends (those types are still skipped as before), Johnny's remarks and the add-ons never see them,
   and a car radio's DJ (type `Radio` from a vehicle) is not kept. A line heard in the last 20 s with no TV located stands for the TV ("A TV nearby is on; it just said ...").
+  **The TV that spoke (2026-10-25):** the query works but does not list TVs (live: `why: parts=13 objects=3 seen=NPCPuppet:2,GenericDevice:1` beside a TV that was on and
+  talking; the game has no other area search for devices: `DeviceSystem` only walks device links, and the `GetEntitiesInArea` methods belong to trigger volumes). A subtitle
+  line carries its speaker (`scnDialogLineData.speaker: wref<GameObject>`), so for each TV line `mod/game-dialogue.lua` notes the speaker's class and, when it is a TV
+  (class `TV` or a `TVControllerPS` controller), its EntityID. At the turn, after the look-at read, that TV is found with one `Game.FindEntityByID` (no search) for up to
+  30 minutes after it last spoke, and used when it is still within 12 m and on (`tv=speaker`). The query stays as the last try. probe.log adds `heardTv=gone|farOrOff`
+  and `tvSpeaker=<class>|none` (what spoke the newest TV line), so the next live pass says whether a TV line has a TV as its speaker at all.
 - **The one log line**: each distinct reading writes one line to probe.log, for example
   `Media: radio=car station=[<raw key>]->[Growl FM](ByKey) track=[<raw key>]->[...](ByKey) tv=skipped(in a vehicle)`, with the raw key, the text and the resolver that worked
   (`ByKey`, `Text`, `raw`, `index/...`, `record/...`, or `unresolved`), at most 200 per game session. When nothing is read it says why (`radio=car:inactive`, `radio=pocket:inactive`,
@@ -208,7 +230,9 @@ memory tells a conversation only when new: the first turn, a change of song, sta
 
 **Not verified in the game.** The names above exist in the game's script caches (2.5 and 2.31, the same on both), but the game cannot be driven offline: that CET can call them, what the
 values look like, whether the localised track includes the artist, whether a TV shows up as a target part, and whether the TV line ring catches the lines that matter. Tests use fake natives
-(`bridge/media-context-lua.test.mjs`, `bridge/media-context.test.mjs`). The live check is the probe.log line above plus the developer probe
+(`bridge/media-context-lua.test.mjs`, `bridge/media-context.test.mjs`, `bridge/media-song.test.mjs`). The live check is the probe.log line above plus the developer probe
 `scripts/Send-JohnnyProbe.ps1 media read` (`mod/media-probe.lua`, Developer mode only, never loaded for players), which dumps the raw value of every candidate read into `runtime/johnny-probe.json`.
-Whether the query returns a TV's targeting component at all is still the one thing only the game can confirm (the fix above is the limit of 40 parts and the secondary targets; if the next live
-`why:` shows the apartment's devices but no TV, the TV has no target part and the look-at read and the spoken-line fallback are all there is). In-world radios (`Radio`, `Jukebox`) are not read.
+The live `why:` of 2026-10-25 11:41Z showed the query's objects without the TV, so the TV is now found through the speaker of its own subtitle line. Still only the game can say
+whether a `GlobalTV` line names the TV as its speaker (`tvSpeaker=` answers it), whether `GetLocalizedTextByKey` answers for the song's unnamed CName, and whether the three
+song events fire as the scripts suggest (the script cache read is of the cache the compile checks use; the 2.5 cache was not read offline for this change, since the game folder is off
+limits while the game runs; the earlier reading of both caches found the radio API the same on both versions, but these three handlers were not part of it). In-world radios (`Radio`, `Jukebox`) are not read.
