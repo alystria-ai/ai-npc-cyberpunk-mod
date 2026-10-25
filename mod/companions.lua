@@ -1954,7 +1954,7 @@ function M.carry(player)
                 -- Once per ride, not per frame: she is moved with V while the lift car moves.
                 if not r.logged then
                     r.logged=true
-                    local hook=rawget(_G,'convaiTeleportLog')
+                    local hook=convaiTeleportLog
                     if hook then pcall(hook,{reason='lift-carry',actor=tostring(npc:GetEntityID().hash),
                         to={x=v.x+r.dx,y=v.y+r.dy,z=v.z+r.dz}}) end
                 end

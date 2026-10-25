@@ -340,7 +340,7 @@ local function nativeAdapter()
         if interiorCall == nil then   -- a found function is remembered; "not found" is looked up again on the next read
             local viaGame = Game ~= nil and Game.IsEntityInInteriorArea
             interiorCall = type(viaGame) == 'function' and function(who) return Game.IsEntityInInteriorArea(who) end
-                or type(rawget(_G, 'IsEntityInInteriorArea')) == 'function' and function(who) return IsEntityInInteriorArea(who) end
+                or type(IsEntityInInteriorArea) == 'function' and function(who) return IsEntityInInteriorArea(who) end
                 or nil
         end
         if interiorCall == nil then error('IsEntityInInteriorArea is not exposed by this CET build', 0) end

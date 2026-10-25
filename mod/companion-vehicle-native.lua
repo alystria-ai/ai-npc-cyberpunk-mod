@@ -393,7 +393,7 @@ end
 local function spawnedService()
     local ok,service=pcall(function() return convaiSpawnedCharacters end)
     if ok and service then return service end
-    return rawget(_G,'convaiSpawnedCharacters')
+    return type(_G)=='table' and rawget(_G,'convaiSpawnedCharacters') or nil
 end
 local function plainDistance(value) return type(value)=='number' and math.floor(value*10+.5)/10 or nil end
 function M.foreignRiders(player,vehicle)
@@ -517,7 +517,7 @@ function M.recover(entry,player,occupied)
     local target,reason,deferred=placement.find(player,desired,occupied,entry.clearance,nil,{sweepRoute=true})
     if deferred then return nil,nil,true end
     if not target then return false,reason end
-    local hook=rawget(_G,'convaiTeleportLog')
+    local hook=convaiTeleportLog
     if hook then
         local from=entry.npc:GetWorldPosition()
         pcall(hook,{reason='vehicle-exit-recover',actor=tostring(entry.npc:GetEntityID().hash),

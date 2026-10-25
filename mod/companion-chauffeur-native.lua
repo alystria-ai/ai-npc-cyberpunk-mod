@@ -48,7 +48,7 @@ end
 -- owns. convaiCompanionCar(profileKey) -> the live entity while it exists and stands near V; convaiCompanionCarIs(entity) -> whether an
 -- entity is one of those cars. Both are nil while the setting is Off, so nothing else changes.
 local function companionCarIs(entity)
-    local check=rawget(_G,'convaiCompanionCarIs')
+    local check=convaiCompanionCarIs
     if type(check)~='function' then return false end
     local ok,result=pcall(check,entity)
     return ok and result==true
@@ -285,7 +285,7 @@ function M.sample(player,entry,leasedCar,api,operation)
         end
         -- No car of V's own to use: the car this companion arrived in, while it stands near.
         if not car then
-            local hook=rawget(_G,'convaiCompanionCar')
+            local hook=convaiCompanionCar
             local called,found=false,nil
             if type(hook)=='function' then called,found=pcall(hook,entry.profileKey or entry.key) end
             if called and found and found:IsAttached() and found:IsVehicle() then

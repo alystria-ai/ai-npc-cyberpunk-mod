@@ -22,8 +22,7 @@ function M.new(deps)
         local phone = deps.phoneChat
         phone.captureMeetOffer, phone.onMeetAction, phone.onEventDelivered = nil, nil, nil
         deps.companions.onVisitorLost = nil
-        rawset(_G, 'convaiCompanionCar', nil)
-        rawset(_G, 'convaiCompanionCarIs', nil)
+        convaiCompanionCar, convaiCompanionCarIs = nil, nil
     end
 
     function S.ensure()
@@ -46,14 +45,15 @@ function M.new(deps)
             if S.controller then S.controller.visitorLost(serial, reason) end
         end
         -- Her car, for a ride in it (docs/IMMERSIVE_INVITATIONS.md): the chauffeur asks for it by profile while the setting is On.
-        rawset(_G, 'convaiCompanionCar', function(profileKey)
+        -- Plain globals: CET gives this mod an environment without _G, so rawset(_G, ...) would throw there.
+        convaiCompanionCar = function(profileKey)
             local controller = S.controller
             return controller and controller.carEntity(profileKey) or nil
-        end)
-        rawset(_G, 'convaiCompanionCarIs', function(entity)
+        end
+        convaiCompanionCarIs = function(entity)
             local controller = S.controller
             return controller ~= nil and controller.isHerCar(entity) == true
-        end)
+        end
         local phone = deps.phoneChat
         phone.captureMeetOffer = function(contact, profileKey)
             local controller = S.controller

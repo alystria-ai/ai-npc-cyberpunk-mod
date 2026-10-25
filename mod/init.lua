@@ -3794,8 +3794,7 @@ do
         end
         return list
     end
-    local function service()
-        if convaiHousemates then return convaiHousemates end
+    local function build()
         local loaded, module = pcall(dofile, 'housemate-service.lua')
         if not loaded or type(module) ~= 'table' then
             convaiLogOnce('housemate-service', 'Housemates are unavailable: ' .. tostring(module))
@@ -3844,8 +3843,9 @@ do
             level = function() return manager.companionSpeakUp and manager.companionSpeakUp() or 'rare' end,
             mayChat = mayChat,
             -- The shared arbiter of unprompted lines (Johnny, companions speaking up) when that feature is installed; nil: only the cooldown.
-            limiter = rawget(_G, 'convaiProactive'),
-            outfits = function() return rawget(_G, 'convaiOutfitApi') end,
+            -- Plain global reads: CET gives this mod an environment without _G (rawget(_G, ...) throws there).
+            limiter = convaiProactive,
+            outfits = function() return convaiOutfitApi end,
             leave = function(serial, entity, key, name)
                 local departure = convaiCompanionAdoption
                 if not departure then return false end
@@ -3869,6 +3869,16 @@ do
         end
         convaiHousemates = value
         return value
+    end
+    -- One build per load: a failed one is not retried every 0.1 s (that would load and compile the module again on every tick).
+    local function service()
+        if convaiHousemates then return convaiHousemates end
+        if convaiHousematesFailed then return nil end
+        local ok, glue = pcall(build)
+        if ok and glue then return glue end
+        convaiHousematesFailed = true
+        if not ok then convaiLogOnce('housemate-build', 'Housemates are unavailable: ' .. tostring(glue)) end
+        return nil
     end
     function convaiHousemateWake()
         local glue = convaiHousemates
